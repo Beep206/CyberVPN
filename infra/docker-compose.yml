@@ -1,0 +1,207 @@
+name: remnawave-local
+
+x-common: &common
+  restart: unless-stopped
+  networks:
+    - remnawave-network
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "5"
+
+x-env: &env
+  env_file:
+    - .env
+
+services:
+  remnawave:
+    image: remnawave/backend:2
+    container_name: remnawave
+    hostname: remnawave
+    <<: [*common, *logging, *env]
+    ports:
+      - "127.0.0.1:3000:${APP_PORT:-3000}"
+      - "127.0.0.1:3001:${METRICS_PORT:-3001}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${METRICS_PORT:-3001}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      remnawave-db:
+        condition: service_healthy
+      remnawave-redis:
+        condition: service_healthy
+
+  remnawave-db:
+    image: postgres:17.7
+    container_name: remnawave-db
+    hostname: remnawave-db
+    <<: [*common, *logging, *env]
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - TZ=UTC
+    ports:
+      - "127.0.0.1:6767:5432"
+    volumes:
+      - remnawave-db-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 10s
+      retries: 3
+
+  remnawave-redis:
+    image: valkey/valkey:8.1-alpine
+    container_name: remnawave-redis
+    hostname: remnawave-redis
+    <<: [*common, *logging]
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+      --loglevel warning
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+  caddy:
+    image: caddy:2.9
+    container_name: caddy
+    hostname: caddy
+    profiles: ["proxy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - remnawave-network
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy-ssl-data:/data
+    depends_on:
+      - remnawave
+
+  remnawave-subscription-page:
+    image: remnawave/subscription-page:latest
+    container_name: remnawave-subscription-page
+    hostname: remnawave-subscription-page
+    profiles: ["subscription"]
+    restart: unless-stopped
+    env_file:
+      - ./subscription/.env
+    ports:
+      - "127.0.0.1:3010:3010"
+    networks:
+      - remnawave-network
+    depends_on:
+      - remnawave
+
+  remnashop-redis:
+    image: valkey/valkey:8.1-alpine
+    container_name: remnashop-redis
+    hostname: remnashop-redis
+    profiles: ["bot"]
+    <<: [*common, *logging]
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+      --loglevel warning
+      --requirepass ${REMNASHOP_REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${REMNASHOP_REDIS_PASSWORD}", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+  remnashop:
+    image: ghcr.io/snoups/remnashop:latest
+    container_name: remnashop
+    profiles: ["bot"]
+    restart: unless-stopped
+    env_file:
+      - ./remnashop/.env
+    volumes:
+      - ./remnashop/assets:/opt/remnashop/assets
+    depends_on:
+      remnawave-db:
+        condition: service_healthy
+      remnawave:
+        condition: service_healthy
+      remnashop-redis:
+        condition: service_healthy
+    networks:
+      - remnawave-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - remnawave-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-grafana_local_password}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - remnawave-network
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - remnawave-network
+
+networks:
+  remnawave-network:
+    name: remnawave-network
+    driver: bridge
+    external: false
+
+volumes:
+  remnawave-db-data:
+    name: remnawave-db-data
+  caddy-ssl-data:
+    name: caddy-ssl-data
+  grafana_data:
+    name: grafana_data
+  prometheus_data:
+    name: prometheus_data

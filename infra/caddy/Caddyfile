@@ -1,0 +1,19 @@
+https://panel.localhost {
+    reverse_proxy remnawave:3000 {
+        header_up X-Forwarded-Proto "https"
+        header_up X-Forwarded-For {remote_host}
+    }
+    tls internal
+}
+
+https://sub.localhost {
+    reverse_proxy remnawave-subscription-page:3010 {
+        header_up X-Forwarded-Proto "https"
+        header_up X-Forwarded-For {remote_host}
+    }
+    tls internal
+}
+
+http://panel.localhost, http://sub.localhost {
+    redir https://{host}{uri}
+}

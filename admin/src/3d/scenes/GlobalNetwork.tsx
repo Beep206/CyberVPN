@@ -5,9 +5,7 @@ import {
     Stars,
     Line,
     Sphere,
-    Html,
     OrbitControls,
-    useTexture
 } from '@react-three/drei';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { useRef, useMemo } from 'react';
