@@ -13,7 +13,7 @@ class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode
         this.state = { hasError: false };
     }
 
-    static getDerivedStateFromError(_: Error) {
+    static getDerivedStateFromError() {
         return { hasError: true };
     }
 

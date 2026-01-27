@@ -9,11 +9,10 @@ import {
     SortingState
 } from '@tanstack/react-table';
 import { useState } from 'react';
-import { Server, ServerStatus } from '@/entities/server/model/types';
+import { Server } from '@/entities/server/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
 import { ServerStatusDot } from '@/shared/ui/atoms/server-status-dot';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
-import { motion } from 'motion/react';
 import { Settings, Power, RotateCw } from 'lucide-react';
 
 const columnHelper = createColumnHelper<Server>();
@@ -67,7 +66,7 @@ const columns = [
     columnHelper.display({
         id: 'actions',
         header: 'CONTROLS',
-        cell: info => (
+        cell: () => (
             <div className="flex gap-2">
                 <button className="p-1 hover:text-neon-cyan transition-colors" title="Restart">
                     <RotateCw className="h-4 w-4" />

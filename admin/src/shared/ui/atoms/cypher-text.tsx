@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CypherTextProps {
@@ -9,7 +9,7 @@ interface CypherTextProps {
     characters?: string;
     speed?: number; // ms per frame
     revealSpeed?: number; // ms to reveal next char
-    trigger?: any; // Value that triggers replay when changed
+    trigger?: unknown; // Value that triggers replay when changed
 }
 
 const DEFAULT_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:",./<>?';
@@ -26,7 +26,7 @@ export function CypherText({
     const intervalRef = useRef<NodeJS.Timeout>(null);
     const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
-    const animate = () => {
+    const animate = useCallback(() => {
         // Clear existing
         if (intervalRef.current) clearInterval(intervalRef.current);
         timeoutsRef.current.forEach(clearTimeout);
@@ -36,7 +36,7 @@ export function CypherText({
 
         // Scramble interval
         intervalRef.current = setInterval(() => {
-            setDisplayText(prev => {
+            setDisplayText(() => {
                 return text
                     .split('')
                     .map((char, i) => {
@@ -47,9 +47,6 @@ export function CypherText({
                     .join('');
             });
         }, speed);
-
-        // Reveal sequence
-        const totalTime = text.length * revealSpeed;
 
         // Schedule reveals
         for (let i = 0; i <= text.length; i++) {
@@ -62,7 +59,7 @@ export function CypherText({
             }, i * revealSpeed);
             timeoutsRef.current.push(timeout);
         }
-    };
+    }, [characters, revealSpeed, speed, text]);
 
     useEffect(() => {
         animate();
@@ -70,12 +67,12 @@ export function CypherText({
             if (intervalRef.current) clearInterval(intervalRef.current);
             timeoutsRef.current.forEach(clearTimeout);
         };
-    }, [text, trigger]);
+    }, [animate, trigger]);
 
     return (
         <span
             className={cn("font-mono inline-block", className)}
-            onMouseEnter={() => animate()} // Replay on hover
+            onMouseEnter={animate} // Replay on hover
         >
             {displayText}
         </span>

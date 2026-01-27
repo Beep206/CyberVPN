@@ -1,0 +1,18 @@
+{
+  "name": "vpn-business",
+  "private": true,
+  "workspaces": [
+    "admin",
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w admin",
+    "build": "npm run build -w admin",
+    "lint": "npm run lint -w admin"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

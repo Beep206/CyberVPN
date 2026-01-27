@@ -33,7 +33,7 @@ export function CyberSidebar() {
 
             <div className="flex-1 overflow-y-auto py-6 px-4">
                 <nav className="grid gap-2">
-                    {menuItems.map((item, index) => {
+                    {menuItems.map((item) => {
                         const isActive = pathname?.includes(item.href);
                         const Icon = item.icon;
 

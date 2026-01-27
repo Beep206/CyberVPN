@@ -11,7 +11,7 @@ import {
 import { useState } from 'react';
 import { User, UserStatus } from '@/entities/user/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
-import { MoreHorizontal, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 
@@ -74,7 +74,7 @@ const columns = [
     columnHelper.display({
         id: 'actions',
         header: 'ACTIONS',
-        cell: info => (
+        cell: () => (
             <button className="text-muted-foreground hover:text-white transition-colors">
                 <MoreHorizontal className="h-4 w-4" />
             </button>
