@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+/* VPN Cyberpunk Color Palette & Theme Configuration */
+@theme {
+  /* VPN Cyberpunk Color Palette - AAA+ Upgrade */
+  --color-matrix-green: #00ff88;
+  --color-neon-cyan: #00ffff;
+  --color-neon-pink: #ff00ff;
+  --color-neon-purple: #9d00ff;
+
+  /* AAA+ Dark Theme Bases */
+  --color-terminal-bg: #050505;
+  /* Deepest Black */
+  --color-terminal-surface: #0a0a0a;
+  /* Slightly lighter */
+  --color-grid-line: #00ffff;
+
+  /* VPN Status Colors - Vivid */
+  --color-server-online: #00ff00;
+  /* Pure Green */
+  --color-server-offline: #ff0000;
+  /* Pure Red */
+  --color-server-warning: #ffff00;
+  /* Pure Yellow */
+  --color-server-maintenance: #bd00ff;
+  /* Electric Purple */
+
+  /* Cyberpunk Fonts */
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-display: "Orbitron", "Audiowide", sans-serif;
+  --font-cyber: "Share Tech Mono", monospace;
+
+  /* Custom Breakpoints */
+  --breakpoint-3xl: 1920px;
+  --breakpoint-4k: 2560px;
+
+  /* Animation Timing */
+  --ease-cyber: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-glow: 2s;
+
+  /* Shadows & Glows */
+  --shadow-neon-cyan: 0 0 10px #00ffff, 0 0 20px rgba(0, 255, 255, 0.5);
+  --shadow-neon-pink: 0 0 10px #ff00ff, 0 0 20px rgba(255, 0, 255, 0.5);
+  --shadow-server-online: 0 0 10px #00ff00;
+
+  /* Map Shadcn variables to Cyberpunk Theme */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  /* ... add other shadcn mappings if needed or rely on the :root definitions below */
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-terminal-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-cyan);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+  box-shadow: 0 0 10px var(--color-neon-cyan);
+}
+
+/* Selection Styling */
+::selection {
+  background: var(--color-neon-pink);
+  color: #000;
+  text-shadow: none;
+}
+
+/* Base Theme Variables (Shadcn Mappings) */
+:root {
+  --radius: 0.5rem;
+
+  /* Light mode (not used but defined for safety) */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.12 0.03 260);
+}
+
+.dark {
+  /* Cyberpunk Dark Mode (Default) */
+  --background: var(--color-terminal-bg);
+  --foreground: oklch(0.95 0.01 195);
+  /* Text */
+
+  --card: var(--color-terminal-surface);
+  --card-foreground: oklch(0.95 0.01 195);
+
+  --popover: var(--color-terminal-surface);
+  --popover-foreground: oklch(0.95 0.01 195);
+
+  --primary: var(--color-neon-cyan);
+  --primary-foreground: oklch(0.12 0.03 260);
+
+  --secondary: var(--color-neon-pink);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.20 0.05 195);
+  --muted-foreground: oklch(0.60 0.05 195);
+
+  --accent: var(--color-matrix-green);
+  --accent-foreground: oklch(0.12 0.03 260);
+
+  --destructive: var(--color-server-offline);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: var(--color-grid-line);
+  --input: oklch(0.20 0.05 195);
+  --ring: var(--color-neon-cyan);
+
+  --sidebar: var(--color-terminal-surface);
+  --sidebar-foreground: oklch(0.95 0.01 195);
+  --sidebar-primary: var(--color-neon-cyan);
+  --sidebar-primary-foreground: oklch(0.12 0.03 260);
+  --sidebar-accent: oklch(0.20 0.05 195);
+  --sidebar-accent-foreground: oklch(0.95 0.01 195);
+  --sidebar-border: var(--color-grid-line);
+  --sidebar-ring: var(--color-neon-cyan);
+}
+
+/* Force dark mode by default */
+@layer base {
+  body {
+    @apply bg-background text-foreground font-mono antialiased;
+    /* Apply dark class to html or body if not controlled by next-themes yet, 
+       but typically added to html tag. For now we assume dark mode is preferred. */
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+      repeating-linear-gradient(0deg,
+        transparent,
+        transparent 2px,
+        oklch(0 0 0 / 0.1) 2px,
+        oklch(0 0 0 / 0.1) 4px);
+  }
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-terminal-surface/80 backdrop-blur-xl;
+    @apply border border-grid-line/30;
+    @apply shadow-neon-cyan/20;
+    /* customized */
+  }
+
+  .server-status-online {
+    @apply text-server-online shadow-server-online;
+  }
+
+  .neon-text {
+    text-shadow:
+      0 0 10px currentColor,
+      0 0 20px currentColor,
+      0 0 40px currentColor;
+  }
+}
+
+@utility glow-* {
+  filter: drop-shadow(0 0 calc(--value * 1px) currentColor);
+}
+
+@utility scanline {
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      oklch(0 0 0 / 0.03) 2px,
+      oklch(0 0 0 / 0.03) 4px);
+}
+
+/* 3D Transforms */
+.transform-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-x-2 {
+  transform: rotateX(2deg);
+}
+
+.hover\:rotate-x-0:hover {
+  transform: rotateX(0deg);
+}
+
+.hover\:translate-z-10:hover {
+  transform: translateZ(10px);
+}

@@ -1,0 +1,11 @@
+{
+    "Dashboard": {
+        "title": "VPN Command Center",
+        "status": "System Online"
+    },
+    "Navigation": {
+        "dashboard": "Dashboard",
+        "servers": "Servers",
+        "users": "Users"
+    }
+}
