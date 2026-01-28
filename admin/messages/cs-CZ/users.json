@@ -1,0 +1,6 @@
+{
+  "title": "SPRÁVA UŽIVATELŮ",
+  "subtitle": "Řízení přístupu a monitoring předplatného.",
+  "totalUsers": "CELKEM UŽIVATELŮ: {count}",
+  "newToday": "NOVÝCH DNES: {count}"
+}

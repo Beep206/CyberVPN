@@ -1,0 +1,18 @@
+{
+  "title": "מאגר לקוחות",
+  "searchPlaceholder": "חיפוש_זהות...",
+  "columns": {
+    "identity": "זהות",
+    "subscription": "מנוי",
+    "dataUsage": "שימוש בנתונים",
+    "status": "סטטוס",
+    "lastSeen": "נצפה לאחרונה",
+    "actions": "פעולות"
+  },
+  "status": {
+    "active": "פעיל",
+    "expired": "פג תוקף",
+    "banned": "חסום",
+    "trial": "ניסיון"
+  }
+}

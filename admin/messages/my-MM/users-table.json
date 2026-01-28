@@ -1,0 +1,18 @@
+{
+  "title": "သုံးစွဲသူဒေတာဘေ့စ်",
+  "searchPlaceholder": "ID_ရှာဖွေ...",
+  "columns": {
+    "identity": "ID",
+    "subscription": "စာရင်းသွင်းမှု",
+    "dataUsage": "ဒေတာအသုံးပြုမှု",
+    "status": "အခြေအနေ",
+    "lastSeen": "နောက်ဆုံးတွေ့",
+    "actions": "လုပ်ဆောင်ချက်"
+  },
+  "status": {
+    "active": "အသက်ဝင်",
+    "expired": "သက်တမ်းကုန်",
+    "banned": "ပိတ်ပင်",
+    "trial": "အစမ်းသုံး"
+  }
+}

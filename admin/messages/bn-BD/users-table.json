@@ -1,0 +1,18 @@
+{
+  "title": "ক্লায়েন্ট ডাটাবেস",
+  "searchPlaceholder": "পরিচয়_অনুসন্ধান...",
+  "columns": {
+    "identity": "পরিচয়",
+    "subscription": "সাবস্ক্রিপশন",
+    "dataUsage": "ডেটা ব্যবহার",
+    "status": "স্ট্যাটাস",
+    "lastSeen": "সর্বশেষ দেখা",
+    "actions": "অ্যাকশন"
+  },
+  "status": {
+    "active": "সক্রিয়",
+    "expired": "মেয়াদোত্তীর্ণ",
+    "banned": "নিষিদ্ধ",
+    "trial": "ট্রায়াল"
+  }
+}

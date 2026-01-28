@@ -1,0 +1,14 @@
+{
+  "title": "VPN VELITELSKÉ CENTRUM",
+  "statusLabel": "STAV SYSTÉMU:",
+  "statusValue": "OPTIMÁLNÍ",
+  "connectionStatus": "ZABEZPEČENÉ SPOJENÍ NAVÁZÁNO",
+  "encryptionStatus": "ŠIFROVÁNÍ: KVANTOVĚ BEZPEČNÉ",
+  "serverStatus": "STAV SERVERU",
+  "nodesOnline": "UZLY ONLINE",
+  "activeSessions": "AKTIVNÍ RELACE",
+  "currentConnections": "Aktuální připojení",
+  "networkLoad": "ZATÍŽENÍ SÍTĚ",
+  "aggregateThroughput": "Agregovaná propustnost",
+  "serverMatrix": "MATICE SERVERŮ"
+}

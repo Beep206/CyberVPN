@@ -1,0 +1,24 @@
+{
+  "title": "INFRASTRUCTURĂ ACTIVĂ",
+  "deployNode": "+ IMPLEMENTARE NOD",
+  "columns": {
+    "serverName": "NUME SERVER",
+    "location": "LOCAȚIE",
+    "ipAddress": "ADRESĂ IP",
+    "protocol": "PROTOCOL",
+    "status": "STARE",
+    "load": "ÎNCĂRCARE",
+    "controls": "CONTROALE"
+  },
+  "actions": {
+    "restart": "Repornire",
+    "stop": "Oprire",
+    "config": "Configurare"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "AVERTISMENT",
+    "maintenance": "MENTENANȚĂ"
+  }
+}

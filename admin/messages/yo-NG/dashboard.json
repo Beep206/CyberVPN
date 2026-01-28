@@ -1,0 +1,14 @@
+{
+  "title": "IBI ÀṢẸ VPN",
+  "statusLabel": "IPÒ ỆRỌ:",
+  "statusValue": "Ó DÁRA JÙLỌ",
+  "connectionStatus": "ÀSOPỌ̀ ALÁÀBÒ TI MULẸ̀",
+  "encryptionStatus": "ÌPAMỌ́: ÀÀBÒ-QUANTUM",
+  "serverStatus": "IPÒ OLÙPÍN",
+  "nodesOnline": "ÀWỌN OJÚPỌ̀ TÓ ŃṢIṢẸ́",
+  "activeSessions": "ÀWỌN ÌGBÀ TÓ ŃṢIṢẸ́",
+  "currentConnections": "Àwọn àsopọ̀ lọ́wọ́lọ́wọ́",
+  "networkLoad": "ÌRÙ NẸTIWỌỌKÌ",
+  "aggregateThroughput": "Àpapọ̀ ìsàn dátà",
+  "serverMatrix": "ÀTÒJỌ OLÙPÍN"
+}

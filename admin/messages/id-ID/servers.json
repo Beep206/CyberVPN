@@ -1,0 +1,7 @@
+{
+  "title": "MANAJEMEN SERVER",
+  "subtitle": "Kelola node VPN, protokol, dan wilayah deployment.",
+  "globalStatus": "STATUS GLOBAL: {status}",
+  "globalStatusValue": "TERPROVISI",
+  "lastSync": "SINKRONISASI TERAKHIR: {time} LALU"
+}

@@ -1,0 +1,6 @@
+{
+  "title": "ANVÄNDARHANTERING",
+  "subtitle": "Åtkomstkontroll och prenumerationsövervakning.",
+  "totalUsers": "TOTALT ANVÄNDARE: {count}",
+  "newToday": "NYA IDAG: {count}"
+}

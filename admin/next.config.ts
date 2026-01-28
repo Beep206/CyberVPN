@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -11,4 +12,6 @@ const config: NextConfigWithCompiler = {
   reactCompiler: true,
 };
 
-export default config;
+const withNextIntl = createNextIntlPlugin();
+
+export default withNextIntl(config);

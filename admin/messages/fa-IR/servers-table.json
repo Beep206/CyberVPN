@@ -1,0 +1,24 @@
+{
+  "title": "زیرساخت فعال",
+  "deployNode": "+ استقرار نود",
+  "columns": {
+    "serverName": "نام سرور",
+    "location": "موقعیت",
+    "ipAddress": "آدرس IP",
+    "protocol": "پروتکل",
+    "status": "وضعیت",
+    "load": "بار",
+    "controls": "کنترل‌ها"
+  },
+  "actions": {
+    "restart": "راه‌اندازی مجدد",
+    "stop": "توقف",
+    "config": "پیکربندی"
+  },
+  "status": {
+    "online": "آنلاین",
+    "offline": "آفلاین",
+    "warning": "هشدار",
+    "maintenance": "تعمیرات"
+  }
+}

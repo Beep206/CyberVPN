@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { ServerCard } from "@/shared/ui/molecules/server-card";
 
 const servers = [
@@ -7,42 +8,48 @@ const servers = [
     { id: '4', name: 'Singapore Stealth', location: 'Singapore', status: 'maintenance' as const, ip: '201.10.3.55', load: 0, protocol: 'vless' as const },
 ];
 
-export default function Dashboard() {
+export default async function Dashboard({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: 'Dashboard' });
     return (
         <div className="p-8 space-y-8">
             <header className="flex justify-between items-center mb-8 bg-terminal-surface/30 p-4 rounded-xl border border-grid-line/30 backdrop-blur">
                 <div>
-                    <h1 className="text-4xl font-display text-neon-cyan drop-shadow-glow">VPN COMMAND CENTER</h1>
-                    <p className="text-muted-foreground font-mono mt-1">SYSTEM STATUS: <span className="text-matrix-green">OPTIMAL</span></p>
+                    <h1 className="text-4xl font-display text-neon-cyan drop-shadow-glow">{t('title')}</h1>
+                    <p className="text-muted-foreground font-mono mt-1">{t('statusLabel')} <span className="text-matrix-green">{t('statusValue')}</span></p>
                 </div>
                 <div className="text-right font-cyber text-sm text-neon-pink">
-                    SECURE CONNECTION ESTABLISHED<br />
-                    ENCRYPTION: QUANTUM-SAFE
+                    {t('connectionStatus')}<br />
+                    {t('encryptionStatus')}
                 </div>
             </header>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">SERVER STATUS</h2>
+                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('serverStatus')}</h2>
                     <div className="text-4xl font-display text-server-online drop-shadow-glow">
                         {servers.filter(s => s.status === 'online').length} / {servers.length}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-2">NODES ONLINE</p>
+                    <p className="text-sm text-muted-foreground mt-2">{t('nodesOnline')}</p>
                 </div>
                 <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">ACTIVE SESSIONS</h2>
+                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('activeSessions')}</h2>
                     <div className="text-4xl font-display text-neon-cyan drop-shadow-glow">1,337</div>
-                    <p className="text-sm text-muted-foreground mt-2">Current connections</p>
+                    <p className="text-sm text-muted-foreground mt-2">{t('currentConnections')}</p>
                 </div>
                 <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">NETWORK LOAD</h2>
+                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('networkLoad')}</h2>
                     <div className="text-4xl font-display text-matrix-green drop-shadow-glow">42 Pb/s</div>
-                    <p className="text-sm text-muted-foreground mt-2">Aggregate throughput</p>
+                    <p className="text-sm text-muted-foreground mt-2">{t('aggregateThroughput')}</p>
                 </div>
             </div>
 
-            <h2 className="text-2xl font-display text-neon-purple mt-12 mb-6 pl-2 border-l-4 border-neon-purple">SERVER MATRIX</h2>
+            <h2 className="text-2xl font-display text-neon-purple mt-12 mb-6 pl-2 border-l-4 border-neon-purple">{t('serverMatrix')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {servers.map((server, index) => (
                     <ServerCard key={server.id} server={server} index={index} />

@@ -1,0 +1,24 @@
+{
+  "title": "AKTIVNÍ INFRASTRUKTURA",
+  "deployNode": "+ NASADIT UZEL",
+  "columns": {
+    "serverName": "NÁZEV SERVERU",
+    "location": "LOKACE",
+    "ipAddress": "IP ADRESA",
+    "protocol": "PROTOKOL",
+    "status": "STAV",
+    "load": "ZATÍŽENÍ",
+    "controls": "OVLÁDÁNÍ"
+  },
+  "actions": {
+    "restart": "Restart",
+    "stop": "Zastavit",
+    "config": "Konfig"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "VAROVÁNÍ",
+    "maintenance": "ÚDRŽBA"
+  }
+}

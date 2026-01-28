@@ -1,0 +1,10 @@
+{
+    "systemLabel": "СИСТЕМА",
+    "integrity": "ПРОВЕРКА ЦЕЛОСТНОСТИ ПРОЙДЕНА",
+    "encryptionLabel": "ШИФРОВАНИЕ",
+    "encryptionValue": "АКТИВНО - AES-256",
+    "netUplink": "СЕТЬ_АПЛИНК",
+    "fps": "FPS",
+    "ping": "PING",
+    "language": "ЯЗЫК"
+}

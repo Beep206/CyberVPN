@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { ServerStatusDot } from "@/shared/ui/atoms/server-status-dot";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface ServerCardProps {
     server: {
@@ -18,6 +19,7 @@ interface ServerCardProps {
 }
 
 export function ServerCard({ server, index }: ServerCardProps) {
+    const t = useTranslations('ServerCard');
     return (
         <motion.div
             initial={{ opacity: 0, y: 20, rotateX: -10 }}
@@ -46,17 +48,17 @@ export function ServerCard({ server, index }: ServerCardProps) {
 
             <div className="space-y-2">
                 <div className="flex justify-between text-xs font-cyber text-muted-foreground">
-                    <span>IP</span>
+                    <span>{t('ip')}</span>
                     <span className="text-neon-cyan">{server.ip}</span>
                 </div>
                 <div className="flex justify-between text-xs font-cyber text-muted-foreground">
-                    <span>PROTOCOL</span>
+                    <span>{t('protocol')}</span>
                     <span className="uppercase text-neon-purple">{server.protocol}</span>
                 </div>
 
                 <div className="mt-4">
                     <div className="flex justify-between text-xs font-mono mb-1">
-                        <span>LOAD</span>
+                        <span>{t('load')}</span>
                         <span className={server.load > 80 ? "text-server-warning" : "text-matrix-green"}>{server.load}%</span>
                     </div>
                     <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden">

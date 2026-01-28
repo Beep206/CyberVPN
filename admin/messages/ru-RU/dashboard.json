@@ -1,0 +1,14 @@
+{
+    "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
+    "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
+    "statusValue": "ОПТИМАЛЬНО",
+    "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
+    "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
+    "serverStatus": "СТАТУС СЕРВЕРОВ",
+    "nodesOnline": "УЗЛОВ В СЕТИ",
+    "activeSessions": "АКТИВНЫЕ СЕССИИ",
+    "currentConnections": "Текущие подключения",
+    "networkLoad": "НАГРУЗКА СЕТИ",
+    "aggregateThroughput": "Суммарная пропускная способность",
+    "serverMatrix": "МАТРИЦА СЕРВЕРОВ"
+}

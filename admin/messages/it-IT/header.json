@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SISTEMA",
+  "integrity": "VERIFICA INTEGRITA' SUPERATA",
+  "encryptionLabel": "CRITTOGRAFIA",
+  "encryptionValue": "ATTIVA - AES-256",
+  "netUplink": "UPLINK_RETE",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "LINGUA"
+}

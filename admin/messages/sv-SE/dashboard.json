@@ -1,0 +1,14 @@
+{
+  "title": "VPN KOMMANDOCENTRAL",
+  "statusLabel": "SYSTEMSTATUS:",
+  "statusValue": "OPTIMAL",
+  "connectionStatus": "SÄKER ANSLUTNING ETABLERAD",
+  "encryptionStatus": "KRYPTERING: KVANTSÄKER",
+  "serverStatus": "SERVERSTATUS",
+  "nodesOnline": "NODER ONLINE",
+  "activeSessions": "AKTIVA SESSIONER",
+  "currentConnections": "Aktuella anslutningar",
+  "networkLoad": "NÄTVERKSBELASTNING",
+  "aggregateThroughput": "Aggregerad genomströmning",
+  "serverMatrix": "SERVERMATRIS"
+}

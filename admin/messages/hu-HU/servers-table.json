@@ -1,0 +1,24 @@
+{
+  "title": "AKTÍV INFRASTRUKTÚRA",
+  "deployNode": "+ CSOMÓPONT TELEPÍTÉS",
+  "columns": {
+    "serverName": "SZERVER NÉV",
+    "location": "LOKÁCIÓ",
+    "ipAddress": "IP CÍM",
+    "protocol": "PROTOKOLL",
+    "status": "ÁLLAPOT",
+    "load": "TERHELÉS",
+    "controls": "VEZÉRLÉS"
+  },
+  "actions": {
+    "restart": "Újraindítás",
+    "stop": "Leállítás",
+    "config": "Konfig"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "FIGYELMEZTETÉS",
+    "maintenance": "KARBANTARTÁS"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "title": "SPRÁVA SERVERŮ",
+  "subtitle": "Správa VPN uzlů, protokolů a regionů nasazení.",
+  "globalStatus": "GLOBÁLNÍ STAV: {status}",
+  "globalStatusValue": "PROVOZUSCHOPNÝ",
+  "lastSync": "POSLEDNÍ SYNC: PŘED {time}"
+}

@@ -1,0 +1,18 @@
+{
+  "title": "DATABASE NG KLIYENTE",
+  "searchPlaceholder": "MAGHANAP_NG_PAGKAKAKILANLAN...",
+  "columns": {
+    "identity": "PAGKAKAKILANLAN",
+    "subscription": "SUBSCRIPTION",
+    "dataUsage": "PAGGAMIT NG DATA",
+    "status": "ESTADO",
+    "lastSeen": "HULING NAKITA",
+    "actions": "MGA AKSYON"
+  },
+  "status": {
+    "active": "AKTIBO",
+    "expired": "NATAPOS NA",
+    "banned": "BAWAL",
+    "trial": "PAGSUBOK"
+  }
+}

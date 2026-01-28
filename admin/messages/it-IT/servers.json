@@ -1,0 +1,7 @@
+{
+  "title": "GESTIONE SERVER",
+  "subtitle": "Gestisci nodi VPN, protocolli e regioni di deployment.",
+  "globalStatus": "STATO GLOBALE: {status}",
+  "globalStatusValue": "PROVISIONATO",
+  "lastSync": "ULTIMA SYNC: {time} FA"
+}

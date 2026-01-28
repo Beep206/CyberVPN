@@ -1,0 +1,7 @@
+{
+  "title": "QUẢN LÝ MÁY CHỦ",
+  "subtitle": "Quản lý các nút VPN, giao thức và vùng triển khai.",
+  "globalStatus": "TRẠNG THÁI TOÀN CẦU: {status}",
+  "globalStatusValue": "ĐÃ CUNG CẤP",
+  "lastSync": "ĐỒNG BỘ CUỐI: {time} TRƯỚC"
+}

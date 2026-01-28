@@ -1,0 +1,10 @@
+{
+  "systemLabel": "ሲስተም",
+  "integrity": "የንፅህና ምርመራ አልፏል",
+  "encryptionLabel": "ምስጠራ",
+  "encryptionValue": "ንቁ - AES-256",
+  "netUplink": "መረብ_አገናኝ",
+  "fps": "FPS",
+  "ping": "ፒንግ",
+  "language": "ቋንቋ"
+}

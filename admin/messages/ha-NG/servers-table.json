@@ -1,0 +1,24 @@
+{
+  "title": "KAYAN AIKI MAI AIKI",
+  "deployNode": "+ TURA CIBIYA",
+  "columns": {
+    "serverName": "SUNAN SABIS",
+    "location": "WURI",
+    "ipAddress": "ADIRESHIN IP",
+    "protocol": "KA'IDA",
+    "status": "MATSAYI",
+    "load": "NAUYI",
+    "controls": "SARRAFAWA"
+  },
+  "actions": {
+    "restart": "Sake kunna",
+    "stop": "Tsayar",
+    "config": "Saituna"
+  },
+  "status": {
+    "online": "YANA AIKI",
+    "offline": "BA YA AIKI",
+    "warning": "GARGAƊI",
+    "maintenance": "GYARA"
+  }
+}

@@ -1,26 +1,25 @@
 'use client';
 
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { Server, Users, Activity, CreditCard, Settings, Shield, BarChart3 } from 'lucide-react';
 
 const menuItems = [
-    { icon: Activity, label: 'DASHBOARD', href: '/dashboard' },
-    { icon: Server, label: 'SERVERS', href: '/servers' },
-    { icon: Users, label: 'CLIENTS', href: '/users' },
-    { icon: CreditCard, label: 'BILLING', href: '/subscriptions' },
-    { icon: BarChart3, label: 'NET OP', href: '/analytics' },
-    { icon: Shield, label: 'SECURITY', href: '/monitoring' },
-    { icon: Settings, label: 'CONFIG', href: '/settings' },
+    { icon: Activity, labelKey: 'dashboard', href: '/dashboard' },
+    { icon: Server, labelKey: 'servers', href: '/servers' },
+    { icon: Users, labelKey: 'users', href: '/users' },
+    { icon: CreditCard, labelKey: 'billing', href: '/subscriptions' },
+    { icon: BarChart3, labelKey: 'analytics', href: '/analytics' },
+    { icon: Shield, labelKey: 'security', href: '/monitoring' },
+    { icon: Settings, labelKey: 'settings', href: '/settings' },
 ];
 
 export function CyberSidebar() {
     const pathname = usePathname();
-    // Assume generic locale handling for active state matching
-    // Pathname might be /en/dashboard, we check if it includes the href
+    const t = useTranslations('Navigation');
 
     return (
         <aside className="hidden h-screen w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex z-40 fixed left-0 top-0">
@@ -36,6 +35,7 @@ export function CyberSidebar() {
                     {menuItems.map((item) => {
                         const isActive = pathname?.includes(item.href);
                         const Icon = item.icon;
+                        const label = t(item.labelKey);
 
                         return (
                             <Link
@@ -66,16 +66,16 @@ export function CyberSidebar() {
 
                                     <span className="relative tracking-wide">
                                         <CypherText
-                                            text={item.label}
+                                            text={label}
                                             className="group-hover:text-neon-cyan transition-colors duration-300"
                                             speed={30}
                                         />
                                         {/* Glitch Overlay Text (Visible on Hover) */}
                                         <span className="absolute top-0 left-0 -translate-x-[2px] opacity-0 text-neon-pink mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse">
-                                            {item.label}
+                                            {label}
                                         </span>
                                         <span className="absolute top-0 left-0 translate-x-[2px] opacity-0 text-neon-cyan mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse animation-delay-75">
-                                            {item.label}
+                                            {label}
                                         </span>
                                     </span>
 

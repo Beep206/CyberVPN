@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SYSTÉM",
+  "integrity": "KONTROLA INTEGRITY ÚSPĚŠNÁ",
+  "encryptionLabel": "ŠIFROVÁNÍ",
+  "encryptionValue": "AKTIVNÍ - AES-256",
+  "netUplink": "SÍŤ_UPLINK",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "JAZYK"
+}

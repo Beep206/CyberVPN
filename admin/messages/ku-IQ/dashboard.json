@@ -1,0 +1,14 @@
+{
+  "title": "ناوەندی فەرماندەی VPN",
+  "statusLabel": "دۆخی سیستەم:",
+  "statusValue": "باشترین",
+  "connectionStatus": "پەیوەندی پارێزراو دامەزرا",
+  "encryptionStatus": "شفرەکردن: پارێزراو لە کوانتەم",
+  "serverStatus": "دۆخی سێرڤەر",
+  "nodesOnline": "گرێکان لەسەرهێڵ",
+  "activeSessions": "دانیشتنە چالاکەکان",
+  "currentConnections": "پەیوەندییە ئێستاییەکان",
+  "networkLoad": "بارکردنی تۆڕ",
+  "aggregateThroughput": "کۆی گواستنەوەی داتا",
+  "serverMatrix": "ماتریکسی سێرڤەر"
+}

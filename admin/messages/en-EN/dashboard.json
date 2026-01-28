@@ -1,0 +1,14 @@
+{
+    "title": "VPN COMMAND CENTER",
+    "statusLabel": "SYSTEM STATUS:",
+    "statusValue": "OPTIMAL",
+    "connectionStatus": "SECURE CONNECTION ESTABLISHED",
+    "encryptionStatus": "ENCRYPTION: QUANTUM-SAFE",
+    "serverStatus": "SERVER STATUS",
+    "nodesOnline": "NODES ONLINE",
+    "activeSessions": "ACTIVE SESSIONS",
+    "currentConnections": "Current connections",
+    "networkLoad": "NETWORK LOAD",
+    "aggregateThroughput": "Aggregate throughput",
+    "serverMatrix": "SERVER MATRIX"
+}

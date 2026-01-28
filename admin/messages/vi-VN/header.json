@@ -1,0 +1,10 @@
+{
+  "systemLabel": "HỆ THỐNG",
+  "integrity": "KIỂM TRA TOÀN VẸN THÀNH CÔNG",
+  "encryptionLabel": "MÃ HÓA",
+  "encryptionValue": "HOẠT ĐỘNG - AES-256",
+  "netUplink": "ĐƯỜNG_TRUYỀN",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "NN"
+}
