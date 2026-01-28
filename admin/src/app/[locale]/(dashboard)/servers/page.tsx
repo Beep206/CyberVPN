@@ -12,7 +12,7 @@ export default async function ServersPage({
         <div className="p-8 space-y-8">
             <div className="flex justify-between items-center mb-8 bg-terminal-surface/30 p-6 rounded-xl border border-grid-line/30 backdrop-blur">
                 <div>
-                    <h1 className="text-3xl font-display text-white tracking-widest">{t('title')}</h1>
+                    <h1 className="text-3xl font-display text-foreground tracking-widest">{t('title')}</h1>
                     <p className="text-muted-foreground font-mono mt-2">{t('subtitle')}</p>
                 </div>
                 <div className="text-right">

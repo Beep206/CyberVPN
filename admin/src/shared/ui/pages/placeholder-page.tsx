@@ -13,7 +13,7 @@ export default async function PlaceholderPage({
                 <Construction className="h-24 w-24 text-neon-cyan opacity-80 animate-pulse" />
                 <div className="absolute inset-0 blur-xl bg-neon-cyan/20 rounded-full" />
             </div>
-            <h1 className="text-3xl font-display text-white tracking-widest">{t('title')}</h1>
+            <h1 className="text-3xl font-display text-foreground tracking-widest">{t('title')}</h1>
             <p className="text-muted-foreground font-mono max-w-md">
                 {t('descriptionLine1')}
                 {" "}
