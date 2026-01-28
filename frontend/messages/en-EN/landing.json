@@ -20,6 +20,22 @@
         "anonymity": {
             "title": "True Anonymity",
             "desc": "No logs policy. Your data is yours alone."
+        },
+        "global": {
+            "title": "GLOBAL REACH",
+            "desc": "Access content from anywhere in the world with 100+ locations."
+        },
+        "unlimited": {
+            "title": "NO LIMITS",
+            "desc": "Unlimited bandwidth and simultaneous connections."
+        },
+        "encryption": {
+            "title": "STALWART SHIELD",
+            "desc": "Multi-layer tunneling protocols for ultimate protection."
         }
+    },
+    "speed": {
+        "title": "10 GBIT/S",
+        "subtitle": "Unrestricted Velocity"
     }
 }

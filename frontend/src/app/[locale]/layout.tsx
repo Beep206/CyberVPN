@@ -41,6 +41,10 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/app/providers/theme-provider";
 
+import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
+import { CustomCursor } from "@/components/ui/custom-cursor";
+import { DevPanel } from "@/features/dev/dev-panel";
+
 export default async function RootLayout({
     children,
     params,
@@ -69,12 +73,20 @@ export default async function RootLayout({
                     disableTransitionOnChange
                 >
                     <NextIntlClientProvider locale={locale} messages={messages}>
-                        <div className="relative z-10 h-full w-full">
-                            {children}
-                        </div>
+                        <SmoothScrollProvider>
+                            <CustomCursor />
+
+                            {/* App Content Wrapper with Custom Cursor Scope */}
+                            <div className="custom-cursor-scope relative h-full w-full">
+                                <div className="relative z-10 h-full w-full">
+                                    {children}
+                                </div>
+                                <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+                                <DevPanel />
+                            </div>
+
+                        </SmoothScrollProvider>
                     </NextIntlClientProvider>
-                    {/* Background scanline effect and glow can be global or part of specific layouts */}
-                    <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
                 </ThemeProvider>
             </body>
         </html>

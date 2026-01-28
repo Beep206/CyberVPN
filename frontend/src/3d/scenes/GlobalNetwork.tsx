@@ -213,11 +213,26 @@ const defaultConnections: NetworkConnection[] = [
 ];
 
 
+// Parallax Camera Rig
+// Parallax Group Component
+function ParallaxGroup({ children }: { children: React.ReactNode }) {
+    const group = useRef<THREE.Group>(null!);
+
+    useFrame((state) => {
+        const { pointer } = state;
+        // Rotate the entire group slightly based on mouse position
+        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, pointer.x * 0.2, 0.1);
+        group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -pointer.y * 0.2, 0.1);
+    });
+
+    return <group ref={group}>{children}</group>;
+}
+
 export default function GlobalNetworkScene({ servers = defaultServers, connections = defaultConnections }: GlobalNetworkSceneProps) {
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
-                camera={{ position: [0, 0, 6.5], fov: 40 }}
+                camera={{ position: [0, 2, 7], fov: 40 }}
                 gl={{
                     antialias: true,
                     alpha: true,
@@ -226,28 +241,31 @@ export default function GlobalNetworkScene({ servers = defaultServers, connectio
                 }}
                 dpr={[1, 2]}
             >
-                <fog attach="fog" args={['#050510', 5, 20]} />
+                {/* Reduced fog density to ensure stars are visible */}
+                <fog attach="fog" args={['#050510', 5, 25]} />
 
                 <ambientLight intensity={0.2} />
                 <pointLight position={[10, 10, 10]} color="#00ffff" intensity={1.5} />
                 <pointLight position={[-10, -5, -10]} color="#ff00ff" intensity={1} />
 
-                <Globe />
-                <group rotation-y={0}>
-                    <ServerNodes servers={servers} />
-                    <ConnectionLines connections={connections} />
-                </group>
+                {/* Parallax Wrapper for Scene Content */}
+                <ParallaxGroup>
+                    <Globe />
+                    <group rotation-y={0}>
+                        <ServerNodes servers={servers} />
+                        <ConnectionLines connections={connections} />
+                    </group>
+                </ParallaxGroup>
 
-                <Stars radius={50} depth={50} count={3000} factor={4} fade speed={0.5} />
+                <Stars radius={40} depth={40} count={3000} factor={4} fade speed={1} />
 
-                {/* Restricted Orbital Controls */}
+                {/* OrbitControls for auto-rotation, but disable user interaction to not fight parallax */}
                 <OrbitControls
                     enableZoom={false}
                     enablePan={false}
+                    enableRotate={false}
                     autoRotate
                     autoRotateSpeed={0.5}
-                    minPolarAngle={Math.PI / 3}
-                    maxPolarAngle={Math.PI / 1.5}
                 />
 
                 <EffectComposer enableNormalPass={false} multisampling={0}>

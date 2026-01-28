@@ -3,28 +3,38 @@ import { defaultLocale, locales } from './config';
 
 type Locale = (typeof locales)[number];
 
+// Helper for deep merging translation objects
+function deepMerge(target: any, source: any) {
+    for (const key in source) {
+        if (source[key] instanceof Object && key in target) {
+            Object.assign(source[key], deepMerge(target[key], source[key]));
+        }
+    }
+    return { ...target, ...source };
+}
+
 export default getRequestConfig(async ({ locale }) => {
     const resolvedLocale: Locale = locales.includes(locale as Locale) ? (locale as Locale) : defaultLocale;
 
-    const messages = await loadMessages(resolvedLocale);
+    // Load base messages (English) and current locale messages
+    const baseMessages = await loadLocaleMessages(defaultLocale);
+    let messages = baseMessages;
+
+    if (resolvedLocale !== defaultLocale) {
+        try {
+            const currentMessages = await loadLocaleMessages(resolvedLocale);
+            // Deep merge ensures that missing keys in current locale fall back to English
+            messages = deepMerge(baseMessages, currentMessages);
+        } catch (error) {
+            console.error(`Failed to load messages for ${resolvedLocale}, falling back to ${defaultLocale}`, error);
+        }
+    }
 
     return {
         locale: resolvedLocale,
         messages
     };
 });
-
-async function loadMessages(locale: Locale) {
-    try {
-        return await loadLocaleMessages(locale);
-    } catch {
-        if (locale === defaultLocale) {
-            throw new Error(`Missing messages for default locale: ${defaultLocale}`);
-        }
-
-        return loadLocaleMessages(defaultLocale);
-    }
-}
 
 async function loadLocaleMessages(locale: Locale) {
     const [
@@ -63,5 +73,4 @@ async function loadLocaleMessages(locale: Locale) {
         ServerCard: serverCard.default,
         Landing: landing.default
     };
-
 }

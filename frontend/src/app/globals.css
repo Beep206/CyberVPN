@@ -202,6 +202,38 @@
     background-image: none;
   }
 
+  /* Global cursor hiding REMOVED to fix overlays */
+  /* We will apply .custom-cursor-scope to the app root instead */
+
+  /* Utility to hide cursor only within the app container */
+  .custom-cursor-scope {
+    cursor: none;
+  }
+
+  .custom-cursor-scope a,
+  .custom-cursor-scope button,
+  .custom-cursor-scope [role="button"] {
+    cursor: none;
+  }
+
+  /* Force Restore Cursor for Next.js Error Overlay & Dev Tools */
+  body>[data-nextjs-toast-wrapper],
+  body>[data-nextjs-dialog-overlay],
+  nexjs-portal,
+  #nextjs-error-overlay {
+    cursor: auto !important;
+    pointer-events: auto !important;
+    z-index: 2147483647 !important;
+    /* Max Z-Index */
+  }
+
+  /* Ensure buttons inside the overlay are clickable */
+  body>[data-nextjs-dialog-overlay] button,
+  #nextjs-error-overlay button {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
   .dark body {
     /* Cyberpunk Grid/Scanline effect only for dark mode */
     background-image:
