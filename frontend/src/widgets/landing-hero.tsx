@@ -1,10 +1,47 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Rocket, ShieldCheck } from 'lucide-react';
 import { GlobalNetworkWrapper } from './3d-background/global-network-wrapper';
+
+// Text Scramble Component
+function ScrambleText({ text, className }: { text: string, className?: string }) {
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
+    const [display, setDisplay] = useState(text);
+    const api = useTranslations('Landing.hero'); // Just to trigger rerender if locale changes, effectively
+
+    useEffect(() => {
+        let iterations = 0;
+        const interval = setInterval(() => {
+            setDisplay(
+                text
+                    .split("")
+                    .map((letter, index) => {
+                        if (index < iterations) {
+                            return text[index];
+                        }
+                        return letters[Math.floor(Math.random() * 26)];
+                    })
+                    .join("")
+            );
+
+            if (iterations >= text.length) {
+                clearInterval(interval);
+            }
+            iterations += 1 / 3;
+        }, 30);
+
+        return () => clearInterval(interval);
+    }, [text]);
+
+    return <span className={className}>{display}</span>;
+}
+
+
 
 export function LandingHero() {
     const t = useTranslations('Landing.hero');
@@ -16,15 +53,15 @@ export function LandingHero() {
                 {/* 3D Global Network Background */}
                 <GlobalNetworkWrapper />
                 {/* Overlay to ensure text readability */}
-                <div className="absolute inset-0 bg-terminal-bg/80 via-terminal-bg/50 to-transparent bg-gradient-to-b" />
+                <div className="absolute inset-0 bg-terminal-bg/80 via-terminal-bg/60 to-transparent bg-gradient-to-b" />
             </div>
             {/* Fallback Grid if 3D fails or for texture */}
             <div className="absolute inset-0 z-0 bg-grid-white/[0.02] bg-[size:50px_50px] pointer-events-none" />
             <div className="absolute inset-0 z-0 scanline opacity-20 pointer-events-none" />
 
             {/* Glow effects */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] animate-pulse delay-1000" />
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] animate-pulse delay-1000 pointer-events-none" />
 
             <div className="container relative z-10 flex flex-col items-center text-center px-4">
 
@@ -33,7 +70,7 @@ export function LandingHero() {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-matrix-green/30 bg-matrix-green/10 text-matrix-green text-xs font-mono"
+                    className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-matrix-green/30 bg-matrix-green/10 text-matrix-green text-xs font-mono backdrop-blur-md"
                 >
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-matrix-green opacity-75"></span>
@@ -49,7 +86,7 @@ export function LandingHero() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="text-5xl md:text-8xl font-display font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-6 drop-shadow-lg"
                 >
-                    {t('title')} <br />
+                    <ScrambleText text={t('title')} /> <br />
                     <span className="text-neon-cyan neon-text">{t('titleHighlight')}</span>
                 </motion.h1>
 
@@ -70,11 +107,11 @@ export function LandingHero() {
                     transition={{ duration: 0.8, delay: 0.4 }}
                     className="flex flex-col sm:flex-row gap-4 w-full justify-center"
                 >
-                    <Button size="lg" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black font-bold tracking-wide shadow-neon-cyan hover:shadow-neon-cyan/50 transition-all h-12 px-8 text-base group">
+                    <Button size="lg" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black font-bold tracking-wide shadow-neon-cyan hover:shadow-neon-cyan/50 transition-all h-12 px-8 text-base group" data-hoverable>
                         <Rocket className="mr-2 h-5 w-5 group-hover:-translate-y-1 transition-transform" />
                         {t('ctaPrimary')}
                     </Button>
-                    <Button variant="outline" size="lg" className="border-neon-purple text-neon-purple hover:bg-neon-purple/10 font-bold tracking-wide h-12 px-8 text-base">
+                    <Button variant="outline" size="lg" className="border-neon-purple text-neon-purple hover:bg-neon-purple/10 font-bold tracking-wide h-12 px-8 text-base backdrop-blur-sm" data-hoverable>
                         <ShieldCheck className="mr-2 h-5 w-5" />
                         {t('ctaSecondary')}
                     </Button>
@@ -82,7 +119,7 @@ export function LandingHero() {
             </div>
 
             {/* Decorative Footer Element */}
-            <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-terminal-bg to-transparent z-10" />
+            <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-terminal-bg to-transparent z-10 pointer-events-none" />
         </section>
     );
 }
