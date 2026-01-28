@@ -17,12 +17,12 @@ export default async function Dashboard({
     const t = await getTranslations({ locale, namespace: 'Dashboard' });
     return (
         <div className="p-8 space-y-8">
-            <header className="flex justify-between items-center mb-8 bg-terminal-surface/30 p-4 rounded-xl border border-grid-line/30 backdrop-blur">
+            <header className="flex flex-col md:flex-row justify-between md:items-center mb-8 bg-terminal-surface/30 p-4 rounded-xl border border-grid-line/30 backdrop-blur gap-4">
                 <div>
-                    <h1 className="text-4xl font-display text-neon-cyan drop-shadow-glow">{t('title')}</h1>
-                    <p className="text-muted-foreground font-mono mt-1">{t('statusLabel')} <span className="text-matrix-green">{t('statusValue')}</span></p>
+                    <h1 className="text-2xl md:text-4xl font-display text-neon-cyan drop-shadow-glow break-words">{t('title')}</h1>
+                    <p className="text-muted-foreground font-mono mt-1 text-sm md:text-base">{t('statusLabel')} <span className="text-matrix-green">{t('statusValue')}</span></p>
                 </div>
-                <div className="text-right font-cyber text-sm text-neon-pink">
+                <div className="hidden md:block text-right font-cyber text-sm text-neon-pink">
                     {t('connectionStatus')}<br />
                     {t('encryptionStatus')}
                 </div>

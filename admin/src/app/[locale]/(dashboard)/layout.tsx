@@ -1,4 +1,5 @@
 import { CyberSidebar } from "@/widgets/cyber-sidebar";
+import { MobileSidebar } from "@/widgets/mobile-sidebar";
 import { TerminalHeader } from "@/widgets/terminal-header";
 import { GlobalNetworkWrapper } from "@/widgets/3d-background/global-network-wrapper";
 import { Scanlines } from "@/shared/ui/atoms/scanlines";
@@ -12,6 +13,7 @@ export default function DashboardLayout({
         <div className="flex h-screen w-full overflow-hidden bg-terminal-bg text-foreground">
             <Scanlines />
             <CyberSidebar />
+            <MobileSidebar />
             <div className="relative flex flex-1 flex-col overflow-hidden md:pl-64">
                 <TerminalHeader />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden relative p-4 md:p-6 pb-20 z-10">
