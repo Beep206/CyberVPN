@@ -1,0 +1,25 @@
+{
+    "hero": {
+        "title": "SECURE YOUR DIGITAL",
+        "titleHighlight": "EXISTENCE",
+        "subtitle": "Advanced encryption for the modern web. Bypass restrictions, protect your identity, and surf with absolute anonymity.",
+        "ctaPrimary": "Get Started",
+        "ctaSecondary": "View Features",
+        "status": "SYSTEM STATUS: OPTIMAL"
+    },
+    "features": {
+        "title": "CYBERPUNK DEFENSE",
+        "speed": {
+            "title": "HYPER SPEED",
+            "desc": "Gigabit connection speeds with minimal latency."
+        },
+        "security": {
+            "title": "MILITARY GRADE",
+            "desc": "AES-256 encryption with rotating keys."
+        },
+        "anonymity": {
+            "title": "True Anonymity",
+            "desc": "No logs policy. Your data is yours alone."
+        }
+    }
+}
