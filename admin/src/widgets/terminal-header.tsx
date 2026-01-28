@@ -8,6 +8,7 @@ import { useRouter } from '@/i18n/navigation';
 import { locales } from '@/i18n/config';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { LanguageSelector } from '@/features/language-selector';
+import { ThemeToggle } from '@/features/theme-toggle';
 import { cn } from '@/lib/utils';
 
 export function TerminalHeader() {
@@ -75,7 +76,7 @@ export function TerminalHeader() {
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/80 backdrop-blur-xl border-b border-grid-line/30 px-6 transition-all">
             <div className="flex flex-1 items-center gap-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-black/20 text-muted-foreground hover:text-foreground">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground">
                     <Search className="h-4 w-4" />
                 </div>
 
@@ -109,6 +110,7 @@ export function TerminalHeader() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <ThemeToggle />
                     <span className="hidden md:inline text-[10px] font-mono text-muted-foreground/60">
                         {t('language')}
                     </span>

@@ -57,7 +57,7 @@ export function CyberSidebar() {
 
                                 <div className={cn(
                                     "relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300",
-                                    isActive ? "text-neon-cyan translate-x-1" : "text-muted-foreground group-hover:text-white group-hover:translate-x-1"
+                                    isActive ? "text-neon-cyan translate-x-1" : "text-muted-foreground group-hover:text-foreground group-hover:translate-x-1"
                                 )}>
                                     <Icon className={cn(
                                         "h-4 w-4 transition-transform duration-300",
@@ -94,13 +94,13 @@ export function CyberSidebar() {
             </div>
 
             <div className="border-t border-grid-line/30 p-4">
-                <div className="rounded-lg bg-black/40 p-3 border border-grid-line/20">
+                <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
                     <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded bg-neon-purple/20 flex items-center justify-center text-neon-purple border border-neon-purple/50">
                             AD
                         </div>
                         <div className="text-xs font-mono">
-                            <div className="text-white">ADMIN_01</div>
+                            <div className="text-foreground">ADMIN_01</div>
                             <div className="text-muted-foreground">ROOT ACCESS</div>
                         </div>
                     </div>
