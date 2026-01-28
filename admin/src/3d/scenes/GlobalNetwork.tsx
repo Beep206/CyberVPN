@@ -175,13 +175,12 @@ export default function GlobalNetworkScene({ servers = defaultServers, connectio
             <Canvas
                 camera={{ position: [0, 2, 5], fov: 45 }}
                 gl={{
-                    antialias: false,
+                    antialias: true,
                     alpha: true,
                     powerPreference: "high-performance",
-                    stencil: false,
-                    depth: true
+                    preserveDrawingBuffer: true
                 }}
-                dpr={[1, 1.5]} // Limit pixel ratio for performance
+                dpr={[1, 2]}
             >
                 <fog attach="fog" args={['#050510', 5, 12]} />
 

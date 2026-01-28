@@ -14,5 +14,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "task-master-ai": "^0.42.0"
   }
 }

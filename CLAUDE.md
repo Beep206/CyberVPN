@@ -104,3 +104,7 @@ Local Docker stack includes:
 ### i18n
 
 27 locales configured in `admin/src/i18n/config.ts`. Message files in `admin/messages/{locale}/`. Default: `en-EN`. RTL support for Arabic, Hebrew, Farsi.
+
+## Task Master AI Instructions
+**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
+@./.taskmaster/CLAUDE.md

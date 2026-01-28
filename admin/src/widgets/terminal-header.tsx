@@ -10,6 +10,7 @@ import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { LanguageSelector } from '@/features/language-selector';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { cn } from '@/lib/utils';
+import { NotificationDropdown } from "@/features/notifications/notification-dropdown";
 
 export function TerminalHeader() {
     const [time, setTime] = useState<string>('');
@@ -74,7 +75,7 @@ export function TerminalHeader() {
     }, []);
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/80 backdrop-blur-xl border-b border-grid-line/30 px-6 transition-all">
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/80 backdrop-blur-xl border-b border-grid-line/30 px-6 pl-20 md:pl-6 transition-all">
             <div className="flex flex-1 items-center gap-4">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground">
                     <Search className="h-4 w-4" />
@@ -106,7 +107,7 @@ export function TerminalHeader() {
                 {/* Network Pulse */}
                 <div className="flex items-center gap-2 text-xs font-mono text-matrix-green bg-matrix-green/10 px-3 py-1 rounded-full border border-matrix-green/30">
                     <Wifi className="h-3 w-3 animate-pulse" />
-                    <span>{t('netUplink')}</span>
+                    <span className="hidden md:inline">{t('netUplink')}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -117,14 +118,11 @@ export function TerminalHeader() {
                     <LanguageSelector />
                 </div>
 
-                <div className="font-cyber text-sm text-neon-cyan/80 min-w-[100px] text-right">
+                <div className="hidden md:block font-cyber text-sm text-neon-cyan/80 min-w-[100px] text-right">
                     {time || "--:--:--"}
                 </div>
 
-                <button className="relative rounded-full p-2 text-muted-foreground hover:bg-white/5 hover:text-foreground">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_#ff0055]" />
-                </button>
+                <NotificationDropdown />
             </div>
         </header>
     );
