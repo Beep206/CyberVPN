@@ -1,12 +1,13 @@
 'use client';
 
-import { Bell, ChevronDown, Search, Wifi } from 'lucide-react';
+import { Bell, Search, Wifi } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { locales } from '@/i18n/config';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
+import { LanguageSelector } from '@/features/language-selector';
 import { cn } from '@/lib/utils';
 
 export function TerminalHeader() {
@@ -18,11 +19,6 @@ export function TerminalHeader() {
     const router = useRouter();
     const pathname = usePathname();
     const [isPending, startTransition] = useTransition();
-
-    const localeOptions = locales.map((value) => ({
-        value,
-        label: value.toUpperCase()
-    }));
 
     // Hydration fix for time
     useEffect(() => {
@@ -61,7 +57,7 @@ export function TerminalHeader() {
             const start = performance.now();
             try {
                 await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' });
-            } catch {}
+            } catch { }
             const duration = Math.round(performance.now() - start);
             if (active) {
                 setPing(duration);
@@ -75,25 +71,6 @@ export function TerminalHeader() {
             clearInterval(interval);
         };
     }, []);
-
-    const stripLocale = (path: string) => {
-        const segments = path.split('/').filter(Boolean);
-        if (segments.length === 0) return '/';
-
-        if (locales.includes(segments[0] as (typeof locales)[number])) {
-            segments.shift();
-        }
-
-        return `/${segments.join('/')}`;
-    };
-
-    const handleLocaleChange = (nextLocale: string) => {
-        if (nextLocale === locale || !pathname) return;
-        const targetPath = stripLocale(pathname);
-        startTransition(() => {
-            router.replace(targetPath, { locale: nextLocale });
-        });
-    };
 
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/80 backdrop-blur-xl border-b border-grid-line/30 px-6 transition-all">
@@ -135,25 +112,7 @@ export function TerminalHeader() {
                     <span className="hidden md:inline text-[10px] font-mono text-muted-foreground/60">
                         {t('language')}
                     </span>
-                    <div className="relative">
-                        <select
-                            value={locale}
-                            onChange={(event) => handleLocaleChange(event.target.value)}
-                            disabled={isPending}
-                            aria-label={t('language')}
-                            className={cn(
-                                "appearance-none rounded-full border border-grid-line/40 bg-black/30 px-3 py-1 pr-6 text-[10px] font-mono",
-                                "text-muted-foreground focus:border-neon-cyan focus:outline-none"
-                            )}
-                        >
-                            {localeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
-                    </div>
+                    <LanguageSelector />
                 </div>
 
                 <div className="font-cyber text-sm text-neon-cyan/80 min-w-[100px] text-right">
