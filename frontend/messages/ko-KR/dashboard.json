@@ -1,0 +1,14 @@
+{
+  "title": "VPN 지휘 센터",
+  "statusLabel": "시스템 상태:",
+  "statusValue": "최적",
+  "connectionStatus": "보안 연결 수립됨",
+  "encryptionStatus": "암호화: 양자 안전",
+  "serverStatus": "서버 상태",
+  "nodesOnline": "온라인 노드",
+  "activeSessions": "활성 세션",
+  "currentConnections": "현재 연결",
+  "networkLoad": "네트워크 부하",
+  "aggregateThroughput": "총 처리량",
+  "serverMatrix": "서버 매트릭스"
+}

@@ -1,0 +1,18 @@
+{
+  "title": "क्लाइंट डेटाबेस",
+  "searchPlaceholder": "पहचान_खोजें...",
+  "columns": {
+    "identity": "पहचान",
+    "subscription": "सब्सक्रिप्शन",
+    "dataUsage": "डेटा उपयोग",
+    "status": "स्थिति",
+    "lastSeen": "अंतिम बार देखा",
+    "actions": "कार्रवाई"
+  },
+  "status": {
+    "active": "सक्रिय",
+    "expired": "समाप्त",
+    "banned": "प्रतिबंधित",
+    "trial": "ट्रायल"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "systemLabel": "СИСТЕМА",
+  "integrity": "ПЕРЕВІРКА ЦІЛІСНОСТІ ПРОЙДЕНА",
+  "encryptionLabel": "ШИФРУВАННЯ",
+  "encryptionValue": "АКТИВНЕ - AES-256",
+  "netUplink": "МЕРЕЖА_ВИВІД",
+  "fps": "FPS",
+  "ping": "ПІНГ",
+  "language": "МОВА"
+}

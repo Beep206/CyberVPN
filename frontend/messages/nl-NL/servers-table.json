@@ -1,0 +1,24 @@
+{
+  "title": "ACTIEVE INFRASTRUCTUUR",
+  "deployNode": "+ NODE IMPLEMENTEREN",
+  "columns": {
+    "serverName": "SERVERNAAM",
+    "location": "LOCATIE",
+    "ipAddress": "IP-ADRES",
+    "protocol": "PROTOCOL",
+    "status": "STATUS",
+    "load": "BELASTING",
+    "controls": "BESTURING"
+  },
+  "actions": {
+    "restart": "Herstarten",
+    "stop": "Stoppen",
+    "config": "Configuratie"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "WAARSCHUWING",
+    "maintenance": "ONDERHOUD"
+  }
+}

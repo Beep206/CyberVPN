@@ -1,0 +1,18 @@
+{
+  "title": "کلائنٹ ڈیٹابیس",
+  "searchPlaceholder": "شناخت_تلاش...",
+  "columns": {
+    "identity": "شناخت",
+    "subscription": "سبسکرپشن",
+    "dataUsage": "ڈیٹا استعمال",
+    "status": "اسٹیٹس",
+    "lastSeen": "آخری بار دیکھا",
+    "actions": "ایکشنز"
+  },
+  "status": {
+    "active": "فعال",
+    "expired": "ختم شدہ",
+    "banned": "بلاک شدہ",
+    "trial": "ٹرائل"
+  }
+}

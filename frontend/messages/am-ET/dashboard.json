@@ -1,0 +1,14 @@
+{
+  "title": "VPN ትዕዛዝ ማዕከል",
+  "statusLabel": "የሲስተም ሁኔታ:",
+  "statusValue": "ምርጥ",
+  "connectionStatus": "ደህንነቱ የተጠበቀ ግንኙነት ተመስርቷል",
+  "encryptionStatus": "ምስጠራ: ኳንተም-ደህንነት",
+  "serverStatus": "የአገልጋይ ሁኔታ",
+  "nodesOnline": "የመስቀለኛ መንገዶች በመስመር ላይ",
+  "activeSessions": "ንቁ ክፍለ ጊዜዎች",
+  "currentConnections": "የአሁኑ ግንኙነቶች",
+  "networkLoad": "የመረብ ጫና",
+  "aggregateThroughput": "የተሰበሰበ ውጤት",
+  "serverMatrix": "የአገልጋይ ማትሪክስ"
+}

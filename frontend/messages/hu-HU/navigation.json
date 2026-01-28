@@ -1,0 +1,9 @@
+{
+  "dashboard": "VEZÉRLŐPULT",
+  "servers": "SZERVEREK",
+  "users": "KLIENSEK",
+  "billing": "SZÁMLÁZÁS",
+  "analytics": "HÁLÓZAT OP",
+  "security": "BIZTONSÁG",
+  "settings": "KONFIG"
+}

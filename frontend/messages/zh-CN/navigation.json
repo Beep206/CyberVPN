@@ -1,0 +1,9 @@
+{
+  "dashboard": "控制面板",
+  "servers": "服务器",
+  "users": "客户端",
+  "billing": "账单",
+  "analytics": "网络运维",
+  "security": "安全",
+  "settings": "配置"
+}

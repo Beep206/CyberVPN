@@ -1,0 +1,7 @@
+{
+  "title": "서버 관리",
+  "subtitle": "VPN 노드, 프로토콜 및 배포 지역 관리.",
+  "globalStatus": "전역 상태: {status}",
+  "globalStatusValue": "프로비저닝됨",
+  "lastSync": "마지막 동기화: {time} 전"
+}

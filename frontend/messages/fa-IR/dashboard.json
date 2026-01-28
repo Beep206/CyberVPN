@@ -1,0 +1,14 @@
+{
+  "title": "مرکز فرماندهی VPN",
+  "statusLabel": "وضعیت سیستم:",
+  "statusValue": "بهینه",
+  "connectionStatus": "اتصال امن برقرار شد",
+  "encryptionStatus": "رمزنگاری: مقاوم در برابر کوانتوم",
+  "serverStatus": "وضعیت سرور",
+  "nodesOnline": "نودهای آنلاین",
+  "activeSessions": "جلسات فعال",
+  "currentConnections": "اتصالات جاری",
+  "networkLoad": "بار شبکه",
+  "aggregateThroughput": "توان عملیاتی کل",
+  "serverMatrix": "ماتریس سرور"
+}

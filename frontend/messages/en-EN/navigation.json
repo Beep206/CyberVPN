@@ -1,0 +1,9 @@
+{
+    "dashboard": "DASHBOARD",
+    "servers": "SERVERS",
+    "users": "CLIENTS",
+    "billing": "BILLING",
+    "analytics": "NET OP",
+    "security": "SECURITY",
+    "settings": "CONFIG"
+}

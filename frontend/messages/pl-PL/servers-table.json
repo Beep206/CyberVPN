@@ -1,0 +1,24 @@
+{
+  "title": "AKTYWNA INFRASTRUKTURA",
+  "deployNode": "+ WDRAANIE WZA",
+  "columns": {
+    "serverName": "NAZWA SERWERA",
+    "location": "LOKALIZACJA",
+    "ipAddress": "ADRES IP",
+    "protocol": "PROTOK",
+    "status": "STATUS",
+    "load": "OBCIENIE",
+    "controls": "STEROWANIE"
+  },
+  "actions": {
+    "restart": "Restart",
+    "stop": "Zatrzymaj",
+    "config": "Konfiguracja"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "OSTRZEENIE",
+    "maintenance": "KONSERWACJA"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "title": "INFRAESTRUCTURA ACTIVA",
+  "deployNode": "+ DESPLEGAR NODO",
+  "columns": {
+    "serverName": "NOMBRE DEL SERVIDOR",
+    "location": "UBICACIÓN",
+    "ipAddress": "DIRECCIÓN IP",
+    "protocol": "PROTOCOLO",
+    "status": "ESTADO",
+    "load": "CARGA",
+    "controls": "CONTROLES"
+  },
+  "actions": {
+    "restart": "Reiniciar",
+    "stop": "Detener",
+    "config": "Config"
+  },
+  "status": {
+    "online": "EN LÍNEA",
+    "offline": "FUERA DE LÍNEA",
+    "warning": "ADVERTENCIA",
+    "maintenance": "MANTENIMIENTO"
+  }
+}

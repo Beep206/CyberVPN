@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SISTEM",
+  "integrity": "VERIFICARE INTEGRITATE REUȘITĂ",
+  "encryptionLabel": "CRIPTARE",
+  "encryptionValue": "ACTIVĂ - AES-256",
+  "netUplink": "CONEXIUNE_REȚEA",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "LIMBĂ"
+}

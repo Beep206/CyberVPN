@@ -1,0 +1,14 @@
+{
+  "title": "VPN कमांड सेंटर",
+  "statusLabel": "सिस्टम स्थिति:",
+  "statusValue": "इष्टतम",
+  "connectionStatus": "सुरक्षित कनेक्शन स्थापित",
+  "encryptionStatus": "एन्क्रिप्शन: क्वांटम-सेफ",
+  "serverStatus": "सर्वर स्थिति",
+  "nodesOnline": "नोड्स ऑनलाइन",
+  "activeSessions": "सक्रिय सत्र",
+  "currentConnections": "वर्तमान कनेक्शन",
+  "networkLoad": "नेटवर्क लोड",
+  "aggregateThroughput": "कुल थ्रूपुट",
+  "serverMatrix": "सर्वर मैट्रिक्स"
+}

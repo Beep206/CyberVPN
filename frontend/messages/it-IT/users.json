@@ -1,0 +1,6 @@
+{
+  "title": "GESTIONE UTENTI",
+  "subtitle": "Controllo accessi e monitoraggio abbonamenti.",
+  "totalUsers": "UTENTI TOTALI: {count}",
+  "newToday": "NUOVI OGGI: {count}"
+}

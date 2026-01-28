@@ -1,0 +1,10 @@
+{
+  "systemLabel": "سسٹم",
+  "integrity": "سالمیت کی جانچ کامیاب",
+  "encryptionLabel": "خفیہ کاری",
+  "encryptionValue": "فعال - AES-256",
+  "netUplink": "نیٹ_اپلنک",
+  "fps": "FPS",
+  "ping": "پنگ",
+  "language": "زبان"
+}

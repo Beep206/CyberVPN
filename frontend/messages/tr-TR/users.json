@@ -1,0 +1,6 @@
+{
+  "title": "KULLANICI YÖNETİMİ",
+  "subtitle": "Erişim kontrolü ve abonelik izleme.",
+  "totalUsers": "TOPLAM KULLANICI: {count}",
+  "newToday": "BUGÜN YENİ: {count}"
+}

@@ -1,0 +1,18 @@
+{
+  "title": "БАЗА ДАДЗЕНЫХ КЛІЕНТАЎ",
+  "searchPlaceholder": "ПОШУК_ІДЭНТЫЧНАСЦІ...",
+  "columns": {
+    "identity": "ІДЭНТЫЧНАСЦЬ",
+    "subscription": "ПАДПІСКА",
+    "dataUsage": "ВЫКАРЫСТАННЕ ДАДЗЕНЫХ",
+    "status": "СТАТУС",
+    "lastSeen": "АПОШНІ ВІЗІТ",
+    "actions": "ДЗЕЯННІ"
+  },
+  "status": {
+    "active": "АКТЫЎНЫ",
+    "expired": "СКОНЧЫЎСЯ",
+    "banned": "ЗАБЛАКАВАНЫ",
+    "trial": "ПРОБНЫ"
+  }
+}

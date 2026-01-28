@@ -1,0 +1,9 @@
+{
+  "dashboard": "PAINEL",
+  "servers": "SERVIDORES",
+  "users": "CLIENTES",
+  "billing": "FATURAÇÃO",
+  "analytics": "OP REDE",
+  "security": "SEGURANÇA",
+  "settings": "CONFIG"
+}

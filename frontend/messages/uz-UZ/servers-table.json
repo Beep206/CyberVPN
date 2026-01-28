@@ -1,0 +1,24 @@
+{
+  "title": "FAOL INFRATUZILMA",
+  "deployNode": "+ TUGUN JOYLASHTIRISH",
+  "columns": {
+    "serverName": "SERVER NOMI",
+    "location": "JOYLASHUV",
+    "ipAddress": "IP MANZIL",
+    "protocol": "PROTOKOL",
+    "status": "HOLAT",
+    "load": "YUKLAMA",
+    "controls": "BOSHQARUV"
+  },
+  "actions": {
+    "restart": "Qayta ishga tushirish",
+    "stop": "To'xtatish",
+    "config": "Sozlash"
+  },
+  "status": {
+    "online": "ONLAYN",
+    "offline": "OFLAYN",
+    "warning": "OGOHLANTIRISH",
+    "maintenance": "TEXNIK XIZMAT"
+  }
+}

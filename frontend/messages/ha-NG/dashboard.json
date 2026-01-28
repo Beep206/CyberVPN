@@ -1,0 +1,14 @@
+{
+  "title": "CIBIYAR KULA DA VPN",
+  "statusLabel": "MATSAYIN TSARIN:",
+  "statusValue": "MAFI KYAU",
+  "connectionStatus": "AN KAFA HAƊI MAI TSARO",
+  "encryptionStatus": "ƁOYEWA: MAI TSARO QUANTUM",
+  "serverStatus": "MATSAYIN SABIS",
+  "nodesOnline": "CIBIYOYI MASU AIKI",
+  "activeSessions": "ZAMAN MASU AIKI",
+  "currentConnections": "Haɗin yanzu",
+  "networkLoad": "NAUYIN CIBIYA",
+  "aggregateThroughput": "Jimlar ƙarfin wucewa",
+  "serverMatrix": "JADAWALIN SABIS"
+}

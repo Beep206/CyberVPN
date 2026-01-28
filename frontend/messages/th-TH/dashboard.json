@@ -1,0 +1,14 @@
+{
+  "title": "ศูนย์บัญชาการ VPN",
+  "statusLabel": "สถานะระบบ:",
+  "statusValue": "สมบูรณ์แบบ",
+  "connectionStatus": "สร้างการเชื่อมต่อที่ปลอดภัยแล้ว",
+  "encryptionStatus": "การเข้ารหัส: ควอนตัม-เซฟ",
+  "serverStatus": "สถานะเซิร์ฟเวอร์",
+  "nodesOnline": "โหนดออนไลน์",
+  "activeSessions": "เซสชันที่ใช้งาน",
+  "currentConnections": "การเชื่อมต่อปัจจุบัน",
+  "networkLoad": "โหลดเครือข่าย",
+  "aggregateThroughput": "ปริมาณงานรวม",
+  "serverMatrix": "เมทริกซ์เซิร์ฟเวอร์"
+}

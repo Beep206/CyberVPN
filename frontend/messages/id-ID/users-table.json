@@ -1,0 +1,18 @@
+{
+  "title": "DATABASE KLIEN",
+  "searchPlaceholder": "CARI_IDENTITAS...",
+  "columns": {
+    "identity": "IDENTITAS",
+    "subscription": "LANGGANAN",
+    "dataUsage": "PENGGUNAAN DATA",
+    "status": "STATUS",
+    "lastSeen": "TERAKHIR AKTIF",
+    "actions": "AKSI"
+  },
+  "status": {
+    "active": "AKTIF",
+    "expired": "KADALUARSA",
+    "banned": "DIBLOKIR",
+    "trial": "PERCOBAAN"
+  }
+}

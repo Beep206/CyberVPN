@@ -1,0 +1,14 @@
+{
+  "title": "VPN COMMANDOCENTRUM",
+  "statusLabel": "SYSTEEMSTATUS:",
+  "statusValue": "OPTIMAAL",
+  "connectionStatus": "BEVEILIGDE VERBINDING ACTIEF",
+  "encryptionStatus": "ENCRYPTIE: QUANTUM-VEILIG",
+  "serverStatus": "SERVERSTATUS",
+  "nodesOnline": "NODES ONLINE",
+  "activeSessions": "ACTIEVE SESSIES",
+  "currentConnections": "Huidige verbindingen",
+  "networkLoad": "NETWERKBELASTING",
+  "aggregateThroughput": "Totale doorvoer",
+  "serverMatrix": "SERVER MATRIX"
+}

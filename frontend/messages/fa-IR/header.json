@@ -1,0 +1,10 @@
+{
+  "systemLabel": "سیستم",
+  "integrity": "بررسی یکپارچگی تایید شد",
+  "encryptionLabel": "رمزنگاری",
+  "encryptionValue": "فعال - AES-256",
+  "netUplink": "آپلینک_شبکه",
+  "fps": "فریم",
+  "ping": "پینگ",
+  "language": "زبان"
+}

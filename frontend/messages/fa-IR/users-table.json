@@ -1,0 +1,18 @@
+{
+  "title": "پایگاه داده کاربران",
+  "searchPlaceholder": "جستجوی_هویت...",
+  "columns": {
+    "identity": "هویت",
+    "subscription": "اشتراک",
+    "dataUsage": "مصرف داده",
+    "status": "وضعیت",
+    "lastSeen": "آخرین مشاهده",
+    "actions": "عملیات"
+  },
+  "status": {
+    "active": "فعال",
+    "expired": "منقضی",
+    "banned": "مسدود",
+    "trial": "آزمایشی"
+  }
+}

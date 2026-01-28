@@ -1,0 +1,14 @@
+{
+  "title": "VPN PARANCSNOKI KÖZPONT",
+  "statusLabel": "RENDSZER ÁLLAPOT:",
+  "statusValue": "OPTIMÁLIS",
+  "connectionStatus": "BIZTONSÁGOS KAPCSOLAT LÉTREHOZVA",
+  "encryptionStatus": "TITKOSÍTÁS: KVANTUM-BIZTOS",
+  "serverStatus": "SZERVER ÁLLAPOT",
+  "nodesOnline": "AKTÍV CSOMÓPONTOK",
+  "activeSessions": "AKTÍV MUNKAMENETEK",
+  "currentConnections": "Jelenlegi kapcsolatok",
+  "networkLoad": "HÁLÓZATI TERHELÉS",
+  "aggregateThroughput": "Összesített átvitel",
+  "serverMatrix": "SZERVER MÁTRIX"
+}

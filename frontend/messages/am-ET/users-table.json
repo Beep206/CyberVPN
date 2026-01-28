@@ -1,0 +1,18 @@
+{
+  "title": "የደንበኛ ዳታቤዝ",
+  "searchPlaceholder": "ማንነት_ፈልግ...",
+  "columns": {
+    "identity": "ማንነት",
+    "subscription": "ምዝገባ",
+    "dataUsage": "የውሂብ አጠቃቀም",
+    "status": "ሁኔታ",
+    "lastSeen": "የመጨረሻ ጊዜ",
+    "actions": "ድርጊቶች"
+  },
+  "status": {
+    "active": "ንቁ",
+    "expired": "ጊዜው ያለፈ",
+    "banned": "የታገደ",
+    "trial": "ሙከራ"
+  }
+}
