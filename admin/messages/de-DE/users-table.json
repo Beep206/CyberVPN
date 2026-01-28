@@ -1,0 +1,18 @@
+{
+  "title": "KLIENTEN-DATENBANK",
+  "searchPlaceholder": "SUCHE_IDENTITÄT...",
+  "columns": {
+    "identity": "IDENTITÄT",
+    "subscription": "ABONNEMENT",
+    "dataUsage": "DATENNUTZUNG",
+    "status": "STATUS",
+    "lastSeen": "ZULETZT GESEHEN",
+    "actions": "AKTIONEN"
+  },
+  "status": {
+    "active": "AKTIV",
+    "expired": "ABGELAUFEN",
+    "banned": "GESPERRT",
+    "trial": "TESTVERSION"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "systemLabel": "시스템",
+  "integrity": "무결성 검사 통과",
+  "encryptionLabel": "암호화",
+  "encryptionValue": "활성 - AES-256",
+  "netUplink": "네트워크_업링크",
+  "fps": "FPS",
+  "ping": "핑",
+  "language": "언어"
+}

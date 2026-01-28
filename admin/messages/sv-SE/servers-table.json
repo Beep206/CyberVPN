@@ -1,0 +1,24 @@
+{
+  "title": "AKTIV INFRASTRUKTUR",
+  "deployNode": "+ DISTRIBUERA NOD",
+  "columns": {
+    "serverName": "SERVERNAMN",
+    "location": "PLATS",
+    "ipAddress": "IP-ADRESS",
+    "protocol": "PROTOKOLL",
+    "status": "STATUS",
+    "load": "BELASTNING",
+    "controls": "KONTROLLER"
+  },
+  "actions": {
+    "restart": "Starta om",
+    "stop": "Stoppa",
+    "config": "Konfig"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "VARNING",
+    "maintenance": "UNDERHÅLL"
+  }
+}

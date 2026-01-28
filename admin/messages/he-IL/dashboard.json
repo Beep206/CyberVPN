@@ -1,0 +1,14 @@
+{
+  "title": "מרכז פיקוד VPN",
+  "statusLabel": "סטטוס מערכת:",
+  "statusValue": "אופטימלי",
+  "connectionStatus": "חיבור מאובטח נוצר",
+  "encryptionStatus": "הצפנה: עמידה-קוונטית",
+  "serverStatus": "סטטוס שרת",
+  "nodesOnline": "צמתים מקוונים",
+  "activeSessions": "חיבורים פעילים",
+  "currentConnections": "חיבורים נוכחיים",
+  "networkLoad": "עומס רשת",
+  "aggregateThroughput": "תפוקה מצטברת",
+  "serverMatrix": "מטריצת שרתים"
+}

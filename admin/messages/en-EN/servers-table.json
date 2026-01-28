@@ -1,0 +1,24 @@
+{
+    "title": "ACTIVE INFRASTRUCTURE",
+    "deployNode": "+ DEPLOY NODE",
+    "columns": {
+        "serverName": "SERVER NAME",
+        "location": "LOCATION",
+        "ipAddress": "IP ADDRESS",
+        "protocol": "PROTOCOL",
+        "status": "STATUS",
+        "load": "LOAD",
+        "controls": "CONTROLS"
+    },
+    "actions": {
+        "restart": "Restart",
+        "stop": "Stop",
+        "config": "Config"
+    },
+    "status": {
+        "online": "ONLINE",
+        "offline": "OFFLINE",
+        "warning": "WARNING",
+        "maintenance": "MAINTENANCE"
+    }
+}

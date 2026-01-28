@@ -1,5 +1,10 @@
 import PlaceholderPage from '@/shared/ui/pages/placeholder-page';
 
-export default function AnalyticsPage() {
-    return <PlaceholderPage />;
+export default async function AnalyticsPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
+    return <PlaceholderPage locale={locale} />;
 }

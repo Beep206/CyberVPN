@@ -1,0 +1,10 @@
+{
+  "systemLabel": "ระบบ",
+  "integrity": "ผ่านการตรวจสอบความสมบูรณ์",
+  "encryptionLabel": "การเข้ารหัส",
+  "encryptionValue": "ใช้งาน - AES-256",
+  "netUplink": "เครือข่าย_อัปลิงก์",
+  "fps": "FPS",
+  "ping": "ปิง",
+  "language": "ภาษา"
+}

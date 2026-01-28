@@ -1,0 +1,18 @@
+{
+  "title": "BAZĂ DATE CLIENȚI",
+  "searchPlaceholder": "CĂUTARE_IDENTITATE...",
+  "columns": {
+    "identity": "IDENTITATE",
+    "subscription": "ABONAMENT",
+    "dataUsage": "CONSUM DATE",
+    "status": "STARE",
+    "lastSeen": "ULTIMA ACTIVITATE",
+    "actions": "ACȚIUNI"
+  },
+  "status": {
+    "active": "ACTIV",
+    "expired": "EXPIRAT",
+    "banned": "BLOCAT",
+    "trial": "TRIAL"
+  }
+}

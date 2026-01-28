@@ -1,0 +1,10 @@
+{
+  "systemLabel": "سیستەم",
+  "integrity": "پشکنینی یەکپارچەیی سەرکەوتوو",
+  "encryptionLabel": "شفرەکردن",
+  "encryptionValue": "چالاک - AES-256",
+  "netUplink": "پەیوەندی_تۆڕ",
+  "fps": "FPS",
+  "ping": "پینگ",
+  "language": "زمان"
+}

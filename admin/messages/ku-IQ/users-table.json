@@ -1,0 +1,18 @@
+{
+  "title": "داتابەیسی کلاینت",
+  "searchPlaceholder": "گەڕان_بۆ_ناسنامە...",
+  "columns": {
+    "identity": "ناسنامە",
+    "subscription": "بەشداریکردن",
+    "dataUsage": "بەکارهێنانی داتا",
+    "status": "دۆخ",
+    "lastSeen": "دوایین جار بینراو",
+    "actions": "کردارەکان"
+  },
+  "status": {
+    "active": "چالاک",
+    "expired": "بەسەرچوو",
+    "banned": "قەدەغەکراو",
+    "trial": "تاقیکردنەوە"
+  }
+}

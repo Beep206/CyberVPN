@@ -1,0 +1,7 @@
+{
+  "title": "SERVERHANTERING",
+  "subtitle": "Hantera VPN-noder, protokoll och distributionsregioner.",
+  "globalStatus": "GLOBAL STATUS: {status}",
+  "globalStatusValue": "PROVISIONERAD",
+  "lastSync": "SENASTE SYNK: {time} SEDAN"
+}

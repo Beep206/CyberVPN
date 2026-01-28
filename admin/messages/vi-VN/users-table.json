@@ -1,0 +1,18 @@
+{
+  "title": "CƠ SỞ DỮ LIỆU KHÁCH HÀNG",
+  "searchPlaceholder": "TÌM_KIẾM_DANH_TÍNH...",
+  "columns": {
+    "identity": "DANH TÍNH",
+    "subscription": "GÓI ĐĂNG KÝ",
+    "dataUsage": "SỬ DỤNG DỮ LIỆU",
+    "status": "TRẠNG THÁI",
+    "lastSeen": "LẦN CUỐI TRỰC TUYẾN",
+    "actions": "THAO TÁC"
+  },
+  "status": {
+    "active": "HOẠT ĐỘNG",
+    "expired": "HẾT HẠN",
+    "banned": "BỊ CẤM",
+    "trial": "DÙNG THỬ"
+  }
+}

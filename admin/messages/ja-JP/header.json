@@ -1,0 +1,10 @@
+{
+  "systemLabel": "システム",
+  "integrity": "整合性チェック完了",
+  "encryptionLabel": "暗号化",
+  "encryptionValue": "アクティブ - AES-256",
+  "netUplink": "ネットアップリンク",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "言語"
+}

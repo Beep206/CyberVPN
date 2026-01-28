@@ -1,0 +1,14 @@
+{
+  "title": "VPN 指挥中心",
+  "statusLabel": "系统状态：",
+  "statusValue": "最佳",
+  "connectionStatus": "安全连接已建立",
+  "encryptionStatus": "加密协议：量子安全",
+  "serverStatus": "服务器状态",
+  "nodesOnline": "在线节点",
+  "activeSessions": "活跃会话",
+  "currentConnections": "当前连接数",
+  "networkLoad": "网络负载",
+  "aggregateThroughput": "总吞吐量",
+  "serverMatrix": "服务器矩阵"
+}

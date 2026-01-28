@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Orbitron, JetBrains_Mono, Share_Tech_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/config";
 import "../globals.css";
 
@@ -39,6 +41,8 @@ export default async function RootLayout({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
+    setRequestLocale(locale);
+    const messages = await getMessages({ locale });
     return (
         <html lang={locale} className="dark">
             <body
@@ -49,9 +53,11 @@ export default async function RootLayout({
           antialiased bg-terminal-bg text-foreground min-h-screen overflow-hidden selection:bg-neon-cyan/30
         `}
             >
-                <div className="relative z-10 h-full w-full">
-                    {children}
-                </div>
+                <NextIntlClientProvider locale={locale} messages={messages}>
+                    <div className="relative z-10 h-full w-full">
+                        {children}
+                    </div>
+                </NextIntlClientProvider>
                 {/* Background scanline effect and glow can be global or part of specific layouts */}
                 <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
             </body>

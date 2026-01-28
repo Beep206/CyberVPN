@@ -1,0 +1,24 @@
+{
+  "title": "АКТИВНА ІНФРАСТРУКТУРА",
+  "deployNode": "+ РОЗГОРНУТИ ВУЗОЛ",
+  "columns": {
+    "serverName": "НАЗВА СЕРВЕРА",
+    "location": "ЛОКАЦІЯ",
+    "ipAddress": "IP АДРЕСА",
+    "protocol": "ПРОТОКОЛ",
+    "status": "СТАТУС",
+    "load": "НАВАНТАЖЕННЯ",
+    "controls": "КЕРУВАННЯ"
+  },
+  "actions": {
+    "restart": "Перезапуск",
+    "stop": "Зупинити",
+    "config": "Конфіг"
+  },
+  "status": {
+    "online": "ОНЛАЙН",
+    "offline": "ОФЛАЙН",
+    "warning": "УВАГА",
+    "maintenance": "ОБСЛУГОВУВАННЯ"
+  }
+}

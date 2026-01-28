@@ -1,0 +1,7 @@
+{
+  "title": "SERVERVERWALTUNG",
+  "subtitle": "VPN-Knoten, Protokolle und Bereitstellungsregionen verwalten.",
+  "globalStatus": "GLOBALSTATUS: {status}",
+  "globalStatusValue": "BEREITGESTELLT",
+  "lastSync": "LETZTE SYNC: VOR {time}"
+}

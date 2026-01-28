@@ -1,0 +1,10 @@
+{
+  "systemLabel": "RENDSZER",
+  "integrity": "INTEGRITÁS ELLENŐRZÉS SIKERES",
+  "encryptionLabel": "TITKOSÍTÁS",
+  "encryptionValue": "AKTÍV - AES-256",
+  "netUplink": "HÁLÓZAT_UPLINK",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "NYELV"
+}

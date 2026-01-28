@@ -1,0 +1,6 @@
+{
+  "title": "GEBRUIKERSBEHEER",
+  "subtitle": "Toegangscontrole en abonnementsbewaking.",
+  "totalUsers": "TOTAAL GEBRUIKERS: {count}",
+  "newToday": "NIEUW VANDAAG: {count}"
+}

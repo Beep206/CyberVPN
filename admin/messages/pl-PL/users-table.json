@@ -1,0 +1,18 @@
+{
+  "title": "BAZA DANYCH KLIENTW",
+  "searchPlaceholder": "SZUKAJ_TOSAMOCI...",
+  "columns": {
+    "identity": "TOSAMO",
+    "subscription": "SUBSKRYPCJA",
+    "dataUsage": "UYCIE DANYCH",
+    "status": "STATUS",
+    "lastSeen": "OSTATNIO WIDZIANY",
+    "actions": "AKCJE"
+  },
+  "status": {
+    "active": "AKTYWNY",
+    "expired": "WYGASY",
+    "banned": "ZBANOWANY",
+    "trial": "PRBNY"
+  }
+}

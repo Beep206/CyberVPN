@@ -1,0 +1,14 @@
+{
+  "title": "VPN БАСҚАРУ ОРТАЛЫҒЫ",
+  "statusLabel": "ЖҮЙЕ КҮЙІ:",
+  "statusValue": "ОҢТАЙЛЫ",
+  "connectionStatus": "ҚАУІПСІЗ БАЙЛАНЫС ОРНАТЫЛДЫ",
+  "encryptionStatus": "ШИФРЛАУ: КВАНТТЫҚ-ҚОРҒАЛҒАН",
+  "serverStatus": "СЕРВЕР КҮЙІ",
+  "nodesOnline": "БЕЛСЕНДІ ТҮЙІНДЕР",
+  "activeSessions": "БЕЛСЕНДІ СЕССИЯЛАР",
+  "currentConnections": "Ағымдағы қосылымдар",
+  "networkLoad": "ЖЕЛІ ЖҮКТЕМЕСІ",
+  "aggregateThroughput": "Жалпы өткізу қабілеті",
+  "serverMatrix": "СЕРВЕР МАТРИЦАСЫ"
+}

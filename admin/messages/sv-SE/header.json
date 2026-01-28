@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SYSTEM",
+  "integrity": "INTEGRITETSTEST GODKÄNT",
+  "encryptionLabel": "KRYPTERING",
+  "encryptionValue": "AKTIV - AES-256",
+  "netUplink": "NÄTUPPLINK",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "SPRÅK"
+}

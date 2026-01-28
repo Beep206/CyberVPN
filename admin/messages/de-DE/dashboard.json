@@ -1,0 +1,14 @@
+{
+  "title": "VPN KOMMANDOZENTRALE",
+  "statusLabel": "SYSTEMSTATUS:",
+  "statusValue": "OPTIMAL",
+  "connectionStatus": "SICHERE VERBINDUNG HERGESTELLT",
+  "encryptionStatus": "VERSCHLÜSSELUNG: QUANTENSICHER",
+  "serverStatus": "SERVERSTATUS",
+  "nodesOnline": "KNOTEN ONLINE",
+  "activeSessions": "AKTIVE SITZUNGEN",
+  "currentConnections": "Aktuelle Verbindungen",
+  "networkLoad": "NETZWERKLAST",
+  "aggregateThroughput": "Gesamtdurchsatz",
+  "serverMatrix": "SERVER-MATRIX"
+}

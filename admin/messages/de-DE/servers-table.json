@@ -1,0 +1,24 @@
+{
+  "title": "AKTIVE INFRASTRUKTUR",
+  "deployNode": "+ KNOTEN BEREITSTELLEN",
+  "columns": {
+    "serverName": "SERVERNAME",
+    "location": "STANDORT",
+    "ipAddress": "IP-ADRESSE",
+    "protocol": "PROTOKOLL",
+    "status": "STATUS",
+    "load": "AUSLASTUNG",
+    "controls": "STEUERUNG"
+  },
+  "actions": {
+    "restart": "Neustart",
+    "stop": "Stoppen",
+    "config": "Konfig"
+  },
+  "status": {
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "warning": "WARNUNG",
+    "maintenance": "WARTUNG"
+  }
+}

@@ -1,11 +1,28 @@
 'use client';
 
-import { Bell, Search, Wifi } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Bell, ChevronDown, Search, Wifi } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
+import { locales } from '@/i18n/config';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
+import { cn } from '@/lib/utils';
 
 export function TerminalHeader() {
     const [time, setTime] = useState<string>('');
+    const [fps, setFps] = useState<number | null>(null);
+    const [ping, setPing] = useState<number | null>(null);
+    const locale = useLocale();
+    const t = useTranslations('Header');
+    const router = useRouter();
+    const pathname = usePathname();
+    const [isPending, startTransition] = useTransition();
+
+    const localeOptions = locales.map((value) => ({
+        value,
+        label: value.toUpperCase()
+    }));
 
     // Hydration fix for time
     useEffect(() => {
@@ -14,6 +31,69 @@ export function TerminalHeader() {
         const timer = setInterval(updateTime, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let rafId = 0;
+
+        const loop = (now: number) => {
+            frameCount += 1;
+            const delta = now - lastTime;
+
+            if (delta >= 1000) {
+                setFps(Math.round((frameCount * 1000) / delta));
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            rafId = requestAnimationFrame(loop);
+        };
+
+        rafId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(rafId);
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        const measurePing = async () => {
+            const start = performance.now();
+            try {
+                await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' });
+            } catch {}
+            const duration = Math.round(performance.now() - start);
+            if (active) {
+                setPing(duration);
+            }
+        };
+
+        measurePing();
+        const interval = setInterval(measurePing, 5000);
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, []);
+
+    const stripLocale = (path: string) => {
+        const segments = path.split('/').filter(Boolean);
+        if (segments.length === 0) return '/';
+
+        if (locales.includes(segments[0] as (typeof locales)[number])) {
+            segments.shift();
+        }
+
+        return `/${segments.join('/')}`;
+    };
+
+    const handleLocaleChange = (nextLocale: string) => {
+        if (nextLocale === locale || !pathname) return;
+        const targetPath = stripLocale(pathname);
+        startTransition(() => {
+            router.replace(targetPath, { locale: nextLocale });
+        });
+    };
 
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/80 backdrop-blur-xl border-b border-grid-line/30 px-6 transition-all">
@@ -24,19 +104,56 @@ export function TerminalHeader() {
 
                 {/* Cypher Text Status */}
                 <div className="hidden md:flex items-center text-xs font-cyber text-muted-foreground/50">
-                    <span className="mr-1">SYSTEM:</span>
-                    <CypherText text="INTEGRITY CHECK PASSED" className="text-neon-cyan" />
+                    <span className="mr-1">{t('systemLabel')}:</span>
+                    <CypherText text={t('integrity')} className="text-neon-cyan" />
                     <span className="mx-2">|</span>
-                    <span className="mr-1">ENCRYPTION:</span>
-                    <CypherText text="ACTIVE - AES-256" className="text-neon-purple" />
+                    <span className="mr-1">{t('encryptionLabel')}:</span>
+                    <CypherText text={t('encryptionValue')} className="text-neon-purple" />
                 </div>
             </div>
 
             <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground/60">{t('fps')}</span>
+                        <span className="text-neon-cyan">{fps ?? '--'}</span>
+                    </div>
+                    <span className="text-muted-foreground/30">|</span>
+                    <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground/60">{t('ping')}</span>
+                        <span className="text-matrix-green">{ping !== null ? `${ping}ms` : '--'}</span>
+                    </div>
+                </div>
+
                 {/* Network Pulse */}
                 <div className="flex items-center gap-2 text-xs font-mono text-matrix-green bg-matrix-green/10 px-3 py-1 rounded-full border border-matrix-green/30">
                     <Wifi className="h-3 w-3 animate-pulse" />
-                    <span>NET_UPLINK</span>
+                    <span>{t('netUplink')}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="hidden md:inline text-[10px] font-mono text-muted-foreground/60">
+                        {t('language')}
+                    </span>
+                    <div className="relative">
+                        <select
+                            value={locale}
+                            onChange={(event) => handleLocaleChange(event.target.value)}
+                            disabled={isPending}
+                            aria-label={t('language')}
+                            className={cn(
+                                "appearance-none rounded-full border border-grid-line/40 bg-black/30 px-3 py-1 pr-6 text-[10px] font-mono",
+                                "text-muted-foreground focus:border-neon-cyan focus:outline-none"
+                            )}
+                        >
+                            {localeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/70" />
+                    </div>
                 </div>
 
                 <div className="font-cyber text-sm text-neon-cyan/80 min-w-[100px] text-right">
