@@ -46,6 +46,7 @@ export default async function RootLayout({
     return (
         <html lang={locale} className="dark">
             <body
+                suppressHydrationWarning
                 className={`
           ${orbitron.variable} 
           ${jetbrainsMono.variable} 
