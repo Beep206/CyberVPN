@@ -1,0 +1,18 @@
+{
+  "title": "BASE DE DATOS DE CLIENTES",
+  "searchPlaceholder": "BUSCAR_IDENTIDAD...",
+  "columns": {
+    "identity": "IDENTIDAD",
+    "subscription": "SUSCRIPCIÓN",
+    "dataUsage": "USO DE DATOS",
+    "status": "ESTADO",
+    "lastSeen": "ÚLTIMA VEZ",
+    "actions": "ACCIONES"
+  },
+  "status": {
+    "active": "ACTIVO",
+    "expired": "EXPIRADO",
+    "banned": "BLOQUEADO",
+    "trial": "PRUEBA"
+  }
+}

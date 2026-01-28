@@ -1,0 +1,18 @@
+{
+  "title": "İSTEMCİ VERİTABANI",
+  "searchPlaceholder": "KİMLİK_ARA...",
+  "columns": {
+    "identity": "KİMLİK",
+    "subscription": "ABONELİK",
+    "dataUsage": "VERİ KULLANIMI",
+    "status": "DURUM",
+    "lastSeen": "SON GÖRÜLME",
+    "actions": "İŞLEMLER"
+  },
+  "status": {
+    "active": "AKTİF",
+    "expired": "SÜRESİ DOLMUŞ",
+    "banned": "YASAKLI",
+    "trial": "DENEME"
+  }
+}

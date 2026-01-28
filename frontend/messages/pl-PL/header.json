@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SYSTEM",
+  "integrity": "WERYFIKACJA INTEGRALNOCI POMYLNA",
+  "encryptionLabel": "SZYFROWANIE",
+  "encryptionValue": "AKTYWNE - AES-256",
+  "netUplink": "NET_UPLINK",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "JZYK"
+}

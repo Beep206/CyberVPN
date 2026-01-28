@@ -1,0 +1,14 @@
+{
+  "title": "PUSAT KOMANDO VPN",
+  "statusLabel": "STATUS SISTEM:",
+  "statusValue": "OPTIMAL",
+  "connectionStatus": "KONEKSI AMAN TERBENTUK",
+  "encryptionStatus": "ENKRIPSI: QUANTUM-SAFE",
+  "serverStatus": "STATUS SERVER",
+  "nodesOnline": "NODE AKTIF",
+  "activeSessions": "SESI AKTIF",
+  "currentConnections": "Koneksi saat ini",
+  "networkLoad": "BEBAN JARINGAN",
+  "aggregateThroughput": "Throughput agregat",
+  "serverMatrix": "MATRIKS SERVER"
+}

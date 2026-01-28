@@ -1,0 +1,18 @@
+{
+  "title": "КЛИЕНТ ДЕРЕКҚОРЫ",
+  "searchPlaceholder": "СӘЙКЕСТІКТІ_ІЗДЕУ...",
+  "columns": {
+    "identity": "СӘЙКЕСТІК",
+    "subscription": "ЖАЗЫЛЫМ",
+    "dataUsage": "ДЕРЕКТЕР ҚОЛДАНЫСЫ",
+    "status": "КҮЙІ",
+    "lastSeen": "СОҢҒЫ КІРУ",
+    "actions": "ӘРЕКЕТТЕР"
+  },
+  "status": {
+    "active": "БЕЛСЕНДІ",
+    "expired": "МЕРЗІМІ ӨТКЕН",
+    "banned": "БҰҒАТТАЛҒАН",
+    "trial": "СЫНАҚ"
+  }
+}

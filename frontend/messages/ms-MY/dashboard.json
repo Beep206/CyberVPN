@@ -1,0 +1,14 @@
+{
+  "title": "PUSAT KAWALAN VPN",
+  "statusLabel": "STATUS SISTEM:",
+  "statusValue": "OPTIMUM",
+  "connectionStatus": "SAMBUNGAN SELAMAT DIWUJUDKAN",
+  "encryptionStatus": "ENKRIPSI: SELAMAT-KUANTUM",
+  "serverStatus": "STATUS PELAYAN",
+  "nodesOnline": "NOD DALAM TALIAN",
+  "activeSessions": "SESI AKTIF",
+  "currentConnections": "Sambungan semasa",
+  "networkLoad": "BEBAN RANGKAIAN",
+  "aggregateThroughput": "Daya pemprosesan agregat",
+  "serverMatrix": "MATRIKS PELAYAN"
+}

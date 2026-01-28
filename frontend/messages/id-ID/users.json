@@ -1,0 +1,6 @@
+{
+  "title": "MANAJEMEN PENGGUNA",
+  "subtitle": "Kontrol akses dan pemantauan langganan.",
+  "totalUsers": "TOTAL PENGGUNA: {count}",
+  "newToday": "BARU HARI INI: {count}"
+}

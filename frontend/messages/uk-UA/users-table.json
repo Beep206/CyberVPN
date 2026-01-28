@@ -1,0 +1,18 @@
+{
+  "title": "БАЗА ДАНИХ КЛІЄНТІВ",
+  "searchPlaceholder": "ПОШУК_ІДЕНТИФІКАТОРА...",
+  "columns": {
+    "identity": "ІДЕНТИФІКАТОР",
+    "subscription": "ПІДПИСКА",
+    "dataUsage": "ТРАФІК",
+    "status": "СТАТУС",
+    "lastSeen": "ОСТАННІЙ ВХІД",
+    "actions": "ДІЇ"
+  },
+  "status": {
+    "active": "АКТИВНИЙ",
+    "expired": "ЗАКІНЧИВСЯ",
+    "banned": "ЗАБЛОКОВАНИЙ",
+    "trial": "ПРОБНИЙ"
+  }
+}

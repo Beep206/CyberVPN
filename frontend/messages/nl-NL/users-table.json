@@ -1,0 +1,18 @@
+{
+  "title": "CLIËNT DATABASE",
+  "searchPlaceholder": "ZOEK_IDENTITEIT...",
+  "columns": {
+    "identity": "IDENTITEIT",
+    "subscription": "ABONNEMENT",
+    "dataUsage": "DATAVERBRUIK",
+    "status": "STATUS",
+    "lastSeen": "LAATST GEZIEN",
+    "actions": "ACTIES"
+  },
+  "status": {
+    "active": "ACTIEF",
+    "expired": "VERLOPEN",
+    "banned": "GEBLOKKEERD",
+    "trial": "PROEF"
+  }
+}

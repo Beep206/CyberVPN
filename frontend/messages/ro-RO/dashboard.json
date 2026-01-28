@@ -1,0 +1,14 @@
+{
+  "title": "CENTRU COMANDĂ VPN",
+  "statusLabel": "STARE SISTEM:",
+  "statusValue": "OPTIMĂ",
+  "connectionStatus": "CONEXIUNE SECURIZATĂ STABILITĂ",
+  "encryptionStatus": "CRIPTARE: REZISTENTĂ CUANTIC",
+  "serverStatus": "STARE SERVER",
+  "nodesOnline": "NODURI ONLINE",
+  "activeSessions": "SESIUNI ACTIVE",
+  "currentConnections": "Conexiuni curente",
+  "networkLoad": "ÎNCĂRCARE REȚEA",
+  "aggregateThroughput": "Debit agregat",
+  "serverMatrix": "MATRICE SERVERE"
+}

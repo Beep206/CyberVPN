@@ -1,0 +1,6 @@
+{
+  "title": "FELHASZNÁLÓ KEZELÉS",
+  "subtitle": "Hozzáférés-vezérlés és előfizetés figyelés.",
+  "totalUsers": "ÖSSZES FELHASZNÁLÓ: {count}",
+  "newToday": "MAI ÚJ: {count}"
+}

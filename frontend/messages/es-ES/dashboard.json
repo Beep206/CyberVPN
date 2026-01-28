@@ -1,0 +1,14 @@
+{
+  "title": "CENTRO DE COMANDO VPN",
+  "statusLabel": "ESTADO DEL SISTEMA:",
+  "statusValue": "ÓPTIMO",
+  "connectionStatus": "CONEXIÓN SEGURA ESTABLECIDA",
+  "encryptionStatus": "CIFRADO: CUÁNTICO-SEGURO",
+  "serverStatus": "ESTADO DEL SERVIDOR",
+  "nodesOnline": "NODOS EN LÍNEA",
+  "activeSessions": "SESIONES ACTIVAS",
+  "currentConnections": "Conexiones actuales",
+  "networkLoad": "CARGA DE RED",
+  "aggregateThroughput": "Rendimiento agregado",
+  "serverMatrix": "MATRIZ DE SERVIDORES"
+}

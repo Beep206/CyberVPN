@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SİSTEM",
+  "integrity": "BÜTÜNLÜK KONTROLÜ BAŞARILI",
+  "encryptionLabel": "ŞİFRELEME",
+  "encryptionValue": "AKTİF - AES-256",
+  "netUplink": "AĞ_BAĞLANTISI",
+  "fps": "FPS",
+  "ping": "PİNG",
+  "language": "DİL"
+}

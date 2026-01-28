@@ -1,0 +1,9 @@
+{
+  "dashboard": "DASHBOARD",
+  "servers": "MGA SERVER",
+  "users": "MGA KLIYENTE",
+  "billing": "PAGSINGIL",
+  "analytics": "NET OP",
+  "security": "SEGURIDAD",
+  "settings": "CONFIG"
+}

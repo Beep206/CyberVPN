@@ -1,0 +1,24 @@
+{
+  "title": "ژێرخانی چالاک",
+  "deployNode": "+ دابەشکردنی گرێ",
+  "columns": {
+    "serverName": "ناوی سێرڤەر",
+    "location": "شوێن",
+    "ipAddress": "ناونیشانی IP",
+    "protocol": "پڕۆتۆکۆڵ",
+    "status": "دۆخ",
+    "load": "بار",
+    "controls": "کۆنترۆڵەکان"
+  },
+  "actions": {
+    "restart": "دەستپێکردنەوە",
+    "stop": "وەستان",
+    "config": "ڕێکخستن"
+  },
+  "status": {
+    "online": "لەسەرهێڵ",
+    "offline": "دەرهێڵ",
+    "warning": "ئاگاداری",
+    "maintenance": "چاککردنەوە"
+  }
+}

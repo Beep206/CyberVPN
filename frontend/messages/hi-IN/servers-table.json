@@ -1,0 +1,24 @@
+{
+  "title": "सक्रिय इंफ्रास्ट्रक्चर",
+  "deployNode": "+ नोड डिप्लॉय करें",
+  "columns": {
+    "serverName": "सर्वर नाम",
+    "location": "स्थान",
+    "ipAddress": "IP पता",
+    "protocol": "प्रोटोकॉल",
+    "status": "स्थिति",
+    "load": "लोड",
+    "controls": "नियंत्रण"
+  },
+  "actions": {
+    "restart": "पुनः आरंभ",
+    "stop": "रोकें",
+    "config": "कॉन्फ़िग"
+  },
+  "status": {
+    "online": "ऑनलाइन",
+    "offline": "ऑफलाइन",
+    "warning": "चेतावनी",
+    "maintenance": "रखरखाव"
+  }
+}

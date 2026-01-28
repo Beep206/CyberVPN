@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SISTEM",
+  "integrity": "SEMAKAN INTEGRITI LULUS",
+  "encryptionLabel": "ENKRIPSI",
+  "encryptionValue": "AKTIF - AES-256",
+  "netUplink": "PAUTAN_RANGKAIAN",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "BAHASA"
+}

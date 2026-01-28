@@ -1,0 +1,18 @@
+{
+  "title": "قاعِدَة بَيانات العُمَلاء",
+  "searchPlaceholder": "بَحْث_الهَوِيَّة...",
+  "columns": {
+    "identity": "الهَوِيَّة",
+    "subscription": "الاشْتِراك",
+    "dataUsage": "اسْتِهْلاك البَيانات",
+    "status": "الحالَة",
+    "lastSeen": "آخِر ظُهور",
+    "actions": "الإجْراءات"
+  },
+  "status": {
+    "active": "نَشِط",
+    "expired": "مُنْتَهٍ",
+    "banned": "مَحْظور",
+    "trial": "تَجْرِيبِي"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "title": "DATABASE CLIENTI",
+  "searchPlaceholder": "CERCA_IDENTITA...",
+  "columns": {
+    "identity": "IDENTITA",
+    "subscription": "ABBONAMENTO",
+    "dataUsage": "USO DATI",
+    "status": "STATO",
+    "lastSeen": "ULTIMO ACCESSO",
+    "actions": "AZIONI"
+  },
+  "status": {
+    "active": "ATTIVO",
+    "expired": "SCADUTO",
+    "banned": "BANNATO",
+    "trial": "PROVA"
+  }
+}

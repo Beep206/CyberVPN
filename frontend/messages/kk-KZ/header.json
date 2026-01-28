@@ -1,0 +1,10 @@
+{
+  "systemLabel": "ЖҮЙЕ",
+  "integrity": "ТҰТАСТЫҚ ТЕКСЕРІЛДІ",
+  "encryptionLabel": "ШИФРЛАУ",
+  "encryptionValue": "БЕЛСЕНДІ - AES-256",
+  "netUplink": "ЖЕЛІ_БАЙЛАНЫС",
+  "fps": "FPS",
+  "ping": "ПИНГ",
+  "language": "ТІЛ"
+}

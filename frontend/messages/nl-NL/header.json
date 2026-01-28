@@ -1,0 +1,10 @@
+{
+  "systemLabel": "SYSTEEM",
+  "integrity": "INTEGRITEITSCONTROLE GESLAAGD",
+  "encryptionLabel": "ENCRYPTIE",
+  "encryptionValue": "ACTIEF - AES-256",
+  "netUplink": "NET_UPLINK",
+  "fps": "FPS",
+  "ping": "PING",
+  "language": "TAAL"
+}

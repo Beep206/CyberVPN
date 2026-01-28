@@ -1,0 +1,24 @@
+{
+  "title": "INFRASTRUCTURE ACTIVE",
+  "deployNode": "+ DÉPLOYER NŒUD",
+  "columns": {
+    "serverName": "NOM SERVEUR",
+    "location": "LOCALISATION",
+    "ipAddress": "ADRESSE IP",
+    "protocol": "PROTOCOLE",
+    "status": "ÉTAT",
+    "load": "CHARGE",
+    "controls": "CONTRÔLES"
+  },
+  "actions": {
+    "restart": "Redémarrer",
+    "stop": "Arrêter",
+    "config": "Config"
+  },
+  "status": {
+    "online": "EN LIGNE",
+    "offline": "HORS LIGNE",
+    "warning": "ALERTE",
+    "maintenance": "MAINTENANCE"
+  }
+}
