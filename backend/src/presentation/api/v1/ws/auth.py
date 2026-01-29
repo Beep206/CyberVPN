@@ -1,7 +1,7 @@
 """WebSocket authentication dependency."""
 
 from fastapi import Query, WebSocket, WebSocketException, status
-from jose import JWTError
+from jwt.exceptions import PyJWTError as JWTError
 
 from src.application.services.auth_service import AuthService
 

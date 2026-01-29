@@ -75,6 +75,77 @@ services:
       timeout: 3s
       retries: 3
 
+  cybervpn-worker:
+    build:
+      context: ../services/task-worker
+      dockerfile: Dockerfile
+    container_name: cybervpn-worker
+    hostname: cybervpn-worker
+    profiles: ["worker"]
+    <<: [*common, *logging]
+    env_file:
+      - ../services/task-worker/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@remnawave-db:5432/${POSTGRES_DB:-postgres}
+      - REDIS_URL=redis://remnawave-redis:6379/0
+      - REMNAWAVE_URL=http://remnawave:3000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN:-}
+      - ADMIN_TELEGRAM_IDS=${ADMIN_TELEGRAM_IDS:-}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - METRICS_PORT=${WORKER_METRICS_PORT:-9091}
+    command: ["taskiq", "worker", "src.broker:broker", "--workers", "${WORKER_CONCURRENCY:-2}", "--fs-discover"]
+    ports:
+      - "127.0.0.1:${WORKER_METRICS_PORT:-9091}:${WORKER_METRICS_PORT:-9091}"
+    depends_on:
+      remnawave-db:
+        condition: service_healthy
+      remnawave-redis:
+        condition: service_healthy
+      remnawave:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  cybervpn-scheduler:
+    build:
+      context: ../services/task-worker
+      dockerfile: Dockerfile
+    container_name: cybervpn-scheduler
+    hostname: cybervpn-scheduler
+    profiles: ["worker"]
+    <<: [*common, *logging]
+    env_file:
+      - ../services/task-worker/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@remnawave-db:5432/${POSTGRES_DB:-postgres}
+      - REDIS_URL=redis://remnawave-redis:6379/0
+      - REMNAWAVE_URL=http://remnawave:3000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    depends_on:
+      cybervpn-worker:
+        condition: service_healthy
+      remnawave-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "3"
+
   caddy:
     image: caddy:2.9
     container_name: caddy
@@ -129,7 +200,7 @@ services:
   remnashop:
     image: ghcr.io/snoups/remnashop:latest
     container_name: remnashop
-    profiles: ["bot"]
+    profiles: ["bot-legacy"]
     restart: unless-stopped
     env_file:
       - ./remnashop/.env
@@ -145,6 +216,48 @@ services:
     networks:
       - remnawave-network
 
+  cybervpn-telegram-bot:
+    build:
+      context: ../services/telegram-bot
+      dockerfile: Dockerfile
+    container_name: cybervpn-telegram-bot
+    hostname: cybervpn-telegram-bot
+    profiles: ["bot"]
+    <<: [*common, *logging]
+    env_file:
+      - ../services/telegram-bot/.env
+    environment:
+      - BOT_MODE=${BOT_MODE:-polling}
+      - BACKEND_API_URL=http://remnawave:${APP_PORT:-3000}/api
+      - BACKEND_API_KEY=${BACKEND_API_KEY:-}
+      - REDIS_URL=redis://remnawave-redis:6379
+      - REDIS_DB=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_JSON_FORMAT=true
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - PROMETHEUS_PORT=9092
+    ports:
+      - "127.0.0.1:${BOT_METRICS_PORT:-9092}:9092"
+    depends_on:
+      remnawave:
+        condition: service_healthy
+      remnawave-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -154,6 +267,7 @@ services:
       - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -173,8 +287,11 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-grafana_local_password}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
     networks:
       - remnawave-network
 

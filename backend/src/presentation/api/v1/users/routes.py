@@ -69,6 +69,10 @@ async def list_users(
             page=pagination.page,
             page_size=pagination.page_size,
         )
+    except Exception:
+        raise
+
+
 @router.post(
     "/",
     response_model=UserResponse,
@@ -113,6 +117,10 @@ async def create_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
+    except Exception:
+        raise
+
+
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
@@ -147,6 +155,10 @@ async def get_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
+    except Exception:
+        raise
+
+
 @router.put(
     "/{user_id}",
     response_model=UserResponse,
@@ -195,6 +207,10 @@ async def update_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
+    except Exception:
+        raise
+
+
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -212,3 +228,5 @@ async def delete_user(
 
         await use_case.execute(uuid=user_id)
         return None
+    except Exception:
+        raise

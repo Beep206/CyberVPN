@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'CyberVPN Dashboards'
+    orgId: 1
+    folder: 'CyberVPN'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false

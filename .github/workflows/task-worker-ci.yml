@@ -1,0 +1,161 @@
+name: Task Worker CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'services/task-worker/**'
+      - '.github/workflows/task-worker-ci.yml'
+  pull_request:
+    paths:
+      - 'services/task-worker/**'
+      - '.github/workflows/task-worker-ci.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff check
+        run: ruff check services/task-worker/src/
+        continue-on-error: false
+
+      - name: Run ruff format check
+        run: ruff format --check services/task-worker/src/
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.13']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e "services/task-worker[test]"
+
+      - name: Run unit tests
+        run: |
+          pytest services/task-worker/tests/unit/ -v --tb=short --cov=src --cov-report=xml --cov-report=term
+
+      - name: Run integration tests
+        run: |
+          pytest services/task-worker/tests/integration/ -v --tb=short -m integration
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.13'
+        with:
+          file: ./coverage.xml
+          flags: task-worker
+          name: task-worker-coverage
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies with dev extras
+        run: |
+          pip install -e "services/task-worker[dev]"
+
+      - name: Run mypy type checking
+        run: |
+          mypy services/task-worker/src/ --ignore-missing-imports --no-strict-optional
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        uses: docker/build-push-action@v5
+        with:
+          context: services/task-worker
+          file: services/task-worker/Dockerfile
+          push: false
+          tags: cybervpn-task-worker:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --require-hashes --desc services/task-worker/
+        continue-on-error: true
+
+  all-checks:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, test, typecheck, docker-build]
+    if: always()
+    steps:
+      - name: Check all jobs
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          DOCKER_RESULT: ${{ needs.docker-build.result }}
+        run: |
+          if [[ "$LINT_RESULT" != "success" ]] || \
+             [[ "$TEST_RESULT" != "success" ]] || \
+             [[ "$TYPECHECK_RESULT" != "success" ]] || \
+             [[ "$DOCKER_RESULT" != "success" ]]; then
+            echo "One or more checks failed"
+            exit 1
+          fi
+          echo "All checks passed successfully"

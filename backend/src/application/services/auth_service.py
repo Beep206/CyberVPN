@@ -1,12 +1,18 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from jose import jwt
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
+import jwt
 
 from src.config.settings import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
+_hasher = PasswordHasher(
+    memory_cost=19456,  # 19 MiB (OWASP 2025)
+    time_cost=2,
+    parallelism=1,
+    hash_len=32,
+)
 
 
 class AuthService:
@@ -42,31 +48,21 @@ class AuthService:
 
     @staticmethod
     async def hash_password(password: str) -> str:
-        """Hash password asynchronously (bcrypt is CPU-intensive).
+        """Hash password with Argon2id asynchronously.
 
         Uses asyncio.to_thread() to avoid blocking the event loop during
-        the expensive bcrypt hashing operation.
-
-        Args:
-            password: Plain text password to hash.
-
-        Returns:
-            Hashed password string.
+        the CPU/memory-intensive Argon2id hashing operation.
         """
-        return await asyncio.to_thread(pwd_context.hash, password)
+        return await asyncio.to_thread(_hasher.hash, password)
 
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
-        """Verify password asynchronously (bcrypt is CPU-intensive).
+        """Verify password against Argon2id hash asynchronously.
 
         Uses asyncio.to_thread() to avoid blocking the event loop during
-        the expensive bcrypt verification operation.
-
-        Args:
-            plain_password: Plain text password to verify.
-            hashed_password: Previously hashed password to compare against.
-
-        Returns:
-            True if password matches, False otherwise.
+        the CPU/memory-intensive Argon2id verification operation.
         """
-        return await asyncio.to_thread(pwd_context.verify, plain_password, hashed_password)
+        try:
+            return await asyncio.to_thread(_hasher.verify, hashed_password, plain_password)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            return False

@@ -11,6 +11,7 @@ from src.presentation.api.v1.router import api_router
 from src.presentation.middleware.auth import AuthMiddleware
 from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
+from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 
 logger = logging.getLogger("cybervpn")
 
@@ -95,10 +96,13 @@ app = FastAPI(
 )
 
 # Middleware (order matters - last added = first executed)
-# Order: Logging (runs last) → Auth → Rate Limit → CORS (runs first)
+# Order: Logging (runs last) → SecurityHeaders → Auth → Rate Limit → CORS (runs first)
 
 # Add LoggingMiddleware first (runs last in chain)
 app.add_middleware(LoggingMiddleware)
+
+# Add SecurityHeadersMiddleware (runs after logging, adds OWASP security headers)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Add AuthMiddleware second (runs third)
 app.add_middleware(AuthMiddleware)

@@ -74,3 +74,10 @@ env/
 # Task files
 # tasks.json
 # tasks/ 
+
+# Windows/WSL trash
+*:Zone.Identifier
+
+# Temp artifacts
+_modified_server_config.json
+report/
