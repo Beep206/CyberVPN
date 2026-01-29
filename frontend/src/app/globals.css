@@ -202,36 +202,30 @@
     background-image: none;
   }
 
-  /* Global cursor hiding REMOVED to fix overlays */
-  /* We will apply .custom-cursor-scope to the app root instead */
+  /* Global cursor hiding is now handled in layout.tsx via scoped class */
+  /* html, body { cursor: none; } -- REMOVED */
 
-  /* Utility to hide cursor only within the app container */
-  .custom-cursor-scope {
-    cursor: none;
-  }
+  /* 
+     Ensure standard interactive elements inherit 'none' unless overridden 
+     but allow external tools (like Next.js Error Overlay) to show cursor 
+  */
+  /* 
+     Standard interactive elements inside the .cursor-none container will inherit 'none'.
+     If they are outside (like Next.js overlays), they will default to auto/pointer.
+  */
 
-  .custom-cursor-scope a,
-  .custom-cursor-scope button,
-  .custom-cursor-scope [role="button"] {
-    cursor: none;
-  }
-
-  /* Force Restore Cursor for Next.js Error Overlay & Dev Tools */
-  body>[data-nextjs-toast-wrapper],
-  body>[data-nextjs-dialog-overlay],
-  nexjs-portal,
-  #nextjs-error-overlay {
+  /* EXCEPTION: Next.js Dev Tools & Error Overlay */
+  nextjs-portal,
+  [data-nextjs-dialog-overlay],
+  [data-nextjs-toast],
+  #nextjs-dev-tools-overlay {
     cursor: auto !important;
-    pointer-events: auto !important;
-    z-index: 2147483647 !important;
-    /* Max Z-Index */
   }
 
-  /* Ensure buttons inside the overlay are clickable */
-  body>[data-nextjs-dialog-overlay] button,
-  #nextjs-error-overlay button {
-    cursor: pointer !important;
-    pointer-events: auto !important;
+  /* Also match children of the overlay to ensure they get the pointer */
+  nextjs-portal *,
+  [data-nextjs-dialog-overlay] * {
+    cursor: auto !important;
   }
 
   .dark body {

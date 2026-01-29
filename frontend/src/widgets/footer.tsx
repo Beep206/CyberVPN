@@ -196,11 +196,11 @@ export function Footer() {
                 <div className="pt-8 border-t border-grid-line/20 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/60">
                         <Globe className="h-3 w-3" />
-                        <span>Server Time: {new Date().getFullYear()}.{String(new Date().getMonth() + 1).padStart(2, '0')}.{String(new Date().getDate()).padStart(2, '0')}</span>
+                        <span suppressHydrationWarning>Server Time: {new Date().getFullYear()}.{String(new Date().getMonth() + 1).padStart(2, '0')}.{String(new Date().getDate()).padStart(2, '0')}</span>
                     </div>
 
                     <p className="text-xs font-mono text-muted-foreground/40 text-center md:text-right">
-                        © {new Date().getFullYear()} CyberVPN Inc. All systems operational.
+                        © <span suppressHydrationWarning>{new Date().getFullYear()}</span> CyberVPN Inc. All systems operational.
                     </p>
                 </div>
             </div>

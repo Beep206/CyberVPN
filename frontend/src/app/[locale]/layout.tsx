@@ -75,18 +75,14 @@ export default async function RootLayout({
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <SmoothScrollProvider>
                             <CustomCursor />
-
-                            {/* App Content Wrapper with Custom Cursor Scope */}
-                            <div className="custom-cursor-scope relative h-full w-full">
-                                <div className="relative z-10 h-full w-full">
-                                    {children}
-                                </div>
-                                <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
-                                <DevPanel />
+                            <div className="relative z-10 h-full w-full cursor-none">
+                                {children}
                             </div>
-
                         </SmoothScrollProvider>
                     </NextIntlClientProvider>
+                    {/* Background scanline effect and glow can be global or part of specific layouts */}
+                    <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+                    <DevPanel />
                 </ThemeProvider>
             </body>
         </html>

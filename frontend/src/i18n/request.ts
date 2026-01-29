@@ -47,7 +47,8 @@ async function loadLocaleMessages(locale: Locale) {
         usersTable,
         serversTable,
         serverCard,
-        landing
+        landing,
+        footer
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`),
         import(`../../messages/${locale}/navigation.json`),
@@ -58,7 +59,8 @@ async function loadLocaleMessages(locale: Locale) {
         import(`../../messages/${locale}/users-table.json`),
         import(`../../messages/${locale}/servers-table.json`),
         import(`../../messages/${locale}/server-card.json`),
-        import(`../../messages/${locale}/landing.json`)
+        import(`../../messages/${locale}/landing.json`),
+        import(`../../messages/${locale}/footer.json`)
     ]);
 
     return {
@@ -71,6 +73,7 @@ async function loadLocaleMessages(locale: Locale) {
         UsersTable: usersTable.default,
         ServersTable: serversTable.default,
         ServerCard: serverCard.default,
-        Landing: landing.default
+        Landing: landing.default,
+        Footer: footer.default
     };
 }
