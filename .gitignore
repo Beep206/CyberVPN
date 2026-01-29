@@ -61,10 +61,6 @@ dev-debug.log
 .opencode/
 .taskmaster/
 
-# Task files
-# tasks.json
-# tasks/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -74,3 +70,7 @@ venv/
 .env
 .venv/
 env/
+
+# Task files
+# tasks.json
+# tasks/ 

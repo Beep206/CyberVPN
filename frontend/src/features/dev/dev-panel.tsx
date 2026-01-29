@@ -234,8 +234,7 @@ function BrowserTab() {
                 time: new Date().toLocaleTimeString(),
                 screen: `${window.screen.width}x${window.screen.height}`,
                 cores: navigator.hardwareConcurrency || 0,
-                // @ts-ignore
-                memory: navigator.deviceMemory || 0,
+                memory: (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0,
             });
 
             const interval = setInterval(() => {

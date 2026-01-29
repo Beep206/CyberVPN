@@ -5,17 +5,8 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { Server, Users, Activity, CreditCard, Settings, Shield, BarChart3 } from 'lucide-react';
-
-const menuItems = [
-    { icon: Activity, labelKey: 'dashboard', href: '/dashboard' },
-    { icon: Server, labelKey: 'servers', href: '/servers' },
-    { icon: Users, labelKey: 'users', href: '/users' },
-    { icon: CreditCard, labelKey: 'billing', href: '/subscriptions' },
-    { icon: BarChart3, labelKey: 'analytics', href: '/analytics' },
-    { icon: Shield, labelKey: 'security', href: '/monitoring' },
-    { icon: Settings, labelKey: 'settings', href: '/settings' },
-];
+import { Shield } from 'lucide-react';
+import { menuItems } from '@/shared/config/navigation-items';
 
 export function CyberSidebar() {
     const pathname = usePathname();

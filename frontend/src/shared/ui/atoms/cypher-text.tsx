@@ -23,8 +23,8 @@ export function CypherText({
     trigger
 }: CypherTextProps) {
     const [displayText, setDisplayText] = useState(text);
-    const intervalRef = useRef<NodeJS.Timeout>(null);
-    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     const animate = useCallback(() => {
         // Clear existing
