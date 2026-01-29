@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
 
+    # GitHub OAuth (optional)
+    github_client_id: str = ""
+    github_client_secret: SecretStr = SecretStr("")
+
     # Payment gateway
     cryptobot_token: SecretStr
 

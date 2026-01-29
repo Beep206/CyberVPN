@@ -1,0 +1,88 @@
+groups:
+  - name: cybervpn_worker_alerts
+    interval: 30s
+    rules:
+      - alert: TaskWorkerDown
+        expr: up{job="cybervpn-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: cybervpn-worker
+        annotations:
+          summary: "CyberVPN Task Worker is down"
+          description: "Task worker instance {{ $labels.instance }} has been down for more than 5 minutes."
+
+      - alert: HighTaskErrorRate
+        expr: |
+          (
+            rate(taskiq_tasks_total{job="cybervpn-worker", status="error"}[5m])
+            /
+            rate(taskiq_tasks_total{job="cybervpn-worker"}[5m])
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+        annotations:
+          summary: "High task error rate detected"
+          description: "Task {{ $labels.task_name }} has error rate above 5% (current: {{ $value | humanizePercentage }}) for the last 10 minutes."
+
+      - alert: TaskQueueBacklog
+        expr: cybervpn_queue_depth > 100
+        for: 15m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+        annotations:
+          summary: "Task queue backlog detected"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending tasks for more than 15 minutes. Consider scaling workers."
+
+      - alert: HighTaskDuration
+        expr: |
+          histogram_quantile(0.95,
+            rate(taskiq_task_duration_seconds_bucket{job="cybervpn-worker"}[5m])
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+        annotations:
+          summary: "High task execution duration"
+          description: "Task {{ $labels.task_name }} P95 duration is {{ $value }}s (threshold: 30s) for the last 10 minutes."
+
+      - alert: RedisConnectionFailing
+        expr: |
+          rate(taskiq_task_errors_total{job="cybervpn-worker", error_type=~".*Redis.*|.*Connection.*"}[1m]) > 0
+        for: 3m
+        labels:
+          severity: critical
+          service: cybervpn-worker
+        annotations:
+          summary: "Redis connection errors detected"
+          description: "Task worker is experiencing Redis connection errors for task {{ $labels.task_name }}. Check Redis service health."
+
+      - alert: NoTasksProcessed
+        expr: |
+          rate(taskiq_tasks_total{job="cybervpn-worker"}[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+        annotations:
+          summary: "No tasks being processed"
+          description: "Task worker has not processed any tasks in the last 15 minutes. Check if tasks are being scheduled."
+
+      - alert: HighExternalAPIFailureRate
+        expr: |
+          (
+            rate(cybervpn_external_requests_total{job="cybervpn-worker", status=~"5.."}[5m])
+            /
+            rate(cybervpn_external_requests_total{job="cybervpn-worker"}[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+        annotations:
+          summary: "High external API failure rate"
+          description: "External service {{ $labels.service }} has {{ $value | humanizePercentage }} failure rate for the last 5 minutes."

@@ -1,0 +1,1 @@
+"""CyberVPN Telegram Bot Service."""

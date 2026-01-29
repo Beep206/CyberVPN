@@ -21,7 +21,7 @@ class TestAuthService:
         hash2 = await self.auth_service.hash_password(password)
 
         assert hash1 != hash2, "Hashes should differ due to random salt"
-        assert hash1.startswith("$2b$"), "Hash should be bcrypt format"
+        assert hash1.startswith("$argon2id$"), "Hash should be Argon2id format"
 
     @pytest.mark.unit
     async def test_verify_password_correct(self):
