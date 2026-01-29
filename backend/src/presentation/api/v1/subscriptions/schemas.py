@@ -43,3 +43,26 @@ class UpdateSubscriptionTemplateRequest(BaseModel):
     inbound_tag: Optional[str] = Field(None, max_length=100)
     flow: Optional[str] = Field(None, max_length=50)
     config_data: Optional[dict[str, Any]] = None
+
+
+class SubscriptionResponse(BaseModel):
+    """Expected response from Remnawave subscriptions API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Subscription UUID")
+    name: str = Field(..., max_length=100, description="Template name")
+    template_type: str = Field(..., max_length=50, description="Template type")
+    host_uuid: Optional[str] = Field(None, description="Host UUID")
+    inbound_tag: Optional[str] = Field(None, max_length=100, description="Inbound tag")
+    flow: Optional[str] = Field(None, max_length=50, description="Flow control method")
+    config_data: Optional[dict[str, Any]] = Field(None, description="Config data")
+
+
+class SubscriptionConfigResponse(BaseModel):
+    """Expected response for subscription config generation."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    config: str = Field(..., description="Generated VPN configuration string")
+    subscription_url: Optional[str] = Field(None, max_length=5000, description="Subscription URL")

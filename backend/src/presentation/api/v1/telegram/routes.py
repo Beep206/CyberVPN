@@ -49,13 +49,6 @@ async def get_telegram_user(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get Telegram user: {str(e)}",
-        )
-
-
 @router.post("/user/{telegram_id}/subscription", status_code=status.HTTP_201_CREATED)
 async def create_subscription(
     telegram_id: int,
@@ -94,13 +87,6 @@ async def create_subscription(
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create subscription: {str(e)}",
-        )
-
-
 @router.get("/user/{telegram_id}/config", response_model=ConfigResponse)
 async def get_user_config(
     telegram_id: int,
@@ -130,8 +116,3 @@ async def get_user_config(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get user config: {str(e)}",
-        )

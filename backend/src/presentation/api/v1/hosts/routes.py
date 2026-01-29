@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import get_current_active_user, require_role, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import CreateHostRequest, UpdateHostRequest
+from .schemas import CreateHostRequest, UpdateHostRequest, HostResponse
 
 router = APIRouter(prefix="/hosts", tags=["hosts"])
 
-@router.get("/")
+@router.get("/", responses={200: {"model": list[HostResponse]}})
 async def list_hosts(
     current_user=Depends(require_role("admin")),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def list_hosts(
     """List all VPN hosts (admin only)"""
     return await client.get("/hosts")
 
-@router.post("/")
+@router.post("/", responses={200: {"model": HostResponse}})
 async def create_host(
     host_data: CreateHostRequest,
     current_user=Depends(require_role("admin")),
@@ -23,7 +23,7 @@ async def create_host(
     """Create a new VPN host (admin only)"""
     return await client.post("/hosts", json=host_data.model_dump())
 
-@router.get("/{uuid}")
+@router.get("/{uuid}", responses={200: {"model": HostResponse}})
 async def get_host(
     uuid: str,
     current_user=Depends(require_role("admin")),
@@ -32,7 +32,7 @@ async def get_host(
     """Get host details (admin only)"""
     return await client.get(f"/hosts/{uuid}")
 
-@router.put("/{uuid}")
+@router.put("/{uuid}", responses={200: {"model": HostResponse}})
 async def update_host(
     uuid: str,
     host_data: UpdateHostRequest,

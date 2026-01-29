@@ -30,3 +30,17 @@ class CreatePaymentRequest(BaseModel):
     metadata: Optional[dict[str, Any]] = Field(
         None, description="Additional payment metadata"
     )
+
+
+class BillingRecordResponse(BaseModel):
+    """Expected response from Remnawave billing API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Billing record UUID")
+    user_uuid: str = Field(..., description="User UUID")
+    amount: float = Field(..., description="Payment amount")
+    currency: str = Field(..., max_length=3, description="Currency code")
+    status: str = Field(..., max_length=50, description="Payment status")
+    payment_method: Optional[str] = Field(None, max_length=50, description="Payment method")
+    created_at: Optional[str] = Field(None, description="Creation timestamp")

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 from jose import jwt
@@ -40,9 +41,32 @@ class AuthService:
         return jwt.decode(token, self._secret, algorithms=[self._algorithm])
 
     @staticmethod
-    def hash_password(password: str) -> str:
-        return pwd_context.hash(password)
+    async def hash_password(password: str) -> str:
+        """Hash password asynchronously (bcrypt is CPU-intensive).
+
+        Uses asyncio.to_thread() to avoid blocking the event loop during
+        the expensive bcrypt hashing operation.
+
+        Args:
+            password: Plain text password to hash.
+
+        Returns:
+            Hashed password string.
+        """
+        return await asyncio.to_thread(pwd_context.hash, password)
 
     @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return pwd_context.verify(plain_password, hashed_password)
+    async def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """Verify password asynchronously (bcrypt is CPU-intensive).
+
+        Uses asyncio.to_thread() to avoid blocking the event loop during
+        the expensive bcrypt verification operation.
+
+        Args:
+            plain_password: Plain text password to verify.
+            hashed_password: Previously hashed password to compare against.
+
+        Returns:
+            True if password matches, False otherwise.
+        """
+        return await asyncio.to_thread(pwd_context.verify, plain_password, hashed_password)

@@ -52,13 +52,6 @@ async def list_servers(
             )
             for server in servers
         ]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list servers: {str(e)}",
-        )
-
-
 @router.post("/", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
 async def create_server(
     request: CreateServerRequest,
@@ -91,13 +84,6 @@ async def create_server(
             inbound_count=server.inbound_count,
             users_online=server.users_online,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create server: {str(e)}",
-        )
-
-
 @router.get("/stats", response_model=ServerStatsResponse)
 async def get_server_stats(
     db: AsyncSession = Depends(get_db),
@@ -112,13 +98,6 @@ async def get_server_stats(
         stats = await use_case.execute()
 
         return ServerStatsResponse(**stats)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get server stats: {str(e)}",
-        )
-
-
 @router.get("/{server_id}", response_model=ServerResponse)
 async def get_server(
     server_id: UUID,
@@ -155,13 +134,6 @@ async def get_server(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get server: {str(e)}",
-        )
-
-
 @router.put("/{server_id}", response_model=ServerResponse)
 async def update_server(
     server_id: UUID,
@@ -199,13 +171,6 @@ async def update_server(
             inbound_count=server.inbound_count,
             users_online=server.users_online,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update server: {str(e)}",
-        )
-
-
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_server(
     server_id: UUID,
@@ -220,8 +185,3 @@ async def delete_server(
 
         await use_case.delete(uuid=server_id)
         return None
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete server: {str(e)}",
-        )

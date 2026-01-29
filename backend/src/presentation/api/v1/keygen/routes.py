@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import SignPayloadRequest
+from .schemas import SignPayloadRequest, PublicKeyResponse, SignPayloadResponse
 
 router = APIRouter(prefix="/keygen", tags=["keygen"])
 
-@router.get("/public-key")
+@router.get("/public-key", responses={200: {"model": PublicKeyResponse}})
 async def get_public_key(
     current_user=Depends(get_current_active_user),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def get_public_key(
     """Get public key for signature verification"""
     return await client.get("/keygen/public-key")
 
-@router.post("/sign-payload")
+@router.post("/sign-payload", responses={200: {"model": SignPayloadResponse}})
 async def sign_payload(
     payload_data: SignPayloadRequest,
     current_user=Depends(get_current_active_user),

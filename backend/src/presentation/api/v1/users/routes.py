@@ -69,14 +69,15 @@ async def list_users(
             page=pagination.page,
             page_size=pagination.page_size,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list users: {str(e)}",
-        )
-
-
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {"description": "User already exists"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_user(
     request: CreateUserRequest,
     client=Depends(get_remnawave_client),
@@ -112,24 +113,11 @@ async def create_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
-    except UserAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        )
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create user: {str(e)}",
-        )
-
-
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    responses={404: {"description": "User not found"}},
+)
 async def get_user(
     user_id: UUID,
     client=Depends(get_remnawave_client),
@@ -159,19 +147,14 @@ async def get_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
-    except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get user: {str(e)}",
-        )
-
-
-@router.put("/{user_id}", response_model=UserResponse)
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    responses={
+        404: {"description": "User not found"},
+        422: {"description": "Validation error"},
+    },
+)
 async def update_user(
     user_id: UUID,
     request: UpdateUserRequest,
@@ -212,24 +195,11 @@ async def update_user(
             email=user.email,
             telegram_id=user.telegram_id,
         )
-    except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update user: {str(e)}",
-        )
-
-
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"description": "User not found"}},
+)
 async def delete_user(
     user_id: UUID,
     client=Depends(get_remnawave_client),
@@ -242,13 +212,3 @@ async def delete_user(
 
         await use_case.execute(uuid=user_id)
         return None
-    except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete user: {str(e)}",
-        )

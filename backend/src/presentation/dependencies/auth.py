@@ -9,14 +9,15 @@ from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.services import get_auth_service
 
 security = HTTPBearer()
-auth_service = AuthService()
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
 ) -> AdminUserModel:
     try:
         payload = auth_service.decode_token(credentials.credentials)
@@ -46,6 +47,7 @@ async def get_current_active_user(
 async def optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
 ) -> AdminUserModel | None:
     if not credentials:
         return None

@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import CreatePaymentRequest
+from .schemas import CreatePaymentRequest, BillingRecordResponse
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
-@router.get("/")
+@router.get("/", responses={200: {"model": list[BillingRecordResponse]}})
 async def get_billing_info(
     current_user=Depends(get_current_active_user),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def get_billing_info(
     """Get user billing information and history"""
     return await client.get("/billing")
 
-@router.post("/")
+@router.post("/", responses={200: {"model": BillingRecordResponse}})
 async def create_payment(
     payment_data: CreatePaymentRequest,
     current_user=Depends(get_current_active_user),

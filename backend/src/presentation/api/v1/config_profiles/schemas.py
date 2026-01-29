@@ -30,3 +30,16 @@ class CreateConfigProfileRequest(BaseModel):
     description: Optional[str] = Field(
         None, max_length=500, description="Profile description"
     )
+
+
+class ConfigProfileResponse(BaseModel):
+    """Expected response from Remnawave config-profiles API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Profile UUID")
+    name: str = Field(..., max_length=100, description="Profile name")
+    profile_type: str = Field(..., max_length=50, description="Profile type")
+    content: str = Field(..., description="Profile content/template")
+    is_default: bool = Field(..., description="Whether this is the default profile")
+    description: Optional[str] = Field(None, max_length=500, description="Profile description")

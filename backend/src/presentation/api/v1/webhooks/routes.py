@@ -30,13 +30,6 @@ async def remnawave_webhook(
         result = await use_case.execute(payload=payload, signature=signature)
 
         return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process Remnawave webhook: {str(e)}",
-        )
-
-
 @router.post("/cryptobot", status_code=status.HTTP_200_OK)
 async def cryptobot_webhook(
     request: Request,
@@ -53,8 +46,3 @@ async def cryptobot_webhook(
         result = await use_case.execute(payload=payload, signature=signature)
 
         return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process CryptoBot webhook: {str(e)}",
-        )

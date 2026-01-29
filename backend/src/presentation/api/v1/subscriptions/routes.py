@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.presentation.dependencies import get_current_active_user, require_role, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import CreateSubscriptionTemplateRequest, UpdateSubscriptionTemplateRequest
+from .schemas import CreateSubscriptionTemplateRequest, UpdateSubscriptionTemplateRequest, SubscriptionResponse, SubscriptionConfigResponse
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
-@router.get("/")
+@router.get("/", responses={200: {"model": list[SubscriptionResponse]}})
 async def list_subscription_templates(
     current_user=Depends(require_role("admin")),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def list_subscription_templates(
     """List all subscription templates (admin only)"""
     return await client.get("/subscriptions")
 
-@router.post("/")
+@router.post("/", responses={200: {"model": SubscriptionResponse}})
 async def create_subscription_template(
     template_data: CreateSubscriptionTemplateRequest,
     current_user=Depends(require_role("admin")),
@@ -23,7 +23,7 @@ async def create_subscription_template(
     """Create a new subscription template (admin only)"""
     return await client.post("/subscriptions", json=template_data.model_dump())
 
-@router.get("/{uuid}")
+@router.get("/{uuid}", responses={200: {"model": SubscriptionResponse}})
 async def get_subscription_template(
     uuid: str,
     current_user=Depends(get_current_active_user),
@@ -32,7 +32,7 @@ async def get_subscription_template(
     """Get subscription template details"""
     return await client.get(f"/subscriptions/{uuid}")
 
-@router.put("/{uuid}")
+@router.put("/{uuid}", responses={200: {"model": SubscriptionResponse}})
 async def update_subscription_template(
     uuid: str,
     template_data: UpdateSubscriptionTemplateRequest,
@@ -51,7 +51,7 @@ async def delete_subscription_template(
     """Delete subscription template (admin only)"""
     return await client.delete(f"/subscriptions/{uuid}")
 
-@router.get("/config/{user_uuid}")
+@router.get("/config/{user_uuid}", responses={200: {"model": SubscriptionConfigResponse}})
 async def generate_config(
     user_uuid: str,
     current_user=Depends(get_current_active_user),
