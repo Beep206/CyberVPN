@@ -1,9 +1,10 @@
-import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from '@/i18n/config';
+import { NextRequest } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { locales, defaultLocale } from "@/i18n/config";
 
 // Middleware wrapper to handle Auth Bypass
-export default async function middleware(request: any) {
-    const isDevBypass = request.cookies.get('DEV_BYPASS_AUTH')?.value === 'true';
+export default async function middleware(request: NextRequest) {
+    const isDevBypass = request.cookies.get("DEV_BYPASS_AUTH")?.value === "true";
 
     // If bypass is on, we might skip upcoming auth checks
     // For now, we just proceed, but in a real auth guard, we would return next() immediately.
@@ -13,11 +14,11 @@ export default async function middleware(request: any) {
     const response = createMiddleware({
         locales,
         defaultLocale,
-        localePrefix: 'always'
+        localePrefix: "always"
     })(request);
 
     if (isDevBypass) {
-        response.headers.set('X-Dev-Auth-Bypass', 'true');
+        response.headers.set("X-Dev-Auth-Bypass", "true");
     }
 
     return response;
@@ -25,11 +26,6 @@ export default async function middleware(request: any) {
 
 export const config = {
     matcher: [
-        // Match all pathnames except for
-        // - … if they start with `/api`, `/_next` or `/_vercel`
-        // - … the ones containing a dot (e.g. `favicon.ico`)
-        '/((?!api|_next|_vercel|.*\\..*).*)',
-        // However, match all pathnames within `/users`, optionally with a locale prefix
-        // '/([\\w-]+)?/users/(.+)'
+        "/((?\!api|_next|_vercel|.*\\\\..*).*)",
     ]
 };

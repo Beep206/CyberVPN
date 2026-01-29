@@ -191,7 +191,7 @@ function Globe() {
 }
 
 // Default Mock Data
-const defaultServers: NetworkServer[] = [
+const DEFAULT_SERVERS: NetworkServer[] = [
     { id: '1', name: 'NY', lat: 40.7128, lng: -74.0060, status: 'online' },
     { id: '2', name: 'LDN', lat: 51.5074, lng: -0.1278, status: 'online' },
     { id: '3', name: 'JP', lat: 35.6762, lng: 139.6503, status: 'warning' },
@@ -201,7 +201,7 @@ const defaultServers: NetworkServer[] = [
     { id: '7', name: 'AU', lat: -33.8688, lng: 151.2093, status: 'online' },
 ];
 
-const defaultConnections: NetworkConnection[] = [
+const DEFAULT_CONNECTIONS: NetworkConnection[] = [
     { from: { lat: 40.7128, lng: -74.0060 }, to: { lat: 51.5074, lng: -0.1278 } }, // NY -> LDN
     { from: { lat: 51.5074, lng: -0.1278 }, to: { lat: 35.6762, lng: 139.6503 } }, // LDN -> JP
     { from: { lat: 35.6762, lng: 139.6503 }, to: { lat: 1.3521, lng: 103.8198 } }, // JP -> SG
@@ -228,7 +228,7 @@ function ParallaxGroup({ children }: { children: React.ReactNode }) {
     return <group ref={group}>{children}</group>;
 }
 
-export default function GlobalNetworkScene({ servers = defaultServers, connections = defaultConnections }: GlobalNetworkSceneProps) {
+export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS }: GlobalNetworkSceneProps) {
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas

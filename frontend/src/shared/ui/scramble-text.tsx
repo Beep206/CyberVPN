@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useInView } from 'motion/react';
-import { useRef } from 'react';
 
 interface ScrambleTextProps {
     text: string;
@@ -28,7 +27,7 @@ export function ScrambleText({
     // Internal state to track if interaction is happening
     const isAnimating = useRef(false);
 
-    const scramble = () => {
+    const scramble = useCallback(() => {
         if (isAnimating.current) return;
         isAnimating.current = true;
 
@@ -54,7 +53,7 @@ export function ScrambleText({
         }, scrambleSpeed);
 
         return () => clearInterval(interval);
-    };
+    }, [text, scrambleSpeed]);
 
     useEffect(() => {
         if (isInView) {
@@ -63,7 +62,7 @@ export function ScrambleText({
             }, revealDelay);
             return () => clearTimeout(timeout);
         }
-    }, [isInView, text, revealDelay]);
+    }, [isInView, text, revealDelay, scramble]);
 
     const handleMouseEnter = () => {
         if (triggerOnHover) {

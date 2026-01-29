@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const socialLinks = [
     { icon: Twitter, href: '#', label: 'Twitter' },
@@ -51,6 +51,14 @@ const footerLinks = {
 export function Footer() {
     const t = useTranslations('Footer'); // Assuming keys map, or fallback to defaults
     const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+    const [dateStr, setDateStr] = useState('');
+    const [year, setYear] = useState('');
+
+    useEffect(() => {
+        const now = new Date();
+        setDateStr(`${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`);
+        setYear(String(now.getFullYear()));
+    }, []);
 
     return (
         <footer className="relative w-full bg-terminal-bg border-t border-grid-line/30 overflow-hidden pt-16 pb-8">
@@ -196,11 +204,11 @@ export function Footer() {
                 <div className="pt-8 border-t border-grid-line/20 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/60">
                         <Globe className="h-3 w-3" />
-                        <span suppressHydrationWarning>Server Time: {new Date().getFullYear()}.{String(new Date().getMonth() + 1).padStart(2, '0')}.{String(new Date().getDate()).padStart(2, '0')}</span>
+                        <span>Server Time: {dateStr}</span>
                     </div>
 
                     <p className="text-xs font-mono text-muted-foreground/40 text-center md:text-right">
-                        © <span suppressHydrationWarning>{new Date().getFullYear()}</span> CyberVPN Inc. All systems operational.
+                        © <span>{year}</span> CyberVPN Inc. All systems operational.
                     </p>
                 </div>
             </div>

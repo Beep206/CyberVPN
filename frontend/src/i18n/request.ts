@@ -2,15 +2,30 @@ import { getRequestConfig } from 'next-intl/server';
 import { defaultLocale, locales } from './config';
 
 type Locale = (typeof locales)[number];
+type Messages = Record<string, unknown>;
 
 // Helper for deep merging translation objects
-function deepMerge(target: any, source: any) {
+function deepMerge(target: Messages, source: Messages): Messages {
+    const output = { ...target };
+
     for (const key in source) {
-        if (source[key] instanceof Object && key in target) {
-            Object.assign(source[key], deepMerge(target[key], source[key]));
+        if (
+            Object.prototype.hasOwnProperty.call(source, key) &&
+            source[key] != null &&
+            typeof source[key] === 'object' &&
+            !Array.isArray(source[key]) &&
+            key in target &&
+            target[key] != null &&
+            typeof target[key] === 'object' &&
+            !Array.isArray(target[key])
+        ) {
+            output[key] = deepMerge(target[key] as Messages, source[key] as Messages);
+        } else {
+            output[key] = source[key];
         }
     }
-    return { ...target, ...source };
+
+    return output;
 }
 
 export default getRequestConfig(async ({ locale }) => {
@@ -24,7 +39,7 @@ export default getRequestConfig(async ({ locale }) => {
         try {
             const currentMessages = await loadLocaleMessages(resolvedLocale);
             // Deep merge ensures that missing keys in current locale fall back to English
-            messages = deepMerge(baseMessages, currentMessages);
+            messages = deepMerge(baseMessages as Messages, currentMessages as Messages) as typeof baseMessages;
         } catch (error) {
             console.error(`Failed to load messages for ${resolvedLocale}, falling back to ${defaultLocale}`, error);
         }
@@ -48,7 +63,8 @@ async function loadLocaleMessages(locale: Locale) {
         serversTable,
         serverCard,
         landing,
-        footer
+        footer,
+        languageSelector
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`),
         import(`../../messages/${locale}/navigation.json`),
@@ -60,7 +76,8 @@ async function loadLocaleMessages(locale: Locale) {
         import(`../../messages/${locale}/servers-table.json`),
         import(`../../messages/${locale}/server-card.json`),
         import(`../../messages/${locale}/landing.json`),
-        import(`../../messages/${locale}/footer.json`)
+        import(`../../messages/${locale}/footer.json`),
+        import(`../../messages/${locale}/language-selector.json`)
     ]);
 
     return {
@@ -74,6 +91,7 @@ async function loadLocaleMessages(locale: Locale) {
         ServersTable: serversTable.default,
         ServerCard: serverCard.default,
         Landing: landing.default,
-        Footer: footer.default
+        Footer: footer.default,
+        LanguageSelector: languageSelector.default
     };
 }

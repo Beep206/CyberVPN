@@ -11,6 +11,7 @@ import Lenis from 'lenis';
 import { useTheme } from 'next-themes';
 import { Check, Shield, Zap, Play, Globe } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
+import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
 // Types
 interface ServerInfo {
@@ -158,29 +159,31 @@ function SpeedTunnelScene() {
 
     return (
         <div className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
-            <Canvas
-                camera={{ position: [0, 0, 5], fov: 60 }}
-                gl={{ antialias: false }} // Performance
-                dpr={[1, 1.5]}
-            >
-                <color attach="background" args={[bgColor]} />
-                <fog attach="fog" args={[fogColor, 5, 20]} />
+            <ErrorBoundary fallback={<div className="w-full h-full bg-background" />}>
+                <Canvas
+                    camera={{ position: [0, 0, 5], fov: 60 }}
+                    gl={{ antialias: false }} // Performance
+                    dpr={[1, 1.5]}
+                >
+                    <color attach="background" args={[bgColor]} />
+                    <fog attach="fog" args={[fogColor, 5, 20]} />
 
-                <WarpStarfield speed={3} color={starColor1} />
-                <WarpStarfield speed={4} color={starColor2} />
+                    <WarpStarfield speed={3} color={starColor1} />
+                    <WarpStarfield speed={4} color={starColor2} />
 
-                {/* Only enable intensive bloom in dark mode to avoid "blinding white" effect */}
-                {isDark ? (
-                    <EffectComposer enableNormalPass={false}>
-                        <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} />
-                    </EffectComposer>
-                ) : (
-                    // Minimal or no bloom for light mode
-                    <EffectComposer enableNormalPass={false}>
-                        <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} />
-                    </EffectComposer>
-                )}
-            </Canvas>
+                    {/* Only enable intensive bloom in dark mode to avoid "blinding white" effect */}
+                    {isDark ? (
+                        <EffectComposer enableNormalPass={false}>
+                            <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} />
+                        </EffectComposer>
+                    ) : (
+                        // Minimal or no bloom for light mode
+                        <EffectComposer enableNormalPass={false}>
+                            <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} />
+                        </EffectComposer>
+                    )}
+                </Canvas>
+            </ErrorBoundary>
         </div>
     );
 }

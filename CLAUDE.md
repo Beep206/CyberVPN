@@ -26,6 +26,31 @@ docker compose --profile monitoring up -d           # Add Prometheus/Grafana
 docker compose --profile bot up -d                  # Add Telegram bot
 ```
 
+## Development Rules
+
+### Library Documentation
+**MANDATORY**: When writing or modifying code that uses any library, ALWAYS fetch up-to-date documentation using Context7 MCP tools before implementation.
+
+**Process**:
+1. Before using any library function or API, call Context7 to get current documentation
+2. Verify API signatures, parameters, and return types match the documentation
+3. Use documented patterns and best practices from the library maintainers
+
+**Example workflow**:
+```bash
+# REQUIRED before implementing/modifying code with a library
+mcp-cli info plugin_context7_context7/query-docs
+mcp-cli call plugin_context7_context7/query-docs '{"library": "react", "query": "useEffect dependencies"}'
+```
+
+### Version Management
+**PROHIBITED**: Downgrading library versions is strictly forbidden.
+
+- Never reduce package version numbers in `package.json`
+- Always upgrade forward or maintain current versions
+- If compatibility issues arise, fix the code to work with current versions
+- Document version constraints in comments if needed
+
 ## Architecture
 
 ### Monorepo Structure

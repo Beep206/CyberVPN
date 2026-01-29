@@ -1,47 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Rocket, ShieldCheck } from 'lucide-react';
 import { GlobalNetworkWrapper } from './3d-background/global-network-wrapper';
-
-// Text Scramble Component
-function ScrambleText({ text, className }: { text: string, className?: string }) {
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
-    const [display, setDisplay] = useState(text);
-    const api = useTranslations('Landing.hero'); // Just to trigger rerender if locale changes, effectively
-
-    useEffect(() => {
-        let iterations = 0;
-        const interval = setInterval(() => {
-            setDisplay(
-                text
-                    .split("")
-                    .map((letter, index) => {
-                        if (index < iterations) {
-                            return text[index];
-                        }
-                        return letters[Math.floor(Math.random() * 26)];
-                    })
-                    .join("")
-            );
-
-            if (iterations >= text.length) {
-                clearInterval(interval);
-            }
-            iterations += 1 / 3;
-        }, 30);
-
-        return () => clearInterval(interval);
-    }, [text]);
-
-    return <span className={className}>{display}</span>;
-}
-
-
+import { ScrambleText } from '@/shared/ui/scramble-text';
 
 export function LandingHero() {
     const t = useTranslations('Landing.hero');

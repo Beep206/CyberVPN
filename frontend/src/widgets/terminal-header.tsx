@@ -1,10 +1,9 @@
 'use client';
 
 import { Bell, Search, Wifi } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter, usePathname } from '@/i18n/navigation';
 import { locales } from '@/i18n/config';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { LanguageSelector } from '@/features/language-selector';
@@ -20,7 +19,6 @@ export function TerminalHeader() {
     const t = useTranslations('Header');
     const router = useRouter();
     const pathname = usePathname();
-    const [isPending, startTransition] = useTransition();
 
     // Hydration fix for time
     useEffect(() => {
@@ -56,10 +54,13 @@ export function TerminalHeader() {
         let active = true;
 
         const measurePing = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             const start = performance.now();
             try {
-                await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' });
-            } catch { }
+                await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+            } catch { /* ignore aborted and network errors */ }
+            clearTimeout(timeoutId);
             const duration = Math.round(performance.now() - start);
             if (active) {
                 setPing(duration);
