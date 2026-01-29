@@ -46,13 +46,6 @@ async def get_audit_logs(
             )
             for log in logs
         ]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get audit logs: {str(e)}",
-        )
-
-
 @router.get("/webhook-log", response_model=List[WebhookLogResponse])
 async def get_webhook_logs(
     pagination: PaginationParams = Depends(get_pagination),
@@ -81,8 +74,3 @@ async def get_webhook_logs(
             )
             for log in logs
         ]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get webhook logs: {str(e)}",
-        )

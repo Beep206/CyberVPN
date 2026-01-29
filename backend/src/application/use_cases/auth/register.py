@@ -57,7 +57,7 @@ class RegisterUseCase:
             raise DuplicateUsernameError(username=email)
 
         # Hash password
-        password_hash = self._auth_service.hash_password(password)
+        password_hash = await self._auth_service.hash_password(password)
 
         # Create AdminUserModel model
         user = AdminUserModel(

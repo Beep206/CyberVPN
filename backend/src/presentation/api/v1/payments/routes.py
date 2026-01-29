@@ -19,19 +19,28 @@ from src.presentation.api.v1.payments.schemas import (
 )
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission
+from src.presentation.dependencies.services import get_crypto_client
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-@router.post("/crypto/invoice", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/crypto/invoice",
+    response_model=InvoiceResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        400: {"description": "Invalid payment parameters"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_crypto_invoice(
     request: CreateInvoiceRequest,
     db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
     _: None = Depends(require_permission(Permission.PAYMENT_CREATE)),
 ) -> InvoiceResponse:
     """Create a new cryptocurrency invoice."""
     try:
-        crypto_client = CryptoBotClient()
         plan_repo = SubscriptionPlanRepository(db)
 
         use_case = CreateCryptoInvoiceUseCase(
@@ -46,22 +55,19 @@ async def create_crypto_invoice(
         )
 
         return InvoiceResponse(**invoice_data)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create crypto invoice: {str(e)}",
-        )
-
-
-@router.get("/crypto/invoice/{invoice_id}", response_model=InvoiceResponse)
+@router.get(
+    "/crypto/invoice/{invoice_id}",
+    response_model=InvoiceResponse,
+    responses={404: {"description": "Invoice not found"}},
+)
 async def get_crypto_invoice(
     invoice_id: str,
     db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
     _: None = Depends(require_permission(Permission.PAYMENT_READ)),
 ) -> InvoiceResponse:
     """Get a crypto invoice by ID."""
     try:
-        crypto_client = CryptoBotClient()
         plan_repo = SubscriptionPlanRepository(db)
 
         use_case = CreateCryptoInvoiceUseCase(
@@ -80,13 +86,6 @@ async def get_crypto_invoice(
         return InvoiceResponse(**invoice_data)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get crypto invoice: {str(e)}",
-        )
-
-
 @router.get("/history", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     db: AsyncSession = Depends(get_db),
@@ -107,8 +106,3 @@ async def get_payment_history(
         )
 
         return PaymentHistoryResponse(payments=payments)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get payment history: {str(e)}",
-        )

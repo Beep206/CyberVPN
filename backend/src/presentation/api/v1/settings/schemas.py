@@ -36,3 +36,15 @@ class UpdateSettingRequest(BaseModel):
     value: Optional[Any] = Field(None, description="New setting value")
     description: Optional[str] = Field(None, max_length=500)
     is_public: Optional[bool] = None
+
+
+class SettingResponse(BaseModel):
+    """Expected response from Remnawave settings API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(..., description="Setting ID")
+    key: str = Field(..., max_length=100, description="Setting key")
+    value: Any = Field(..., description="Setting value")
+    description: Optional[str] = Field(None, max_length=500, description="Description")
+    is_public: bool = Field(..., description="Whether setting is publicly readable")

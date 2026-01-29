@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import require_role, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import CreateSnippetRequest
+from .schemas import CreateSnippetRequest, SnippetResponse
 
 router = APIRouter(prefix="/snippets", tags=["snippets"])
 
-@router.get("/")
+@router.get("/", responses={200: {"model": list[SnippetResponse]}})
 async def list_snippets(
     current_user=Depends(require_role("admin")),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def list_snippets(
     """List configuration snippets (admin only)"""
     return await client.get("/snippets")
 
-@router.post("/")
+@router.post("/", responses={200: {"model": SnippetResponse}})
 async def create_snippet(
     snippet_data: CreateSnippetRequest,
     current_user=Depends(require_role("admin")),

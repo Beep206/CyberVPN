@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import require_role, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import UpdateXrayConfigRequest
+from .schemas import UpdateXrayConfigRequest, XrayConfigResponse
 
 router = APIRouter(prefix="/xray", tags=["xray"])
 
-@router.get("/config")
+@router.get("/config", responses={200: {"model": XrayConfigResponse}})
 async def get_xray_config(
     current_user=Depends(require_role("admin")),
     client: RemnawaveClient = Depends(get_remnawave_client)
@@ -14,7 +14,7 @@ async def get_xray_config(
     """Get current Xray configuration (admin only)"""
     return await client.get("/xray/config")
 
-@router.post("/update-config")
+@router.post("/update-config", responses={200: {"model": XrayConfigResponse}})
 async def update_xray_config(
     config_data: UpdateXrayConfigRequest,
     current_user=Depends(require_role("admin")),

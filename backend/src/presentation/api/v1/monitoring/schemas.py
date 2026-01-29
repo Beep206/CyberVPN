@@ -1,6 +1,7 @@
 """Pydantic schemas for monitoring and health check endpoints."""
 
 from datetime import UTC, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,11 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field
 class ComponentStatus(BaseModel):
     """Status information for a single system component."""
 
-    name: str = Field(
-        ..., max_length=100, description="Component name (e.g., 'database', 'redis')"
+    status: Literal["healthy", "unhealthy"] = Field(
+        ..., description="Component health status"
     )
-    status: str = Field(
-        ..., max_length=50, description="Component status (e.g., 'healthy', 'unhealthy')"
+    message: str = Field(
+        ..., max_length=500, description="Status message"
     )
     response_time_ms: float | None = Field(
         None, description="Response time in milliseconds"
@@ -24,7 +25,9 @@ class HealthResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    status: str = Field(..., max_length=50, description="Overall system status")
+    status: Literal["healthy", "unhealthy", "degraded"] = Field(
+        ..., description="Overall system status"
+    )
     components: dict[str, ComponentStatus] = Field(
         default_factory=dict,
         description="Status of individual components",
@@ -54,8 +57,8 @@ class BandwidthResponse(BaseModel):
 
     bytes_in: int = Field(..., description="Incoming bytes")
     bytes_out: int = Field(..., description="Outgoing bytes")
-    period: str = Field(
-        ..., max_length=50, description="Time period (e.g., 'last_hour', 'today')"
+    period: Literal["today", "week", "month"] = Field(
+        ..., description="Time period for analytics"
     )
 
 

@@ -15,10 +15,16 @@ from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
+from .schemas import HealthResponse, StatsResponse, BandwidthResponse
+
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 
 
-@router.get("/health")
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    responses={503: {"description": "One or more components unhealthy"}},
+)
 async def health_check(
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
@@ -35,14 +41,12 @@ async def health_check(
         result = await use_case.execute()
 
         return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Health check failed: {str(e)}",
-        )
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    responses={200: {"model": StatsResponse, "description": "Server bandwidth statistics"}},
+)
 async def get_system_stats(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
@@ -57,14 +61,10 @@ async def get_system_stats(
             "timestamp": datetime.now(UTC).isoformat(),
             **stats,
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get system stats: {str(e)}",
-        )
-
-
-@router.get("/bandwidth")
+@router.get(
+    "/bandwidth",
+    responses={200: {"model": BandwidthResponse, "description": "Bandwidth analytics data"}},
+)
 async def get_bandwidth_analytics(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
@@ -85,8 +85,3 @@ async def get_bandwidth_analytics(
             "period": period,
             **stats,
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get bandwidth analytics: {str(e)}",
-        )

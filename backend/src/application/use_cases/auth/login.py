@@ -65,7 +65,7 @@ class LoginUseCase:
         if not user.password_hash:
             raise InvalidCredentialsError()
 
-        if not self._auth_service.verify_password(password, user.password_hash):
+        if not await self._auth_service.verify_password(password, user.password_hash):
             raise InvalidCredentialsError()
 
         # Create access and refresh tokens

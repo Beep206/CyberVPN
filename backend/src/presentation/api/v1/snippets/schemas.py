@@ -28,3 +28,16 @@ class CreateSnippetRequest(BaseModel):
     )
     is_active: bool = Field(True, description="Whether snippet is active")
     order: Optional[int] = Field(None, ge=0, description="Display/execution order")
+
+
+class SnippetResponse(BaseModel):
+    """Expected response from Remnawave snippets API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Snippet UUID")
+    name: str = Field(..., max_length=100, description="Snippet name")
+    snippet_type: str = Field(..., max_length=50, description="Snippet type")
+    content: str = Field(..., description="Snippet content")
+    is_active: bool = Field(..., description="Whether snippet is active")
+    order: Optional[int] = Field(None, description="Display/execution order")

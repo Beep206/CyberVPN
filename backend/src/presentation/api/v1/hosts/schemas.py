@@ -62,3 +62,19 @@ class UpdateHostRequest(BaseModel):
         if v is not None and not re.match(r"^[a-zA-Z0-9._-]+$", v):
             raise ValueError("Address must be a valid hostname or IP address")
         return v
+
+
+class HostResponse(BaseModel):
+    """Expected response from Remnawave hosts API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Host UUID")
+    name: str = Field(..., max_length=100, description="Host display name")
+    address: str = Field(..., max_length=255, description="Host address")
+    port: int = Field(..., description="Host port")
+    sni: Optional[str] = Field(None, max_length=255, description="SNI")
+    host_header: Optional[str] = Field(None, max_length=255, description="Host header")
+    is_disabled: bool = Field(..., description="Whether host is disabled")
+    path: Optional[str] = Field(None, max_length=255, description="WebSocket path")
+    alpn: Optional[list[str]] = Field(None, description="ALPN protocols")

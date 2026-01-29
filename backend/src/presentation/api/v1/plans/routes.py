@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends
 from src.presentation.dependencies import get_current_active_user, require_role, get_remnawave_client
 from src.infrastructure.remnawave.client import RemnawaveClient
 
-from .schemas import CreatePlanRequest, UpdatePlanRequest
+from .schemas import CreatePlanRequest, UpdatePlanRequest, PlanResponse
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
-@router.get("/")
+@router.get("/", responses={200: {"model": list[PlanResponse]}})
 async def list_plans(
     client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List all available subscription plans (public)"""
     return await client.get("/plans")
 
-@router.post("/")
+@router.post("/", responses={200: {"model": PlanResponse}})
 async def create_plan(
     plan_data: CreatePlanRequest,
     current_user=Depends(require_role("admin")),
@@ -22,7 +22,7 @@ async def create_plan(
     """Create a new subscription plan (admin only)"""
     return await client.post("/plans", json=plan_data.model_dump())
 
-@router.put("/{uuid}")
+@router.put("/{uuid}", responses={200: {"model": PlanResponse}})
 async def update_plan(
     uuid: str,
     plan_data: UpdatePlanRequest,

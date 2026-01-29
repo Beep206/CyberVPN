@@ -30,3 +30,17 @@ class CreateSquadRequest(BaseModel):
     description: Optional[str] = Field(
         None, max_length=500, description="Squad description"
     )
+
+
+class SquadResponse(BaseModel):
+    """Expected response from Remnawave squads API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    uuid: str = Field(..., description="Squad UUID")
+    name: str = Field(..., max_length=100, description="Squad name")
+    squad_type: str = Field(..., max_length=50, description="Squad type")
+    max_members: Optional[int] = Field(None, description="Maximum squad members")
+    is_active: bool = Field(..., description="Whether squad is active")
+    description: Optional[str] = Field(None, max_length=500, description="Squad description")
+    member_count: Optional[int] = Field(None, description="Current member count")
