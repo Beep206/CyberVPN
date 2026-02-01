@@ -1,0 +1,24 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Fastlane Match — iOS Certificate & Profile Management
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Match stores certificates and provisioning profiles in a private git repo.
+# See: https://docs.fastlane.tools/actions/match/
+#
+# Required environment variables:
+#   MATCH_GIT_URL      — URL of the private certificates repo
+#   MATCH_PASSWORD     — encryption password for the certificates repo
+#   APPLE_TEAM_ID      — Apple Developer Team ID
+# ──────────────────────────────────────────────────────────────────────────────
+
+git_url(ENV["MATCH_GIT_URL"] || "https://github.com/cybervpn/certificates.git")
+
+storage_mode("git")
+
+type("appstore")
+
+app_identifier(["com.cybervpn.cybervpn-mobile"])
+
+username(ENV["APPLE_ID"] || "developer@cybervpn.com")
+
+team_id(ENV["APPLE_TEAM_ID"] || "")

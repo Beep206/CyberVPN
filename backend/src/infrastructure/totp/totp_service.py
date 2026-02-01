@@ -1,5 +1,5 @@
 import pyotp
-from typing import Tuple
+
 
 class TOTPService:
     """Time-based One-Time Password (TOTP) service for 2FA"""
@@ -28,10 +28,7 @@ class TOTPService:
             Provisioning URI for QR code
         """
         totp = pyotp.TOTP(secret)
-        return totp.provisioning_uri(
-            name=account_name,
-            issuer_name=self.issuer_name
-        )
+        return totp.provisioning_uri(name=account_name, issuer_name=self.issuer_name)
 
     def verify_code(self, secret: str, code: str, valid_window: int = 1) -> bool:
         """

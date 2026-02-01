@@ -1,5 +1,15 @@
+import type { Metadata } from 'next';
 import { getTranslations } from "next-intl/server";
 import { ServerCard } from "@/shared/ui/molecules/server-card";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: 'Dashboard' });
+    return {
+        title: t('title'),
+        description: t('statusLabel'),
+    };
+}
 
 const servers = [
     { id: '1', name: 'Tokyo Node 01', location: 'Japan, Tokyo', status: 'online' as const, ip: '45.32.12.90', load: 45, protocol: 'vless' as const },

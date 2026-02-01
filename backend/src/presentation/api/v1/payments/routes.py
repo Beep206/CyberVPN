@@ -1,9 +1,10 @@
 """Payment and cryptocurrency invoice routes."""
 
+from dataclasses import asdict
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission
@@ -40,21 +41,24 @@ async def create_crypto_invoice(
     _: None = Depends(require_permission(Permission.PAYMENT_CREATE)),
 ) -> InvoiceResponse:
     """Create a new cryptocurrency invoice."""
+    plan_repo = SubscriptionPlanRepository(db)
+    use_case = CreateCryptoInvoiceUseCase(
+        crypto_client=crypto_client,
+        plan_repo=plan_repo,
+    )
+
     try:
-        plan_repo = SubscriptionPlanRepository(db)
-
-        use_case = CreateCryptoInvoiceUseCase(
-            crypto_client=crypto_client,
-            plan_repo=plan_repo,
-        )
-
-        invoice_data = await use_case.create_invoice(
+        invoice_data = await use_case.execute(
             user_uuid=request.user_uuid,
             plan_id=request.plan_id,
             currency=request.currency,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
-        return InvoiceResponse(**invoice_data)
+    return InvoiceResponse(**asdict(invoice_data))
+
+
 @router.get(
     "/crypto/invoice/{invoice_id}",
     response_model=InvoiceResponse,
@@ -67,25 +71,23 @@ async def get_crypto_invoice(
     _: None = Depends(require_permission(Permission.PAYMENT_READ)),
 ) -> InvoiceResponse:
     """Get a crypto invoice by ID."""
-    try:
-        plan_repo = SubscriptionPlanRepository(db)
+    plan_repo = SubscriptionPlanRepository(db)
+    use_case = CreateCryptoInvoiceUseCase(
+        crypto_client=crypto_client,
+        plan_repo=plan_repo,
+    )
 
-        use_case = CreateCryptoInvoiceUseCase(
-            crypto_client=crypto_client,
-            plan_repo=plan_repo,
+    invoice_data = await use_case.get_invoice(invoice_id=invoice_id)
+
+    if not invoice_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Invoice {invoice_id} not found",
         )
 
-        invoice_data = await use_case.get_invoice(invoice_id=invoice_id)
+    return InvoiceResponse(**asdict(invoice_data))
 
-        if not invoice_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Invoice {invoice_id} not found",
-            )
 
-        return InvoiceResponse(**invoice_data)
-    except HTTPException:
-        raise
 @router.get("/history", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     db: AsyncSession = Depends(get_db),
@@ -95,14 +97,13 @@ async def get_payment_history(
     _: None = Depends(require_permission(Permission.PAYMENT_READ)),
 ) -> PaymentHistoryResponse:
     """Get payment history with optional user filter."""
-    try:
-        payment_repo = PaymentRepository(db)
-        use_case = PaymentHistoryUseCase(payment_repo=payment_repo)
+    payment_repo = PaymentRepository(db)
+    use_case = PaymentHistoryUseCase(repo=payment_repo)
 
-        payments = await use_case.execute(
-            user_uuid=user_uuid,
-            offset=offset,
-            limit=limit,
-        )
+    payments = await use_case.execute(
+        user_uuid=user_uuid,
+        offset=offset,
+        limit=limit,
+    )
 
-        return PaymentHistoryResponse(payments=payments)
+    return PaymentHistoryResponse(payments=payments)

@@ -1,10 +1,11 @@
 import asyncio
 import time
-from typing import Callable, Any, Optional, Type
+from typing import Any, Callable
 from functools import wraps
 import logging
 
 logger = logging.getLogger("cybervpn")
+
 
 class RetryPolicy:
     """
@@ -17,7 +18,7 @@ class RetryPolicy:
         base_delay: float = 1.0,
         max_delay: float = 60.0,
         exponential_base: float = 2.0,
-        exceptions: tuple = (Exception,)
+        exceptions: tuple = (Exception,),
     ):
         """
         Initialize retry policy
@@ -50,7 +51,7 @@ class RetryPolicy:
         Raises:
             Last exception if all retries fail
         """
-        last_exception = None
+        last_exception: BaseException | None = None
 
         for attempt in range(self.max_attempts):
             try:
@@ -61,16 +62,13 @@ class RetryPolicy:
                 if attempt < self.max_attempts - 1:
                     delay = self._calculate_delay(attempt)
                     logger.warning(
-                        f"Attempt {attempt + 1}/{self.max_attempts} failed: {str(e)}. "
-                        f"Retrying in {delay:.2f}s..."
+                        f"Attempt {attempt + 1}/{self.max_attempts} failed: {str(e)}. Retrying in {delay:.2f}s..."
                     )
                     time.sleep(delay)
                 else:
-                    logger.error(
-                        f"All {self.max_attempts} attempts failed. Last error: {str(e)}"
-                    )
+                    logger.error(f"All {self.max_attempts} attempts failed. Last error: {str(e)}")
 
-        raise last_exception
+        raise last_exception or RuntimeError("RetryPolicy failed without capturing an exception")
 
     async def execute_async(self, func: Callable, *args, **kwargs) -> Any:
         """
@@ -87,7 +85,7 @@ class RetryPolicy:
         Raises:
             Last exception if all retries fail
         """
-        last_exception = None
+        last_exception: BaseException | None = None
 
         for attempt in range(self.max_attempts):
             try:
@@ -98,16 +96,13 @@ class RetryPolicy:
                 if attempt < self.max_attempts - 1:
                     delay = self._calculate_delay(attempt)
                     logger.warning(
-                        f"Attempt {attempt + 1}/{self.max_attempts} failed: {str(e)}. "
-                        f"Retrying in {delay:.2f}s..."
+                        f"Attempt {attempt + 1}/{self.max_attempts} failed: {str(e)}. Retrying in {delay:.2f}s..."
                     )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(
-                        f"All {self.max_attempts} attempts failed. Last error: {str(e)}"
-                    )
+                    logger.error(f"All {self.max_attempts} attempts failed. Last error: {str(e)}")
 
-        raise last_exception
+        raise last_exception or RuntimeError("RetryPolicy failed without capturing an exception")
 
     def _calculate_delay(self, attempt: int) -> float:
         """
@@ -119,15 +114,16 @@ class RetryPolicy:
         Returns:
             Delay in seconds
         """
-        delay = self.base_delay * (self.exponential_base ** attempt)
+        delay = self.base_delay * (self.exponential_base**attempt)
         return min(delay, self.max_delay)
+
 
 def retry(
     max_attempts: int = 3,
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    exceptions: tuple = (Exception,)
+    exceptions: tuple = (Exception,),
 ):
     """
     Decorator for applying retry policy to functions
@@ -143,14 +139,18 @@ def retry(
 
     def decorator(func):
         if asyncio.iscoroutinefunction(func):
+
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
                 return await policy.execute_async(func, *args, **kwargs)
+
             return async_wrapper
         else:
+
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 return policy.execute(func, *args, **kwargs)
+
             return sync_wrapper
 
     return decorator

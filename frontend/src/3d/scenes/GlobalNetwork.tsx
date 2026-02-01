@@ -134,8 +134,11 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
 
     return (
         <group>
-            {curves.map((curve, i) => (
-                <group key={i}>
+            {curves.map((curve, i) => {
+                const conn = connections[i];
+                const key = `${conn.from.lat},${conn.from.lng}-${conn.to.lat},${conn.to.lng}`;
+                return (
+                <group key={key}>
                     {/* The static connection line */}
                     <Line
                         points={curve.getPoints(40)}
@@ -149,7 +152,8 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
                     <DataPacket curve={curve} color="#00ffff" speed={0.5} offset={Math.random()} />
                     <DataPacket curve={curve} color="#ff00ff" speed={0.3} offset={Math.random() + 0.5} />
                 </group>
-            ))}
+                );
+            })}
         </group>
     );
 }
@@ -232,12 +236,14 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
+                frameloop="demand"
                 camera={{ position: [0, 2, 7], fov: 40 }}
                 gl={{
-                    antialias: true,
+                    antialias: false,
                     alpha: true,
                     powerPreference: "high-performance",
-                    preserveDrawingBuffer: true
+                    stencil: false,
+                    depth: true
                 }}
                 dpr={[1, 2]}
             >

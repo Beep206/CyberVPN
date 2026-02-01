@@ -1,6 +1,4 @@
-"""
-Refresh token use case for JWT token rotation.
-"""
+"""Refresh token use case for JWT token rotation."""
 
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256

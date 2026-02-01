@@ -1,0 +1,11 @@
+# Android Release Signing — key.properties
+#
+# Copy this file to key.properties and fill in your keystore details.
+# This file is gitignored and should NEVER be committed.
+#
+# For CI/CD, use environment variables instead (see .github/workflows/release.yml).
+
+storeFile=../release-keystore.jks
+storePassword=your_keystore_password
+keyAlias=your_key_alias
+keyPassword=your_key_password

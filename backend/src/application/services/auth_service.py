@@ -21,30 +21,57 @@ class AuthService:
         self._algorithm = settings.jwt_algorithm
         self._access_expire = settings.access_token_expire_minutes
         self._refresh_expire = settings.refresh_token_expire_days
+        self._issuer = settings.jwt_issuer
+        self._audience = settings.jwt_audience
 
     def create_access_token(self, subject: str, role: str, extra: dict | None = None) -> str:
         expire = datetime.now(UTC) + timedelta(minutes=self._access_expire)
+        issued_at = datetime.now(UTC)
         payload = {
             "sub": subject,
             "role": role,
             "exp": expire,
+            "iat": issued_at,
             "type": "access",
         }
+        if self._issuer:
+            payload["iss"] = self._issuer
+        if self._audience:
+            payload["aud"] = self._audience
         if extra:
             payload.update(extra)
         return jwt.encode(payload, self._secret, algorithm=self._algorithm)
 
     def create_refresh_token(self, subject: str) -> str:
         expire = datetime.now(UTC) + timedelta(days=self._refresh_expire)
+        issued_at = datetime.now(UTC)
         payload = {
             "sub": subject,
             "exp": expire,
+            "iat": issued_at,
             "type": "refresh",
         }
+        if self._issuer:
+            payload["iss"] = self._issuer
+        if self._audience:
+            payload["aud"] = self._audience
         return jwt.encode(payload, self._secret, algorithm=self._algorithm)
 
     def decode_token(self, token: str) -> dict:
-        return jwt.decode(token, self._secret, algorithms=[self._algorithm])
+        options = {"require": ["exp", "sub"]}
+        if not self._audience:
+            options["verify_aud"] = False
+
+        decode_kwargs: dict[str, object] = {
+            "algorithms": [self._algorithm],
+            "options": options,
+        }
+        if self._audience:
+            decode_kwargs["audience"] = self._audience
+        if self._issuer:
+            decode_kwargs["issuer"] = self._issuer
+
+        return jwt.decode(token, self._secret, **decode_kwargs)
 
     @staticmethod
     async def hash_password(password: str) -> str:

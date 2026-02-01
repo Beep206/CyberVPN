@@ -1,6 +1,4 @@
-"""
-OAuthAccount ORM model for OAuth provider integration.
-"""
+"""OAuthAccount ORM model for OAuth provider integration."""
 
 from datetime import datetime
 from typing import Optional
@@ -23,71 +21,32 @@ class OAuthAccount(Base):
 
     __tablename__ = "oauth_accounts"
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        nullable=False
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
     user_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("admin_users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        PG_UUID(as_uuid=True), ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    provider: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False
-    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    provider_user_id: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
+    provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    provider_username: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True
-    )
+    provider_username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    provider_email: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True
-    )
+    provider_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    provider_avatar_url: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True
-    )
+    provider_avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    access_token: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
 
-    refresh_token: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True
-    )
+    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    token_expires_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     __table_args__ = (

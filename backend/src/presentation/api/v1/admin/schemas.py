@@ -13,12 +13,12 @@ class AuditLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    user_id: Optional[UUID] = None
-    username: Optional[str] = None
+    admin_id: Optional[UUID] = None
     action: str
-    resource_type: str
-    resource_id: Optional[str] = None
-    details: Optional[dict[str, Any]] = None
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    old_value: Optional[dict[str, Any]] = None
+    new_value: Optional[dict[str, Any]] = None
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     created_at: datetime
@@ -31,9 +31,9 @@ class WebhookLogResponse(BaseModel):
 
     id: UUID
     source: str
-    event_type: str
+    event_type: Optional[str] = None
     payload: dict[str, Any]
-    status: str
+    is_valid: Optional[bool] = None
     error_message: Optional[str] = None
     processed_at: Optional[datetime] = None
     created_at: datetime

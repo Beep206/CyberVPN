@@ -1,61 +1,74 @@
-from fastapi import APIRouter, Depends, HTTPException
-from src.presentation.dependencies import get_current_active_user, require_role, get_remnawave_client
-from src.infrastructure.remnawave.client import RemnawaveClient
+from fastapi import APIRouter, Depends
 
-from .schemas import CreateSubscriptionTemplateRequest, UpdateSubscriptionTemplateRequest, SubscriptionResponse, SubscriptionConfigResponse
+from src.domain.enums import AdminRole
+from src.infrastructure.remnawave.client import RemnawaveClient
+from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
+
+from .schemas import (
+    CreateSubscriptionTemplateRequest,
+    UpdateSubscriptionTemplateRequest,
+    SubscriptionResponse,
+    SubscriptionConfigResponse,
+)
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
-@router.get("/", responses={200: {"model": list[SubscriptionResponse]}})
+
+@router.get("/", response_model=list[SubscriptionResponse])
 async def list_subscription_templates(
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """List all subscription templates (admin only)"""
     return await client.get("/subscriptions")
 
-@router.post("/", responses={200: {"model": SubscriptionResponse}})
+
+@router.post("/", response_model=SubscriptionResponse)
 async def create_subscription_template(
     template_data: CreateSubscriptionTemplateRequest,
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Create a new subscription template (admin only)"""
     return await client.post("/subscriptions", json=template_data.model_dump())
 
-@router.get("/{uuid}", responses={200: {"model": SubscriptionResponse}})
+
+@router.get("/{uuid}", response_model=SubscriptionResponse)
 async def get_subscription_template(
     uuid: str,
     current_user=Depends(get_current_active_user),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Get subscription template details"""
     return await client.get(f"/subscriptions/{uuid}")
 
-@router.put("/{uuid}", responses={200: {"model": SubscriptionResponse}})
+
+@router.put("/{uuid}", response_model=SubscriptionResponse)
 async def update_subscription_template(
     uuid: str,
     template_data: UpdateSubscriptionTemplateRequest,
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Update subscription template (admin only)"""
     return await client.put(f"/subscriptions/{uuid}", json=template_data.model_dump(exclude_none=True))
 
+
 @router.delete("/{uuid}")
 async def delete_subscription_template(
     uuid: str,
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Delete subscription template (admin only)"""
     return await client.delete(f"/subscriptions/{uuid}")
 
-@router.get("/config/{user_uuid}", responses={200: {"model": SubscriptionConfigResponse}})
+
+@router.get("/config/{user_uuid}", response_model=SubscriptionConfigResponse)
 async def generate_config(
     user_uuid: str,
     current_user=Depends(get_current_active_user),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Generate VPN configuration for a user"""
     return await client.get(f"/subscriptions/config/{user_uuid}")

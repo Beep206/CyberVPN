@@ -8,7 +8,7 @@ btn-invite = 👥 Invite
 btn-support = 🆘 Support
 btn-profile = 👤 Profile
 btn-language = 🌐 Language
-btn-trial = 🎁 TRY FOR FREE
+btn-trial = 🎁 Free Trial
 btn-admin-panel = 🛠 Admin Panel
 
 # ── Navigation ───────────────────────────────────────────────────────────
@@ -19,9 +19,11 @@ btn-close = 🔒 Close
 btn-refresh = 🔄 Refresh
 btn-next = ▶️ Next
 btn-prev = ◀️ Previous
+button-back = Back
+button-cancel = Cancel
 
 # ── Subscription and Payment ─────────────────────────────────────────────
-btn-buy = 💰 Buy
+btn-buy = 💳 Choose Plan
 btn-extend = 📅 Extend
 btn-change-plan = 🔄 Change Plan
 btn-view-plans = 📋 View Plans
@@ -35,6 +37,7 @@ btn-pay-stars = ⭐ Telegram Stars
 btn-config-link = 🔗 Link
 btn-config-qr = 📷 QR Code
 btn-config-instruction = 📖 Instructions
+btn-get-config = 🔗 Get Config
 
 # ── Referral System ──────────────────────────────────────────────────────
 btn-referral-link = 🔗 My Link

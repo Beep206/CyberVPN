@@ -19,6 +19,7 @@ class Server:
     country_code: str | None = None
     traffic_limit_bytes: int | None = None
     used_traffic_bytes: int | None = None
+    inbound_count: int | None = None
     users_online: int | None = None
     xray_version: str | None = None
     vpn_protocol: str | None = None

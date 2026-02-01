@@ -1,3 +1,4 @@
+import logging
 import time
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -6,7 +7,10 @@ from starlette.responses import JSONResponse, Response
 
 import redis.asyncio as redis
 
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool
+
+logger = logging.getLogger("cybervpn")
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -16,16 +20,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = 60
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        forwarded = request.headers.get("x-forwarded-for")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+        client_ip = self._get_client_ip(request)
         key = f"cybervpn:rate_limit:{client_ip}:{request.url.path}"
 
+        pool = None
+        client = None
         try:
             pool = get_redis_pool()
-            r = redis.Redis(connection_pool=pool)
+            client = redis.Redis(connection_pool=pool)
             now = time.time()
 
-            pipe = r.pipeline()
+            pipe = client.pipeline()
             pipe.zremrangebyscore(key, 0, now - self.window)
             pipe.zadd(key, {str(now): now})
             pipe.zcard(key)
@@ -39,8 +44,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     content={"detail": "Too many requests"},
                     headers={"Retry-After": str(self.window)},
                 )
-            await r.aclose()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Rate limit check failed: %s", exc)
+        finally:
+            if client is not None:
+                await client.aclose()
 
         return await call_next(request)
+
+    def _get_client_ip(self, request: Request) -> str:
+        if settings.trust_proxy_headers:
+            forwarded = request.headers.get("x-forwarded-for")
+            if forwarded:
+                return forwarded.split(",")[0].strip()
+            real_ip = request.headers.get("x-real-ip")
+            if real_ip:
+                return real_ip.strip()
+
+        if request.client:
+            return request.client.host
+
+        return "unknown"

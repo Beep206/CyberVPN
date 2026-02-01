@@ -1,0 +1,112 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Fastfile — CyberVPN Mobile Release Automation
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Lanes:
+#   android_internal  — Build AAB and upload to Google Play internal track
+#   ios_testflight    — Build IPA and upload to TestFlight
+#
+# Environment variables consumed by these lanes are documented in the
+# accompanying README.md and in .github/workflows/release.yml.
+# ──────────────────────────────────────────────────────────────────────────────
+
+default_platform(:android)
+
+# ── Shared helpers ───────────────────────────────────────────────────────────
+
+# Build --dart-define flags for the given environment.
+def dart_defines(env)
+  defines = {
+    "API_ENV" => env,
+  }
+
+  api_urls = {
+    "dev"     => "https://api.dev.cybervpn.com",
+    "staging" => "https://api.staging.cybervpn.com",
+    "prod"    => "https://api.cybervpn.com",
+  }
+  defines["API_BASE_URL"] = ENV["API_BASE_URL"] || api_urls.fetch(env, api_urls["prod"])
+
+  defines["SENTRY_DSN"] = ENV["SENTRY_DSN"] if ENV["SENTRY_DSN"] && !ENV["SENTRY_DSN"].empty?
+
+  defines.map { |k, v| "--dart-define=#{k}=#{v}" }.join(" ")
+end
+
+# Obfuscation flags for release builds.  The debug-info directory receives
+# the Dart symbol maps required by Sentry for crash symbolication.
+OBFUSCATION_FLAGS = "--obfuscate --split-debug-info=build/debug-info/"
+
+# ── Android ──────────────────────────────────────────────────────────────────
+
+platform :android do
+  desc "Build release AAB and upload to Google Play internal track"
+  lane :android_internal do |options|
+    env = options[:env] || ENV["BUILD_ENV"] || "prod"
+
+    UI.message("Building Android AAB for environment: #{env}")
+
+    # Build the AAB with code obfuscation
+    sh(
+      "cd ../.. && flutter build appbundle --release #{OBFUSCATION_FLAGS} #{dart_defines(env)}"
+    )
+
+    aab_path = "../../build/app/outputs/bundle/release/app-release.aab"
+
+    unless File.exist?(File.expand_path(aab_path, __dir__))
+      UI.user_error!("AAB not found at #{aab_path}. Build may have failed.")
+    end
+
+    # Upload to Play Store internal track
+    upload_to_play_store(
+      track: "internal",
+      aab: aab_path,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      json_key: ENV["PLAY_STORE_JSON_KEY_PATH"] || "fastlane/play-store-key.json",
+    )
+
+    UI.success("Successfully uploaded AAB to Play Store internal track (#{env})")
+  end
+end
+
+# ── iOS ──────────────────────────────────────────────────────────────────────
+
+platform :ios do
+  desc "Build release IPA and upload to TestFlight"
+  lane :ios_testflight do |options|
+    env = options[:env] || ENV["BUILD_ENV"] || "prod"
+
+    UI.message("Building iOS IPA for environment: #{env}")
+
+    # Fetch signing certificates and profiles via match
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      git_url: ENV["MATCH_GIT_URL"],
+      app_identifier: "com.cybervpn.cybervpn-mobile",
+    )
+
+    # Build the IPA with code obfuscation
+    sh(
+      "cd ../.. && flutter build ipa --release --export-options-plist=ios/ExportOptions.plist #{OBFUSCATION_FLAGS} #{dart_defines(env)}"
+    )
+
+    ipa_path = "../../build/ios/ipa/cybervpn_mobile.ipa"
+
+    unless File.exist?(File.expand_path(ipa_path, __dir__))
+      UI.user_error!("IPA not found at #{ipa_path}. Build may have failed.")
+    end
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APPLE_ID"],
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+    )
+
+    UI.success("Successfully uploaded IPA to TestFlight (#{env})")
+  end
+end

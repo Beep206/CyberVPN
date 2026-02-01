@@ -1,6 +1,4 @@
-"""
-WebhookLog ORM model for webhook event tracking and debugging.
-"""
+"""WebhookLog ORM model for webhook event tracking and debugging."""
 
 from datetime import datetime
 from typing import Any, Optional
@@ -23,54 +21,24 @@ class WebhookLog(Base):
 
     __tablename__ = "webhook_logs"
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        nullable=False
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
-    source: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        index=True
-    )
+    source: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
 
-    event_type: Mapped[Optional[str]] = mapped_column(
-        String(100),
-        nullable=True
-    )
+    event_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    payload: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        nullable=False
-    )
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
-    signature: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True
-    )
+    signature: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    is_valid: Mapped[Optional[bool]] = mapped_column(
-        Boolean,
-        nullable=True
-    )
+    is_valid: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
-    processed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    error_message: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True
-    )
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        index=True
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
     def __repr__(self) -> str:

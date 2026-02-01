@@ -6,15 +6,14 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from keyboards.main import main_menu_keyboard
-from keyboards.profile import profile_keyboard
-from keyboards.subscription import subscription_keyboard
+from src.keyboards.menu import main_menu_keyboard, profile_kb
+from src.keyboards.subscription import subscription_keyboard
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
-    from config.settings import Settings
+    from src.config import BotSettings
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -25,11 +24,18 @@ router = Router(name="menu")
 async def main_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Handle main menu callback."""
+    user = None
+    try:
+        user = await api_client.get_user(callback.from_user.id)
+    except Exception as e:
+        logger.warning("menu_user_fetch_failed", user_id=callback.from_user.id, error=str(e))
+
     await callback.message.edit_text(
         text=i18n.get("menu-main-title"),
-        reply_markup=main_menu_keyboard(i18n),
+        reply_markup=main_menu_keyboard(i18n, user),
     )
     await callback.answer()
 
@@ -38,7 +44,7 @@ async def main_menu_handler(
 async def connect_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Handle connect/subscription menu callback."""
     user_id = callback.from_user.id
@@ -75,8 +81,8 @@ async def connect_menu_handler(
 async def invite_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
-    settings: Settings,
+    api_client: CyberVPNAPIClient,
+    settings: BotSettings,
 ) -> None:
     """Handle invite/referral menu callback."""
     user_id = callback.from_user.id
@@ -85,20 +91,20 @@ async def invite_menu_handler(
         # Get referral stats
         stats = await api_client.get_referral_stats(user_id)
         referral_count = stats.get("total_referrals", 0)
-        referral_bonus = stats.get("total_bonus", 0)
+        referral_bonus = stats.get("bonus_days", stats.get("total_bonus", 0))
 
         # Generate referral link
-        bot_username = settings.bot_username
+        bot_username = settings.bot_username or "CyberVPNBot"
         referral_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
 
         text = i18n.get(
             "referral-info",
             link=referral_link,
             count=referral_count,
-            bonus=referral_bonus,
+            bonus_days=referral_bonus,
         )
 
-        from keyboards.referral import referral_keyboard
+        from src.keyboards.referral import referral_keyboard
 
         await callback.message.edit_text(
             text=text,
@@ -116,7 +122,7 @@ async def invite_menu_handler(
 async def profile_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Handle profile menu callback."""
     user_id = callback.from_user.id
@@ -124,17 +130,21 @@ async def profile_menu_handler(
     try:
         # Get user profile
         user = await api_client.get_user(user_id)
+        username = user.get("username")
+        username_display = f"@{username}" if username else "N/A"
+        telegram_id = user.get("telegram_id", user_id)
 
         text = i18n.get(
             "profile-info",
-            username=user.get("username", "N/A"),
+            telegram_id=telegram_id,
+            username=username_display,
             language=user.get("language_code", "en").upper(),
             registered=user.get("created_at", "N/A"),
         )
 
         await callback.message.edit_text(
             text=text,
-            reply_markup=profile_keyboard(i18n),
+            reply_markup=profile_kb(i18n),
         )
     except Exception as e:
         logger.error("profile_menu_error", user_id=user_id, error=str(e))
@@ -148,18 +158,14 @@ async def profile_menu_handler(
 async def support_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    settings: Settings,
+    settings: BotSettings,
 ) -> None:
     """Handle support menu callback."""
-    support_text = i18n.get(
-        "support-info",
-        contact=settings.support_contact or "@support",
-    )
-
-    from keyboards.support import support_keyboard
+    support_username = settings.support_username
+    contact = support_username if support_username.startswith("@") else f"@{support_username}"
+    support_text = i18n.get("support-message", contact=contact)
 
     await callback.message.edit_text(
         text=support_text,
-        reply_markup=support_keyboard(i18n),
     )
     await callback.answer()

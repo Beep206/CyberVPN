@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from aiogram import Bot
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -16,7 +16,7 @@ logger = structlog.get_logger(__name__)
 class NotificationService:
     """Service for sending notifications to users via Telegram bot."""
 
-    def __init__(self, bot: Bot, api_client: APIClient) -> None:
+    def __init__(self, bot: Bot, api_client: CyberVPNAPIClient) -> None:
         """Initialize notification service.
 
         Args:

@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -37,57 +38,30 @@ def main_menu_kb(i18n: Callable[[str], str], user: UserDTO) -> InlineKeyboardMar
 
     # Connection/Subscription section
     if has_active_subscription:
-        builder.button(
-            text=i18n("menu-get-config"),
-            callback_data="menu:connect",
-        )
-        builder.button(
-            text=i18n("menu-renew-subscription"),
-            callback_data="sub:renew",
-        )
-        builder.button(
-            text=i18n("menu-my-subscription"),
-            callback_data="sub:status",
-        )
+        builder.button(text=i18n("btn-connect"), callback_data="menu:connect")
+        builder.button(text=i18n("btn-extend"), callback_data="subscription:buy")
+        builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions")
     else:
-        builder.button(
-            text=i18n("menu-buy-subscription"),
-            callback_data="sub:plans",
-        )
         # Show trial button if user has no subscription status
         if user.status in {"none", "NONE", UserStatus.NONE}:
-            builder.button(
-                text=i18n("menu-free-trial"),
-                callback_data="sub:trial",
-            )
+            builder.button(text=i18n("btn-trial"), callback_data="trial:activate")
+        builder.button(text=i18n("btn-buy"), callback_data="subscription:buy")
 
     # Profile and account
-    builder.button(
-        text=i18n("menu-my-profile"),
-        callback_data="account:profile",
-    )
-    builder.button(
-        text=i18n("menu-referral-program"),
-        callback_data="referral:main",
-    )
+    builder.button(text=i18n("btn-profile"), callback_data="account:profile")
+    builder.button(text=i18n("btn-invite"), callback_data="menu:invite")
 
     # Settings
-    builder.button(
-        text=i18n("menu-language"),
-        callback_data="account:language",
-    )
+    builder.button(text=i18n("btn-language"), callback_data="account:language")
 
     # Support
-    builder.button(
-        text=i18n("menu-support"),
-        callback_data="account:support",
-    )
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
 
     # Admin panel for privileged users
     if user.is_admin:
         builder.button(
-            text=i18n("menu-admin-panel"),
-            callback_data="admin:main",
+            text=i18n("btn-admin-panel"),
+            callback_data="admin:menu",
         )
 
     # Layout: 2 buttons per row for balance
@@ -107,28 +81,26 @@ def profile_kb(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     builder = InlineKeyboardBuilder()
 
-    builder.button(
-        text=i18n("profile-view-subscription"),
-        callback_data="profile:subscription",
-    )
-    builder.button(
-        text=i18n("profile-change-language"),
-        callback_data="profile:language",
-    )
-    builder.button(
-        text=i18n("profile-referral-stats"),
-        callback_data="profile:referral",
-    )
-    builder.button(
-        text=i18n("profile-contact-support"),
-        callback_data="profile:support",
-    )
-    builder.button(
-        text=i18n("button-back"),
-        callback_data="nav:back",
-    )
+    builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions")
+    builder.button(text=i18n("btn-language"), callback_data="account:language")
+    builder.button(text=i18n("btn-invite"), callback_data="menu:invite")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
 
     # Layout: 2 buttons per row, except back button
     builder.adjust(2, 2, 1)
 
     return builder.as_markup()
+
+
+def main_menu_keyboard(
+    i18n: Callable[[str], str],
+    user: UserDTO | dict | None = None,
+) -> InlineKeyboardMarkup:
+    if user is None:
+        from src.keyboards.common import main_menu_keyboard as fallback
+
+        return fallback(i18n)
+    if isinstance(user, dict):
+        user = UserDTO.model_validate(user)
+    return main_menu_kb(i18n, user)

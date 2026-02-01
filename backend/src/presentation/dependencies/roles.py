@@ -17,6 +17,7 @@ def require_role(minimum_role: AdminRole):
                 detail=f"Requires minimum role: {minimum_role.value}",
             )
         return user
+
     return role_checker
 
 
@@ -31,4 +32,5 @@ def require_permission(permission: Permission):
                 detail=f"Missing permission: {permission.value}",
             )
         return user
+
     return permission_checker

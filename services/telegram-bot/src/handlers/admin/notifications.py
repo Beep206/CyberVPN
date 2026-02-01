@@ -6,24 +6,22 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from middleware.admin import admin_required
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_notifications")
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:notifications:settings")
 async def notifications_settings_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show notification settings."""
     try:
@@ -112,7 +110,7 @@ async def notifications_settings_handler(
 async def notification_toggle_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle notification type."""
     notification_type = callback.data.split(":")[3]

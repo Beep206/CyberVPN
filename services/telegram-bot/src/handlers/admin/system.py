@@ -6,17 +6,15 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from middleware.admin import admin_required
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_system")
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:system")
@@ -68,7 +66,7 @@ async def system_menu_handler(
 async def system_health_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show system health status."""
     try:
@@ -147,7 +145,7 @@ async def system_health_handler(
 async def system_logs_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show recent system logs."""
     try:
@@ -209,7 +207,7 @@ async def system_logs_handler(
 async def system_cache_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show cache statistics and controls."""
     try:
@@ -266,7 +264,7 @@ async def system_cache_handler(
 async def system_cache_clear_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Clear system cache."""
     try:

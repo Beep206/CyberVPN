@@ -1,0 +1,346 @@
+{
+  "phone_screenshots": {
+    "recommended_size": {
+      "width": 1080,
+      "height": 1920,
+      "orientation": "portrait"
+    },
+    "minimum_size": {
+      "width": 320,
+      "height": 320
+    },
+    "maximum_size": {
+      "width": 3840,
+      "height": 3840
+    },
+    "format": "PNG",
+    "quantity": {
+      "minimum": 2,
+      "maximum": 8,
+      "recommended": 8
+    },
+    "file_prefix": "android-phone"
+  },
+  "feature_graphic": {
+    "exact_size": {
+      "width": 1024,
+      "height": 500
+    },
+    "format": "PNG",
+    "color_mode": "RGB24",
+    "alpha_channel": false,
+    "safe_zone": {
+      "top": 64,
+      "bottom": 64,
+      "left": 64,
+      "right": 64,
+      "description": "Keep important content within safe zone"
+    },
+    "filename": "feature-graphic.png",
+    "required": true
+  },
+  "screenshots": [
+    {
+      "id": 1,
+      "filename": "android-phone-1.png",
+      "title": "Main Dashboard",
+      "description": "3D globe visualization with server network and quick connect",
+      "route": "/home",
+      "priority": "high",
+      "features_to_highlight": [
+        "3D rotating globe with network visualization",
+        "Server list with location pins",
+        "Quick connect button with cyberpunk glow",
+        "Connection status indicator",
+        "Matrix green accent colors",
+        "Bottom navigation bar"
+      ]
+    },
+    {
+      "id": 2,
+      "filename": "android-phone-2.png",
+      "title": "Global Server Network",
+      "description": "Browse and connect to optimized servers worldwide",
+      "route": "/servers",
+      "priority": "high",
+      "features_to_highlight": [
+        "Server list with country flags",
+        "Real-time ping indicators",
+        "Server load percentages",
+        "Search and filter functionality",
+        "Favorite servers marked",
+        "Server locations across continents"
+      ]
+    },
+    {
+      "id": 3,
+      "filename": "android-phone-3.png",
+      "title": "Active Connection",
+      "description": "Real-time statistics and traffic monitoring",
+      "route": "/connection",
+      "priority": "high",
+      "features_to_highlight": [
+        "Connected state with server details",
+        "Real-time upload/download speed graphs",
+        "Connection duration timer",
+        "Total traffic usage (upload/download)",
+        "Animated traffic indicators",
+        "Disconnect button"
+      ]
+    },
+    {
+      "id": 4,
+      "filename": "android-phone-4.png",
+      "title": "Settings & Preferences",
+      "description": "Customize your VPN experience",
+      "route": "/settings",
+      "priority": "medium",
+      "features_to_highlight": [
+        "Theme selector (Cyberpunk/Material You)",
+        "Protocol selection dropdown",
+        "Language preferences",
+        "Notification settings",
+        "Auto-connect options",
+        "App preferences"
+      ]
+    },
+    {
+      "id": 5,
+      "filename": "android-phone-5.png",
+      "title": "Subscription Plans",
+      "description": "Flexible plans with trial period",
+      "route": "/subscription",
+      "priority": "medium",
+      "features_to_highlight": [
+        "Multiple subscription tiers",
+        "Feature comparison table",
+        "Trial period highlighted",
+        "Pricing per month/year",
+        "Popular plan badge",
+        "Purchase buttons"
+      ]
+    },
+    {
+      "id": 6,
+      "filename": "android-phone-6.png",
+      "title": "Profile & Account",
+      "description": "Manage your account and subscription",
+      "route": "/profile",
+      "priority": "low",
+      "features_to_highlight": [
+        "User profile information",
+        "Active subscription status",
+        "Subscription expiry date",
+        "Traffic usage history",
+        "Referral code",
+        "Account management options"
+      ]
+    },
+    {
+      "id": 7,
+      "filename": "android-phone-7.png",
+      "title": "Advanced Security",
+      "description": "Military-grade security features",
+      "route": "/settings/security",
+      "priority": "medium",
+      "features_to_highlight": [
+        "Kill switch toggle with description",
+        "Split tunneling configuration",
+        "DNS leak protection",
+        "IPv6 support toggle",
+        "Auto-reconnect settings",
+        "Biometric authentication"
+      ]
+    },
+    {
+      "id": 8,
+      "filename": "android-phone-8.png",
+      "title": "Statistics & Analytics",
+      "description": "Track your VPN usage and performance",
+      "route": "/statistics",
+      "priority": "low",
+      "features_to_highlight": [
+        "Connection history timeline",
+        "Traffic usage charts (daily/weekly/monthly)",
+        "Server performance metrics",
+        "Total data saved",
+        "Connection success rate",
+        "Average connection speed"
+      ]
+    }
+  ],
+  "feature_graphic_design": {
+    "elements": [
+      {
+        "type": "app_icon",
+        "position": "left",
+        "size": "120x120",
+        "asset": "assets/images/app_icon.png"
+      },
+      {
+        "type": "title",
+        "text": "CYBERVPN",
+        "font": "Orbitron",
+        "size": "48px",
+        "weight": "bold",
+        "color": "#00FF88",
+        "position": "center-left"
+      },
+      {
+        "type": "tagline",
+        "text": "Secure. Anonymous. Fast.",
+        "font": "Orbitron",
+        "size": "24px",
+        "weight": "medium",
+        "color": "#00FFFF",
+        "position": "below-title"
+      },
+      {
+        "type": "subtitle",
+        "text": "Military-Grade VPN Protection",
+        "font": "System",
+        "size": "16px",
+        "color": "#FFFFFF",
+        "opacity": 0.8,
+        "position": "below-tagline"
+      },
+      {
+        "type": "visual",
+        "description": "3D globe or network visualization",
+        "position": "right",
+        "size": "400x400",
+        "effects": ["neon glow", "matrix particles"]
+      }
+    ],
+    "background": {
+      "type": "gradient",
+      "colors": ["#0A0E1A", "#111827"],
+      "direction": "diagonal",
+      "overlay": "scanlines"
+    },
+    "effects": [
+      "Neon glow on text",
+      "Matrix green accents",
+      "Subtle scanline overlay",
+      "3D depth perception"
+    ]
+  },
+  "theme": "cyberpunk_dark",
+  "locale": "en",
+  "mock_data": {
+    "user": {
+      "username": "cyber_user",
+      "email": "user@example.com",
+      "subscription": "premium",
+      "expires_at": "2026-03-01",
+      "referral_code": "CYBER2026"
+    },
+    "connection": {
+      "status": "connected",
+      "server": "US - New York #1",
+      "protocol": "VLESS",
+      "encryption": "AES-256",
+      "upload_speed": "125.4 KB/s",
+      "download_speed": "3.2 MB/s",
+      "duration": "00:15:42",
+      "traffic_up": "45.2 MB",
+      "traffic_down": "83.3 MB",
+      "total_traffic": "128.5 MB"
+    },
+    "servers": [
+      {
+        "name": "US - New York #1",
+        "country_code": "US",
+        "country": "United States",
+        "ping": "12ms",
+        "load": "45%",
+        "favorite": true
+      },
+      {
+        "name": "UK - London #1",
+        "country_code": "GB",
+        "country": "United Kingdom",
+        "ping": "35ms",
+        "load": "62%",
+        "favorite": false
+      },
+      {
+        "name": "Japan - Tokyo #1",
+        "country_code": "JP",
+        "country": "Japan",
+        "ping": "125ms",
+        "load": "38%",
+        "favorite": true
+      },
+      {
+        "name": "Germany - Frankfurt #1",
+        "country_code": "DE",
+        "country": "Germany",
+        "ping": "28ms",
+        "load": "71%",
+        "favorite": false
+      },
+      {
+        "name": "Singapore #1",
+        "country_code": "SG",
+        "country": "Singapore",
+        "ping": "180ms",
+        "load": "55%",
+        "favorite": false
+      },
+      {
+        "name": "Canada - Toronto #1",
+        "country_code": "CA",
+        "country": "Canada",
+        "ping": "22ms",
+        "load": "42%",
+        "favorite": false
+      }
+    ],
+    "statistics": {
+      "total_connections": 247,
+      "total_data": "15.2 GB",
+      "average_speed": "2.8 MB/s",
+      "connection_uptime": "98.5%"
+    }
+  },
+  "design": {
+    "colors": {
+      "matrix_green": "#00FF88",
+      "neon_cyan": "#00FFFF",
+      "neon_pink": "#FF00FF",
+      "deep_navy": "#0A0E1A",
+      "dark_bg": "#111827",
+      "white": "#FFFFFF",
+      "gray": "#6B7280"
+    },
+    "fonts": {
+      "display": "Orbitron",
+      "body": "System Default (Roboto on Android)",
+      "mono": "JetBrains Mono"
+    },
+    "effects": [
+      "Neon glow on cards and buttons",
+      "Scanlines overlay (subtle)",
+      "3D card transforms on press",
+      "Smooth animations and transitions"
+    ]
+  },
+  "format": {
+    "type": "PNG",
+    "color_space": "sRGB",
+    "bit_depth": 24,
+    "compression": "lossless"
+  },
+  "generation_notes": [
+    "Use Android emulator with 1080x1920 resolution (Pixel 6 or similar)",
+    "Status bar should show clean time and full signal",
+    "Hide navigation bar for cleaner screenshots (optional)",
+    "Ensure cyberpunk theme is active",
+    "Use realistic but not real user data",
+    "No debug overlays or development artifacts",
+    "First 2 screenshots are most important for Play Store visibility",
+    "Feature graphic text must be readable at 512x250 thumbnail size",
+    "Test feature graphic on different screen sizes"
+  ]
+}

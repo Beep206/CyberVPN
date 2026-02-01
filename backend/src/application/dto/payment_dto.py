@@ -17,4 +17,5 @@ class InvoiceResponseDTO:
     payment_url: str
     amount: Decimal
     currency: str
+    status: str
     expires_at: datetime

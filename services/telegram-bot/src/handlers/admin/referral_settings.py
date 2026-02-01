@@ -7,26 +7,23 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from middleware.admin import admin_required
-from states.admin import AdminReferralSettingsState
+from src.states.admin import AdminReferralSettingsState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_referral_settings")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:referral:settings")
 async def referral_settings_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show referral program settings."""
     try:
@@ -46,7 +43,9 @@ async def referral_settings_handler(
 
         builder = InlineKeyboardBuilder()
 
-        toggle_text = i18n.get("admin-referral-disable") if settings.get("is_enabled") else i18n.get("admin-referral-enable")
+        toggle_text = (
+            i18n.get("admin-referral-disable") if settings.get("is_enabled") else i18n.get("admin-referral-enable")
+        )
 
         builder.row(
             InlineKeyboardButton(
@@ -91,7 +90,7 @@ async def referral_settings_handler(
 async def referral_toggle_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle referral program."""
     try:
@@ -135,7 +134,7 @@ async def referral_edit_bonus_prompt_handler(
 async def referral_edit_bonus_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Update referral bonus percent."""
@@ -149,9 +148,7 @@ async def referral_edit_bonus_handler(
         # Update setting via API
         await api_client.update_referral_settings({"bonus_percent": bonus_percent})
 
-        await message.answer(
-            i18n.get("admin-referral-bonus-updated", bonus=bonus_percent)
-        )
+        await message.answer(i18n.get("admin-referral-bonus-updated", bonus=bonus_percent))
 
         await state.clear()
         logger.info("admin_referral_bonus_updated", admin_id=message.from_user.id, new_bonus=bonus_percent)
@@ -185,7 +182,7 @@ async def referral_edit_withdrawal_prompt_handler(
 async def referral_edit_withdrawal_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Update minimum withdrawal amount."""
@@ -199,9 +196,7 @@ async def referral_edit_withdrawal_handler(
         # Update setting via API
         await api_client.update_referral_settings({"min_withdrawal": min_withdrawal})
 
-        await message.answer(
-            i18n.get("admin-referral-withdrawal-updated", amount=min_withdrawal)
-        )
+        await message.answer(i18n.get("admin-referral-withdrawal-updated", amount=min_withdrawal))
 
         await state.clear()
         logger.info("admin_referral_withdrawal_updated", admin_id=message.from_user.id, new_min=min_withdrawal)

@@ -7,19 +7,16 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from middleware.admin import admin_required
-from states.admin import AdminUserState
+from src.states.admin import AdminUserState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_users")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:users")
@@ -81,7 +78,7 @@ async def users_search_prompt_handler(
 async def users_search_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Search for users."""
@@ -138,7 +135,7 @@ async def users_search_handler(
 async def users_list_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """List recent users."""
     try:
@@ -192,7 +189,7 @@ async def users_list_handler(
 async def user_view_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """View user details."""
     user_id = int(callback.data.split(":")[3])
@@ -259,7 +256,7 @@ async def user_view_handler(
 async def user_ban_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Ban/unban user."""
     user_id = int(callback.data.split(":")[3])
@@ -277,7 +274,9 @@ async def user_ban_handler(
         # Refresh user view
         await user_view_handler(callback, i18n, api_client)
 
-        logger.info("admin_user_ban_toggled", admin_id=callback.from_user.id, target_user_id=user_id, is_banned=is_banned)
+        logger.info(
+            "admin_user_ban_toggled", admin_id=callback.from_user.id, target_user_id=user_id, is_banned=is_banned
+        )
 
     except Exception as e:
         logger.error("admin_user_ban_error", admin_id=callback.from_user.id, target_user_id=user_id, error=str(e))
@@ -307,7 +306,7 @@ async def user_extend_subscription_prompt_handler(
 async def user_extend_subscription_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Extend user subscription."""
@@ -340,7 +339,9 @@ async def user_extend_subscription_handler(
         )
 
         await state.clear()
-        logger.info("admin_user_subscription_extended", admin_id=message.from_user.id, target_user_id=user_id, days=days)
+        logger.info(
+            "admin_user_subscription_extended", admin_id=message.from_user.id, target_user_id=user_id, days=days
+        )
 
     except ValueError:
         await message.answer(i18n.get("admin-user-extend-invalid-number"))

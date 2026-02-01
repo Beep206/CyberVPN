@@ -1,0 +1,13 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Fastlane Appfile — CyberVPN Mobile
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Android ──────────────────────────────────────────────────────────────────
+json_key_file(ENV["PLAY_STORE_JSON_KEY_PATH"] || "fastlane/play-store-key.json")
+package_name("com.cybervpn.cybervpn_mobile")
+
+# ── iOS ──────────────────────────────────────────────────────────────────────
+app_identifier("com.cybervpn.cybervpn-mobile")
+apple_id(ENV["APPLE_ID"] || "developer@cybervpn.com")
+itc_team_id(ENV["ITC_TEAM_ID"] || "")
+team_id(ENV["APPLE_TEAM_ID"] || "")

@@ -7,26 +7,23 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from middleware.admin import admin_required
-from states.admin import AdminAccessState
+from src.states.admin import AdminAccessState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_access")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:access:settings")
 async def access_settings_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show access control settings."""
     try:
@@ -102,7 +99,7 @@ async def access_add_prompt_handler(
 async def access_add_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Add new admin."""
@@ -152,7 +149,7 @@ async def access_remove_prompt_handler(
 async def access_remove_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Remove admin."""
@@ -168,9 +165,7 @@ async def access_remove_handler(
         # Remove admin via API
         await api_client.remove_admin(remove_admin_id)
 
-        await message.answer(
-            i18n.get("admin-access-removed", admin_id=remove_admin_id)
-        )
+        await message.answer(i18n.get("admin-access-removed", admin_id=remove_admin_id))
 
         await state.clear()
         logger.info("admin_access_removed", admin_id=message.from_user.id, removed_admin_id=remove_admin_id)

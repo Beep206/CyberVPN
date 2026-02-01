@@ -29,8 +29,11 @@ def map_remnawave_user(data: dict) -> User:
         online_at=datetime.fromisoformat(data["onlineAt"]) if data.get("onlineAt") else None,
         sub_last_user_agent=data.get("subLastUserAgent"),
         sub_revoked_at=datetime.fromisoformat(data["subRevokedAt"]) if data.get("subRevokedAt") else None,
-        last_traffic_reset_at=datetime.fromisoformat(data["lastTrafficResetAt"]) if data.get("lastTrafficResetAt") else None,
+        last_traffic_reset_at=datetime.fromisoformat(data["lastTrafficResetAt"])
+        if data.get("lastTrafficResetAt")
+        else None,
         telegram_id=data.get("telegramId"),
         email=data.get("email"),
         hwid_device_limit=data.get("hwidDeviceLimit"),
+        subscription_url=data.get("subscriptionUrl") or data.get("subscriptionURL"),
     )

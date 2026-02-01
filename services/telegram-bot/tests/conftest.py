@@ -127,10 +127,7 @@ def create_fsm_context(storage: MemoryStorage, bot_id: int, user_id: int, chat_i
     Returns:
         FSMContext instance.
     """
-    return FSMContext(
-        storage=storage,
-        key=StorageKey(bot_id=bot_id, user_id=user_id, chat_id=chat_id)
-    )
+    return FSMContext(storage=storage, key=StorageKey(bot_id=bot_id, user_id=user_id, chat_id=chat_id))
 
 
 # ── Fake Redis ───────────────────────────────────────────────────────────────
@@ -203,7 +200,7 @@ def mock_settings() -> BotSettings:
         trial=TrialSettings(enabled=True, days=2, traffic_gb=2),
         referral=ReferralSettings(enabled=True, bonus_days=3, max_referrals=100),
         logging=LoggingSettings(level="DEBUG", json_format=False, show_locals=True),
-        prometheus=PrometheusSettings(enabled=False, port=9090, path="/metrics"),
+        prometheus=PrometheusSettings(enabled=False, protect=False, port=9090, path="/metrics"),
     )
 
 

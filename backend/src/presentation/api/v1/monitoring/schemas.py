@@ -1,7 +1,7 @@
 """Pydantic schemas for monitoring and health check endpoints."""
 
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,15 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class ComponentStatus(BaseModel):
     """Status information for a single system component."""
 
-    status: Literal["healthy", "unhealthy"] = Field(
-        ..., description="Component health status"
-    )
-    message: str = Field(
-        ..., max_length=500, description="Status message"
-    )
-    response_time_ms: float | None = Field(
-        None, description="Response time in milliseconds"
-    )
+    status: Literal["healthy", "unhealthy"] = Field(..., description="Component health status")
+    message: str = Field(..., max_length=500, description="Status message")
+    response_time_ms: float | None = Field(None, description="Response time in milliseconds")
 
 
 class HealthResponse(BaseModel):
@@ -25,9 +19,7 @@ class HealthResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    status: Literal["healthy", "unhealthy", "degraded"] = Field(
-        ..., description="Overall system status"
-    )
+    status: Literal["healthy", "unhealthy", "degraded"] = Field(..., description="Overall system status")
     components: dict[str, ComponentStatus] = Field(
         default_factory=dict,
         description="Status of individual components",
@@ -57,9 +49,7 @@ class BandwidthResponse(BaseModel):
 
     bytes_in: int = Field(..., description="Incoming bytes")
     bytes_out: int = Field(..., description="Outgoing bytes")
-    period: Literal["today", "week", "month"] = Field(
-        ..., description="Time period for analytics"
-    )
+    period: Literal["today", "week", "month"] = Field(..., description="Time period for analytics")
 
 
 class TopUserResponse(BaseModel):

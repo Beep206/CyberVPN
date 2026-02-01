@@ -1,9 +1,8 @@
 """User management routes for Remnawave VPN users."""
 
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from src.application.dto.user_dto import CreateUserDTO
 from src.application.use_cases.auth.permissions import Permission
@@ -12,11 +11,7 @@ from src.application.use_cases.users.delete_user import DeleteUserUseCase
 from src.application.use_cases.users.get_user import GetUserUseCase
 from src.application.use_cases.users.list_users import ListUsersUseCase
 from src.application.use_cases.users.update_user import UpdateUserUseCase
-from src.domain.exceptions import (
-    UserAlreadyExistsError,
-    UserNotFoundError,
-    ValidationError,
-)
+from src.domain.exceptions import UserNotFoundError
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.users.schemas import (
     CreateUserRequest,

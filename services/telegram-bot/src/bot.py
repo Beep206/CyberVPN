@@ -11,8 +11,12 @@ from typing import TYPE_CHECKING
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
+
+from src.services.api_client import CyberVPNAPIClient
+from src.services.cache_service import CacheService
 
 if TYPE_CHECKING:
     from src.config import BotSettings
@@ -47,20 +51,16 @@ def create_redis_storage(settings: BotSettings) -> RedisStorage:
     """
     redis = Redis.from_url(
         settings.redis.dsn,
-        password=(
-            settings.redis.password.get_secret_value()
-            if settings.redis.password
-            else None
-        ),
+        password=(settings.redis.password.get_secret_value() if settings.redis.password else None),
         decode_responses=True,
     )
     return RedisStorage(
         redis=redis,
-        key_builder_prefix=settings.redis.key_prefix,
+        key_builder=DefaultKeyBuilder(prefix=settings.redis.key_prefix, with_bot_id=True),
     )
 
 
-def create_dispatcher(settings: BotSettings) -> Dispatcher:
+def create_dispatcher(settings: BotSettings, bot: Bot) -> Dispatcher:
     """Create and configure the Dispatcher with storage, middleware, and routers.
 
     The dispatcher is the root router that orchestrates all update processing.
@@ -86,17 +86,41 @@ def create_dispatcher(settings: BotSettings) -> Dispatcher:
     storage = create_redis_storage(settings)
     dp = Dispatcher(storage=storage)
 
-    # Store settings in dispatcher context for access in handlers/middleware
+    # Shared dependencies for handlers and middleware
+    redis = Redis.from_url(
+        settings.redis.dsn,
+        password=(settings.redis.password.get_secret_value() if settings.redis.password else None),
+        decode_responses=True,
+    )
+    cache = CacheService(redis=redis, key_prefix=settings.redis.key_prefix)
+    api_client = CyberVPNAPIClient(settings.backend)
+
     dp["settings"] = settings
+    dp["api_client"] = api_client
+    dp["cache"] = cache
+    dp["redis"] = redis
 
     # Register middleware stack
     from src.middlewares import register_middlewares
 
-    register_middlewares(dp, settings)
+    register_middlewares(
+        dp,
+        settings,
+        bot=bot,
+        api_client=api_client,
+        cache=cache,
+        redis=redis,
+    )
 
     # Register all handler routers
     from src.handlers import register_routers
 
     register_routers(dp)
+
+    async def _shutdown_resources(_: Bot) -> None:
+        await api_client.close()
+        await cache.close()
+
+    dp.shutdown.register(_shutdown_resources)
 
     return dp

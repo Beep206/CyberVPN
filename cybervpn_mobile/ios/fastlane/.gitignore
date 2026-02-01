@@ -1,0 +1,26 @@
+# Fastlane
+*.ipa
+*.dSYM.zip
+*.mobileprovision
+
+# Fastlane specific
+report.xml
+screenshots
+test_output
+Preview.html
+builds/
+
+# Deliver temporary files
+Deliverfile
+Deliverfile.bak
+
+# Snapshot generated screenshots
+fastlane/screenshots
+
+# Scan temporary files
+fastlane/test_output
+
+# Fastlane.tools
+.env
+.env.default
+fastlane/tmp

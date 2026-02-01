@@ -1,17 +1,13 @@
-"""
-Login use case for admin user authentication.
-"""
+"""Login use case for admin user authentication."""
 
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 

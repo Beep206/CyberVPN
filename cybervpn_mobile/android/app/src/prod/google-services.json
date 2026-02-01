@@ -1,0 +1,37 @@
+{
+  "_comment": "This is a PLACEHOLDER for the production environment Firebase configuration.",
+  "_instructions": [
+    "1. Create a Firebase project for production (e.g., 'CyberVPN')",
+    "2. Register an Android app with package name: com.cybervpn.cybervpn_mobile",
+    "3. Download the google-services.json from Firebase Console",
+    "4. Replace this file with the downloaded google-services.json",
+    "5. ENSURE the real google-services.json is properly secured and not committed to public repositories"
+  ],
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "cybervpn-prod-placeholder",
+    "storage_bucket": "cybervpn-prod-placeholder.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.cybervpn.cybervpn_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "PLACEHOLDER_API_KEY_REPLACE_WITH_REAL"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

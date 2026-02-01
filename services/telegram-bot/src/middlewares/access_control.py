@@ -17,6 +17,8 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from src.config import BotSettings
+from src.services.api_client import APIError, CyberVPNAPIClient
+from src.services.cache_service import CacheService
 
 logger = structlog.get_logger(__name__)
 
@@ -42,9 +44,13 @@ class AccessControlMiddleware(BaseMiddleware):
         self,
         bot_settings: BotSettings,
         bot: Bot,
+        api_client: CyberVPNAPIClient | None = None,
+        cache: CacheService | None = None,
     ) -> None:
         self._bot_settings = bot_settings
         self._bot = bot
+        self._api = api_client
+        self._cache = cache
 
     async def __call__(
         self,
@@ -64,19 +70,21 @@ class AccessControlMiddleware(BaseMiddleware):
         """
         user_data = data.get("user")
         if user_data is None:
-            # No user data (auth middleware failed)
             logger.warning("access_control_no_user_data")
             return await handler(event, data)
 
         telegram_id = user_data.get("telegram_id")
         is_admin = self._bot_settings.is_admin(telegram_id)
 
-        # Get bot access settings from dispatcher data
-        # These should be injected at bot startup from API
-        bot_config = data.get("settings", {})
-        access_mode = bot_config.get("access_mode", "open")
-        rules_url = bot_config.get("rules_url")
-        channel_id = bot_config.get("channel_id")
+        # Load bot access settings from cache/API
+        settings_override = data.get("settings")
+        if isinstance(settings_override, dict):
+            bot_config = settings_override
+        else:
+            bot_config = await self._get_access_settings()
+        access_mode = bot_config.get("access_mode") or bot_config.get("mode") or "open"
+        rules_url = bot_config.get("rules_url") or bot_config.get("rules_link")
+        channel_id = bot_config.get("channel_id") or bot_config.get("channel")
 
         # Check 1: Maintenance mode
         if access_mode == "maintenance" and not is_admin:
@@ -116,6 +124,28 @@ class AccessControlMiddleware(BaseMiddleware):
         # All checks passed
         return await handler(event, data)
 
+    async def _get_access_settings(self) -> dict[str, Any]:
+        if self._cache is not None:
+            cached = await self._cache.get_bot_config()
+            if isinstance(cached, dict) and cached:
+                return cached
+
+        if self._api is None:
+            return {}
+
+        try:
+            settings = await self._api.get_access_settings()
+        except APIError as exc:
+            logger.error("access_settings_fetch_failed", error=str(exc))
+            return {}
+
+        if isinstance(settings, dict):
+            if self._cache is not None:
+                await self._cache.set_bot_config(settings)
+            return settings
+
+        return {}
+
     async def _check_channel_subscription(
         self,
         telegram_id: int,
@@ -149,16 +179,22 @@ class AccessControlMiddleware(BaseMiddleware):
             return True
 
     @staticmethod
+    async def _send_auth_required_message(event: TelegramObject) -> None:
+        text = "⚠️ <b>Сервис временно недоступен</b>\n\nПопробуйте позже."
+
+        if isinstance(event, Message):
+            await event.answer(text, parse_mode="HTML")
+        elif isinstance(event, CallbackQuery):
+            await event.answer("Сервис временно недоступен", show_alert=True)
+
+    @staticmethod
     async def _send_maintenance_message(event: TelegramObject) -> None:
         """Send maintenance mode message to user.
 
         Args:
             event: Telegram event to respond to.
         """
-        text = (
-            "🔧 <b>Технические работы</b>\n\n"
-            "Бот временно недоступен. Попробуйте позже."
-        )
+        text = "🔧 <b>Технические работы</b>\n\nБот временно недоступен. Попробуйте позже."
 
         if isinstance(event, Message):
             await event.answer(text, parse_mode="HTML")

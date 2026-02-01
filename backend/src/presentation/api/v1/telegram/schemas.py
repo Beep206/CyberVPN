@@ -29,12 +29,8 @@ class TelegramUserResponse(BaseModel):
     status: str = Field(..., max_length=50, description="User account status")
     data_usage: int = Field(..., description="Current data usage in bytes")
     data_limit: int | None = Field(None, description="Data limit in bytes")
-    expires_at: datetime | None = Field(
-        None, description="Subscription expiration date"
-    )
-    subscription_url: str = Field(
-        ..., max_length=5000, description="VPN subscription configuration URL"
-    )
+    expires_at: datetime | None = Field(None, description="Subscription expiration date")
+    subscription_url: str | None = Field(None, max_length=5000, description="VPN subscription configuration URL")
 
 
 class CreateSubscriptionRequest(BaseModel):
@@ -49,12 +45,8 @@ class CreateSubscriptionRequest(BaseModel):
         }
     )
 
-    plan_name: str = Field(
-        ..., max_length=100, description="Name of the subscription plan"
-    )
-    duration_days: int = Field(
-        ..., gt=0, le=3650, description="Subscription duration in days"
-    )
+    plan_name: str = Field(..., max_length=100, description="Name of the subscription plan")
+    duration_days: int = Field(..., gt=0, le=3650, description="Subscription duration in days")
 
 
 class ConfigResponse(BaseModel):
@@ -69,12 +61,8 @@ class ConfigResponse(BaseModel):
         }
     )
 
-    config_string: str = Field(
-        ..., max_length=5000, description="VPN configuration string"
-    )
-    client_type: str = Field(
-        ..., max_length=50, description="VPN client type (vless, vmess, etc.)"
-    )
+    config_string: str = Field(..., max_length=5000, description="VPN configuration string")
+    client_type: str = Field(..., max_length=50, description="VPN client type (vless, vmess, etc.)")
 
 
 class NotifyRequest(BaseModel):
@@ -91,9 +79,7 @@ class NotifyRequest(BaseModel):
     )
 
     telegram_id: int = Field(..., description="Telegram user ID")
-    message: str = Field(
-        ..., min_length=1, max_length=4096, description="Notification message"
-    )
+    message: str = Field(..., min_length=1, max_length=4096, description="Notification message")
     notification_type: str | None = Field(
         None,
         max_length=50,

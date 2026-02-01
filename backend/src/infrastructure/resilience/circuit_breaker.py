@@ -1,16 +1,20 @@
 import time
 from enum import Enum
-from typing import Callable, Any
 from functools import wraps
+from typing import Any, Callable
+
 
 class CircuitState(Enum):
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
 
+
 class CircuitBreakerError(Exception):
     """Raised when circuit breaker is open"""
+
     pass
+
 
 class CircuitBreaker:
     """
@@ -21,7 +25,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: float = 60.0,
-        expected_exception: type = Exception
+        expected_exception: type[BaseException] = Exception,
     ):
         """
         Initialize circuit breaker
@@ -94,10 +98,11 @@ class CircuitBreaker:
         self.last_failure_time = None
         self.state = CircuitState.CLOSED
 
+
 def circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: float = 60.0,
-    expected_exception: type = Exception
+    expected_exception: type[BaseException] = Exception,
 ):
     """
     Decorator for applying circuit breaker to functions
@@ -113,5 +118,7 @@ def circuit_breaker(
         @wraps(func)
         def wrapper(*args, **kwargs):
             return breaker.call(func, *args, **kwargs)
+
         return wrapper
+
     return decorator

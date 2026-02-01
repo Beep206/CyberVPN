@@ -7,13 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-def referral_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
+def referral_keyboard(i18n: Callable[[str], str], _stats: dict | None = None) -> InlineKeyboardMarkup:
     """Build referral program main keyboard.
 
     Args:
@@ -25,19 +26,19 @@ def referral_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     builder.button(
-        text=i18n("referral-my-link"),
-        callback_data="referral:link",
-    )
-    builder.button(
-        text=i18n("referral-stats"),
-        callback_data="referral:stats",
-    )
-    builder.button(
-        text=i18n("referral-share"),
+        text=i18n("btn-referral-share"),
         callback_data="referral:share",
     )
     builder.button(
-        text=i18n("button-back"),
+        text=i18n("btn-referral-link"),
+        callback_data="referral:link",
+    )
+    builder.button(
+        text=i18n("btn-referral-stats"),
+        callback_data="referral:stats",
+    )
+    builder.button(
+        text=i18n("btn-back"),
         callback_data="nav:back",
     )
 

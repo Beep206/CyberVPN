@@ -15,7 +15,7 @@ from src.models.payment import InvoiceDTO, PaymentGateway, PaymentStatus
 from src.services.api_client import APIError
 
 if TYPE_CHECKING:
-    from src.config import Settings
+    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
@@ -31,7 +31,7 @@ class PaymentService:
     def __init__(
         self,
         api_client: CyberVPNAPIClient,
-        settings: Settings,
+        settings: BotSettings,
     ) -> None:
         """Initialize payment service.
 
@@ -189,7 +189,7 @@ class PaymentService:
         """
         # YooKassa integration would go through backend API
         # This is a placeholder that assumes backend has a YooKassa endpoint
-        return await self._api._request(
+        return await self._api._request_dict(
             "POST",
             "/telegram/payments/yookassa/invoice",
             json={
@@ -222,7 +222,7 @@ class PaymentService:
             Invoice data from backend.
         """
         # Telegram Stars integration through backend
-        return await self._api._request(
+        return await self._api._request_dict(
             "POST",
             "/telegram/payments/stars/invoice",
             json={
@@ -251,7 +251,7 @@ class PaymentService:
             APIError: On backend errors.
         """
         try:
-            status_data = await self._api._request(
+            status_data = await self._api._request_dict(
                 "GET",
                 f"/telegram/payments/{gateway}/status/{invoice_id}",
             )
@@ -290,7 +290,7 @@ class PaymentService:
             APIError: On backend processing errors.
         """
         try:
-            result = await self._api._request(
+            result = await self._api._request_dict(
                 "POST",
                 f"/telegram/payments/{gateway}/callback",
                 json=callback_data,

@@ -1,0 +1,228 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cybervpn_mobile/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'cybervpn_mobile/**'
+      - '.github/workflows/ci.yml'
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: cybervpn_mobile
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Verify Flutter installation
+        run: flutter --version
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            cybervpn_mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('cybervpn_mobile/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze code
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: cybervpn_mobile/coverage/lcov.info
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: cybervpn_mobile/coverage/lcov.info
+          flags: flutter
+          name: cybervpn-mobile-coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  build-android:
+    name: Build Android - ${{ matrix.flavor }}
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+    strategy:
+      matrix:
+        flavor: [dev, staging, prod]
+        include:
+          - flavor: dev
+            build-type: debug
+            build-command: apk
+          - flavor: staging
+            build-type: release
+            build-command: appbundle
+          - flavor: prod
+            build-type: release
+            build-command: appbundle
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            cybervpn_mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('cybervpn_mobile/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Decode Android keystore (staging/prod only)
+        if: matrix.flavor != 'dev'
+        run: |
+          echo "$KEYSTORE_DATA" | base64 --decode > android/app/release.keystore
+          echo "ANDROID_KEYSTORE_PATH=$WORKSPACE/cybervpn_mobile/android/app/release.keystore" >> $GITHUB_ENV
+        env:
+          KEYSTORE_DATA: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          WORKSPACE: ${{ github.workspace }}
+
+      - name: Build Android ${{ matrix.build-command }} (${{ matrix.flavor }})
+        run: |
+          if [ "${{ matrix.build-type }}" = "release" ]; then
+            flutter build ${{ matrix.build-command }} --flavor ${{ matrix.flavor }} --${{ matrix.build-type }} \
+              --obfuscate \
+              --split-debug-info=build/debug-info/
+          else
+            flutter build ${{ matrix.build-command }} --flavor ${{ matrix.flavor }} --${{ matrix.build-type }}
+          fi
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ env.ANDROID_KEYSTORE_PATH }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Dart debug symbols to Sentry (release builds only)
+        if: matrix.build-type == 'release' && secrets.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli upload-dif \
+            --org "${SENTRY_ORG}" \
+            --project "${SENTRY_PROJECT}" \
+            build/debug-info/
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.flavor }}-${{ matrix.build-type }}
+          path: |
+            cybervpn_mobile/build/app/outputs/flutter-apk/*.apk
+            cybervpn_mobile/build/app/outputs/bundle/**/*.aab
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload debug symbols artifact (release builds only)
+        if: matrix.build-type == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.flavor }}-debug-symbols
+          path: cybervpn_mobile/build/debug-info/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  build-ios:
+    name: Build iOS (no codesign)
+    runs-on: macos-latest
+    needs: analyze-and-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            cybervpn_mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('cybervpn_mobile/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build iOS (no codesign)
+        run: |
+          flutter build ios --no-codesign \
+            --obfuscate \
+            --split-debug-info=build/debug-info/
+
+      - name: Upload debug symbols artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-debug-symbols
+          path: cybervpn_mobile/build/debug-info/
+          retention-days: 14
+          if-no-files-found: ignore

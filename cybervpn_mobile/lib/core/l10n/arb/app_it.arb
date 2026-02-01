@@ -1,0 +1,67 @@
+{
+  "@@locale": "it",
+  "appName": "CyberVPN",
+  "login": "Log In",
+  "register": "Sign Up",
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "forgotPassword": "Forgot Password?",
+  "orContinueWith": "Or continue with",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "connecting": "Connecting...",
+  "disconnecting": "Disconnecting...",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "servers": "Servers",
+  "subscription": "Subscription",
+  "settings": "Settings",
+  "profile": "Profile",
+  "selectServer": "Select Server",
+  "autoSelect": "Auto Select",
+  "fastestServer": "Fastest Server",
+  "nearestServer": "Nearest Server",
+  "killSwitch": "Kill Switch",
+  "splitTunneling": "Split Tunneling",
+  "autoConnect": "Auto Connect",
+  "language": "Language",
+  "theme": "Theme",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
+  "systemDefault": "System Default",
+  "logout": "Log Out",
+  "logoutConfirm": "Are you sure you want to log out?",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "retry": "Retry",
+  "errorOccurred": "An error occurred",
+  "noInternet": "No internet connection",
+  "downloadSpeed": "Download",
+  "uploadSpeed": "Upload",
+  "connectionTime": "Connection Time",
+  "dataUsed": "Data Used",
+  "currentPlan": "Current Plan",
+  "upgradePlan": "Upgrade Plan",
+  "daysRemaining": "{count, plural, =1{1 day remaining} other{{count} days remaining}}",
+  "@daysRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "referral": "Referral",
+  "shareReferralCode": "Share Referral Code",
+  "support": "Support",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  }
+}

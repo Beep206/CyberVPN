@@ -1,13 +1,19 @@
 import { locales } from './config';
 
-export interface Language {
+interface LanguageBase {
     code: typeof locales[number];
     name: string;
     nativeName: string;
     flag: string;
 }
 
-export const LANGUAGES: Language[] = [
+export interface Language extends LanguageBase {
+    _searchName: string;
+    _searchNative: string;
+    _searchCode: string;
+}
+
+const LANGUAGES_RAW: LanguageBase[] = [
     // High Priority
     { code: 'en-EN', name: 'English', nativeName: 'English', flag: '🇺🇸' },
     { code: 'hi-IN', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
@@ -56,3 +62,10 @@ export const LANGUAGES: Language[] = [
     { code: 'hu-HU', name: 'Hungarian', nativeName: 'Magyar', flag: '🇭🇺' },
     { code: 'sv-SE', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪' },
 ];
+
+export const LANGUAGES: Language[] = LANGUAGES_RAW.map(l => ({
+    ...l,
+    _searchName: l.name.toLowerCase(),
+    _searchNative: l.nativeName.toLowerCase(),
+    _searchCode: l.code.toLowerCase(),
+}));

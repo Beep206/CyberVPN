@@ -3,6 +3,7 @@ Registration use case for creating new admin users.
 """
 
 from src.application.services.auth_service import AuthService
+from src.domain.enums import AdminRole
 from src.domain.exceptions import DuplicateUsernameError
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -29,7 +30,7 @@ class RegisterUseCase:
         login: str,
         email: str,
         password: str,
-        role: str = "viewer",
+        role: AdminRole = AdminRole.VIEWER,
     ) -> AdminUserModel:
         """
         Register new admin user.
@@ -64,7 +65,7 @@ class RegisterUseCase:
             login=login,
             email=email,
             password_hash=password_hash,
-            role=role,
+            role=role.value,
             is_active=True,
         )
 

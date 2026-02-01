@@ -8,7 +8,7 @@ import {
     getSortedRowModel,
     SortingState
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Server } from '@/entities/server/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
@@ -30,7 +30,7 @@ export function ServersDataGrid() {
     const t = useTranslations('ServersTable');
     const [sorting, setSorting] = useState<SortingState>([]);
 
-    const columns = useMemo(() => {
+    const columns = (() => {
         const statusLabels = {
             online: t('status.online'),
             offline: t('status.offline'),
@@ -78,8 +78,8 @@ export function ServersDataGrid() {
                             </div>
                             <div className="h-1 bg-white/10 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-matrix-green"
-                                    style={{ width: `${load}%`, backgroundColor: load > 80 ? 'var(--color-server-warning)' : undefined }}
+                                    className={`h-full ${load > 80 ? 'bg-server-warning' : 'bg-matrix-green'}`}
+                                    style={{ width: `${load}%` }}
                                 />
                             </div>
                         </div>
@@ -104,7 +104,7 @@ export function ServersDataGrid() {
                 )
             })
         ];
-    }, [t]);
+    })();
 
     const table = useReactTable({
         data: mockServers,
@@ -113,6 +113,7 @@ export function ServersDataGrid() {
         onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        getRowId: (row) => row.id,
     });
 
     return (

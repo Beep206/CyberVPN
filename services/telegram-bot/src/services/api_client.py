@@ -224,6 +224,44 @@ class CyberVPNAPIClient:
                 status_code=503,
             ) from exc
 
+    async def _request_dict(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        data = await self._request(method, path, json=json, params=params)
+        if isinstance(data, dict):
+            return data
+        raise APIError(
+            message="Unexpected response format",
+            status_code=500,
+            detail=f"Expected object for {method} {path}",
+        )
+
+    async def _request_list(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> list[Any]:
+        data = await self._request(method, path, json=json, params=params)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            items = data.get("items")
+            if isinstance(items, list):
+                return items
+        raise APIError(
+            message="Unexpected response format",
+            status_code=500,
+            detail=f"Expected list for {method} {path}",
+        )
+
     def _handle_response(self, response: httpx.Response) -> None:
         """Map HTTP status codes to typed exceptions."""
         if response.is_success:
@@ -267,7 +305,7 @@ class CyberVPNAPIClient:
         Returns:
             User data dict.
         """
-        return await self._request("GET", f"/telegram/users/{telegram_id}")
+        return await self._request_dict("GET", f"/telegram/users/{telegram_id}")
 
     async def register_user(
         self,
@@ -294,7 +332,7 @@ class CyberVPNAPIClient:
         }
         if referrer_id is not None:
             payload["referrer_id"] = referrer_id
-        return await self._request("POST", "/telegram/users", json=payload)
+        return await self._request_dict("POST", "/telegram/users", json=payload)
 
     async def update_user_language(
         self,
@@ -310,10 +348,17 @@ class CyberVPNAPIClient:
         Returns:
             Updated user data dict.
         """
-        return await self._request(
+        return await self._request_dict(
             "PATCH",
             f"/telegram/users/{telegram_id}",
             json={"language": language},
+        )
+
+    async def update_user(self, telegram_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request_dict(
+            "PATCH",
+            f"/telegram/users/{telegram_id}",
+            json=payload,
         )
 
     # ── Subscriptions ────────────────────────────────────────────────
@@ -327,7 +372,7 @@ class CyberVPNAPIClient:
         Returns:
             Subscription config with connection link.
         """
-        return await self._request("GET", f"/telegram/users/{telegram_id}/config")
+        return await self._request_dict("GET", f"/telegram/users/{telegram_id}/config")
 
     async def get_available_plans(
         self,
@@ -344,7 +389,21 @@ class CyberVPNAPIClient:
         params = {}
         if telegram_id is not None:
             params["telegram_id"] = telegram_id
-        return await self._request("GET", "/telegram/plans", params=params)
+        return await self._request_list("GET", "/telegram/plans", params=params)
+
+    async def get_plans(self) -> list[Any]:
+        return await self.get_available_plans()
+
+    async def get_plan(self, plan_id: str) -> dict[str, Any]:
+        try:
+            result = await self._request_dict("GET", f"/telegram/plans/{plan_id}")
+            return result if isinstance(result, dict) else {}
+        except NotFoundError:
+            plans = await self.get_available_plans()
+            for plan in plans:
+                if str(plan.get("id")) == str(plan_id):
+                    return plan
+            raise
 
     async def create_subscription(
         self,
@@ -365,7 +424,7 @@ class CyberVPNAPIClient:
         Returns:
             Created subscription data.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/subscriptions",
             json={
@@ -374,6 +433,34 @@ class CyberVPNAPIClient:
                 "duration_days": duration_days,
                 "is_trial": is_trial,
             },
+        )
+
+    async def get_user_subscriptions(self, telegram_id: int) -> list[Any]:
+        try:
+            return await self._request_list("GET", f"/telegram/users/{telegram_id}/subscriptions")
+        except NotFoundError:
+            user_data = await self.get_user(telegram_id)
+            if isinstance(user_data, dict):
+                subscriptions = user_data.get("subscriptions")
+                if isinstance(subscriptions, list):
+                    return subscriptions
+                subscription = user_data.get("subscription")
+                if subscription:
+                    return [subscription]
+            return []
+
+    async def check_trial_eligibility(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_dict(
+            "GET",
+            "/telegram/trial/eligibility",
+            params={"telegram_id": telegram_id},
+        )
+
+    async def activate_trial(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            "/telegram/trial/activate",
+            json={"telegram_id": telegram_id},
         )
 
     # ── Payments ─────────────────────────────────────────────────────
@@ -398,7 +485,7 @@ class CyberVPNAPIClient:
         Returns:
             Invoice data with payment URL.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/payments/crypto",
             json={
@@ -426,7 +513,7 @@ class CyberVPNAPIClient:
         Returns:
             Payment data with confirmation URL.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/payments/yookassa",
             json={
@@ -454,7 +541,7 @@ class CyberVPNAPIClient:
         Returns:
             Invoice data for Telegram Stars payment.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/payments/stars",
             json={
@@ -465,6 +552,10 @@ class CyberVPNAPIClient:
             },
         )
 
+    async def create_payment(self, payload: dict[str, Any]) -> dict[str, Any]:
+        result = await self._request_dict("POST", "/telegram/payments", json=payload)
+        return result if isinstance(result, dict) else {}
+
     async def get_invoice_status(self, invoice_id: str) -> dict[str, Any]:
         """Check payment/invoice status.
 
@@ -474,7 +565,30 @@ class CyberVPNAPIClient:
         Returns:
             Invoice status data.
         """
-        return await self._request("GET", f"/telegram/payments/{invoice_id}")
+        return await self._request_dict("GET", f"/telegram/payments/{invoice_id}")
+
+    async def get_subscription_qr(self, subscription_id: str) -> bytes:
+        response = await self._client.get(f"/telegram/subscriptions/{subscription_id}/qr")
+        self._handle_response(response)
+        return response.content
+
+    async def get_payment_status(self, payment_id: str) -> dict[str, Any]:
+        return await self.get_invoice_status(payment_id)
+
+    async def get_payment(self, payment_id: str) -> dict[str, Any]:
+        return await self.get_invoice_status(payment_id)
+
+    async def confirm_payment(
+        self,
+        payment_id: str,
+        telegram_payment_charge_id: str,
+    ) -> dict[str, Any]:
+        result = await self._request_dict(
+            "POST",
+            f"/telegram/payments/{payment_id}/confirm",
+            json={"telegram_payment_charge_id": telegram_payment_charge_id},
+        )
+        return result if isinstance(result, dict) else {}
 
     # ── Referrals ────────────────────────────────────────────────────
 
@@ -487,10 +601,7 @@ class CyberVPNAPIClient:
         Returns:
             Referral stats (count, bonus days, referral link).
         """
-        return await self._request(
-            "GET",
-            f"/telegram/referrals/{telegram_id}",
-        )
+        return await self._request_dict("GET", f"/telegram/referrals/{telegram_id}")
 
     async def withdraw_referral_points(
         self,
@@ -506,7 +617,7 @@ class CyberVPNAPIClient:
         Returns:
             Updated referral balance.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             f"/telegram/referrals/{telegram_id}/withdraw",
             json={"points": points},
@@ -528,7 +639,7 @@ class CyberVPNAPIClient:
         Returns:
             Activation result data.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/promocodes/activate",
             json={
@@ -545,7 +656,13 @@ class CyberVPNAPIClient:
         Returns:
             Aggregated statistics (users, subscriptions, revenue, etc.).
         """
-        return await self._request("GET", "/telegram/admin/statistics")
+        return await self._request_dict("GET", "/telegram/admin/statistics")
+
+    async def get_bot_stats(self) -> dict[str, Any]:
+        return await self.get_statistics()
+
+    async def get_detailed_stats(self) -> dict[str, Any]:
+        return await self.get_statistics()
 
     async def get_users(
         self,
@@ -566,7 +683,19 @@ class CyberVPNAPIClient:
         params: dict[str, Any] = {"page": page, "per_page": per_page}
         if search:
             params["search"] = search
-        return await self._request("GET", "/telegram/admin/users", params=params)
+        return await self._request_dict("GET", "/telegram/admin/users", params=params)
+
+    async def search_users(self, query: str) -> list[dict[str, Any]]:
+        data = await self.get_users(search=query, page=1, per_page=20)
+        if isinstance(data, dict):
+            return data.get("items") or data.get("users") or []
+        return []
+
+    async def get_recent_users(self, limit: int = 20) -> list[dict[str, Any]]:
+        data = await self.get_users(page=1, per_page=limit)
+        if isinstance(data, dict):
+            return data.get("items") or data.get("users") or []
+        return []
 
     async def manage_user(
         self,
@@ -584,10 +713,32 @@ class CyberVPNAPIClient:
         Returns:
             Action result data.
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             f"/telegram/admin/users/{telegram_id}/{action}",
             json=kwargs if kwargs else None,
+        )
+
+    async def toggle_user_ban(self, telegram_id: int) -> dict[str, Any]:
+        return await self.manage_user(telegram_id, "toggle_ban")
+
+    async def extend_user_subscription(self, telegram_id: int, days: int) -> dict[str, Any]:
+        return await self.manage_user(telegram_id, "extend_subscription", days=days)
+
+    async def get_admin_list(self) -> list[dict[str, Any]]:
+        return await self._request_list("GET", "/telegram/admin/admins")
+
+    async def add_admin(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            "/telegram/admin/admins",
+            json={"telegram_id": telegram_id},
+        )
+
+    async def remove_admin(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_dict(
+            "DELETE",
+            f"/telegram/admin/admins/{telegram_id}",
         )
 
     async def get_admin_plans(self) -> list[Any]:
@@ -596,7 +747,20 @@ class CyberVPNAPIClient:
         Returns:
             List of all plans with full details.
         """
-        return await self._request("GET", "/telegram/admin/plans")
+        return await self._request_list("GET", "/telegram/admin/plans")
+
+    async def get_all_plans(self) -> list[dict[str, Any]]:
+        plans = await self.get_admin_plans()
+        return list(plans) if isinstance(plans, list) else []
+
+    async def create_plan(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/plans", json=payload)
+
+    async def toggle_plan_status(self, plan_id: str) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            f"/telegram/admin/plans/{plan_id}/toggle",
+        )
 
     async def get_admin_promocodes(
         self,
@@ -608,11 +772,29 @@ class CyberVPNAPIClient:
         Returns:
             Paginated promo code list.
         """
-        return await self._request(
+        return await self._request_dict(
             "GET",
             "/telegram/admin/promocodes",
             params={"page": page, "per_page": per_page},
         )
+
+    async def get_all_promocodes(self) -> list[dict[str, Any]]:
+        data = await self.get_admin_promocodes(page=1, per_page=100)
+        if isinstance(data, dict):
+            return data.get("items") or data.get("promocodes") or []
+        return []
+
+    async def get_promocode(self, promo_id: str) -> dict[str, Any]:
+        return await self._request_dict("GET", f"/telegram/admin/promocodes/{promo_id}")
+
+    async def toggle_promocode_status(self, promo_id: str) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            f"/telegram/admin/promocodes/{promo_id}/toggle",
+        )
+
+    async def create_promocode(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/promocodes", json=payload)
 
     async def create_broadcast(
         self,
@@ -628,11 +810,31 @@ class CyberVPNAPIClient:
         Returns:
             Broadcast job data (id, status, recipient count).
         """
-        return await self._request(
+        return await self._request_dict(
             "POST",
             "/telegram/admin/broadcast",
             json={"message": message, "audience": audience},
         )
+
+    async def get_broadcast_audience_count(self, audience: str) -> int:
+        data = await self._request_dict(
+            "GET",
+            "/telegram/admin/broadcast/audience",
+            params={"audience": audience},
+        )
+        if isinstance(data, dict):
+            return int(data.get("count", 0))
+        return 0
+
+    async def get_broadcast_history(self, limit: int = 10) -> list[dict[str, Any]]:
+        data = await self._request_dict(
+            "GET",
+            "/telegram/admin/broadcast/history",
+            params={"limit": limit},
+        )
+        if isinstance(data, dict):
+            return data.get("items") or data.get("broadcasts") or []
+        return []
 
     async def get_access_settings(self) -> dict[str, Any]:
         """Get bot access configuration.
@@ -640,7 +842,25 @@ class CyberVPNAPIClient:
         Returns:
             Access settings (mode, channel_id, rules_url, etc.).
         """
-        return await self._request("GET", "/telegram/admin/settings/access")
+        return await self._request_dict("GET", "/telegram/admin/settings/access")
+
+    async def get_referral_settings(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/settings/referral")
+
+    async def update_referral_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request_dict(
+            "PATCH",
+            "/telegram/admin/settings/referral",
+            json=payload,
+        )
+
+    async def toggle_referral_program(self) -> dict[str, Any]:
+        current = await self.get_referral_settings()
+        enabled = bool(current.get("referral_enabled", True))
+        return await self.update_referral_settings({"referral_enabled": not enabled})
+
+    async def get_referral_system_stats(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/referrals/stats")
 
     async def get_gateway_settings(self) -> dict[str, Any]:
         """Get payment gateway configuration.
@@ -648,7 +868,29 @@ class CyberVPNAPIClient:
         Returns:
             Gateway settings for all providers.
         """
-        return await self._request("GET", "/telegram/admin/settings/gateways")
+        return await self._request_dict("GET", "/telegram/admin/settings/gateways")
+
+    async def get_payment_gateways(self) -> list[dict[str, Any]]:
+        data = await self.get_gateway_settings()
+        if isinstance(data, dict):
+            if isinstance(data.get("gateways"), list):
+                return data["gateways"]
+            return list(data.get("items") or []) if isinstance(data.get("items"), list) else []
+        return []
+
+    async def get_payment_gateway(self, gateway_id: str) -> dict[str, Any]:
+        data = await self.get_gateway_settings()
+        if isinstance(data, dict):
+            for gateway in data.get("gateways", []):
+                if str(gateway.get("id")) == str(gateway_id):
+                    return gateway
+        return await self._request_dict("GET", f"/telegram/admin/settings/gateways/{gateway_id}")
+
+    async def toggle_payment_gateway(self, gateway_id: str) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            f"/telegram/admin/settings/gateways/{gateway_id}/toggle",
+        )
 
     async def get_remnawave_stats(self) -> dict[str, Any]:
         """Get Remnawave VPN server statistics.
@@ -656,7 +898,50 @@ class CyberVPNAPIClient:
         Returns:
             Server health, traffic, and user stats.
         """
-        return await self._request("GET", "/telegram/admin/remnawave/stats")
+        return await self._request_dict("GET", "/telegram/admin/remnawave/stats")
+
+    async def get_notification_settings(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/settings/notifications")
+
+    async def toggle_notification_setting(self, setting_key: str) -> dict[str, Any]:
+        return await self._request_dict(
+            "POST",
+            f"/telegram/admin/settings/notifications/{setting_key}/toggle",
+        )
+
+    async def get_recent_logs(self, limit: int = 20) -> list[dict[str, Any]]:
+        data = await self._request_dict(
+            "GET",
+            "/telegram/admin/logs",
+            params={"limit": limit},
+        )
+        if isinstance(data, dict):
+            return data.get("items") or data.get("logs") or []
+        return []
+
+    async def export_logs(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/logs/export")
+
+    async def import_users_from_remnawave(self) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/import/remnawave/users")
+
+    async def import_subscriptions_from_remnawave(self) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/import/remnawave/subscriptions")
+
+    async def sync_with_remnawave(self) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/import/remnawave/sync")
+
+    async def get_sync_status(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/import/status")
+
+    async def get_system_health(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/system/health")
+
+    async def get_cache_stats(self) -> dict[str, Any]:
+        return await self._request_dict("GET", "/telegram/admin/system/cache")
+
+    async def clear_cache(self) -> dict[str, Any]:
+        return await self._request_dict("POST", "/telegram/admin/system/cache/clear")
 
     # ── Lifecycle ────────────────────────────────────────────────────
 

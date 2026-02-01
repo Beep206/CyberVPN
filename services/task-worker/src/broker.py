@@ -81,7 +81,18 @@ async def startup_event(state) -> None:
         logger.info("worker_startup_initiated", redis_url=settings.redis_url)
 
         # Start Prometheus metrics HTTP server
-        start_metrics_server(port=settings.metrics_port)
+        if settings.metrics_enabled:
+            start_metrics_server(
+                port=settings.metrics_port,
+                protect=settings.metrics_protect,
+                allowed_ips=settings.metrics_allowed_ips,
+                basic_auth_user=settings.metrics_basic_auth_user,
+                basic_auth_password=(
+                    settings.metrics_basic_auth_password.get_secret_value()
+                    if settings.metrics_basic_auth_password
+                    else None
+                ),
+            )
 
         # Set worker information metrics
         WORKER_INFO.info(

@@ -60,47 +60,35 @@ async def test_telegram_stars_payment_flow_success(
     state = create_fsm_context(storage, mock_bot.id, test_user.id, test_user.id)
 
     # Mock payment creation for Stars
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "stars_payment_123",
-                "user_id": test_user.id,
-                "plan_id": "premium_plan",
-                "amount": 1490.0,
-                "currency": "RUB",
-                "status": "pending",
-                "payment_method": "stars",
-                "invoice_payload": "payment_stars_payment_123",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-    )
+    mock_simple_api_client.create_payment.return_value = {
+        "id": "stars_payment_123",
+        "user_id": test_user.id,
+        "plan_id": "premium_plan",
+        "amount": 1490.0,
+        "currency": "RUB",
+        "status": "pending",
+        "payment_method": "stars",
+        "invoice_payload": "payment_stars_payment_123",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     # Mock payment verification after Stars payment
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "stars_payment_123",
-                "status": "completed",
-                "subscription_id": "sub_stars_123",
-                "verified_at": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-    )
+    mock_simple_api_client.verify_payment.return_value = {
+        "id": "stars_payment_123",
+        "status": "completed",
+        "subscription_id": "sub_stars_123",
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     # Mock subscription activation
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "sub_stars_123",
-                "user_id": test_user.id,
-                "plan_id": "premium_plan",
-                "status": "active",
-                "expires_at": "2026-02-28T00:00:00Z",
-                "config_url": "https://api.test.cybervpn.local/configs/sub_stars_123",
-            },
-        )
-    )
+    mock_simple_api_client.get_subscription.return_value = {
+        "id": "sub_stars_123",
+        "user_id": test_user.id,
+        "plan_id": "premium_plan",
+        "status": "active",
+        "expires_at": "2026-02-28T00:00:00Z",
+        "config_url": "https://api.test.cybervpn.local/configs/sub_stars_123",
+    }
 
     # Step 1: Create payment
     await state.update_data(
@@ -173,55 +161,39 @@ async def test_cryptobot_payment_flow_success(
     state = create_fsm_context(storage, mock_bot.id, test_user.id, test_user.id)
 
     # Mock CryptoBot payment creation
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "crypto_payment_456",
-                "user_id": test_user.id,
-                "plan_id": "basic_plan",
-                "amount": 750.0,
-                "currency": "RUB",
-                "status": "pending",
-                "payment_method": "cryptobot",
-                "payment_url": "https://crypto.bot/pay/abc123xyz",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-    )
+    mock_simple_api_client.create_payment.return_value = {
+        "id": "crypto_payment_456",
+        "user_id": test_user.id,
+        "plan_id": "basic_plan",
+        "amount": 750.0,
+        "currency": "RUB",
+        "status": "pending",
+        "payment_method": "cryptobot",
+        "payment_url": "https://crypto.bot/pay/abc123xyz",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     # Mock webhook callback verification
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "payment_id": "crypto_payment_456",
-                "status": "completed",
-                "subscription_id": "sub_crypto_456",
-            },
-        )
-    )
+    mock_simple_api_client.process_webhook.return_value = {
+        "payment_id": "crypto_payment_456",
+        "status": "completed",
+        "subscription_id": "sub_crypto_456",
+    }
 
     # Mock payment status check
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "crypto_payment_456",
-                "status": "completed",
-                "subscription_id": "sub_crypto_456",
-            },
-        )
-    )
+    mock_simple_api_client.get_payment.return_value = {
+        "id": "crypto_payment_456",
+        "status": "completed",
+        "subscription_id": "sub_crypto_456",
+    }
 
     # Mock subscription fetch
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "sub_crypto_456",
-                "user_id": test_user.id,
-                "status": "active",
-                "config_url": "https://api.test.cybervpn.local/configs/sub_crypto_456",
-            },
-        )
-    )
+    mock_simple_api_client.get_subscription.return_value = {
+        "id": "sub_crypto_456",
+        "user_id": test_user.id,
+        "status": "active",
+        "config_url": "https://api.test.cybervpn.local/configs/sub_crypto_456",
+    }
 
     # Step 1: Create payment
     await state.update_data(
@@ -231,23 +203,28 @@ async def test_cryptobot_payment_flow_success(
         payment_method="cryptobot",
     )
 
-    payment = await mock_simple_api_client.create_payment({
-        "user_id": test_user.id,
-        "plan_id": "basic_plan",
-        "duration_days": 30,
-        "amount": 750.0,
-        "payment_method": "cryptobot",
-    })
+    payment = await mock_simple_api_client.create_payment(
+        {
+            "user_id": test_user.id,
+            "plan_id": "basic_plan",
+            "duration_days": 30,
+            "amount": 750.0,
+            "payment_method": "cryptobot",
+        }
+    )
 
     assert payment["payment_method"] == "cryptobot"
     assert payment["payment_url"] is not None
     await state.update_data(payment_id=payment["id"])
 
     # Step 2: Simulate webhook callback (external payment completed)
-    webhook_response = await mock_simple_api_client.process_webhook("cryptobot", {
-        "payment_id": "crypto_payment_456",
-        "status": "completed",
-    })
+    webhook_response = await mock_simple_api_client.process_webhook(
+        "cryptobot",
+        {
+            "payment_id": "crypto_payment_456",
+            "status": "completed",
+        },
+    )
 
     assert webhook_response["status"] == "completed"
 
@@ -280,61 +257,54 @@ async def test_yookassa_payment_flow_success(
     state = create_fsm_context(storage, mock_bot.id, test_user.id, test_user.id)
 
     # Mock YooKassa payment creation
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "yookassa_payment_789",
-                "user_id": test_user.id,
-                "plan_id": "premium_plan",
-                "amount": 1490.0,
-                "currency": "RUB",
-                "status": "pending",
-                "payment_method": "yookassa",
-                "payment_url": "https://yookassa.ru/payments/xyz789",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-    )
-
-    # Mock YooKassa webhook
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "payment_id": "yookassa_payment_789",
-                "status": "completed",
-                "subscription_id": "sub_yookassa_789",
-            },
-        )
-    )
-
-    # Mock payment verification
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "yookassa_payment_789",
-                "status": "completed",
-                "subscription_id": "sub_yookassa_789",
-            },
-        )
-    )
-
-    # Create payment
-    payment = await mock_simple_api_client.create_payment({
+    mock_simple_api_client.create_payment.return_value = {
+        "id": "yookassa_payment_789",
         "user_id": test_user.id,
         "plan_id": "premium_plan",
-        "duration_days": 30,
         "amount": 1490.0,
+        "currency": "RUB",
+        "status": "pending",
         "payment_method": "yookassa",
-    })
+        "payment_url": "https://yookassa.ru/payments/xyz789",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Mock YooKassa webhook
+    mock_simple_api_client.process_webhook.return_value = {
+        "payment_id": "yookassa_payment_789",
+        "status": "completed",
+        "subscription_id": "sub_yookassa_789",
+    }
+
+    # Mock payment verification
+    mock_simple_api_client.verify_payment.return_value = {
+        "id": "yookassa_payment_789",
+        "status": "completed",
+        "subscription_id": "sub_yookassa_789",
+    }
+
+    # Create payment
+    payment = await mock_simple_api_client.create_payment(
+        {
+            "user_id": test_user.id,
+            "plan_id": "premium_plan",
+            "duration_days": 30,
+            "amount": 1490.0,
+            "payment_method": "yookassa",
+        }
+    )
 
     assert payment["payment_method"] == "yookassa"
     assert "payment_url" in payment
 
     # Simulate webhook processing
-    webhook_result = await mock_simple_api_client.process_webhook("yookassa", {
-        "payment_id": "yookassa_payment_789",
-        "status": "completed",
-    })
+    webhook_result = await mock_simple_api_client.process_webhook(
+        "yookassa",
+        {
+            "payment_id": "yookassa_payment_789",
+            "status": "completed",
+        },
+    )
 
     assert webhook_result["status"] == "completed"
 
@@ -349,34 +319,28 @@ async def test_payment_timeout_handling(
 ) -> None:
     """Test payment flow when payment times out."""
     # Mock payment that times out
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "timeout_payment_999",
-                "status": "pending",
-                "payment_method": "cryptobot",
-            },
-        )
-    )
+    mock_simple_api_client.create_payment.return_value = {
+        "id": "timeout_payment_999",
+        "status": "pending",
+        "payment_method": "cryptobot",
+    }
 
     # Mock payment status check returning timeout
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "timeout_payment_999",
-                "status": "timeout",
-            },
-        )
-    )
+    mock_simple_api_client.get_payment.return_value = {
+        "id": "timeout_payment_999",
+        "status": "timeout",
+    }
 
     # Create payment
-    payment = await mock_simple_api_client.create_payment({
-        "user_id": test_user.id,
-        "plan_id": "basic_plan",
-        "duration_days": 30,
-        "amount": 750.0,
-        "payment_method": "cryptobot",
-    })
+    payment = await mock_simple_api_client.create_payment(
+        {
+            "user_id": test_user.id,
+            "plan_id": "basic_plan",
+            "duration_days": 30,
+            "amount": 750.0,
+            "payment_method": "cryptobot",
+        }
+    )
 
     # Check status after timeout
     status = await mock_simple_api_client.get_payment("timeout_payment_999")
@@ -391,18 +355,17 @@ async def test_payment_webhook_verification_failure(
 ) -> None:
     """Test webhook verification failure scenario."""
     # Mock webhook verification failure
-        return_value=respx.MockResponse(
-            401,
-            json={"detail": "Invalid webhook signature"},
-        )
-    )
+    mock_simple_api_client.process_webhook.side_effect = Exception("Invalid webhook signature")
 
     # Attempt to process webhook with invalid signature
     try:
-        await mock_simple_api_client.process_webhook("cryptobot", {
-            "payment_id": "invalid_payment",
-            "status": "completed",
-        })
+        await mock_simple_api_client.process_webhook(
+            "cryptobot",
+            {
+                "payment_id": "invalid_payment",
+                "status": "completed",
+            },
+        )
         pytest.fail("Expected webhook verification to fail")
     except Exception:
         # Expected to fail
@@ -418,30 +381,24 @@ async def test_payment_activation_error(
 ) -> None:
     """Test payment flow when subscription activation fails."""
     # Payment succeeds
-        return_value=respx.MockResponse(
-            200,
-            json={
-                "id": "payment_with_activation_error",
-                "status": "pending",
-            },
-        )
-    )
+    mock_simple_api_client.create_payment.return_value = {
+        "id": "payment_with_activation_error",
+        "status": "pending",
+    }
 
     # But activation fails
-        return_value=respx.MockResponse(
-            500,
-            json={"detail": "Subscription activation failed"},
-        )
-    )
+    mock_simple_api_client.verify_payment.side_effect = Exception("Subscription activation failed")
 
     # Create payment
-    payment = await mock_simple_api_client.create_payment({
-        "user_id": test_user.id,
-        "plan_id": "basic_plan",
-        "duration_days": 30,
-        "amount": 750.0,
-        "payment_method": "stars",
-    })
+    payment = await mock_simple_api_client.create_payment(
+        {
+            "user_id": test_user.id,
+            "plan_id": "basic_plan",
+            "duration_days": 30,
+            "amount": 750.0,
+            "payment_method": "stars",
+        }
+    )
 
     # Attempt verification should fail
     try:

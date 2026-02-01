@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
-from keyboards.main import main_menu_keyboard
+from src.keyboards.menu import main_menu_keyboard
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
-    from config.settings import Settings
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -24,54 +23,45 @@ router = Router(name="start")
 async def start_handler(
     message: Message,
     i18n: I18nContext,
-    settings: Settings,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
+    user: dict[str, Any] | None = None,
+    referrer_id: int | None = None,
+    promo_code: str | None = None,
 ) -> None:
     """Handle /start command with deep link support."""
+    if message.from_user is None:
+        return
+
+    is_new_user = user is None
     user_id = message.from_user.id
     username = message.from_user.username or ""
     first_name = message.from_user.first_name or ""
     last_name = message.from_user.last_name or ""
     language_code = message.from_user.language_code or "en"
 
-    # Parse deep links
-    referrer_id = None
-    promo_code = None
-
-    if message.text and " " in message.text:
-        deep_link = message.text.split(" ", 1)[1]
-
-        if deep_link.startswith("ref_"):
-            try:
-                referrer_id = int(deep_link[4:])
-                logger.info("referral_link_detected", user_id=user_id, referrer_id=referrer_id)
-            except ValueError:
-                logger.warning("invalid_referral_link", deep_link=deep_link)
-
-        elif deep_link.startswith("promo_"):
-            promo_code = deep_link[6:]
-            logger.info("promo_link_detected", user_id=user_id, promo_code=promo_code)
-
-    # Register user via API
+    # Update user data on /start and ensure registration exists
     try:
-        user_data = {
-            "telegram_id": user_id,
-            "username": username,
-            "first_name": first_name,
-            "last_name": last_name,
-            "language_code": language_code,
-        }
-
-        if referrer_id:
-            user_data["referrer_id"] = referrer_id
-
-        user = await api_client.register_user(user_data)
-        logger.info("user_registered", user_id=user_id, user=user)
+        if user is None:
+            user = await api_client.register_user(
+                telegram_id=user_id,
+                username=username or None,
+                language=language_code,
+                referrer_id=referrer_id,
+            )
+            logger.info("user_registered", user_id=user_id, user=user)
+        else:
+            await api_client.update_user(
+                user_id,
+                {
+                    "username": username or None,
+                    "language": language_code,
+                },
+            )
 
         # Auto-activate promo code if provided
         if promo_code:
             try:
-                await api_client.activate_promo_code(user_id, promo_code)
+                await api_client.activate_promocode(user_id, promo_code)
                 await message.answer(i18n.get("promo-activated", code=promo_code))
                 logger.info("promo_activated_on_start", user_id=user_id, promo_code=promo_code)
             except Exception as e:
@@ -84,7 +74,7 @@ async def start_handler(
 
     # Send welcome message with main menu
     welcome_text = i18n.get(
-        "welcome-message",
+        "welcome-message" if is_new_user else "welcome-back",
         name=first_name or username or str(user_id),
     )
 

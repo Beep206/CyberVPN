@@ -1,24 +1,19 @@
 'use client';
 
-import { Bell, Search, Wifi } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Search, Wifi } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n/navigation';
-import { locales } from '@/i18n/config';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { LanguageSelector } from '@/features/language-selector';
 import { ThemeToggle } from '@/features/theme-toggle';
-import { cn } from '@/lib/utils';
 import { NotificationDropdown } from "@/features/notifications/notification-dropdown";
 
 export function TerminalHeader() {
     const [time, setTime] = useState<string>('');
-    const [fps, setFps] = useState<number | null>(null);
-    const [ping, setPing] = useState<number | null>(null);
+    const fpsRef = useRef<HTMLSpanElement>(null);
+    const pingRef = useRef<HTMLSpanElement>(null);
     const locale = useLocale();
     const t = useTranslations('Header');
-    const router = useRouter();
-    const pathname = usePathname();
 
     // Hydration fix for time
     useEffect(() => {
@@ -38,7 +33,7 @@ export function TerminalHeader() {
             const delta = now - lastTime;
 
             if (delta >= 1000) {
-                setFps(Math.round((frameCount * 1000) / delta));
+                if (fpsRef.current) fpsRef.current.textContent = String(Math.round((frameCount * 1000) / delta));
                 frameCount = 0;
                 lastTime = now;
             }
@@ -62,8 +57,8 @@ export function TerminalHeader() {
             } catch { /* ignore aborted and network errors */ }
             clearTimeout(timeoutId);
             const duration = Math.round(performance.now() - start);
-            if (active) {
-                setPing(duration);
+            if (active && pingRef.current) {
+                pingRef.current.textContent = `${duration}ms`;
             }
         };
 
@@ -96,12 +91,12 @@ export function TerminalHeader() {
                 <div className="hidden md:flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
                     <div className="flex items-center gap-1">
                         <span className="text-muted-foreground/60">{t('fps')}</span>
-                        <span className="text-neon-cyan">{fps ?? '--'}</span>
+                        <span ref={fpsRef} className="text-neon-cyan">--</span>
                     </div>
                     <span className="text-muted-foreground/30">|</span>
                     <div className="flex items-center gap-1">
                         <span className="text-muted-foreground/60">{t('ping')}</span>
-                        <span className="text-matrix-green">{ping !== null ? `${ping}ms` : '--'}</span>
+                        <span ref={pingRef} className="text-matrix-green">--</span>
                     </div>
                 </div>
 

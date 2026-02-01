@@ -1,0 +1,38 @@
+CyberVPN delivers next-generation privacy protection with a cyberpunk-inspired interface. Experience military-grade encryption, blazing-fast speeds, and total anonymity.
+
+✓ MILITARY-GRADE ENCRYPTION
+AES-256 encryption with V2Ray and Xray protocol support ensures your data remains private and secure. No logs, no tracking, complete anonymity.
+
+✓ GLOBAL SERVER NETWORK
+Connect to optimized servers across the world. Smart routing automatically selects the fastest server for your location.
+
+✓ CYBERPUNK INTERFACE
+Beautiful, futuristic UI with neon accents, 3D globe visualization, and real-time connection statistics. Choose between dark cyberpunk theme or light Material You design.
+
+✓ ADVANCED FEATURES
+• Kill switch protection
+• Split tunneling
+• DNS leak protection
+• IPv6 support
+• Home Screen widgets
+• Biometric authentication
+• Real-time bandwidth monitoring
+
+✓ MULTIPLE PROTOCOLS
+Support for VLESS, VMess, Trojan, Shadowsocks, and more. Automatic protocol selection for optimal performance.
+
+✓ ZERO LOGS POLICY
+We never track, collect, or share your browsing activity. Your privacy is our priority.
+
+✓ SUBSCRIPTION PLANS
+Flexible plans with trial period available. Manage subscriptions easily with in-app purchases.
+
+✓ CROSS-PLATFORM
+Seamless experience across iOS, Android, and web platforms.
+
+CyberVPN is built with Flutter and Clean Architecture, ensuring smooth performance and reliability. Join thousands of users protecting their digital freedom.
+
+PRIVACY MATTERS
+In a world of surveillance, CyberVPN keeps you anonymous. Stream, browse, and communicate without restrictions.
+
+Download CyberVPN today and take control of your digital privacy.

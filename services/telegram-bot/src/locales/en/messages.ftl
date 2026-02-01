@@ -1,14 +1,38 @@
 # CyberVPN Telegram Bot — Messages (en)
 
 # ── Welcome and Onboarding ───────────────────────────────────────────────
+welcome-message = 👋 <b>Welcome to CyberVPN, { $name }!</b>
+
+    🔐 Fast, private access to the internet.
+
+    <b>Quick start:</b>
+    1) Choose a plan or start a free trial
+    2) Get your config (link/QR)
+    3) Connect in your VPN app
+
+    Pick an option below.
+
 welcome = 👋 <b>Welcome to CyberVPN, { $name }!</b>
 
-    🔐 Fast, secure VPN access to the internet.
-    Choose an action from the menu below.
+    🔐 Fast, private access to the internet.
+
+    <b>Quick start:</b>
+    1) Choose a plan or start a free trial
+    2) Get your config (link/QR)
+    3) Connect in your VPN app
+
+    Pick an option below.
 
 welcome-back = 🔄 <b>Welcome back, { $name }!</b>
 
-    Good to see you again.
+    What would you like to do next?
+
+welcome-referral-bonus = 🎁 You'll get bonus days after your first purchase with a referral.
+
+promo-activated = ✅ Promo code <b>{ $code }</b> applied.
+
+# ── Menu ─────────────────────────────────────────────────────────────────
+menu-main-title = 🏠 <b>Main menu</b>
 
 # ── Profile ──────────────────────────────────────────────────────────────
 profile-title = 👤 <b>Your Profile</b>
@@ -16,12 +40,32 @@ profile-title = 👤 <b>Your Profile</b>
 profile-info =
     <blockquote>
     🆔 ID: <code>{ $telegram_id }</code>
-    👤 Name: { $name }
-    📅 Registered: { $registered_at }
+    👤 Username: { $username }
     🌐 Language: { $language }
+    📅 Registered: { $registered }
+    </blockquote>
+
+profile-details =
+    <blockquote>
+    🆔 ID: <code>{ $telegram_id }</code>
+    👤 Name: { $first_name }
+    🧾 Username: { $username }
+    🌐 Language: { $language }
+    📅 Registered: { $registered }
     </blockquote>
 
 # ── Subscription Status ──────────────────────────────────────────────────
+subscription-active = ✅ <b>Subscription active</b>
+
+    📋 Plan: <b>{ $plan }</b>
+    ⏳ Expires: { $expires }
+
+    Tap “Get config” to connect or extend your plan.
+
+subscription-none = 📭 <b>No active subscription</b>
+
+    Choose a plan or start a free trial to begin using VPN.
+
 subscription-status-active = ✅ <b>Subscription Active</b>
 
     📋 Plan: <b>{ $plan_name }</b>
@@ -59,17 +103,43 @@ trial-offer = 🎁 <b>Free Trial!</b>
 
 trial-activated = ✅ <b>Trial Activated!</b>
 
-    Duration: { $days ->
-        [one] { $days } day
-       *[other] { $days } days
+    Duration: { $duration ->
+        [one] { $duration } day
+       *[other] { $duration } days
     }
-    Traffic: { $traffic_gb } GB
+    Expires: { $expires }
+
+trial-eligible = ✅ You can activate a free trial.
+
+trial-not-eligible-used = ℹ️ Your free trial has already been used.
+trial-not-eligible-active = ℹ️ You already have an active subscription.
+trial-not-eligible-unavailable = ⚠️ Free trial is currently unavailable.
+trial-not-eligible-unknown = ⚠️ Trial can't be activated right now. Please try later.
 
 trial-already-used = ℹ️ You've already used your free trial.
 
 trial-unavailable = ⚠️ Free trial is temporarily unavailable.
 
 # ── Subscription and Plans ───────────────────────────────────────────────
+subscription-select-plan = 💳 <b>Choose a plan</b>
+
+    You can change it later.
+
+subscription-select-duration = ⏰ <b>Select duration</b>
+
+subscription-select-payment = 💰 <b>Select payment method</b>
+
+    Plan: <b>{ $plan }</b>
+    Duration: { $duration ->
+        [one] { $duration } day
+       *[other] { $duration } days
+    }
+    Amount: <b>{ $price }</b>
+
+    We'll send your config after payment.
+
+subscription-cancelled = ✅ Purchase cancelled. Back to menu.
+
 plans-title = 💳 <b>Choose a Plan</b>
 
     Available plans:
@@ -97,13 +167,30 @@ payment-processing = ⏳ Processing payment...
 
 payment-success = ✅ <b>Payment Successful!</b>
 
-    Thank you for your purchase. Your subscription is now active.
+    Your subscription is active. Get your config to connect.
 
 payment-failed = ❌ <b>Payment Failed</b>
 
-    Unfortunately, the payment didn't go through. Please try again or choose a different payment method.
+    The payment didn't go through. Try again or choose another method.
 
 payment-cancelled = 🔄 Payment cancelled.
+
+subscription-payment = CyberVPN subscription
+subscription-payment-title = CyberVPN subscription
+subscription-payment-description = VPN access and connection setup
+
+payment-open-link = Open payment link
+payment-check-status = Check payment
+payment-external-instructions = 💳 <b>Payment</b>
+
+    1) Tap “Open payment”
+    2) Complete the payment
+    3) Return and tap “Check payment”
+
+    If the payment page was closed, open it again.
+
+payment-pending = ⏳ Payment is processing. Check again in a minute.
+payment-status-unknown = ℹ️ Status isn't updated yet. Try again shortly.
 
 # ── Referral System ──────────────────────────────────────────────────────
 referral-title = 👥 <b>Referral Program</b>
@@ -118,9 +205,11 @@ referral-info =
     <code>{ $link }</code>
     </blockquote>
 
-referral-share = 📨 Share your link with friends:
+referral-share = 📨 Share your link and earn bonus days:
 
     { $link }
+
+referral-share-button = Share link
 
 referral-new-joined = 🎉 A new user registered via your link!
 
@@ -128,6 +217,13 @@ referral-reward = 🎁 You earned a bonus: { $days ->
         [one] { $days } day
        *[other] { $days } days
     } added to your subscription!
+
+referral-withdraw-insufficient = ⚠️ You need at least { $min } bonus points to withdraw.
+
+referral-withdraw-success = ✅ Withdrawal request created.
+
+    Amount: { $amount }
+    Status: { $status }
 
 # ── Promo Codes ──────────────────────────────────────────────────────────
 promo-enter = 🎟 Enter promo code:
@@ -139,10 +235,18 @@ promo-invalid = ❌ Promo code is invalid or expired.
 
 promo-already-used = ℹ️ You've already used this promo code.
 
+promocode-enter-prompt = 🎟 Enter promo code (e.g., CYBER10):
+promocode-activated = ✅ Promo code <b>{ $code }</b> activated! Discount: <b>{ $discount }</b>
+promocode-not-found = ❌ Promo code not found.
+promocode-expired = ❌ Promo code has expired.
+promocode-already-used = ℹ️ You've already used this promo code.
+promocode-usage-limit = ⚠️ Promo code usage limit reached.
+promocode-cancelled = ✅ Promo code entry cancelled.
+
 # ── Support ──────────────────────────────────────────────────────────────
 support-message = 🆘 <b>Support</b>
 
-    For any questions contact: @{ $username }
+    Contact us: { $contact }
 
 # ── Devices / Config ─────────────────────────────────────────────────────
 config-title = 📱 <b>Connection</b>
@@ -163,6 +267,23 @@ config-instruction = 📖 <b>Connection Guide:</b>
     2️⃣ Copy the link above
     3️⃣ Import the configuration
     4️⃣ Connect!
+
+config-delivery-prompt = ✅ <b>All set!</b> How do you want to receive your config?
+
+config-link-message = 🔗 <b>Connection link</b>
+
+    <code>{ $url }</code>
+
+    Copy the link and import it in your VPN app.
+
+config-qr-caption = 📷 Scan the QR code in your VPN app.
+
+config-instructions = 📖 <b>Connection guide</b>
+
+    1) Install an app (V2rayNG / Hiddify / Streisand)
+    2) Copy the connection link
+    3) Import the configuration
+    4) Connect
 
 # ── Access / Conditions ──────────────────────────────────────────────────
 access-rules = 📜 <b>Terms of Use</b>
@@ -185,4 +306,17 @@ access-invite-only = 🔒 This bot is invite-only.
 # ── Language ─────────────────────────────────────────────────────────────
 language-select = 🌐 <b>Select language / Выберите язык:</b>
 
-language-changed = ✅ Language changed to <b>English</b>.
+language-select-prompt = 🌐 <b>Select language:</b>
+
+language-changed = ✅ Language changed to { $language ->
+        [ru] <b>Russian</b>
+        [en] <b>English</b>
+       *[other] <b>{ $language }</b>
+    }.
+
+# ── Subscription History ─────────────────────────────────────────────────
+subscriptions-title = 📦 <b>Your subscriptions</b>
+subscriptions-none = 📭 No subscriptions yet.
+status = Status
+expires = Expires
+currency = USD

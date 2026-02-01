@@ -398,6 +398,66 @@ R3F v9 is the React 19 compatibility release. Compatible with React 19.0–19.2.
 
 ---
 
+## Performance & Architecture Anti-Patterns (Lessons Learned)
+
+Rules from skills audits (next-best-practices + vercel-react-best-practices). These are common mistakes found in this codebase — do not repeat them.
+
+### 1. React.cache() on i18n Loaders (CRITICAL)
+- Wrap `loadLocaleMessages` / `loadMessages` in `i18n/request.ts` with `cache()` from `react`
+- Deduplicates per-request when the same locale is loaded multiple times (base + current)
+- **Anti-pattern:** calling async message loaders without `cache()` → duplicate fetches per render pass
+
+### 2. useRef for High-Frequency Transient Values (MEDIUM)
+- FPS counters, ping values, clocks updating every frame/second: use `useRef<HTMLSpanElement>` + direct `textContent` mutation
+- **Anti-pattern:** `useState` for values changing 10–60×/sec → full component re-renders each time
+- **Pattern:** `const fpsRef = useRef<HTMLSpanElement>(null)` → `fpsRef.current!.textContent = value`
+
+### 3. Pre-Normalize Search Data at Module Level (LOW)
+- For filterable lists (languages, users): pre-compute `.toLowerCase()` once in a module-level constant
+- **Anti-pattern:** `.toLowerCase()` on every keystroke inside filter callbacks
+- **Pattern:** `LANGUAGES_RAW.map(l => ({ ...l, _searchName: l.name.toLowerCase() }))`
+
+### 4. startTransition for Search/Filter Inputs (LOW)
+- Wrap non-urgent state updates (search queries, filter text) in `startTransition`
+- **Anti-pattern:** `onChange={(e) => setQuery(e.target.value)}` blocks typing on large lists
+- **Pattern:** `onChange={(e) => startTransition(() => setQuery(e.target.value))}`
+
+### 5. content-visibility for Scrollable Lists (LOW)
+- Add `[content-visibility:auto] [contain-intrinsic-size:auto_<height>px]` to repeated list items in scroll containers
+- **Anti-pattern:** rendering all notification/list items even when off-screen
+- Only useful for lists with 10+ items in a scrollable container
+
+### 6. Stable Keys for Three.js Mapped Elements (MEDIUM)
+- Use coordinate-based or ID-based keys, never array index (`key={i}`)
+- **Anti-pattern:** `key={i}` → full unmount/remount when array order changes
+- **Pattern:** `` key={`${conn.from.lat},${conn.from.lng}-${conn.to.lat},${conn.to.lng}`} ``
+
+### 7. Tailwind Classes Over Inline Styles for Colors (LOW)
+- Use Tailwind conditional classes instead of `style={{ backgroundColor: ... }}`
+- **Anti-pattern:** `style={{ backgroundColor: load > 80 ? '#...' : '#...' }}` bypasses design system
+- **Pattern:** `` className={`h-full ${load > 80 ? 'bg-server-warning' : 'bg-matrix-green'}`} ``
+
+### 8. Server Actions Need Auth (HIGH)
+- Every `'use server'` action must call `requireAuth()` before any mutation
+- **Anti-pattern:** server actions without auth check are publicly callable
+- **Pattern:** create `shared/lib/actions.ts` with `requireAuth()`, import in all server actions
+
+### 9. Required Next.js File Conventions (HIGH)
+Every route group MUST have:
+- `error.tsx` — error boundary for the route
+- `not-found.tsx` — 404 handling
+- `loading.tsx` — Suspense fallback
+- `layout.tsx` with `generateMetadata` — SEO metadata
+- Root must have: `robots.ts`, `sitemap.ts`, `opengraph-image.tsx`
+- **Anti-pattern:** missing these files → no error handling, no SEO, no loading states
+
+### 10. Remove Unused Imports Aggressively
+- Don't leave unused imports (hooks, components, types) in files
+- **Anti-pattern:** importing `Bell`, `cn`, `router`, `pathname` etc. and never using them
+- ESLint catches some; manually verify after every refactoring session
+
+---
+
 ## context7 Documentation
 
 Before writing code involving these libraries, fetch current docs via context7.

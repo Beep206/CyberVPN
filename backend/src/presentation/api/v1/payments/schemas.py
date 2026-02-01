@@ -22,12 +22,8 @@ class CreateInvoiceRequest(BaseModel):
     )
 
     user_uuid: UUID = Field(..., description="User UUID")
-    plan_id: str = Field(
-        ..., max_length=100, description="Subscription plan identifier"
-    )
-    currency: str = Field(
-        ..., min_length=3, max_length=3, description="Currency code (ISO 4217)"
-    )
+    plan_id: str = Field(..., max_length=100, description="Subscription plan identifier")
+    currency: str = Field(..., min_length=3, max_length=3, description="Currency code (ISO 4217)")
 
     @field_validator("currency")
     @classmethod
@@ -54,19 +50,18 @@ class InvoiceResponse(BaseModel):
     )
 
     invoice_id: str = Field(..., description="Unique invoice identifier")
-    payment_url: str = Field(
-        ..., max_length=2000, description="URL for payment processing"
-    )
+    payment_url: str = Field(..., max_length=2000, description="URL for payment processing")
     amount: float = Field(..., gt=0, description="Invoice amount")
     currency: str = Field(..., description="Currency code (ISO 4217)")
     status: str = Field(..., description="Invoice status (pending, paid, expired)")
     expires_at: datetime = Field(..., description="Invoice expiration timestamp")
 
 
-class PaymentHistoryResponse(BaseModel):
-    """Response schema for payment history."""
+class PaymentHistoryItem(BaseModel):
+    """Payment history item."""
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -76,7 +71,7 @@ class PaymentHistoryResponse(BaseModel):
                 "provider": "stripe",
                 "created_at": "2024-01-15T10:30:00",
             }
-        }
+        },
     )
 
     id: UUID = Field(..., description="Payment record unique identifier")
@@ -85,3 +80,26 @@ class PaymentHistoryResponse(BaseModel):
     status: PaymentStatus = Field(..., description="Payment status")
     provider: PaymentProvider = Field(..., description="Payment provider name")
     created_at: datetime = Field(..., description="Payment creation timestamp")
+
+
+class PaymentHistoryResponse(BaseModel):
+    """Response schema for payment history."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "payments": [
+                    {
+                        "id": "550e8400-e29b-41d4-a716-446655440000",
+                        "amount": 9.99,
+                        "currency": "USD",
+                        "status": "completed",
+                        "provider": "stripe",
+                        "created_at": "2024-01-15T10:30:00",
+                    }
+                ]
+            }
+        }
+    )
+
+    payments: list[PaymentHistoryItem] = Field(..., description="List of payment history items")

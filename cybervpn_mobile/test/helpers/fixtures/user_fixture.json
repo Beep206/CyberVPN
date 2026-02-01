@@ -1,0 +1,74 @@
+[
+  {
+    "id": "user-free-001",
+    "email": "free@example.com",
+    "username": "freeuser",
+    "avatarUrl": null,
+    "telegramId": null,
+    "isEmailVerified": true,
+    "isPremium": false,
+    "referralCode": "FREE001",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "lastLoginAt": "2026-01-30T10:00:00.000Z"
+  },
+  {
+    "id": "user-premium-001",
+    "email": "premium@example.com",
+    "username": "premiumuser",
+    "avatarUrl": "https://cdn.example.com/avatars/premium001.png",
+    "telegramId": "987654321",
+    "isEmailVerified": true,
+    "isPremium": true,
+    "referralCode": "PREM001",
+    "createdAt": "2025-06-15T12:00:00.000Z",
+    "lastLoginAt": "2026-01-31T08:30:00.000Z"
+  },
+  {
+    "id": "user-trial-001",
+    "email": "trial@example.com",
+    "username": "trialuser",
+    "avatarUrl": null,
+    "telegramId": null,
+    "isEmailVerified": false,
+    "isPremium": false,
+    "referralCode": null,
+    "createdAt": "2026-01-28T09:00:00.000Z",
+    "lastLoginAt": "2026-01-28T09:05:00.000Z"
+  },
+  {
+    "id": "user-expired-001",
+    "email": "expired@example.com",
+    "username": "expireduser",
+    "avatarUrl": null,
+    "telegramId": "111222333",
+    "isEmailVerified": true,
+    "isPremium": false,
+    "referralCode": "EXP001",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "lastLoginAt": "2025-12-15T16:00:00.000Z"
+  },
+  {
+    "id": "user-ru-001",
+    "email": "russian@example.com",
+    "username": "ruuser",
+    "avatarUrl": null,
+    "telegramId": "444555666",
+    "isEmailVerified": true,
+    "isPremium": true,
+    "referralCode": "RU001",
+    "createdAt": "2025-09-01T00:00:00.000Z",
+    "lastLoginAt": "2026-01-31T12:00:00.000Z"
+  },
+  {
+    "id": "user-no-login-001",
+    "email": "nologin@example.com",
+    "username": null,
+    "avatarUrl": null,
+    "telegramId": null,
+    "isEmailVerified": false,
+    "isPremium": false,
+    "referralCode": null,
+    "createdAt": "2026-01-31T00:00:00.000Z",
+    "lastLoginAt": null
+  }
+]

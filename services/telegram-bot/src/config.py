@@ -7,6 +7,7 @@ with nested model support, validators, and a cached singleton accessor.
 from __future__ import annotations
 
 from functools import lru_cache
+import ipaddress
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -142,8 +143,52 @@ class PrometheusSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PROMETHEUS_")
 
     enabled: bool = True
+    protect: bool = True
     port: Annotated[int, Field(ge=1024, le=65535)] = 9090
     path: str = "/metrics"
+    allowed_ips: list[str] = Field(default_factory=list)
+    trust_proxy: bool = False
+    trusted_proxy_ips: list[str] = Field(default_factory=list)
+    basic_auth_user: str | None = None
+    basic_auth_password: SecretStr | None = None
+    require_tls: bool = False
+
+    @field_validator("allowed_ips", mode="before")
+    @classmethod
+    def parse_allowed_ips(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [ip.strip() for ip in v.split(",") if ip.strip()]
+        return v
+
+    @field_validator("trusted_proxy_ips", mode="before")
+    @classmethod
+    def parse_trusted_proxy_ips(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [ip.strip() for ip in v.split(",") if ip.strip()]
+        return v
+
+    @model_validator(mode="after")
+    def _validate_security(self) -> PrometheusSettings:
+        if self.basic_auth_user is None and self.basic_auth_password is not None:
+            msg = "PROMETHEUS_BASIC_AUTH_USER is required when password is set"
+            raise ValueError(msg)
+        if self.basic_auth_user is not None and self.basic_auth_password is None:
+            msg = "PROMETHEUS_BASIC_AUTH_PASSWORD is required when user is set"
+            raise ValueError(msg)
+        if self.protect and not self.allowed_ips and self.basic_auth_user is None:
+            msg = "PROMETHEUS_ALLOWED_IPS or PROMETHEUS_BASIC_AUTH_* required when PROMETHEUS_PROTECT=true"
+            raise ValueError(msg)
+        if self.trust_proxy and not self.trusted_proxy_ips:
+            msg = "PROMETHEUS_TRUSTED_PROXY_IPS required when PROMETHEUS_TRUST_PROXY=true"
+            raise ValueError(msg)
+        for raw in self.trusted_proxy_ips:
+            try:
+                network = ipaddress.ip_network(raw, strict=False)
+            except ValueError as exc:
+                raise ValueError(f"Invalid PROMETHEUS_TRUSTED_PROXY_IPS entry: {raw}") from exc
+            if network.prefixlen == 0:
+                raise ValueError("PROMETHEUS_TRUSTED_PROXY_IPS cannot include 0.0.0.0/0 or ::/0")
+        return self
 
 
 # ── Root settings ────────────────────────────────────────────────────────────
@@ -166,6 +211,7 @@ class BotSettings(BaseSettings):
 
     # ── Bot core ─────────────────────────────────────────────────────────
     bot_token: SecretStr
+    bot_username: str | None = None
     bot_mode: Literal["webhook", "polling"] = "polling"
     environment: Literal["development", "staging", "production"] = "production"
 
@@ -217,9 +263,13 @@ class BotSettings(BaseSettings):
     @model_validator(mode="after")
     def _validate_webhook_settings(self) -> BotSettings:
         """Ensure webhook URL is set when mode is webhook."""
-        if self.bot_mode == "webhook" and self.webhook.url is None:
-            msg = "WEBHOOK_URL is required when BOT_MODE=webhook"
-            raise ValueError(msg)
+        if self.bot_mode == "webhook":
+            if self.webhook.url is None:
+                msg = "WEBHOOK_URL is required when BOT_MODE=webhook"
+                raise ValueError(msg)
+            if self.webhook.secret_token is None:
+                msg = "WEBHOOK_SECRET_TOKEN is required when BOT_MODE=webhook"
+                raise ValueError(msg)
         return self
 
     @property
@@ -239,11 +289,7 @@ class BotSettings(BaseSettings):
     @property
     def has_any_payment_gateway(self) -> bool:
         """Check if at least one payment gateway is enabled."""
-        return (
-            self.cryptobot.enabled
-            or self.yookassa.enabled
-            or self.telegram_stars.enabled
-        )
+        return self.cryptobot.enabled or self.yookassa.enabled or self.telegram_stars.enabled
 
 
 @lru_cache(maxsize=1)

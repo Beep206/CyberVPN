@@ -253,7 +253,7 @@ async def test_subscription_flow_no_plans_available(
 
     async with respx.mock:
         # Mock empty plans response
-        respx.get(f"{mock_settings.backend.api_url}/plans").mock(
+        respx.get(f"{mock_settings.backend.api_url}telegram/plans").mock(
             return_value=respx.MockResponse(200, json=[])
         )
 
@@ -261,7 +261,7 @@ async def test_subscription_flow_no_plans_available(
         await state.set_state(SubscriptionStates.selecting_plan)
 
         # Fetch plans via API client
-        plans = await mock_api_client.get_plans()
+        plans = await mock_api_client.get_available_plans()
 
         # Verify no plans available
         assert plans == [] or plans is None

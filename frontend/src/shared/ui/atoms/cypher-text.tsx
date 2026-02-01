@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CypherTextProps {
@@ -26,26 +26,29 @@ export function CypherText({
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-    const animate = useCallback(() => {
+    const animate = () => {
         // Clear existing
         if (intervalRef.current) clearInterval(intervalRef.current);
         timeoutsRef.current.forEach(clearTimeout);
         timeoutsRef.current = [];
 
+        const textChars = text.split('');
+        const charsLength = characters.length;
         let revealIndex = 0;
 
         // Scramble interval
         intervalRef.current = setInterval(() => {
-            setDisplayText(() => {
-                return text
-                    .split('')
-                    .map((char, i) => {
-                        if (i < revealIndex) return text[i];
-                        if (char === ' ') return ' ';
-                        return characters[Math.floor(Math.random() * characters.length)];
-                    })
-                    .join('');
-            });
+            const result = new Array(textChars.length);
+            for (let i = 0; i < textChars.length; i++) {
+                if (i < revealIndex) {
+                    result[i] = textChars[i];
+                } else if (textChars[i] === ' ') {
+                    result[i] = ' ';
+                } else {
+                    result[i] = characters[Math.floor(Math.random() * charsLength)];
+                }
+            }
+            setDisplayText(result.join(''));
         }, speed);
 
         // Schedule reveals
@@ -59,7 +62,7 @@ export function CypherText({
             }, i * revealSpeed);
             timeoutsRef.current.push(timeout);
         }
-    }, [characters, revealSpeed, speed, text]);
+    };
 
     useEffect(() => {
         animate();

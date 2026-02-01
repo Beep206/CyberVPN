@@ -22,6 +22,7 @@ class SubscriptionStates(StatesGroup):
     selecting_payment = State()
     confirming = State()
     processing = State()
+    processing_payment = processing
 
 
 class SubscriptionManagementStates(StatesGroup):
@@ -56,3 +57,6 @@ class ServerSelectionStates(StatesGroup):
     selecting_server = State()
     selecting_protocol = State()
     configuring = State()
+
+
+SubscriptionState = SubscriptionStates

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
@@ -31,9 +31,7 @@ async def telegram_callback(
 ):
     """Process Telegram OAuth callback and link account."""
     uc = AccountLinkingUseCase(db)
-    account = await uc.link_account(
-        user_id=user.id, provider="telegram", provider_user_id=code
-    )
+    await uc.link_account(user_id=user.id, provider="telegram", provider_user_id=code)
     return {"status": "linked", "provider": "telegram"}
 
 
@@ -45,9 +43,7 @@ async def github_callback(
 ):
     """Process GitHub OAuth callback and link account."""
     uc = AccountLinkingUseCase(db)
-    account = await uc.link_account(
-        user_id=user.id, provider="github", provider_user_id=code
-    )
+    await uc.link_account(user_id=user.id, provider="github", provider_user_id=code)
     return {"status": "linked", "provider": "github"}
 
 

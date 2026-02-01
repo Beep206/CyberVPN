@@ -1,0 +1,373 @@
+{
+  "@@locale": "ru",
+  "appName": "CyberVPN",
+  "login": "Войти",
+  "register": "Регистрация",
+  "email": "Эл. почта",
+  "password": "Пароль",
+  "confirmPassword": "Подтвердите пароль",
+  "forgotPassword": "Забыли пароль?",
+  "orContinueWith": "Или продолжить с",
+  "connect": "Подключить",
+  "disconnect": "Отключить",
+  "connecting": "Подключение...",
+  "disconnecting": "Отключение...",
+  "connected": "Подключено",
+  "disconnected": "Отключено",
+  "servers": "Серверы",
+  "subscription": "Подписка",
+  "settings": "Настройки",
+  "profile": "Профиль",
+  "selectServer": "Выбрать сервер",
+  "autoSelect": "Автовыбор",
+  "fastestServer": "Быстрейший сервер",
+  "nearestServer": "Ближайший сервер",
+  "killSwitch": "Kill Switch",
+  "splitTunneling": "Раздельное туннелирование",
+  "autoConnect": "Автоподключение",
+  "language": "Язык",
+  "theme": "Тема",
+  "darkMode": "Тёмная тема",
+  "lightMode": "Светлая тема",
+  "systemDefault": "Системная",
+  "logout": "Выйти",
+  "logoutConfirm": "Вы уверены, что хотите выйти?",
+  "cancel": "Отмена",
+  "confirm": "Подтвердить",
+  "retry": "Повторить",
+  "errorOccurred": "Произошла ошибка",
+  "noInternet": "Нет подключения к интернету",
+  "downloadSpeed": "Загрузка",
+  "uploadSpeed": "Отдача",
+  "connectionTime": "Время подключения",
+  "dataUsed": "Использовано данных",
+  "currentPlan": "Текущий план",
+  "upgradePlan": "Улучшить план",
+  "daysRemaining": "{count, plural, =1{Остался 1 день} few{Осталось {count} дня} many{Осталось {count} дней} other{Осталось {count} дней}}",
+  "@daysRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referral": "Реферал",
+  "shareReferralCode": "Поделиться реферальным кодом",
+  "support": "Поддержка",
+  "privacyPolicy": "Политика конфиденциальности",
+  "termsOfService": "Условия использования",
+  "version": "Версия {version}",
+  "@version": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+
+  "onboardingWelcomeTitle": "Добро пожаловать в CyberVPN",
+  "onboardingWelcomeDescription": "Безопасный, быстрый и приватный доступ в интернет у вас под рукой.",
+  "onboardingFeaturesTitle": "Мощные возможности",
+  "onboardingFeaturesDescription": "Kill Switch, раздельное туннелирование и шифрование военного уровня для вашей защиты.",
+  "onboardingPrivacyTitle": "Ваша приватность важна",
+  "onboardingPrivacyDescription": "Политика нулевых логов. Мы никогда не отслеживаем, не сохраняем и не передаём ваши данные.",
+  "onboardingSpeedTitle": "Молниеносная скорость",
+  "onboardingSpeedDescription": "Подключайтесь к оптимизированным серверам по всему миру для максимальной скорости.",
+  "onboardingSkip": "Пропустить",
+  "onboardingNext": "Далее",
+  "onboardingGetStarted": "Начать",
+  "onboardingBack": "Назад",
+  "onboardingPageIndicator": "Страница {current} из {total}",
+  "@onboardingPageIndicator": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
+  "settingsTitle": "Настройки",
+  "settingsGeneral": "Основные",
+  "settingsVpn": "Настройки VPN",
+  "settingsAppearance": "Оформление",
+  "settingsDebug": "Отладка",
+  "settingsNotifications": "Уведомления",
+  "settingsAbout": "О приложении",
+  "settingsVpnProtocolLabel": "Протокол",
+  "settingsVpnProtocolDescription": "Выберите протокол VPN для подключения.",
+  "settingsAutoConnectLabel": "Автоподключение",
+  "settingsAutoConnectDescription": "Автоматически подключаться при запуске приложения.",
+  "settingsKillSwitchLabel": "Kill Switch",
+  "settingsKillSwitchDescription": "Блокировать интернет при разрыве VPN-соединения.",
+  "settingsDnsLabel": "Пользовательский DNS",
+  "settingsDnsDescription": "Использовать пользовательский DNS-сервер.",
+  "settingsDnsPlaceholder": "Введите адрес DNS",
+  "settingsSplitTunnelingLabel": "Раздельное туннелирование",
+  "settingsSplitTunnelingDescription": "Выберите, какие приложения используют VPN-соединение.",
+  "settingsThemeModeLabel": "Тема оформления",
+  "settingsThemeModeDescription": "Выберите светлую, тёмную или системную тему.",
+  "settingsLanguageLabel": "Язык",
+  "settingsLanguageDescription": "Выберите предпочитаемый язык.",
+  "settingsDebugLogsLabel": "Журнал отладки",
+  "settingsDebugLogsDescription": "Включить подробное логирование для диагностики.",
+  "settingsExportLogsLabel": "Экспорт логов",
+  "settingsExportLogsDescription": "Экспортировать логи отладки для поддержки.",
+  "settingsResetLabel": "Сбросить настройки",
+  "settingsResetDescription": "Восстановить все настройки по умолчанию.",
+  "settingsResetConfirm": "Вы уверены, что хотите сбросить все настройки?",
+  "settingsStartOnBootLabel": "Запуск при загрузке",
+  "settingsStartOnBootDescription": "Автоматически запускать CyberVPN при включении устройства.",
+  "settingsConnectionTimeoutLabel": "Тайм-аут подключения",
+  "settingsConnectionTimeoutDescription": "Максимальное время ожидания при попытке подключения.",
+  "settingsConnectionTimeoutSeconds": "{count, plural, =1{1 секунда} few{{count} секунды} many{{count} секунд} other{{count} секунд}}",
+  "@settingsConnectionTimeoutSeconds": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "profileDashboard": "Панель профиля",
+  "profileEditProfile": "Редактировать профиль",
+  "profileDisplayName": "Отображаемое имя",
+  "profileEmailAddress": "Адрес эл. почты",
+  "profileChangePassword": "Изменить пароль",
+  "profileCurrentPassword": "Текущий пароль",
+  "profileNewPassword": "Новый пароль",
+  "profileConfirmNewPassword": "Подтвердите новый пароль",
+  "profileTwoFactorAuth": "Двухфакторная аутентификация",
+  "profileTwoFactorAuthDescription": "Добавьте дополнительный уровень защиты вашей учётной записи.",
+  "profileTwoFactorEnable": "Включить 2FA",
+  "profileTwoFactorDisable": "Отключить 2FA",
+  "profileTwoFactorSetup": "Настройка двухфакторной аутентификации",
+  "profileTwoFactorScanQr": "Отсканируйте этот QR-код в приложении-аутентификаторе.",
+  "profileTwoFactorEnterCode": "Введите 6-значный код из приложения-аутентификатора.",
+  "profileTwoFactorBackupCodes": "Резервные коды",
+  "profileTwoFactorBackupCodesDescription": "Сохраните эти коды в надёжном месте. Вы сможете использовать их для входа, если потеряете доступ к приложению-аутентификатору.",
+  "profileOauthAccounts": "Привязанные аккаунты",
+  "profileOauthAccountsDescription": "Управление привязанными аккаунтами социальных сетей.",
+  "profileOauthLink": "Привязать аккаунт",
+  "profileOauthUnlink": "Отвязать",
+  "profileOauthUnlinkConfirm": "Вы уверены, что хотите отвязать этот аккаунт?",
+  "profileTrustedDevices": "Доверенные устройства",
+  "profileTrustedDevicesDescription": "Управление устройствами с доступом к вашей учётной записи.",
+  "profileDeviceCurrent": "Текущее устройство",
+  "profileDeviceLastActive": "Последняя активность {date}",
+  "@profileDeviceLastActive": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "profileDeviceRevoke": "Отозвать доступ",
+  "profileDeviceRevokeConfirm": "Вы уверены, что хотите отозвать доступ для этого устройства?",
+  "profileDeviceRevokeAll": "Отозвать все устройства",
+  "profileDeleteAccount": "Удалить аккаунт",
+  "profileDeleteAccountDescription": "Безвозвратно удалить вашу учётную запись и все связанные данные.",
+  "profileDeleteAccountConfirm": "Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.",
+  "profileDeleteAccountButton": "Удалить мой аккаунт",
+  "profileSubscriptionStatus": "Статус подписки",
+  "profileMemberSince": "Участник с {date}",
+  "@profileMemberSince": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+
+  "configImportTitle": "Импорт конфигурации",
+  "configImportQrScanTitle": "Сканирование QR-кода",
+  "configImportQrScanDescription": "Наведите камеру на QR-код конфигурации VPN.",
+  "configImportScanQrButton": "Сканировать QR-код",
+  "configImportFromClipboard": "Импорт из буфера обмена",
+  "configImportFromClipboardDescription": "Вставьте ссылку или текст конфигурации из буфера обмена.",
+  "configImportFromFile": "Импорт из файла",
+  "configImportFromFileDescription": "Выберите файл конфигурации на вашем устройстве.",
+  "configImportPreviewTitle": "Предпросмотр конфигурации",
+  "configImportPreviewServer": "Сервер",
+  "configImportPreviewProtocol": "Протокол",
+  "configImportPreviewPort": "Порт",
+  "configImportConfirmButton": "Импортировать конфигурацию",
+  "configImportCancelButton": "Отменить импорт",
+  "configImportSuccess": "Конфигурация успешно импортирована.",
+  "configImportError": "Не удалось импортировать конфигурацию.",
+  "configImportInvalidFormat": "Неверный формат конфигурации.",
+  "configImportDuplicate": "Эта конфигурация уже существует.",
+  "configImportCameraPermission": "Для сканирования QR-кодов необходим доступ к камере.",
+
+  "notificationCenterTitle": "Уведомления",
+  "notificationCenterEmpty": "Уведомлений пока нет.",
+  "notificationCenterMarkAllRead": "Отметить все как прочитанные",
+  "notificationCenterClearAll": "Очистить все",
+  "notificationTypeConnectionStatus": "Статус подключения",
+  "notificationTypeServerSwitch": "Смена сервера",
+  "notificationTypeSubscriptionExpiry": "Истечение подписки",
+  "notificationTypeSecurityAlert": "Предупреждение безопасности",
+  "notificationTypePromotion": "Акция",
+  "notificationTypeSystemUpdate": "Обновление системы",
+  "notificationConnected": "Подключено к {serverName}",
+  "@notificationConnected": {
+    "placeholders": {
+      "serverName": {"type": "String"}
+    }
+  },
+  "notificationDisconnected": "VPN отключён.",
+  "notificationServerSwitched": "Переключено на {serverName}.",
+  "@notificationServerSwitched": {
+    "placeholders": {
+      "serverName": {"type": "String"}
+    }
+  },
+  "notificationSubscriptionExpiring": "Ваша подписка истекает через {count, plural, =1{1 день} few{{count} дня} many{{count} дней} other{{count} дней}}.",
+  "@notificationSubscriptionExpiring": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notificationSubscriptionExpired": "Ваша подписка истекла. Продлите её для продолжения использования CyberVPN.",
+  "notificationUnreadCount": "{count, plural, =0{Нет непрочитанных уведомлений} =1{1 непрочитанное уведомление} few{{count} непрочитанных уведомления} many{{count} непрочитанных уведомлений} other{{count} непрочитанных уведомлений}}",
+  "@notificationUnreadCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "referralDashboardTitle": "Реферальная программа",
+  "referralDashboardDescription": "Приглашайте друзей и получайте награды.",
+  "referralShareLink": "Поделиться реферальной ссылкой",
+  "referralCopyLink": "Копировать ссылку",
+  "referralLinkCopied": "Реферальная ссылка скопирована в буфер обмена.",
+  "referralCodeLabel": "Ваш реферальный код",
+  "referralRewardsEarned": "{count, plural, =0{Нет полученных наград} =1{1 награда получена} few{{count} награды получено} many{{count} наград получено} other{{count} наград получено}}",
+  "@referralRewardsEarned": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referralFriendsInvited": "{count, plural, =0{Нет приглашённых друзей} =1{1 друг приглашён} few{{count} друга приглашено} many{{count} друзей приглашено} other{{count} друзей приглашено}}",
+  "@referralFriendsInvited": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referralRewardDescription": "Получите {days} бесплатных дней за каждого друга, оформившего подписку.",
+  "@referralRewardDescription": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "referralHistory": "История рефералов",
+  "referralPending": "В ожидании",
+  "referralCompleted": "Завершено",
+  "referralExpired": "Истекло",
+
+  "diagnosticsTitle": "Диагностика",
+  "diagnosticsDescription": "Проверьте подключение и устраните неполадки.",
+  "speedTestTitle": "Тест скорости",
+  "speedTestStart": "Начать тест скорости",
+  "speedTestRunning": "Тестирование...",
+  "speedTestDownloadSpeed": "Скорость загрузки",
+  "speedTestUploadSpeed": "Скорость отдачи",
+  "speedTestPing": "Пинг",
+  "speedTestPingMs": "{value} мс",
+  "@speedTestPingMs": {
+    "placeholders": {
+      "value": {"type": "int"}
+    }
+  },
+  "speedTestMbps": "{value} Мбит/с",
+  "@speedTestMbps": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "speedTestResult": "Результат теста скорости",
+  "speedTestHistory": "История тестов скорости",
+  "speedTestStepConnecting": "Подключение к тестовому серверу...",
+  "speedTestStepDownload": "Тестирование скорости загрузки...",
+  "speedTestStepUpload": "Тестирование скорости отдачи...",
+  "speedTestStepPing": "Измерение задержки...",
+  "speedTestStepComplete": "Тест завершён.",
+  "speedTestNoVpn": "Подключитесь к VPN перед запуском теста скорости.",
+  "logViewerTitle": "Просмотр логов",
+  "logViewerEmpty": "Логи недоступны.",
+  "logViewerExportButton": "Экспортировать логи",
+  "logViewerClearButton": "Очистить логи",
+  "logViewerClearConfirm": "Вы уверены, что хотите очистить все логи?",
+  "logViewerFilterLabel": "Фильтр",
+  "logViewerFilterAll": "Все",
+  "logViewerFilterError": "Ошибки",
+  "logViewerFilterWarning": "Предупреждения",
+  "logViewerFilterInfo": "Информация",
+  "logViewerCopied": "Запись лога скопирована в буфер обмена.",
+  "logViewerExportSuccess": "Логи успешно экспортированы.",
+  "logViewerExportError": "Не удалось экспортировать логи.",
+
+  "widgetConnectLabel": "Подключить VPN",
+  "widgetDisconnectLabel": "Отключить VPN",
+  "widgetStatusLabel": "Статус VPN",
+  "widgetServerLabel": "Текущий сервер",
+  "quickActionConnect": "Подключить",
+  "quickActionDisconnect": "Отключить",
+  "quickActionServers": "Серверы",
+  "quickActionSpeedTest": "Тест скорости",
+  "quickActionSettings": "Настройки",
+  "quickActionSupport": "Поддержка",
+
+  "errorConnectionFailed": "Не удалось подключиться. Попробуйте снова.",
+  "errorConnectionTimeout": "Время подключения истекло. Проверьте соединение с интернетом.",
+  "errorServerUnavailable": "Сервер временно недоступен. Попробуйте другой сервер.",
+  "errorInvalidConfig": "Неверная конфигурация. Импортируйте настройки заново.",
+  "errorSubscriptionExpired": "Ваша подписка истекла. Продлите её для продолжения работы.",
+  "errorSubscriptionRequired": "Для использования этой функции необходима подписка.",
+  "errorAuthenticationFailed": "Ошибка аутентификации. Войдите в систему снова.",
+  "errorTokenExpired": "Сессия истекла. Войдите в систему снова.",
+  "errorNetworkUnreachable": "Сеть недоступна. Проверьте подключение.",
+  "errorPermissionDenied": "Доступ запрещён.",
+  "errorRateLimited": "Слишком много запросов. Подождите немного.",
+  "errorUnexpected": "Произошла непредвиденная ошибка. Попробуйте снова.",
+  "errorServerError": "Ошибка сервера. Попробуйте позже.",
+  "errorInvalidCredentials": "Неверный адрес эл. почты или пароль.",
+  "errorAccountLocked": "Ваш аккаунт заблокирован. Обратитесь в службу поддержки.",
+  "errorWeakPassword": "Пароль слишком слабый. Используйте минимум 8 символов, включая буквы и цифры.",
+  "errorEmailAlreadyInUse": "Этот адрес эл. почты уже зарегистрирован.",
+  "errorInvalidEmail": "Введите корректный адрес эл. почты.",
+  "errorFieldRequired": "Это поле обязательно для заполнения.",
+  "errorPaymentFailed": "Ошибка оплаты. Попробуйте снова или используйте другой способ оплаты.",
+  "errorQrScanFailed": "Не удалось отсканировать QR-код. Попробуйте снова.",
+
+  "a11yConnectButton": "Подключиться к VPN-серверу",
+  "a11yDisconnectButton": "Отключиться от VPN-сервера",
+  "a11yServerStatusOnline": "Сервер в сети",
+  "a11yServerStatusOffline": "Сервер не в сети",
+  "a11yServerStatusMaintenance": "Сервер на обслуживании",
+  "a11ySpeedIndicator": "Текущая скорость: {speed}",
+  "@a11ySpeedIndicator": {
+    "placeholders": {
+      "speed": {"type": "String"}
+    }
+  },
+  "a11yConnectionStatus": "Статус подключения: {status}",
+  "@a11yConnectionStatus": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "a11yServerSelect": "Выбрать сервер {name} в {country}",
+  "@a11yServerSelect": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "country": {"type": "String"}
+    }
+  },
+  "a11yNavigationMenu": "Меню навигации",
+  "a11yCloseDialog": "Закрыть диалог",
+  "a11yToggleSwitch": "Переключить {label}",
+  "@a11yToggleSwitch": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "a11yNotificationBadge": "{count, plural, =0{Нет уведомлений} =1{1 уведомление} few{{count} уведомления} many{{count} уведомлений} other{{count} уведомлений}}",
+  "@a11yNotificationBadge": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "a11yLoadingIndicator": "Загрузка",
+  "a11yRefreshContent": "Обновить содержимое",
+  "a11yBackButton": "Назад",
+  "a11ySearchField": "Поиск"
+}

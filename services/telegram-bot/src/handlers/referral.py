@@ -6,42 +6,41 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from keyboards.referral import referral_keyboard
+from src.keyboards.referral import referral_keyboard
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
-    from config.settings import Settings
+    from src.config import BotSettings
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="referral")
 
 
-@router.callback_query(F.data == "referral:stats")
-async def referral_stats_handler(
+async def _render_referral_info(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
+    settings: BotSettings,
 ) -> None:
-    """Show referral statistics."""
+    """Render referral info and stats."""
     user_id = callback.from_user.id
 
     try:
         stats = await api_client.get_referral_stats(user_id)
 
         total_referrals = stats.get("total_referrals", 0)
-        total_bonus = stats.get("total_bonus", 0)
-        available_balance = stats.get("available_balance", 0)
-        pending_balance = stats.get("pending_balance", 0)
+        total_bonus = stats.get("bonus_days", stats.get("total_bonus", 0))
+        bot_username = settings.bot_username or "CyberVPNBot"
+        referral_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
 
         stats_text = i18n.get(
-            "referral-stats-details",
-            total=total_referrals,
-            bonus=total_bonus,
-            available=available_balance,
-            pending=pending_balance,
+            "referral-info",
+            count=total_referrals,
+            bonus_days=total_bonus,
+            link=referral_link,
         )
 
         await callback.message.edit_text(
@@ -58,18 +57,40 @@ async def referral_stats_handler(
     await callback.answer()
 
 
+@router.callback_query(F.data == "referral:link")
+async def referral_link_handler(
+    callback: CallbackQuery,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    settings: BotSettings,
+) -> None:
+    """Show referral link and stats."""
+    await _render_referral_info(callback, i18n, api_client, settings)
+
+
+@router.callback_query(F.data == "referral:stats")
+async def referral_stats_handler(
+    callback: CallbackQuery,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    settings: BotSettings,
+) -> None:
+    """Show referral statistics."""
+    await _render_referral_info(callback, i18n, api_client, settings)
+
+
 @router.callback_query(F.data == "referral:share")
 async def share_referral_link_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    settings: Settings,
+    settings: BotSettings,
 ) -> None:
     """Share referral link."""
     user_id = callback.from_user.id
-    bot_username = settings.bot_username
+    bot_username = settings.bot_username or "CyberVPNBot"
     referral_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
 
-    share_text = i18n.get("referral-share-message", link=referral_link)
+    share_text = i18n.get("referral-share", link=referral_link)
 
     from aiogram.types import InlineKeyboardButton
     from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -83,7 +104,7 @@ async def share_referral_link_handler(
     )
     builder.row(
         InlineKeyboardButton(
-            text=i18n.get("button-back"),
+            text=i18n.get("btn-back"),
             callback_data="menu:invite",
         )
     )
@@ -101,7 +122,7 @@ async def share_referral_link_handler(
 async def withdraw_bonus_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Withdraw referral bonus."""
     user_id = callback.from_user.id
@@ -120,7 +141,7 @@ async def withdraw_bonus_handler(
             return
 
         # Create withdrawal request
-        withdrawal = await api_client.create_withdrawal(user_id, available_balance)
+        withdrawal = await api_client.withdraw_referral_points(user_id, available_balance)
 
         await callback.message.edit_text(
             text=i18n.get(

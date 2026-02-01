@@ -388,7 +388,13 @@ class TestCircuitBreakerIntegration:
     async def test_circuit_opens_after_failures(
         self, mock_settings: BotSettings
     ) -> None:
-        """Test circuit breaker opens after multiple server errors."""
+        """Test circuit breaker opens after multiple server errors.
+
+        Note: The API client has tenacity retry with stop_after_attempt(3),
+        so a single get_user() call can make up to 3 HTTP requests. Each 500
+        response calls record_failure(). With failure_threshold=3, the circuit
+        opens during the first get_user() call's retry attempts.
+        """
         client = CyberVPNAPIClient(settings=mock_settings.backend)
         client._circuit = CircuitBreaker(failure_threshold=3)
 
@@ -397,15 +403,14 @@ class TestCircuitBreakerIntegration:
                 "https://api.test.cybervpn.local/telegram/users/123"
             ).mock(return_value=httpx.Response(500, json={"detail": "Error"}))
 
-            # First 3 failures should open the circuit
-            for _ in range(3):
-                with pytest.raises(ServerError):
-                    await client.get_user(123)
+            # First call will retry 3 times, recording 3 failures and opening the circuit
+            with pytest.raises(ServerError):
+                await client.get_user(123)
 
             # Circuit should be open now
             assert client._circuit.state == CircuitState.OPEN
 
-            # Next request should fail immediately
+            # Next request should fail immediately without hitting the API
             with pytest.raises(APIError, match="Circuit breaker is open"):
                 await client.get_user(123)
 
@@ -414,7 +419,11 @@ class TestCircuitBreakerIntegration:
     async def test_circuit_half_open_recovery(
         self, mock_settings: BotSettings
     ) -> None:
-        """Test circuit breaker half-open recovery."""
+        """Test circuit breaker half-open recovery.
+
+        Note: With failure_threshold=2 and tenacity retries, the circuit opens
+        during the first get_user() call after 2 retry attempts.
+        """
         import time
 
         client = CyberVPNAPIClient(settings=mock_settings.backend)
@@ -423,14 +432,14 @@ class TestCircuitBreakerIntegration:
         )
 
         with respx.mock:
-            # Fail to open circuit
+            # Fail to open circuit - will retry and hit threshold during first call
             respx.get(
                 "https://api.test.cybervpn.local/telegram/users/123"
             ).mock(return_value=httpx.Response(500))
 
-            for _ in range(2):
-                with pytest.raises(ServerError):
-                    await client.get_user(123)
+            # First call retries twice, recording 2 failures and opening circuit
+            with pytest.raises(ServerError):
+                await client.get_user(123)
 
             assert client._circuit.state == CircuitState.OPEN
 
