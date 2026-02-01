@@ -6,14 +6,18 @@ import { X, Shield, Navigation, Monitor, Settings, Globe } from "lucide-react";
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
+    const { resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
-    // Initial check for cookie on mount
     useEffect(() => {
+        setMounted(true);
+        // Initial check for cookie on mount
         const hasCookie = document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH='));
         setBypassAuth(hasCookie);
     }, []);
@@ -27,6 +31,10 @@ export function DevPanel() {
             setBypassAuth(true);
         }
     };
+
+    if (!mounted) return <DevButton onClick={() => setIsOpen(true)} />;
+
+    const isDark = resolvedTheme === 'dark';
 
     return (
         <>
@@ -50,32 +58,53 @@ export function DevPanel() {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                            className="pointer-events-auto relative w-full sm:w-[500px] h-[600px] bg-black border-2 border-neon-cyan text-neon-cyan overflow-hidden shadow-[0_0_100px_rgba(0,255,255,0.2)] rounded-lg clip-path-cyber"
+                            className={cn(
+                                "pointer-events-auto relative w-full sm:w-[500px] h-[600px] overflow-hidden rounded-lg clip-path-cyber transition-colors duration-300",
+                                isDark
+                                    ? "bg-black border-2 border-neon-cyan text-neon-cyan shadow-[0_0_100px_rgba(0,255,255,0.2)]"
+                                    : "bg-white border-2 border-slate-200 text-slate-800 shadow-2xl"
+                            )}
                             style={{
                                 clipPath: "polygon(0 0, 100% 0, 100% 90%, 95% 100%, 0 100%)"
                             }}
                         >
-                            {/* CRT/Scanline Effect */}
-                            <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] z-10" />
+                            {/* CRT/Scanline Effect (Dark Only) */}
+                            {isDark && (
+                                <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] z-10" />
+                            )}
 
                             {/* Header */}
-                            <div className="relative z-20 flex items-center justify-between p-4 border-b border-neon-cyan/40 bg-black">
+                            <div className={cn(
+                                "relative z-20 flex items-center justify-between p-4 border-b transition-colors",
+                                isDark ? "border-neon-cyan/40 bg-black" : "border-slate-200 bg-slate-50"
+                            )}>
                                 <div className="flex items-center gap-2">
-                                    <Monitor className="h-5 w-5 text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,1)]" />
-                                    <h2 className="font-display font-extrabold tracking-wider text-sm uppercase text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.9)]">
-                                        Dev_Console <span className="text-neon-pink text-xs font-black animate-pulse drop-shadow-[0_0_15px_#ff00ff]">v1.0</span>
+                                    <Monitor className={cn("h-5 w-5", isDark ? "text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,1)]" : "text-slate-600")} />
+                                    <h2 className={cn(
+                                        "font-display font-extrabold tracking-wider text-sm uppercase",
+                                        isDark ? "text-neon-cyan drop-shadow-[0_0_15px_rgba(0,255,255,0.9)]" : "text-slate-800"
+                                    )}>
+                                        Dev_Console <span className={cn("text-xs font-black", isDark ? "text-neon-pink animate-pulse drop-shadow-[0_0_15px_#ff00ff]" : "text-blue-500")}>v2.0</span>
                                     </h2>
                                 </div>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="p-1 hover:bg-neon-pink/20 hover:text-neon-pink transition-colors rounded text-neon-cyan hover:shadow-[0_0_15px_#ff00ff]"
+                                    className={cn(
+                                        "p-1 rounded transition-colors transition-all",
+                                        isDark
+                                            ? "hover:bg-neon-pink/20 hover:text-neon-pink text-neon-cyan hover:shadow-[0_0_15px_#ff00ff]"
+                                            : "hover:bg-red-100 hover:text-red-500 text-slate-400"
+                                    )}
                                 >
                                     <X className="h-5 w-5 font-bold" />
                                 </button>
                             </div>
 
                             {/* Tab Navigation */}
-                            <div className="relative z-20 flex border-b border-neon-cyan/40 bg-black">
+                            <div className={cn(
+                                "relative z-20 flex border-b transition-colors",
+                                isDark ? "border-neon-cyan/40 bg-black" : "border-slate-200 bg-white"
+                            )}>
                                 {([
                                     { id: "nav", icon: Navigation, label: "Navigation" },
                                     { id: "auth", icon: Shield, label: "Auth" },
@@ -88,16 +117,20 @@ export function DevPanel() {
                                         className={cn(
                                             "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-black font-mono uppercase tracking-tight transition-all relative overflow-hidden",
                                             activeTab === tab.id
-                                                ? "text-neon-cyan bg-neon-cyan/10 drop-shadow-[0_0_10px_rgba(0,255,255,1)]"
-                                                : "text-gray-400 hover:text-neon-pink hover:bg-neon-pink/10 hover:shadow-[inset_0_0_20px_rgba(255,0,255,0.2)]"
+                                                ? (isDark ? "text-neon-cyan bg-neon-cyan/10 drop-shadow-[0_0_10px_rgba(0,255,255,1)]" : "text-blue-600 bg-blue-50")
+                                                : (isDark ? "text-gray-400 hover:text-neon-pink hover:bg-neon-pink/10 hover:shadow-[inset_0_0_20px_rgba(255,0,255,0.2)]" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50")
                                         )}
                                     >
-                                        <tab.icon className={cn("h-4 w-4", activeTab === tab.id ? "drop-shadow-[0_0_10px_currentColor] text-neon-cyan" : "opacity-70")} />
+                                        <tab.icon className={cn("h-4 w-4",
+                                            activeTab === tab.id
+                                                ? (isDark ? "drop-shadow-[0_0_10px_currentColor] text-neon-cyan" : "text-blue-600")
+                                                : "opacity-70"
+                                        )} />
                                         {tab.label}
                                         {activeTab === tab.id && (
                                             <motion.div
                                                 layoutId="activeTab"
-                                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-cyan shadow-[0_0_20px_#00ffff]"
+                                                className={cn("absolute bottom-0 left-0 right-0 h-0.5", isDark ? "bg-neon-cyan shadow-[0_0_20px_#00ffff]" : "bg-blue-600")}
                                             />
                                         )}
                                     </button>
@@ -114,10 +147,10 @@ export function DevPanel() {
                                         exit={{ opacity: 0, y: -10 }}
                                         transition={{ duration: 0.2 }}
                                     >
-                                        {activeTab === "nav" && <NavigationTab onClose={() => setIsOpen(false)} />}
-                                        {activeTab === "auth" && <AuthTab enabled={bypassAuth} onToggle={toggleAuthBypass} />}
-                                        {activeTab === "browser" && <BrowserTab />}
-                                        {activeTab === "system" && <SystemTab />}
+                                        {activeTab === "nav" && <NavigationTab onClose={() => setIsOpen(false)} isDark={isDark} />}
+                                        {activeTab === "auth" && <AuthTab enabled={bypassAuth} onToggle={toggleAuthBypass} isDark={isDark} />}
+                                        {activeTab === "browser" && <BrowserTab isDark={isDark} />}
+                                        {activeTab === "system" && <SystemTab isDark={isDark} />}
                                     </motion.div>
                                 </AnimatePresence>
                             </div>
@@ -131,7 +164,7 @@ export function DevPanel() {
 
 // --- Subcomponents for Tabs ---
 
-function NavigationTab({ onClose }: { onClose: () => void }) {
+function NavigationTab({ onClose, isDark }: { onClose: () => void, isDark: boolean }) {
     const router = useRouter();
     const links = [
         { label: "Dashboard (User)", path: "/dashboard" },
@@ -141,7 +174,7 @@ function NavigationTab({ onClose }: { onClose: () => void }) {
 
     return (
         <div className="space-y-4 relative z-20">
-            <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple font-extrabold text-sm uppercase tracking-widest mb-4 border-b border-neon-pink/50 pb-2 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]">Quick Jump</h3>
+            <h3 className={cn("font-extrabold text-sm uppercase tracking-widest mb-4 border-b pb-2", isDark ? "text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]" : "text-slate-800 border-slate-200")}>Quick Jump</h3>
             <div className="grid gap-2">
                 {links.map((link) => (
                     <button
@@ -150,10 +183,15 @@ function NavigationTab({ onClose }: { onClose: () => void }) {
                             router.push(link.path);
                             onClose();
                         }}
-                        className="group flex items-center justify-between p-3 border border-gray-700 bg-black hover:border-neon-cyan hover:bg-neon-cyan/20 transition-all rounded hover:shadow-[0_0_20px_rgba(0,255,255,0.4)] text-left"
+                        className={cn(
+                            "group flex items-center justify-between p-3 border transition-all rounded text-left",
+                            isDark
+                                ? "border-gray-700 bg-black hover:border-neon-cyan hover:bg-neon-cyan/20 hover:shadow-[0_0_20px_rgba(0,255,255,0.4)]"
+                                : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 shadow-sm"
+                        )}
                     >
-                        <span className="text-base font-bold text-white group-hover:text-neon-cyan transition-colors group-hover:drop-shadow-[0_0_8px_rgba(0,255,255,1)]">{link.label}</span>
-                        <span className="text-xs text-gray-400 font-mono group-hover:text-neon-pink transition-colors font-medium">{link.path}</span>
+                        <span className={cn("text-base font-bold transition-colors", isDark ? "text-white group-hover:text-neon-cyan group-hover:drop-shadow-[0_0_8px_rgba(0,255,255,1)]" : "text-slate-700 group-hover:text-blue-600")}>{link.label}</span>
+                        <span className={cn("text-xs font-mono transition-colors font-medium", isDark ? "text-gray-400 group-hover:text-neon-pink" : "text-slate-400 group-hover:text-blue-400")}>{link.path}</span>
                     </button>
                 ))}
             </div>
@@ -161,64 +199,78 @@ function NavigationTab({ onClose }: { onClose: () => void }) {
     );
 }
 
-function AuthTab({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+function AuthTab({ enabled, onToggle, isDark }: { enabled: boolean; onToggle: () => void, isDark: boolean }) {
     return (
         <div className="space-y-4 relative z-20">
-            <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple font-extrabold text-sm uppercase tracking-widest mb-4 border-b border-neon-pink/50 pb-2 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]">Security Protocols</h3>
+            <h3 className={cn("font-extrabold text-sm uppercase tracking-widest mb-4 border-b pb-2", isDark ? "text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]" : "text-slate-800 border-slate-200")}>Security Protocols</h3>
 
-            <div className="flex items-center justify-between p-4 border border-neon-cyan/40 bg-black rounded backdrop-blur-md hover:border-neon-cyan/60 transition-colors">
+            <div className={cn(
+                "flex items-center justify-between p-4 border rounded backdrop-blur-md transition-colors",
+                isDark
+                    ? "border-neon-cyan/40 bg-black hover:border-neon-cyan/60"
+                    : "border-slate-200 bg-white hover:border-blue-300"
+            )}>
                 <div>
-                    <h4 className="text-base font-extrabold text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.9)]">Auth Bypass Mode</h4>
-                    <p className="text-xs text-gray-300 mt-1 font-semibold group-hover:text-white transition-colors">Simulate authenticated session via cookie injection.</p>
+                    <h4 className={cn("text-base font-extrabold", isDark ? "text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.9)]" : "text-slate-800")}>Auth Bypass Mode</h4>
+                    <p className={cn("text-xs mt-1 font-semibold transition-colors", isDark ? "text-gray-300 group-hover:text-white" : "text-slate-500")}>Simulate authenticated session via cookie injection.</p>
                 </div>
                 <button
                     onClick={onToggle}
                     className={cn(
-                        "relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none border-2 shadow-[0_0_15px_rgba(0,0,0,0.5)]",
-                        enabled ? "bg-neon-cyan/30 border-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.5)]" : "bg-gray-800 border-gray-500 hover:border-neon-pink/50"
+                        "relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none border-2",
+                        enabled
+                            ? (isDark ? "bg-neon-cyan/30 border-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.5)]" : "bg-blue-100 border-blue-500")
+                            : (isDark ? "bg-gray-800 border-gray-500 hover:border-neon-pink/50 shadow-[0_0_15px_rgba(0,0,0,0.5)]" : "bg-slate-200 border-slate-300")
                     )}
                 >
                     <motion.div
                         className={cn(
                             "absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md transition-transform duration-300",
-                            enabled ? "translate-x-7 bg-neon-cyan shadow-[0_0_15px_#00ffff]" : "translate-x-0 bg-gray-400"
+                            enabled
+                                ? (isDark ? "translate-x-7 bg-neon-cyan shadow-[0_0_15px_#00ffff]" : "translate-x-7 bg-blue-500")
+                                : (isDark ? "translate-x-0 bg-gray-400" : "translate-x-0 bg-white")
                         )}
                         layout
                     />
                 </button>
             </div>
 
-            <div className="p-3 bg-yellow-900/40 border border-yellow-500/50 rounded text-xs text-yellow-300 font-mono font-bold shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                <p>⚠ Enabling bypass sets <code className="text-white bg-black/50 px-1 rounded">DEV_BYPASS_AUTH</code> cookie. Middleware will permit access.</p>
+            <div className={cn(
+                "p-3 rounded text-xs font-mono font-bold border",
+                isDark
+                    ? "bg-yellow-900/40 border-yellow-500/50 text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.2)]"
+                    : "bg-amber-50 border-amber-200 text-amber-700"
+            )}>
+                <p>⚠ Enabling bypass sets <code className={cn("px-1 rounded", isDark ? "text-white bg-black/50" : "bg-white border border-amber-200")}>DEV_BYPASS_AUTH</code> cookie. Middleware will permit access.</p>
             </div>
         </div>
     );
 }
 
-function SystemTab() {
+function SystemTab({ isDark }: { isDark: boolean }) {
     return (
         <div className="space-y-4 relative z-20">
-            <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple font-extrabold text-sm uppercase tracking-widest mb-4 border-b border-neon-pink/50 pb-2 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]">System Diagnostics</h3>
+            <h3 className={cn("font-extrabold text-sm uppercase tracking-widest mb-4 border-b pb-2", isDark ? "text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]" : "text-slate-800 border-slate-200")}>System Diagnostics</h3>
 
             <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                <div className="p-3 bg-black border border-gray-700 rounded hover:border-neon-cyan/50 transition-colors group">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">NODE_ENV</span>
-                    <span className="text-white font-black text-sm tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.7)]">{process.env.NODE_ENV}</span>
+                <div className={cn("p-3 border rounded transition-colors group", isDark ? "bg-black border-gray-700 hover:border-neon-cyan/50" : "bg-white border-slate-200 shadow-sm")}>
+                    <span className={cn("block font-bold mb-1", isDark ? "text-neon-pink drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" : "text-slate-500")}>NODE_ENV</span>
+                    <span className={cn("font-black text-sm tracking-wide", isDark ? "text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.7)]" : "text-slate-800")}>{process.env.NODE_ENV}</span>
                 </div>
-                <div className="p-3 bg-black border border-gray-700 rounded hover:border-neon-cyan/50 transition-colors group">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">Platform</span>
-                    <span className="text-white font-black text-sm tracking-wide drop-shadow-[0_0_5px_rgba(255,255,255,0.7)]">{typeof window !== 'undefined' ? window.navigator.platform : 'Server'}</span>
+                <div className={cn("p-3 border rounded transition-colors group", isDark ? "bg-black border-gray-700 hover:border-neon-cyan/50" : "bg-white border-slate-200 shadow-sm")}>
+                    <span className={cn("block font-bold mb-1", isDark ? "text-neon-pink drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" : "text-slate-500")}>Platform</span>
+                    <span className={cn("font-black text-sm tracking-wide", isDark ? "text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.7)]" : "text-slate-800")}>{typeof window !== 'undefined' ? window.navigator.platform : 'Server'}</span>
                 </div>
-                <div className="p-3 bg-black border border-gray-700 rounded col-span-2 hover:border-neon-cyan/50 transition-colors group">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">User Agent</span>
-                    <span className="text-gray-100 break-all font-semibold group-hover:text-neon-cyan transition-colors">{typeof window !== 'undefined' ? window.navigator.userAgent : 'Server'}</span>
+                <div className={cn("p-3 border rounded col-span-2 transition-colors group", isDark ? "bg-black border-gray-700 hover:border-neon-cyan/50" : "bg-white border-slate-200 shadow-sm")}>
+                    <span className={cn("block font-bold mb-1", isDark ? "text-neon-pink drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" : "text-slate-500")}>User Agent</span>
+                    <span className={cn("break-all font-semibold transition-colors", isDark ? "text-gray-100 group-hover:text-neon-cyan" : "text-slate-700")}>{typeof window !== 'undefined' ? window.navigator.userAgent : 'Server'}</span>
                 </div>
             </div>
         </div>
     );
 }
 
-function BrowserTab() {
+function BrowserTab({ isDark }: { isDark: boolean }) {
     const [info, setInfo] = useState({
         language: "",
         time: "",
@@ -247,38 +299,36 @@ function BrowserTab() {
 
     return (
         <div className="space-y-4 relative z-20">
-            <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple font-extrabold text-sm uppercase tracking-widest mb-4 border-b border-neon-pink/50 pb-2 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]">Browser Intelligence</h3>
+            <h3 className={cn("font-extrabold text-sm uppercase tracking-widest mb-4 border-b pb-2", isDark ? "text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]" : "text-slate-800 border-slate-200")}>Browser Intelligence</h3>
 
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 bg-black border border-gray-800 rounded group hover:border-neon-cyan/50 transition-all">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">Language</span>
-                    <span className="text-white font-bold">{info.language}</span>
-                </div>
-                <div className="p-3 bg-black border border-gray-800 rounded group hover:border-neon-cyan/50 transition-all">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">Local Time</span>
-                    <span className="text-neon-cyan font-bold animate-pulse">{info.time}</span>
-                </div>
-                <div className="p-3 bg-black border border-gray-800 rounded group hover:border-neon-cyan/50 transition-all">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">Resolution</span>
-                    <span className="text-white font-bold">{info.screen}</span>
-                </div>
-                <div className="p-3 bg-black border border-gray-800 rounded group hover:border-neon-cyan/50 transition-all">
-                    <span className="block text-neon-pink font-bold mb-1 drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">CPU Cores</span>
-                    <span className="text-white font-bold">{info.cores}</span>
-                </div>
+                {[
+                    { label: "Language", value: info.language },
+                    { label: "Local Time", value: info.time, highlight: true },
+                    { label: "Resolution", value: info.screen },
+                    { label: "CPU Cores", value: info.cores },
+                ].map((item) => (
+                    <div key={item.label} className={cn("p-3 border rounded group transition-all", isDark ? "bg-black border-gray-800 hover:border-neon-cyan/50" : "bg-white border-slate-200 shadow-sm")}>
+                        <span className={cn("block font-bold mb-1", isDark ? "text-neon-pink drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]" : "text-slate-500")}>{item.label}</span>
+                        <span className={cn("font-bold", item.highlight && isDark ? "text-neon-cyan animate-pulse" : (isDark ? "text-white" : "text-slate-800"))}>{item.value}</span>
+                    </div>
+                ))}
             </div>
 
-            <div className="relative mt-4 p-4 border border-neon-cyan/30 bg-black/80 rounded overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-50" />
-                <h4 className="text-neon-cyan font-bold text-xs mb-2 drop-shadow-[0_0_5px_rgba(0,255,255,0.8)]">Environment Scan</h4>
+            <div className={cn(
+                "relative mt-4 p-4 border rounded overflow-hidden group",
+                isDark ? "border-neon-cyan/30 bg-black/80" : "border-blue-200 bg-blue-50/50"
+            )}>
+                <div className={cn("absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent to-transparent opacity-50", isDark ? "via-neon-cyan" : "via-blue-400")} />
+                <h4 className={cn("font-bold text-xs mb-2", isDark ? "text-neon-cyan drop-shadow-[0_0_5px_rgba(0,255,255,0.8)]" : "text-blue-700")}>Environment Scan</h4>
                 <div className="space-y-1">
                     <div className="flex justify-between text-[10px]">
-                        <span className="text-gray-400">Cookies</span>
-                        <span className="text-green-400 font-bold">{typeof window !== 'undefined' && navigator.cookieEnabled ? "ENABLED" : "DISABLED"}</span>
+                        <span className={isDark ? "text-gray-400" : "text-slate-500"}>Cookies</span>
+                        <span className={cn("font-bold", isDark ? "text-green-400" : "text-green-600")}>{typeof window !== 'undefined' && navigator.cookieEnabled ? "ENABLED" : "DISABLED"}</span>
                     </div>
                     <div className="flex justify-between text-[10px]">
-                        <span className="text-gray-400">Online Status</span>
-                        <span className="text-green-400 font-bold">{typeof window !== 'undefined' && navigator.onLine ? "ONLINE" : "OFFLINE"}</span>
+                        <span className={isDark ? "text-gray-400" : "text-slate-500"}>Online Status</span>
+                        <span className={cn("font-bold", isDark ? "text-green-400" : "text-green-600")}>{typeof window !== 'undefined' && navigator.onLine ? "ONLINE" : "OFFLINE"}</span>
                     </div>
                 </div>
             </div>
