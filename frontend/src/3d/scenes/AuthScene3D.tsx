@@ -331,20 +331,18 @@ function AuthSceneContent() {
 // ============================================
 // EXPORTED COMPONENT
 // ============================================
+import { usePathname } from 'next/navigation';
+
+// ============================================
+// EXPORTED COMPONENT
+// ============================================
 export function AuthScene3D() {
-    const [isClient, setIsClient] = useState(false);
+    const pathname = usePathname();
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    // Don't render Canvas on server - Three.js requires DOM
-    if (!isClient) {
-        return <div className="absolute inset-0 z-0 pointer-events-none bg-terminal-bg" />;
-    }
-
+    // Use pathname as key to force full R3F/WebGL context recreation on navigation
+    // This fixes "Cannot read properties of null" errors when switching languages
     return (
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        <div key={pathname} className="absolute inset-0 z-0 pointer-events-none">
             <Canvas
                 camera={{ position: [0, 0, 5], fov: 50 }}
                 dpr={[1, 1.5]}
@@ -357,24 +355,6 @@ export function AuthScene3D() {
             >
                 <AuthSceneContent />
             </Canvas>
-        </div>
-    );
-}
-
-// SSR-safe wrapper - prevents hydration mismatch
-export function AuthScene3DWrapper() {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    // Return null on server and first client render to avoid hydration mismatch
-    if (!mounted) return null;
-
-    return (
-        <div className="absolute inset-0 z-0">
-            <AuthScene3D />
         </div>
     );
 }
