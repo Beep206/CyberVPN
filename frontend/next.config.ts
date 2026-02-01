@@ -10,6 +10,7 @@ const config: NextConfigWithCompiler = {
   experimental: {},
   cacheComponents: true,
   reactCompiler: true,
+  trailingSlash: true,
 };
 
 const withNextIntl = createNextIntlPlugin();

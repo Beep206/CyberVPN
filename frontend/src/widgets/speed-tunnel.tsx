@@ -159,7 +159,7 @@ function SpeedTunnelScene() {
 
     return (
         <div className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
-            <ErrorBoundary fallback={<div className="w-full h-full bg-background" />}>
+            <ErrorBoundary fallback={<div className="w-full h-full bg-background flex items-center justify-center text-xs text-muted-foreground">Speed Tunnel Disabled (Extension Conflict)</div>}>
                 <Canvas
                     camera={{ position: [0, 0, 5], fov: 60 }}
                     gl={{ antialias: false }} // Performance
