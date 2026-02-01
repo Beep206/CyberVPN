@@ -1,8 +1,17 @@
-import { AuthScene3DWrapper } from '@/3d/scenes/AuthScene3D';
+import dynamic from 'next/dynamic';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { LanguageSelector } from '@/features/language-selector';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
+
+// Dynamic import with SSR disabled to prevent WebGL context issues during navigation
+const AuthScene3DWrapper = dynamic(
+    () => import('@/3d/scenes/AuthScene3D').then((mod) => mod.AuthScene3DWrapper),
+    {
+        ssr: false,
+        loading: () => <div className="absolute inset-0 z-0 bg-terminal-bg" />,
+    }
+);
 
 export default function AuthLayout({
     children,

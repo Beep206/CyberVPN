@@ -66,15 +66,13 @@ function FloatingShield() {
                     <bufferGeometry>
                         <bufferAttribute
                             attach="attributes-position"
-                            count={7}
-                            array={new Float32Array([
+                            args={[new Float32Array([
                                 ...Array.from({ length: 6 }, (_, i) => {
                                     const angle = (Math.PI / 3) * i - Math.PI / 2;
                                     return [Math.cos(angle) * 1.2, Math.sin(angle) * 1.2, 0];
                                 }).flat(),
                                 Math.cos(-Math.PI / 2) * 1.2, Math.sin(-Math.PI / 2) * 1.2, 0
-                            ])}
-                            itemSize={3}
+                            ]), 3]}
                         />
                     </bufferGeometry>
                     <lineBasicMaterial color="#00ffff" linewidth={2} />
@@ -334,6 +332,17 @@ function AuthSceneContent() {
 // EXPORTED COMPONENT
 // ============================================
 export function AuthScene3D() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    // Don't render Canvas on server - Three.js requires DOM
+    if (!isClient) {
+        return <div className="absolute inset-0 z-0 pointer-events-none bg-terminal-bg" />;
+    }
+
     return (
         <div className="absolute inset-0 z-0 pointer-events-none">
             <Canvas
