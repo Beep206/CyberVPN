@@ -42,7 +42,6 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/app/providers/theme-provider";
 
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
-import { CustomCursor } from "@/components/ui/custom-cursor";
 import { DevPanel } from "@/features/dev/dev-panel";
 
 export default async function RootLayout({
@@ -74,8 +73,7 @@ export default async function RootLayout({
                 >
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <SmoothScrollProvider>
-                            <CustomCursor />
-                            <div className="relative z-10 h-full w-full cursor-none">
+                            <div className="relative z-10 h-full w-full">
                                 {children}
                             </div>
                         </SmoothScrollProvider>

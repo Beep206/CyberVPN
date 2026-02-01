@@ -48,7 +48,7 @@ export function LandingHero() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="text-5xl md:text-8xl font-display font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-6 drop-shadow-lg"
+                    className="text-5xl md:text-8xl font-display font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-6 drop-shadow-lg py-4 leading-normal"
                 >
                     <ScrambleText text={t('title')} /> <br />
                     <span className="text-neon-cyan neon-text">{t('titleHighlight')}</span>

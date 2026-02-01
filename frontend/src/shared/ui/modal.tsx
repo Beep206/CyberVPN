@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
@@ -13,15 +13,40 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, children, title }: ModalProps) {
+    // Ref for the scrollable content container
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Global scroll capture
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            // If the scroll target is NOT inside the content container (e.g., backdrop or header),
+            // manually scroll the content container.
+            if (contentRef.current && !contentRef.current.contains(e.target as Node)) {
+                contentRef.current.scrollTop += e.deltaY;
+            }
+        };
+
+        window.addEventListener('wheel', handleWheel);
+        return () => window.removeEventListener('wheel', handleWheel);
+    }, [isOpen]);
+
     // Prevent scrolling when modal is open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            window.dispatchEvent(new Event('lenis:stop'));
         } else {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            window.dispatchEvent(new Event('lenis:start'));
         }
         return () => {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            window.dispatchEvent(new Event('lenis:start'));
         };
     }, [isOpen]);
 
@@ -61,6 +86,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
                             className="pointer-events-auto w-full max-w-2xl max-h-[80vh] flex flex-col relative"
+                            data-lenis-prevent
                         >
                             {/* Cyberpunk Border Container */}
                             <div className="relative w-full h-full bg-terminal-bg border border-neon-cyan/50 shadow-[0_0_30px_rgba(0,255,255,0.15)] rounded-lg overflow-hidden flex flex-col">
@@ -80,7 +106,10 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                                 </div>
 
                                 {/* Content */}
-                                <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neon-cyan scrollbar-track-transparent">
+                                <div
+                                    ref={contentRef}
+                                    className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neon-cyan scrollbar-track-transparent"
+                                >
                                     {children}
                                 </div>
 

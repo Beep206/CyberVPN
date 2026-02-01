@@ -9,7 +9,7 @@ const GlobalNetworkScene = dynamic(() => import("@/3d/scenes/GlobalNetwork"), {
 
 export function GlobalNetworkWrapper() {
     return (
-        <ErrorBoundary fallback={<div className="w-full h-full bg-terminal-bg" />}>
+        <ErrorBoundary fallback={<div className="w-full h-full bg-terminal-bg flex items-center justify-center text-xs text-muted-foreground">3D Background Disabled (Extension Conflict)</div>}>
             <GlobalNetworkScene />
         </ErrorBoundary>
     );

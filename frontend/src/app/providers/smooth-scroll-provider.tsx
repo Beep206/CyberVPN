@@ -20,7 +20,15 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
 
         lenisRef.current = lenis;
 
+        const stopLenis = () => lenis.stop();
+        const startLenis = () => lenis.start();
+
+        window.addEventListener('lenis:stop', stopLenis);
+        window.addEventListener('lenis:start', startLenis);
+
         return () => {
+            window.removeEventListener('lenis:stop', stopLenis);
+            window.removeEventListener('lenis:start', startLenis);
             lenis.destroy();
         };
     }, []);
