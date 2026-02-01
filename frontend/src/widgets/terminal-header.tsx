@@ -7,6 +7,7 @@ import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { LanguageSelector } from '@/features/language-selector';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { NotificationDropdown } from "@/features/notifications/notification-dropdown";
+import { MagneticButton } from "@/shared/ui/magnetic-button";
 
 export function TerminalHeader() {
     const [time, setTime] = useState<string>('');
@@ -73,9 +74,11 @@ export function TerminalHeader() {
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/95 backdrop-blur-xl border-b border-grid-line/50 shadow-sm dark:shadow-none px-6 pl-20 md:pl-6 transition-all">
             <div className="flex flex-1 items-center gap-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground">
-                    <Search className="h-4 w-4" />
-                </div>
+                <MagneticButton strength={15}>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+                        <Search className="h-4 w-4" />
+                    </div>
+                </MagneticButton>
 
                 {/* Cypher Text Status */}
                 <div className="hidden md:flex items-center text-xs font-cyber text-muted-foreground/50">

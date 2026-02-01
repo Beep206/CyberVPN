@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { Globe, Search, Check } from 'lucide-react';
 import { LANGUAGES } from '@/i18n/languages';
 import { Modal } from '@/shared/ui/modal';
+import { MagneticButton } from '@/shared/ui/magnetic-button';
 
 export function LanguageSelector() {
     const locale = useLocale();
@@ -31,19 +32,21 @@ export function LanguageSelector() {
 
     return (
         <>
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-terminal-surface border border-grid-line/30 text-neon-cyan hover:border-neon-cyan hover:shadow-neon-cyan/20 transition-all duration-300 group"
-            >
-                <span className="text-lg filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">
-                    {currentLanguage.flag}
-                </span>
-                <span className="font-mono text-sm tracking-wider group-hover:text-neon-pink transition-colors">
-                    {currentLanguage.code.split('-')[1]}
-                </span>
-            </motion.button>
+            <MagneticButton strength={20}>
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsOpen(true)}
+                    className="flex h-10 items-center justify-center gap-2 px-3 rounded-lg bg-terminal-surface/30 border border-grid-line/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 group"
+                >
+                    <span className="text-xl filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] leading-none">
+                        {currentLanguage.flag}
+                    </span>
+                    <span className="font-mono text-sm uppercase tracking-wider group-hover:text-neon-cyan transition-colors">
+                        {currentLanguage.code.split('-')[1]}
+                    </span>
+                </motion.button>
+            </MagneticButton>
 
             <Modal
                 isOpen={isOpen}
