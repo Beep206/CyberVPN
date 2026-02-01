@@ -1,5 +1,8 @@
+"use client"
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { MagneticButton } from "@/shared/ui/magnetic-button"
 
 import { cn } from "@/lib/utils"
 
@@ -35,17 +38,28 @@ const buttonVariants = cva(
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
+    magnetic?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, ...props }, ref) => {
-        return (
+    ({ className, variant, size, magnetic = true, ...props }, ref) => {
+        const button = (
             <button
                 className={cn(buttonVariants({ variant, size, className }))}
                 ref={ref}
                 {...props}
             />
         )
+
+        if (magnetic) {
+            return (
+                <MagneticButton className="inline-block" strength={20}>
+                    {button}
+                </MagneticButton>
+            )
+        }
+
+        return button
     }
 )
 Button.displayName = "Button"

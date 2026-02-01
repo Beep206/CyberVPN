@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { MagneticButton } from '@/shared/ui/magnetic-button';
 
 // Social provider icons (inline SVGs for best performance)
 const providers = {
@@ -64,33 +65,34 @@ export function SocialAuthButtons({
                 const { name, icon, colors } = providers[provider];
 
                 return (
-                    <motion.button
-                        key={provider}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 * index, duration: 0.3 }}
-                        type="button"
-                        onClick={onClick}
-                        disabled={disabled}
-                        className={cn(
-                            "flex-1 flex items-center justify-center gap-2",
-                            "py-3 px-4 rounded-lg",
-                            "bg-terminal-bg/50 dark:bg-black/40",
-                            "border border-grid-line/30",
-                            "text-muted-foreground",
-                            "font-mono text-sm",
-                            "transition-all duration-200",
-                            "cursor-pointer",
-                            colors,
-                            disabled && "opacity-50 cursor-not-allowed",
-                            // Focus state for keyboard nav
-                            "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
-                        )}
-                        aria-label={`Sign in with ${name}`}
-                    >
-                        {icon}
-                        <span className="hidden sm:inline">{name}</span>
-                    </motion.button>
+                    <MagneticButton key={provider} className="flex-1">
+                        <motion.button
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 * index, duration: 0.3 }}
+                            type="button"
+                            onClick={onClick}
+                            disabled={disabled}
+                            className={cn(
+                                "w-full flex items-center justify-center gap-2",
+                                "py-3 px-4 rounded-lg",
+                                "bg-terminal-bg/50 dark:bg-black/40",
+                                "border border-grid-line/30",
+                                "text-muted-foreground",
+                                "font-mono text-sm",
+                                "transition-all duration-200",
+                                "cursor-pointer",
+                                colors,
+                                disabled && "opacity-50 cursor-not-allowed",
+                                // Focus state for keyboard nav
+                                "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
+                            )}
+                            aria-label={`Sign in with ${name}`}
+                        >
+                            {icon}
+                            <span className="hidden sm:inline">{name}</span>
+                        </motion.button>
+                    </MagneticButton>
                 );
             })}
         </div>
