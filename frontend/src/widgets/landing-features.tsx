@@ -1,135 +1,198 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { motion, useMotionTemplate, useMotionValue } from 'motion/react';
-import { Zap, Shield, EyeOff, Globe, Server, Lock } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Shield, Zap, EyeOff, Globe, Infinity, Layers } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { FeatureCard3D } from '@/shared/ui/feature-card-3d';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 
-const icons = {
-    speed: Zap,
-    security: Shield,
-    anonymity: EyeOff,
-    global: Globe,
-    unlimited: Server,
-    encryption: Lock
-};
+// Dynamically import 3D scene to avoid SSR issues
+const FeaturesScene3D = dynamic(
+    () => import('@/3d/scenes/FeaturesScene3D').then((mod) => mod.FeaturesScene3D),
+    { ssr: false }
+);
 
-import { TiltCard } from '@/shared/ui/tilt-card';
+// Feature configuration with icons and styling
+const featureConfig = [
+    {
+        id: 'shield',
+        icon: Shield,
+        color: 'text-neon-cyan',
+        bgColor: 'bg-neon-cyan/15 dark:bg-neon-cyan/10',
+        colSpan: 'md:col-span-2'
+    },
+    {
+        id: 'speed',
+        icon: Zap,
+        color: 'text-yellow-400',
+        bgColor: 'bg-yellow-400/15 dark:bg-yellow-400/10',
+        colSpan: 'md:col-span-1'
+    },
+    {
+        id: 'privacy',
+        icon: EyeOff,
+        color: 'text-neon-purple',
+        bgColor: 'bg-neon-purple/15 dark:bg-neon-purple/10',
+        colSpan: 'md:col-span-1'
+    },
+    {
+        id: 'global',
+        icon: Globe,
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-400/15 dark:bg-blue-400/10',
+        colSpan: 'md:col-span-1'
+    },
+    {
+        id: 'unlimited',
+        icon: Infinity,
+        color: 'text-matrix-green',
+        bgColor: 'bg-matrix-green/15 dark:bg-matrix-green/10',
+        colSpan: 'md:col-span-1'
+    },
+    {
+        id: 'protocols',
+        icon: Layers,
+        color: 'text-neon-pink',
+        bgColor: 'bg-neon-pink/15 dark:bg-neon-pink/10',
+        colSpan: 'md:col-span-2'
+    }
+];
+
+// Stats data
+const stats = [
+    { value: '100+', label: 'locations' },
+    { value: '10', label: 'Gbit/s' },
+    { value: '99.9%', label: 'uptime' },
+    { value: '0', label: 'logs' }
+];
 
 export function LandingFeatures() {
     const t = useTranslations('Landing.features');
 
-    const features = [
-        { id: 'speed', icon: icons.speed, color: 'text-neon-cyan', bg: 'bg-neon-cyan/15 dark:bg-neon-cyan/5', colSpan: 'md:col-span-2' },
-        { id: 'security', icon: icons.security, color: 'text-neon-purple', bg: 'bg-neon-purple/15 dark:bg-neon-purple/5', colSpan: 'md:col-span-1' },
-        { id: 'anonymity', icon: icons.anonymity, color: 'text-matrix-green', bg: 'bg-matrix-green/15 dark:bg-matrix-green/5', colSpan: 'md:col-span-1' },
-        { id: 'global', icon: icons.global, color: 'text-blue-400', bg: 'bg-blue-400/15 dark:bg-blue-400/5', colSpan: 'md:col-span-2' },
-    ];
+    // Container animation variants
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2
+            }
+        }
+    };
 
     return (
-        <section className="relative py-32 bg-terminal-bg">
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px] z-0" />
+        <section className="relative py-32 bg-terminal-bg overflow-hidden">
+            {/* 3D Background Scene */}
+            <FeaturesScene3D />
+
+            {/* Grid overlay */}
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px] z-[1]" />
+
+            {/* Gradient overlays for readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-terminal-bg via-transparent to-terminal-bg z-[2]" />
+            <div className="absolute inset-0 bg-terminal-bg/60 z-[2]" />
 
             <div className="container px-4 mx-auto relative z-10">
+                {/* Section Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className="text-center mb-20"
+                >
+                    {/* Tag */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.1 }}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan text-xs font-mono mb-6 backdrop-blur-sm"
+                    >
+                        <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse" />
+                        FEATURE MATRIX
+                    </motion.div>
+
+                    {/* Title */}
+                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink">
+                            {t('sectionTitle')}
+                        </span>
+                    </h2>
+
+                    {/* Subtitle */}
+                    <p className="text-muted-foreground font-mono text-lg md:text-xl max-w-2xl mx-auto">
+                        {t('sectionSubtitle')}
+                    </p>
+                </motion.div>
+
+                {/* Features Grid - Bento Layout */}
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-100px' }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[280px] mb-16"
+                >
+                    {featureConfig.map((feature, index) => (
+                        <FeatureCard3D
+                            key={feature.id}
+                            icon={feature.icon}
+                            title={t(`${feature.id}.title`)}
+                            description={t(`${feature.id}.desc`)}
+                            color={feature.color}
+                            bgColor={feature.bgColor}
+                            index={index}
+                            colSpan={feature.colSpan}
+                        />
+                    ))}
+                </motion.div>
+
+                {/* Stats Banner */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-center mb-20"
+                    transition={{ delay: 0.5 }}
+                    className="relative rounded-2xl border border-grid-line/40 bg-terminal-surface/60 dark:bg-black/40 backdrop-blur-xl p-8 overflow-hidden"
                 >
-                    <h2 className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-purple mb-6">
-                        {t('title')}
-                    </h2>
-                    <p className="text-muted-foreground font-mono text-lg max-w-2xl mx-auto">
-                        Next-generation feature set designed for the modern cyber-citizen.
-                    </p>
-                </motion.div>
+                    {/* Glow accents */}
+                    <div className="absolute -left-20 -top-20 w-40 h-40 bg-neon-cyan/20 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="absolute -right-20 -bottom-20 w-40 h-40 bg-neon-purple/20 rounded-full blur-[80px] pointer-events-none" />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
-                    {features.map((feature, index) => (
-                        <motion.div
-                            key={feature.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`${feature.colSpan}`}
-                        >
-                            <TiltCard className={`h-full rounded-2xl p-8 flex flex-col justify-between hover:border-neon-cyan/50 transition-colors duration-500`}>
-                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${feature.bg} ${feature.color} mb-6 border border-foreground/5`}>
-                                    <feature.icon className="w-7 h-7" />
+                    <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+                        {stats.map((stat, index) => (
+                            <motion.div
+                                key={stat.label}
+                                initial={{ opacity: 0, y: 10 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.6 + index * 0.1 }}
+                                className="text-center"
+                            >
+                                <div className="text-3xl md:text-5xl font-display font-bold text-neon-cyan mb-2">
+                                    <ScrambleText text={stat.value} />
                                 </div>
-
-                                <div>
-                                    <h3 className="text-2xl font-bold font-display mb-3 text-foreground">
-                                        <ScrambleText text={t(`${feature.id}.title`)} triggerOnHover />
-                                    </h3>
-                                    <p className="text-muted-foreground font-mono leading-relaxed">
-                                        {t(`${feature.id}.desc`)}
-                                    </p>
+                                <div className="text-muted-foreground font-mono text-sm uppercase tracking-wider">
+                                    {stat.label}
                                 </div>
+                            </motion.div>
+                        ))}
+                    </div>
 
-                                {/* Decorative tech elements */}
-                                <div className="absolute top-4 right-4 text-[10px] font-mono text-foreground/20">
-                                    SYS.0{index + 1}
-                                </div>
-                                <div className="absolute bottom-4 right-4 w-12 h-0.5 bg-gradient-to-r from-transparent to-foreground/20" />
-                            </TiltCard>
-                        </motion.div>
-                    ))}
-                </div>
-
-                {/* Stat Card / Connect CTA - Placed outside the rigid grid for flexible height */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.4 }}
-                    className="w-full mt-6"
-                >
-                    <TiltCard className="h-auto min-h-[300px] rounded-2xl p-0 overflow-hidden relative group border-neon-cyan/30 bg-gradient-to-br from-terminal-surface/50 to-neon-purple/5">
-                        {/* Ambient Glow */}
-                        <div className="absolute -right-20 -top-20 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-neon-purple/30 transition-all duration-700" />
-
-                        <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-2 gap-8 p-10 items-center">
-                            {/* Left Content */}
-                            <div className="flex flex-col items-start space-y-6">
-                                <div>
-                                    <h3 className="text-3xl md:text-4xl font-bold font-display text-foreground mb-3 leading-tight">
-                                        Ready to secure <br />
-                                        <span className="text-neon-cyan">your connection?</span>
-                                    </h3>
-                                    <p className="text-muted-foreground font-mono text-lg max-w-md">
-                                        Join thousands of users on the most secure highly-encrypted network available today.
-                                    </p>
-                                </div>
-
-                                <button className="px-8 py-4 bg-foreground text-background font-bold font-mono rounded hover:bg-neon-cyan hover:text-black transition-all duration-300 shadow-lg shadow-neon-cyan/20 group-hover:shadow-neon-cyan/40" data-hoverable>
-                                    <span className="mr-2">INITIALIZE UPLINK_</span>
-                                </button>
-                            </div>
-
-                            {/* Right Visuals - Holographic Map Composition */}
-                            <div className="hidden md:flex items-center justify-center relative h-full min-h-[200px]">
-                                <div className="relative w-full h-full flex items-center justify-center">
-                                    {/* Spinning rings */}
-                                    <div className="absolute w-64 h-64 border border-neon-cyan/20 rounded-full animate-[spin_10s_linear_infinite]" />
-                                    <div className="absolute w-48 h-48 border border-neon-purple/20 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-                                    <div className="absolute w-32 h-32 border-2 border-neon-cyan/10 rounded-full animate-pulse" />
-
-                                    {/* Center Icon */}
-                                    <Globe className="w-24 h-24 text-neon-cyan opacity-80 drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]" />
-
-                                    {/* Floating nodes */}
-                                    <div className="absolute top-10 right-20 w-3 h-3 bg-neon-purple rounded-full animate-ping" />
-                                    <div className="absolute bottom-10 left-20 w-2 h-2 bg-neon-cyan rounded-full animate-ping delay-700" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Grid overlay */}
-                        <div className="absolute inset-0 z-0 opacity-10 bg-[url('/grid-pattern.svg')] pointer-events-none" />
-                    </TiltCard>
+                    {/* Decorative scan line */}
+                    <motion.div
+                        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan to-transparent"
+                        initial={{ top: '0%' }}
+                        animate={{ top: '100%' }}
+                        transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: 'linear'
+                        }}
+                    />
                 </motion.div>
             </div>
         </section>
