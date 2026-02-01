@@ -1,0 +1,111 @@
+[
+  {
+    "id": "plan-trial",
+    "name": "Free Trial",
+    "description": "7-day free trial with limited features",
+    "price": 0.0,
+    "currency": "USD",
+    "duration": "monthly",
+    "durationDays": 7,
+    "maxDevices": 1,
+    "trafficLimitGb": 5,
+    "isPopular": false,
+    "isTrial": true,
+    "storeProductId": null,
+    "features": [
+      "5 GB traffic",
+      "1 device",
+      "Basic servers only"
+    ]
+  },
+  {
+    "id": "plan-monthly",
+    "name": "Monthly Pro",
+    "description": "Full access for 30 days",
+    "price": 9.99,
+    "currency": "USD",
+    "duration": "monthly",
+    "durationDays": 30,
+    "maxDevices": 5,
+    "trafficLimitGb": 100,
+    "isPopular": true,
+    "isTrial": false,
+    "storeProductId": "com.cybervpn.monthly",
+    "features": [
+      "100 GB traffic",
+      "5 devices",
+      "All servers",
+      "Kill switch",
+      "Split tunneling"
+    ]
+  },
+  {
+    "id": "plan-quarterly",
+    "name": "Quarterly Pro",
+    "description": "3-month subscription with 15% savings",
+    "price": 24.99,
+    "currency": "USD",
+    "duration": "quarterly",
+    "durationDays": 90,
+    "maxDevices": 5,
+    "trafficLimitGb": 300,
+    "isPopular": false,
+    "isTrial": false,
+    "storeProductId": "com.cybervpn.quarterly",
+    "features": [
+      "300 GB traffic",
+      "5 devices",
+      "All servers",
+      "Kill switch",
+      "Split tunneling",
+      "Priority support"
+    ]
+  },
+  {
+    "id": "plan-yearly",
+    "name": "Annual Pro",
+    "description": "Best value - annual subscription",
+    "price": 79.99,
+    "currency": "USD",
+    "duration": "yearly",
+    "durationDays": 365,
+    "maxDevices": 10,
+    "trafficLimitGb": 500,
+    "isPopular": false,
+    "isTrial": false,
+    "storeProductId": "com.cybervpn.yearly",
+    "features": [
+      "500 GB traffic",
+      "10 devices",
+      "All servers",
+      "Kill switch",
+      "Split tunneling",
+      "Priority support",
+      "Dedicated IP option"
+    ]
+  },
+  {
+    "id": "plan-lifetime",
+    "name": "Lifetime",
+    "description": "One-time purchase, unlimited access",
+    "price": 199.99,
+    "currency": "USD",
+    "duration": "lifetime",
+    "durationDays": 36500,
+    "maxDevices": 10,
+    "trafficLimitGb": 9999,
+    "isPopular": false,
+    "isTrial": false,
+    "storeProductId": "com.cybervpn.lifetime",
+    "features": [
+      "Unlimited traffic",
+      "10 devices",
+      "All servers",
+      "Kill switch",
+      "Split tunneling",
+      "Priority support",
+      "Dedicated IP",
+      "Lifetime updates"
+    ]
+  }
+]

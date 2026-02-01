@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Shadowsocks: Twin "S" shapes with shadow effect -->
+  <path d="M7 6c1.5 0 2.5 1 2.5 2.5S8.5 11 7 11" stroke="#00FF88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M7 11c1.5 0 2.5 1 2.5 2.5S8.5 16 7 16" stroke="#00FF88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 6c1.5 0 2.5 1 2.5 2.5S16.5 11 15 11" stroke="#00FF88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 11c1.5 0 2.5 1 2.5 2.5S16.5 16 15 16" stroke="#00FF88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Shadow dots -->
+  <circle cx="7" cy="19" r="0.8" fill="#00FF88" opacity="0.4"/>
+  <circle cx="15" cy="19" r="0.8" fill="#00FF88" opacity="0.4"/>
+</svg>

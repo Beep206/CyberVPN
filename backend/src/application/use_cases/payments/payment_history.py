@@ -7,6 +7,12 @@ class PaymentHistoryUseCase:
     def __init__(self, repo: PaymentRepository) -> None:
         self._repo = repo
 
+    async def execute(self, user_uuid: UUID | None, offset: int = 0, limit: int = 20) -> list:
+        if user_uuid:
+            return await self._repo.get_by_user_uuid(user_uuid, offset=offset, limit=limit)
+
+        return await self._repo.get_paginated(offset=offset, limit=limit)
+
     async def get_by_user(self, user_uuid: UUID, offset: int = 0, limit: int = 20) -> list:
         return await self._repo.get_by_user_uuid(user_uuid, offset=offset, limit=limit)
 

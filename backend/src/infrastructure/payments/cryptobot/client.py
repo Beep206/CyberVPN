@@ -1,4 +1,5 @@
 from httpx import AsyncClient
+from pydantic import SecretStr
 
 from src.config.settings import settings
 
@@ -6,8 +7,8 @@ from src.config.settings import settings
 class CryptoBotClient:
     BASE_URL = "https://pay.crypt.bot/api"
 
-    def __init__(self) -> None:
-        self._token = getattr(settings, "cryptobot_token", None)
+    def __init__(self, token: SecretStr | None = None) -> None:
+        self._token = token or getattr(settings, "cryptobot_token", None)
         self._client: AsyncClient | None = None
 
     async def _get_client(self) -> AsyncClient:
@@ -19,9 +20,7 @@ class CryptoBotClient:
             )
         return self._client
 
-    async def create_invoice(
-        self, amount: str, currency: str, description: str, payload: str | None = None
-    ) -> dict:
+    async def create_invoice(self, amount: str, currency: str, description: str, payload: str | None = None) -> dict:
         client = await self._get_client()
         params = {"amount": amount, "asset": currency, "description": description}
         if payload:
@@ -42,3 +41,10 @@ class CryptoBotClient:
     async def close(self) -> None:
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+
+
+cryptobot_client = CryptoBotClient(token=settings.cryptobot_token)
+
+
+async def get_cryptobot_client() -> CryptoBotClient:
+    return cryptobot_client

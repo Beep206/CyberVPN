@@ -7,8 +7,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
-from keyboards.admin_main import admin_main_keyboard
-from middleware.admin import admin_required
+from src.keyboards.admin_main import admin_main_keyboard
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
@@ -16,8 +15,6 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_main")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.message(Command("admin"))

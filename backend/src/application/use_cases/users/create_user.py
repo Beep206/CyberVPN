@@ -1,5 +1,4 @@
 """Create user use case."""
-from uuid import UUID
 
 from src.application.dto.user_dto import CreateUserDTO
 from src.domain.entities.user import User

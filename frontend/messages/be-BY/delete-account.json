@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "title": "Delete Account - CyberVPN",
+    "description": "Request permanent deletion of your CyberVPN account and all associated data."
+  },
+  "title": "Delete Account",
+  "subtitle": "Permanently delete your CyberVPN account",
+  "warning": {
+    "title": "Warning: This action is permanent",
+    "message": "Deleting your account will permanently remove all your data and cannot be undone."
+  },
+  "sections": {
+    "consequences": {
+      "title": "What will be deleted",
+      "items": {
+        "accountData": "Your account information and profile",
+        "subscriptions": "All active subscriptions (no refunds)",
+        "configs": "VPN configurations and connection history",
+        "referrals": "Referral data and earned rewards",
+        "support": "Support tickets and communication history"
+      }
+    },
+    "beforeDelete": {
+      "title": "Before you delete",
+      "items": {
+        "exportData": "Export your data if needed (GDPR right to data portability)",
+        "cancelSubscriptions": "Cancel any active subscriptions",
+        "useReferrals": "Use any pending referral rewards",
+        "saveConfigs": "Save any custom VPN configurations"
+      }
+    },
+    "alternativeOptions": {
+      "title": "Alternative options",
+      "description": "If you're experiencing issues, consider these alternatives:",
+      "items": {
+        "pauseSubscription": "Pause your subscription temporarily",
+        "contactSupport": "Contact support for assistance",
+        "changeSettings": "Adjust your account or privacy settings"
+      }
+    }
+  },
+  "form": {
+    "title": "Delete account request",
+    "description": "To proceed with account deletion, please confirm your identity and reason.",
+    "fields": {
+      "email": {
+        "label": "Email address",
+        "placeholder": "Enter your account email",
+        "error": "Valid email is required"
+      },
+      "password": {
+        "label": "Password",
+        "placeholder": "Enter your password",
+        "error": "Password is required"
+      },
+      "reason": {
+        "label": "Reason for deletion (optional)",
+        "placeholder": "Help us improve by sharing why you're leaving",
+        "options": {
+          "notUsing": "Not using the service",
+          "tooExpensive": "Too expensive",
+          "technicalIssues": "Technical issues",
+          "privacyConcerns": "Privacy concerns",
+          "foundAlternative": "Found an alternative",
+          "other": "Other"
+        }
+      },
+      "feedback": {
+        "label": "Additional feedback (optional)",
+        "placeholder": "Any additional comments..."
+      },
+      "confirmation": {
+        "label": "I understand this action is permanent and cannot be undone",
+        "error": "You must confirm to proceed"
+      }
+    },
+    "submit": "Delete My Account",
+    "submitting": "Processing...",
+    "cancel": "Cancel"
+  },
+  "success": {
+    "title": "Account deletion requested",
+    "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
+    "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized."
+  },
+  "error": {
+    "title": "Deletion failed",
+    "message": "We couldn't process your deletion request. Please try again or contact support.",
+    "invalidCredentials": "Invalid email or password",
+    "networkError": "Network error. Please check your connection.",
+    "serverError": "Server error. Please try again later."
+  },
+  "contact": {
+    "title": "Need help?",
+    "description": "If you have questions about account deletion or data privacy:",
+    "email": "Email",
+    "emailAddress": "privacy@cybervpn.app"
+  }
+}

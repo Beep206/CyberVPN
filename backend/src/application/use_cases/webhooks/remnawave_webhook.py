@@ -12,6 +12,7 @@ class ProcessRemnawaveWebhookUseCase:
 
     async def execute(self, body: bytes, signature: str) -> dict:
         import json
+
         is_valid = self._validator.validate_signature(body, signature)
         payload = json.loads(body)
 

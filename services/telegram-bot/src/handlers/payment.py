@@ -5,39 +5,66 @@ from typing import TYPE_CHECKING
 import structlog
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, PreCheckoutQuery
 
-from states.subscription import SubscriptionState
+from src.states.subscription import SubscriptionState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
-    from config.settings import Settings
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="payment")
 
+STARS_PRICING: dict[int, int] = {
+    30: 100,
+    90: 250,
+    365: 800,
+}
 
-@router.callback_query(SubscriptionState.selecting_payment, F.data.startswith("payment:"))
+
+def _stars_amount_for_duration(duration_days: int) -> int:
+    if duration_days in STARS_PRICING:
+        return STARS_PRICING[duration_days]
+    if duration_days > 0:
+        return max(1, int(duration_days / 30 * 100))
+    return 100
+
+
+@router.callback_query(SubscriptionState.selecting_payment, F.data.startswith("pay:"))
 async def payment_method_selected_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle payment method selection and create payment."""
+    if callback.data is None:
+        await state.clear()
+        return
+
+    if not isinstance(callback.message, Message):
+        await state.clear()
+        return
+
     payment_method = callback.data.split(":")[1]
     user_id = callback.from_user.id
 
     # Get stored data
     data = await state.get_data()
     plan_id = data.get("plan_id")
-    duration_months = data.get("duration_months")
-    total_price = data.get("total_price")
+    duration_days = data.get("duration_days")
+    amount = data.get("amount")
+    currency = data.get("currency")
 
-    if not all([plan_id, duration_months, total_price]):
+    if not all([plan_id, duration_days, amount]):
+        await callback.answer(i18n.get("error-generic"), show_alert=True)
+        await state.clear()
+        return
+
+    if duration_days is None:
         await callback.answer(i18n.get("error-generic"), show_alert=True)
         await state.clear()
         return
@@ -45,10 +72,11 @@ async def payment_method_selected_handler(
     try:
         # Create payment via API
         payment_data = {
-            "user_id": user_id,
+            "telegram_id": user_id,
             "plan_id": plan_id,
-            "duration_months": duration_months,
-            "amount": total_price,
+            "duration_days": duration_days,
+            "amount": amount,
+            "currency": currency,
             "payment_method": payment_method,
         }
 
@@ -56,19 +84,26 @@ async def payment_method_selected_handler(
         payment_id = payment.get("id")
         payment_url = payment.get("payment_url")
 
+        if not payment_id:
+            await callback.answer(i18n.get("error-payment-creation-failed"), show_alert=True)
+            await state.clear()
+            return
+
         # Store payment ID
         await state.update_data(payment_id=payment_id)
 
-        if payment_method == "stars":
+        if payment_method in {"stars", "telegram_stars"}:
             # Telegram Stars payment
             from aiogram.types import LabeledPrice
 
-            prices = [LabeledPrice(label=i18n.get("subscription-payment"), amount=int(total_price * 100))]
+            duration_days_value = int(duration_days) if isinstance(duration_days, (int, str)) else 0
+            stars_amount = _stars_amount_for_duration(duration_days_value)
+            prices = [LabeledPrice(label=i18n.get("subscription-payment"), amount=stars_amount)]
 
             await callback.message.answer_invoice(
                 title=i18n.get("subscription-payment-title"),
                 description=i18n.get("subscription-payment-description"),
-                payload=f"payment_{payment_id}",
+                payload=f"payment_{payment_id}:{duration_days_value}",
                 provider_token="",  # Empty for Telegram Stars
                 currency="XTR",
                 prices=prices,
@@ -109,7 +144,7 @@ async def payment_method_selected_handler(
             user_id=user_id,
             payment_id=payment_id,
             payment_method=payment_method,
-            amount=total_price,
+            amount=amount,
         )
 
     except Exception as e:
@@ -120,15 +155,31 @@ async def payment_method_selected_handler(
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("payment:check:"))
+@router.callback_query(F.data.startswith("payment:check"))
 async def check_payment_status_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Check payment status."""
-    payment_id = callback.data.split(":")[2]
+    if callback.data is None:
+        await state.clear()
+        return
+
+    if not isinstance(callback.message, Message):
+        await state.clear()
+        return
+
+    parts = callback.data.split(":")
+    payment_id = parts[2] if len(parts) > 2 else None
+    if not payment_id:
+        data = await state.get_data()
+        payment_id = data.get("payment_id")
+    if not payment_id:
+        await callback.answer(i18n.get("error-generic"), show_alert=True)
+        await state.clear()
+        return
     user_id = callback.from_user.id
 
     try:
@@ -144,7 +195,7 @@ async def check_payment_status_handler(
             # Clear state and show config delivery options
             await state.clear()
 
-            from keyboards.config import config_delivery_keyboard
+            from src.keyboards.config import config_delivery_keyboard
 
             await callback.message.answer(
                 text=i18n.get("config-delivery-prompt"),
@@ -173,14 +224,28 @@ async def check_payment_status_handler(
     await callback.answer()
 
 
+@router.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery) -> None:
+    """Answer pre-checkout query for Telegram Stars payments."""
+    payload = pre_checkout_query.invoice_payload or ""
+    if payload.startswith("payment_"):
+        await pre_checkout_query.answer(ok=True)
+        return
+
+    await pre_checkout_query.answer(ok=False, error_message="Invalid payment payload")
+
+
 @router.message(SubscriptionState.processing_payment, F.successful_payment)
 async def successful_payment_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle successful Telegram Stars payment."""
+    if message.from_user is None or message.successful_payment is None:
+        return
+
     user_id = message.from_user.id
     payment_info = message.successful_payment
 
@@ -194,7 +259,8 @@ async def successful_payment_handler(
 
     # Extract payment ID from payload
     if payment_info.invoice_payload.startswith("payment_"):
-        payment_id = payment_info.invoice_payload[8:]
+        payload = payment_info.invoice_payload[8:]
+        payment_id = payload.split(":")[0]
 
         try:
             # Confirm payment via API
@@ -205,7 +271,7 @@ async def successful_payment_handler(
             # Clear state and show config delivery options
             await state.clear()
 
-            from keyboards.config import config_delivery_keyboard
+            from src.keyboards.config import config_delivery_keyboard
 
             await message.answer(
                 text=i18n.get("config-delivery-prompt"),

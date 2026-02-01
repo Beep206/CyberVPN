@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
+    jwt_issuer: str | None = None
+    jwt_audience: str | None = None
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
@@ -41,6 +43,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_requests: int = 100
     rate_limit_window: int = 60  # seconds
+    trust_proxy_headers: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -48,6 +51,14 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
+
+    @field_validator("jwt_issuer", "jwt_audience", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 settings = Settings()

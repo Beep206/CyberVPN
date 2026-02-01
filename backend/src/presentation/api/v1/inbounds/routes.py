@@ -1,24 +1,27 @@
 from fastapi import APIRouter, Depends
-from src.presentation.dependencies import require_role, get_remnawave_client
+
+from src.domain.enums import AdminRole
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import InboundResponse
 
 router = APIRouter(prefix="/inbounds", tags=["inbounds"])
 
-@router.get("/", responses={200: {"model": list[InboundResponse]}})
+
+@router.get("/", response_model=list[InboundResponse])
 async def list_inbounds(
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List all inbound configurations (admin only)"""
     return await client.get("/inbounds")
 
-@router.get("/{uuid}", responses={200: {"model": InboundResponse}})
+
+@router.get("/{uuid}", response_model=InboundResponse)
 async def get_inbound(
     uuid: str,
-    current_user=Depends(require_role("admin")),
-    client: RemnawaveClient = Depends(get_remnawave_client)
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Get inbound configuration details (admin only)"""
     return await client.get(f"/inbounds/{uuid}")

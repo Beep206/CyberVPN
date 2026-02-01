@@ -7,26 +7,43 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from keyboards.payment import payment_methods_keyboard
-from keyboards.subscription import duration_keyboard, plans_keyboard
-from states.subscription import SubscriptionState
+from src.keyboards.subscription import duration_keyboard, payment_methods_keyboard, plans_keyboard
+from src.states.subscription import SubscriptionState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
-    from config.settings import Settings
+    from src.config import BotSettings
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="subscription")
 
 
+def _extract_plan_durations(plan: dict) -> list[dict]:
+    durations = plan.get("durations") or plan.get("duration_options") or plan.get("periods") or []
+    if isinstance(durations, list):
+        return [d for d in durations if isinstance(d, dict)]
+    return []
+
+
+def _select_price(prices: dict) -> tuple[float | None, str | None]:
+    if not prices:
+        return None, None
+    if "RUB" in prices:
+        return float(prices["RUB"]), "RUB"
+    if "USD" in prices:
+        return float(prices["USD"]), "USD"
+    currency = next(iter(prices))
+    return float(prices[currency]), str(currency)
+
+
 @router.callback_query(F.data == "subscription:buy")
 async def buy_subscription_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Start subscription purchase flow - show plan selection."""
@@ -57,17 +74,34 @@ async def buy_subscription_handler(
 async def plan_selected_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle plan selection - show duration selection."""
-    plan_id = callback.data.split(":")[1]
+    if callback.data is None:
+        await state.clear()
+        return
+
+    plan_id = callback.data.split(":")[-1]
 
     # Store selected plan
     await state.update_data(plan_id=plan_id)
 
+    plan = None
+    durations = []
+    try:
+        plan = await api_client.get_plan(plan_id)
+        if isinstance(plan, dict):
+            durations = _extract_plan_durations(plan)
+    except Exception:
+        plan = None
+        durations = []
+
+    await state.update_data(plan=plan, durations=durations)
+
     await callback.message.edit_text(
         text=i18n.get("subscription-select-duration"),
-        reply_markup=duration_keyboard(i18n),
+        reply_markup=duration_keyboard(i18n, plan=plan, durations=durations),
     )
 
     await state.set_state(SubscriptionState.selecting_duration)
@@ -80,16 +114,22 @@ async def plan_selected_handler(
 async def duration_selected_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
-    settings: Settings,
+    settings: BotSettings,
 ) -> None:
     """Handle duration selection - show payment methods."""
-    duration_months = int(callback.data.split(":")[1])
+    if callback.data is None:
+        await state.clear()
+        return
+
+    duration_days = int(callback.data.split(":")[-1])
 
     # Get stored plan
     data = await state.get_data()
     plan_id = data.get("plan_id")
+    plan = data.get("plan") or {}
+    durations = data.get("durations") or []
 
     if not plan_id:
         await callback.answer(i18n.get("error-generic"), show_alert=True)
@@ -98,30 +138,38 @@ async def duration_selected_handler(
 
     # Calculate total price
     try:
-        plan = await api_client.get_plan(plan_id)
-        base_price = plan.get("price", 0)
-        total_price = base_price * duration_months
+        selected_duration = None
+        for duration in durations:
+            if int(duration.get("duration_days") or duration.get("days") or 0) == duration_days:
+                selected_duration = duration
+                break
 
-        # Apply discounts for longer durations
-        if duration_months == 3:
-            total_price *= 0.95  # 5% discount
-        elif duration_months == 6:
-            total_price *= 0.90  # 10% discount
-        elif duration_months == 12:
-            total_price *= 0.85  # 15% discount
+        amount = None
+        currency = None
+        if selected_duration and isinstance(selected_duration, dict):
+            prices = selected_duration.get("prices") or {}
+            if isinstance(prices, dict):
+                amount, currency = _select_price(prices)
+
+        if amount is None:
+            plan_data = plan if isinstance(plan, dict) else await api_client.get_plan(plan_id)
+            base_price = plan_data.get("price", 0) if isinstance(plan_data, dict) else 0
+            amount = float(base_price)
+            currency = "USD"
 
         # Store duration and price
         await state.update_data(
-            duration_months=duration_months,
-            total_price=total_price,
+            duration_days=duration_days,
+            amount=amount,
+            currency=currency,
         )
 
         await callback.message.edit_text(
             text=i18n.get(
                 "subscription-select-payment",
-                plan=plan.get("name", "N/A"),
-                duration=duration_months,
-                price=total_price,
+                plan=(plan.get("name", "N/A") if isinstance(plan, dict) else "N/A"),
+                duration=duration_days,
+                price=f"{amount} {currency}" if currency else amount,
             ),
             reply_markup=payment_methods_keyboard(i18n, settings),
         )
@@ -131,8 +179,8 @@ async def duration_selected_handler(
             "duration_selected",
             user_id=callback.from_user.id,
             plan_id=plan_id,
-            duration=duration_months,
-            price=total_price,
+            duration=duration_days,
+            price=amount,
         )
 
     except Exception as e:
@@ -140,6 +188,55 @@ async def duration_selected_handler(
         await callback.answer(i18n.get("error-generic"), show_alert=True)
         await state.clear()
 
+    await callback.answer()
+
+
+@router.callback_query(F.data == "subscription:back")
+async def subscription_back_handler(
+    callback: CallbackQuery,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    state: FSMContext,
+) -> None:
+    """Navigate back within subscription flow."""
+    current_state = await state.get_state()
+
+    try:
+        if current_state == SubscriptionState.selecting_payment.state:
+            data = await state.get_data()
+            plan = data.get("plan")
+            durations = data.get("durations")
+
+            await callback.message.edit_text(
+                text=i18n.get("subscription-select-duration"),
+                reply_markup=duration_keyboard(i18n, plan=plan, durations=durations),
+            )
+            await state.set_state(SubscriptionState.selecting_duration)
+            await callback.answer()
+            return
+
+        if current_state == SubscriptionState.selecting_duration.state:
+            plans = await api_client.get_plans()
+            await callback.message.edit_text(
+                text=i18n.get("subscription-select-plan"),
+                reply_markup=plans_keyboard(i18n, plans),
+            )
+            await state.set_state(SubscriptionState.selecting_plan)
+            await callback.answer()
+            return
+
+    except Exception as e:
+        logger.error("subscription_back_error", user_id=callback.from_user.id, error=str(e))
+        await callback.answer(i18n.get("error-generic"), show_alert=True)
+        return
+
+    await state.clear()
+    from src.keyboards.menu import main_menu_keyboard
+
+    await callback.message.edit_text(
+        text=i18n.get("menu-main-title"),
+        reply_markup=main_menu_keyboard(i18n),
+    )
     await callback.answer()
 
 
@@ -152,7 +249,7 @@ async def cancel_subscription_handler(
     """Cancel subscription purchase flow."""
     await state.clear()
 
-    from keyboards.main import main_menu_keyboard
+    from src.keyboards.menu import main_menu_keyboard
 
     await callback.message.edit_text(
         text=i18n.get("subscription-cancelled"),

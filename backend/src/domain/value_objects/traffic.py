@@ -15,11 +15,11 @@ class Traffic:
 
     @property
     def mb(self) -> float:
-        return self.bytes / (1024 ** 2)
+        return self.bytes / (1024**2)
 
     @property
     def gb(self) -> float:
-        return self.bytes / (1024 ** 3)
+        return self.bytes / (1024**3)
 
     def __str__(self) -> str:
         if self.gb >= 1:

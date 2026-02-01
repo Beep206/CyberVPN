@@ -1,5 +1,16 @@
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { ServersDataGrid } from '@/widgets/servers-data-grid';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: 'Servers' });
+    return {
+        title: t('title'),
+        description: t('subtitle'),
+    };
+}
 
 export default async function ServersPage({
     params,
@@ -21,7 +32,11 @@ export default async function ServersPage({
                 </div>
             </div>
 
-            <ServersDataGrid />
+            <Suspense fallback={
+                <div className="bg-terminal-surface/30 h-96 rounded-xl border border-grid-line/30 animate-pulse" />
+            }>
+                <ServersDataGrid />
+            </Suspense>
         </div>
     );
 }

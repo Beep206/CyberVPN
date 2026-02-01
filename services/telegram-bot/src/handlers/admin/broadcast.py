@@ -7,19 +7,16 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from middleware.admin import admin_required
-from states.admin import AdminBroadcastState
+from src.states.admin import AdminBroadcastState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_broadcast")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:broadcast")
@@ -110,7 +107,7 @@ async def broadcast_message_composed_handler(
 async def broadcast_audience_selected_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle audience selection."""
@@ -171,7 +168,7 @@ async def broadcast_audience_selected_handler(
 async def broadcast_confirm_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Confirm and send broadcast."""
@@ -232,7 +229,7 @@ async def broadcast_cancel_handler(
     """Cancel broadcast."""
     await state.clear()
 
-    from keyboards.admin_main import admin_main_keyboard
+    from src.keyboards.admin_main import admin_main_keyboard
 
     await callback.message.edit_text(
         text=i18n.get("admin-broadcast-cancelled"),
@@ -247,7 +244,7 @@ async def broadcast_cancel_handler(
 async def broadcast_history_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show broadcast history."""
     try:
@@ -269,11 +266,7 @@ async def broadcast_history_handler(
             sent = broadcast.get("sent_count", 0)
             failed = broadcast.get("failed_count", 0)
 
-            history_text += (
-                f"🆔 {broadcast_id} | {created_at}\n"
-                f"👥 {audience} | {status}\n"
-                f"✅ {sent} / ❌ {failed}\n\n"
-            )
+            history_text += f"🆔 {broadcast_id} | {created_at}\n👥 {audience} | {status}\n✅ {sent} / ❌ {failed}\n\n"
 
         from aiogram.types import InlineKeyboardButton
         from aiogram.utils.keyboard import InlineKeyboardBuilder

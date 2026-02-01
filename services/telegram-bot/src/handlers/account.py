@@ -7,13 +7,14 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from keyboards.profile import language_selection_keyboard, profile_keyboard
-from states.account import AccountState
+from src.keyboards.account import language_selection_keyboard
+from src.keyboards.menu import profile_kb
+from src.states.account import AccountState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -24,17 +25,21 @@ router = Router(name="account")
 async def show_profile_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show user profile."""
     user_id = callback.from_user.id
 
     try:
         user = await api_client.get_user(user_id)
+        username = user.get("username")
+        username_display = f"@{username}" if username else "N/A"
+        telegram_id = user.get("telegram_id", user_id)
 
         profile_text = i18n.get(
             "profile-details",
-            username=user.get("username", "N/A"),
+            telegram_id=telegram_id,
+            username=username_display,
             first_name=user.get("first_name", "N/A"),
             language=user.get("language_code", "en").upper(),
             registered=user.get("created_at", "N/A"),
@@ -42,7 +47,7 @@ async def show_profile_handler(
 
         await callback.message.edit_text(
             text=profile_text,
-            reply_markup=profile_keyboard(i18n),
+            reply_markup=profile_kb(i18n),
         )
 
         logger.info("profile_viewed", user_id=user_id)
@@ -76,10 +81,13 @@ async def change_language_handler(
 async def language_selected_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle language selection."""
+    if callback.data is None:
+        await state.clear()
+        return
     user_id = callback.from_user.id
     language_code = callback.data.split(":")[1]
 
@@ -91,7 +99,7 @@ async def language_selected_handler(
         await i18n.set_locale(language_code)
 
         await callback.message.edit_text(
-            text=i18n.get("language-changed", language=language_code.upper()),
+            text=i18n.get("language-changed", language=language_code),
         )
 
         # Clear state
@@ -111,7 +119,7 @@ async def language_selected_handler(
 async def show_subscriptions_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show user subscriptions history."""
     user_id = callback.from_user.id
@@ -136,7 +144,7 @@ async def show_subscriptions_handler(
 
         await callback.message.edit_text(
             text=subs_text,
-            reply_markup=profile_keyboard(i18n),
+            reply_markup=profile_kb(i18n),
         )
 
         logger.info("subscriptions_viewed", user_id=user_id, count=len(subscriptions))

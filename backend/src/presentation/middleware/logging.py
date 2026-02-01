@@ -1,8 +1,10 @@
 import time
 import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("cybervpn")
+
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):

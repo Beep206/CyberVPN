@@ -115,6 +115,7 @@ class TestLoggingMiddleware:
         user = User(id=123, is_bot=False, first_name="Test")
         message = MagicMock(spec=Message)
         message.from_user = user
+        message.text = None
 
         update = MagicMock(spec=Update)
         update.update_id = 1002
@@ -142,6 +143,7 @@ class TestLoggingMiddleware:
         user = User(id=555555, is_bot=False, first_name="User", username="user555")
         message = MagicMock(spec=Message)
         message.from_user = user
+        message.text = None
 
         update = MagicMock(spec=Update)
         update.update_id = 1003
@@ -232,6 +234,7 @@ class TestLoggingMiddleware:
         user1 = User(id=111, is_bot=False, first_name="User1")
         message1 = MagicMock(spec=Message)
         message1.from_user = user1
+        message1.text = None
 
         update1 = MagicMock(spec=Update)
         update1.update_id = 2001
@@ -243,6 +246,7 @@ class TestLoggingMiddleware:
         user2 = User(id=222, is_bot=False, first_name="User2")
         message2 = MagicMock(spec=Message)
         message2.from_user = user2
+        message2.text = None
 
         update2 = MagicMock(spec=Update)
         update2.update_id = 2002

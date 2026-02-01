@@ -9,18 +9,29 @@ from aiogram.types import CallbackQuery
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="trial")
 
 
+def _trial_reason_key(reason: str | None) -> str:
+    normalized = (reason or "").lower()
+    if normalized in {"already_used", "already-used", "used"}:
+        return "trial-not-eligible-used"
+    if normalized in {"active_subscription", "active", "has_subscription"}:
+        return "trial-not-eligible-active"
+    if normalized in {"unavailable", "disabled", "not_available"}:
+        return "trial-not-eligible-unavailable"
+    return "trial-not-eligible-unknown"
+
+
 @router.callback_query(F.data == "trial:activate")
 async def activate_trial_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Activate trial subscription."""
     user_id = callback.from_user.id
@@ -32,7 +43,7 @@ async def activate_trial_handler(
         if not eligibility.get("eligible", False):
             reason = eligibility.get("reason", "unknown")
             await callback.answer(
-                i18n.get(f"trial-not-eligible-{reason}"),
+                i18n.get(_trial_reason_key(reason)),
                 show_alert=True,
             )
             return
@@ -52,7 +63,7 @@ async def activate_trial_handler(
         )
 
         # Show config delivery options
-        from keyboards.config import config_delivery_keyboard
+        from src.keyboards.config import config_delivery_keyboard
 
         await callback.message.answer(
             text=i18n.get("config-delivery-prompt"),
@@ -72,7 +83,7 @@ async def activate_trial_handler(
 async def check_trial_eligibility_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Check trial eligibility."""
     user_id = callback.from_user.id
@@ -88,7 +99,7 @@ async def check_trial_eligibility_handler(
         else:
             reason = eligibility.get("reason", "unknown")
             await callback.answer(
-                i18n.get(f"trial-not-eligible-{reason}"),
+                i18n.get(_trial_reason_key(reason)),
                 show_alert=True,
             )
 

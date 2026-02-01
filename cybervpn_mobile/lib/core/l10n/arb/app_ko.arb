@@ -1,0 +1,379 @@
+{
+  "@@locale": "ko",
+  "@@comment": "TODO: Professional translation required - Currently using English placeholders. Note: Korean uses only 'other' plural form.",
+
+  "appName": "CyberVPN",
+  "login": "Log In",
+  "register": "Sign Up",
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "forgotPassword": "Forgot Password?",
+  "orContinueWith": "Or continue with",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "connecting": "Connecting...",
+  "disconnecting": "Disconnecting...",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "servers": "Servers",
+  "subscription": "Subscription",
+  "settings": "Settings",
+  "profile": "Profile",
+  "selectServer": "Select Server",
+  "autoSelect": "Auto Select",
+  "fastestServer": "Fastest Server",
+  "nearestServer": "Nearest Server",
+  "killSwitch": "Kill Switch",
+  "splitTunneling": "Split Tunneling",
+  "autoConnect": "Auto Connect",
+  "language": "Language",
+  "theme": "Theme",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
+  "systemDefault": "System Default",
+  "logout": "Log Out",
+  "logoutConfirm": "Are you sure you want to log out?",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "retry": "Retry",
+  "errorOccurred": "An error occurred",
+  "noInternet": "No internet connection",
+  "downloadSpeed": "Download",
+  "uploadSpeed": "Upload",
+  "connectionTime": "Connection Time",
+  "dataUsed": "Data Used",
+  "currentPlan": "Current Plan",
+  "upgradePlan": "Upgrade Plan",
+  "daysRemaining": "{count, plural, other{{count} days remaining}}",
+  "@daysRemaining": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referral": "Referral",
+  "shareReferralCode": "Share Referral Code",
+  "support": "Support",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+
+  "onboardingWelcomeTitle": "Welcome to CyberVPN",
+  "onboardingWelcomeDescription": "Secure, fast, and private internet access at your fingertips.",
+  "onboardingFeaturesTitle": "Powerful Features",
+  "onboardingFeaturesDescription": "Kill switch, split tunneling, and military-grade encryption to keep you safe.",
+  "onboardingPrivacyTitle": "Your Privacy Matters",
+  "onboardingPrivacyDescription": "Zero-log policy. We never track, store, or share your browsing data.",
+  "onboardingSpeedTitle": "Lightning Fast",
+  "onboardingSpeedDescription": "Connect to optimized servers worldwide for the best speeds.",
+  "onboardingSkip": "Skip",
+  "onboardingNext": "Next",
+  "onboardingGetStarted": "Get Started",
+  "onboardingBack": "Back",
+  "onboardingPageIndicator": "Page {current} of {total}",
+  "@onboardingPageIndicator": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
+  "settingsTitle": "Settings",
+  "settingsGeneral": "General",
+  "settingsVpn": "VPN Settings",
+  "settingsAppearance": "Appearance",
+  "settingsDebug": "Debug",
+  "settingsNotifications": "Notifications",
+  "settingsAbout": "About",
+  "settingsVpnProtocolLabel": "Protocol",
+  "settingsVpnProtocolDescription": "Select the VPN protocol to use for connections.",
+  "settingsAutoConnectLabel": "Auto Connect",
+  "settingsAutoConnectDescription": "Automatically connect when the app starts.",
+  "settingsKillSwitchLabel": "Kill Switch",
+  "settingsKillSwitchDescription": "Block internet if VPN connection drops.",
+  "settingsDnsLabel": "Custom DNS",
+  "settingsDnsDescription": "Use a custom DNS server for resolution.",
+  "settingsDnsPlaceholder": "Enter DNS address",
+  "settingsSplitTunnelingLabel": "Split Tunneling",
+  "settingsSplitTunnelingDescription": "Choose which apps use the VPN connection.",
+  "settingsThemeModeLabel": "Theme Mode",
+  "settingsThemeModeDescription": "Choose between light, dark, or system theme.",
+  "settingsLanguageLabel": "Language",
+  "settingsLanguageDescription": "Select your preferred language.",
+  "settingsDebugLogsLabel": "Debug Logs",
+  "settingsDebugLogsDescription": "Enable verbose logging for troubleshooting.",
+  "settingsExportLogsLabel": "Export Logs",
+  "settingsExportLogsDescription": "Export debug logs for support.",
+  "settingsResetLabel": "Reset Settings",
+  "settingsResetDescription": "Restore all settings to default values.",
+  "settingsResetConfirm": "Are you sure you want to reset all settings to defaults?",
+  "settingsStartOnBootLabel": "Start on Boot",
+  "settingsStartOnBootDescription": "Automatically launch CyberVPN when your device starts.",
+  "settingsConnectionTimeoutLabel": "Connection Timeout",
+  "settingsConnectionTimeoutDescription": "Maximum time to wait before a connection attempt is aborted.",
+  "settingsConnectionTimeoutSeconds": "{count, plural, other{{count} seconds}}",
+  "@settingsConnectionTimeoutSeconds": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "profileDashboard": "Profile Dashboard",
+  "profileEditProfile": "Edit Profile",
+  "profileDisplayName": "Display Name",
+  "profileEmailAddress": "Email Address",
+  "profileChangePassword": "Change Password",
+  "profileCurrentPassword": "Current Password",
+  "profileNewPassword": "New Password",
+  "profileConfirmNewPassword": "Confirm New Password",
+  "profileTwoFactorAuth": "Two-Factor Authentication",
+  "profileTwoFactorAuthDescription": "Add an extra layer of security to your account.",
+  "profileTwoFactorEnable": "Enable 2FA",
+  "profileTwoFactorDisable": "Disable 2FA",
+  "profileTwoFactorSetup": "Set Up Two-Factor Authentication",
+  "profileTwoFactorScanQr": "Scan this QR code with your authenticator app.",
+  "profileTwoFactorEnterCode": "Enter the 6-digit code from your authenticator app.",
+  "profileTwoFactorBackupCodes": "Backup Codes",
+  "profileTwoFactorBackupCodesDescription": "Save these codes in a safe place. You can use them to sign in if you lose access to your authenticator app.",
+  "profileOauthAccounts": "Linked Accounts",
+  "profileOauthAccountsDescription": "Manage your linked social accounts.",
+  "profileOauthLink": "Link Account",
+  "profileOauthUnlink": "Unlink",
+  "profileOauthUnlinkConfirm": "Are you sure you want to unlink this account?",
+  "profileTrustedDevices": "Trusted Devices",
+  "profileTrustedDevicesDescription": "Manage the devices that can access your account.",
+  "profileDeviceCurrent": "Current Device",
+  "profileDeviceLastActive": "Last active {date}",
+  "@profileDeviceLastActive": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "profileDeviceRevoke": "Revoke Access",
+  "profileDeviceRevokeConfirm": "Are you sure you want to revoke access for this device?",
+  "profileDeviceRevokeAll": "Revoke All Devices",
+  "profileDeleteAccount": "Delete Account",
+  "profileDeleteAccountDescription": "Permanently delete your account and all associated data.",
+  "profileDeleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
+  "profileDeleteAccountButton": "Delete My Account",
+  "profileSubscriptionStatus": "Subscription Status",
+  "profileMemberSince": "Member since {date}",
+  "@profileMemberSince": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+
+  "configImportTitle": "Import Configuration",
+  "configImportQrScanTitle": "Scan QR Code",
+  "configImportQrScanDescription": "Point your camera at a VPN configuration QR code.",
+  "configImportScanQrButton": "Scan QR Code",
+  "configImportFromClipboard": "Import from Clipboard",
+  "configImportFromClipboardDescription": "Paste a configuration link or text from your clipboard.",
+  "configImportFromFile": "Import from File",
+  "configImportFromFileDescription": "Select a configuration file from your device.",
+  "configImportPreviewTitle": "Configuration Preview",
+  "configImportPreviewServer": "Server",
+  "configImportPreviewProtocol": "Protocol",
+  "configImportPreviewPort": "Port",
+  "configImportConfirmButton": "Import Configuration",
+  "configImportCancelButton": "Cancel Import",
+  "configImportSuccess": "Configuration imported successfully.",
+  "configImportError": "Failed to import configuration.",
+  "configImportInvalidFormat": "Invalid configuration format.",
+  "configImportDuplicate": "This configuration already exists.",
+  "configImportCameraPermission": "Camera permission is required to scan QR codes.",
+
+  "notificationCenterTitle": "Notifications",
+  "notificationCenterEmpty": "No notifications yet.",
+  "notificationCenterMarkAllRead": "Mark All as Read",
+  "notificationCenterClearAll": "Clear All",
+  "notificationTypeConnectionStatus": "Connection Status",
+  "notificationTypeServerSwitch": "Server Switch",
+  "notificationTypeSubscriptionExpiry": "Subscription Expiry",
+  "notificationTypeSecurityAlert": "Security Alert",
+  "notificationTypePromotion": "Promotion",
+  "notificationTypeSystemUpdate": "System Update",
+  "notificationConnected": "Connected to {serverName}",
+  "@notificationConnected": {
+    "placeholders": {
+      "serverName": {"type": "String"}
+    }
+  },
+  "notificationDisconnected": "Disconnected from VPN.",
+  "notificationServerSwitched": "Switched to {serverName}.",
+  "@notificationServerSwitched": {
+    "placeholders": {
+      "serverName": {"type": "String"}
+    }
+  },
+  "notificationSubscriptionExpiring": "Your subscription expires in {count, plural, other{{count} days}}.",
+  "@notificationSubscriptionExpiring": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notificationSubscriptionExpired": "Your subscription has expired. Renew to continue using CyberVPN.",
+  "notificationUnreadCount": "{count, plural, =0{No unread notifications} other{{count} unread notifications}}",
+  "@notificationUnreadCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "referralDashboardTitle": "Referral Program",
+  "referralDashboardDescription": "Invite friends and earn rewards.",
+  "referralShareLink": "Share Referral Link",
+  "referralCopyLink": "Copy Link",
+  "referralLinkCopied": "Referral link copied to clipboard.",
+  "referralCodeLabel": "Your Referral Code",
+  "referralRewardsEarned": "{count, plural, =0{No rewards earned} other{{count} rewards earned}}",
+  "@referralRewardsEarned": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referralFriendsInvited": "{count, plural, =0{No friends invited} other{{count} friends invited}}",
+  "@referralFriendsInvited": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "referralRewardDescription": "Get {days} free days for each friend who subscribes.",
+  "@referralRewardDescription": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "referralHistory": "Referral History",
+  "referralPending": "Pending",
+  "referralCompleted": "Completed",
+  "referralExpired": "Expired",
+
+  "diagnosticsTitle": "Diagnostics",
+  "diagnosticsDescription": "Test your connection and troubleshoot issues.",
+  "speedTestTitle": "Speed Test",
+  "speedTestStart": "Start Speed Test",
+  "speedTestRunning": "Testing...",
+  "speedTestDownloadSpeed": "Download Speed",
+  "speedTestUploadSpeed": "Upload Speed",
+  "speedTestPing": "Ping",
+  "speedTestPingMs": "{value} ms",
+  "@speedTestPingMs": {
+    "placeholders": {
+      "value": {"type": "int"}
+    }
+  },
+  "speedTestMbps": "{value} Mbps",
+  "@speedTestMbps": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "speedTestResult": "Speed Test Result",
+  "speedTestHistory": "Speed Test History",
+  "speedTestStepConnecting": "Connecting to test server...",
+  "speedTestStepDownload": "Testing download speed...",
+  "speedTestStepUpload": "Testing upload speed...",
+  "speedTestStepPing": "Measuring latency...",
+  "speedTestStepComplete": "Test complete.",
+  "speedTestNoVpn": "Connect to VPN before running a speed test.",
+  "logViewerTitle": "Log Viewer",
+  "logViewerEmpty": "No logs available.",
+  "logViewerExportButton": "Export Logs",
+  "logViewerClearButton": "Clear Logs",
+  "logViewerClearConfirm": "Are you sure you want to clear all logs?",
+  "logViewerFilterLabel": "Filter",
+  "logViewerFilterAll": "All",
+  "logViewerFilterError": "Errors",
+  "logViewerFilterWarning": "Warnings",
+  "logViewerFilterInfo": "Info",
+  "logViewerCopied": "Log entry copied to clipboard.",
+  "logViewerExportSuccess": "Logs exported successfully.",
+  "logViewerExportError": "Failed to export logs.",
+
+  "widgetConnectLabel": "Connect VPN",
+  "widgetDisconnectLabel": "Disconnect VPN",
+  "widgetStatusLabel": "VPN Status",
+  "widgetServerLabel": "Current Server",
+  "quickActionConnect": "Connect",
+  "quickActionDisconnect": "Disconnect",
+  "quickActionServers": "Servers",
+  "quickActionSpeedTest": "Speed Test",
+  "quickActionSettings": "Settings",
+  "quickActionSupport": "Support",
+
+  "errorConnectionFailed": "Connection failed. Please try again.",
+  "errorConnectionTimeout": "Connection timed out. Check your internet connection.",
+  "errorServerUnavailable": "Server is currently unavailable. Try another server.",
+  "errorInvalidConfig": "Invalid configuration. Please reimport your settings.",
+  "errorSubscriptionExpired": "Your subscription has expired. Please renew to continue.",
+  "errorSubscriptionRequired": "A subscription is required to use this feature.",
+  "errorAuthenticationFailed": "Authentication failed. Please log in again.",
+  "errorTokenExpired": "Session expired. Please log in again.",
+  "errorNetworkUnreachable": "Network unreachable. Check your connection.",
+  "errorPermissionDenied": "Permission denied.",
+  "errorRateLimited": "Too many requests. Please wait a moment.",
+  "errorUnexpected": "An unexpected error occurred. Please try again.",
+  "errorServerError": "Server error. Please try again later.",
+  "errorInvalidCredentials": "Invalid email or password.",
+  "errorAccountLocked": "Your account has been locked. Please contact support.",
+  "errorWeakPassword": "Password is too weak. Use at least 8 characters with letters and numbers.",
+  "errorEmailAlreadyInUse": "This email is already registered.",
+  "errorInvalidEmail": "Please enter a valid email address.",
+  "errorFieldRequired": "This field is required.",
+  "errorPaymentFailed": "Payment failed. Please try again or use a different method.",
+  "errorQrScanFailed": "Failed to scan QR code. Please try again.",
+
+  "a11yConnectButton": "Connect to VPN server",
+  "a11yDisconnectButton": "Disconnect from VPN server",
+  "a11yServerStatusOnline": "Server is online",
+  "a11yServerStatusOffline": "Server is offline",
+  "a11yServerStatusMaintenance": "Server is under maintenance",
+  "a11ySpeedIndicator": "Current speed: {speed}",
+  "@a11ySpeedIndicator": {
+    "placeholders": {
+      "speed": {"type": "String"}
+    }
+  },
+  "a11yConnectionStatus": "Connection status: {status}",
+  "@a11yConnectionStatus": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
+  "a11yServerSelect": "Select server {name} in {country}",
+  "@a11yServerSelect": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "country": {"type": "String"}
+    }
+  },
+  "a11yNavigationMenu": "Navigation menu",
+  "a11yCloseDialog": "Close dialog",
+  "a11yToggleSwitch": "Toggle {label}",
+  "@a11yToggleSwitch": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "a11yNotificationBadge": "{count, plural, =0{No notifications} other{{count} notifications}}",
+  "@a11yNotificationBadge": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "a11yLoadingIndicator": "Loading",
+  "a11yRefreshContent": "Refresh content",
+  "a11yBackButton": "Go back",
+  "a11ySearchField": "Search",
+
+  "rootDetectionDialogTitle": "Rooted/Jailbroken Device Detected",
+  "rootDetectionDialogDescription": "Your device appears to be rooted (Android) or jailbroken (iOS). While CyberVPN will continue to work, please note that using a rooted/jailbroken device may expose you to security risks.\n\nWe understand that users in censored regions often rely on rooted devices for additional privacy tools. CyberVPN will not block your access, but we recommend being cautious about the apps you install and the permissions you grant.",
+  "rootDetectionDialogDismiss": "I Understand"
+}

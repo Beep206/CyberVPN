@@ -2,11 +2,12 @@
 
 from typing import Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
+from src.config.settings import settings
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.presentation.dependencies.database import get_db
@@ -20,29 +21,25 @@ async def remnawave_webhook(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, str]:
     """Handle webhook callbacks from Remnawave VPN service."""
-    try:
-        payload = await request.json()
-        signature = request.headers.get("X-Webhook-Signature", "")
+    body = await request.body()
+    signature = request.headers.get("X-Webhook-Signature", "")
 
-        validator = RemnawaveWebhookValidator()
-        use_case = ProcessRemnawaveWebhookUseCase(validator=validator, session=db)
+    validator = RemnawaveWebhookValidator(settings.remnawave_token.get_secret_value())
+    use_case = ProcessRemnawaveWebhookUseCase(validator=validator, session=db)
 
-        result = await use_case.execute(payload=payload, signature=signature)
+    return await use_case.execute(body=body, signature=signature)
 
-        return result
+
 @router.post("/cryptobot", status_code=status.HTTP_200_OK)
 async def cryptobot_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, str]:
     """Handle webhook callbacks from CryptoBot payment service."""
-    try:
-        payload = await request.json()
-        signature = request.headers.get("crypto-pay-api-signature", "")
+    body = await request.body()
+    signature = request.headers.get("crypto-pay-api-signature", "")
 
-        handler = CryptoBotWebhookHandler()
-        use_case = ProcessPaymentWebhookUseCase(handler=handler, session=db)
+    handler = CryptoBotWebhookHandler(settings.cryptobot_token.get_secret_value())
+    use_case = ProcessPaymentWebhookUseCase(webhook_handler=handler, session=db)
 
-        result = await use_case.execute(payload=payload, signature=signature)
-
-        return result
+    return await use_case.execute(provider="cryptobot", body=body, signature=signature)

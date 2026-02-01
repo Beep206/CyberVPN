@@ -1,0 +1,29 @@
+{
+  "app_store_ios": {
+    "app_name": "CyberVPN - Secure Privacy",
+    "subtitle": "Fast & Anonymous VPN",
+    "description": "CyberVPN delivers next-generation privacy protection with a cyberpunk-inspired interface. Experience military-grade encryption, blazing-fast speeds, and total anonymity.\n\n✓ MILITARY-GRADE ENCRYPTION\nAES-256 encryption with V2Ray and Xray protocol support ensures your data remains private and secure. No logs, no tracking, complete anonymity.\n\n✓ GLOBAL SERVER NETWORK\nConnect to optimized servers across the world. Smart routing automatically selects the fastest server for your location.\n\n✓ CYBERPUNK INTERFACE\nBeautiful, futuristic UI with neon accents, 3D globe visualization, and real-time connection statistics. Choose between dark cyberpunk theme or light Material You design.\n\n✓ ADVANCED FEATURES\n• Kill switch protection\n• Split tunneling\n• DNS leak protection\n• IPv6 support\n• Quick Actions and Home Screen widgets\n• Biometric authentication\n• Real-time bandwidth monitoring\n\n✓ MULTIPLE PROTOCOLS\nSupport for VLESS, VMess, Trojan, Shadowsocks, and more. Automatic protocol selection for optimal performance.\n\n✓ ZERO LOGS POLICY\nWe never track, collect, or share your browsing activity. Your privacy is our priority.\n\n✓ SUBSCRIPTION PLANS\nFlexible plans with trial period available. Manage subscriptions easily with in-app purchases.\n\n✓ CROSS-PLATFORM\nSeamless experience across iOS, Android, and web platforms.\n\nCyberVPN is built with Flutter and Clean Architecture, ensuring smooth performance and reliability. Join thousands of users protecting their digital freedom.\n\nPRIVACY MATTERS\nIn a world of surveillance, CyberVPN keeps you anonymous. Stream, browse, and communicate without restrictions.\n\nDownload CyberVPN today and take control of your digital privacy.",
+    "keywords": "vpn,privacy,security,encrypted,anonymous,v2ray,xray,vless,vmess,trojan,shadowsocks,proxy",
+    "promotional_text": "Experience the future of privacy. Military-grade encryption meets cyberpunk design. Fast, secure, anonymous.",
+    "primary_category": "Utilities",
+    "secondary_category": "Productivity",
+    "privacy_policy_url": "https://cybervpn.com/privacy",
+    "support_url": "https://cybervpn.com/support",
+    "support_email": "support@cybervpn.com",
+    "copyright": "© 2025 CyberVPN. All rights reserved.",
+    "age_rating": "4+",
+    "release_notes": "Initial release of CyberVPN.\n\n• Secure VPN with V2Ray/Xray protocols\n• Cyberpunk-themed UI with 3D globe\n• Global server network\n• Kill switch and split tunneling\n• Biometric authentication\n• Real-time statistics\n• Multiple subscription plans\n• Zero logs policy"
+  },
+  "google_play": {
+    "app_name": "CyberVPN - Secure Privacy",
+    "short_description": "Fast, secure, anonymous VPN with military-grade encryption and cyberpunk UI",
+    "full_description": "CyberVPN delivers next-generation privacy protection with a cyberpunk-inspired interface. Experience military-grade encryption, blazing-fast speeds, and total anonymity.\n\n✓ MILITARY-GRADE ENCRYPTION\nAES-256 encryption with V2Ray and Xray protocol support ensures your data remains private and secure. No logs, no tracking, complete anonymity.\n\n✓ GLOBAL SERVER NETWORK\nConnect to optimized servers across the world. Smart routing automatically selects the fastest server for your location.\n\n✓ CYBERPUNK INTERFACE\nBeautiful, futuristic UI with neon accents, 3D globe visualization, and real-time connection statistics. Choose between dark cyberpunk theme or light Material You design.\n\n✓ ADVANCED FEATURES\n• Kill switch protection\n• Split tunneling\n• DNS leak protection\n• IPv6 support\n• Home Screen widgets\n• Biometric authentication\n• Real-time bandwidth monitoring\n\n✓ MULTIPLE PROTOCOLS\nSupport for VLESS, VMess, Trojan, Shadowsocks, and more. Automatic protocol selection for optimal performance.\n\n✓ ZERO LOGS POLICY\nWe never track, collect, or share your browsing activity. Your privacy is our priority.\n\n✓ SUBSCRIPTION PLANS\nFlexible plans with trial period available. Manage subscriptions easily with in-app purchases.\n\n✓ CROSS-PLATFORM\nSeamless experience across iOS, Android, and web platforms.\n\nCyberVPN is built with Flutter and Clean Architecture, ensuring smooth performance and reliability. Join thousands of users protecting their digital freedom.\n\nPRIVACY MATTERS\nIn a world of surveillance, CyberVPN keeps you anonymous. Stream, browse, and communicate without restrictions.\n\nDownload CyberVPN today and take control of your digital privacy.",
+    "category": "Tools",
+    "content_rating": "Everyone",
+    "privacy_policy_url": "https://cybervpn.com/privacy",
+    "support_email": "support@cybervpn.com",
+    "website": "https://cybervpn.com",
+    "copyright": "© 2025 CyberVPN. All rights reserved.",
+    "release_notes": "Initial release of CyberVPN.\n\n• Secure VPN with V2Ray/Xray protocols\n• Cyberpunk-themed UI with 3D globe\n• Global server network\n• Kill switch and split tunneling\n• Biometric authentication\n• Real-time statistics\n• Multiple subscription plans\n• Zero logs policy"
+  }
+}

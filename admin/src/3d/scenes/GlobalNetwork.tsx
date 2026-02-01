@@ -110,16 +110,20 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
 
     return (
         <group>
-            {points.map((linePoints, i) => (
-                <Line
-                    key={i}
-                    points={linePoints}
-                    color="#00ffff"
-                    lineWidth={1}
-                    opacity={0.3}
-                    transparent
-                />
-            ))}
+            {points.map((linePoints, i) => {
+                const conn = connections[i];
+                const key = `${conn.from.lat},${conn.from.lng}-${conn.to.lat},${conn.to.lng}`;
+                return (
+                    <Line
+                        key={key}
+                        points={linePoints}
+                        color="#00ffff"
+                        lineWidth={1}
+                        opacity={0.3}
+                        transparent
+                    />
+                );
+            })}
         </group>
     );
 }
@@ -173,12 +177,14 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg">
             <Canvas
+                frameloop="demand"
                 camera={{ position: [0, 2, 5], fov: 45 }}
                 gl={{
-                    antialias: true,
+                    antialias: false,
                     alpha: true,
                     powerPreference: "high-performance",
-                    preserveDrawingBuffer: true
+                    stencil: false,
+                    depth: true
                 }}
                 dpr={[1, 2]}
             >

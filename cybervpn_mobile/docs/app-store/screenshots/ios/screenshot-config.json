@@ -1,0 +1,192 @@
+{
+  "screenshot_sets": [
+    {
+      "device": "iPhone 6.7\"",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "devices": [
+        "iPhone 14 Pro Max",
+        "iPhone 15 Pro Max",
+        "iPhone 16 Pro Max"
+      ],
+      "file_prefix": "ios-6.7",
+      "required": true
+    },
+    {
+      "device": "iPhone 6.5\"",
+      "dimensions": {
+        "width": 1242,
+        "height": 2688
+      },
+      "devices": [
+        "iPhone 11 Pro Max",
+        "iPhone XS Max"
+      ],
+      "file_prefix": "ios-6.5",
+      "required": true
+    },
+    {
+      "device": "iPad Pro 12.9\"",
+      "dimensions": {
+        "width": 2048,
+        "height": 2732
+      },
+      "devices": [
+        "iPad Pro 12.9\" (2nd generation and later)"
+      ],
+      "file_prefix": "ipad-12.9",
+      "required": true
+    }
+  ],
+  "screenshots": [
+    {
+      "id": 1,
+      "title": "Main Dashboard",
+      "description": "3D globe visualization with server list and connection status",
+      "route": "/home",
+      "features_to_highlight": [
+        "3D globe with network visualization",
+        "Server list with locations",
+        "Quick connect button",
+        "Connection status indicator",
+        "Cyberpunk theme with matrix green accents"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Server Selection",
+      "description": "Browse and select from global server network",
+      "route": "/servers",
+      "features_to_highlight": [
+        "Server list with country flags",
+        "Ping/latency indicators",
+        "Server load percentage",
+        "Search and filter options",
+        "Favorite servers"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Active Connection",
+      "description": "Real-time statistics during active VPN connection",
+      "route": "/connection",
+      "features_to_highlight": [
+        "Connected state with server info",
+        "Real-time upload/download speeds",
+        "Connection duration timer",
+        "Traffic usage graphs",
+        "Disconnect button"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Settings & Security",
+      "description": "Configure security features and preferences",
+      "route": "/settings",
+      "features_to_highlight": [
+        "Theme selector (cyberpunk/material)",
+        "Protocol selection (VLESS, VMess, Trojan)",
+        "Kill switch toggle",
+        "Split tunneling configuration",
+        "DNS settings"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Subscription Plans",
+      "description": "Flexible subscription options with trial period",
+      "route": "/subscription",
+      "features_to_highlight": [
+        "Multiple subscription tiers",
+        "Feature comparison",
+        "Trial period availability",
+        "Pricing information",
+        "In-app purchase integration"
+      ]
+    }
+  ],
+  "theme": "cyberpunk_dark",
+  "locale": "en",
+  "mock_data": {
+    "user": {
+      "username": "cyber_user",
+      "subscription": "premium",
+      "expires_at": "2026-03-01"
+    },
+    "connection": {
+      "status": "connected",
+      "server": "US - New York #1",
+      "protocol": "VLESS",
+      "upload_speed": "125.4 KB/s",
+      "download_speed": "3.2 MB/s",
+      "duration": "00:15:42",
+      "traffic": "128.5 MB"
+    },
+    "servers": [
+      {
+        "name": "US - New York #1",
+        "country_code": "US",
+        "ping": "12ms",
+        "load": "45%"
+      },
+      {
+        "name": "UK - London #1",
+        "country_code": "GB",
+        "ping": "35ms",
+        "load": "62%"
+      },
+      {
+        "name": "Japan - Tokyo #1",
+        "country_code": "JP",
+        "ping": "125ms",
+        "load": "38%"
+      },
+      {
+        "name": "Germany - Frankfurt #1",
+        "country_code": "DE",
+        "ping": "28ms",
+        "load": "71%"
+      },
+      {
+        "name": "Singapore #1",
+        "country_code": "SG",
+        "ping": "180ms",
+        "load": "55%"
+      }
+    ]
+  },
+  "design": {
+    "colors": {
+      "matrix_green": "#00FF88",
+      "neon_cyan": "#00FFFF",
+      "neon_pink": "#FF00FF",
+      "deep_navy": "#0A0E1A",
+      "dark_bg": "#111827"
+    },
+    "fonts": {
+      "display": "Orbitron",
+      "body": "System",
+      "mono": "JetBrains Mono"
+    },
+    "effects": [
+      "Neon glow on cards",
+      "Scanlines overlay",
+      "3D card transforms",
+      "Matrix rain animation (optional)"
+    ]
+  },
+  "format": {
+    "type": "PNG",
+    "color_space": "sRGB",
+    "bit_depth": 24
+  },
+  "notes": [
+    "Status bar time should be 9:41 AM",
+    "Use realistic but not real user data",
+    "Ensure cyberpunk theme is clearly visible",
+    "No debug overlays or development artifacts",
+    "First screenshot is most important for App Store search"
+  ]
+}

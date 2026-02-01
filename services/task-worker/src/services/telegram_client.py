@@ -52,7 +52,7 @@ class TelegramClient:
     async def __aenter__(self) -> "TelegramClient":
         """Context manager entry: initialize the HTTP client."""
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
-        logger.info("telegram_client_initialized", base_url=self._base_url)
+        logger.info("telegram_client_initialized")
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
@@ -67,7 +67,9 @@ class TelegramClient:
             raise RuntimeError("TelegramClient must be used as a context manager (async with TelegramClient())")
         return self._client
 
-    async def _make_request(self, method: str, endpoint: str, json_data: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _make_request(
+        self, method: str, endpoint: str, json_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Make a rate-limited request to the Telegram API with automatic retry on 429.
 
         Args:

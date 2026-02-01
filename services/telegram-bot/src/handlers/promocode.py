@@ -7,12 +7,12 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from states.promocode import PromoCodeState
+from src.states.promocode import PromoCodeState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
@@ -40,24 +40,29 @@ async def enter_promocode_handler(
 async def promocode_entered_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle promo code input and activation."""
+    if message.from_user is None or message.text is None:
+        await state.clear()
+        return
+
     user_id = message.from_user.id
     promo_code = message.text.strip().upper()
 
     try:
         # Validate and activate promo code
-        result = await api_client.activate_promo_code(user_id, promo_code)
+        result = await api_client.activate_promocode(user_id, promo_code)
 
         discount_type = result.get("discount_type", "percentage")
         discount_value = result.get("discount_value", 0)
+        discount_currency = result.get("currency") or result.get("currency_code") or i18n.get("currency")
 
         if discount_type == "percentage":
             discount_text = f"{discount_value}%"
         else:
-            discount_text = f"{discount_value} {i18n.get('currency')}"
+            discount_text = f"{discount_value} {discount_currency}"
 
         await message.answer(
             text=i18n.get(
@@ -107,7 +112,7 @@ async def cancel_promocode_handler(
     """Cancel promo code entry."""
     await state.clear()
 
-    from keyboards.main import main_menu_keyboard
+    from src.keyboards.menu import main_menu_keyboard
 
     await callback.message.edit_text(
         text=i18n.get("promocode-cancelled"),

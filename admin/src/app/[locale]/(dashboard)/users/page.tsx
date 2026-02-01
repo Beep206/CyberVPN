@@ -1,5 +1,16 @@
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { UsersDataGrid } from '@/widgets/users-data-grid';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: 'Users' });
+    return {
+        title: t('title'),
+        description: t('subtitle'),
+    };
+}
 
 export default async function UsersPage({
     params,
@@ -21,7 +32,11 @@ export default async function UsersPage({
                 </div>
             </div>
 
-            <UsersDataGrid />
+            <Suspense fallback={
+                <div className="bg-terminal-surface/30 h-96 rounded-xl border border-grid-line/30 animate-pulse" />
+            }>
+                <UsersDataGrid />
+            </Suspense>
         </div>
     );
 }

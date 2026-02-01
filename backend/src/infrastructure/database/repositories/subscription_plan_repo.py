@@ -21,9 +21,7 @@ class SubscriptionPlanRepository:
         return await self._session.get(SubscriptionPlanModel, id)
 
     async def get_by_name(self, name: str) -> SubscriptionPlanModel | None:
-        result = await self._session.execute(
-            select(SubscriptionPlanModel).where(SubscriptionPlanModel.name == name)
-        )
+        result = await self._session.execute(select(SubscriptionPlanModel).where(SubscriptionPlanModel.name == name))
         return result.scalar_one_or_none()
 
     async def create(self, model: SubscriptionPlanModel) -> SubscriptionPlanModel:

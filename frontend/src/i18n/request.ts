@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getRequestConfig } from 'next-intl/server';
 import { defaultLocale, locales } from './config';
 
@@ -51,7 +52,7 @@ export default getRequestConfig(async ({ locale }) => {
     };
 });
 
-async function loadLocaleMessages(locale: Locale) {
+const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Locale) {
     const [
         header,
         navigation,
@@ -64,7 +65,9 @@ async function loadLocaleMessages(locale: Locale) {
         serverCard,
         landing,
         footer,
-        languageSelector
+        languageSelector,
+        privacyPolicy,
+        deleteAccount
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`),
         import(`../../messages/${locale}/navigation.json`),
@@ -77,7 +80,9 @@ async function loadLocaleMessages(locale: Locale) {
         import(`../../messages/${locale}/server-card.json`),
         import(`../../messages/${locale}/landing.json`),
         import(`../../messages/${locale}/footer.json`),
-        import(`../../messages/${locale}/language-selector.json`)
+        import(`../../messages/${locale}/language-selector.json`),
+        import(`../../messages/${locale}/privacy-policy.json`),
+        import(`../../messages/${locale}/delete-account.json`)
     ]);
 
     return {
@@ -92,6 +97,8 @@ async function loadLocaleMessages(locale: Locale) {
         ServerCard: serverCard.default,
         Landing: landing.default,
         Footer: footer.default,
-        LanguageSelector: languageSelector.default
+        LanguageSelector: languageSelector.default,
+        PrivacyPolicy: privacyPolicy.default,
+        DeleteAccount: deleteAccount.default
     };
-}
+});

@@ -1,0 +1,61 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background for foreground layer -->
+  <defs>
+    <linearGradient id="shield-gradient-fg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FF88;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00FFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00FF88;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow-fg">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main shield shape - centered and sized for adaptive icon safe zone (66% diameter circle) -->
+  <g filter="url(#glow-fg)" transform="translate(512, 512)">
+    <!-- Shield outline -->
+    <path d="M 0 -280 L 240 -200 L 240 -40 Q 240 140 0 260 Q -240 140 -240 -40 L -240 -200 Z"
+          fill="none"
+          stroke="url(#shield-gradient-fg)"
+          stroke-width="24"
+          stroke-linejoin="round"/>
+
+    <!-- Inner shield accent -->
+    <path d="M 0 -230 L 180 -170 L 180 -40 Q 180 110 0 200 Q -180 110 -180 -40 L -180 -170 Z"
+          fill="none"
+          stroke="#00FF88"
+          stroke-width="4"
+          opacity="0.5"/>
+
+    <!-- Lock body -->
+    <rect x="-60" y="0" width="120" height="105" rx="12"
+          fill="none"
+          stroke="#00FFFF"
+          stroke-width="16"/>
+
+    <!-- Lock shackle -->
+    <path d="M -35 0 L -35 -40 Q -35 -75 0 -75 Q 35 -75 35 -40 L 35 0"
+          fill="none"
+          stroke="#00FFFF"
+          stroke-width="16"
+          stroke-linecap="round"/>
+
+    <!-- Keyhole -->
+    <circle cx="0" cy="35" r="14" fill="#00FF88"/>
+    <rect x="-7" y="35" width="14" height="30" rx="3" fill="#00FF88"/>
+  </g>
+
+  <!-- Digital effect lines -->
+  <g opacity="0.6" stroke="#FF00FF" stroke-width="3" fill="none">
+    <line x1="330" y1="300" x2="370" y2="300"/>
+    <line x1="654" y1="300" x2="694" y2="300"/>
+    <line x1="330" y1="724" x2="370" y2="724"/>
+    <line x1="654" y1="724" x2="694" y2="724"/>
+  </g>
+</svg>

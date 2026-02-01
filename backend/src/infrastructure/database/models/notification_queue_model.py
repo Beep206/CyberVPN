@@ -1,6 +1,4 @@
-"""
-NotificationQueue ORM model for Telegram notification management.
-"""
+"""NotificationQueue ORM model for Telegram notification management."""
 
 from datetime import datetime
 from typing import Optional
@@ -23,68 +21,27 @@ class NotificationQueue(Base):
 
     __tablename__ = "notification_queue"
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        nullable=False
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
-    telegram_id: Mapped[int] = mapped_column(
-        BigInteger,
-        nullable=False
-    )
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    message: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
+    message: Mapped[str] = mapped_column(Text, nullable=False)
 
-    notification_type: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True
-    )
+    notification_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    status: Mapped[str] = mapped_column(
-        String(20),
-        default="pending",
-        nullable=False
-    )
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
 
-    attempts: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        nullable=False
-    )
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    scheduled_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False
-    )
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    sent_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
-    )
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    error_message: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True
-    )
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    __table_args__ = (
-        Index(
-            "ix_notification_queue_status_scheduled",
-            "status",
-            "scheduled_at"
-        ),
-    )
+    __table_args__ = (Index("ix_notification_queue_status_scheduled", "status", "scheduled_at"),)
 
     def __repr__(self) -> str:
         return f"<NotificationQueue(id={self.id}, telegram_id={self.telegram_id}, status='{self.status}')>"

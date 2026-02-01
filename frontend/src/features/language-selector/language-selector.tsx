@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { startTransition, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
@@ -17,14 +17,12 @@ export function LanguageSelector() {
 
     const currentLanguage = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
 
-    const filteredLanguages = useMemo(() => {
-        const query = searchQuery.toLowerCase();
-        return LANGUAGES.filter(l =>
-            l.name.toLowerCase().includes(query) ||
-            l.nativeName.toLowerCase().includes(query) ||
-            l.code.toLowerCase().includes(query)
-        );
-    }, [searchQuery]);
+    const query = searchQuery.toLowerCase();
+    const filteredLanguages = LANGUAGES.filter(l =>
+        l._searchName.includes(query) ||
+        l._searchNative.includes(query) ||
+        l._searchCode.includes(query)
+    );
 
     const handleLanguageChange = (newLocale: string) => {
         router.replace(pathname, { locale: newLocale });
@@ -60,7 +58,7 @@ export function LanguageSelector() {
                             type="text"
                             placeholder="SEARCH_LANGUAGE..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
                             className="w-full bg-terminal-bg/50 border border-grid-line/30 rounded-md py-2 pl-10 pr-4 text-foreground font-mono focus:outline-none focus:border-neon-cyan focus:shadow-[0_0_10px_rgba(0,255,255,0.2)] transition-all duration-300 placeholder:text-muted-foreground"
                             autoFocus
                         />

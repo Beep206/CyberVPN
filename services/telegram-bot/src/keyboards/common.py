@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.types import InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -25,7 +25,7 @@ def back_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
         InlineKeyboardButton with callback "nav:back".
     """
     return InlineKeyboardButton(
-        text=i18n("button-back"),
+        text=i18n("btn-back"),
         callback_data="nav:back",
     )
 
@@ -40,7 +40,7 @@ def cancel_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
         InlineKeyboardButton with callback "nav:cancel".
     """
     return InlineKeyboardButton(
-        text=i18n("button-cancel"),
+        text=i18n("btn-cancel"),
         callback_data="nav:cancel",
     )
 
@@ -55,7 +55,7 @@ def confirm_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
         InlineKeyboardButton with callback "nav:confirm".
     """
     return InlineKeyboardButton(
-        text=i18n("button-confirm"),
+        text=i18n("btn-confirm"),
         callback_data="nav:confirm",
     )
 
@@ -82,45 +82,45 @@ def main_menu_keyboard(
     # Subscription/Connection section
     if has_subscription:
         builder.button(
-            text=i18n("menu-connect"),
+            text=i18n("btn-connect"),
             callback_data="menu:connect",
         )
         builder.button(
-            text=i18n("menu-renew"),
-            callback_data="menu:renew",
+            text=i18n("btn-extend"),
+            callback_data="subscription:buy",
         )
     else:
-        builder.button(
-            text=i18n("menu-subscribe"),
-            callback_data="menu:subscribe",
-        )
         if trial_available:
             builder.button(
-                text=i18n("menu-trial"),
-                callback_data="menu:trial",
+                text=i18n("btn-trial"),
+                callback_data="trial:activate",
             )
+        builder.button(
+            text=i18n("btn-buy"),
+            callback_data="subscription:buy",
+        )
 
     # Account section
     builder.button(
-        text=i18n("menu-profile"),
-        callback_data="menu:profile",
+        text=i18n("btn-profile"),
+        callback_data="account:profile",
     )
     builder.button(
-        text=i18n("menu-referral"),
-        callback_data="menu:referral",
+        text=i18n("btn-invite"),
+        callback_data="menu:invite",
     )
 
     # Support
     builder.button(
-        text=i18n("menu-support"),
+        text=i18n("btn-support"),
         callback_data="menu:support",
     )
 
     # Admin section
     if is_admin:
         builder.button(
-            text=i18n("menu-admin"),
-            callback_data="menu:admin",
+            text=i18n("btn-admin-panel"),
+            callback_data="admin:menu",
         )
 
     # Adjust layout: 2 buttons per row

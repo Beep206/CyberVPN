@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,19 +32,19 @@ def config_format_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     builder.button(
-        text=i18n("config-format-link"),
-        callback_data="config:format:link",
+        text=i18n("btn-config-link"),
+        callback_data="config:link",
     )
     builder.button(
-        text=i18n("config-format-qr"),
-        callback_data="config:format:qr",
+        text=i18n("btn-config-qr"),
+        callback_data="config:qr",
     )
     builder.button(
-        text=i18n("config-format-instructions"),
-        callback_data="config:format:instructions",
+        text=i18n("btn-config-instruction"),
+        callback_data="config:instructions",
     )
     builder.button(
-        text=i18n("button-back"),
+        text=i18n("btn-back"),
         callback_data="nav:back",
     )
 
@@ -51,3 +52,7 @@ def config_format_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder.adjust(1)
 
     return builder.as_markup()
+
+
+def config_delivery_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
+    return config_format_keyboard(i18n)

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getRequestConfig } from 'next-intl/server';
 import { defaultLocale, locales } from './config';
 
@@ -14,7 +15,7 @@ export default getRequestConfig(async ({ locale }) => {
     };
 });
 
-async function loadMessages(locale: Locale) {
+const loadMessages = cache(async function loadMessages(locale: Locale) {
     try {
         return await loadLocaleMessages(locale);
     } catch {
@@ -24,7 +25,7 @@ async function loadMessages(locale: Locale) {
 
         return loadLocaleMessages(defaultLocale);
     }
-}
+});
 
 async function loadLocaleMessages(locale: Locale) {
     const [
@@ -37,7 +38,8 @@ async function loadLocaleMessages(locale: Locale) {
         usersTable,
         serversTable,
         serverCard,
-        languageSelector
+        languageSelector,
+        errors
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`),
         import(`../../messages/${locale}/navigation.json`),
@@ -48,7 +50,8 @@ async function loadLocaleMessages(locale: Locale) {
         import(`../../messages/${locale}/users-table.json`),
         import(`../../messages/${locale}/servers-table.json`),
         import(`../../messages/${locale}/server-card.json`),
-        import(`../../messages/${locale}/language-selector.json`)
+        import(`../../messages/${locale}/language-selector.json`),
+        import(`../../messages/${locale}/errors.json`)
     ]);
 
     return {
@@ -61,6 +64,7 @@ async function loadLocaleMessages(locale: Locale) {
         UsersTable: usersTable.default,
         ServersTable: serversTable.default,
         ServerCard: serverCard.default,
-        LanguageSelector: languageSelector.default
+        LanguageSelector: languageSelector.default,
+        Errors: errors.default
     };
 }

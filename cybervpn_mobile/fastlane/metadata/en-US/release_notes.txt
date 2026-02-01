@@ -1,0 +1,10 @@
+Initial release of CyberVPN.
+
+• Secure VPN with V2Ray/Xray protocols
+• Cyberpunk-themed UI with 3D globe
+• Global server network
+• Kill switch and split tunneling
+• Biometric authentication
+• Real-time statistics
+• Multiple subscription plans
+• Zero logs policy

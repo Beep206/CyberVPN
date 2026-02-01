@@ -53,11 +53,15 @@ async def optional_user(
         return None
     try:
         payload = auth_service.decode_token(credentials.credentials)
+        if payload.get("type") != "access":
+            return None
         user_id = payload.get("sub")
         if not user_id:
             return None
         repo = AdminUserRepository(db)
-        from uuid import UUID
-        return await repo.get_by_id(UUID(user_id))
+        user = await repo.get_by_id(UUID(user_id))
+        if not user or not user.is_active:
+            return None
+        return user
     except JWTError:
         return None

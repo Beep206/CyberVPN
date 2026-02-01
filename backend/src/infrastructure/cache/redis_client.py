@@ -1,7 +1,6 @@
 """Redis/Valkey client for caching and session management."""
 
 from collections.abc import AsyncGenerator
-from typing import Any
 
 import redis.asyncio as redis
 

@@ -3,15 +3,14 @@
 from datetime import UTC, datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, Query
 
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.monitoring.bandwidth_analytics import BandwidthAnalyticsUseCase
 from src.application.use_cases.monitoring.server_bandwidth import ServerBandwidthUseCase
 from src.application.use_cases.monitoring.system_health import SystemHealthUseCase
-from src.infrastructure.cache.redis_client import get_redis
-from src.presentation.dependencies.database import get_db
+from src.infrastructure.cache.redis_client import check_redis_connection
+from src.infrastructure.database.session import check_db_connection
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
@@ -26,47 +25,59 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
     responses={503: {"description": "One or more components unhealthy"}},
 )
 async def health_check(
-    db: AsyncSession = Depends(get_db),
-    redis=Depends(get_redis),
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
 ) -> Dict[str, Any]:
     """Authenticated system health check endpoint."""
-    try:
-        use_case = SystemHealthUseCase(
-            session=db,
-            redis_client=redis,
-            remnawave_client=client,
-        )
-        result = await use_case.execute()
 
-        return result
+    async def db_check() -> None:
+        if not await check_db_connection():
+            raise RuntimeError("Database connection failed")
+
+    async def redis_check() -> None:
+        ok, _ = await check_redis_connection()
+        if not ok:
+            raise RuntimeError("Redis connection failed")
+
+    async def remnawave_check() -> None:
+        if not await client.health_check():
+            raise RuntimeError("Remnawave API health check failed")
+
+    use_case = SystemHealthUseCase(
+        db_check=db_check,
+        redis_check=redis_check,
+        remnawave_check=remnawave_check,
+    )
+    result = await use_case.execute()
+
+    return result
 
 
 @router.get(
     "/stats",
+    response_model=StatsResponse,
     responses={200: {"model": StatsResponse, "description": "Server bandwidth statistics"}},
 )
 async def get_system_stats(
-    db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
 ) -> Dict[str, Any]:
     """Get bandwidth statistics (authenticated)."""
-    try:
-        use_case = ServerBandwidthUseCase(client=client)
-        stats = await use_case.execute()
+    use_case = ServerBandwidthUseCase(client=client)
+    stats = await use_case.execute()
 
-        return {
-            "timestamp": datetime.now(UTC).isoformat(),
-            **stats,
-        }
+    return {
+        "timestamp": datetime.now(UTC).isoformat(),
+        **stats,
+    }
+
+
 @router.get(
     "/bandwidth",
+    response_model=BandwidthResponse,
     responses={200: {"model": BandwidthResponse, "description": "Bandwidth analytics data"}},
 )
 async def get_bandwidth_analytics(
-    db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
     period: str = Query(
         "today",
@@ -76,12 +87,11 @@ async def get_bandwidth_analytics(
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
 ) -> Dict[str, Any]:
     """Get bandwidth analytics for a specific period (authenticated)."""
-    try:
-        use_case = BandwidthAnalyticsUseCase(client=client)
-        stats = await use_case.execute(period=period)
+    use_case = BandwidthAnalyticsUseCase(client=client)
+    stats = await use_case.execute(period=period)
 
-        return {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "period": period,
-            **stats,
-        }
+    return {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "period": period,
+        **stats,
+    }

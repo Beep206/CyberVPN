@@ -72,6 +72,9 @@ class FluentTranslator:
         logger.warning("missing_translation", key=key)
         return key
 
+    def get(self, key: str, **kwargs: Any) -> str:
+        return self.__call__(key, **kwargs)
+
     @staticmethod
     def _format(
         bundle: FluentBundle,
@@ -79,13 +82,16 @@ class FluentTranslator:
         args: dict[str, Any],
     ) -> str | None:
         """Attempt to format a message from a bundle."""
-        if not bundle.has_message(key):
+        try:
+            message = bundle.get_message(key)
+        except Exception:
             return None
-        message = bundle.format(key, args)
-        # FluentBundle.format returns (value, errors) tuple
-        if isinstance(message, tuple):
-            return message[0]
-        return message
+        if message is None or message.value is None:
+            return None
+        value, _errors = bundle.format_pattern(message.value, args)
+        if not value:
+            return None
+        return str(value)
 
 
 class I18nManager:
@@ -95,16 +101,24 @@ class I18nManager:
     and caches FluentBundle instances per locale.
     """
 
-    def __init__(self, locales_dir: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        locales_dir: str | Path | None = None,
+        *,
+        locales: list[str] | tuple[str, ...] | None = None,
+        default_locale: str = DEFAULT_LOCALE,
+    ) -> None:
         if locales_dir is None:
             locales_dir = Path(__file__).parent.parent / "locales"
         self._locales_dir = Path(locales_dir)
+        self._supported_locales = tuple(locales) if locales else SUPPORTED_LOCALES
+        self._default_locale = default_locale
         self._bundles: dict[str, FluentBundle] = {}
         self._load_all()
 
     def _load_all(self) -> None:
         """Load all .ftl files for all supported locales."""
-        for locale in SUPPORTED_LOCALES:
+        for locale in self._supported_locales:
             locale_dir = self._locales_dir / locale
             if not locale_dir.is_dir():
                 logger.warning("locale_directory_missing", locale=locale)
@@ -139,16 +153,12 @@ class I18nManager:
             FluentTranslator with optional fallback to default locale.
         """
         bundle = self.get_bundle(locale)
-        fallback = (
-            self.get_bundle(DEFAULT_LOCALE)
-            if locale != DEFAULT_LOCALE
-            else None
-        )
+        fallback = self.get_bundle(self._default_locale) if locale != self._default_locale else None
 
         if bundle is None:
-            bundle = self.get_bundle(DEFAULT_LOCALE)
+            bundle = self.get_bundle(self._default_locale)
             if bundle is None:
-                msg = f"Default locale '{DEFAULT_LOCALE}' bundle not found"
+                msg = f"Default locale '{self._default_locale}' bundle not found"
                 raise RuntimeError(msg)
             fallback = None
 
@@ -181,8 +191,19 @@ class I18nMiddleware(BaseMiddleware):
     - data['locale'] — resolved locale string (e.g., 'ru', 'en')
     """
 
-    def __init__(self, i18n_manager: I18nManager | None = None) -> None:
-        self._manager = i18n_manager or get_i18n_manager()
+    def __init__(
+        self,
+        i18n_manager: I18nManager | None = None,
+        *,
+        available_locales: list[str] | tuple[str, ...] | None = None,
+        default_locale: str = DEFAULT_LOCALE,
+    ) -> None:
+        self._available_locales = tuple(available_locales) if available_locales else SUPPORTED_LOCALES
+        self._default_locale = default_locale
+        self._manager = i18n_manager or I18nManager(
+            locales=available_locales,
+            default_locale=default_locale,
+        )
 
     async def __call__(
         self,
@@ -208,17 +229,16 @@ class I18nMiddleware(BaseMiddleware):
 
         return await handler(event, data)
 
-    @staticmethod
-    def _resolve_locale(event: TelegramObject, data: dict[str, Any]) -> str:
+    def _resolve_locale(self, event: TelegramObject, data: dict[str, Any]) -> str:
         """Determine locale from available context.
 
         Priority: user DB preference → Telegram language → default.
         """
         # 1. Check user's saved preference
         user = data.get("user")
-        if user is not None and hasattr(user, "language"):
-            lang = getattr(user, "language", None)
-            if lang and lang in SUPPORTED_LOCALES:
+        if isinstance(user, dict):
+            lang = user.get("language") or user.get("language_code")
+            if lang and lang in self._available_locales:
                 return lang
 
         # 2. Check Telegram language_code
@@ -240,4 +260,4 @@ class I18nMiddleware(BaseMiddleware):
                 return mapped
 
         # 3. Default
-        return DEFAULT_LOCALE
+        return self._default_locale

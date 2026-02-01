@@ -2,7 +2,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.totp.totp_service import TOTPService
 
@@ -18,7 +17,7 @@ class TwoFactorUseCase:
             raise ValueError("User not found")
 
         secret = self._totp.generate_secret()
-        uri = self._totp.generate_qr_uri(secret, user.email or user.login, "CyberVPN")
+        uri = self._totp.generate_qr_uri(secret, user.email or user.login)
 
         user.totp_secret = secret
         await self._repo.update(user)

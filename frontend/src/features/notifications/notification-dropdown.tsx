@@ -90,7 +90,7 @@ export function NotificationDropdown() {
                                         <div
                                             key={notification.id}
                                             className={cn(
-                                                "p-4 hover:bg-white/5 transition-colors cursor-pointer group",
+                                                "p-4 hover:bg-white/5 transition-colors cursor-pointer group [content-visibility:auto] [contain-intrinsic-size:auto_76px]",
                                                 !notification.read && "bg-neon-cyan/5"
                                             )}
                                         >

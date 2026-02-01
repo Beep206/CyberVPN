@@ -6,25 +6,23 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from keyboards.admin_referral import referral_settings_keyboard
-from middleware.admin import admin_required
+from src.keyboards.admin_referral import referral_settings_keyboard
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_referral")
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:referral:settings")
 async def referral_settings_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show referral system settings."""
     try:
@@ -48,7 +46,7 @@ async def referral_settings_handler(
 async def toggle_referral_system_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle referral system."""
     try:
@@ -74,7 +72,7 @@ async def toggle_referral_system_handler(
 async def toggle_reward_type_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle reward type (percentage/fixed)."""
     try:
@@ -100,7 +98,7 @@ async def toggle_reward_type_handler(
 async def toggle_first_purchase_bonus_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle first purchase bonus."""
     try:
@@ -126,7 +124,7 @@ async def toggle_first_purchase_bonus_handler(
 async def toggle_lifetime_referrals_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle lifetime referrals."""
     try:
@@ -152,7 +150,7 @@ async def toggle_lifetime_referrals_handler(
 async def referral_stats_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show referral statistics."""
     try:

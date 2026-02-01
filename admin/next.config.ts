@@ -7,6 +7,7 @@ type NextConfigWithCompiler = NextConfig & {
 };
 
 const config: NextConfigWithCompiler = {
+  output: 'standalone',
   experimental: {},
   cacheComponents: true,
   reactCompiler: true,

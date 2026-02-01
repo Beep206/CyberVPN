@@ -1,5 +1,13 @@
 # CyberVPN Telegram Bot — Errors (en)
 
+# ── General ───────────────────────────────────────────────────────────────
+error-generic = ⚠️ Something went wrong. Please try again shortly.
+error-registration-failed = ❌ Unable to register your account. Please try later or contact support.
+error-no-plans = ⚠️ No plans are available right now. Please try later.
+error-config-not-ready = ⏳ Your configuration is not ready yet. Try again in a couple of minutes.
+error-trial-activation-failed = ❌ Couldn't activate the free trial. Please try again later.
+error-withdrawal-failed = ❌ Unable to withdraw bonuses. Try again later or contact support.
+
 # ── API ──────────────────────────────────────────────────────────────────
 error-api-unavailable = ⚠️ Service temporarily unavailable. Please try again later.
 
@@ -23,6 +31,9 @@ error-payment-expired = ⏰ Payment expired. Please create a new payment.
 error-payment-cancelled = 🔄 Payment was cancelled.
 
 error-payment-duplicate = ℹ️ This payment has already been processed.
+
+error-payment-creation-failed = ❌ Couldn't create a payment. Please try a different method.
+error-payment-confirmation-failed = ⚠️ Payment succeeded but confirmation didn't arrive. Please check status again.
 
 # ── User ─────────────────────────────────────────────────────────────────
 error-user-not-registered = ❌ You are not registered. Press /start to register.

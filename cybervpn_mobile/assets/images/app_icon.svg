@@ -1,0 +1,95 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A0E1A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="shield-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FF88;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00FFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00FF88;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bg-gradient)" rx="180"/>
+
+  <!-- Circuit pattern in background -->
+  <g opacity="0.15" stroke="#00FFFF" stroke-width="2" fill="none">
+    <line x1="100" y1="200" x2="300" y2="200"/>
+    <line x1="724" y1="200" x2="924" y2="200"/>
+    <line x1="100" y1="824" x2="300" y2="824"/>
+    <line x1="724" y1="824" x2="924" y2="824"/>
+    <line x1="200" y1="100" x2="200" y2="300"/>
+    <line x1="824" y1="100" x2="824" y2="300"/>
+    <line x1="200" y1="724" x2="200" y2="924"/>
+    <line x1="824" y1="724" x2="824" y2="924"/>
+    <circle cx="200" cy="200" r="8" fill="#00FFFF"/>
+    <circle cx="824" cy="200" r="8" fill="#00FFFF"/>
+    <circle cx="200" cy="824" r="8" fill="#00FFFF"/>
+    <circle cx="824" cy="824" r="8" fill="#00FFFF"/>
+  </g>
+
+  <!-- Main shield shape -->
+  <g filter="url(#glow)">
+    <path d="M 512 180 L 780 280 L 780 480 Q 780 720 512 880 Q 244 720 244 480 L 244 280 Z"
+          fill="none"
+          stroke="url(#shield-gradient)"
+          stroke-width="24"
+          stroke-linejoin="round"/>
+
+    <!-- Inner shield accent -->
+    <path d="M 512 240 L 720 320 L 720 480 Q 720 680 512 800 Q 304 680 304 480 L 304 320 Z"
+          fill="none"
+          stroke="#00FF88"
+          stroke-width="4"
+          opacity="0.5"/>
+  </g>
+
+  <!-- Lock icon in center -->
+  <g filter="url(#glow)">
+    <!-- Lock body -->
+    <rect x="432" y="480" width="160" height="140" rx="16"
+          fill="none"
+          stroke="#00FFFF"
+          stroke-width="20"/>
+
+    <!-- Lock shackle -->
+    <path d="M 462 480 L 462 420 Q 462 360 512 360 Q 562 360 562 420 L 562 480"
+          fill="none"
+          stroke="#00FFFF"
+          stroke-width="20"
+          stroke-linecap="round"/>
+
+    <!-- Keyhole -->
+    <circle cx="512" cy="530" r="18" fill="#00FF88"/>
+    <rect x="502" y="530" width="20" height="40" rx="4" fill="#00FF88"/>
+  </g>
+
+  <!-- Digital effect lines -->
+  <g opacity="0.6" stroke="#FF00FF" stroke-width="3" fill="none">
+    <line x1="380" y1="350" x2="420" y2="350"/>
+    <line x1="604" y1="350" x2="644" y2="350"/>
+    <line x1="380" y1="650" x2="420" y2="650"/>
+    <line x1="604" y1="650" x2="644" y2="650"/>
+  </g>
+
+  <!-- Corner accents -->
+  <g stroke="#FF00FF" stroke-width="4" fill="none" opacity="0.8">
+    <polyline points="240,340 240,280 300,280"/>
+    <polyline points="784,340 784,280 724,280"/>
+    <polyline points="240,660 240,720 300,720"/>
+    <polyline points="784,660 784,720 724,720"/>
+  </g>
+</svg>

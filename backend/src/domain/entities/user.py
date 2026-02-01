@@ -27,3 +27,16 @@ class User:
     telegram_id: int | None = None
     email: str | None = None
     hwid_device_limit: int | None = None
+    subscription_url: str | None = None
+
+    @property
+    def data_usage(self) -> int:
+        return self.used_traffic_bytes or 0
+
+    @property
+    def data_limit(self) -> int | None:
+        return self.traffic_limit_bytes
+
+    @property
+    def expires_at(self) -> datetime | None:
+        return self.expire_at

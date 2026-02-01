@@ -6,6 +6,8 @@ from uuid import UUID
 @dataclass(frozen=True)
 class CreateUserDTO:
     username: str
+    password: str | None = None
+    data_limit: int | None = None
     expire_at: datetime | None = None
     email: str | None = None
     telegram_id: int | None = None

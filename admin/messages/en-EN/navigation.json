@@ -5,5 +5,7 @@
     "billing": "BILLING",
     "analytics": "NET OP",
     "security": "SECURITY",
-    "settings": "CONFIG"
+    "settings": "CONFIG",
+    "monitoring": "MONITORING",
+    "subscriptions": "SUBSCRIPTIONS"
 }

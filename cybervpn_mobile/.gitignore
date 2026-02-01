@@ -1,0 +1,87 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Obfuscation debug info (symbol maps uploaded to Sentry)
+build/debug-info/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+.flutter-plugins
+
+# Environment files
+.env
+.env.*
+
+# Firebase configuration (uncomment to exclude real configs)
+# Note: Placeholder google-services.json files are tracked by default
+# To exclude real Firebase configs, uncomment the lines below:
+# android/app/src/dev/google-services.json
+# android/app/src/staging/google-services.json
+# android/app/src/prod/google-services.json
+
+# Pods
+ios/Pods/
+ios/.symlinks/
+
+# Xcode
+ios/Runner.xcworkspace/xcshareddata/
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/play-store-key.json
+vendor/bundle/
+
+# Ruby (Fastlane)
+.bundle/
+Gemfile.lock

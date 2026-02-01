@@ -12,6 +12,7 @@ from aiogram.fsm.state import State, StatesGroup
 class BroadcastStates(StatesGroup):
     """Broadcast message creation flow."""
 
+    composing_message = State()
     selecting_audience = State()
     editing_content = State()
     editing_buttons = State()
@@ -22,6 +23,7 @@ class BroadcastStates(StatesGroup):
 class UserManagementStates(StatesGroup):
     """Admin user management flow."""
 
+    searching = State()
     searching_user = State()
     viewing_user = State()
     editing_discount = State()
@@ -31,6 +33,7 @@ class UserManagementStates(StatesGroup):
     editing_traffic = State()
     editing_devices = State()
     editing_expiry = State()
+    extending_subscription = State()
     confirming_action = State()
 
 
@@ -39,6 +42,9 @@ class PromocodeManagementStates(StatesGroup):
 
     listing = State()
     creating = State()
+    creating_code = State()
+    creating_discount = State()
+    creating_limit = State()
     editing_code = State()
     editing_type = State()
     editing_reward = State()
@@ -54,6 +60,9 @@ class PlanManagementStates(StatesGroup):
 
     listing = State()
     creating = State()
+    creating_name = State()
+    creating_price = State()
+    creating_description = State()
     editing_name = State()
     editing_description = State()
     editing_tag = State()
@@ -70,6 +79,8 @@ class AccessSettingsStates(StatesGroup):
     """Bot access configuration flow."""
 
     viewing = State()
+    adding_admin = State()
+    removing_admin = State()
     editing_mode = State()
     editing_rules_url = State()
     editing_channel_id = State()
@@ -91,6 +102,7 @@ class ReferralSettingsStates(StatesGroup):
 
     viewing = State()
     editing_bonus = State()
+    editing_withdrawal = State()
     editing_max_referrals = State()
     editing_enabled = State()
     confirming = State()
@@ -113,3 +125,12 @@ class ImportSyncStates(StatesGroup):
     confirming_import = State()
     processing = State()
     viewing_results = State()
+
+
+AdminBroadcastState = BroadcastStates
+AdminUserState = UserManagementStates
+AdminPromoState = PromocodeManagementStates
+AdminPlanState = PlanManagementStates
+AdminAccessState = AccessSettingsStates
+AdminReferralSettingsState = ReferralSettingsStates
+AdminNotificationSettingsState = NotificationSettingsStates

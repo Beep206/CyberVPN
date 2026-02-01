@@ -7,26 +7,23 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from middleware.admin import admin_required
-from states.admin import AdminPromoState
+from src.states.admin import AdminPromoState
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_promos")
-router.message.middleware(admin_required)
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:promos")
 async def promos_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show promocodes management menu."""
     try:
@@ -85,7 +82,7 @@ async def promos_menu_handler(
 async def promo_view_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """View promocode details."""
     promo_id = callback.data.split(":")[3]
@@ -144,7 +141,7 @@ async def promo_view_handler(
 async def promo_toggle_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle promocode active status."""
     promo_id = callback.data.split(":")[3]
@@ -236,7 +233,7 @@ async def promo_create_discount_handler(
 async def promo_create_limit_handler(
     message: Message,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
     state: FSMContext,
 ) -> None:
     """Handle promo usage limit input and create promocode."""

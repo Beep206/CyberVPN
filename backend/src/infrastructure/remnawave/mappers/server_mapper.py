@@ -18,6 +18,7 @@ def map_remnawave_server(data: dict) -> Server:
         country_code=data.get("countryCode"),
         traffic_limit_bytes=data.get("trafficLimitBytes"),
         used_traffic_bytes=data.get("usedTrafficBytes"),
+        inbound_count=data.get("inboundCount"),
         users_online=data.get("usersOnline"),
         xray_version=data.get("xrayVersion"),
         vpn_protocol=data.get("vpnProtocol"),

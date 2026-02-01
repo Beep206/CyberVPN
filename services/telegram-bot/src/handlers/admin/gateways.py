@@ -6,24 +6,22 @@ import structlog
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from middleware.admin import admin_required
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
 
-    from clients.api_client import APIClient
+    from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_gateways")
-router.callback_query.middleware(admin_required)
 
 
 @router.callback_query(F.data == "admin:gateways:settings")
 async def gateways_settings_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Show payment gateways settings."""
     try:
@@ -81,7 +79,7 @@ async def gateways_settings_handler(
 async def gateway_view_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """View gateway details."""
     gateway_id = callback.data.split(":")[3]
@@ -104,7 +102,9 @@ async def gateway_view_handler(
 
         builder = InlineKeyboardBuilder()
 
-        toggle_text = i18n.get("admin-gateway-disable") if gateway.get("is_enabled") else i18n.get("admin-gateway-enable")
+        toggle_text = (
+            i18n.get("admin-gateway-disable") if gateway.get("is_enabled") else i18n.get("admin-gateway-enable")
+        )
 
         builder.row(
             InlineKeyboardButton(
@@ -137,7 +137,7 @@ async def gateway_view_handler(
 async def gateway_toggle_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    api_client: APIClient,
+    api_client: CyberVPNAPIClient,
 ) -> None:
     """Toggle gateway enabled status."""
     gateway_id = callback.data.split(":")[3]
@@ -155,7 +155,9 @@ async def gateway_toggle_handler(
         # Refresh gateway view
         await gateway_view_handler(callback, i18n, api_client)
 
-        logger.info("admin_gateway_toggled", admin_id=callback.from_user.id, gateway_id=gateway_id, is_enabled=is_enabled)
+        logger.info(
+            "admin_gateway_toggled", admin_id=callback.from_user.id, gateway_id=gateway_id, is_enabled=is_enabled
+        )
 
     except Exception as e:
         logger.error("admin_gateway_toggle_error", admin_id=callback.from_user.id, gateway_id=gateway_id, error=str(e))

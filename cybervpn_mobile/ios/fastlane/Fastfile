@@ -1,0 +1,191 @@
+# Fastfile for CyberVPN iOS builds
+# This file contains the fastlane configuration for building different flavors
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build Dev flavor for development"
+  lane :build_dev do
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Debug-Dev",
+      export_method: "development",
+      output_directory: "./build/ios/ipa",
+      output_name: "CyberVPN-Dev.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.cybervpn.app.dev" => ENV["MATCH_PROVISIONING_PROFILE_DEV"] || "match Development com.cybervpn.app.dev"
+        }
+      },
+      skip_codesigning: false,
+      clean: true
+    )
+  end
+
+  desc "Build Dev flavor for release (Ad-Hoc distribution)"
+  lane :build_dev_release do
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release-Dev",
+      export_method: "ad-hoc",
+      output_directory: "./build/ios/ipa",
+      output_name: "CyberVPN-Dev-Release.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.cybervpn.app.dev" => ENV["MATCH_PROVISIONING_PROFILE_DEV_ADHOC"] || "match AdHoc com.cybervpn.app.dev"
+        }
+      },
+      skip_codesigning: false,
+      clean: true
+    )
+  end
+
+  desc "Build Staging flavor for testing (Ad-Hoc distribution)"
+  lane :build_staging do
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Debug-Staging",
+      export_method: "ad-hoc",
+      output_directory: "./build/ios/ipa",
+      output_name: "CyberVPN-Staging.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.cybervpn.app.staging" => ENV["MATCH_PROVISIONING_PROFILE_STAGING"] || "match AdHoc com.cybervpn.app.staging"
+        }
+      },
+      skip_codesigning: false,
+      clean: true
+    )
+  end
+
+  desc "Build Staging flavor for release (Ad-Hoc distribution)"
+  lane :build_staging_release do
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release-Staging",
+      export_method: "ad-hoc",
+      output_directory: "./build/ios/ipa",
+      output_name: "CyberVPN-Staging-Release.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.cybervpn.app.staging" => ENV["MATCH_PROVISIONING_PROFILE_STAGING_ADHOC"] || "match AdHoc com.cybervpn.app.staging"
+        }
+      },
+      skip_codesigning: false,
+      clean: true
+    )
+  end
+
+  desc "Build Production flavor for App Store distribution"
+  lane :build_production do
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release-Prod",
+      export_method: "app-store",
+      output_directory: "./build/ios/ipa",
+      output_name: "CyberVPN-Production.ipa",
+      export_options: {
+        provisioningProfiles: {
+          "com.cybervpn.app" => ENV["MATCH_PROVISIONING_PROFILE_PROD"] || "match AppStore com.cybervpn.app"
+        }
+      },
+      skip_codesigning: false,
+      clean: true
+    )
+  end
+
+  desc "Deploy Dev build to TestFlight"
+  lane :deploy_dev do
+    build_dev_release
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APPLE_ID"],
+      team_id: ENV["TEAM_ID"]
+    )
+  end
+
+  desc "Deploy Staging build to TestFlight"
+  lane :deploy_staging do
+    build_staging_release
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APPLE_ID"],
+      team_id: ENV["TEAM_ID"]
+    )
+  end
+
+  desc "Deploy Production build to TestFlight and submit for review"
+  lane :deploy_production do
+    build_production
+    upload_to_testflight(
+      skip_waiting_for_build_processing: false,
+      apple_id: ENV["APPLE_ID"],
+      team_id: ENV["TEAM_ID"],
+      notify_external_testers: false
+    )
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      devices: ["iPhone 15 Pro"],
+      clean: true
+    )
+  end
+
+  desc "Setup code signing with match"
+  lane :setup_signing do
+    match(
+      type: "development",
+      app_identifier: ["com.cybervpn.app.dev", "com.cybervpn.app.staging", "com.cybervpn.app"],
+      readonly: false
+    )
+    match(
+      type: "adhoc",
+      app_identifier: ["com.cybervpn.app.dev", "com.cybervpn.app.staging"],
+      readonly: false
+    )
+    match(
+      type: "appstore",
+      app_identifier: "com.cybervpn.app",
+      readonly: false
+    )
+  end
+
+  desc "Sync code signing certificates (read-only)"
+  lane :sync_signing do
+    match(
+      type: "development",
+      app_identifier: ["com.cybervpn.app.dev", "com.cybervpn.app.staging", "com.cybervpn.app"],
+      readonly: true
+    )
+    match(
+      type: "adhoc",
+      app_identifier: ["com.cybervpn.app.dev", "com.cybervpn.app.staging"],
+      readonly: true
+    )
+    match(
+      type: "appstore",
+      app_identifier: "com.cybervpn.app",
+      readonly: true
+    )
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    clear_derived_data
+    sh("rm -rf ../build")
+  end
+
+  # Error handling
+  error do |lane, exception|
+    puts "Error in lane #{lane}: #{exception.message}"
+  end
+end

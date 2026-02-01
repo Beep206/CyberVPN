@@ -29,13 +29,21 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "VPN Command Center",
+    title: {
+        default: "VPN Command Center",
+        template: "%s | VPN Command Center",
+    },
     description: "Advanced Cyberpunk VPN Admin Interface",
-    metadataBase: new URL('https://vpn-admin.example.com'), // Replace with actual domain in production
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
     alternates: {
         languages: Object.fromEntries(
             locales.map((locale) => [locale, `/${locale}`])
         ),
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'VPN Command Center',
+        description: 'Advanced Cyberpunk VPN Admin Interface',
     },
 };
 

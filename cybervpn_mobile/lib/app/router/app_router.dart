@@ -1,0 +1,539 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
+import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
+import 'package:cybervpn_mobile/core/security/screen_protection_observer.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
+import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
+import 'package:cybervpn_mobile/features/config_import/presentation/screens/qr_scanner_screen.dart';
+import 'package:cybervpn_mobile/features/config_import/presentation/screens/subscription_url_screen.dart';
+import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/diagnostics_screen.dart';
+import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/log_viewer_screen.dart';
+import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/speed_test_screen.dart';
+import 'package:cybervpn_mobile/features/navigation/presentation/screens/main_shell_screen.dart';
+import 'package:cybervpn_mobile/features/notifications/presentation/screens/notification_center_screen.dart';
+import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
+import 'package:cybervpn_mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:cybervpn_mobile/features/onboarding/presentation/screens/permission_request_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/delete_account_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/devices_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/profile_dashboard_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/social_accounts_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/two_factor_screen.dart';
+import 'package:cybervpn_mobile/features/quick_setup/presentation/providers/quick_setup_provider.dart';
+import 'package:cybervpn_mobile/features/quick_setup/presentation/screens/quick_setup_screen.dart';
+import 'package:cybervpn_mobile/features/referral/presentation/screens/referral_dashboard_screen.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/screens/server_detail_screen.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/screens/server_list_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/appearance_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans_screen.dart';
+import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_screen.dart';
+
+// ---------------------------------------------------------------------------
+// Placeholder screens removed - all real implementations are now in use
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Navigation keys for StatefulShellRoute branches
+// ---------------------------------------------------------------------------
+
+// Use the global rootNavigatorKey from quick_actions_handler for navigation
+// This allows quick actions to navigate even when the app is in background
+final _connectionNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'connection');
+final _serversNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'servers');
+final _profileNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'profile');
+final _settingsNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'settings');
+
+// ---------------------------------------------------------------------------
+// Transition builder for slide transitions
+// ---------------------------------------------------------------------------
+
+CustomTransitionPage<void> _buildSlideTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        )),
+        child: child,
+      );
+    },
+  );
+}
+
+CustomTransitionPage<void> _buildFadeTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Router provider
+// ---------------------------------------------------------------------------
+
+/// Creates the application [GoRouter] with onboarding, authentication, and
+/// deep link redirect guards.
+///
+/// Redirect priority:
+/// 1. If the incoming URI is a deep link (cybervpn:// or https://cybervpn.app)
+///    -> parse it and redirect to the internal route. If unauthenticated, store
+///    as pending and redirect to login.
+/// 2. If onboarding has **not** been completed and the user is not already on
+///    `/onboarding` -> redirect to `/onboarding`.
+/// 3. If onboarding is complete but user is **not** authenticated and not on
+///    an auth route -> redirect to `/login`.
+/// 4. If authenticated and on an auth route or `/onboarding` -> redirect to
+///    `/connection`. Also, consume any pending deep link.
+/// 5. Otherwise -> no redirect.
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final isAuthenticated = ref.watch(isAuthenticatedProvider);
+
+  // shouldShowOnboardingProvider is a FutureProvider<bool>.
+  // While it is still loading we default to `false` (do not show onboarding)
+  // so the router does not flash the onboarding screen while the persisted
+  // completion flag is being read from disk.
+  final shouldShowOnboarding =
+      ref.watch(shouldShowOnboardingProvider).value ?? false;
+
+  // Check if the user should see the quick setup flow after first auth.
+  final shouldShowQuickSetup =
+      ref.watch(shouldShowQuickSetupProvider);
+
+  // Initialize quick actions handler (keeps it alive)
+  ref.watch(quickActionsHandlerProvider);
+
+  return GoRouter(
+    navigatorKey: rootNavigatorKey,
+    initialLocation: '/',
+    debugLogDiagnostics: false,
+    observers: [
+      ScreenProtectionObserver(),
+    ],
+    redirect: (context, state) {
+      final uri = state.uri;
+      final path = uri.path;
+      final isAuthRoute = path == '/login' || path == '/register';
+      final isOnboardingRoute = path == '/onboarding';
+      final isQuickSetupRoute = path == '/quick-setup';
+
+      // -- Deep link handling -----------------------------------------------
+      // Check if the incoming URI is an external deep link.
+      final deepLinkPath = resolveDeepLinkFromUri(uri);
+      if (deepLinkPath != null) {
+        if (!isAuthenticated) {
+          // Store the deep link for after login.
+          final parseResult = DeepLinkParser.parseUri(uri);
+          if (parseResult.route != null) {
+            ref
+                .read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier)
+                .setPending(parseResult.route!);
+          }
+          return '/login';
+        }
+        return deepLinkPath;
+      }
+
+      // -- Standard redirect guards -----------------------------------------
+
+      // 1. Onboarding not completed -> show onboarding
+      if (shouldShowOnboarding && !isOnboardingRoute) {
+        return '/onboarding';
+      }
+
+      // 2. Onboarding complete, not authenticated -> show login
+      //    (but allow deep link target paths through -- they get caught above)
+      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
+        return '/login';
+      }
+
+      // 3. Authenticated user on auth/onboarding routes -> go to app
+      //    Check for pending deep link first.
+      if (isAuthenticated && (isAuthRoute || isOnboardingRoute)) {
+        // Show quick setup if not completed.
+        if (shouldShowQuickSetup && !isQuickSetupRoute) {
+          return '/quick-setup';
+        }
+        final pendingRoute =
+            ref.read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier).consume();
+        if (pendingRoute != null) {
+          return resolveDeepLinkPath(pendingRoute);
+        }
+        return '/connection';
+      }
+
+      // 4. Authenticated user on root -> go to quick setup or connection
+      if (isAuthenticated && path == '/') {
+        // Show quick setup if not completed.
+        if (shouldShowQuickSetup && !isQuickSetupRoute) {
+          return '/quick-setup';
+        }
+        final pendingRoute =
+            ref.read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier).consume();
+        if (pendingRoute != null) {
+          return resolveDeepLinkPath(pendingRoute);
+        }
+        return '/connection';
+      }
+
+      return null;
+    },
+    routes: [
+      // -- Onboarding route (no bottom nav, before auth) --------------------
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildFadeTransition(
+          state: state,
+          child: const OnboardingScreen(),
+        ),
+      ),
+
+      // -- Permission request route (after onboarding, before auth) ---------
+      GoRoute(
+        path: '/permissions',
+        name: 'permissions',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildFadeTransition(
+          state: state,
+          child: const PermissionRequestScreen(),
+        ),
+      ),
+
+      // -- Auth routes (no bottom nav) --------------------------------------
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildFadeTransition(
+          state: state,
+          child: const LoginScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const RegisterScreen(),
+        ),
+      ),
+
+      // -- Quick setup route (after first auth) -----------------------------
+      GoRoute(
+        path: '/quick-setup',
+        name: 'quick-setup',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildFadeTransition(
+          state: state,
+          child: const QuickSetupScreen(),
+        ),
+      ),
+
+      // -- Deep link target routes (outside shell, full screen) -------------
+      GoRoute(
+        path: '/config-import',
+        name: 'config-import',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const ImportListScreen(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'qr-scanner',
+            name: 'config-import-qr-scanner',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const QrScannerScreen(),
+            ),
+          ),
+          GoRoute(
+            path: 'subscription-url',
+            name: 'config-import-subscription-url',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const SubscriptionUrlScreen(),
+            ),
+          ),
+          GoRoute(
+            path: 'custom-servers',
+            name: 'config-import-custom-servers',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const ImportListScreen(),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/referral',
+        name: 'referral',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const ReferralDashboardScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/subscribe',
+        name: 'subscribe',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const PlansScreen(),
+        ),
+      ),
+
+      // -- Notifications (full screen, outside shell) -----------------------
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const NotificationCenterScreen(),
+        ),
+      ),
+
+      // -- Diagnostics (full screen, outside shell) -------------------------
+      GoRoute(
+        path: '/diagnostics',
+        name: 'diagnostics',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const DiagnosticsScreen(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'speed-test',
+            name: 'diagnostics-speed-test',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const SpeedTestScreen(),
+            ),
+          ),
+          GoRoute(
+            path: 'connection-diagnostics',
+            name: 'diagnostics-connection-diagnostics',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const DiagnosticsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: 'logs',
+            name: 'diagnostics-logs',
+            parentNavigatorKey: rootNavigatorKey,
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state: state,
+              child: const LogViewerScreen(),
+            ),
+          ),
+        ],
+      ),
+
+      // -- Main shell with stateful bottom navigation -----------------------
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShellScreen(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 0: Connection
+          StatefulShellBranch(
+            navigatorKey: _connectionNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/connection',
+                name: 'connection',
+                builder: (context, state) => const ConnectionScreen(),
+              ),
+            ],
+          ),
+
+          // Branch 1: Servers
+          StatefulShellBranch(
+            navigatorKey: _serversNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/servers',
+                name: 'servers',
+                builder: (context, state) => const ServerListScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    name: 'server-detail',
+                    builder: (context, state) => ServerDetailScreen(
+                      serverId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Branch 2: Profile
+          StatefulShellBranch(
+            navigatorKey: _profileNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/profile',
+                name: 'profile',
+                builder: (context, state) =>
+                    const ProfileDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: '2fa',
+                    name: 'profile-2fa',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const TwoFactorScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'social-accounts',
+                    name: 'profile-social-accounts',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const SocialAccountsScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'devices',
+                    name: 'profile-devices',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const DevicesScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'delete-account',
+                    name: 'profile-delete-account',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const DeleteAccountScreen(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Branch 3: Settings
+          StatefulShellBranch(
+            navigatorKey: _settingsNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'vpn',
+                    name: 'settings-vpn',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const VpnSettingsScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'appearance',
+                    name: 'settings-appearance',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const AppearanceScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'language',
+                    name: 'settings-language',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const LanguageScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    name: 'settings-notifications',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const NotificationPrefsScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'debug',
+                    name: 'settings-debug',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const DebugScreen(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // -- Root redirect ----------------------------------------------------
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/connection',
+      ),
+    ],
+  );
+});
+
+/// Convenience getter that reads the router from the provider.
+///
+/// Usage in `MaterialApp.router`:
+/// ```dart
+/// final router = ref.watch(appRouterProvider);
+/// return MaterialApp.router(routerConfig: router, ...);
+/// ```

@@ -7,13 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-def payment_status_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
+def payment_status_keyboard(i18n: Callable[..., str], payment_id: str | None = None) -> InlineKeyboardMarkup:
     """Build payment status checking keyboard.
 
     Displayed during pending payments to allow users to check status
@@ -27,12 +28,13 @@ def payment_status_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     """
     builder = InlineKeyboardBuilder()
 
+    callback_data = f"payment:check:{payment_id}" if payment_id else "payment:check"
     builder.button(
-        text=i18n("payment-check-status"),
-        callback_data="payment:check",
+        text=i18n("btn-refresh"),
+        callback_data=callback_data,
     )
     builder.button(
-        text=i18n("payment-cancel"),
+        text=i18n("btn-cancel"),
         callback_data="payment:cancel",
     )
 
@@ -56,15 +58,15 @@ def payment_success_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup
     builder = InlineKeyboardBuilder()
 
     builder.button(
-        text=i18n("payment-get-config"),
-        callback_data="config:get",
+        text=i18n("btn-connect"),
+        callback_data="menu:connect",
     )
     builder.button(
-        text=i18n("payment-view-subscription"),
+        text=i18n("btn-subscription"),
         callback_data="sub:status",
     )
     builder.button(
-        text=i18n("button-main-menu"),
+        text=i18n("btn-back"),
         callback_data="nav:menu",
     )
 

@@ -1,0 +1,75 @@
+import 'package:equatable/equatable.dart';
+
+/// Base failure class for the application.
+///
+/// All domain-level failures extend this class, providing a consistent
+/// interface for error handling across the app.
+abstract class Failure extends Equatable {
+  final String message;
+  final int? code;
+
+  const Failure({required this.message, this.code});
+
+  @override
+  List<Object?> get props => [message, code];
+}
+
+/// Failure originating from the remote server (e.g. 4xx/5xx responses).
+class ServerFailure extends Failure {
+  const ServerFailure({required super.message, super.code});
+}
+
+/// Failure originating from local cache or storage operations.
+class CacheFailure extends Failure {
+  const CacheFailure({required super.message, super.code});
+}
+
+/// Failure due to network connectivity issues.
+class NetworkFailure extends Failure {
+  const NetworkFailure({required super.message, super.code});
+}
+
+/// Failure related to authentication or authorization.
+class AuthFailure extends Failure {
+  const AuthFailure({required super.message, super.code});
+}
+
+/// Failure related to VPN connection or tunnel operations.
+class VpnFailure extends Failure {
+  const VpnFailure({required super.message, super.code});
+}
+
+/// Failure related to subscription or billing operations.
+class SubscriptionFailure extends Failure {
+  const SubscriptionFailure({required super.message, super.code});
+}
+
+/// Failure caused by invalid input or data validation.
+class ValidationFailure extends Failure {
+  const ValidationFailure({required super.message, super.code});
+}
+
+/// Failure caused by an operation exceeding its time limit.
+class TimeoutFailure extends Failure {
+  const TimeoutFailure({required super.message, super.code});
+}
+
+/// Failure caused by insufficient permissions (HTTP 403).
+class AccessDeniedFailure extends Failure {
+  const AccessDeniedFailure({required super.message, super.code});
+}
+
+/// Failure caused by rate limiting (HTTP 429).
+class RateLimitFailure extends Failure {
+  final Duration? retryAfter;
+
+  const RateLimitFailure({required super.message, super.code, this.retryAfter});
+
+  @override
+  List<Object?> get props => [message, code, retryAfter];
+}
+
+/// Catch-all failure for unexpected or unclassified errors.
+class UnknownFailure extends Failure {
+  const UnknownFailure({required super.message, super.code});
+}

@@ -23,6 +23,13 @@ class RemnawaveUserGateway:
         except Exception:
             return None
 
+    async def get_by_telegram_id(self, telegram_id: int) -> User | None:
+        try:
+            data = await self._client.get(f"/api/users/by-telegram/{telegram_id}")
+            return map_remnawave_user(data)
+        except Exception:
+            return None
+
     async def get_all(self, offset: int = 0, limit: int = 100) -> list[User]:
         data = await self._client.get("/api/users", params={"offset": offset, "limit": limit})
         users = data.get("users", data) if isinstance(data, dict) else data

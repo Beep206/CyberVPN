@@ -7,7 +7,6 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from middleware.admin import admin_required
 
 if TYPE_CHECKING:
     from aiogram_i18n import I18nContext
@@ -15,7 +14,6 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 router = Router(name="admin_help")
-router.message.middleware(admin_required)
 
 
 @router.message(Command("adminhelp"))

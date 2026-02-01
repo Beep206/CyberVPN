@@ -8,7 +8,7 @@ import {
     getSortedRowModel,
     SortingState
 } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { User, UserStatus } from '@/entities/user/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
@@ -37,7 +37,7 @@ export function UsersDataGrid() {
     const t = useTranslations('UsersTable');
     const [sorting, setSorting] = useState<SortingState>([]);
 
-    const columns = useMemo(() => {
+    const columns = (() => {
         const statusLabels: Record<UserStatus, string> = {
             active: t('status.active'),
             expired: t('status.expired'),
@@ -102,7 +102,7 @@ export function UsersDataGrid() {
                 )
             })
         ];
-    }, [t]);
+    })();
 
     const table = useReactTable({
         data: mockUsers,
@@ -111,6 +111,7 @@ export function UsersDataGrid() {
         onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        getRowId: (row) => row.id,
     });
 
     return (

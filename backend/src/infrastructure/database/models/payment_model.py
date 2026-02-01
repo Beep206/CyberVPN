@@ -1,6 +1,4 @@
-"""
-PaymentModel ORM model for payment processing and tracking.
-"""
+"""PaymentModel ORM model for payment processing and tracking."""
 
 from datetime import datetime
 from typing import Any, Optional
@@ -23,68 +21,28 @@ class PaymentModel(Base):
 
     __tablename__ = "payments"
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-        nullable=False
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
-    external_id: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        index=True
-    )
+    external_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
 
-    user_uuid: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True),
-        nullable=False,
-        index=True
-    )
+    user_uuid: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
 
-    amount: Mapped[float] = mapped_column(
-        Numeric(20, 8),
-        nullable=False
-    )
+    amount: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False)
 
-    currency: Mapped[str] = mapped_column(
-        String(10),
-        nullable=False
-    )
+    currency: Mapped[str] = mapped_column(String(10), nullable=False)
 
-    status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        index=True
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
 
-    provider: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False
-    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    subscription_days: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False
-    )
+    subscription_days: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    metadata_: Mapped[Optional[dict[str, Any]]] = mapped_column(
-        "metadata",
-        JSONB,
-        nullable=True
-    )
+    metadata_: Mapped[Optional[dict[str, Any]]] = mapped_column("metadata", JSONB, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     def __repr__(self) -> str:

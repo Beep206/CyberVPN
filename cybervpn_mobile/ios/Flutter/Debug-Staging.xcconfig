@@ -1,0 +1,7 @@
+#include "Generated.xcconfig"
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+
+// Staging flavor configuration for Debug builds
+PRODUCT_BUNDLE_IDENTIFIER = com.cybervpn.app.staging
+PRODUCT_NAME = CyberVPN Staging
+// DART_DEFINES are passed via --dart-define in flutter build command

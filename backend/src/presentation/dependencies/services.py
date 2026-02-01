@@ -1,14 +1,13 @@
 """Dependency injection factories for services and clients.
 
 This module provides factory functions for dependency injection following FastAPI best practices.
-Each factory returns a new instance of the service/client to ensure proper lifecycle management
-and enable easy testing through dependency overrides.
+Services are lightweight per-request where appropriate, while HTTP clients reuse shared instances
+managed during application lifespan for connection pooling.
 """
 
 from src.application.services.auth_service import AuthService
-from src.config.settings import settings
-from src.infrastructure.payments.cryptobot.client import CryptoBotClient
-from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.payments.cryptobot.client import CryptoBotClient, cryptobot_client
+from src.infrastructure.remnawave.client import RemnawaveClient, remnawave_client
 
 
 def get_auth_service() -> AuthService:
@@ -26,31 +25,10 @@ def get_auth_service() -> AuthService:
 
 
 def get_remnawave_client() -> RemnawaveClient:
-    """Factory for RemnawaveClient dependency injection.
-
-    Returns:
-        RemnawaveClient: New instance of the Remnawave API client.
-
-    Usage:
-        @app.get("/endpoint")
-        async def endpoint(client: RemnawaveClient = Depends(get_remnawave_client)):
-            ...
-    """
-    return RemnawaveClient()
+    """Factory for RemnawaveClient dependency injection."""
+    return remnawave_client
 
 
 def get_crypto_client() -> CryptoBotClient:
-    """Factory for CryptoBotClient dependency injection.
-
-    Returns:
-        CryptoBotClient: New instance of the CryptoBot payment client.
-
-    Usage:
-        @app.post("/endpoint")
-        async def endpoint(crypto: CryptoBotClient = Depends(get_crypto_client)):
-            ...
-
-    Note:
-        Requires settings.cryptobot_token to be configured.
-    """
-    return CryptoBotClient(token=settings.cryptobot_token)
+    """Factory for CryptoBotClient dependency injection."""
+    return cryptobot_client

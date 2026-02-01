@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "title": "Privacy Policy - CyberVPN",
+    "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices."
+  },
+  "title": "Privacy Policy",
+  "lastUpdated": "Last Updated",
+  "sections": {
+    "dataCollection": {
+      "title": "Data Collection",
+      "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+      "items": {
+        "accountInfo": "Account information (email address, username)",
+        "paymentInfo": "Payment information (processed securely by third-party providers)",
+        "deviceInfo": "Device and connection metadata (device type, operating system)",
+        "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+      }
+    },
+    "noLogPolicy": {
+      "title": "No-Log Policy",
+      "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
+      "details": "This means:",
+      "notLogged": {
+        "browsing": "No browsing history or website visits",
+        "connections": "No connection timestamps or session duration",
+        "traffic": "No traffic data or content inspection",
+        "dns": "No DNS queries or IP addresses"
+      }
+    },
+    "dataRetention": {
+      "title": "Data Retention",
+      "description": "We retain data only as long as necessary:",
+      "policies": {
+        "accountData": "Account data: retained while your account is active",
+        "paymentRecords": "Payment records: 7 years for legal compliance",
+        "supportLogs": "Support logs: 90 days after ticket closure",
+        "deletedAccounts": "Deleted account data: permanently erased within 30 days"
+      }
+    },
+    "gdprRights": {
+      "title": "Your GDPR Rights",
+      "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+      "rights": {
+        "access": {
+          "title": "Right to Access",
+          "description": "Request a copy of your personal data"
+        },
+        "rectification": {
+          "title": "Right to Rectification",
+          "description": "Correct inaccurate or incomplete data"
+        },
+        "erasure": {
+          "title": "Right to Erasure",
+          "description": "Request deletion of your personal data"
+        },
+        "portability": {
+          "title": "Right to Data Portability",
+          "description": "Receive your data in a machine-readable format"
+        },
+        "objection": {
+          "title": "Right to Object",
+          "description": "Object to processing of your data"
+        }
+      }
+    },
+    "dataSecurity": {
+      "title": "Data Security",
+      "description": "We implement industry-standard security measures:",
+      "measures": {
+        "encryption": "End-to-end encryption for all VPN traffic",
+        "accessControl": "Strict access controls and authentication",
+        "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)",
+        "regularAudits": "Regular security audits and vulnerability assessments"
+      }
+    },
+    "thirdParty": {
+      "title": "Third-Party Services",
+      "description": "We work with trusted third-party providers:",
+      "services": {
+        "payment": "Payment processing (Stripe, cryptocurrency gateways)",
+        "analytics": "Anonymous analytics (no personally identifiable information)",
+        "infrastructure": "Cloud infrastructure providers (servers and network)"
+      }
+    },
+    "contact": {
+      "title": "Contact Information",
+      "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+      "email": "Email",
+      "address": "Address",
+      "addressLine": "CyberVPN Privacy Team, [Your Company Address]"
+    },
+    "changes": {
+      "title": "Changes to This Policy",
+      "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date."
+    }
+  }
+}
