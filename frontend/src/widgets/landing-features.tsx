@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { Shield, Zap, EyeOff, Globe, Infinity, Layers } from 'lucide-react';
@@ -69,6 +70,7 @@ const stats = [
 
 export function LandingFeatures() {
     const t = useTranslations('Landing.features');
+    const pathname = usePathname();
 
     // Container animation variants
     const containerVariants = {
@@ -85,7 +87,7 @@ export function LandingFeatures() {
     return (
         <section className="relative py-32 bg-terminal-bg overflow-hidden">
             {/* 3D Background Scene */}
-            <FeaturesScene3D />
+            <FeaturesScene3D key={pathname} />
 
             {/* Grid overlay */}
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px] z-[1]" />
