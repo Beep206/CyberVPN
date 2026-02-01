@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CypherTextProps {
@@ -10,9 +10,11 @@ interface CypherTextProps {
     speed?: number; // ms per frame
     revealSpeed?: number; // ms to reveal next char
     trigger?: unknown; // Value that triggers replay when changed
+    loop?: boolean; // NEW: infinite loop animation
+    loopDelay?: number; // Delay between loops (ms)
 }
 
-const DEFAULT_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:",./<>?';
+const DEFAULT_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:",.<>?';
 
 export function CypherText({
     text,
@@ -20,17 +22,21 @@ export function CypherText({
     characters = DEFAULT_CHARS,
     speed = 50,
     revealSpeed = 100,
-    trigger
+    trigger,
+    loop = false,
+    loopDelay = 3000
 }: CypherTextProps) {
     const [displayText, setDisplayText] = useState(text);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const loopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const animate = () => {
+    const animate = useCallback(() => {
         // Clear existing
         if (intervalRef.current) clearInterval(intervalRef.current);
         timeoutsRef.current.forEach(clearTimeout);
         timeoutsRef.current = [];
+        if (loopTimeoutRef.current) clearTimeout(loopTimeoutRef.current);
 
         const textChars = text.split('');
         const charsLength = characters.length;
@@ -58,17 +64,25 @@ export function CypherText({
                 if (i === text.length && intervalRef.current) {
                     clearInterval(intervalRef.current);
                     setDisplayText(text); // Ensure final state is clean
+
+                    // If loop is enabled, restart after delay
+                    if (loop) {
+                        loopTimeoutRef.current = setTimeout(() => {
+                            animate();
+                        }, loopDelay);
+                    }
                 }
             }, i * revealSpeed);
             timeoutsRef.current.push(timeout);
         }
-    };
+    }, [text, characters, speed, revealSpeed, loop, loopDelay]);
 
     useEffect(() => {
         animate();
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             timeoutsRef.current.forEach(clearTimeout);
+            if (loopTimeoutRef.current) clearTimeout(loopTimeoutRef.current);
         };
     }, [animate, trigger]);
 
@@ -81,3 +95,4 @@ export function CypherText({
         </span>
     );
 }
+

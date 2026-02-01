@@ -80,10 +80,10 @@ export function TerminalHeader() {
                 {/* Cypher Text Status */}
                 <div className="hidden md:flex items-center text-xs font-cyber text-muted-foreground/50">
                     <span className="mr-1">{t('systemLabel')}:</span>
-                    <CypherText text={t('integrity')} className="text-neon-cyan" />
+                    <CypherText text={t('integrity')} className="text-neon-cyan" loop loopDelay={2000} />
                     <span className="mx-2">|</span>
                     <span className="mr-1">{t('encryptionLabel')}:</span>
-                    <CypherText text={t('encryptionValue')} className="text-neon-purple" />
+                    <CypherText text={t('encryptionValue')} className="text-neon-purple" loop loopDelay={2500} />
                 </div>
             </div>
 

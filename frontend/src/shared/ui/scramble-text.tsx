@@ -9,6 +9,8 @@ interface ScrambleTextProps {
     revealDelay?: number;
     scrambleSpeed?: number;
     triggerOnHover?: boolean;
+    loop?: boolean; // NEW: infinite loop animation
+    loopDelay?: number; // Delay between loops
 }
 
 export function ScrambleText({
@@ -16,12 +18,14 @@ export function ScrambleText({
     className,
     revealDelay = 0,
     scrambleSpeed = 30,
-    triggerOnHover = false
+    triggerOnHover = false,
+    loop = false,
+    loopDelay = 2000
 }: ScrambleTextProps) {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
     const [display, setDisplay] = useState(text);
     const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, amount: 0.5 });
+    const isInView = useInView(ref, { once: !loop, amount: 0.5 });
     const [isHovered, setIsHovered] = useState(false);
 
     // Internal state to track if interaction is happening
@@ -55,14 +59,30 @@ export function ScrambleText({
         return () => clearInterval(interval);
     }, [text, scrambleSpeed]);
 
+    // Initial animation on view
     useEffect(() => {
-        if (isInView) {
+        if (isInView && !loop) {
             const timeout = setTimeout(() => {
                 scramble();
             }, revealDelay);
             return () => clearTimeout(timeout);
         }
-    }, [isInView, text, revealDelay, scramble]);
+    }, [isInView, text, revealDelay, scramble, loop]);
+
+    // Loop animation
+    useEffect(() => {
+        if (!loop || !isInView) return;
+
+        // Start immediately
+        scramble();
+
+        // Then loop
+        const loopInterval = setInterval(() => {
+            scramble();
+        }, loopDelay + (text.length * scrambleSpeed / 3));
+
+        return () => clearInterval(loopInterval);
+    }, [loop, isInView, scramble, loopDelay, text.length, scrambleSpeed]);
 
     const handleMouseEnter = () => {
         if (triggerOnHover) {
@@ -86,3 +106,4 @@ export function ScrambleText({
         </span>
     );
 }
+
