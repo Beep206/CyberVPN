@@ -67,7 +67,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         footer,
         languageSelector,
         privacyPolicy,
-        deleteAccount
+        deleteAccount,
+        auth
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`),
         import(`../../messages/${locale}/navigation.json`),
@@ -82,7 +83,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         import(`../../messages/${locale}/footer.json`),
         import(`../../messages/${locale}/language-selector.json`),
         import(`../../messages/${locale}/privacy-policy.json`),
-        import(`../../messages/${locale}/delete-account.json`)
+        import(`../../messages/${locale}/delete-account.json`),
+        import(`../../messages/${locale}/auth.json`)
     ]);
 
     return {
@@ -99,6 +101,7 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         Footer: footer.default,
         LanguageSelector: languageSelector.default,
         PrivacyPolicy: privacyPolicy.default,
-        DeleteAccount: deleteAccount.default
+        DeleteAccount: deleteAccount.default,
+        Auth: auth.default
     };
 });
