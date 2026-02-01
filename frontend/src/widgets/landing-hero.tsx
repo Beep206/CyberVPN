@@ -23,9 +23,9 @@ export function LandingHero() {
             <div className="absolute inset-0 z-0 bg-grid-white/[0.02] bg-[size:50px_50px] pointer-events-none" />
             <div className="absolute inset-0 z-0 scanline opacity-20 pointer-events-none" />
 
-            {/* Glow effects */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[100px] animate-pulse delay-1000 pointer-events-none" />
+            {/* Glow effects — более приглушенные в light mode */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/8 dark:bg-neon-cyan/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-purple/8 dark:bg-neon-purple/20 rounded-full blur-[100px] animate-pulse delay-1000 pointer-events-none" />
 
             <div className="container relative z-10 flex flex-col items-center text-center px-4">
 
@@ -43,15 +43,15 @@ export function LandingHero() {
                     {t('status')}
                 </motion.div>
 
-                {/* Main Heading */}
+                {/* Main Heading — theme-aware gradient */}
                 <motion.h1
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="text-5xl md:text-8xl font-display font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 mb-6 drop-shadow-lg py-4 leading-normal"
+                    className="text-5xl md:text-8xl font-display font-bold tracking-tighter text-foreground dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-white dark:to-white/50 mb-6 drop-shadow-lg py-4 leading-normal"
                 >
                     <ScrambleText text={t('title')} /> <br />
-                    <span className="text-neon-cyan neon-text">{t('titleHighlight')}</span>
+                    <span className="text-neon-cyan dark:neon-text font-bold">{t('titleHighlight')}</span>
                 </motion.h1>
 
                 {/* Subtitle */}

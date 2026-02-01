@@ -20,10 +20,10 @@ export function LandingFeatures() {
     const t = useTranslations('Landing.features');
 
     const features = [
-        { id: 'speed', icon: icons.speed, color: 'text-neon-cyan', bg: 'bg-neon-cyan/5', colSpan: 'md:col-span-2' },
-        { id: 'security', icon: icons.security, color: 'text-neon-purple', bg: 'bg-neon-purple/5', colSpan: 'md:col-span-1' },
-        { id: 'anonymity', icon: icons.anonymity, color: 'text-matrix-green', bg: 'bg-matrix-green/5', colSpan: 'md:col-span-1' },
-        { id: 'global', icon: icons.global, color: 'text-blue-400', bg: 'bg-blue-400/5', colSpan: 'md:col-span-2' },
+        { id: 'speed', icon: icons.speed, color: 'text-neon-cyan', bg: 'bg-neon-cyan/15 dark:bg-neon-cyan/5', colSpan: 'md:col-span-2' },
+        { id: 'security', icon: icons.security, color: 'text-neon-purple', bg: 'bg-neon-purple/15 dark:bg-neon-purple/5', colSpan: 'md:col-span-1' },
+        { id: 'anonymity', icon: icons.anonymity, color: 'text-matrix-green', bg: 'bg-matrix-green/15 dark:bg-matrix-green/5', colSpan: 'md:col-span-1' },
+        { id: 'global', icon: icons.global, color: 'text-blue-400', bg: 'bg-blue-400/15 dark:bg-blue-400/5', colSpan: 'md:col-span-2' },
     ];
 
     return (

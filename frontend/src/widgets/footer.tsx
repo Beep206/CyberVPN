@@ -61,12 +61,12 @@ export function Footer() {
     }, []);
 
     return (
-        <footer className="relative w-full bg-terminal-bg border-t border-grid-line/30 overflow-hidden pt-16 pb-8">
-            {/* Ambient Background Effects */}
+        <footer className="relative w-full bg-terminal-bg border-t border-grid-line/50 overflow-hidden pt-16 pb-8">
+            {/* Ambient Background Effects — усилены для light mode */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-0 left-1/4 w-full h-px bg-gradient-to-r from-transparent via-neon-cyan/50 to-transparent opacity-50 blur-[1px]" />
-                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon-purple/5 Rounded-full blur-[100px]" />
-                <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-neon-cyan/5 rounded-full blur-[80px]" />
+                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon-purple/10 dark:bg-neon-purple/5 rounded-full blur-[100px]" />
+                <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-neon-cyan/10 dark:bg-neon-cyan/5 rounded-full blur-[80px]" />
                 <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
             </div>
 

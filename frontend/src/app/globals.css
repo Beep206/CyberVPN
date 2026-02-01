@@ -79,89 +79,126 @@
 :root {
   --radius: 0.5rem;
 
-  /* VPN Light Theme - "Dim Industrial" (Heavy Concrete) */
-  /* Background: Dark grey, barely "light" */
-  --color-terminal-bg: oklch(0.70 0.01 260);
-  /* Surface: Lighter relative to background, but still deep grey */
-  --color-terminal-surface: oklch(0.76 0.005 260);
-  /* Grid lines: Darker for structure */
-  --color-grid-line: oklch(0.55 0.02 260);
+  /* ===== DEPTH SYSTEM - Light Mode (Industrial) ===== */
+  --depth-0: oklch(0.65 0.015 250);
+  /* Background — основной */
+  --depth-1: oklch(0.68 0.012 250);
+  /* Surface */
+  --depth-2: oklch(0.70 0.010 250);
+  /* Card */
+  --depth-3: oklch(0.62 0.018 250);
+  /* Modal (темнее фона) */
+  --depth-4: oklch(0.58 0.020 250);
+  /* Sidebar (самый тёмный) */
+  --depth-5: oklch(0.55 0.025 250);
+  /* Hover state */
+
+  /* Theme color mappings from depth */
+  --color-terminal-bg: var(--depth-0);
+  --color-terminal-surface: var(--depth-1);
+  --color-grid-line: oklch(0.45 0.03 250);
+
+  /* ===== SHADOWS - Light Mode ===== */
+  --shadow-sm: 0 2px 8px oklch(0.30 0.02 250 / 0.15);
+  --shadow-md: 0 4px 16px oklch(0.25 0.02 250 / 0.20);
+  --shadow-lg: 0 8px 32px oklch(0.20 0.03 250 / 0.25);
+
+  /* Glow for TiltCard hover */
+  --glow-color: oklch(0.40 0.15 210 / 0.12);
 
   /* Shadcn Light Mappings */
-  --background: var(--color-terminal-bg);
+  --background: var(--depth-0);
   --foreground: oklch(0.10 0.05 260);
-  /* Very dark, almost black for contrast */
 
   /* Cards */
-  --card: var(--color-terminal-surface);
+  --card: var(--depth-2);
   --card-foreground: oklch(0.10 0.05 260);
 
-  --popover: var(--color-terminal-surface);
+  --popover: var(--depth-3);
   --popover-foreground: oklch(0.10 0.05 260);
 
-  /* Accents - Adjusted for darker grey background */
-  --primary: #004466;
-  /* Deepest Teal */
+  /* ===== ACCENTS - Saturated for Contrast ===== */
+  --primary: oklch(0.40 0.15 210);
   --primary-foreground: #ffffff;
 
-  --secondary: #660066;
-  /* Deepest Purple */
+  --secondary: oklch(0.40 0.18 320);
   --secondary-foreground: #ffffff;
 
-  --muted: oklch(0.65 0.02 260);
-  --muted-foreground: oklch(0.25 0.03 260);
+  --muted: var(--depth-1);
+  --muted-foreground: oklch(0.30 0.02 250);
 
-  --accent: #005511;
-  /* Forest Green */
+  --accent: oklch(0.38 0.15 145);
   --accent-foreground: #ffffff;
 
-  --destructive: oklch(0.40 0.15 25);
+  --destructive: oklch(0.45 0.18 25);
   --destructive-foreground: #ffffff;
 
   --border: var(--color-grid-line);
-  --input: oklch(0.65 0.01 260);
-  --ring: #004466;
-
-  --radius: 0.5rem;
+  --input: var(--depth-1);
+  --ring: oklch(0.40 0.15 210);
 
   /* Sidebar - Darkest anchor */
-  --sidebar: oklch(0.65 0.015 260);
+  --sidebar: var(--depth-4);
   --sidebar-foreground: oklch(0.10 0.05 260);
-  --sidebar-primary: #004466;
+  --sidebar-primary: oklch(0.40 0.15 210);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: oklch(0.60 0.02 260);
+  --sidebar-accent: var(--depth-5);
   --sidebar-accent-foreground: oklch(0.05 0.05 260);
-  --sidebar-border: oklch(0.50 0.02 260);
-  --sidebar-ring: #004466;
+  --sidebar-border: oklch(0.50 0.02 250);
+  --sidebar-ring: oklch(0.40 0.15 210);
 
-  /* Re-define specific color tokens */
-  --color-matrix-green: #005511;
-  --color-neon-cyan: #004466;
-  --color-neon-pink: #660066;
-  --color-neon-purple: #440066;
+  /* Light mode neon colors — desaturated for readability */
+  --color-matrix-green: oklch(0.38 0.15 145);
+  --color-neon-cyan: oklch(0.40 0.15 210);
+  --color-neon-pink: oklch(0.40 0.18 320);
+  --color-neon-purple: oklch(0.38 0.18 300);
 }
 
 .dark {
-  /* Cyberpunk Dark Mode (Default) */
-  --background: #050505;
-  /* Direct hex from original --color-terminal-bg */
-  --foreground: oklch(0.95 0.01 195);
-  /* Text */
+  /* ===== DEPTH SYSTEM - Dark Mode (Cyberpunk) ===== */
+  --depth-0: oklch(0.03 0.01 260);
+  /* Background — near black */
+  --depth-1: oklch(0.06 0.015 260);
+  /* Surface */
+  --depth-2: oklch(0.09 0.02 260);
+  /* Card */
+  --depth-3: oklch(0.12 0.02 260);
+  /* Modal */
+  --depth-4: oklch(0.05 0.015 260);
+  /* Sidebar */
+  --depth-5: oklch(0.15 0.025 260);
+  /* Hover state */
 
-  --card: #0a0a0a;
-  /* Direct hex from original --color-terminal-surface */
+  --color-terminal-bg: var(--depth-0);
+  --color-terminal-surface: var(--depth-1);
+  --color-grid-line: #00ffff;
+
+  /* ===== SHADOWS - Dark Mode (Neon-tinted) ===== */
+  --shadow-sm: 0 2px 8px oklch(0.50 0.20 195 / 0.15);
+  --shadow-md: 0 4px 16px oklch(0.55 0.25 195 / 0.20);
+  --shadow-lg: 0 0 32px oklch(0.60 0.30 195 / 0.30);
+
+  /* Glow for TiltCard hover — neon cyan */
+  --glow-color: rgba(0, 255, 255, 0.15);
+
+  /* Shadcn Dark Mappings */
+  --background: var(--depth-0);
+  --foreground: oklch(0.95 0.01 195);
+
+  --card: var(--depth-2);
   --card-foreground: oklch(0.95 0.01 195);
 
-  --popover: #0a0a0a;
+  --popover: var(--depth-3);
   --popover-foreground: oklch(0.95 0.01 195);
 
+  /* ===== NEON ACCENTS ===== */
   --primary: #00ffff;
   --primary-foreground: oklch(0.12 0.03 260);
 
   --secondary: #ff00ff;
   --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.20 0.05 195);
+  --muted: var(--depth-1);
   --muted-foreground: oklch(0.60 0.05 195);
 
   --accent: #00ff88;
@@ -170,34 +207,54 @@
   --destructive: #ff0000;
   --destructive-foreground: oklch(0.985 0 0);
 
-  --border: #00ffff;
-  --input: oklch(0.20 0.05 195);
+  --border: oklch(0.25 0.10 195);
+  --input: var(--depth-1);
   --ring: #00ffff;
 
-  --sidebar: #0a0a0a;
+  /* Sidebar */
+  --sidebar: var(--depth-4);
   --sidebar-foreground: oklch(0.95 0.01 195);
   --sidebar-primary: #00ffff;
   --sidebar-primary-foreground: oklch(0.12 0.03 260);
-  --sidebar-accent: oklch(0.20 0.05 195);
+  --sidebar-accent: var(--depth-5);
   --sidebar-accent-foreground: oklch(0.95 0.01 195);
-  --sidebar-border: #00ffff;
+  --sidebar-border: oklch(0.25 0.10 195);
   --sidebar-ring: #00ffff;
 
-  /* Cyberpunk specific overrides */
+  /* Neon colors — vivid */
   --color-matrix-green: #00ff88;
   --color-neon-cyan: #00ffff;
   --color-neon-pink: #ff00ff;
   --color-neon-purple: #9d00ff;
-  --color-terminal-bg: #050505;
-  --color-terminal-surface: #0a0a0a;
-  --color-grid-line: #00ffff;
 }
 
 /* Force dark mode code block removed, relying on class strategy */
 @layer base {
+
+  /* Color scheme for native elements */
+  html {
+    color-scheme: light dark;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   body {
     @apply bg-background text-foreground font-mono antialiased;
-    /* Clean background for light mode */
     background-color: var(--background);
     background-image: none;
   }
@@ -253,11 +310,20 @@
     @apply text-server-online shadow-server-online;
   }
 
+  /* Theme-aware neon text */
   .neon-text {
+    /* Light mode: solid bold, no glow */
+    text-shadow: none;
+    font-weight: 700;
+  }
+
+  .dark .neon-text {
+    /* Dark mode: full neon glow */
     text-shadow:
       0 0 10px currentColor,
       0 0 20px currentColor,
       0 0 40px currentColor;
+    font-weight: 400;
   }
 }
 

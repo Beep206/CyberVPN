@@ -43,7 +43,7 @@ export function TiltCard({ children, className = '' }: TiltCardProps) {
 
     return (
         <motion.div
-            className={`group relative border border-white/5 bg-black/20 backdrop-blur-xl overflow-hidden ${className}`}
+            className={`group relative border border-grid-line/40 bg-terminal-surface/80 dark:bg-black/20 dark:border-white/5 backdrop-blur-xl overflow-hidden shadow-md dark:shadow-none ${className}`}
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}
             style={{
@@ -59,7 +59,7 @@ export function TiltCard({ children, className = '' }: TiltCardProps) {
                     background: useMotionTemplate`
             radial-gradient(
               650px circle at ${mouseX}px ${mouseY}px,
-              rgba(0, 255, 255, 0.15),
+              var(--glow-color, rgba(0, 255, 255, 0.15)),
               transparent 80%
             )
           `,
