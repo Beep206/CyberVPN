@@ -4,6 +4,7 @@ import { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import Lenis from 'lenis';
@@ -190,10 +191,11 @@ function SpeedTunnelScene() {
 
 export function SpeedTunnel() {
     const t = useTranslations('Landing.speed');
+    const pathname = usePathname();
 
     return (
         <section className="relative min-h-screen w-full py-20 overflow-hidden flex flex-col items-center justify-center bg-background">
-            <SpeedTunnelScene />
+            <SpeedTunnelScene key={pathname} />
 
             <div className="container relative z-10 px-4">
                 <motion.div
