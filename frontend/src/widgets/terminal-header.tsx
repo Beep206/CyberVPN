@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Wifi } from 'lucide-react';
+import { Search, Wifi, Menu } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
@@ -76,21 +76,10 @@ export function TerminalHeader() {
             <div className="flex flex-1 items-center gap-4">
                 <MagneticButton strength={15}>
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-                        <Search className="h-4 w-4" />
+                        <Menu className="h-4 w-4" />
                     </div>
                 </MagneticButton>
 
-                {/* Cypher Text Status */}
-                <div className="hidden md:flex items-center text-xs font-cyber text-muted-foreground/50">
-                    <span className="mr-1">{t('systemLabel')}:</span>
-                    <CypherText text={t('integrity')} className="text-neon-cyan" loop loopDelay={2000} />
-                    <span className="mx-2">|</span>
-                    <span className="mr-1">{t('encryptionLabel')}:</span>
-                    <CypherText text={t('encryptionValue')} className="text-neon-purple" loop loopDelay={2500} />
-                </div>
-            </div>
-
-            <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
                     <div className="flex items-center gap-1">
                         <span className="text-muted-foreground/60">{t('fps')}</span>
@@ -108,12 +97,13 @@ export function TerminalHeader() {
                     <Wifi className="h-3 w-3 animate-pulse" />
                     <span className="hidden md:inline">{t('netUplink')}</span>
                 </div>
+            </div>
+
+            <div className="flex items-center gap-4">
 
                 <div className="flex items-center gap-2">
                     <ThemeToggle />
-                    <span className="hidden md:inline text-[10px] font-mono text-muted-foreground/60">
-                        {t('language')}
-                    </span>
+
                     <LanguageSelector />
                 </div>
 

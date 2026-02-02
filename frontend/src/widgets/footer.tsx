@@ -16,6 +16,7 @@ import {
     Cpu
 } from 'lucide-react';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
+import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,8 @@ export function Footer() {
         setDateStr(`${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`);
         setYear(String(now.getFullYear()));
     }, []);
+
+    const tHeader = useTranslations('Header'); // Fetch Header translations for system status
 
     return (
         <footer className="relative w-full bg-terminal-bg border-t border-grid-line/50 overflow-hidden pt-16 pb-8">
@@ -209,9 +212,13 @@ export function Footer() {
 
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-grid-line/20 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/60">
-                        <Globe className="h-3 w-3" />
-                        <span>Server Time: {dateStr}</span>
+                    {/* Cypher Text Status (Moved from Header) */}
+                    <div className="flex items-center text-xs font-cyber text-muted-foreground/50">
+                        <span className="mr-1">{tHeader('systemLabel')}:</span>
+                        <CypherText text={tHeader('integrity')} className="text-neon-cyan" loop loopDelay={2000} />
+                        <span className="mx-2">|</span>
+                        <span className="mr-1">{tHeader('encryptionLabel')}:</span>
+                        <CypherText text={tHeader('encryptionValue')} className="text-neon-purple" loop loopDelay={2500} />
                     </div>
 
                     <p className="text-xs font-mono text-muted-foreground/40 text-center md:text-right">

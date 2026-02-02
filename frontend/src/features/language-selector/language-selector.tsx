@@ -4,7 +4,8 @@ import { startTransition, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
-import { Globe, Search, Check } from 'lucide-react';
+import { Search, Check } from 'lucide-react';
+import { CountryFlag } from '@/shared/ui/country-flag';
 import { LANGUAGES } from '@/i18n/languages';
 import { Modal } from '@/shared/ui/modal';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
@@ -17,6 +18,8 @@ export function LanguageSelector() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const currentLanguage = LANGUAGES.find(l => l.code === locale) || LANGUAGES[0];
+
+    // ... (rest of the component logic)
 
     const query = searchQuery.toLowerCase();
     const filteredLanguages = LANGUAGES.filter(l =>
@@ -39,9 +42,12 @@ export function LanguageSelector() {
                     onClick={() => setIsOpen(true)}
                     className="flex h-10 items-center justify-center gap-2 px-3 rounded-lg bg-terminal-surface/30 border border-grid-line/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 group"
                 >
-                    <span className="text-xl filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)] leading-none">
-                        {currentLanguage.flag}
-                    </span>
+                    <div className="flex items-center justify-center filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">
+                        <CountryFlag
+                            code={currentLanguage.countryCode}
+                            className="rounded-[2px] w-6 h-auto" // w-6 is 24px
+                        />
+                    </div>
                     <span className="font-mono text-sm uppercase tracking-wider group-hover:text-neon-cyan transition-colors">
                         {currentLanguage.code.split('-')[1]}
                     </span>
@@ -68,7 +74,7 @@ export function LanguageSelector() {
                     </div>
 
                     {/* Language Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                         {filteredLanguages.map((lang) => {
                             const isActive = lang.code === locale;
                             return (
@@ -88,15 +94,18 @@ export function LanguageSelector() {
                                     {/* Scanline effect on hover */}
                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-10 pointer-events-none bg-gradient-to-b from-transparent via-white to-transparent -translate-y-full group-hover:translate-y-full transition-all duration-700 ease-linear" />
 
-                                    <span className="text-2xl filter drop-shadow-md">
-                                        {lang.flag}
-                                    </span>
+                                    <div className="filter drop-shadow-md flex-shrink-0">
+                                        <CountryFlag
+                                            code={lang.countryCode}
+                                            className="rounded-[2px] w-7 h-auto" // w-7 is 28px
+                                        />
+                                    </div>
 
-                                    <div className="flex flex-col">
-                                        <span className={`font-display text-sm tracking-wide ${isActive ? 'text-neon-cyan' : 'text-foreground group-hover:text-neon-pink'}`}>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className={`font-display text-sm tracking-wide truncate ${isActive ? 'text-neon-cyan' : 'text-foreground group-hover:text-neon-pink'}`}>
                                             {lang.name}
                                         </span>
-                                        <span className="text-xs text-muted-foreground font-mono">
+                                        <span className="text-xs text-muted-foreground font-mono truncate">
                                             {lang.nativeName}
                                         </span>
                                     </div>
@@ -104,7 +113,7 @@ export function LanguageSelector() {
                                     {isActive && (
                                         <motion.div
                                             layoutId="active-check"
-                                            className="ml-auto text-neon-cyan"
+                                            className="ml-auto text-neon-cyan flex-shrink-0"
                                         >
                                             <Check size={18} />
                                         </motion.div>
