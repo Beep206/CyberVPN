@@ -359,3 +359,11 @@
 .hover\:translate-z-10:hover {
   transform: translateZ(10px);
 }
+
+/* View Transitions API - Disable default cross-fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+}
