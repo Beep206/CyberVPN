@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionTemplate, useMotionValue } from 'motion/react';
+import { motion, useMotionTemplate, useMotionValue, type Variants } from 'motion/react';
 import React from 'react';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import type { LucideIcon } from 'lucide-react';
@@ -52,7 +52,7 @@ export function FeatureCard3D({
     }
 
     // Stagger animation variants
-    const cardVariants = {
+    const cardVariants: Variants = {
         hidden: {
             opacity: 0,
             y: 40,

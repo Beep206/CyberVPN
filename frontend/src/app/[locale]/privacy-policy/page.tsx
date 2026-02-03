@@ -26,7 +26,7 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
                     </h1>
 
                     <p className="text-lg text-gray-300 mb-8">
-                        {t('lastUpdated')}: {new Date().toLocaleDateString(locale)}
+                        {t('lastUpdated')}
                     </p>
 
                     {/* Data Collection */}
