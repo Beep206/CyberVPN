@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
-import { Shield, Zap, EyeOff, Globe, Infinity, Layers } from 'lucide-react';
+import { Shield, Zap, EyeOff, Globe, Infinity as InfinityIcon, Layers } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { FeatureCard3D } from '@/shared/ui/feature-card-3d';
 import { ScrambleText } from '@/shared/ui/scramble-text';
@@ -46,7 +46,7 @@ const featureConfig = [
     },
     {
         id: 'unlimited',
-        icon: Infinity,
+        icon: InfinityIcon,
         color: 'text-matrix-green',
         bgColor: 'bg-matrix-green/15 dark:bg-matrix-green/10',
         colSpan: 'md:col-span-1'

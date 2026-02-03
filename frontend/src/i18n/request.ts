@@ -70,21 +70,21 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         deleteAccount,
         auth
     ] = await Promise.all([
-        import(`../../messages/${locale}/header.json`),
-        import(`../../messages/${locale}/navigation.json`),
-        import(`../../messages/${locale}/dashboard.json`),
-        import(`../../messages/${locale}/users.json`),
-        import(`../../messages/${locale}/servers.json`),
-        import(`../../messages/${locale}/placeholder.json`),
-        import(`../../messages/${locale}/users-table.json`),
-        import(`../../messages/${locale}/servers-table.json`),
-        import(`../../messages/${locale}/server-card.json`),
-        import(`../../messages/${locale}/landing.json`),
-        import(`../../messages/${locale}/footer.json`),
-        import(`../../messages/${locale}/language-selector.json`),
-        import(`../../messages/${locale}/privacy-policy.json`),
-        import(`../../messages/${locale}/delete-account.json`),
-        import(`../../messages/${locale}/auth.json`)
+        import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/dashboard.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/users.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/servers.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/placeholder.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/users-table.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/servers-table.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/server-card.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/landing.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/footer.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/language-selector.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/privacy-policy.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/delete-account.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/auth.json`).catch(() => ({ default: {} }))
     ]);
 
     return {

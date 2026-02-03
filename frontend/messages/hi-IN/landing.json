@@ -1,0 +1,42 @@
+{
+    "hero": {
+        "title": "SECURE YOUR DIGITAL",
+        "titleHighlight": "EXISTENCE",
+        "subtitle": "Advanced encryption for the modern web. Bypass restrictions, protect your identity, and surf with absolute anonymity.",
+        "ctaPrimary": "Get Started",
+        "ctaSecondary": "View Features",
+        "status": "SYSTEM STATUS: OPTIMAL"
+    },
+    "features": {
+        "sectionTitle": "NEXT-GEN PROTECTION",
+        "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
+        "shield": {
+            "title": "MILITARY-GRADE SHIELD",
+            "desc": "AES-256 encryption with rotating quantum-resistant keys. Your data fortress, impenetrable by design."
+        },
+        "speed": {
+            "title": "HYPER VELOCITY",
+            "desc": "10 Gbit/s servers with sub-10ms latency. Stream, download, and browse at the speed of light."
+        },
+        "privacy": {
+            "title": "ZERO KNOWLEDGE",
+            "desc": "Verified no-logs policy. RAM-only infrastructure. We can't see your data even if we wanted to."
+        },
+        "global": {
+            "title": "GLOBAL MATRIX",
+            "desc": "100+ locations across 50 countries with intelligent auto-routing for optimal performance."
+        },
+        "unlimited": {
+            "title": "LIMITLESS ACCESS",
+            "desc": "Unlimited bandwidth, unlimited devices, unlimited connections. No caps, no throttling, ever."
+        },
+        "protocols": {
+            "title": "MULTI-LAYER PROTOCOLS",
+            "desc": "WireGuard, OpenVPN, IKEv2 with smart protocol switching. Adapts to your network in real-time."
+        }
+    },
+    "speed": {
+        "title": "10 GBIT/S",
+        "subtitle": "Unrestricted Velocity"
+    }
+}
