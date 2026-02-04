@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/device/device_provider.dart'
+    show deviceServiceProvider;
 import 'package:cybervpn_mobile/core/network/api_client.dart';
-import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -86,13 +87,32 @@ class LogoutNotifier extends AsyncNotifier<void> {
     }
   }
 
-  /// Calls POST /api/auth/logout on the server.
+  /// Calls POST /api/v1/mobile/auth/logout on the server.
   ///
+  /// Sends refresh_token and device_id to revoke the session on server.
   /// Errors are caught and logged but never prevent local logout.
   Future<void> _callLogoutApi() async {
     try {
+      final storage = ref.read(secureStorageProvider);
+      final deviceService = ref.read(deviceServiceProvider);
+
+      final refreshToken = await storage.getRefreshToken();
+      final deviceId = await deviceService.getDeviceId();
+
+      if (refreshToken == null || refreshToken.isEmpty) {
+        AppLogger.info('No refresh token found, skipping server logout');
+        return;
+      }
+
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.post<dynamic>(ApiConstants.logout);
+      await apiClient.post<dynamic>(
+        '/mobile/auth/logout',
+        data: {
+          'refresh_token': refreshToken,
+          'device_id': deviceId,
+        },
+      );
+      AppLogger.info('Server logout successful');
     } catch (e) {
       // Offline logout is perfectly fine -- the server session will expire
       // naturally. Log for diagnostics only.
@@ -106,7 +126,7 @@ class LogoutNotifier extends AsyncNotifier<void> {
   /// so user preferences survive across sessions.
   Future<void> _clearAuthTokens() async {
     final storage = ref.read(secureStorageProvider);
-    await Future.wait([
+    await Future.wait<void>([
       storage.delete(key: SecureStorageWrapper.accessTokenKey),
       storage.delete(key: SecureStorageWrapper.refreshTokenKey),
       storage.delete(key: 'cached_user'),
