@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { UserPlus, Loader2, Check } from 'lucide-react';
+import { UserPlus, Loader2, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AuthFormCard,
@@ -13,10 +14,14 @@ import {
     AuthDivider,
     PasswordStrengthMeter,
 } from '@/features/auth/components';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function RegisterPage() {
     const t = useTranslations('Auth.register');
-    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const { register, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,14 +30,28 @@ export default function RegisterPage() {
     const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
     const canSubmit = email && password && confirmPassword && acceptTerms && passwordsMatch;
 
+    // Redirect if already authenticated (auto-login after registration)
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push('/dashboard');
+        }
+    }, [isAuthenticated, router]);
+
+    // Clear error on mount
+    useEffect(() => {
+        clearError();
+    }, [clearError]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!canSubmit) return;
 
-        setIsLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setIsLoading(false);
+        try {
+            await register(email, password);
+            // Redirect handled by useEffect above
+        } catch {
+            // Error is already set in the store
+        }
     };
 
     return (
@@ -44,6 +63,18 @@ export default function RegisterPage() {
             <SocialAuthButtons disabled={isLoading} />
 
             <AuthDivider text={t('divider')} />
+
+            {/* Error message */}
+            {error && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono"
+                >
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                </motion.div>
+            )}
 
             {/* Register form */}
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -97,6 +128,7 @@ export default function RegisterPage() {
                             onChange={(e) => setAcceptTerms(e.target.checked)}
                             className="peer sr-only"
                             required
+                            aria-label={t('acceptTerms')}
                         />
                         <div className="w-5 h-5 rounded border border-grid-line bg-terminal-bg peer-checked:bg-neon-cyan peer-checked:border-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50 transition-all flex items-center justify-center">
                             {acceptTerms && <Check className="h-3 w-3 text-black" />}
@@ -123,6 +155,7 @@ export default function RegisterPage() {
                         type="submit"
                         disabled={isLoading || !canSubmit}
                         className="w-full h-12 bg-neon-purple hover:bg-neon-purple/90 text-white font-bold font-mono tracking-wider shadow-lg shadow-neon-purple/20 hover:shadow-neon-purple/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        aria-label={isLoading ? t('creating') : t('submit')}
                     >
                         {isLoading ? (
                             <>
