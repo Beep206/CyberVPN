@@ -21,6 +21,7 @@ class FlagWidget extends StatelessWidget {
     required this.countryCode,
     this.size = FlagSize.medium,
     this.placeholder,
+    this.heroTag,
   });
 
   /// ISO 3166-1 alpha-2 country code (e.g., 'US', 'DE').
@@ -33,31 +34,50 @@ class FlagWidget extends StatelessWidget {
   /// Defaults to a circle with country code text.
   final Widget? placeholder;
 
+  /// Optional Hero animation tag. When provided, the flag will
+  /// animate between screens using Hero transitions.
+  final String? heroTag;
+
   @override
   Widget build(BuildContext context) {
     final flagPath = FlagAssets.getFlag(countryCode);
     final dimension = size.dimension;
 
+    Widget flagContent;
     if (flagPath == null) {
-      return _buildPlaceholder(context, dimension);
-    }
-
-    return RepaintBoundary(
-      child: SizedBox(
-        width: dimension,
-        height: dimension,
-        child: SvgPicture.asset(
-          flagPath,
-          width: dimension,
-          height: dimension,
-          fit: BoxFit.cover,
-          placeholderBuilder: (BuildContext context) => _buildPlaceholder(
-            context,
-            dimension,
+      flagContent = _buildPlaceholder(context, dimension);
+    } else {
+      // Flags should always remain LTR regardless of app text direction
+      flagContent = Directionality(
+        textDirection: TextDirection.ltr,
+        child: RepaintBoundary(
+          child: SizedBox(
+            width: dimension,
+            height: dimension,
+            child: SvgPicture.asset(
+              flagPath,
+              width: dimension,
+              height: dimension,
+              fit: BoxFit.cover,
+              placeholderBuilder: (BuildContext context) => _buildPlaceholder(
+                context,
+                dimension,
+              ),
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
+
+    // Wrap in Hero if tag is provided
+    if (heroTag != null) {
+      return Hero(
+        tag: heroTag!,
+        child: flagContent,
+      );
+    }
+
+    return flagContent;
   }
 
   Widget _buildPlaceholder(BuildContext context, double dimension) {

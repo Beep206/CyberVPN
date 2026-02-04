@@ -241,8 +241,8 @@ class _NotificationTile extends StatelessWidget {
       direction: DismissDirection.endToStart,
       onDismissed: (_) => onDismissed(),
       background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsetsDirectional.only(end: 20),
         color: colorScheme.error,
         child: Icon(
           Icons.delete_outline,

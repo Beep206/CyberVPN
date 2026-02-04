@@ -4,9 +4,9 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for Korean (`ko`).
-class AppLocalizationsKo extends AppLocalizations {
-  AppLocalizationsKo([String locale = 'ko']) : super(locale);
+/// The translations for French (`fr`).
+class AppLocalizationsFr extends AppLocalizations {
+  AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
   String get appName => 'CyberVPN';
@@ -142,8 +142,8 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
+      other: '$count jours restants',
+      one: '1 jour restant',
     );
     return '$_temp0';
   }
@@ -328,8 +328,8 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count seconds',
-      one: '1 second',
+      other: '$count secondes',
+      one: '1 seconde',
     );
     return '$_temp0';
   }
@@ -562,8 +562,8 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days',
-      one: '1 day',
+      other: '$count jours',
+      one: '1 jour',
     );
     return 'Your subscription expires in $_temp0.';
   }
@@ -577,9 +577,9 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count unread notifications',
-      one: '1 unread notification',
-      zero: 'No unread notifications',
+      other: '$count notifications non lues',
+      one: '1 notification non lue',
+      zero: 'Aucune notification non lue',
     );
     return '$_temp0';
   }
@@ -607,9 +607,9 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count rewards earned',
-      one: '1 reward earned',
-      zero: 'No rewards earned',
+      other: '$count récompenses gagnées',
+      one: '1 récompense gagnée',
+      zero: 'Aucune récompense gagnée',
     );
     return '$_temp0';
   }
@@ -619,9 +619,9 @@ class AppLocalizationsKo extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count friends invited',
-      one: '1 friend invited',
-      zero: 'No friends invited',
+      other: '$count amis invités',
+      one: '1 ami invité',
+      zero: 'Aucun ami invité',
     );
     return '$_temp0';
   }
@@ -894,7 +894,7 @@ class AppLocalizationsKo extends AppLocalizations {
       locale: localeName,
       other: '$count notifications',
       one: '1 notification',
-      zero: 'No notifications',
+      zero: 'Aucune notification',
     );
     return '$_temp0';
   }

@@ -39,7 +39,7 @@ class AnimatedToggle extends StatelessWidget {
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          alignment: value ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
           child: Container(
             width: thumbSize,
             height: thumbSize,

@@ -11,6 +11,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_scr
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connect_button.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connection_info.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/speed_indicator.dart';
+import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 
 import '../helpers/mock_factories.dart';
 
@@ -66,6 +67,9 @@ class _FakeVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState>
 
   @override
   Future<void> applyKillSwitchSetting(bool enabled) async {}
+
+  @override
+  Future<void> connectFromCustomServer(ImportedConfig customServer) async {}
 }
 
 // ---------------------------------------------------------------------------

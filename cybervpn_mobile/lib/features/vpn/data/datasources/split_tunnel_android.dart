@@ -29,7 +29,7 @@ class SplitTunnelAndroid {
     }
   }
 
-  List<String> getExcludedApps() {
-    return _localStorage.getStringList(_excludedAppsKey) ?? [];
+  Future<List<String>> getExcludedApps() async {
+    return await _localStorage.getStringList(_excludedAppsKey) ?? [];
   }
 }

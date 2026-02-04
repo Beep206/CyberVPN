@@ -138,11 +138,12 @@ class _ServerCardState extends ConsumerState<ServerCard>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
-                  // Leading: country flag (decorative, exclude from semantics)
+                  // Leading: country flag with Hero transition
                   ExcludeSemantics(
                     child: FlagWidget(
                       countryCode: server.countryCode,
                       size: FlagSize.medium,
+                      heroTag: 'server_flag_${server.id}',
                     ),
                   ),
                   const SizedBox(width: 12),

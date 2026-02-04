@@ -143,7 +143,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count days remaining',
-      one: '1 day remaining',
     );
     return '$_temp0';
   }
@@ -329,7 +328,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count seconds',
-      one: '1 second',
     );
     return '$_temp0';
   }
@@ -563,7 +561,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count days',
-      one: '1 day',
     );
     return 'Your subscription expires in $_temp0.';
   }
@@ -578,7 +575,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count unread notifications',
-      one: '1 unread notification',
       zero: 'No unread notifications',
     );
     return '$_temp0';
@@ -608,7 +604,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count rewards earned',
-      one: '1 reward earned',
       zero: 'No rewards earned',
     );
     return '$_temp0';
@@ -620,7 +615,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count friends invited',
-      one: '1 friend invited',
       zero: 'No friends invited',
     );
     return '$_temp0';
@@ -893,7 +887,6 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count notifications',
-      one: '1 notification',
       zero: 'No notifications',
     );
     return '$_temp0';

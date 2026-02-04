@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#0A0E1A</color>
+    <color name="widget_text_color">#FFFFFF</color>
+
+    <!-- Widget colors -->
+    <color name="widget_background">#0A0E1A</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_text_secondary">#B0B0B0</color>
+
+    <!-- VPN Status colors (matching cyber theme) -->
+    <color name="matrix_green">#00ff88</color>
+    <color name="neon_cyan">#00ffff</color>
+    <color name="neon_pink">#ff00ff</color>
+    <color name="status_offline">#808080</color>
 </resources>

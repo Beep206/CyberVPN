@@ -3,14 +3,15 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/network/websocket_client.dart';
+import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/security/app_attestation.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
-import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
-import 'package:cybervpn_mobile/core/network/websocket_client.dart';
-import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
-import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
 // Repository & datasource providers
@@ -135,6 +136,10 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
         clearPurchaseError: true,
       ),
     );
+
+    // Perform app attestation before purchase (logging-only mode).
+    // This runs inline but never blocks - failures are logged and ignored.
+    await _performAttestation(AttestationTrigger.purchase);
 
     try {
       final subscription = await _repo.subscribe(
@@ -286,6 +291,32 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
   /// Disposes resources when the provider is no longer used.
   void _dispose() {
     _webSocketSubscription?.cancel();
+  }
+
+  // ── App attestation (logging mode) ─────────────────────────────────
+
+  /// Performs app attestation for fraud detection (logging mode only).
+  ///
+  /// This method completes quickly and never throws. Results are logged
+  /// to analytics and Sentry for monitoring. In current logging-only mode,
+  /// attestation failures do not block the purchase flow.
+  Future<void> _performAttestation(AttestationTrigger trigger) async {
+    try {
+      final attestationService = ref.read(appAttestationServiceProvider);
+      final result = await attestationService.generateToken(trigger: trigger);
+      AppLogger.info(
+        'Purchase attestation completed: ${result.status.name}',
+        category: 'subscription.attestation',
+      );
+    } catch (e, st) {
+      // Log but don't throw - attestation failure should not block purchase
+      AppLogger.warning(
+        'Purchase attestation failed (non-blocking)',
+        error: e,
+        stackTrace: st,
+        category: 'subscription.attestation',
+      );
+    }
   }
 }
 

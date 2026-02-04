@@ -111,3 +111,6 @@ env/
 # Temp artifacts
 _modified_server_config.json
 report/
+
+# bv (beads viewer) local config and caches
+.bv/

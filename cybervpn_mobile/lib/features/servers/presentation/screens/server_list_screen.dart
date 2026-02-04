@@ -11,6 +11,7 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_car
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
 
 /// Main server list screen.
 ///
@@ -373,9 +374,12 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                     if (!_matchesSearch(server)) {
                       return const SizedBox.shrink();
                     }
-                    return ServerCard(
-                      server: server,
-                      onTap: () => _onServerTap(server),
+                    return StaggeredListItem(
+                      index: index,
+                      child: ServerCard(
+                        server: server,
+                        onTap: () => _onServerTap(server),
+                      ),
                     );
                   },
                   childCount: favorites.length,
@@ -422,12 +426,15 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                       final isCustom = data['isCustom'] as bool;
                       final configId = data['configId'] as String?;
 
-                      return ServerCard(
-                        server: server,
-                        onTap: isCustom && configId != null
-                            ? () => _onCustomServerTap(configId)
-                            : () => _onServerTap(server),
-                        isCustomServer: isCustom,
+                      return StaggeredListItem(
+                        index: index,
+                        child: ServerCard(
+                          server: server,
+                          onTap: isCustom && configId != null
+                              ? () => _onCustomServerTap(configId)
+                              : () => _onServerTap(server),
+                          isCustomServer: isCustom,
+                        ),
                       );
                     },
                     childCount: serverData.length,

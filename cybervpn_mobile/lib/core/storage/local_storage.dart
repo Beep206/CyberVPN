@@ -46,6 +46,12 @@ class LocalStorageWrapper {
 
   Future<void> clear() async => (await prefs).clear();
 
+  Future<void> setStringList(String key, List<String> value) async =>
+      (await prefs).setStringList(key, value);
+
+  Future<List<String>?> getStringList(String key) async =>
+      (await prefs).getStringList(key);
+
   // ── Common Non-Sensitive Storage Keys ─────────────────────────────────────
 
   // NON-SENSITIVE: UI theme preference - SharedPreferences is sufficient

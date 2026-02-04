@@ -20,17 +20,32 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
     final data = response.data as List<dynamic>;
     return data.map((json) {
       final m = json as Map<String, dynamic>;
+      final duration = PlanDuration.values.firstWhere(
+        (e) => e.name == (m['duration'] as String?),
+        orElse: () => PlanDuration.monthly,
+      );
       return PlanEntity(
-        id: m['id'] as String, name: m['name'] as String,
+        id: m['id'] as String,
+        name: m['name'] as String,
         description: m['description'] as String? ?? '',
         price: (m['price'] as num).toDouble(),
         currency: m['currency'] as String? ?? 'USD',
-        duration: PlanDuration.values.firstWhere((e) => e.name == (m['duration'] as String?) , orElse: () => PlanDuration.monthly),
-        trafficLimitGb: (m['traffic_limit_gb'] as num?)?.toInt(),
-        maxDevices: m['max_devices'] as int? ?? 1,
+        duration: duration,
+        durationDays: (m['duration_days'] as num?)?.toInt() ?? _durationToDays(duration),
+        trafficLimitGb: (m['traffic_limit_gb'] as num?)?.toInt() ?? 0,
+        maxDevices: (m['max_devices'] as num?)?.toInt() ?? 1,
         features: (m['features'] as List<dynamic>?)?.cast<String>() ?? [],
       );
     }).toList();
+  }
+
+  int _durationToDays(PlanDuration duration) {
+    return switch (duration) {
+      PlanDuration.monthly => 30,
+      PlanDuration.quarterly => 90,
+      PlanDuration.yearly => 365,
+      PlanDuration.lifetime => 36500,
+    };
   }
 
   @override
@@ -39,14 +54,18 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
       final response = await _apiClient.get('/subscription/active');
       final data = response.data as Map<String, dynamic>;
       return SubscriptionEntity(
-        id: data['id'] as String, planId: data['plan_id'] as String,
-        planName: data['plan_name'] as String,
-        status: SubscriptionStatus.values.firstWhere((e) => e.name == (data['status'] as String?), orElse: () => SubscriptionStatus.inactive),
+        id: data['id'] as String,
+        planId: data['plan_id'] as String,
+        userId: data['user_id'] as String? ?? '',
+        status: SubscriptionStatus.values.firstWhere(
+          (e) => e.name == (data['status'] as String?),
+          orElse: () => SubscriptionStatus.expired,
+        ),
         startDate: DateTime.parse(data['start_date'] as String),
         endDate: DateTime.parse(data['end_date'] as String),
         trafficUsedBytes: (data['traffic_used_bytes'] as num?)?.toInt() ?? 0,
-        trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt(),
-        autoRenew: data['auto_renew'] as bool? ?? false,
+        trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt() ?? 0,
+        maxDevices: (data['max_devices'] as num?)?.toInt() ?? 1,
       );
     } catch (_) {
       return null;
@@ -60,14 +79,15 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
     });
     final data = response.data as Map<String, dynamic>;
     return SubscriptionEntity(
-      id: data['id'] as String, planId: data['plan_id'] as String,
-      planName: data['plan_name'] as String,
+      id: data['id'] as String,
+      planId: data['plan_id'] as String,
+      userId: data['user_id'] as String? ?? '',
       status: SubscriptionStatus.active,
       startDate: DateTime.parse(data['start_date'] as String),
       endDate: DateTime.parse(data['end_date'] as String),
       trafficUsedBytes: 0,
-      trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt(),
-      autoRenew: data['auto_renew'] as bool? ?? false,
+      trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt() ?? 0,
+      maxDevices: (data['max_devices'] as num?)?.toInt() ?? 1,
     );
   }
 

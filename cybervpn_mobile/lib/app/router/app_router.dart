@@ -35,6 +35,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_scr
 import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/trusted_wifi_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans_screen.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_screen.dart';
@@ -59,6 +60,13 @@ final _settingsNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'settings');
 
 // ---------------------------------------------------------------------------
+// Animation constants
+// ---------------------------------------------------------------------------
+
+const _transitionDuration = Duration(milliseconds: 300);
+const _transitionCurve = Curves.easeInOutCubic;
+
+// ---------------------------------------------------------------------------
 // Transition builder for slide transitions
 // ---------------------------------------------------------------------------
 
@@ -69,16 +77,30 @@ CustomTransitionPage<void> _buildSlideTransition({
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
+    transitionDuration: _transitionDuration,
+    reverseTransitionDuration: _transitionDuration,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Respect accessibility settings - skip animation if disabled
+      final disableAnimations = MediaQuery.of(context).disableAnimations;
+      if (disableAnimations) {
+        return child;
+      }
+
       return SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1.0, 0.0),
           end: Offset.zero,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: Curves.easeInOutCubic,
+          curve: _transitionCurve,
         )),
-        child: child,
+        child: FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+          ),
+          child: child,
+        ),
       );
     },
   );
@@ -91,7 +113,15 @@ CustomTransitionPage<void> _buildFadeTransition({
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
+    transitionDuration: _transitionDuration,
+    reverseTransitionDuration: _transitionDuration,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Respect accessibility settings - skip animation if disabled
+      final disableAnimations = MediaQuery.of(context).disableAnimations;
+      if (disableAnimations) {
+        return child;
+      }
+
       return FadeTransition(opacity: animation, child: child);
     },
   );
@@ -476,6 +506,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     pageBuilder: (context, state) => _buildSlideTransition(
                       state: state,
                       child: const VpnSettingsScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'trusted-wifi',
+                    name: 'settings-trusted-wifi',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildSlideTransition(
+                      state: state,
+                      child: const TrustedWifiScreen(),
                     ),
                   ),
                   GoRoute(

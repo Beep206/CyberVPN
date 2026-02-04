@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CyberVPN</string>
+
+    <!-- Widget strings -->
+    <string name="widget_description">VPN status and quick connect widget</string>
+    <string name="medium_widget_description">VPN status with speed stats and quick connect</string>
+    <string name="widget_disconnected">Disconnected</string>
+    <string name="widget_connecting">Connecting…</string>
+    <string name="widget_connected">Connected to %s</string>
+    <string name="vpn_status_icon_description">VPN connection status</string>
+    <string name="widget_toggle_description">Toggle VPN connection</string>
+
+    <!-- Quick Settings Tile strings -->
+    <string name="tile_label">CyberVPN</string>
+</resources>

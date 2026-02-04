@@ -92,33 +92,36 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, _) {
-        final fraction = _animation.value;
-        final displaySpeed = fraction * widget.maxSpeed;
+    // Gauges and charts should always remain LTR regardless of app text direction
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, _) {
+          final fraction = _animation.value;
+          final displaySpeed = fraction * widget.maxSpeed;
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final side = widget.size ??
-                math.min(constraints.maxWidth, constraints.maxHeight);
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final side = widget.size ??
+                  math.min(constraints.maxWidth, constraints.maxHeight);
 
-            return SizedBox(
-              width: side,
-              height: side,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Gauge arcs, ticks, and needle
-                  CustomPaint(
-                    size: Size(side, side),
-                    painter: _SpeedometerPainter(
-                      fraction: fraction,
-                      maxSpeed: widget.maxSpeed,
+              return SizedBox(
+                width: side,
+                height: side,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Gauge arcs, ticks, and needle
+                    CustomPaint(
+                      size: Size(side, side),
+                      painter: _SpeedometerPainter(
+                        fraction: fraction,
+                        maxSpeed: widget.maxSpeed,
+                      ),
                     ),
-                  ),
-                  // Center speed readout
-                  Column(
+                    // Center speed readout
+                    Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -154,6 +157,7 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
           },
         );
       },
+    ),
     );
   }
 

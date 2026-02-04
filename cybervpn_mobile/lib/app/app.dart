@@ -1,7 +1,7 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/dynamic_colors.dart';
@@ -9,8 +9,25 @@ import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
 import 'package:cybervpn_mobile/app/router/app_router.dart';
 import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/widgets/clipboard_import_button.dart';
+import 'package:cybervpn_mobile/core/platform/quick_settings_channel.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_listener.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/widgets/presentation/widget_state_listener.dart';
+import 'package:cybervpn_mobile/features/widgets/data/widget_toggle_handler.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/usecases/untrusted_wifi_handler.dart';
+import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
+
+/// Convert [TextScale] enum to a double scale factor.
+double _textScaleToDouble(TextScale scale, double systemScale) {
+  return switch (scale) {
+    TextScale.system => systemScale,
+    TextScale.small => 0.85,
+    TextScale.normal => 1.0,
+    TextScale.large => 1.15,
+    TextScale.extraLarge => 1.3,
+  };
+}
 
 /// Root application widget.
 ///
@@ -30,6 +47,23 @@ class CyberVpnApp extends ConsumerWidget {
     // This keeps the listener alive for the lifetime of the app.
     ref.watch(quickActionsListenerProvider);
 
+    // Initialize widget state listener to sync VPN state to home screen widgets.
+    ref.watch(widgetStateListenerProvider);
+
+    // Initialize widget toggle handler to respond to widget button taps.
+    ref.watch(widgetToggleHandlerProvider);
+
+    // Initialize Quick Settings channel for Android Quick Settings tile.
+    ref.watch(quickSettingsChannelProvider);
+
+    // Initialize untrusted WiFi handler to auto-connect VPN when joining
+    // untrusted networks (starts/stops based on user preference).
+    ref.watch(untrustedWifiHandlerProvider);
+
+    // Sync FCM topic subscriptions when settings change.
+    // Ensures notification preferences are reflected in FCM topic subscriptions.
+    ref.watch(fcmTopicSyncProvider);
+
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         // Push platform dynamic colors into the Riverpod state graph so that
@@ -41,6 +75,9 @@ class CyberVpnApp extends ConsumerWidget {
 
         // Watch the user's locale preference from settings.
         final localeCode = ref.watch(currentLocaleProvider);
+
+        // Watch the text scale setting for accessibility.
+        final textScale = ref.watch(currentTextScaleProvider);
 
         // Watch the router provider.
         final router = ref.watch(appRouterProvider);
@@ -68,6 +105,29 @@ class CyberVpnApp extends ConsumerWidget {
               GlobalWidgetsLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
+
+            // -- Text Direction & Scale -----------------------------------------
+            // Set text direction based on locale (RTL for Arabic, Hebrew, Farsi)
+            // Apply custom text scale factor for accessibility
+            builder: (context, child) {
+              final textDirection = LocaleConfig.isRtl(localeCode)
+                  ? TextDirection.rtl
+                  : TextDirection.ltr;
+
+              // Get the system text scale to use as fallback
+              final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
+              final scaleFactor = _textScaleToDouble(textScale, systemTextScale);
+
+              return Directionality(
+                textDirection: textDirection,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(scaleFactor),
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+            },
           ),
         );
       },

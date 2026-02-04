@@ -35,6 +35,7 @@ class ProtocolFallback {
 
   final SecureStorageWrapper _storage;
 
+  // SENSITIVE: Preferred VPN protocol is a security setting - must use SecureStorage
   static const String _preferredProtocolKey = 'preferred_vpn_protocol';
 
   ProtocolFallback({required SecureStorageWrapper storage})
@@ -110,9 +111,11 @@ class ProtocolFallback {
   /// Pass `null` to clear the override and revert to automatic fallback.
   Future<void> setPreferredProtocol(VpnProtocol? protocol) async {
     if (protocol == null) {
+      // SENSITIVE: Delete preferred protocol from SecureStorage
       await _storage.delete(key: _preferredProtocolKey);
       AppLogger.info('Protocol fallback: cleared preferred protocol');
     } else {
+      // SENSITIVE: Store preferred protocol in SecureStorage (security-related setting)
       await _storage.write(key: _preferredProtocolKey, value: protocol.name);
       AppLogger.info(
         'Protocol fallback: set preferred protocol to ${protocol.name}',
@@ -122,6 +125,7 @@ class ProtocolFallback {
 
   /// Retrieves the user's preferred protocol, if set.
   Future<VpnProtocol?> getPreferredProtocol() async {
+    // SENSITIVE: Read preferred protocol from SecureStorage
     final raw = await _storage.read(key: _preferredProtocolKey);
     if (raw == null) return null;
     return VpnProtocol.values.where((p) => p.name == raw).firstOrNull;
@@ -172,6 +176,7 @@ class ProtocolFallback {
 
   Future<void> _savePreferredProtocol(VpnProtocol protocol) async {
     try {
+      // SENSITIVE: Persist successful protocol to SecureStorage
       await _storage.write(key: _preferredProtocolKey, value: protocol.name);
     } catch (e) {
       AppLogger.warning('Failed to save preferred protocol', error: e);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'package:cybervpn_mobile/core/l10n/arb/app_localizations.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/security/device_integrity.dart';

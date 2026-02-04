@@ -22,14 +22,14 @@ class ServerRepositoryImpl with NetworkErrorHandler implements ServerRepository 
 
   @override
   Future<List<ServerEntity>> getServers() async {
-    final cached = _localDataSource.getCachedServers();
-    if (cached != null) return _applyFavorites(cached);
+    final cached = await _localDataSource.getCachedServers();
+    if (cached != null) return await _applyFavorites(cached);
     if (!await _networkInfo.isConnected) {
       throw const NetworkFailure(message: 'No internet connection');
     }
     final servers = await _remoteDataSource.fetchServers();
     await _localDataSource.cacheServers(servers);
-    return _applyFavorites(servers);
+    return await _applyFavorites(servers);
   }
 
   @override
@@ -45,14 +45,14 @@ class ServerRepositoryImpl with NetworkErrorHandler implements ServerRepository 
 
   @override
   Future<List<ServerEntity>> getFavoriteServers() async {
-    final favoriteIds = _localDataSource.getFavoriteIds();
+    final favoriteIds = await _localDataSource.getFavoriteIds();
     final servers = await getServers();
     return servers.where((s) => favoriteIds.contains(s.id)).toList();
   }
 
   @override
   Future<void> toggleFavorite(String serverId) async {
-    final favorites = _localDataSource.getFavoriteIds();
+    final favorites = (await _localDataSource.getFavoriteIds()).toList();
     if (favorites.contains(serverId)) {
       favorites.remove(serverId);
     } else {
@@ -91,8 +91,8 @@ class ServerRepositoryImpl with NetworkErrorHandler implements ServerRepository 
     return best;
   }
 
-  List<ServerEntity> _applyFavorites(List<ServerEntity> servers) {
-    final favoriteIds = _localDataSource.getFavoriteIds();
+  Future<List<ServerEntity>> _applyFavorites(List<ServerEntity> servers) async {
+    final favoriteIds = await _localDataSource.getFavoriteIds();
     return servers.map((s) => s.copyWith(isFavorite: favoriteIds.contains(s.id))).toList();
   }
 }

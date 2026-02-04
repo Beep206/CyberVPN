@@ -25,6 +25,7 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 
 // ---------------------------------------------------------------------------
@@ -421,6 +422,39 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
       // to VpnConnected once the tunnel is actually re-established.
       AppLogger.info('Network restored, auto-reconnect in progress');
     }
+  }
+
+  /// Connect to the last used server or the recommended server.
+  ///
+  /// Used by auto-connect features like untrusted WiFi handler.
+  /// Attempts to connect to:
+  /// 1. The last connected server (if saved and available)
+  /// 2. The recommended server (if last server unavailable)
+  /// 3. Throws if no suitable server is found
+  Future<void> connectToLastOrRecommended() async {
+    final current = state.value;
+    if (current is VpnConnected || current is VpnConnecting) {
+      AppLogger.debug('Already connected/connecting, skipping auto-connect');
+      return;
+    }
+
+    // Try last connected server first
+    final lastServer = await _loadLastServer();
+    if (lastServer != null && lastServer.isAvailable) {
+      AppLogger.info('Auto-connecting to last server: ${lastServer.name}');
+      await connect(lastServer);
+      return;
+    }
+
+    // Fall back to recommended server
+    final recommendedServer = ref.read(recommendedServerProvider);
+    if (recommendedServer != null) {
+      AppLogger.info('Auto-connecting to recommended server: ${recommendedServer.name}');
+      await connect(recommendedServer);
+      return;
+    }
+
+    throw Exception('No available server for auto-connect');
   }
 
   /// Apply or remove the kill switch immediately (e.g. when the user toggles

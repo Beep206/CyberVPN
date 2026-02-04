@@ -150,3 +150,24 @@ task-master show <id>    # View task details
 
 **Full documentation and commands:**
 @./.taskmaster/CLAUDE.md
+
+## Beads Usage
+
+Используй `bd` для управления задачами. Запускай `bd ready --json` для поиска работы.
+
+### Критические правила
+
+- Отслеживай ВСЮ работу в beads
+- Перед началом работы: запусти `bd ready`
+- Перед завершением: запусти `bd sync`
+- Файли обнаруженную работу через `bd create`
+
+### Land the Plane (Завершение сессии)
+
+Самолёт НЕ приземлён пока git push не завершится успешно!
+
+1. Зафиксируй оставшуюся работу: `bd create "Найденная проблема" -t task`
+2. Запусти тесты и линтеры
+3. Закрой завершённые задачи: `bd close bd-42 --reason "Done"`
+4. PUSH: `git pull --rebase && bd sync && git push`
+5. Проверь: `git status` должен показать "up to date"
