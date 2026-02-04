@@ -59,6 +59,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     await ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
           _passwordController.text,
+          rememberMe: _rememberMe,
         );
 
     if (!mounted) return;
