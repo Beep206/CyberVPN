@@ -4,7 +4,7 @@ Request/response validation models for mobile-specific auth endpoints.
 Maps to DTOs in src/application/dto/mobile_auth.py.
 """
 
-import re
+import re  # noqa: F401
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
@@ -116,6 +116,34 @@ class RegisterRequest(BaseModel):
         if not re.search(r"\d", v):
             raise ValueError("Password must contain at least one digit")
         return v
+
+
+class LoginRequest(BaseModel):
+    """Request schema for mobile user login.
+
+    Used by POST /api/v1/mobile/auth/login endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    email: EmailStr = Field(
+        ...,
+        description="User email address",
+    )
+    password: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="User password",
+    )
+    device: DeviceInfo = Field(
+        ...,
+        description="Device information for login",
+    )
+    remember_me: bool = Field(
+        default=False,
+        description="If True, extends refresh token TTL to 30 days (default: 7 days)",
+    )
 
 
 class SubscriptionInfo(BaseModel):
