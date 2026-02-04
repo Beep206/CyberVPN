@@ -19,6 +19,37 @@
 - FCM token registration and app attestation run as fire-and-forget async operations after login
 - Sentry user context is set on login/register and cleared on logout
 
+### Secure Storage Patterns
+- Use `FakeSecureStorage` for testing (in-memory map storage)
+- Generate UUID v4 using `Random.secure()` with RFC 4122 variant/version bits
+- Return Dart records `({String email, String password})?` for structured nullable returns
+- `clearAll()` should preserve device ID for analytics tracking across sessions
+
+---
+
+## 2026-02-04 - VPNBussiness-258.2
+- **What was implemented:**
+  - Enhanced `SecureStorageWrapper` with high-level convenience methods:
+    - Token management: `setTokens()`, `getAccessToken()`, `getRefreshToken()`, `clearTokens()`
+    - Device ID: `getOrCreateDeviceId()` generates UUID v4 on first call, persists thereafter
+    - Biometric credentials: `setBiometricCredentials()`, `getBiometricCredentials()`, `clearBiometricCredentials()`
+    - App lock state: `setAppLockEnabled()`, `isAppLockEnabled()`
+    - Cached user: `setCachedUser()`, `getCachedUser()`, `clearCachedUser()`
+    - `clearAll()` clears auth data but preserves device ID
+  - Updated `FakeSecureStorage` with `seed()` method for test data population
+  - Created 31 comprehensive unit tests covering all storage operations
+
+- **Files changed:**
+  - `lib/core/storage/secure_storage.dart` - Added convenience methods for token, device ID, biometric, app lock, and cached user management
+  - `test/helpers/fakes/fake_secure_storage.dart` - Added `seed()` method for test data
+  - `test/core/storage/secure_storage_test.dart` - New file with 31 unit tests
+  - `.env` - Created empty file (required for flutter test asset bundle)
+
+- **Learnings:**
+  - UUID v4 can be generated without a package using `Random.secure()` with proper RFC 4122 variant/version bits
+  - Dart 3 records `({String email, String password})?` are excellent for returning structured nullable data
+  - FakeSecureStorage's high-level methods work correctly because they delegate to overridden base methods
+
 ---
 
 ## 2026-02-04 - VPNBussiness-258.6

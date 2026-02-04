@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wrapper for flutter_secure_storage providing encrypted storage for sensitive data.
@@ -41,14 +44,208 @@ class SecureStorageWrapper {
   Future<bool> containsKey({required String key}) async =>
       _storage.containsKey(key: key);
 
-  // ── Common Secure Storage Keys ────────────────────────────────────────────
+  // ── Storage Keys ────────────────────────────────────────────────────────────
 
-  // SENSITIVE: JWT access token - must use SecureStorage for encryption at rest
+  /// SENSITIVE: JWT access token - must use SecureStorage for encryption at rest
   static const String accessTokenKey = 'access_token';
 
-  // SENSITIVE: JWT refresh token - must use SecureStorage for encryption at rest
+  /// SENSITIVE: JWT refresh token - must use SecureStorage for encryption at rest
   static const String refreshTokenKey = 'refresh_token';
 
-  // NON-SENSITIVE: User ID is just an identifier, but stored here for consistency
+  /// NON-SENSITIVE: User ID is just an identifier, but stored here for consistency
   static const String userIdKey = 'user_id';
+
+  /// SENSITIVE: Device ID for device fingerprinting - persists across app reinstalls
+  static const String deviceIdKey = 'device_id';
+
+  /// SENSITIVE: Biometric credentials (email/password) for re-authentication
+  static const String biometricCredentialsKey = 'biometric_credentials';
+
+  /// SENSITIVE: App lock enabled flag - security setting
+  static const String appLockEnabledKey = 'app_lock_enabled';
+
+  /// SENSITIVE: Cached user data for offline mode - contains user profile
+  static const String cachedUserKey = 'cached_user';
+
+  // ── Token Management ────────────────────────────────────────────────────────
+
+  /// Stores both access and refresh tokens atomically.
+  ///
+  /// Use this after successful login/registration to persist authentication.
+  Future<void> setTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await write(key: accessTokenKey, value: accessToken);
+    await write(key: refreshTokenKey, value: refreshToken);
+  }
+
+  /// Retrieves the stored access token.
+  ///
+  /// Returns `null` if no token is stored (user not authenticated).
+  Future<String?> getAccessToken() async {
+    return read(key: accessTokenKey);
+  }
+
+  /// Retrieves the stored refresh token.
+  ///
+  /// Returns `null` if no token is stored (user not authenticated).
+  Future<String?> getRefreshToken() async {
+    return read(key: refreshTokenKey);
+  }
+
+  /// Clears both access and refresh tokens.
+  ///
+  /// Use this on logout to remove authentication credentials.
+  Future<void> clearTokens() async {
+    await delete(key: accessTokenKey);
+    await delete(key: refreshTokenKey);
+  }
+
+  // ── Device ID Management ────────────────────────────────────────────────────
+
+  /// Gets or creates a unique device identifier.
+  ///
+  /// On first call, generates a UUID v4 and persists it.
+  /// Subsequent calls return the same ID.
+  /// This ID survives app updates but may not survive app reinstalls on iOS.
+  Future<String> getOrCreateDeviceId() async {
+    final existing = await read(key: deviceIdKey);
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final newDeviceId = _generateUuidV4();
+    await write(key: deviceIdKey, value: newDeviceId);
+    return newDeviceId;
+  }
+
+  /// Generates a RFC 4122 compliant UUID v4 (random).
+  String _generateUuidV4() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+
+    // Set version to 4 (random UUID)
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    // Set variant to RFC 4122
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
+  // ── Biometric Credentials (Phase 4) ─────────────────────────────────────────
+
+  /// Stores credentials for biometric re-authentication.
+  ///
+  /// These credentials allow the app to re-authenticate the user
+  /// after biometric verification without requiring manual entry.
+  Future<void> setBiometricCredentials({
+    required String email,
+    required String password,
+  }) async {
+    final credentials = jsonEncode({'email': email, 'password': password});
+    await write(key: biometricCredentialsKey, value: credentials);
+  }
+
+  /// Retrieves stored biometric credentials.
+  ///
+  /// Returns `null` if no credentials are stored.
+  /// Returns a record with email and password if stored.
+  Future<({String email, String password})?> getBiometricCredentials() async {
+    final stored = await read(key: biometricCredentialsKey);
+    if (stored == null || stored.isEmpty) {
+      return null;
+    }
+
+    try {
+      final json = jsonDecode(stored) as Map<String, dynamic>;
+      final email = json['email'] as String?;
+      final password = json['password'] as String?;
+      if (email == null || password == null) {
+        return null;
+      }
+      return (email: email, password: password);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Clears stored biometric credentials.
+  Future<void> clearBiometricCredentials() async {
+    await delete(key: biometricCredentialsKey);
+  }
+
+  // ── App Lock State (Phase 4) ────────────────────────────────────────────────
+
+  /// Sets whether app lock is enabled.
+  ///
+  /// When enabled, the app requires biometric authentication on launch.
+  Future<void> setAppLockEnabled(bool enabled) async {
+    await write(key: appLockEnabledKey, value: enabled.toString());
+  }
+
+  /// Checks if app lock is enabled.
+  ///
+  /// Returns `false` if not set (default behavior).
+  Future<bool> isAppLockEnabled() async {
+    final value = await read(key: appLockEnabledKey);
+    return value == 'true';
+  }
+
+  // ── Cached User Data ────────────────────────────────────────────────────────
+
+  /// Caches user data for offline mode.
+  ///
+  /// The user data is stored as JSON and can be retrieved when offline.
+  /// [userData] should be a JSON-serializable Map.
+  Future<void> setCachedUser(Map<String, dynamic> userData) async {
+    await write(key: cachedUserKey, value: jsonEncode(userData));
+  }
+
+  /// Retrieves cached user data.
+  ///
+  /// Returns `null` if no user data is cached.
+  Future<Map<String, dynamic>?> getCachedUser() async {
+    final stored = await read(key: cachedUserKey);
+    if (stored == null || stored.isEmpty) {
+      return null;
+    }
+
+    try {
+      return jsonDecode(stored) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Clears cached user data.
+  Future<void> clearCachedUser() async {
+    await delete(key: cachedUserKey);
+  }
+
+  // ── Clear All (Preserves Device ID) ─────────────────────────────────────────
+
+  /// Clears all authentication and user data while preserving the device ID.
+  ///
+  /// Use this on logout to clear sensitive data while maintaining device identity
+  /// for analytics and device tracking purposes.
+  Future<void> clearAll() async {
+    // Preserve device ID before clearing
+    final deviceId = await read(key: deviceIdKey);
+
+    // Clear all keys
+    await delete(key: accessTokenKey);
+    await delete(key: refreshTokenKey);
+    await delete(key: userIdKey);
+    await delete(key: biometricCredentialsKey);
+    await delete(key: appLockEnabledKey);
+    await delete(key: cachedUserKey);
+
+    // Restore device ID if it existed
+    if (deviceId != null && deviceId.isNotEmpty) {
+      await write(key: deviceIdKey, value: deviceId);
+    }
+  }
 }
