@@ -1,98 +1,90 @@
 ---
 name: run-beads-orchestrator
-description: Start the Beads orchestrator to execute tasks in parallel with dependency management
+description: Start autonomous Beads task execution until all work is complete
 user_invocable: true
 arguments:
-  - name: mode
-    description: "Execution mode: 'auto' (dispatch all ready), 'epic' (focus on epic), 'task' (single task)"
-    required: false
-  - name: target
-    description: "Epic ID or Task ID to focus on (optional)"
+  - name: flags
+    description: "Optional flags: --epic <ID> to focus on epic, --task <ID> for single task"
     required: false
 ---
 
-# Run Beads Orchestrator
+# Run Beads Orchestrator (Autonomous)
 
-Start parallel task execution with the Beads orchestrator.
+Start autonomous task execution that runs until all work is complete.
 
 ## Usage
 
 ```bash
-# Auto mode - dispatch all ready tasks
+# Execute ALL ready tasks until done
 /run-beads-orchestrator
 
-# Focus on specific epic
-/run-beads-orchestrator epic VPNBussiness-epic-001
+# Focus on specific epic until complete
+/run-beads-orchestrator --epic VPNBussiness-epic-001
 
 # Execute single task
-/run-beads-orchestrator task VPNBussiness-042
+/run-beads-orchestrator --task VPNBussiness-042
 ```
 
-## Modes
+## What Happens
 
-| Mode | Description |
-|------|-------------|
-| `auto` | Find all ready tasks, dispatch in parallel batches |
-| `epic` | Focus on one epic, execute children in dependency order |
-| `task` | Execute a single specific task |
+The orchestrator runs an **autonomous loop**:
+
+```
+┌─────────────────────────────────────────┐
+│           AUTONOMOUS LOOP               │
+│                                         │
+│  1. Find ready tasks (bd ready)         │
+│  2. Dispatch up to 4 in parallel        │
+│  3. Wait for completions                │
+│  4. Run code reviews                    │
+│  5. Close completed beads               │
+│  6. Repeat until no work left           │
+│  7. Output: <promise>COMPLETE</promise> │
+│                                         │
+└─────────────────────────────────────────┘
+```
 
 ## Instructions
 
 <instructions>
-Launch the `beads-orchestrator` agent based on the requested mode.
+**IMMEDIATELY** launch the beads-orchestrator agent with the autonomous run protocol.
 
-### Auto Mode (default)
+Parse the flags:
+- No flags → Execute all ready tasks
+- `--epic <ID>` → Focus only on that epic's children
+- `--task <ID>` → Execute single specific task
+
 ```python
 Task(
     subagent_type="beads-orchestrator",
-    prompt="""
-    Execute all ready Beads tasks in parallel.
-    
-    1. Run `bd ready --json` to find unblocked tasks
-    2. Group by domain (backend, frontend, mobile)
-    3. Dispatch up to 4 supervisors in parallel
-    4. Monitor completion
-    5. Request code reviews
-    6. Close completed tasks
-    7. Repeat until no ready tasks
+    model="opus",  # Use Opus 4.5 for best results
+    prompt=f"""
+    ## AUTONOMOUS EXECUTION MODE
+
+    **Command:** beads-orchestrator run {FLAGS}
+
+    Execute the autonomous loop protocol:
+
+    1. Run `bd ready --json` to get available tasks
+    2. {EPIC_FILTER if --epic else "Process all ready tasks"}
+    3. Dispatch up to 4 supervisors in PARALLEL (single message, multiple Task calls)
+    4. Wait for completions using TaskOutput
+    5. Run code review for each completion
+    6. Close beads with `bd close`
+    7. Check for newly unblocked tasks
+    8. REPEAT until no ready tasks AND no in_progress tasks
+    9. Output `<promise>COMPLETE</promise>` when done
+
+    **DO NOT STOP** until all work is complete or you hit an unrecoverable error.
+    **DO NOT ASK** for user input - run autonomously.
     """
 )
 ```
 
-### Epic Mode
-```python
-Task(
-    subagent_type="beads-orchestrator",
-    prompt="""
-    Execute epic {TARGET_ID} with its children.
-    
-    1. Run `bd show {TARGET_ID}` to see epic structure
-    2. Check for design doc, create if missing
-    3. Execute children in dependency order
-    4. Dispatch parallel where possible
-    5. Close epic when all children done
-    """
-)
-```
+**Model:** This MUST run on Opus 4.5 for complex orchestration.
 
-### Task Mode
-```python
-Task(
-    subagent_type="beads-orchestrator",
-    prompt="""
-    Execute single task {TARGET_ID}.
-    
-    1. Run `bd show {TARGET_ID}` for details
-    2. Create worktree
-    3. Dispatch appropriate supervisor
-    4. Request code review
-    5. Close task
-    """
-)
-```
-
-After completion, show summary:
-- Tasks completed
-- Tasks remaining
+After the orchestrator outputs `<promise>COMPLETE</promise>`, show the user:
+- Number of tasks completed
 - Any errors encountered
+- Final project status (`bd stats`)
 </instructions>
