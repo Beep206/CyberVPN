@@ -114,3 +114,7 @@ report/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Ralph TUI and worktrees
+.worktrees/
+.ralph-tui/
