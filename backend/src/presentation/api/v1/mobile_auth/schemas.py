@@ -273,6 +273,84 @@ class AuthResponse(BaseModel):
     )
 
 
+class RefreshTokenRequest(BaseModel):
+    """Request schema for token refresh.
+
+    Used by POST /api/v1/mobile/auth/refresh endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    refresh_token: str = Field(
+        ...,
+        min_length=1,
+        description="Current refresh token to exchange for new tokens",
+    )
+    device_id: str = Field(
+        ...,
+        min_length=36,
+        max_length=36,
+        description="Device ID for session validation",
+    )
+
+
+class LogoutRequest(BaseModel):
+    """Request schema for logout.
+
+    Used by POST /api/v1/mobile/auth/logout endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    refresh_token: str = Field(
+        ...,
+        min_length=1,
+        description="Refresh token to revoke",
+    )
+    device_id: str = Field(
+        ...,
+        min_length=36,
+        max_length=36,
+        description="Device ID for session revocation",
+    )
+
+
+class DeviceRegistrationRequest(BaseModel):
+    """Request schema for device registration/update.
+
+    Used by POST /api/v1/mobile/auth/device endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    device: DeviceInfo = Field(
+        ...,
+        description="Device information to register or update",
+    )
+
+
+class DeviceResponse(BaseModel):
+    """Response schema for device registration.
+
+    Returned by device registration endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    device_id: str = Field(
+        ...,
+        description="Registered device ID",
+    )
+    registered_at: datetime = Field(
+        ...,
+        description="Device registration timestamp",
+    )
+    last_active_at: datetime | None = Field(
+        default=None,
+        description="Last activity timestamp",
+    )
+
+
 class MobileAuthError(BaseModel):
     """Error response schema for mobile authentication.
 

@@ -65,3 +65,36 @@ async def optional_user(
         return user
     except JWTError:
         return None
+
+
+async def get_current_mobile_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> UUID:
+    """Extract and validate mobile user ID from JWT token.
+
+    Used for mobile app authentication endpoints.
+    Returns the user UUID without loading the full user object.
+
+    Raises:
+        HTTPException: 401 if token is invalid or expired.
+    """
+    try:
+        payload = auth_service.decode_token(credentials.credentials)
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid token type"},
+            )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+            )
+        return UUID(user_id)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid or expired token"},
+        )
