@@ -29,6 +29,7 @@ final webSocketClientProvider = Provider<WebSocketClient>((ref) {
   final client = WebSocketClient(
     baseUrl: EnvironmentConfig.baseUrl,
     tokenProvider: () async {
+      // SENSITIVE: Read JWT access token from SecureStorage for WebSocket auth
       return secureStorage.read(key: SecureStorageWrapper.accessTokenKey);
     },
   );

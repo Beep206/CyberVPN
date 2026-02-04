@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
@@ -51,6 +52,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     );
   }
 
+  /// Update the text scale factor for accessibility.
+  Future<void> updateTextScale(TextScale scale) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(textScale: scale),
+      'updateTextScale',
+    );
+  }
+
   // ── Locale ────────────────────────────────────────────────────────────────
 
   /// Update the application locale.
@@ -87,6 +96,59 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
         autoConnectUntrustedWifi: !settings.autoConnectUntrustedWifi,
       ),
       'toggleAutoConnectUntrustedWifi',
+    );
+  }
+
+  // ── Trusted WiFi Networks ──────────────────────────────────────────────────
+
+  /// Add a WiFi SSID to the trusted networks list.
+  ///
+  /// Trusted networks won't trigger auto-connect when the
+  /// `autoConnectUntrustedWifi` setting is enabled.
+  Future<void> addTrustedNetwork(String ssid) async {
+    final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
+    if (cleanSsid.isEmpty) return;
+
+    await _updateSetting(
+      (settings) {
+        if (settings.trustedWifiNetworks.contains(cleanSsid)) {
+          return settings;
+        }
+        return settings.copyWith(
+          trustedWifiNetworks: [...settings.trustedWifiNetworks, cleanSsid],
+        );
+      },
+      'addTrustedNetwork($cleanSsid)',
+    );
+  }
+
+  /// Remove a WiFi SSID from the trusted networks list.
+  Future<void> removeTrustedNetwork(String ssid) async {
+    final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
+
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        trustedWifiNetworks:
+            settings.trustedWifiNetworks.where((s) => s != cleanSsid).toList(),
+      ),
+      'removeTrustedNetwork($cleanSsid)',
+    );
+  }
+
+  /// Check if an SSID is in the trusted networks list.
+  bool isTrustedNetwork(String ssid) {
+    final current = state.value;
+    if (current == null) return false;
+
+    final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
+    return current.trustedWifiNetworks.contains(cleanSsid);
+  }
+
+  /// Clear all trusted networks.
+  Future<void> clearTrustedNetworks() async {
+    await _updateSetting(
+      (settings) => settings.copyWith(trustedWifiNetworks: []),
+      'clearTrustedNetworks',
     );
   }
 
@@ -145,7 +207,21 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   ///
   /// [type] selects which notification toggle to flip:
   /// `connection`, `expiry`, `promotional`, or `referral`.
+  ///
+  /// Also updates the FCM topic subscription to match the new preference.
   Future<void> toggleNotification(NotificationType type) async {
+    final current = state.value;
+    if (current == null) return;
+
+    // Determine the new value after toggle
+    final newValue = switch (type) {
+      NotificationType.connection => !current.notificationConnection,
+      NotificationType.expiry => !current.notificationExpiry,
+      NotificationType.promotional => !current.notificationPromotional,
+      NotificationType.referral => !current.notificationReferral,
+      NotificationType.vpnSpeed => !current.notificationVpnSpeed,
+    };
+
     await _updateSetting(
       (settings) => switch (type) {
         NotificationType.connection => settings.copyWith(
@@ -166,6 +242,29 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       },
       'toggleNotification($type)',
     );
+
+    // Update FCM topic subscription (non-blocking)
+    _syncFcmTopicSubscription(type, newValue);
+  }
+
+  /// Syncs FCM topic subscription for a notification type.
+  ///
+  /// Runs asynchronously without blocking the settings update.
+  void _syncFcmTopicSubscription(NotificationType type, bool enabled) {
+    Future(() async {
+      try {
+        final topicService = ref.read(fcmTopicServiceProvider);
+        await topicService.setTopicSubscription(type, enabled);
+      } catch (e, st) {
+        // Log but don't throw - FCM sync failure should not affect settings
+        AppLogger.warning(
+          'Failed to sync FCM topic subscription for $type',
+          error: e,
+          stackTrace: st,
+          category: 'settings.fcm',
+        );
+      }
+    });
   }
 
   // ── Privacy ──────────────────────────────────────────────────────────────
@@ -325,6 +424,14 @@ final currentLocaleProvider = Provider<String>((ref) {
   return asyncSettings.value?.locale ?? 'en';
 });
 
+/// The current text scale setting from settings.
+///
+/// Returns [TextScale.system] as default to respect system accessibility settings.
+final currentTextScaleProvider = Provider<TextScale>((ref) {
+  final asyncSettings = ref.watch(settingsProvider);
+  return asyncSettings.value?.textScale ?? TextScale.system;
+});
+
 /// A subset of VPN-related settings for connection screens.
 ///
 /// Groups protocol, auto-connect, kill-switch, and DNS into a single
@@ -346,7 +453,14 @@ final vpnSettingsProvider = Provider<VpnSettings>((ref) {
     customDns: settings.customDns,
     mtuMode: settings.mtuMode,
     mtuValue: settings.mtuValue,
+    trustedWifiNetworks: settings.trustedWifiNetworks,
   );
+});
+
+/// Provider for the list of trusted WiFi networks.
+final trustedWifiNetworksProvider = Provider<List<String>>((ref) {
+  final asyncSettings = ref.watch(settingsProvider);
+  return asyncSettings.value?.trustedWifiNetworks ?? [];
 });
 
 // ---------------------------------------------------------------------------
@@ -365,6 +479,7 @@ class VpnSettings {
     this.customDns,
     this.mtuMode = MtuMode.auto,
     this.mtuValue = 1400,
+    this.trustedWifiNetworks = const [],
   });
 
   final PreferredProtocol preferredProtocol;
@@ -376,12 +491,19 @@ class VpnSettings {
   final String? customDns;
   final MtuMode mtuMode;
   final int mtuValue;
+  final List<String> trustedWifiNetworks;
+
+  /// Check if an SSID is in the trusted networks list.
+  bool isTrusted(String ssid) {
+    final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
+    return trustedWifiNetworks.contains(cleanSsid);
+  }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is VpnSettings &&
-        other.preferredProtocol == preferredProtocol &&
+    if (other is! VpnSettings) return false;
+    return other.preferredProtocol == preferredProtocol &&
         other.autoConnectOnLaunch == autoConnectOnLaunch &&
         other.autoConnectUntrustedWifi == autoConnectUntrustedWifi &&
         other.killSwitch == killSwitch &&
@@ -389,7 +511,16 @@ class VpnSettings {
         other.dnsProvider == dnsProvider &&
         other.customDns == customDns &&
         other.mtuMode == mtuMode &&
-        other.mtuValue == mtuValue;
+        other.mtuValue == mtuValue &&
+        _listEquals(other.trustedWifiNetworks, trustedWifiNetworks);
+  }
+
+  static bool _listEquals<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   @override
@@ -403,6 +534,7 @@ class VpnSettings {
         customDns,
         mtuMode,
         mtuValue,
+        Object.hashAll(trustedWifiNetworks),
       );
 
   @override
@@ -410,5 +542,5 @@ class VpnSettings {
       'VpnSettings(protocol: $preferredProtocol, autoConnect: $autoConnectOnLaunch, '
       'autoConnectWifi: $autoConnectUntrustedWifi, killSwitch: $killSwitch, '
       'splitTunneling: $splitTunneling, dns: $dnsProvider, customDns: $customDns, '
-      'mtuMode: $mtuMode, mtuValue: $mtuValue)';
+      'mtuMode: $mtuMode, mtuValue: $mtuValue, trustedNetworks: ${trustedWifiNetworks.length})';
 }

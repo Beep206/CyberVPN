@@ -89,11 +89,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       children: [
         // -- Skip button (top-right, visible on pages 0 through N-2) --
         Align(
-          alignment: Alignment.topRight,
+          alignment: AlignmentDirectional.topEnd,
           child: Padding(
-            padding: const EdgeInsets.only(
+            padding: const EdgeInsetsDirectional.only(
               top: Spacing.sm,
-              right: Spacing.md,
+              end: Spacing.md,
             ),
             child: AnimatedOpacity(
               opacity: state.isLastPage ? 0.0 : 1.0,

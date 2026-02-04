@@ -46,6 +46,20 @@ enum LogLevel {
   error,
 }
 
+/// Text scale factor for accessibility
+enum TextScale {
+  /// System default text scale
+  system,
+  /// Small text (0.85x)
+  small,
+  /// Default text (1.0x)
+  normal,
+  /// Large text (1.15x)
+  large,
+  /// Extra large text (1.3x)
+  extraLarge,
+}
+
 /// Application settings entity
 ///
 /// Contains all user-configurable settings including theme, connection,
@@ -57,12 +71,16 @@ abstract class AppSettings with _$AppSettings {
     @Default(AppThemeMode.cyberpunk) AppThemeMode themeMode,
     @Default(AppBrightness.system) AppBrightness brightness,
     @Default(false) bool dynamicColor,
+    @Default(TextScale.system) TextScale textScale,
 
     // Connection
     @Default(PreferredProtocol.auto) PreferredProtocol preferredProtocol,
     @Default(false) bool autoConnectOnLaunch,
     @Default(false) bool autoConnectUntrustedWifi,
     @Default(false) bool killSwitch,
+
+    // Trusted WiFi Networks (SSIDs that won't trigger auto-connect)
+    @Default(<String>[]) List<String> trustedWifiNetworks,
 
     // Split Tunneling
     @Default(false) bool splitTunneling,

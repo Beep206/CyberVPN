@@ -19,12 +19,12 @@ class SplitTunnelIos {
     }
   }
 
-  List<String> getExcludedDomains() {
-    return _localStorage.getStringList(_excludedDomainsKey) ?? [];
+  Future<List<String>> getExcludedDomains() async {
+    return await _localStorage.getStringList(_excludedDomainsKey) ?? [];
   }
 
   Future<void> addExcludedDomain(String domain) async {
-    final current = getExcludedDomains();
+    final current = await getExcludedDomains();
     if (!current.contains(domain)) {
       current.add(domain);
       await setExcludedDomains(current);
@@ -32,7 +32,7 @@ class SplitTunnelIos {
   }
 
   Future<void> removeExcludedDomain(String domain) async {
-    final current = getExcludedDomains();
+    final current = await getExcludedDomains();
     current.remove(domain);
     await setExcludedDomains(current);
   }

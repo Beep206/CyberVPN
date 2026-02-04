@@ -204,11 +204,127 @@ jobs:
 5. **Screenshots**: Capture on failure for debugging
 6. **Stability**: Avoid hardcoded delays, use pumpAndSettle
 
+## Test Files
+
+### vpn_flow_test.dart
+
+VPN connection flow tests covering:
+
+1. **Server Selection → Connect → Verify → Disconnect** (skip: true - requires VPN capability)
+   - Navigate to servers tab
+   - Select a server from the list
+   - Initiate connection
+   - Verify connection state changes
+   - Verify stats update (upload/download bytes)
+   - Disconnect and verify disconnection state
+
+2. **Server List Search and Filtering**
+   - Test search functionality on server list
+   - Verify search results update
+
+3. **Connection Screen UI Verification**
+   - Verify connection screen renders properly
+   - Check for connection-related UI elements
+
+### navigation_flow_test.dart
+
+Navigation flow tests covering:
+
+1. **Tab Navigation**
+   - Switch between all 4 tabs (Connection, Servers, Profile, Settings)
+   - Verify each tab renders expected content
+   - Test state preservation when switching tabs
+
+2. **Back Navigation**
+   - Navigate into nested screens and back
+   - System back button behavior
+   - Deep navigation stack handling
+
+3. **Deep Link Navigation**
+   - Settings route navigation
+   - Server detail route navigation
+   - Parse and resolve various deep link formats (connect, referral, subscribe)
+
+4. **Navigation Error Handling**
+   - Invalid route handling
+   - Rapid tab switching stability
+
+## Running Integration Tests
+
+### Prerequisites
+
+- Flutter SDK installed and configured
+- Connected Android device or iOS simulator
+- VPN integration tests require device with VPN capability or mock VPN repository
+
+### Device Setup
+
+**Android:**
+```bash
+# List available devices
+flutter devices
+
+# Start Android emulator
+flutter emulators --launch <emulator_id>
+```
+
+**iOS:**
+```bash
+# List available simulators
+xcrun simctl list devices
+
+# Boot simulator
+open -a Simulator
+```
+
+### Run Tests
+
+**Run all integration tests:**
+```bash
+flutter test integration_test/
+```
+
+**Run specific test file:**
+```bash
+flutter test integration_test/vpn_flow_test.dart
+flutter test integration_test/navigation_flow_test.dart
+```
+
+**Run on specific device:**
+```bash
+flutter test integration_test/ -d <device_id>
+```
+
+**Run with verbose output:**
+```bash
+flutter test integration_test/ -v
+```
+
+## CI/CD Integration
+
+The integration tests are configured to run in CI via GitHub Actions. See `.github/workflows/ci.yml`:
+
+- Job: `integration-tests`
+- Runs on: `ubuntu-latest`
+- Uses Android emulator (API 33, x86_64, google_apis)
+- Timeout: 30 minutes
+- Uploads test results and coverage artifacts
+
+To run integration tests in CI, the workflow:
+1. Sets up Flutter and Java
+2. Installs dependencies
+3. Runs code generation
+4. Launches Android emulator
+5. Runs integration tests with coverage
+6. Uploads results and coverage
+
 ## Future Enhancements
 
 - [ ] Add screenshot capture on test failure
-- [ ] Implement mock backend for all auth tests
-- [ ] Add deep link integration tests
+- [ ] Implement mock VPN repository for full VPN flow testing
+- [x] Add deep link integration tests
 - [ ] Test 2FA flow when implemented
 - [ ] Add performance benchmarks
 - [ ] Test offline/error scenarios
+- [x] Add CI integration test workflow
+- [x] Add navigation flow tests

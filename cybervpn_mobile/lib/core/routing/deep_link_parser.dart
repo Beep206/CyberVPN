@@ -111,6 +111,27 @@ class SettingsRoute extends DeepLinkRoute {
   String toString() => 'SettingsRoute()';
 }
 
+/// Navigate to VPN connection screen from widget tap.
+///
+/// Triggered by:
+/// - `cybervpn://widget-action`
+///
+/// This is a simple route used by iOS WidgetKit widgets to open
+/// the main VPN connection screen when tapped.
+class WidgetActionRoute extends DeepLinkRoute {
+  const WidgetActionRoute();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is WidgetActionRoute;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() => 'WidgetActionRoute()';
+}
+
 /// OAuth callback route for social account linking.
 ///
 /// Triggered by:
@@ -268,6 +289,8 @@ class DeepLinkParser {
         return _parseSubscribe(queryParams, uri);
       case 'settings':
         return (route: const SettingsRoute(), error: null);
+      case 'widget-action':
+        return (route: const WidgetActionRoute(), error: null);
       case 'oauth/callback':
         return _parseOAuthCallback(queryParams, uri);
       default:

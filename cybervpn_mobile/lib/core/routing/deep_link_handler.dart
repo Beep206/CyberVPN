@@ -66,6 +66,7 @@ String resolveDeepLinkPath(DeepLinkRoute route) {
     ReferralRoute(:final code) => '/referral?code=$code',
     SubscribeRoute(:final planId) => '/subscribe?plan=$planId',
     SettingsRoute() => '/settings',
+    WidgetActionRoute() => '/connection',
     OAuthCallbackRoute(:final provider, :final code) =>
       '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
   };

@@ -291,7 +291,7 @@ class _AnimatedMessageBoxState extends State<_AnimatedMessageBox>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Padding(
-          padding: const EdgeInsets.only(left: 32, top: Spacing.xs),
+          padding: const EdgeInsetsDirectional.only(start: 32, top: Spacing.xs),
           child: Text(
             widget.message,
             style: TextStyle(
@@ -373,7 +373,7 @@ class _AnimatedSuggestionBoxState extends State<_AnimatedSuggestionBox>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Padding(
-          padding: const EdgeInsets.only(left: 32, top: Spacing.xs),
+          padding: const EdgeInsetsDirectional.only(start: 32, top: Spacing.xs),
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: Spacing.sm,

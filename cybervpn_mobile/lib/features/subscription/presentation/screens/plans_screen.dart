@@ -82,7 +82,7 @@ class _PlansBodyState extends State<_PlansBody> {
               children: _durationFilters.entries.map((entry) {
                 final isSelected = entry.key == _selectedDuration;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsetsDirectional.only(end: 8),
                   child: ChoiceChip(
                     label: Text(entry.value),
                     selected: isSelected,
@@ -99,7 +99,7 @@ class _PlansBodyState extends State<_PlansBody> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               onPressed: () =>
                   setState(() => _showComparison = !_showComparison),

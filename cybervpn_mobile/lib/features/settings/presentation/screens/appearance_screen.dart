@@ -103,6 +103,20 @@ class AppearanceScreen extends ConsumerWidget {
           ],
         ),
 
+        // --- Text Size ---
+        SettingsSection(
+          title: 'Text Size',
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+              child: _TextScalePicker(
+                selected: settings.textScale,
+                onChanged: notifier.updateTextScale,
+              ),
+            ),
+          ],
+        ),
+
         // --- Dynamic Color (only on Android 12+ with Material You) ---
         if (_shouldShowDynamicColor(settings.themeMode))
           SettingsSection(
@@ -428,6 +442,90 @@ class _BrightnessSegmentedButton extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _TextScalePicker
+// ---------------------------------------------------------------------------
+
+/// Picker for selecting text scale factor for accessibility.
+class _TextScalePicker extends StatelessWidget {
+  const _TextScalePicker({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final TextScale selected;
+  final ValueChanged<TextScale> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Preview text
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(Spacing.md),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(Radii.md),
+          ),
+          child: const Text(
+            'Preview: The quick brown fox jumps over the lazy dog.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: Spacing.md),
+
+        // Scale options
+        Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: TextScale.values.map((scale) {
+            final isSelected = scale == selected;
+            return ChoiceChip(
+              key: Key('text_scale_${scale.name}'),
+              label: Text(_textScaleLabel(scale)),
+              selected: isSelected,
+              onSelected: (_) => onChanged(scale),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: Spacing.sm),
+
+        // Description
+        Text(
+          _textScaleDescription(selected),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _textScaleLabel(TextScale scale) {
+    return switch (scale) {
+      TextScale.system => 'System',
+      TextScale.small => 'Small',
+      TextScale.normal => 'Default',
+      TextScale.large => 'Large',
+      TextScale.extraLarge => 'Extra Large',
+    };
+  }
+
+  String _textScaleDescription(TextScale scale) {
+    return switch (scale) {
+      TextScale.system => 'Uses your device accessibility settings',
+      TextScale.small => 'Smaller text for more content on screen',
+      TextScale.normal => 'Default text size',
+      TextScale.large => 'Larger text for improved readability',
+      TextScale.extraLarge => 'Maximum text size for accessibility',
+    };
   }
 }
 

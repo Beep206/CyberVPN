@@ -329,8 +329,8 @@ class _DeviceCard extends StatelessWidget {
         onDismissed: isCurrent ? null : (direction) => onRemove?.call(),
         direction: isCurrent ? DismissDirection.none : DismissDirection.endToStart,
         background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: Spacing.md),
+          alignment: AlignmentDirectional.centerEnd,
+          padding: const EdgeInsetsDirectional.only(end: Spacing.md),
           decoration: BoxDecoration(
             color: colorScheme.error,
             borderRadius: BorderRadius.circular(Radii.md),

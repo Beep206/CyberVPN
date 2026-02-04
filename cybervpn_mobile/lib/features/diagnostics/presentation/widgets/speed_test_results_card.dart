@@ -350,7 +350,7 @@ class _MetricTile extends StatelessWidget {
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.bottomLeft,
+                  alignment: AlignmentDirectional.bottomStart,
                   child: Text(
                     value,
                     style: TextStyle(

@@ -19,30 +19,34 @@ class SpeedIndicator extends ConsumerWidget {
     final speed = ref.watch(currentSpeedProvider);
     final usage = ref.watch(sessionUsageProvider);
 
-    return RepaintBoundary(
-      child: Semantics(
-        label:
-            'Download speed: ${speed.download}, Upload speed: ${speed.upload}',
-        readOnly: true,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _SpeedGauge(
-              icon: Icons.arrow_downward_rounded,
-              label: 'Download',
-              speed: speed.download,
-              total: usage.download,
-              isActive: isConnected,
-            ),
-            const SizedBox(width: 32),
-            _SpeedGauge(
-              icon: Icons.arrow_upward_rounded,
-              label: 'Upload',
-              speed: speed.upload,
-              total: usage.upload,
-              isActive: isConnected,
-            ),
-          ],
+    // Speed indicators should always remain LTR for consistency in data visualization
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: RepaintBoundary(
+        child: Semantics(
+          label:
+              'Download speed: ${speed.download}, Upload speed: ${speed.upload}',
+          readOnly: true,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _SpeedGauge(
+                icon: Icons.arrow_downward_rounded,
+                label: 'Download',
+                speed: speed.download,
+                total: usage.download,
+                isActive: isConnected,
+              ),
+              const SizedBox(width: 32),
+              _SpeedGauge(
+                icon: Icons.arrow_upward_rounded,
+                label: 'Upload',
+                speed: speed.upload,
+                total: usage.upload,
+                isActive: isConnected,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -42,7 +42,11 @@ class VpnRepositoryImpl implements VpnRepository {
 
   @override
   Future<void> connect(VpnConfigEntity config) async {
-    await _engine.initialize();
+    // Initialize with app bundle identifiers for iOS Network Extension
+    await _engine.initialize(
+      providerBundleIdentifier: 'com.cybervpn.vpnextension',
+      groupIdentifier: 'group.com.cybervpn',
+    );
     await _engine.connect(config.configData, remark: config.name);
     AppLogger.info('VPN connected to ${config.name}');
   }
@@ -53,7 +57,7 @@ class VpnRepositoryImpl implements VpnRepository {
   }
 
   @override
-  Future<bool> get isConnected => _engine.isConnected;
+  Future<bool> get isConnected async => _engine.isConnected;
 
   @override
   Stream<ConnectionStateEntity> get connectionStateStream {

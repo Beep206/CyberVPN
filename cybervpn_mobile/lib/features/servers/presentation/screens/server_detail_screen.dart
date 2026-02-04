@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/widgets/ping_indicator.dart';
+import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
 
 /// Full-screen detail view for a single VPN server.
 ///
@@ -26,14 +27,6 @@ class ServerDetailScreen extends ConsumerWidget {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
-
-  String _countryFlagEmoji(String countryCode) {
-    final code = countryCode.toUpperCase();
-    if (code.length != 2) return '';
-    final first = 0x1F1E6 + code.codeUnitAt(0) - 0x41;
-    final second = 0x1F1E6 + code.codeUnitAt(1) - 0x41;
-    return String.fromCharCodes([first, second]);
-  }
 
   Color _latencyColor(int? latency) {
     if (latency == null) return Colors.grey;
@@ -88,10 +81,11 @@ class ServerDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ----- Flag + Name Header -----
-            Text(
-              _countryFlagEmoji(server.countryCode),
-              style: const TextStyle(fontSize: 64),
+            // ----- Flag + Name Header (with Hero animation) -----
+            FlagWidget(
+              countryCode: server.countryCode,
+              size: FlagSize.extraLarge,
+              heroTag: 'server_flag_${server.id}',
             ),
             const SizedBox(height: 8),
             Text(
@@ -255,7 +249,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: AlignmentDirectional.centerStart,
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(

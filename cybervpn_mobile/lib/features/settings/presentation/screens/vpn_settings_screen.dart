@@ -210,6 +210,16 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
           value: settings.autoConnectUntrustedWifi,
           onChanged: (_) => notifier.toggleAutoConnectUntrustedWifi(),
         ),
+        // Show trusted networks link when auto-connect WiFi is enabled
+        if (settings.autoConnectUntrustedWifi)
+          SettingsTile.navigation(
+            key: const Key('nav_trusted_networks'),
+            title: 'Manage trusted networks',
+            subtitle: settings.trustedWifiNetworks.isEmpty
+                ? 'No networks marked as trusted'
+                : '${settings.trustedWifiNetworks.length} trusted network${settings.trustedWifiNetworks.length == 1 ? '' : 's'}',
+            onTap: () => Navigator.of(context).pushNamed('/settings/trusted-wifi'),
+          ),
       ],
     );
   }

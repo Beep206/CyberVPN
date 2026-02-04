@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
@@ -71,6 +72,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       // Register FCM token after successful login (non-blocking)
       _registerFcmToken();
+
+      // Perform app attestation in logging mode (non-blocking)
+      _performAttestation(AttestationTrigger.login);
     } catch (e, st) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
@@ -168,6 +172,36 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         if (EnvironmentConfig.sentryDsn.isNotEmpty) {
           Sentry.captureException(e, stackTrace: st);
         }
+      }
+    });
+  }
+
+  // ── App attestation (logging mode) ─────────────────────────────────
+
+  /// Performs app attestation for fraud detection (logging mode only).
+  ///
+  /// Runs asynchronously without blocking the auth flow. Results are logged
+  /// to analytics and Sentry for monitoring. Never enforces (blocks) on
+  /// failure in current logging-only mode.
+  void _performAttestation(AttestationTrigger trigger) {
+    // Run in a fire-and-forget manner
+    Future(() async {
+      try {
+        final attestationService = ref.read(appAttestationServiceProvider);
+        final result = await attestationService.generateToken(trigger: trigger);
+        AppLogger.info(
+          'Attestation completed: ${result.status.name}',
+          category: 'auth.attestation',
+        );
+      } catch (e, st) {
+        // Log but don't throw - attestation failure should not
+        // block the user from proceeding with the app
+        AppLogger.warning(
+          'Attestation failed (non-blocking)',
+          error: e,
+          stackTrace: st,
+          category: 'auth.attestation',
+        );
       }
     });
   }

@@ -4,9 +4,9 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for Chinese (`zh`).
-class AppLocalizationsZh extends AppLocalizations {
-  AppLocalizationsZh([String locale = 'zh']) : super(locale);
+/// The translations for Korean (`ko`).
+class AppLocalizationsKo extends AppLocalizations {
+  AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
   String get appName => 'CyberVPN';
@@ -143,7 +143,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count days remaining',
-      one: '1 day remaining',
     );
     return '$_temp0';
   }
@@ -329,7 +328,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count seconds',
-      one: '1 second',
     );
     return '$_temp0';
   }
@@ -563,7 +561,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count days',
-      one: '1 day',
     );
     return 'Your subscription expires in $_temp0.';
   }
@@ -578,7 +575,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count unread notifications',
-      one: '1 unread notification',
       zero: 'No unread notifications',
     );
     return '$_temp0';
@@ -608,7 +604,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count rewards earned',
-      one: '1 reward earned',
       zero: 'No rewards earned',
     );
     return '$_temp0';
@@ -620,7 +615,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count friends invited',
-      one: '1 friend invited',
       zero: 'No friends invited',
     );
     return '$_temp0';
@@ -893,7 +887,6 @@ class AppLocalizationsZh extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count notifications',
-      one: '1 notification',
       zero: 'No notifications',
     );
     return '$_temp0';
@@ -920,169 +913,4 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rootDetectionDialogDismiss => 'I Understand';
-}
-
-/// The translations for Chinese, using the Han script (`zh_Hant`).
-class AppLocalizationsZhHant extends AppLocalizationsZh {
-  AppLocalizationsZhHant() : super('zh_Hant');
-
-  @override
-  String get appName => 'CyberVPN';
-
-  @override
-  String get login => 'Log In';
-
-  @override
-  String get register => 'Sign Up';
-
-  @override
-  String get email => 'Email';
-
-  @override
-  String get password => 'Password';
-
-  @override
-  String get confirmPassword => 'Confirm Password';
-
-  @override
-  String get forgotPassword => 'Forgot Password?';
-
-  @override
-  String get orContinueWith => 'Or continue with';
-
-  @override
-  String get connect => 'Connect';
-
-  @override
-  String get disconnect => 'Disconnect';
-
-  @override
-  String get connecting => 'Connecting...';
-
-  @override
-  String get disconnecting => 'Disconnecting...';
-
-  @override
-  String get connected => 'Connected';
-
-  @override
-  String get disconnected => 'Disconnected';
-
-  @override
-  String get servers => 'Servers';
-
-  @override
-  String get subscription => 'Subscription';
-
-  @override
-  String get settings => 'Settings';
-
-  @override
-  String get profile => 'Profile';
-
-  @override
-  String get selectServer => 'Select Server';
-
-  @override
-  String get autoSelect => 'Auto Select';
-
-  @override
-  String get fastestServer => 'Fastest Server';
-
-  @override
-  String get nearestServer => 'Nearest Server';
-
-  @override
-  String get killSwitch => 'Kill Switch';
-
-  @override
-  String get splitTunneling => 'Split Tunneling';
-
-  @override
-  String get autoConnect => 'Auto Connect';
-
-  @override
-  String get language => 'Language';
-
-  @override
-  String get theme => 'Theme';
-
-  @override
-  String get darkMode => 'Dark Mode';
-
-  @override
-  String get lightMode => 'Light Mode';
-
-  @override
-  String get systemDefault => 'System Default';
-
-  @override
-  String get logout => 'Log Out';
-
-  @override
-  String get logoutConfirm => 'Are you sure you want to log out?';
-
-  @override
-  String get cancel => 'Cancel';
-
-  @override
-  String get confirm => 'Confirm';
-
-  @override
-  String get retry => 'Retry';
-
-  @override
-  String get errorOccurred => 'An error occurred';
-
-  @override
-  String get noInternet => 'No internet connection';
-
-  @override
-  String get downloadSpeed => 'Download';
-
-  @override
-  String get uploadSpeed => 'Upload';
-
-  @override
-  String get connectionTime => 'Connection Time';
-
-  @override
-  String get dataUsed => 'Data Used';
-
-  @override
-  String get currentPlan => 'Current Plan';
-
-  @override
-  String get upgradePlan => 'Upgrade Plan';
-
-  @override
-  String daysRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get referral => 'Referral';
-
-  @override
-  String get shareReferralCode => 'Share Referral Code';
-
-  @override
-  String get support => 'Support';
-
-  @override
-  String get privacyPolicy => 'Privacy Policy';
-
-  @override
-  String get termsOfService => 'Terms of Service';
-
-  @override
-  String version(String version) {
-    return 'Version $version';
-  }
 }

@@ -4,9 +4,9 @@ import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.d
 
 abstract class ServerLocalDataSource {
   Future<void> cacheServers(List<ServerEntity> servers);
-  List<ServerEntity>? getCachedServers();
+  Future<List<ServerEntity>?> getCachedServers();
   Future<void> cacheFavorites(List<String> serverIds);
-  List<String> getFavoriteIds();
+  Future<List<String>> getFavoriteIds();
   Future<void> clearCache();
 }
 
@@ -33,13 +33,13 @@ class ServerLocalDataSourceImpl implements ServerLocalDataSource {
   }
 
   @override
-  List<ServerEntity>? getCachedServers() {
-    final timestampStr = _localStorage.getString(_cacheTimestampKey);
+  Future<List<ServerEntity>?> getCachedServers() async {
+    final timestampStr = await _localStorage.getString(_cacheTimestampKey);
     if (timestampStr != null) {
       final timestamp = DateTime.parse(timestampStr);
       if (DateTime.now().difference(timestamp).inMinutes > _cacheValidityMinutes) return null;
     }
-    final jsonStr = _localStorage.getString(_serversKey);
+    final jsonStr = await _localStorage.getString(_serversKey);
     if (jsonStr == null) return null;
     final jsonList = jsonDecode(jsonStr) as List<dynamic>;
     return jsonList.map((json) {
@@ -60,8 +60,8 @@ class ServerLocalDataSourceImpl implements ServerLocalDataSource {
   }
 
   @override
-  List<String> getFavoriteIds() {
-    return _localStorage.getStringList(_favoritesKey) ?? [];
+  Future<List<String>> getFavoriteIds() async {
+    return await _localStorage.getStringList(_favoritesKey) ?? [];
   }
 
   @override

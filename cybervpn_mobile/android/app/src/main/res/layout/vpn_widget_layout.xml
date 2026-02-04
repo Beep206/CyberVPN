@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_background">
+
+    <!-- VPN Status Icon (Shield) -->
+    <ImageView
+        android:id="@+id/vpn_status_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/ic_shield_offline"
+        android:contentDescription="@string/vpn_status_icon_description" />
+
+    <!-- Server Name Text -->
+    <TextView
+        android:id="@+id/server_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/widget_disconnected"
+        android:textSize="12sp"
+        android:textColor="@color/widget_text_color"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:maxEms="10"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Toggle Button -->
+    <ImageButton
+        android:id="@+id/toggle_button"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_power"
+        android:background="@drawable/widget_button_background"
+        android:contentDescription="@string/widget_toggle_description" />
+
+</LinearLayout>

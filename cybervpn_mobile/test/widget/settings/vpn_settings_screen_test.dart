@@ -96,6 +96,10 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   Future<bool> retryLastOperation() async => false;
   @override
   Future<void> validateConsistency() async {}
+  @override
+  Future<void> toggleClipboardAutoDetect() async {}
+  @override
+  Future<void> updateLogLevel(LogLevel level) async {}
 }
 
 // ---------------------------------------------------------------------------
