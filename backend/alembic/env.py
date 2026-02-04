@@ -28,6 +28,8 @@ from src.infrastructure.database.models.oauth_account_model import OAuthAccount
 from src.infrastructure.database.models.notification_queue_model import NotificationQueue
 from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 
 # Import Base to get shared metadata
 from src.infrastructure.database.session import Base

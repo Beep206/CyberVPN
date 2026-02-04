@@ -49,6 +49,10 @@ from src.presentation.api.v1.mobile_auth.schemas import (
 )
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.mobile_rate_limit import (
+    LoginRateLimit,
+    RegisterRateLimit,
+)
 
 router = APIRouter(prefix="/mobile/auth", tags=["mobile-auth"])
 
@@ -143,10 +147,15 @@ def _auth_response_from_dto(dto) -> AuthResponse:
             "model": MobileAuthError,
             "description": "Email already registered",
         },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "model": MobileAuthError,
+            "description": "Too many registration attempts (limit: 3/min per IP)",
+        },
     },
 )
 async def register(
     request: RegisterRequest,
+    _rate_limit: RegisterRateLimit,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
     """Register a new mobile app user.
@@ -188,10 +197,15 @@ async def register(
             "model": MobileAuthError,
             "description": "Invalid credentials",
         },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "model": MobileAuthError,
+            "description": "Too many login attempts (limit: 5/min per device)",
+        },
     },
 )
 async def login(
     request: LoginRequest,
+    _rate_limit: LoginRateLimit,
     db: AsyncSession = Depends(get_db),
 ) -> AuthResponse:
     """Authenticate a mobile app user.
