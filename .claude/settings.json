@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task-master *)",
+      "Bash(cd * && task-master *)",
+      "Bash(free -m*)",
+      "Bash(flutter *)",
+      "Bash(cd */cybervpn_mobile && flutter *)",
+      "Bash(npm run *)",
+      "Bash(cd */admin && npm run *)",
+      "Bash(python -m ruff *)",
+      "Bash(python -m pytest *)",
+      "Bash(cd */backend && python *)",
+      "Bash(docker compose *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(bd *)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Task",
+      "TaskOutput",
+      "WebSearch",
+      "WebFetch",
+      "mcp__*"
+    ],
+    "deny": [
+      "Bash(npx task-master*)",
+      "Bash(rm -rf *)",
+      "Bash(sudo *)"
+    ]
+  },
+  "model": "opus"
+}
