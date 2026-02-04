@@ -1,0 +1,3 @@
+agent = "claude"
+tracker = "beads-bv"
+configVersion = "2.1"
