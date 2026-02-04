@@ -7,6 +7,7 @@ import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/auth/data/services/session_restoration_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
@@ -27,6 +28,16 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
+/// Provides the [SessionRestorationService] for silent session restoration.
+///
+/// Override this in tests to inject a mock service.
+final sessionRestorationServiceProvider = Provider<SessionRestorationService>((ref) {
+  throw UnimplementedError(
+    'sessionRestorationServiceProvider must be overridden with a concrete '
+    'SessionRestorationService (e.g. via ProviderScope overrides).',
+  );
+});
+
 // ---------------------------------------------------------------------------
 // Auth notifier
 // ---------------------------------------------------------------------------
@@ -38,14 +49,83 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// auth operations.
 class AuthNotifier extends AsyncNotifier<AuthState> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
+  SessionRestorationService? _sessionService;
+  StreamSubscription<TokenRefreshResult>? _refreshSubscription;
 
   @override
   FutureOr<AuthState> build() async {
-    // Attempt auto-login from cached tokens.
-    return _checkCachedAuth();
+    // Clean up previous subscription on rebuild
+    _refreshSubscription?.cancel();
+
+    // Attempt silent session restoration from cached tokens.
+    return _restoreSession();
   }
 
-  /// Checks whether a cached session exists and returns the appropriate state.
+  /// Performs silent session restoration on app launch.
+  ///
+  /// Uses [SessionRestorationService] for fast-path restoration:
+  /// 1. Returns cached user immediately (< 200ms target)
+  /// 2. Refreshes tokens in background
+  /// 3. Handles refresh failure by emitting [AuthSessionExpired]
+  Future<AuthState> _restoreSession() async {
+    try {
+      _sessionService = ref.read(sessionRestorationServiceProvider);
+
+      final result = await _sessionService!.restoreSession();
+
+      switch (result) {
+        case SessionRestored(:final user, :final backgroundRefreshPending):
+          _setSentryUser(user);
+
+          if (backgroundRefreshPending) {
+            // Listen for background refresh result
+            _refreshSubscription = _sessionService!.refreshResultStream.listen(
+              _handleRefreshResult,
+            );
+          }
+
+          return AuthAuthenticated(user);
+
+        case SessionNotFound():
+          return const AuthUnauthenticated();
+
+        case SessionExpired(:final reason):
+          return AuthSessionExpired(message: reason);
+      }
+    } on UnimplementedError {
+      // SessionRestorationService not configured - fall back to legacy check
+      return _checkCachedAuth();
+    } catch (e) {
+      return AuthError(e.toString());
+    }
+  }
+
+  /// Handles background token refresh result.
+  void _handleRefreshResult(TokenRefreshResult result) {
+    switch (result) {
+      case TokenRefreshSuccess(:final updatedUser):
+        // If we got an updated user, refresh the state
+        if (updatedUser != null) {
+          _setSentryUser(updatedUser);
+          state = AsyncValue.data(AuthAuthenticated(updatedUser));
+        }
+        AppLogger.debug(
+          'Background refresh succeeded',
+          category: 'auth.session',
+        );
+
+      case TokenRefreshFailure(:final reason):
+        // Session expired - user must re-authenticate
+        AppLogger.warning(
+          'Background refresh failed: $reason',
+          category: 'auth.session',
+        );
+        _clearSentryUser();
+        state = AsyncValue.data(AuthSessionExpired(message: reason));
+    }
+  }
+
+  /// Legacy fallback for session check when SessionRestorationService is not configured.
   Future<AuthState> _checkCachedAuth() async {
     try {
       final isAuthed = await _repo.isAuthenticated();

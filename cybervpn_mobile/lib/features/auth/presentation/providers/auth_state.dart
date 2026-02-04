@@ -49,3 +49,25 @@ final class AuthError extends AuthState {
   @override
   int get hashCode => message.hashCode;
 }
+
+/// Session was valid but has expired; user must re-authenticate.
+///
+/// This is distinct from [AuthUnauthenticated] in that it indicates
+/// a session that was previously valid but is no longer (e.g., refresh
+/// token expired or was revoked).
+final class AuthSessionExpired extends AuthState {
+  /// Human-readable message explaining why the session expired.
+  final String message;
+
+  const AuthSessionExpired({this.message = 'Your session has expired. Please log in again.'});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuthSessionExpired &&
+          runtimeType == other.runtimeType &&
+          message == other.message;
+
+  @override
+  int get hashCode => message.hashCode;
+}
