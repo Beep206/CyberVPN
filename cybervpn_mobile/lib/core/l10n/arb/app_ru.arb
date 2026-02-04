@@ -327,6 +327,25 @@
   "errorFieldRequired": "Это поле обязательно для заполнения.",
   "errorPaymentFailed": "Ошибка оплаты. Попробуйте снова или используйте другой способ оплаты.",
   "errorQrScanFailed": "Не удалось отсканировать QR-код. Попробуйте снова.",
+  "errorTelegramAuthCancelled": "Вход через Telegram был отменён.",
+  "errorTelegramAuthFailed": "Ошибка аутентификации через Telegram. Попробуйте снова.",
+  "errorTelegramAuthExpired": "Время входа через Telegram истекло. Попробуйте снова.",
+  "errorTelegramNotInstalled": "Telegram не установлен на этом устройстве.",
+  "errorTelegramAuthInvalid": "Неверные данные аутентификации Telegram.",
+  "errorBiometricUnavailable": "Биометрическая аутентификация недоступна на этом устройстве.",
+  "errorBiometricNotEnrolled": "Биометрические данные не зарегистрированы. Настройте отпечаток пальца или распознавание лица в настройках устройства.",
+  "errorBiometricFailed": "Ошибка биометрической аутентификации. Попробуйте снова.",
+  "errorBiometricLocked": "Биометрическая аутентификация заблокирована. Попробуйте позже или используйте пароль.",
+  "errorSessionExpired": "Ваша сессия истекла. Войдите в систему снова.",
+  "errorAccountDisabled": "Ваш аккаунт отключён. Обратитесь в службу поддержки.",
+  "errorRateLimitedWithCountdown": "Слишком много попыток. Повторите через {seconds, plural, =1{1 секунду} few{{seconds} секунды} many{{seconds} секунд} other{{seconds} секунд}}.",
+  "@errorRateLimitedWithCountdown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "errorOfflineLoginRequired": "Для входа требуется подключение к интернету. Проверьте соединение.",
+  "errorOfflineSessionExpired": "Кэшированная сессия истекла. Подключитесь к интернету для входа.",
 
   "a11yConnectButton": "Подключиться к VPN-серверу",
   "a11yDisconnectButton": "Отключиться от VPN-сервера",

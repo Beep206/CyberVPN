@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -52,6 +54,86 @@ class TelegramAuthService {
 
   ApiClient get _apiClient => _ref.read(apiClientProvider);
   SecureStorageWrapper get _storage => _ref.read(secureStorageProvider);
+
+  /// Checks if the Telegram app is installed on the device.
+  ///
+  /// Uses the `tg://` URL scheme to detect Telegram.
+  Future<bool> isTelegramInstalled() async {
+    final telegramUri = Uri.parse('tg://resolve');
+    try {
+      return await canLaunchUrl(telegramUri);
+    } catch (e) {
+      AppLogger.warning(
+        'Error checking Telegram installation: $e',
+        category: 'auth.telegram',
+      );
+      return false;
+    }
+  }
+
+  /// Opens the app store to install Telegram.
+  ///
+  /// Returns `true` if the store was opened successfully.
+  Future<bool> openTelegramAppStore() async {
+    final Uri storeUrl;
+    if (Platform.isIOS) {
+      storeUrl = Uri.parse('https://apps.apple.com/app/telegram-messenger/id686449807');
+    } else {
+      storeUrl = Uri.parse('https://play.google.com/store/apps/details?id=org.telegram.messenger');
+    }
+
+    AppLogger.info(
+      'Opening Telegram app store: $storeUrl',
+      category: 'auth.telegram',
+    );
+
+    try {
+      return await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
+    } catch (e, st) {
+      AppLogger.error(
+        'Error opening app store',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram',
+      );
+      return false;
+    }
+  }
+
+  /// Launches Telegram login via web browser (t.me bot link).
+  ///
+  /// This is a fallback when the Telegram app is not installed.
+  /// The user authenticates via t.me web interface.
+  Future<bool> launchTelegramWebLogin() async {
+    final botUsername = EnvironmentConfig.telegramBotUsername;
+    if (botUsername.isEmpty) {
+      AppLogger.error(
+        'Telegram bot username not configured',
+        category: 'auth.telegram',
+      );
+      return false;
+    }
+
+    // Web fallback: t.me bot link
+    final webUrl = Uri.parse('https://t.me/$botUsername?start=login');
+
+    AppLogger.info(
+      'Launching Telegram web login: $webUrl',
+      category: 'auth.telegram',
+    );
+
+    try {
+      return await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    } catch (e, st) {
+      AppLogger.error(
+        'Error launching Telegram web login',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram',
+      );
+      return false;
+    }
+  }
 
   /// Launches the Telegram Login Widget in an external browser.
   ///
