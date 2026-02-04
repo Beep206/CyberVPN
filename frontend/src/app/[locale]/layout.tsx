@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/app/providers/theme-provider";
-
+import { AuthProvider } from "@/app/providers/auth-provider";
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
 
@@ -72,11 +72,13 @@ export default async function RootLayout({
                     disableTransitionOnChange
                 >
                     <NextIntlClientProvider locale={locale} messages={messages}>
-                        <SmoothScrollProvider>
-                            <div className="relative z-10 h-full w-full">
-                                {children}
-                            </div>
-                        </SmoothScrollProvider>
+                        <AuthProvider>
+                            <SmoothScrollProvider>
+                                <div className="relative z-10 h-full w-full">
+                                    {children}
+                                </div>
+                            </SmoothScrollProvider>
+                        </AuthProvider>
                     </NextIntlClientProvider>
                     {/* Background scanline effect and glow can be global or part of specific layouts */}
                     <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
