@@ -66,6 +66,15 @@ class EnvironmentConfig {
     defaultValue: '',
   );
 
+  /// Value injected at compile time via `--dart-define=TELEGRAM_BOT_USERNAME=...`.
+  ///
+  /// Telegram bot username (without @) for Login Widget integration.
+  /// Required for Telegram OAuth functionality.
+  static const String _dartDefineTelegramBotUsername = String.fromEnvironment(
+    'TELEGRAM_BOT_USERNAME',
+    defaultValue: '',
+  );
+
   // ── Resolved values (dart-define > .env > default) ───────────────────
 
   /// Whether the `.env` file has been loaded.
@@ -192,6 +201,26 @@ class EnvironmentConfig {
         .toList();
   }
 
+  /// The resolved Telegram bot username for Login Widget.
+  ///
+  /// Priority: `--dart-define` > `.env` > empty string (disabled).
+  ///
+  /// When the returned value is empty Telegram login is unavailable.
+  static String get telegramBotUsername {
+    if (_dartDefineTelegramBotUsername.isNotEmpty) {
+      return _dartDefineTelegramBotUsername;
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_BOT_USERNAME');
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+    }
+
+    return '';
+  }
+
   // ── Convenience helpers ──────────────────────────────────────────────
 
   /// `true` when running in the `dev` environment.
@@ -202,4 +231,7 @@ class EnvironmentConfig {
 
   /// `true` when running in the `prod` environment.
   static bool get isProd => environment == 'prod';
+
+  /// `true` when Telegram login is available.
+  static bool get isTelegramLoginAvailable => telegramBotUsername.isNotEmpty;
 }

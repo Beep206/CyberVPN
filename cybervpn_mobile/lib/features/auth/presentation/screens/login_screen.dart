@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/login_form.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
 
@@ -33,15 +34,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.dispose();
   }
 
+  void _handleTelegramLogin() {
+    ref.read(telegramAuthProvider.notifier).startLogin();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isTelegramAvailable = ref.watch(isTelegramLoginAvailableProvider);
+    final isTelegramLoading = ref.watch(isTelegramAuthLoadingProvider);
 
     // Listen for auth state changes to navigate on success.
     ref.listen<AsyncValue<AuthState>>(authProvider, (previous, next) {
       final state = next.value;
       if (state is AuthAuthenticated) {
         context.go('/connection');
+      }
+    });
+
+    // Listen for Telegram auth state changes.
+    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider,
+        (previous, next) {
+      final state = next.value;
+      if (state is TelegramAuthSuccess) {
+        // Navigate to home screen on successful auth
+        context.go('/connection');
+      } else if (state is TelegramAuthError) {
+        // Show error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message),
+            backgroundColor: theme.colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        // Reset error state
+        ref.read(telegramAuthProvider.notifier).resetError();
       }
     });
 
@@ -88,34 +116,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   const SizedBox(height: 28),
 
                   // ── Divider ──────────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                          child: Divider(
-                              color: theme.colorScheme.outlineVariant)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'OR',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                  if (isTelegramAvailable) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                            child: Divider(
+                                color: theme.colorScheme.outlineVariant)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'OR',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
-                      ),
-                      Expanded(
-                          child: Divider(
-                              color: theme.colorScheme.outlineVariant)),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
+                        Expanded(
+                            child: Divider(
+                                color: theme.colorScheme.outlineVariant)),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
 
-                  // ── Social Login ─────────────────────────────────
-                  SocialLoginButton.telegram(
-                    onPressed: () {
-                      // TODO: implement Telegram OAuth flow
-                    },
-                  ),
-                  const SizedBox(height: 32),
+                    // ── Social Login ─────────────────────────────────
+                    SocialLoginButton.telegram(
+                      onPressed: isTelegramLoading ? null : _handleTelegramLogin,
+                      isLoading: isTelegramLoading,
+                    ),
+                    const SizedBox(height: 32),
+                  ] else
+                    const SizedBox(height: 32),
 
                   // ── Register Link ────────────────────────────────
                   Row(

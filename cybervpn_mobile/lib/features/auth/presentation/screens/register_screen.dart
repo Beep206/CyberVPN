@@ -9,6 +9,7 @@ import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
 
@@ -180,6 +181,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     ref.listen<AsyncValue<AuthState>>(authProvider, (_, next) {
       if (next.value is AuthAuthenticated) {
         context.go('/connection');
+      }
+    });
+
+    // Listen for Telegram auth state changes.
+    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider,
+        (previous, next) {
+      final state = next.value;
+      if (state is TelegramAuthSuccess) {
+        context.go('/connection');
+      } else if (state is TelegramAuthError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message),
+            backgroundColor: theme.colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        ref.read(telegramAuthProvider.notifier).resetError();
       }
     });
 
@@ -493,11 +512,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                     const SizedBox(height: 28),
 
                     // ── Social ─────────────────────────────────────
-                    SocialLoginButton.telegram(
-                      onPressed: () {
-                        // TODO: implement Telegram OAuth registration
-                      },
-                    ),
+                    if (ref.watch(isTelegramLoginAvailableProvider))
+                      SocialLoginButton.telegram(
+                        onPressed: ref.watch(isTelegramAuthLoadingProvider)
+                            ? null
+                            : () {
+                                ref
+                                    .read(telegramAuthProvider.notifier)
+                                    .startLogin();
+                              },
+                        isLoading: ref.watch(isTelegramAuthLoadingProvider),
+                      ),
                     const SizedBox(height: 32),
 
                     // ── Login link ─────────────────────────────────
