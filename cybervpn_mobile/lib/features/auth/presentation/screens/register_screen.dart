@@ -143,7 +143,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     await ref.read(authProvider.notifier).register(
           _emailController.text.trim(),
           _passwordController.text,
-          referral.isEmpty ? null : referral,
+          referralCode: referral.isEmpty ? null : referral,
         );
 
     if (!mounted) return;

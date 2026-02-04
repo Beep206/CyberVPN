@@ -70,6 +70,9 @@ enum AttestationTrigger {
   /// User login attempt.
   login,
 
+  /// User registration attempt.
+  registration,
+
   /// Purchase/subscription flow.
   purchase,
 

@@ -1,4 +1,4 @@
-import 'package:cybervpn_mobile/core/errors/exceptions.dart';
+import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart';
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
@@ -21,37 +21,73 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
         _networkInfo = networkInfo;
 
   @override
-  Future<(UserEntity, String)> login({required String email, required String password}) async {
+  Future<(UserEntity, String)> login({
+    required String email,
+    required String password,
+    required DeviceInfo device,
+    bool rememberMe = false,
+  }) async {
     if (!await _networkInfo.isConnected) {
       throw const NetworkFailure(message: 'No internet connection');
     }
-    final (userModel, tokenModel) = await _remoteDataSource.login(email: email, password: password);
+    final (userModel, tokenModel) = await _remoteDataSource.login(
+      email: email,
+      password: password,
+      device: device,
+      rememberMe: rememberMe,
+    );
     await _localDataSource.cacheToken(tokenModel);
     await _localDataSource.cacheUser(userModel);
     return (userModel.toEntity(), tokenModel.accessToken);
   }
 
   @override
-  Future<(UserEntity, String)> register({required String email, required String password, String? referralCode}) async {
+  Future<(UserEntity, String)> register({
+    required String email,
+    required String password,
+    required DeviceInfo device,
+    String? referralCode,
+  }) async {
     if (!await _networkInfo.isConnected) {
       throw const NetworkFailure(message: 'No internet connection');
     }
-    final (userModel, tokenModel) = await _remoteDataSource.register(email: email, password: password, referralCode: referralCode);
+    final (userModel, tokenModel) = await _remoteDataSource.register(
+      email: email,
+      password: password,
+      device: device,
+      referralCode: referralCode,
+    );
     await _localDataSource.cacheToken(tokenModel);
     await _localDataSource.cacheUser(userModel);
     return (userModel.toEntity(), tokenModel.accessToken);
   }
 
   @override
-  Future<String> refreshToken(String refreshToken) async {
-    final tokenModel = await _remoteDataSource.refreshToken(refreshToken);
+  Future<String> refreshToken({
+    required String refreshToken,
+    required String deviceId,
+  }) async {
+    final tokenModel = await _remoteDataSource.refreshToken(
+      refreshToken: refreshToken,
+      deviceId: deviceId,
+    );
     await _localDataSource.cacheToken(tokenModel);
     return tokenModel.accessToken;
   }
 
   @override
-  Future<void> logout() async {
-    await _localDataSource.clearAuth();
+  Future<void> logout({
+    required String refreshToken,
+    required String deviceId,
+  }) async {
+    try {
+      await _remoteDataSource.logout(
+        refreshToken: refreshToken,
+        deviceId: deviceId,
+      );
+    } finally {
+      await _localDataSource.clearAuth();
+    }
   }
 
   @override
