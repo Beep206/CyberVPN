@@ -371,3 +371,25 @@ class MobileAuthError(BaseModel):
         default=None,
         description="Additional error details (e.g., validation errors)",
     )
+
+
+class TelegramAuthRequest(BaseModel):
+    """Request schema for Telegram OAuth callback.
+
+    Used by POST /api/v1/mobile/auth/telegram/callback endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    auth_data: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Base64-encoded Telegram auth data. Contains: "
+            "id, first_name, username, photo_url, auth_date, hash"
+        ),
+    )
+    device: DeviceInfo = Field(
+        ...,
+        description="Device information for registration",
+    )

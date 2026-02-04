@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: SecretStr = SecretStr("")
 
+    # Telegram OAuth
+    telegram_bot_token: SecretStr = SecretStr("")
+    telegram_auth_max_age_seconds: int = 86400  # 24 hours
+
     # Payment gateway
     cryptobot_token: SecretStr
 
