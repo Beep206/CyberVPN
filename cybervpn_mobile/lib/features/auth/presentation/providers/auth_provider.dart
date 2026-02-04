@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/device/device_service.dart';
@@ -43,6 +44,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
   DeviceService get _deviceService => ref.read(deviceServiceProvider);
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
+  TokenRefreshScheduler get _refreshScheduler =>
+      ref.read(tokenRefreshSchedulerProvider);
 
   @override
   FutureOr<AuthState> build() async {
@@ -59,6 +62,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final user = await _repo.getCurrentUser();
       if (user != null) {
         _setSentryUser(user);
+
+        // Schedule proactive token refresh for existing session
+        _scheduleTokenRefresh();
+
         return AuthAuthenticated(user);
       }
       return const AuthUnauthenticated();
@@ -84,6 +91,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       );
       _setSentryUser(user);
       state = AsyncValue.data(AuthAuthenticated(user));
+
+      // Schedule proactive token refresh (non-blocking)
+      _scheduleTokenRefresh();
 
       // Register FCM token after successful login (non-blocking)
       _registerFcmToken();
@@ -111,6 +121,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       _setSentryUser(user);
       state = AsyncValue.data(AuthAuthenticated(user));
 
+      // Schedule proactive token refresh (non-blocking)
+      _scheduleTokenRefresh();
+
       // Register FCM token after successful registration (non-blocking)
       _registerFcmToken();
 
@@ -124,6 +137,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Sign out and clear cached tokens.
   Future<void> logout() async {
     state = const AsyncValue.data(AuthLoading());
+
+    // Cancel proactive token refresh before logout
+    _refreshScheduler.cancel();
+
     try {
       // Get current tokens and device ID for logout request
       final refreshToken = await _storage.getRefreshToken();
@@ -153,6 +170,27 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncValue.data(AuthLoading());
     final result = await _checkCachedAuth();
     state = AsyncValue.data(result);
+  }
+
+  // ── Proactive token refresh ────────────────────────────────────────
+
+  /// Schedules proactive token refresh based on access token expiry.
+  ///
+  /// Runs asynchronously without blocking the auth flow. Errors are logged
+  /// but do not affect the authentication state.
+  void _scheduleTokenRefresh() {
+    Future(() async {
+      try {
+        await _refreshScheduler.scheduleRefresh();
+      } catch (e, st) {
+        AppLogger.warning(
+          'Failed to schedule proactive token refresh',
+          error: e,
+          stackTrace: st,
+          category: 'auth.refresh',
+        );
+      }
+    });
   }
 
   // ── Sentry user context ─────────────────────────────────────────────
