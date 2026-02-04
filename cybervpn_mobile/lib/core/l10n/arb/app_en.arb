@@ -327,6 +327,25 @@
   "errorFieldRequired": "This field is required.",
   "errorPaymentFailed": "Payment failed. Please try again or use a different method.",
   "errorQrScanFailed": "Failed to scan QR code. Please try again.",
+  "errorTelegramAuthCancelled": "Telegram login was cancelled.",
+  "errorTelegramAuthFailed": "Telegram authentication failed. Please try again.",
+  "errorTelegramAuthExpired": "Telegram login expired. Please try again.",
+  "errorTelegramNotInstalled": "Telegram is not installed on this device.",
+  "errorTelegramAuthInvalid": "Invalid Telegram authentication data.",
+  "errorBiometricUnavailable": "Biometric authentication is not available on this device.",
+  "errorBiometricNotEnrolled": "No biometric data enrolled. Please set up fingerprint or face recognition in device settings.",
+  "errorBiometricFailed": "Biometric authentication failed. Please try again.",
+  "errorBiometricLocked": "Biometric authentication is locked. Try again later or use your password.",
+  "errorSessionExpired": "Your session has expired. Please log in again.",
+  "errorAccountDisabled": "Your account has been disabled. Please contact support.",
+  "errorRateLimitedWithCountdown": "Too many attempts. Please try again in {seconds, plural, =1{1 second} other{{seconds} seconds}}.",
+  "@errorRateLimitedWithCountdown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "errorOfflineLoginRequired": "You need to be online to log in. Please check your connection.",
+  "errorOfflineSessionExpired": "Your cached session has expired. Please connect to the internet to log in.",
 
   "a11yConnectButton": "Connect to VPN server",
   "a11yDisconnectButton": "Disconnect from VPN server",

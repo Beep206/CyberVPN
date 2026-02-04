@@ -6,6 +6,7 @@ import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection_observer.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
@@ -178,19 +179,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // -- Deep link handling -----------------------------------------------
       // Check if the incoming URI is an external deep link.
-      final deepLinkPath = resolveDeepLinkFromUri(uri);
-      if (deepLinkPath != null) {
-        if (!isAuthenticated) {
-          // Store the deep link for after login.
-          final parseResult = DeepLinkParser.parseUri(uri);
-          if (parseResult.route != null) {
+      if (DeepLinkParser.isDeepLink(uri.toString())) {
+        final parseResult = DeepLinkParser.parseUri(uri);
+
+        // Handle Telegram auth callback specially - trigger the provider
+        // without navigating to a separate screen.
+        if (parseResult.route case TelegramAuthRoute(:final authData)) {
+          // Trigger Telegram auth callback asynchronously.
+          // The auth state listener will handle navigation on success.
+          ref.read(telegramAuthProvider.notifier).handleCallback(authData);
+
+          // Stay on current screen (login/register) - the listener will
+          // navigate to /connection on success.
+          return path.isEmpty || path == '/' ? '/login' : null;
+        }
+
+        final deepLinkPath =
+            parseResult.route != null ? resolveDeepLinkPath(parseResult.route!) : null;
+        if (deepLinkPath != null) {
+          if (!isAuthenticated) {
+            // Store the deep link for after login.
             ref
                 .read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier)
                 .setPending(parseResult.route!);
+            return '/login';
           }
-          return '/login';
+          return deepLinkPath;
         }
-        return deepLinkPath;
       }
 
       // -- Standard redirect guards -----------------------------------------

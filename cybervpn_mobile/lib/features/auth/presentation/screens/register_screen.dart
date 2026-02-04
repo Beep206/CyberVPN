@@ -123,6 +123,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         _ => '',
       };
 
+  // ── Telegram not installed dialog ───────────────────────────────
+
+  void _showTelegramNotInstalledDialog() {
+    final theme = Theme.of(context);
+    final notifier = ref.read(telegramAuthProvider.notifier);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Telegram Not Installed'),
+        content: const Text(
+          'The Telegram app is not installed on your device. '
+          'You can install it from the app store or use the web version.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              notifier.cancel();
+            },
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              notifier.useWebFallback();
+            },
+            child: const Text('Use Web'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              notifier.openAppStore();
+              notifier.cancel();
+            },
+            child: const Text('Install'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Submit ────────────────────────────────────────────────────────
 
   Future<void> _onSubmit() async {
@@ -190,6 +235,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       final state = next.value;
       if (state is TelegramAuthSuccess) {
         context.go('/connection');
+      } else if (state is TelegramAuthNotInstalled) {
+        _showTelegramNotInstalledDialog();
       } else if (state is TelegramAuthError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -53,6 +53,11 @@ class TelegramAuthError extends TelegramAuthState {
   });
 }
 
+/// Telegram app is not installed on device.
+class TelegramAuthNotInstalled extends TelegramAuthState {
+  const TelegramAuthNotInstalled();
+}
+
 /// Notifier for managing Telegram OAuth flow.
 class TelegramAuthNotifier extends AsyncNotifier<TelegramAuthState> {
   @override
@@ -64,12 +69,26 @@ class TelegramAuthNotifier extends AsyncNotifier<TelegramAuthState> {
       ref.read(telegramAuthServiceProvider);
 
   /// Starts the Telegram OAuth flow by launching the Login Widget.
+  ///
+  /// First checks if Telegram is installed. If not, transitions to
+  /// [TelegramAuthNotInstalled] state so the UI can show install options.
   Future<void> startLogin() async {
     if (!EnvironmentConfig.isTelegramLoginAvailable) {
       state = const AsyncValue.data(TelegramAuthError(
         code: 'NOT_CONFIGURED',
         message: 'Telegram login is not configured',
       ));
+      return;
+    }
+
+    // Check if Telegram app is installed
+    final isInstalled = await _telegramService.isTelegramInstalled();
+    if (!isInstalled) {
+      AppLogger.info(
+        'Telegram app not installed, showing options',
+        category: 'auth.telegram',
+      );
+      state = const AsyncValue.data(TelegramAuthNotInstalled());
       return;
     }
 
@@ -81,11 +100,29 @@ class TelegramAuthNotifier extends AsyncNotifier<TelegramAuthState> {
     if (!launched) {
       state = const AsyncValue.data(TelegramAuthError(
         code: 'LAUNCH_FAILED',
-        message: 'Could not open Telegram. Is the app installed?',
+        message: 'Could not open Telegram login',
       ));
     }
     // If launched successfully, we stay in WaitingForCallback state
     // until handleCallback is called with auth_data
+  }
+
+  /// Opens the app store to install Telegram.
+  Future<void> openAppStore() async {
+    await _telegramService.openTelegramAppStore();
+  }
+
+  /// Uses web fallback for Telegram login (t.me link).
+  Future<void> useWebFallback() async {
+    state = const AsyncValue.data(TelegramAuthWaitingForCallback());
+
+    final launched = await _telegramService.launchTelegramWebLogin();
+    if (!launched) {
+      state = const AsyncValue.data(TelegramAuthError(
+        code: 'WEB_LAUNCH_FAILED',
+        message: 'Could not open Telegram web login',
+      ));
+    }
   }
 
   /// Handles the deep link callback with Telegram auth_data.

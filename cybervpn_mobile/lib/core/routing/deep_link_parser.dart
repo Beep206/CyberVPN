@@ -258,11 +258,13 @@ class DeepLinkParser {
 
     // Determine the route path segment.
     // For custom scheme: cybervpn://connect -> host = 'connect', path = ''
+    //                    cybervpn://telegram/callback -> host = 'telegram', path = '/callback'
     // For universal links: https://cybervpn.app/connect -> path = '/connect'
     final String routePath;
     if (uri.scheme == customScheme) {
-      // In custom scheme URIs, the "host" portion is the route path.
-      routePath = uri.host;
+      // In custom scheme URIs, combine host and path for routes with subpaths.
+      // Example: cybervpn://telegram/callback -> "telegram" + "/callback" = "telegram/callback"
+      routePath = uri.host + uri.path;
     } else {
       // Universal link: strip leading '/' from path.
       routePath = uri.path.startsWith('/')
