@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.presentation.api.v1.auth.routes import router as auth_router
+from src.presentation.api.v1.mobile_auth.routes import router as mobile_auth_router
 from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.two_factor.routes import router as two_factor_router
 from src.presentation.api.v1.users.routes import router as users_router
@@ -28,6 +29,7 @@ api_router = APIRouter(prefix="/api/v1")
 
 # Auth
 api_router.include_router(auth_router)
+api_router.include_router(mobile_auth_router)
 api_router.include_router(oauth_router)
 api_router.include_router(two_factor_router)
 
