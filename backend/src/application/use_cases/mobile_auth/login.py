@@ -153,7 +153,4 @@ class MobileLoginUseCase:
         Returns:
             JWT refresh token string.
         """
-        # For remember_me, we need to create a token with extended expiry
-        # The auth service uses the settings default, so we pass the remember_me flag
-        # In a more complete implementation, this would be handled by the auth service
-        return self.auth_service.create_refresh_token(subject)
+        return self.auth_service.create_refresh_token(subject, remember_me=remember_me)

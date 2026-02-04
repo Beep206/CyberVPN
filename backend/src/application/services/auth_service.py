@@ -42,14 +42,26 @@ class AuthService:
             payload.update(extra)
         return jwt.encode(payload, self._secret, algorithm=self._algorithm)
 
-    def create_refresh_token(self, subject: str) -> str:
-        expire = datetime.now(UTC) + timedelta(days=self._refresh_expire)
+    def create_refresh_token(self, subject: str, remember_me: bool = False) -> str:
+        """Create refresh token with optional extended TTL.
+
+        Args:
+            subject: User ID string.
+            remember_me: If True, use 30-day TTL; otherwise, use standard 7-day TTL.
+
+        Returns:
+            JWT refresh token string.
+        """
+        # Extended TTL for remember_me (30 days vs standard 7 days)
+        expire_days = 30 if remember_me else self._refresh_expire
+        expire = datetime.now(UTC) + timedelta(days=expire_days)
         issued_at = datetime.now(UTC)
         payload = {
             "sub": subject,
             "exp": expire,
             "iat": issued_at,
             "type": "refresh",
+            "remember_me": remember_me,  # Include for client reference
         }
         if self._issuer:
             payload["iss"] = self._issuer
