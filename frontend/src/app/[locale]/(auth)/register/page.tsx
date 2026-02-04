@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
@@ -13,6 +13,8 @@ import {
     SocialAuthButtons,
     AuthDivider,
     PasswordStrengthMeter,
+    RateLimitCountdown,
+    useIsRateLimited,
 } from '@/features/auth/components';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -21,6 +23,7 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const { register, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+    const isRateLimited = useIsRateLimited();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -28,7 +31,8 @@ export default function RegisterPage() {
     const [acceptTerms, setAcceptTerms] = useState(false);
 
     const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
-    const canSubmit = email && password && confirmPassword && acceptTerms && passwordsMatch;
+    const canSubmit = email && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
+    const errorRef = useRef<HTMLDivElement>(null);
 
     // Redirect if already authenticated (auto-login after registration)
     useEffect(() => {
@@ -41,6 +45,13 @@ export default function RegisterPage() {
     useEffect(() => {
         clearError();
     }, [clearError]);
+
+    // Focus management for errors
+    useEffect(() => {
+        if (error && !isRateLimited && errorRef.current) {
+            errorRef.current.focus();
+        }
+    }, [error, isRateLimited]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,18 +71,24 @@ export default function RegisterPage() {
             subtitle={t('subtitle')}
         >
             {/* Social auth */}
-            <SocialAuthButtons disabled={isLoading} />
+            <SocialAuthButtons disabled={isLoading || isRateLimited} />
 
             <AuthDivider text={t('divider')} />
 
+            {/* Rate limit countdown */}
+            <RateLimitCountdown />
+
             {/* Error message */}
-            {error && (
+            {error && !isRateLimited && (
                 <motion.div
+                    ref={errorRef}
+                    role="alert"
+                    tabIndex={-1}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono"
+                    className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
-                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                     <span>{error}</span>
                 </motion.div>
             )}
@@ -87,7 +104,7 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
-                    disabled={isLoading}
+                    disabled={isLoading || isRateLimited}
                 />
 
                 <div className="space-y-2">
@@ -100,7 +117,7 @@ export default function RegisterPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         autoComplete="new-password"
-                        disabled={isLoading}
+                        disabled={isLoading || isRateLimited}
                     />
                     <PasswordStrengthMeter password={password} />
                 </div>
@@ -114,7 +131,7 @@ export default function RegisterPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     autoComplete="new-password"
-                    disabled={isLoading}
+                    disabled={isLoading || isRateLimited}
                     error={confirmPassword && !passwordsMatch ? t('passwordMismatch') : undefined}
                     success={passwordsMatch}
                 />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, forwardRef } from 'react';
+import { useState, forwardRef, useId } from 'react';
 import { motion } from 'motion/react';
 import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,10 @@ interface CyberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
-    ({ label, error, success, prefix = 'input', type = 'text', className, ...props }, ref) => {
+    ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, ...props }, ref) => {
+        const generatedId = useId();
+        const id = propId ?? generatedId;
+        const errorId = `${id}-error`;
         const [isFocused, setIsFocused] = useState(false);
         const [showPassword, setShowPassword] = useState(false);
         const isPassword = type === 'password';
@@ -26,7 +29,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                 className="space-y-2"
             >
                 {/* Label */}
-                <label className="block text-sm font-mono text-muted-foreground">
+                <label htmlFor={id} className="block text-sm font-mono text-muted-foreground">
                     {label}
                 </label>
 
@@ -72,7 +75,10 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                         {/* Input field */}
                         <input
                             ref={ref}
+                            id={id}
                             type={inputType}
+                            aria-invalid={error ? 'true' : undefined}
+                            aria-describedby={error ? errorId : undefined}
                             className={cn(
                                 "flex-1 bg-transparent py-3 pr-4",
                                 "text-foreground font-mono text-sm",
@@ -93,23 +99,25 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="px-3 text-muted-foreground hover:text-foreground transition-colors"
                                 tabIndex={-1}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                aria-pressed={showPassword}
                             >
                                 {showPassword ? (
-                                    <EyeOff className="h-4 w-4" />
+                                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                                 ) : (
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-4 w-4" aria-hidden="true" />
                                 )}
                             </button>
                         )}
 
                         {/* Status indicators */}
                         {error && (
-                            <div className="px-3 text-red-500">
+                            <div className="px-3 text-red-500" aria-hidden="true">
                                 <AlertCircle className="h-4 w-4" />
                             </div>
                         )}
                         {success && !error && (
-                            <div className="px-3 text-matrix-green">
+                            <div className="px-3 text-matrix-green" aria-hidden="true">
                                 <Check className="h-4 w-4" />
                             </div>
                         )}
@@ -119,11 +127,13 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                 {/* Error message */}
                 {error && (
                     <motion.p
+                        id={errorId}
+                        role="alert"
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-xs text-red-500 font-mono flex items-center gap-1"
                     >
-                        <AlertCircle className="h-3 w-3" />
+                        <AlertCircle className="h-3 w-3" aria-hidden="true" />
                         {error}
                     </motion.p>
                 )}
