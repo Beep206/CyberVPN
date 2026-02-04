@@ -52,6 +52,29 @@
 
 ---
 
+## 2026-02-04 - VPNBussiness-258.17
+- **What was implemented:**
+  - Added specific intent-filter for `cybervpn://telegram-auth` deep link in AndroidManifest.xml
+  - The generic `cybervpn://` handler (lines 37-43) already catches all custom scheme URLs
+  - Added explicit handler (lines 45-53) specifically for `telegram-auth` host pattern
+  - Flutter deep linking is already enabled via `flutter_deeplinking_enabled` meta-data
+
+- **Files changed:**
+  - `android/app/src/main/AndroidManifest.xml` - Added specific intent-filter for telegram-auth
+
+- **Learnings:**
+  - Android intent filters with just `android:scheme="cybervpn"` catch ALL URLs with that scheme
+  - Adding `android:host="telegram-auth"` creates a more specific filter for that particular path
+  - For custom scheme URIs like `cybervpn://telegram-auth`, the "host" portion becomes the route path in DeepLinkParser
+  - Flutter's `flutter_deeplinking_enabled` meta-data must be true for deep links to work
+  - The existing DeepLinkParser handles OAuth callbacks via `oauth/callback` route, not `telegram-auth`
+
+- **Note on testing:**
+  - Android SDK not available in this environment - manual testing on emulator/device required
+  - Deep link testing commands: `adb shell am start -a android.intent.action.VIEW -d "cybervpn://telegram-auth?code=test123"`
+
+---
+
 ## 2026-02-04 - VPNBussiness-258.6
 - **What was implemented:**
   - Fixed lint warnings in `auth_provider.dart` (unused stack trace variables)
