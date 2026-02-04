@@ -15,9 +15,16 @@ from src.application.dto.mobile_auth import (
     Platform,
     RefreshTokenRequestDTO,
     RegisterRequestDTO,
+    TelegramAuthRequestDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.telegram_auth import (
+    InvalidTelegramAuthError,
+    TelegramAuthExpiredError,
+    TelegramAuthService,
+)
 from src.application.use_cases.mobile_auth.device import MobileDeviceRegistrationUseCase
+from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.application.use_cases.mobile_auth.login import MobileLoginUseCase
 from src.application.use_cases.mobile_auth.logout import MobileLogoutUseCase
 from src.application.use_cases.mobile_auth.me import MobileGetProfileUseCase
@@ -44,6 +51,7 @@ from src.presentation.api.v1.mobile_auth.schemas import (
     RegisterRequest,
     SubscriptionInfo,
     SubscriptionStatus,
+    TelegramAuthRequest,
     TokenResponse,
     UserResponse,
 )
@@ -421,4 +429,75 @@ async def register_device(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+
+
+@router.post(
+    "/telegram/callback",
+    response_model=AuthResponse,
+    responses={
+        status.HTTP_200_OK: {
+            "model": AuthResponse,
+            "description": "Existing user authenticated via Telegram",
+        },
+        status.HTTP_201_CREATED: {
+            "model": AuthResponse,
+            "description": "New user created and authenticated via Telegram",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": MobileAuthError,
+            "description": "Invalid Telegram authentication data",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Telegram authentication expired or invalid signature",
+        },
+    },
+)
+async def telegram_callback(
+    request: TelegramAuthRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AuthResponse:
+    """Authenticate via Telegram Login Widget.
+
+    Validates Telegram OAuth callback data and creates or links user account.
+    New users are auto-created from Telegram profile data.
+
+    **Error Codes:**
+    - `INVALID_TELEGRAM_AUTH`: Invalid signature or malformed data (400)
+    - `TELEGRAM_AUTH_EXPIRED`: auth_date is older than 24 hours (401)
+    """
+    user_repo = MobileUserRepository(db)
+    device_repo = MobileDeviceRepository(db)
+    auth_service = AuthService()
+    telegram_auth_service = TelegramAuthService()
+
+    use_case = MobileTelegramAuthUseCase(
+        user_repo=user_repo,
+        device_repo=device_repo,
+        auth_service=auth_service,
+        telegram_auth_service=telegram_auth_service,
+    )
+
+    try:
+        dto_request = TelegramAuthRequestDTO(
+            auth_data=request.auth_data,
+            device=_device_dto(request.device),
+        )
+        result, _ = await use_case.execute(dto_request)
+        await db.commit()
+
+        # Note: Clients should check is_new_user flag in response
+        # to determine if this was a new registration.
+        return _auth_response_from_dto(result)
+
+    except InvalidTelegramAuthError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_TELEGRAM_AUTH", "message": str(e.message)},
+        )
+    except TelegramAuthExpiredError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "TELEGRAM_AUTH_EXPIRED", "message": str(e.message)},
         )
