@@ -156,6 +156,32 @@ class OAuthCallbackRoute extends DeepLinkRoute {
   String toString() => 'OAuthCallbackRoute(provider: $provider, code: $code)';
 }
 
+/// Telegram OAuth callback route for authentication.
+///
+/// Triggered by:
+/// - `cybervpn://telegram/callback?auth_data={base64}`
+/// - `https://cybervpn.app/telegram/callback?auth_data={base64}`
+///
+/// The auth_data parameter contains base64-encoded JSON with Telegram user
+/// info and HMAC-SHA256 signature for validation.
+class TelegramAuthRoute extends DeepLinkRoute {
+  /// Base64-encoded Telegram auth data with HMAC signature.
+  final String authData;
+
+  const TelegramAuthRoute({required this.authData});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TelegramAuthRoute && other.authData == authData;
+
+  @override
+  int get hashCode => authData.hashCode;
+
+  @override
+  String toString() => 'TelegramAuthRoute(authData: $authData)';
+}
+
 // ---------------------------------------------------------------------------
 // Parse error
 // ---------------------------------------------------------------------------
@@ -293,6 +319,8 @@ class DeepLinkParser {
         return (route: const WidgetActionRoute(), error: null);
       case 'oauth/callback':
         return _parseOAuthCallback(queryParams, uri);
+      case 'telegram/callback':
+        return _parseTelegramCallback(queryParams, uri);
       default:
         return (
           route: null,
@@ -459,5 +487,44 @@ class DeepLinkParser {
       );
     }
     return (route: OAuthCallbackRoute(provider: provider, code: code), error: null);
+  }
+
+  static ({DeepLinkRoute? route, DeepLinkParseError? error}) _parseTelegramCallback(
+    Map<String, String> queryParams,
+    Uri uri,
+  ) {
+    final authData = queryParams['auth_data'];
+    if (authData == null || authData.isEmpty) {
+      return (
+        route: null,
+        error: DeepLinkParseError(
+          message: 'Missing required parameter: auth_data',
+          uri: uri,
+        ),
+      );
+    }
+    // Validate base64 format (standard or URL-safe base64).
+    if (!RegExp(r'^[A-Za-z0-9+/\-_]+=*$').hasMatch(authData)) {
+      return (
+        route: null,
+        error: DeepLinkParseError(
+          message: 'Invalid base64 auth_data format',
+          uri: uri,
+        ),
+      );
+    }
+    // Verify it actually decodes.
+    try {
+      base64Decode(authData.replaceAll('-', '+').replaceAll('_', '/'));
+    } catch (_) {
+      return (
+        route: null,
+        error: DeepLinkParseError(
+          message: 'auth_data is not valid base64',
+          uri: uri,
+        ),
+      );
+    }
+    return (route: TelegramAuthRoute(authData: authData), error: null);
   }
 }

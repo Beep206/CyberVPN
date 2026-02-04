@@ -69,6 +69,8 @@ String resolveDeepLinkPath(DeepLinkRoute route) {
     WidgetActionRoute() => '/connection',
     OAuthCallbackRoute(:final provider, :final code) =>
       '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
+    TelegramAuthRoute(:final authData) =>
+      '/telegram-auth?auth_data=$authData',
   };
 }
 
