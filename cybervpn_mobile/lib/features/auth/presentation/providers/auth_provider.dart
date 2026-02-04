@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/device/device_provider.dart';
+import 'package:cybervpn_mobile/core/device/device_service.dart';
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
+import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -38,6 +41,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// auth operations.
 class AuthNotifier extends AsyncNotifier<AuthState> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
+  DeviceService get _deviceService => ref.read(deviceServiceProvider);
+  SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
 
   @override
   FutureOr<AuthState> build() async {
@@ -63,10 +68,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   /// Authenticate with [email] and [password].
-  Future<void> login(String email, String password) async {
+  ///
+  /// If [rememberMe] is true, the refresh token TTL is extended to 30 days.
+  Future<void> login(String email, String password, {bool rememberMe = false}) async {
     state = const AsyncValue.data(AuthLoading());
     try {
-      final (user, _) = await _repo.login(email: email, password: password);
+      // Get device info for the login request
+      final deviceInfo = await _deviceService.getDeviceInfo();
+
+      final (user, _) = await _repo.login(
+        email: email,
+        password: password,
+        device: deviceInfo,
+        rememberMe: rememberMe,
+      );
       _setSentryUser(user);
       state = AsyncValue.data(AuthAuthenticated(user));
 
@@ -80,23 +95,27 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
-  /// Register a new account with [email], [password], and optional [username].
-  ///
-  /// The [username] is reserved for future use; the underlying repository
-  /// currently accepts an optional referral code in that position.
-  Future<void> register(String email, String password, String? username) async {
+  /// Register a new account with [email], [password], and optional [referralCode].
+  Future<void> register(String email, String password, {String? referralCode}) async {
     state = const AsyncValue.data(AuthLoading());
     try {
+      // Get device info for the register request
+      final deviceInfo = await _deviceService.getDeviceInfo();
+
       final (user, _) = await _repo.register(
         email: email,
         password: password,
-        referralCode: username, // mapped to referralCode in the repo
+        device: deviceInfo,
+        referralCode: referralCode,
       );
       _setSentryUser(user);
       state = AsyncValue.data(AuthAuthenticated(user));
 
       // Register FCM token after successful registration (non-blocking)
       _registerFcmToken();
+
+      // Perform app attestation in logging mode (non-blocking)
+      _performAttestation(AttestationTrigger.registration);
     } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
@@ -106,13 +125,26 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> logout() async {
     state = const AsyncValue.data(AuthLoading());
     try {
-      await _repo.logout();
+      // Get current tokens and device ID for logout request
+      final refreshToken = await _storage.getRefreshToken();
+      final deviceId = await _deviceService.getDeviceId();
+
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _repo.logout(
+          refreshToken: refreshToken,
+          deviceId: deviceId,
+        );
+      }
       _clearSentryUser();
       // Invalidate the notifier so all dependent providers reset.
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
     } catch (e) {
-      state = AsyncValue.data(AuthError(e.toString()));
+      // Even if backend logout fails, clear local state
+      _clearSentryUser();
+      ref.invalidateSelf();
+      state = const AsyncValue.data(AuthUnauthenticated());
+      AppLogger.warning('Logout backend call failed, cleared local state', error: e);
     }
   }
 
