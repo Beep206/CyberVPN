@@ -3,6 +3,8 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 /// In-memory fake implementation of [SecureStorageWrapper] for testing.
 ///
 /// Stores key-value pairs in a plain [Map] instead of actual secure storage.
+/// All high-level convenience methods from [SecureStorageWrapper] work correctly
+/// because they delegate to the overridden [read], [write], [delete] methods.
 class FakeSecureStorage extends SecureStorageWrapper {
   FakeSecureStorage() : super();
 
@@ -38,4 +40,9 @@ class FakeSecureStorage extends SecureStorageWrapper {
 
   /// Clears all stored data. Alias for [deleteAll].
   void reset() => _store.clear();
+
+  /// Pre-populates storage with test data.
+  void seed(Map<String, String> data) {
+    _store.addAll(data);
+  }
 }
