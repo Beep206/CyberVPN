@@ -75,7 +75,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       // Perform app attestation in logging mode (non-blocking)
       _performAttestation(AttestationTrigger.login);
-    } catch (e, st) {
+    } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
   }
@@ -97,7 +97,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       // Register FCM token after successful registration (non-blocking)
       _registerFcmToken();
-    } catch (e, st) {
+    } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
   }
@@ -111,7 +111,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Invalidate the notifier so all dependent providers reset.
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
-    } catch (e, st) {
+    } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
   }
