@@ -1,5 +1,9 @@
+import logging
+
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings
+
+_logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -62,17 +66,24 @@ class Settings(BaseSettings):
     registration_invite_required: bool = True  # Require invite token when enabled
     invite_token_expiry_hours: int = 24  # Invite tokens expire after 24 hours
 
-    # Security Settings (MED-1, MED-5, MED-7)
+    # Security Settings (MED-1, MED-4, MED-5, MED-7)
     debug: bool = False  # Debug mode - should be False in production
     rate_limit_fail_open: bool = False  # MED-1: Fail-closed in production
+    mobile_rate_limit_fail_open: bool = False  # MED-4: Mobile rate limit fail-closed
     jwt_allowed_algorithms: list[str] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
     swagger_enabled: bool = True  # MED-7: Disable in production via env
 
     # TOTP Encryption (MED-6)
     totp_encryption_key: SecretStr = SecretStr("")  # AES-256 key for TOTP secrets
 
+    # Log Sanitization (LOW-4)
+    log_sanitization_enabled: bool = True  # Sanitize sensitive data in logs
+
     # Trusted Proxy (MED-8)
     trusted_proxy_ips: list[str] = []  # List of trusted proxy IPs for X-Forwarded-For
+
+    # Token Device Binding (MED-2)
+    enforce_token_binding: bool = False  # Strict fingerprint validation on token refresh
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -88,6 +99,18 @@ class Settings(BaseSettings):
             return None
         stripped = v.strip()
         return stripped or None
+
+    @field_validator("totp_encryption_key", mode="after")
+    @classmethod
+    def warn_missing_totp_key(cls, v: SecretStr) -> SecretStr:
+        """Warn if TOTP encryption key is not set (HIGH-001 remediation)."""
+        if not v.get_secret_value():
+            _logger.warning(
+                "TOTP_ENCRYPTION_KEY not set - TOTP secrets will be unencrypted. "
+                "This is acceptable for development only. "
+                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        return v
 
 
 settings = Settings()

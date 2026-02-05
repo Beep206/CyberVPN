@@ -44,6 +44,7 @@ from src.presentation.exception_handlers import (
 )
 from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
+from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
 
@@ -54,6 +55,17 @@ logger = logging.getLogger("cybervpn")
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("CyberVPN Backend starting up...")
+
+    # HIGH-001: Enforce TOTP encryption key in production
+    if settings.environment == "production":
+        totp_key = settings.totp_encryption_key.get_secret_value()
+        if not totp_key:
+            raise RuntimeError(
+                "TOTP_ENCRYPTION_KEY is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        logger.info("TOTP encryption key: configured")
+
     try:
         from src.infrastructure.database.session import check_db_connection
 
@@ -158,10 +170,13 @@ app = FastAPI(
 )
 
 # Middleware (order matters - last added = first executed)
-# Order: Logging (runs last) → SecurityHeaders → Rate Limit → CORS (runs first)
+# Order: Logging (runs last) → RequestID → SecurityHeaders → Rate Limit → CORS (runs first)
 
 # Add LoggingMiddleware first (runs last in chain)
 app.add_middleware(LoggingMiddleware)
+
+# Add RequestIDMiddleware (LOW-005: adds X-Request-ID for tracing)
+app.add_middleware(RequestIDMiddleware)
 
 # Add SecurityHeadersMiddleware (runs after logging, adds OWASP security headers)
 app.add_middleware(SecurityHeadersMiddleware)

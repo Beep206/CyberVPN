@@ -98,7 +98,8 @@ class MobileLoginUseCase:
         await self.user_repo.update(user)
 
         # Generate tokens
-        access_token = self.auth_service.create_access_token(
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
             subject=str(user.id),
             role="mobile_user",
             extra={"device_id": request.device.device_id},
@@ -153,4 +154,6 @@ class MobileLoginUseCase:
         Returns:
             JWT refresh token string.
         """
-        return self.auth_service.create_refresh_token(subject, remember_me=remember_me)
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        token, _jti, _expire = self.auth_service.create_refresh_token(subject, remember_me=remember_me)
+        return token
