@@ -5,11 +5,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
 
+import redis.asyncio as aioredis
 import structlog
 
 from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
+
+# Redis key for persistent round-robin counter
+SMTP_COUNTER_KEY = "smtp:round_robin:counter"
 
 
 class SmtpClientError(Exception):
@@ -26,33 +30,55 @@ class SmtpClient:
 
     Supports round-robin server rotation for testing email provider failover.
     Each call to send_otp uses the next server in the rotation.
+    The counter is persisted to Redis for consistency across restarts.
 
     Usage:
         async with SmtpClient() as client:
             await client.send_otp(email="user@example.com", code="123456")
     """
 
-    # Class-level counter for round-robin rotation
-    _server_index: int = 0
-
     def __init__(self) -> None:
         settings = get_settings()
         self._servers = settings.smtp_servers
         self._from_email = settings.smtp_from_email
+        self._redis_url = settings.redis_url
+        self._redis: aioredis.Redis | None = None
 
     async def __aenter__(self) -> "SmtpClient":
+        # Connect to Redis for persistent counter
+        self._redis = await aioredis.from_url(self._redis_url)
         return self
 
     async def __aexit__(self, *args: Any) -> None:
-        pass
+        if self._redis:
+            await self._redis.aclose()
+            self._redis = None
 
-    def _get_next_server(self) -> tuple[str, int]:
-        """Get next server in round-robin rotation."""
+    async def _get_next_server(self) -> tuple[str, int, int]:
+        """
+        Get next server in round-robin rotation.
+
+        Uses Redis INCR for atomic counter increment that persists across restarts.
+
+        Returns:
+            Tuple of (host, port, index) where index is the 0-based server index.
+        """
         if not self._servers:
-            return ("localhost", 1025)
+            return ("localhost", 1025, 0)
 
-        server_str = self._servers[SmtpClient._server_index % len(self._servers)]
-        SmtpClient._server_index += 1
+        # Atomically increment and get the counter from Redis
+        if self._redis:
+            # INCR returns the new value after incrementing
+            counter = await self._redis.incr(SMTP_COUNTER_KEY)
+            # Subtract 1 because INCR returns the post-increment value
+            # and we want to use the current value for indexing
+            index = (counter - 1) % len(self._servers)
+        else:
+            # Fallback to first server if Redis unavailable
+            index = 0
+            counter = 1
+
+        server_str = self._servers[index]
 
         # Parse host:port
         if ":" in server_str:
@@ -62,7 +88,7 @@ class SmtpClient:
             host = server_str
             port = 1025
 
-        return (host, port)
+        return (host, port, index)
 
     async def send_otp(
         self,
@@ -86,14 +112,15 @@ class SmtpClient:
         Raises:
             SmtpClientError: If SMTP send fails
         """
-        host, port = self._get_next_server()
-        server_id = f"mailpit-{(SmtpClient._server_index - 1) % len(self._servers) + 1}"
+        host, port, index = await self._get_next_server()
+        server_id = f"mailpit-{index + 1}"
 
         logger.info(
             "smtp_sending_otp",
             email=email,
             server=f"{host}:{port}",
             server_id=server_id,
+            server_index=index,
         )
 
         html_content = self._render_otp_template(code, expires_in, locale)
@@ -129,7 +156,7 @@ class SmtpClient:
             )
 
             return {
-                "id": f"smtp_{server_id}_{SmtpClient._server_index}",
+                "id": f"smtp_{server_id}_{index}",
                 "server": server_id,
                 "host": host,
                 "port": port,

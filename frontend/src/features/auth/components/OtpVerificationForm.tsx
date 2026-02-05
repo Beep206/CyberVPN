@@ -12,11 +12,15 @@ import { CyberOtpInput } from './CyberOtpInput';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@/i18n/navigation';
 import { authApi, OtpErrorResponse } from '@/lib/api/auth';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function OtpVerificationForm() {
     const t = useTranslations('Auth.verify');
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    // Get auth store for OTP verification and login
+    const { verifyOtpAndLogin, isAuthenticated } = useAuthStore();
 
     // Get email from query params (passed from registration)
     const email = searchParams.get('email') || '';
@@ -41,6 +45,13 @@ export function OtpVerificationForm() {
         }
     }, [timeLeft]);
 
+    // Redirect to dashboard when authenticated
+    useEffect(() => {
+        if (isAuthenticated && success) {
+            router.push('/dashboard');
+        }
+    }, [isAuthenticated, success, router]);
+
     const handleVerify = async () => {
         if (otp.length !== 6 || !email) return;
 
@@ -49,18 +60,14 @@ export function OtpVerificationForm() {
         setErrorCode(null);
 
         try {
-            const response = await authApi.verifyOtp({ email, code: otp });
+            // Use auth store to verify OTP and auto-login (stores tokens + sets isAuthenticated)
+            await verifyOtpAndLogin(email, otp);
 
-            // Success - auto-login
+            // Success - auth store now has user and isAuthenticated=true
             setSuccess(true);
+            setIsLoading(false);
 
-            // Store tokens if needed (depends on your auth setup)
-            // For httpOnly cookies, they're set by the server
-
-            // Redirect to dashboard after brief success animation
-            setTimeout(() => {
-                router.push('/dashboard');
-            }, 1000);
+            // Redirect will happen via useEffect when isAuthenticated changes
 
         } catch (err) {
             const axiosError = err as AxiosError<{ detail: OtpErrorResponse }>;
