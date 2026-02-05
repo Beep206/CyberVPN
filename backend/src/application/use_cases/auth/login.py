@@ -1,6 +1,6 @@
 """Login use case for admin user authentication."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from hashlib import sha256
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,13 +30,19 @@ class LoginUseCase:
         self._auth_service = auth_service
         self._session = session
 
-    async def execute(self, login_or_email: str, password: str) -> dict:
+    async def execute(
+        self,
+        login_or_email: str,
+        password: str,
+        client_fingerprint: str | None = None,
+    ) -> dict:
         """
         Authenticate user and generate token pair.
 
         Args:
             login_or_email: Username or email address
             password: Plain text password
+            client_fingerprint: Client device fingerprint for token binding (MED-002)
 
         Returns:
             Dictionary containing:
@@ -61,19 +67,24 @@ class LoginUseCase:
         if not user.password_hash:
             raise InvalidCredentialsError()
 
-        if not await self._auth_service.verify_password(password, user.password_hash):
+        if not self._auth_service.verify_password(password, user.password_hash):
             raise InvalidCredentialsError()
 
         # Create access and refresh tokens
-        access_token = self._auth_service.create_access_token(
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
         )
-        refresh_token = self._auth_service.create_refresh_token(subject=str(user.id))
+        # MED-002: Include client fingerprint in refresh token for device binding
+        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
+            subject=str(user.id),
+            fingerprint=client_fingerprint,
+        )
 
         # Store refresh token hash in database
         token_hash = sha256(refresh_token.encode()).hexdigest()
-        expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+        expires_at = refresh_expire  # Use actual expiry from token creation
 
         refresh_token_record = RefreshToken(
             user_id=user.id,

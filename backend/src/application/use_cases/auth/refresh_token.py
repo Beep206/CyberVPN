@@ -1,6 +1,10 @@
-"""Refresh token use case for JWT token rotation."""
+"""Refresh token use case for JWT token rotation.
 
-from datetime import UTC, datetime, timedelta
+Includes device fingerprint validation (MED-002) when ENFORCE_TOKEN_BINDING is enabled.
+"""
+
+import logging
+from datetime import UTC, datetime
 from hashlib import sha256
 from uuid import UUID
 
@@ -13,6 +17,8 @@ from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+
+logger = logging.getLogger("cybervpn")
 
 
 class RefreshTokenUseCase:
@@ -31,12 +37,17 @@ class RefreshTokenUseCase:
         self._auth_service = auth_service
         self._session = session
 
-    async def execute(self, refresh_token: str) -> dict:
+    async def execute(
+        self,
+        refresh_token: str,
+        client_fingerprint: str | None = None,
+    ) -> dict:
         """
         Rotate refresh token and generate new token pair.
 
         Args:
             refresh_token: Current JWT refresh token
+            client_fingerprint: Current client device fingerprint (MED-002)
 
         Returns:
             Dictionary containing:
@@ -46,7 +57,8 @@ class RefreshTokenUseCase:
             - expires_in: Access token expiration in seconds
 
         Raises:
-            InvalidCredentialsError: If token is invalid, expired, or revoked
+            InvalidCredentialsError: If token is invalid, expired, revoked,
+                or fingerprint mismatch (when ENFORCE_TOKEN_BINDING=true)
         """
         # Decode and validate refresh token
         try:
@@ -57,6 +69,18 @@ class RefreshTokenUseCase:
         # Verify token type
         if payload.get("type") != "refresh":
             raise InvalidCredentialsError()
+
+        # MED-002: Validate device fingerprint if binding is enforced
+        if settings.enforce_token_binding:
+            token_fingerprint = payload.get("fgp")
+            if token_fingerprint and client_fingerprint:
+                if token_fingerprint != client_fingerprint:
+                    logger.warning(
+                        "Token fingerprint mismatch: expected %s, got %s",
+                        token_fingerprint[:8] + "...",
+                        client_fingerprint[:8] + "..." if client_fingerprint else "none",
+                    )
+                    raise InvalidCredentialsError()
 
         # Extract user ID
         user_id_str = payload.get("sub")
@@ -100,15 +124,20 @@ class RefreshTokenUseCase:
         await self._session.flush()
 
         # Create new token pair
-        new_access_token = self._auth_service.create_access_token(
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        new_access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
         )
-        new_refresh_token = self._auth_service.create_refresh_token(subject=str(user.id))
+        # MED-002: Include client fingerprint in new refresh token for device binding
+        new_refresh_token, _refresh_jti, new_refresh_expire = self._auth_service.create_refresh_token(
+            subject=str(user.id),
+            fingerprint=client_fingerprint,
+        )
 
         # Store new refresh token hash in database
         new_token_hash = sha256(new_refresh_token.encode()).hexdigest()
-        new_expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+        new_expires_at = new_refresh_expire  # Use actual expiry from token creation
 
         new_token_record = RefreshToken(
             user_id=user.id,
