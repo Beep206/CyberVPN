@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ServerStatusDot } from '@/shared/ui/atoms/server-status-dot';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Settings, Power, RotateCw } from 'lucide-react';
+import { InceptionButton } from '@/components/ui/InceptionButton';
 
 const columnHelper = createColumnHelper<Server>();
 
@@ -91,15 +92,21 @@ export function ServersDataGrid() {
                 header: t('columns.controls'),
                 cell: () => (
                     <div className="flex gap-2">
-                        <button className="p-1 hover:text-neon-cyan transition-colors" title={t('actions.restart')} aria-label={t('actions.restart')}>
-                            <RotateCw className="h-4 w-4" />
-                        </button>
-                        <button className="p-1 hover:text-neon-pink transition-colors" title={t('actions.stop')} aria-label={t('actions.stop')}>
-                            <Power className="h-4 w-4" />
-                        </button>
-                        <button className="p-1 hover:text-foreground transition-colors" title={t('actions.config')} aria-label={t('actions.config')}>
-                            <Settings className="h-4 w-4" />
-                        </button>
+                        <InceptionButton>
+                            <button className="p-1 hover:text-neon-cyan transition-colors" title={t('actions.restart')} aria-label={t('actions.restart')}>
+                                <RotateCw className="h-4 w-4" />
+                            </button>
+                        </InceptionButton>
+                        <InceptionButton>
+                            <button className="p-1 hover:text-neon-pink transition-colors" title={t('actions.stop')} aria-label={t('actions.stop')}>
+                                <Power className="h-4 w-4" />
+                            </button>
+                        </InceptionButton>
+                        <InceptionButton>
+                            <button className="p-1 hover:text-foreground transition-colors" title={t('actions.config')} aria-label={t('actions.config')}>
+                                <Settings className="h-4 w-4" />
+                            </button>
+                        </InceptionButton>
                     </div>
                 )
             })
