@@ -12,6 +12,7 @@ from src.presentation.api.v1.payments.routes import router as payments_router
 from src.presentation.api.v1.webhooks.routes import router as webhooks_router
 from src.presentation.api.v1.telegram.routes import router as telegram_router
 from src.presentation.api.v1.admin.routes import router as admin_router
+from src.presentation.api.v1.admin.invites import router as invites_router
 from src.presentation.api.v1.subscriptions.routes import router as subscriptions_router
 from src.presentation.api.v1.plans.routes import router as plans_router
 from src.presentation.api.v1.billing.routes import router as billing_router
@@ -25,6 +26,7 @@ from src.presentation.api.v1.xray.routes import router as xray_router
 from src.presentation.api.v1.settings.routes import router as settings_router
 from src.presentation.api.v1.ws.monitoring import router as ws_monitoring_router
 from src.presentation.api.v1.ws.notifications import router as ws_notifications_router
+from src.presentation.api.v1.ws.tickets import router as ws_tickets_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -48,6 +50,7 @@ api_router.include_router(billing_router)
 # Monitoring & admin
 api_router.include_router(monitoring_router)
 api_router.include_router(admin_router)
+api_router.include_router(invites_router)
 
 # Webhooks & integrations
 api_router.include_router(webhooks_router)
@@ -66,3 +69,4 @@ api_router.include_router(settings_router)
 # WebSocket
 api_router.include_router(ws_monitoring_router)
 api_router.include_router(ws_notifications_router)
+api_router.include_router(ws_tickets_router)

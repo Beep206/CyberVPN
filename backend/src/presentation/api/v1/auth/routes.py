@@ -1,11 +1,20 @@
-"""Authentication routes for login, logout, token refresh, OTP verification, and user info."""
+"""Authentication routes with brute force protection (HIGH-1)."""
 
+import logging
+import secrets
+import time
+
+import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.login import LoginUseCase
+from src.infrastructure.cache.redis_client import get_redis
+
+logger = logging.getLogger(__name__)
 from src.application.use_cases.auth.logout import LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
@@ -20,9 +29,11 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
+from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
     LoginRequest,
+    LogoutAllResponse,
     LogoutRequest,
     RefreshTokenRequest,
     ResendOtpRequest,
@@ -44,26 +55,74 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     responses={
         401: {"description": "Invalid credentials"},
         422: {"description": "Validation error"},
+        423: {"description": "Account locked"},
     },
 )
 async def login(
     request: LoginRequest,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> TokenResponse:
-    """Authenticate user and return access and refresh tokens."""
-    user_repo = AdminUserRepository(db)
+    """Authenticate user and return access and refresh tokens.
 
+    Security:
+    - Brute force protection with progressive lockout
+    - Constant-time response to prevent user enumeration
+    """
+    identifier = request.login_or_email.lower()
+    protection = LoginProtectionService(redis_client)
+
+    # Check if account is locked (HIGH-1)
+    try:
+        await protection.check_and_raise_if_locked(identifier)
+    except AccountLockedException as e:
+        logger.warning(
+            "Login attempt on locked account",
+            extra={"identifier": identifier, "permanent": e.permanent},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=str(e),
+        )
+
+    user_repo = AdminUserRepository(db)
     use_case = LoginUseCase(
         user_repo=user_repo,
         auth_service=auth_service,
         session=db,
     )
 
-    result = await use_case.execute(
-        login_or_email=request.login_or_email,
-        password=request.password,
-    )
+    # Constant-time base delay to prevent timing attacks (HIGH-1)
+    start_time = time.time()
+    min_response_time = 0.1  # 100ms minimum
+
+    try:
+        result = await use_case.execute(
+            login_or_email=request.login_or_email,
+            password=request.password,
+        )
+    except Exception:
+        # Record failed attempt
+        attempts = await protection.record_failed_attempt(identifier)
+
+        # Ensure constant response time
+        elapsed = time.time() - start_time
+        if elapsed < min_response_time:
+            # Use secrets module for timing-safe sleep
+            time.sleep(min_response_time - elapsed + secrets.randbelow(50) / 1000)
+
+        logger.warning(
+            "Failed login attempt",
+            extra={"identifier": identifier, "attempts": attempts},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials.",
+        )
+
+    # Successful login - reset attempts
+    await protection.reset_on_success(identifier)
 
     return TokenResponse(
         access_token=result["access_token"],
@@ -110,6 +169,33 @@ async def logout(
 
     await use_case.execute(refresh_token=request.refresh_token)
     return None
+
+
+@router.post(
+    "/logout-all",
+    response_model=LogoutAllResponse,
+    responses={401: {"description": "Not authenticated"}},
+)
+async def logout_all_devices(
+    current_user=Depends(get_current_active_user),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> LogoutAllResponse:
+    """Logout from all devices by revoking all user tokens (HIGH-6).
+
+    Revokes all access and refresh tokens for the current user.
+    """
+    revocation_service = JWTRevocationService(redis_client)
+    revoked_count = await revocation_service.revoke_all_user_tokens(str(current_user.id))
+
+    logger.info(
+        "User logged out from all devices",
+        extra={"user_id": str(current_user.id), "sessions_revoked": revoked_count},
+    )
+
+    return LogoutAllResponse(
+        message="All sessions terminated",
+        sessions_revoked=revoked_count,
+    )
 
 
 @router.get(
