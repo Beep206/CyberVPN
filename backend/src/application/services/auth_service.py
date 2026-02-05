@@ -101,13 +101,15 @@ class AuthService:
         subject: str,
         remember_me: bool = False,
         jti: str | None = None,
+        fingerprint: str | None = None,
     ) -> tuple[str, str, datetime]:
-        """Create refresh token with JTI claim.
+        """Create refresh token with JTI claim and optional device fingerprint.
 
         Args:
             subject: User ID string.
             remember_me: If True, use 30-day TTL; otherwise, use standard 7-day TTL.
             jti: JWT ID (generated if not provided)
+            fingerprint: Client device fingerprint for token binding (MED-002)
 
         Returns:
             Tuple of (token, jti, expires_at)
@@ -127,6 +129,9 @@ class AuthService:
             "type": "refresh",
             "remember_me": remember_me,
         }
+        # MED-002: Add device fingerprint for token binding
+        if fingerprint:
+            payload["fgp"] = fingerprint
         if self._issuer:
             payload["iss"] = self._issuer
         if self._audience:
@@ -139,12 +144,13 @@ class AuthService:
         self,
         subject: str,
         remember_me: bool = False,
+        fingerprint: str | None = None,
     ) -> str:
         """Create refresh token (legacy compatibility - returns token string only).
 
         Note: Prefer create_refresh_token() for new code to get JTI for revocation.
         """
-        token, _, _ = self.create_refresh_token(subject, remember_me)
+        token, _, _ = self.create_refresh_token(subject, remember_me, fingerprint=fingerprint)
         return token
 
     def decode_token(self, token: str) -> dict:
@@ -205,6 +211,24 @@ class AuthService:
             if exp:
                 return datetime.fromtimestamp(exp, tz=UTC)
             return None
+        except jwt.PyJWTError:
+            return None
+
+    def get_token_fingerprint(self, token: str) -> str | None:
+        """Extract device fingerprint from a token without full validation (MED-002).
+
+        Args:
+            token: The JWT token
+
+        Returns:
+            Fingerprint string or None if not present
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                options={"verify_signature": False, "verify_exp": False},
+            )
+            return payload.get("fgp")
         except jwt.PyJWTError:
             return None
 

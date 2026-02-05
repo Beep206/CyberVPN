@@ -1,11 +1,15 @@
-"""Authentication routes with brute force protection (HIGH-1)."""
+"""Authentication routes with brute force protection (HIGH-1).
 
+Includes device fingerprint support for token binding (MED-002).
+"""
+
+import asyncio
 import logging
 import secrets
 import time
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -13,6 +17,7 @@ from src.application.services.login_protection import AccountLockedException, Lo
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.login import LoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
+from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
 from src.application.use_cases.auth.logout import LogoutUseCase
@@ -60,6 +65,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 )
 async def login(
     request: LoginRequest,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
@@ -97,20 +103,25 @@ async def login(
     start_time = time.time()
     min_response_time = 0.1  # 100ms minimum
 
+    # MED-002: Generate client fingerprint for token device binding
+    fingerprint = generate_client_fingerprint(http_request)
+
     try:
         result = await use_case.execute(
             login_or_email=request.login_or_email,
             password=request.password,
+            client_fingerprint=fingerprint,
         )
     except Exception:
         # Record failed attempt
         attempts = await protection.record_failed_attempt(identifier)
 
-        # Ensure constant response time
+        # Ensure constant response time (LOW-002: use asyncio.sleep instead of blocking time.sleep)
         elapsed = time.time() - start_time
         if elapsed < min_response_time:
-            # Use secrets module for timing-safe sleep
-            time.sleep(min_response_time - elapsed + secrets.randbelow(50) / 1000)
+            # Use asyncio.sleep for non-blocking delay with random jitter
+            jitter = secrets.randbelow(50) / 1000  # 0-50ms random jitter
+            await asyncio.sleep(min_response_time - elapsed + jitter)
 
         logger.warning(
             "Failed login attempt",
@@ -139,17 +150,26 @@ async def login(
 )
 async def refresh_token(
     request: RefreshTokenRequest,
+    http_request: Request,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
-    """Refresh access token using refresh token."""
+    """Refresh access token using refresh token.
+
+    MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
+    """
+    # MED-002: Generate client fingerprint for token binding validation
+    fingerprint = generate_client_fingerprint(http_request)
 
     use_case = RefreshTokenUseCase(
         auth_service=auth_service,
         session=db,
     )
 
-    result = await use_case.execute(refresh_token=request.refresh_token)
+    result = await use_case.execute(
+        refresh_token=request.refresh_token,
+        client_fingerprint=fingerprint,
+    )
 
     return TokenResponse(
         access_token=result["access_token"],
