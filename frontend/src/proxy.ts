@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   '/terms',
   '/', // Landing page
   '/verify',
+  '/test-animation',
 ];
 
 // Routes that are always public (static assets, API, etc.)
