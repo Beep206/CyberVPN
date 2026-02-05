@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+import { tokenStorage } from '@/lib/api/client';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -11,7 +12,7 @@ interface AuthGuardProps {
 
 /**
  * Client-side auth guard that redirects to login if not authenticated.
- * Checks localStorage auth state and validates with the store.
+ * Checks localStorage for tokens and validates with the server.
  */
 export function AuthGuard({ children }: AuthGuardProps) {
     const router = useRouter();
@@ -21,17 +22,26 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     useEffect(() => {
         const checkAuth = async () => {
-            // If already authenticated, we're good
+            // If already authenticated in store, we're good
             if (isAuthenticated) {
                 setIsChecking(false);
                 return;
             }
 
-            // Try to restore session from stored tokens
+            // Check if we have tokens in localStorage
+            if (!tokenStorage.hasTokens()) {
+                // No tokens - not authenticated
+                setIsChecking(false);
+                return;
+            }
+
+            // We have tokens but store says not authenticated
+            // Try to restore session by fetching user
             try {
                 await fetchUser();
             } catch {
-                // Failed to restore session - will redirect below
+                // Failed to restore session - tokens might be expired
+                tokenStorage.clearTokens();
             }
 
             setIsChecking(false);
