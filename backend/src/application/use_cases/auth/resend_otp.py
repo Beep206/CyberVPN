@@ -88,28 +88,20 @@ class ResendOtpUseCase:
                 message="Email already verified. Please login.",
             )
 
-        # Check if can resend
-        can_resend, resends_remaining, next_available = await self._otp_service.can_resend(
-            user_id=user.id,
-            purpose="email_verification",
-        )
-
-        if not can_resend:
-            return ResendOtpResult(
-                success=False,
-                resends_remaining=resends_remaining or 0,
-                next_resend_available_at=next_available,
-                error_code="RATE_LIMITED",
-                message="Please wait before requesting another code.",
-            )
-
-        # Generate new OTP (invalidates old one)
+        # Try to resend existing OTP (keeps same code across all resends)
         try:
-            otp = await self._otp_service.generate_otp(
+            otp = await self._otp_service.resend_existing_otp(
                 user_id=user.id,
                 purpose="email_verification",
-                is_resend=True,
             )
+
+            # If no active OTP exists (expired or never created), generate new one
+            if otp is None:
+                otp = await self._otp_service.generate_otp(
+                    user_id=user.id,
+                    purpose="email_verification",
+                    is_resend=False,  # Fresh generation
+                )
         except OtpRateLimitError as e:
             return ResendOtpResult(
                 success=False,

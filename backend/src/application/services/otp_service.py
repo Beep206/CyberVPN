@@ -310,3 +310,62 @@ class OtpService:
                 return False, otp.resends_remaining, cooldown_expires
 
         return True, otp.resends_remaining, None
+
+    async def resend_existing_otp(
+        self,
+        user_id: UUID,
+        purpose: str = "email_verification",
+    ) -> OtpCodeModel | None:
+        """
+        Resend the existing OTP code without generating a new one.
+
+        This keeps the same code across all resend attempts so users
+        don't get confused when multiple emails arrive with different codes.
+
+        Args:
+            user_id: The user's UUID
+            purpose: OTP purpose
+
+        Returns:
+            The existing OtpCodeModel with updated resend count, or None if no active OTP
+
+        Raises:
+            OtpRateLimitError: If rate limit exceeded
+        """
+        now = datetime.now(UTC)
+
+        # Get existing active OTP
+        existing = await self._otp_repo.get_active_by_user_id(user_id, purpose)
+
+        if not existing:
+            # No active OTP - caller should generate a new one
+            return None
+
+        # Check if expired
+        if existing.is_expired:
+            # Expired OTP - caller should generate a new one
+            return None
+
+        # Check resend cooldown
+        if existing.last_resend_at:
+            cooldown_expires = existing.last_resend_at + timedelta(seconds=self._resend_cooldown_seconds)
+            if now < cooldown_expires:
+                raise OtpRateLimitError(
+                    f"Please wait {self._resend_cooldown_seconds} seconds before requesting a new code",
+                    next_available_at=cooldown_expires,
+                )
+
+        # Check resend count
+        if not existing.can_resend:
+            window_end = existing.created_at + timedelta(hours=self._resend_window_hours)
+            raise OtpRateLimitError(
+                f"Maximum {self._max_resends} resends reached. Please wait.",
+                next_available_at=window_end,
+            )
+
+        # Increment resend count and update timestamp
+        existing.resend_count += 1
+        existing.last_resend_at = now
+        await self._otp_repo.update(existing)
+
+        return existing
