@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     jwt_issuer: str | None = None
     jwt_audience: str | None = None
 
-    # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
+    # CORS (SEC-013: Default to empty list, require explicit config)
+    cors_origins: list[str] = []
 
     # GitHub OAuth (optional)
     github_client_id: str = ""
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     rate_limit_fail_open: bool = False  # MED-1: Fail-closed in production
     mobile_rate_limit_fail_open: bool = False  # MED-4: Mobile rate limit fail-closed
     jwt_allowed_algorithms: list[str] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
-    swagger_enabled: bool = True  # MED-7: Disable in production via env
+    swagger_enabled: bool = False  # SEC-008: Disabled by default, enable via env for dev
 
     # TOTP Encryption (MED-6)
     totp_encryption_key: SecretStr = SecretStr("")  # AES-256 key for TOTP secrets
@@ -99,6 +99,49 @@ class Settings(BaseSettings):
             return None
         stripped = v.strip()
         return stripped or None
+
+    # SEC-004: Known weak/test secrets to reject in production
+    WEAK_SECRET_PATTERNS = frozenset({
+        "test_token",
+        "test_secret",
+        "changeme",
+        "password",
+        "secret",
+        "development",
+        "example",
+        "placeholder",
+    })
+
+    @field_validator("jwt_secret", mode="after")
+    @classmethod
+    def validate_jwt_secret(cls, v: SecretStr, info) -> SecretStr:
+        """SEC-014 + SEC-004: Validate JWT secret length and reject weak secrets.
+
+        HS256 requires 256-bit (32 bytes) key minimum per RFC 7518.
+        In production, also reject known weak/test secrets.
+        """
+        secret = v.get_secret_value()
+        min_length = 32
+
+        if len(secret) < min_length:
+            raise ValueError(
+                f"JWT_SECRET must be at least {min_length} characters for security. "
+                f"Current length: {len(secret)}. "
+                f"Generate with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+
+        # SEC-004: Reject weak secrets in production
+        environment = info.data.get("environment", "development")
+        if environment == "production":
+            secret_lower = secret.lower()
+            for weak in cls.WEAK_SECRET_PATTERNS:
+                if weak in secret_lower:
+                    raise ValueError(
+                        f"JWT_SECRET appears to be a weak/test secret (contains '{weak}'). "
+                        f"Generate a strong secret: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                    )
+
+        return v
 
     @field_validator("totp_encryption_key", mode="after")
     @classmethod
