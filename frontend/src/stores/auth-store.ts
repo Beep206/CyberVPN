@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
               login: data.login,
               is_active: data.is_active,
               is_email_verified: data.is_email_verified,
-              role: 'user',
+              role: 'viewer',  // Default role for new users
               created_at: new Date().toISOString(),
             },
             isAuthenticated: false,
