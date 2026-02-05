@@ -77,9 +77,14 @@ class Settings(BaseSettings):
     brevo_api_key: SecretStr | None = None
     brevo_from_email: str = "CyberVPN <noreply@cybervpn.io>"
 
-    # Test environment: Use MailHog
-    smtp_host: str | None = None  # localhost for MailHog
-    smtp_port: int = 1025
+    # Dev/Test environment: Use Mailpit cluster for email testing
+    # Set EMAIL_DEV_MODE=true to use SMTP instead of API providers
+    email_dev_mode: bool = False
+
+    # Mailpit SMTP servers (round-robin for provider rotation testing)
+    # Format: host:port,host:port,host:port
+    smtp_servers: Annotated[list[str], NoDecode] = ["localhost:1025", "localhost:1026", "localhost:1027"]
+    smtp_from_email: str = "CyberVPN <verify@cybervpn.local>"
 
     @field_validator("admin_telegram_ids", mode="before")
     @classmethod
@@ -102,6 +107,16 @@ class Settings(BaseSettings):
         if not isinstance(v, str) or not v.strip():
             return []
         return [ip.strip() for ip in v.split(",") if ip.strip()]
+
+    @field_validator("smtp_servers", mode="before")
+    @classmethod
+    def parse_smtp_servers(cls, v: str | list[str]) -> list[str]:
+        """Parse comma-separated SMTP servers (host:port format)."""
+        if isinstance(v, list):
+            return v
+        if not isinstance(v, str) or not v.strip():
+            return ["localhost:1025", "localhost:1026", "localhost:1027"]
+        return [s.strip() for s in v.split(",") if s.strip()]
 
     @model_validator(mode="after")
     def validate_metrics_settings(self) -> "Settings":

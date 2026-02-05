@@ -309,6 +309,86 @@ services:
     networks:
       - remnawave-network
 
+  # ============ MAILPIT CLUSTER (3 instances for OTP rotation testing) ============
+  # Used for testing email provider rotation on OTP resend
+  # 1st OTP request → mailpit-1 (SMTP: 1025, Web: 8025)
+  # 2nd OTP request → mailpit-2 (SMTP: 1026, Web: 8026)
+  # 3rd OTP request → mailpit-3 (SMTP: 1027, Web: 8027)
+  # Then cycle repeats (round-robin)
+  # Enable with: docker compose --profile email-test up -d
+
+  mailpit-1:
+    image: axllent/mailpit:v1.22
+    container_name: mailpit-1
+    hostname: mailpit-1
+    profiles: ["email-test"]
+    <<: [*common, *logging]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_UI_AUTH_FILE: ""
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_WEBROOT: /mailpit-1
+    ports:
+      - "127.0.0.1:8025:8025"   # Web UI
+      - "127.0.0.1:1025:1025"   # SMTP
+    volumes:
+      - mailpit_1_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025/mailpit-1/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mailpit-2:
+    image: axllent/mailpit:v1.22
+    container_name: mailpit-2
+    hostname: mailpit-2
+    profiles: ["email-test"]
+    <<: [*common, *logging]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_UI_AUTH_FILE: ""
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_WEBROOT: /mailpit-2
+    ports:
+      - "127.0.0.1:8026:8025"   # Web UI
+      - "127.0.0.1:1026:1025"   # SMTP
+    volumes:
+      - mailpit_2_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025/mailpit-2/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mailpit-3:
+    image: axllent/mailpit:v1.22
+    container_name: mailpit-3
+    hostname: mailpit-3
+    profiles: ["email-test"]
+    <<: [*common, *logging]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_UI_AUTH_FILE: ""
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_WEBROOT: /mailpit-3
+    ports:
+      - "127.0.0.1:8027:8025"   # Web UI
+      - "127.0.0.1:1027:1025"   # SMTP
+    volumes:
+      - mailpit_3_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8025/mailpit-3/api/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   remnawave-network:
     name: remnawave-network
@@ -324,3 +404,9 @@ volumes:
     name: grafana_data
   prometheus_data:
     name: prometheus_data
+  mailpit_1_data:
+    name: mailpit_1_data
+  mailpit_2_data:
+    name: mailpit_2_data
+  mailpit_3_data:
+    name: mailpit_3_data
