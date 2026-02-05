@@ -12,6 +12,9 @@ class BiometricService {
   // SENSITIVE: Biometric enabled flag is a security setting - must use SecureStorage
   static const String _biometricEnabledKey = 'biometric_enabled';
 
+  // Store enrollment hash to detect changes
+  static const String _enrollmentHashKey = 'biometric_enrollment_hash';
+
   BiometricService({
     LocalAuthentication? localAuth,
     required SecureStorageWrapper secureStorage,
@@ -70,6 +73,59 @@ class BiometricService {
       key: _biometricEnabledKey,
       value: enabled.toString(),
     );
+
+    // Store current enrollment hash when enabling biometrics
+    if (enabled) {
+      await _storeEnrollmentHash();
+    } else {
+      await _secureStorage.delete(key: _enrollmentHashKey);
+    }
+  }
+
+  // ── Enrollment Change Detection ────────────────────────────────────────────
+
+  /// Generates a hash of the currently enrolled biometrics.
+  Future<String> _generateEnrollmentHash() async {
+    final types = await getAvailableBiometrics();
+    // Sort to ensure consistent ordering
+    final sortedTypes = types.map((t) => t.name).toList()..sort();
+    return sortedTypes.join(',');
+  }
+
+  /// Stores the current enrollment hash.
+  Future<void> _storeEnrollmentHash() async {
+    final hash = await _generateEnrollmentHash();
+    await _secureStorage.write(key: _enrollmentHashKey, value: hash);
+  }
+
+  /// Checks if biometric enrollment has changed since biometric login was enabled.
+  ///
+  /// Returns `true` if:
+  /// - Biometric login is enabled
+  /// - The current enrollment differs from the stored hash
+  ///
+  /// Use this to detect when a user adds/removes fingerprints or faces.
+  Future<bool> hasEnrollmentChanged() async {
+    final isEnabled = await isBiometricEnabled();
+    if (!isEnabled) {
+      return false;
+    }
+
+    final storedHash = await _secureStorage.read(key: _enrollmentHashKey);
+    if (storedHash == null) {
+      // No stored hash - consider this a change
+      return true;
+    }
+
+    final currentHash = await _generateEnrollmentHash();
+    return storedHash != currentHash;
+  }
+
+  /// Updates the stored enrollment hash to match current enrollment.
+  ///
+  /// Call this after user re-authenticates following an enrollment change.
+  Future<void> updateEnrollmentHash() async {
+    await _storeEnrollmentHash();
   }
 }
 
@@ -103,4 +159,13 @@ final availableBiometricsProvider =
 final isBiometricEnabledProvider = FutureProvider<bool>((ref) async {
   final service = ref.watch(biometricServiceProvider);
   return service.isBiometricEnabled();
+});
+
+/// Provider that checks if biometric enrollment has changed.
+///
+/// Returns `true` if user has added/removed biometrics since enabling
+/// biometric login. This should trigger credential invalidation.
+final hasEnrollmentChangedProvider = FutureProvider<bool>((ref) async {
+  final service = ref.watch(biometricServiceProvider);
+  return service.hasEnrollmentChanged();
 });
