@@ -97,6 +97,8 @@ services:
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PORT=${WORKER_METRICS_PORT:-9091}
+      # Override SMTP servers to use Docker network hostnames
+      - SMTP_SERVERS=mailpit-1:1025,mailpit-2:1025,mailpit-3:1025
     command: ["taskiq", "worker", "src.broker:broker", "--workers", "${WORKER_CONCURRENCY:-2}", "--fs-discover"]
     ports:
       - "127.0.0.1:${WORKER_METRICS_PORT:-9091}:${WORKER_METRICS_PORT:-9091}"
