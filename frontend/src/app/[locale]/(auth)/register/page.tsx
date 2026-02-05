@@ -96,7 +96,7 @@ export default function RegisterPage() {
             {/* Register form */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <CyberInput
-                    label={t('email')}
+                    label={t('emailLabel')}
                     type="email"
                     prefix="email"
                     placeholder="user@cybervpn.io"
@@ -109,7 +109,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                     <CyberInput
-                        label={t('password')}
+                        label={t('passwordLabel')}
                         type="password"
                         prefix="pass"
                         placeholder="••••••••"
@@ -123,7 +123,7 @@ export default function RegisterPage() {
                 </div>
 
                 <CyberInput
-                    label={t('confirmPassword')}
+                    label={t('confirmPasswordLabel')}
                     type="password"
                     prefix="confirm"
                     placeholder="••••••••"
@@ -167,22 +167,23 @@ export default function RegisterPage() {
                 <motion.div
                     whileHover={{ scale: canSubmit ? 1.01 : 1 }}
                     whileTap={{ scale: canSubmit ? 0.99 : 1 }}
+                    className="flex justify-center"
                 >
                     <Button
                         type="submit"
                         disabled={isLoading || !canSubmit}
-                        className="w-full h-12 bg-neon-purple hover:bg-neon-purple/90 text-white font-bold font-mono tracking-wider shadow-lg shadow-neon-purple/20 hover:shadow-neon-purple/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        aria-label={isLoading ? t('creating') : t('submit')}
+                        className="min-w-[200px] h-12 bg-neon-purple hover:bg-neon-purple/90 text-white font-bold font-mono tracking-wider shadow-lg shadow-neon-purple/20 hover:shadow-neon-purple/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        aria-label={isLoading ? t('submitting') : t('submitButton')}
                     >
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {t('creating')}
+                                {t('submitting')}
                             </>
                         ) : (
                             <>
                                 <UserPlus className="mr-2 h-4 w-4" />
-                                {t('submit')}
+                                {t('submitButton')}
                             </>
                         )}
                     </Button>
@@ -191,12 +192,12 @@ export default function RegisterPage() {
 
             {/* Login link */}
             <p className="mt-6 text-center text-sm text-muted-foreground font-mono">
-                {t('haveAccount')}{' '}
+                {t('hasAccount')}{' '}
                 <Link
                     href="/login"
                     className="text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
                 >
-                    {t('signIn')}
+                    {t('signInLink')}
                 </Link>
             </p>
         </AuthFormCard>
