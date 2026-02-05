@@ -68,6 +68,19 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     environment: str = "development"
 
+    # Email Provider Configuration (OTP)
+    # Primary: Resend.com (initial OTP)
+    resend_api_key: SecretStr | None = None
+    resend_from_email: str = "CyberVPN <verify@cybervpn.io>"
+
+    # Secondary: Brevo (resend OTP)
+    brevo_api_key: SecretStr | None = None
+    brevo_from_email: str = "CyberVPN <noreply@cybervpn.io>"
+
+    # Test environment: Use MailHog
+    smtp_host: str | None = None  # localhost for MailHog
+    smtp_port: int = 1025
+
     @field_validator("admin_telegram_ids", mode="before")
     @classmethod
     def parse_admin_telegram_ids(cls, v: str | list[int]) -> list[int]:

@@ -8,6 +8,7 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  login: string;
   email: string;
   password: string;
 }
@@ -22,17 +23,62 @@ export interface TelegramWidgetData {
   hash: string;
 }
 
+export interface VerifyOtpRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
 // Response interfaces
 export interface User {
   id: string;
   email: string;
+  login?: string;
   telegram_id?: number;
   role: 'user' | 'admin' | 'super_admin';
+  is_active: boolean;
+  is_email_verified: boolean;
   created_at: string;
 }
 
 export interface AuthResponse {
   user: User;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface VerifyOtpResponse extends TokenResponse {
+  user: User;
+}
+
+export interface RegisterResponse {
+  id: string;
+  login: string;
+  email: string;
+  is_active: boolean;
+  is_email_verified: boolean;
+  message: string;
+}
+
+export interface ResendOtpResponse {
+  message: string;
+  resends_remaining: number;
+  next_resend_available_at?: string;
+}
+
+export interface OtpErrorResponse {
+  detail: string;
+  code?: string;
+  attempts_remaining?: number;
+  next_resend_available_at?: string;
 }
 
 // Auth API functions
@@ -42,14 +88,31 @@ export const authApi = {
    * POST /api/v1/auth/login
    */
   login: (data: LoginRequest) =>
-    apiClient.post<AuthResponse>('/auth/login', data),
+    apiClient.post<TokenResponse>('/auth/login', data),
 
   /**
    * Register new user with email and password
    * POST /api/v1/auth/register
+   * Returns user with is_active=false, is_email_verified=false
    */
   register: (data: RegisterRequest) =>
-    apiClient.post<AuthResponse>('/auth/register', data),
+    apiClient.post<RegisterResponse>('/auth/register', data),
+
+  /**
+   * Verify OTP code for email verification
+   * POST /api/v1/auth/verify-otp
+   * On success, returns tokens (auto-login) and activates user
+   */
+  verifyOtp: (data: VerifyOtpRequest) =>
+    apiClient.post<VerifyOtpResponse>('/auth/verify-otp', data),
+
+  /**
+   * Resend OTP verification code
+   * POST /api/v1/auth/resend-otp
+   * Uses Brevo (secondary provider) for resend requests
+   */
+  resendOtp: (data: ResendOtpRequest) =>
+    apiClient.post<ResendOtpResponse>('/auth/resend-otp', data),
 
   /**
    * Logout current user

@@ -2,26 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
+import { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { AuthFormCard } from './AuthFormCard';
 import { CyberOtpInput } from './CyberOtpInput';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@/i18n/navigation';
+import { authApi, OtpErrorResponse } from '@/lib/api/auth';
 
 export function OtpVerificationForm() {
-    const t = useTranslations('Auth.verify'); // Assuming translations exist or will fallback
+    const t = useTranslations('Auth.verify');
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Get email from query params (passed from registration)
+    const email = searchParams.get('email') || '';
 
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(false);
+    const [isResending, setIsResending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [errorCode, setErrorCode] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+    const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
 
     // Resend Timer Logic
     const [timeLeft, setTimeLeft] = useState(30);
-    const canResend = timeLeft === 0;
+    const canResend = timeLeft === 0 && !isResending;
 
     useEffect(() => {
         if (timeLeft > 0) {
@@ -31,31 +42,100 @@ export function OtpVerificationForm() {
     }, [timeLeft]);
 
     const handleVerify = async () => {
-        if (otp.length !== 6) return;
+        if (otp.length !== 6 || !email) return;
 
         setIsLoading(true);
-        setError(false);
+        setError(null);
+        setErrorCode(null);
 
-        // Simulate API call
-        setTimeout(() => {
-            if (otp === '123456') {
-                setSuccess(true);
-                setTimeout(() => {
-                    router.push('/dashboard');
-                }, 1000);
+        try {
+            const response = await authApi.verifyOtp({ email, code: otp });
+
+            // Success - auto-login
+            setSuccess(true);
+
+            // Store tokens if needed (depends on your auth setup)
+            // For httpOnly cookies, they're set by the server
+
+            // Redirect to dashboard after brief success animation
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 1000);
+
+        } catch (err) {
+            const axiosError = err as AxiosError<{ detail: OtpErrorResponse }>;
+            const errorData = axiosError.response?.data?.detail;
+
+            if (typeof errorData === 'object' && errorData !== null) {
+                setError(errorData.detail || 'Verification failed');
+                setErrorCode(errorData.code || null);
+                setAttemptsRemaining(errorData.attempts_remaining ?? null);
+            } else if (typeof errorData === 'string') {
+                setError(errorData);
             } else {
-                setError(true);
-                setIsLoading(false);
-                // Shake effect or error feedback handled by CyberOtpInput prop
+                setError('An error occurred. Please try again.');
             }
-        }, 1500);
+
+            setIsLoading(false);
+            setOtp(''); // Clear OTP on error
+        }
     };
 
-    const handleResend = () => {
-        if (!canResend) return;
-        setTimeLeft(60);
-        // Trigger resend API
+    const handleResend = async () => {
+        if (!canResend || !email) return;
+
+        setIsResending(true);
+        setError(null);
+        setErrorCode(null);
+
+        try {
+            const response = await authApi.resendOtp({ email });
+
+            // Success
+            setResendsRemaining(response.data.resends_remaining);
+            setTimeLeft(60); // Reset cooldown timer
+            setOtp(''); // Clear current OTP
+
+        } catch (err) {
+            const axiosError = err as AxiosError<{ detail: OtpErrorResponse }>;
+            const errorData = axiosError.response?.data?.detail;
+
+            if (typeof errorData === 'object' && errorData !== null) {
+                setError(errorData.detail || 'Failed to resend code');
+                setErrorCode(errorData.code || null);
+            } else if (typeof errorData === 'string') {
+                setError(errorData);
+            } else {
+                setError('Failed to resend code. Please try again.');
+            }
+        } finally {
+            setIsResending(false);
+        }
     };
+
+    // Show warning if no email
+    if (!email) {
+        return (
+            <AuthFormCard
+                title="SECURITY_CHECK"
+                subtitle="VERIFICATION_REQUIRED"
+                className="border-neon-cyan/30"
+            >
+                <div className="text-center space-y-4">
+                    <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto" />
+                    <p className="text-muted-foreground font-mono">
+                        No email provided. Please register first.
+                    </p>
+                    <Button
+                        onClick={() => router.push('/register')}
+                        className="bg-neon-cyan text-black hover:bg-neon-cyan/90"
+                    >
+                        Go to Registration
+                    </Button>
+                </div>
+            </AuthFormCard>
+        );
+    }
 
     return (
         <AuthFormCard
@@ -78,13 +158,14 @@ export function OtpVerificationForm() {
                                     "border-neon-cyan/50 shadow-[0_0_15px_var(--color-neon-cyan)] animate-pulse"
                         )}
                     >
-                        {success ? (
-                            <ShieldCheck className="w-8 h-8" />
-                        ) : (
-                            <ShieldCheck className="w-8 h-8" />
-                        )}
+                        <ShieldCheck className="w-8 h-8" />
                     </motion.div>
                 </div>
+
+                {/* Email indicator */}
+                <p className="text-center text-sm text-muted-foreground font-mono">
+                    Code sent to: <span className="text-neon-cyan">{email}</span>
+                </p>
 
                 {/* OTP Input */}
                 <div className="space-y-4">
@@ -92,22 +173,37 @@ export function OtpVerificationForm() {
                         value={otp}
                         onChange={(val) => {
                             setOtp(val);
-                            if (error) setError(false);
+                            if (error) {
+                                setError(null);
+                                setErrorCode(null);
+                            }
                         }}
                         onComplete={handleVerify}
-                        error={error}
+                        error={!!error}
                     />
 
                     <AnimatePresence>
                         {error && (
-                            <motion.p
+                            <motion.div
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0 }}
-                                className="text-center text-red-500 font-mono text-sm"
+                                className="text-center space-y-1"
                             >
-                                INVALID_ACCESS_CODE.TRY_AGAIN.
-                            </motion.p>
+                                <p className="text-red-500 font-mono text-sm">
+                                    {error}
+                                </p>
+                                {attemptsRemaining !== null && attemptsRemaining > 0 && (
+                                    <p className="text-yellow-500 font-mono text-xs">
+                                        {attemptsRemaining} attempts remaining
+                                    </p>
+                                )}
+                                {errorCode === 'OTP_EXHAUSTED' && (
+                                    <p className="text-yellow-500 font-mono text-xs">
+                                        Please request a new code
+                                    </p>
+                                )}
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
@@ -140,17 +236,22 @@ export function OtpVerificationForm() {
                     <div className="text-center">
                         <button
                             onClick={handleResend}
-                            disabled={!canResend}
+                            disabled={!canResend || isResending}
                             className={cn(
                                 "text-sm font-mono transition-colors flex items-center justify-center mx-auto gap-2",
-                                canResend
+                                canResend && !isResending
                                     ? "text-neon-cyan hover:text-white underline underline-offset-4 cursor-pointer"
                                     : "text-muted-foreground cursor-default"
                             )}
                         >
-                            {canResend ? (
+                            {isResending ? (
+                                <>
+                                    <Loader2 className="w-3 h-3 animate-spin" /> Sending...
+                                </>
+                            ) : canResend ? (
                                 <>
                                     <RefreshCw className="w-3 h-3" /> RESEND_CODE
+                                    {resendsRemaining !== null && ` (${resendsRemaining} left)`}
                                 </>
                             ) : (
                                 <span>RESEND_IN_{timeLeft.toString().padStart(2, '0')}s</span>

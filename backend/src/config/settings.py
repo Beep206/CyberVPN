@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     rate_limit_window: int = 60  # seconds
     trust_proxy_headers: bool = False
 
+    # OTP Configuration
+    otp_expiration_hours: int = 3
+    otp_max_attempts: int = 5
+    otp_max_resends: int = 3
+    otp_resend_window_hours: int = 1
+    otp_resend_cooldown_seconds: int = 30
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:

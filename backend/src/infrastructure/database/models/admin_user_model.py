@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, Boolean, DateTime, String, func
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
 
@@ -55,6 +55,12 @@ class AdminUserModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+    # Email verification flag
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Relationship to OTP codes
+    otp_codes = relationship("OtpCodeModel", back_populates="user", lazy="raise")
 
     def __repr__(self) -> str:
         return f"<AdminUserModel(id={self.id}, login='{self.login}', role='{self.role}')>"

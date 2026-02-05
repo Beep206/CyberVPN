@@ -87,6 +87,13 @@ async def lifespan(app: FastAPI):
         pass
 
     try:
+        from src.infrastructure.tasks.email_task_dispatcher import shutdown_email_dispatcher
+
+        await shutdown_email_dispatcher()
+    except Exception:
+        pass
+
+    try:
         from src.infrastructure.cache.redis_client import close_redis_pool
 
         await close_redis_pool()
