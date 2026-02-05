@@ -9,11 +9,11 @@ import { AnimatePresence, motion } from "framer-motion";
 
 interface InceptionButtonProps {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler;
   className?: string;
 }
 
-export function InceptionButton({ children, onClick, className = "" }: InceptionButtonProps) {
+export function InceptionButton({ children, onClick, className = "", wrapperClassName = "" }: InceptionButtonProps & { wrapperClassName?: string }) {
   const elementRef = useRef<HTMLDivElement>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const [isExploding, setIsExploding] = useState(false);
@@ -56,7 +56,7 @@ export function InceptionButton({ children, onClick, className = "" }: Inception
     if (isExploding) return; // Prevent double click
 
     // Trigger user onClick first
-    onClick?.();
+    onClick?.(e);
 
     // Start effect
     handleCapture();
@@ -109,7 +109,7 @@ export function InceptionButton({ children, onClick, className = "" }: Inception
   }, [isExploding]);
 
   return (
-    <div className="relative inline-block group">
+    <div className={`relative inline-block group ${wrapperClassName}`}>
       {/* Original Element */}
       <div
         ref={elementRef}

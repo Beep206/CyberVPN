@@ -3,6 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { MagneticButton } from "@/shared/ui/magnetic-button"
+import { InceptionButton } from "@/components/ui/InceptionButton"
 
 import { cn } from "@/lib/utils"
 
@@ -42,7 +43,7 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, magnetic = true, ...props }, ref) => {
+    ({ className, variant, size, magnetic = true, onClick, ...props }, ref) => {
         const button = (
             <button
                 className={cn(buttonVariants({ variant, size, className }))}
@@ -53,13 +54,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         if (magnetic) {
             return (
-                <MagneticButton className="inline-block" strength={20}>
-                    {button}
-                </MagneticButton>
+                <InceptionButton onClick={onClick} wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
+                    <MagneticButton className="inline-block w-full" strength={20}>
+                        {button}
+                    </MagneticButton>
+                </InceptionButton>
             )
         }
 
-        return button
+        return (
+            <InceptionButton onClick={onClick} wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
+                {button}
+            </InceptionButton>
+        )
     }
 )
 Button.displayName = "Button"
