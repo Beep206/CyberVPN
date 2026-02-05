@@ -7,3 +7,4 @@ export { RateLimitCountdown, useIsRateLimited } from './RateLimitCountdown';
 export { AuthFormSkeleton, AuthLoadingOverlay } from './AuthSkeleton';
 export { CyberOtpInput } from './CyberOtpInput';
 export { OtpVerificationForm } from './OtpVerificationForm';
+export { AuthGuard } from './AuthGuard';
