@@ -59,7 +59,8 @@ export default function RegisterPage() {
 
         try {
             await register(email, password);
-            // Redirect handled by useEffect above
+            // Redirect to OTP verification page with email
+            router.push(`/verify?email=${encodeURIComponent(email)}`);
         } catch {
             // Error is already set in the store
         }

@@ -35,9 +35,11 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.loginStarted();
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
-          const { data } = await authApi.login({ email, password, remember_me: rememberMe });
-          set({ user: data.user, isAuthenticated: true, isLoading: false });
-          authAnalytics.loginSuccess(data.user.id, 'email');
+          // Login returns tokens, then fetch user info
+          await authApi.login({ email, password, remember_me: rememberMe });
+          const { data: user } = await authApi.me();
+          set({ user, isAuthenticated: true, isLoading: false });
+          authAnalytics.loginSuccess(user.id, 'email');
         } catch (error: unknown) {
           if (error instanceof RateLimitError) {
             authAnalytics.rateLimited(error.retryAfter);
@@ -60,9 +62,25 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.registerStarted();
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
-          const { data } = await authApi.register({ email, password });
-          set({ user: data.user, isAuthenticated: true, isLoading: false });
-          authAnalytics.registerSuccess(data.user.id);
+          // Generate login from email (part before @)
+          const login = email.split('@')[0];
+          const { data } = await authApi.register({ login, email, password });
+          // User is registered but NOT authenticated yet - needs OTP verification
+          // Store minimal user info for OTP flow, but don't set isAuthenticated
+          set({
+            user: {
+              id: data.id,
+              email: data.email,
+              login: data.login,
+              is_active: data.is_active,
+              is_email_verified: data.is_email_verified,
+              role: 'user',
+              created_at: new Date().toISOString(),
+            },
+            isAuthenticated: false,
+            isLoading: false
+          });
+          authAnalytics.registerSuccess(data.id);
         } catch (error: unknown) {
           if (error instanceof RateLimitError) {
             authAnalytics.rateLimited(error.retryAfter);
