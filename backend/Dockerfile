@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=cybervpn:cybervpn pyproject.toml ./
+
+# SEC: CVE-2026-1703 - Update pip to secure version
+RUN pip install --no-cache-dir --upgrade "pip>=26.0"
+
 RUN pip install --no-cache-dir -e .
 
 COPY --chown=cybervpn:cybervpn . .

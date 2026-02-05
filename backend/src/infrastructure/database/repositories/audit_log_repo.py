@@ -18,7 +18,7 @@ class AuditLogRepository:
         resource_type: str | None = None,
         resource_id: str | None = None,
         details: dict[str, Any] | None = None,
-        ip_address: str = "0.0.0.0",
+        ip_address: str | None = None,  # SEC: B104 fix - no hardcoded bind address
         user_agent: str | None = None,
     ) -> AuditLog:
         """Create a new audit log entry.

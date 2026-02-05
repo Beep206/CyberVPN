@@ -1,4 +1,5 @@
 import logging
+from typing import ClassVar
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings
@@ -101,7 +102,7 @@ class Settings(BaseSettings):
         return stripped or None
 
     # SEC-004: Known weak/test secrets to reject in production
-    WEAK_SECRET_PATTERNS = frozenset({
+    WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset({
         "test_token",
         "test_secret",
         "changeme",
