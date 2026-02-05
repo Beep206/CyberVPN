@@ -24,6 +24,7 @@ class Permission(StrEnum):
     WEBHOOK_READ = "webhook_read"
     MANAGE_ADMINS = "manage_admins"
     MANAGE_PLANS = "manage_plans"
+    MANAGE_INVITES = "manage_invites"  # CRIT-1: Invite token management
     # Subscriptions
     SUBSCRIPTION_CREATE = "subscription_create"
     # Analytics
@@ -47,6 +48,7 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.AUDIT_READ,
         Permission.WEBHOOK_READ,
         Permission.MANAGE_PLANS,
+        Permission.MANAGE_INVITES,  # CRIT-1: Allow admins to create invites
         Permission.SUBSCRIPTION_CREATE,
         Permission.VIEW_ANALYTICS,
     },

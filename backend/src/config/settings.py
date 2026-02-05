@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Telegram OAuth
     telegram_bot_token: SecretStr = SecretStr("")
+    telegram_bot_username: str = ""  # Bot username without @
     telegram_auth_max_age_seconds: int = 86400  # 24 hours
 
     # Payment gateway
@@ -55,6 +56,23 @@ class Settings(BaseSettings):
     otp_max_resends: int = 3
     otp_resend_window_hours: int = 1
     otp_resend_cooldown_seconds: int = 30
+
+    # Registration Security (CRIT-1)
+    registration_enabled: bool = False  # Disabled by default for security
+    registration_invite_required: bool = True  # Require invite token when enabled
+    invite_token_expiry_hours: int = 24  # Invite tokens expire after 24 hours
+
+    # Security Settings (MED-1, MED-5, MED-7)
+    debug: bool = False  # Debug mode - should be False in production
+    rate_limit_fail_open: bool = False  # MED-1: Fail-closed in production
+    jwt_allowed_algorithms: list[str] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
+    swagger_enabled: bool = True  # MED-7: Disable in production via env
+
+    # TOTP Encryption (MED-6)
+    totp_encryption_key: SecretStr = SecretStr("")  # AES-256 key for TOTP secrets
+
+    # Trusted Proxy (MED-8)
+    trusted_proxy_ips: list[str] = []  # List of trusted proxy IPs for X-Forwarded-For
 
     @field_validator("cors_origins", mode="before")
     @classmethod

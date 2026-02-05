@@ -136,6 +136,14 @@ tags_metadata = [
     {"name": "websocket", "description": "Real-time WebSocket channels"},
 ]
 
+# MED-7: Conditionally disable Swagger UI in production
+openapi_url = "/openapi.json" if settings.swagger_enabled else None
+docs_url = "/docs" if settings.swagger_enabled else None
+redoc_url = "/redoc" if settings.swagger_enabled else None
+
+if not settings.swagger_enabled:
+    logger.info("Swagger UI disabled (SWAGGER_ENABLED=false)")
+
 app = FastAPI(
     title="CyberVPN Backend API",
     version="0.1.0",
@@ -144,6 +152,9 @@ app = FastAPI(
     openapi_tags=tags_metadata,
     servers=[{"url": "/", "description": "Current server"}],
     swagger_ui_parameters={"persistAuthorization": True},
+    openapi_url=openapi_url,
+    docs_url=docs_url,
+    redoc_url=redoc_url,
 )
 
 # Middleware (order matters - last added = first executed)
