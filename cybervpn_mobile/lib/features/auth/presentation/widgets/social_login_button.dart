@@ -50,47 +50,55 @@ class SocialLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor:
-              backgroundColor ?? theme.colorScheme.surfaceContainerHighest,
-          foregroundColor: foregroundColor ?? theme.colorScheme.onSurface,
-          side: BorderSide(
-            color: backgroundColor?.withValues(alpha: 0.6) ??
-                theme.colorScheme.outline,
+    return Semantics(
+      button: true,
+      enabled: !isLoading && onPressed != null,
+      label: isLoading ? 'Connecting to $label, please wait' : label,
+      hint: 'Sign in using social account',
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: OutlinedButton(
+          onPressed: isLoading ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            backgroundColor:
+                backgroundColor ?? theme.colorScheme.surfaceContainerHighest,
+            foregroundColor: foregroundColor ?? theme.colorScheme.onSurface,
+            side: BorderSide(
+              color: backgroundColor?.withValues(alpha: 0.6) ??
+                  theme.colorScheme.outline,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        ),
-        child: isLoading
-            ? SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: foregroundColor ?? theme.colorScheme.primary,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 24),
-                  const SizedBox(width: 12),
-                  Text(
-                    label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: foregroundColor,
-                    ),
+          child: isLoading
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: foregroundColor ?? theme.colorScheme.primary,
                   ),
-                ],
-              ),
+                )
+              : ExcludeSemantics(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 24),
+                      const SizedBox(width: 12),
+                      Text(
+                        label,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: foregroundColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
       ),
     );
   }

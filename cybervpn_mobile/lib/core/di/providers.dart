@@ -183,6 +183,12 @@ List buildProviderOverrides(SharedPreferences prefs) {
   // We create concrete instances here that require synchronous access to
   // pre-initialized resources (SharedPreferences).
   final secureStorage = SecureStorageWrapper();
+
+  // Start pre-warming critical keys in background for faster auth check.
+  // This is fire-and-forget - the auth check will use cached values if
+  // ready, or fall back to regular reads.
+  secureStorage.prewarmCache();
+
   final localStorage = LocalStorageWrapper();
   final networkInfo = NetworkInfo();
   final deviceIntegrityChecker = DeviceIntegrityChecker(prefs);

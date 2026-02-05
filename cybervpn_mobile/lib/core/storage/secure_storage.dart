@@ -16,10 +16,22 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// - Android: EncryptedSharedPreferences with AES256-GCM, keys in Android Keystore
 /// - iOS: Keychain Services with Secure Enclave, accessible after first unlock
 ///
+/// **Performance Optimization**:
+/// Values are cached in memory after first read to minimize I/O.
+/// Cache is invalidated on write/delete operations.
+/// Target: < 50ms for cached reads vs ~100-200ms for secure storage I/O.
+///
 /// **DO NOT USE** [LocalStorageWrapper] (SharedPreferences) for credentials!
 /// See [STORAGE_GUIDELINES.md] for data classification rules.
 class SecureStorageWrapper {
   final FlutterSecureStorage _storage;
+
+  /// In-memory cache for read values.
+  /// Key: storage key, Value: cached value (null means key was checked and not found)
+  final Map<String, String?> _cache = {};
+
+  /// Tracks which keys have been checked to distinguish "not in cache" from "checked, not found"
+  final Set<String> _checkedKeys = {};
 
   SecureStorageWrapper({FlutterSecureStorage? storage})
       : _storage = storage ??
@@ -30,19 +42,75 @@ class SecureStorageWrapper {
               ),
             );
 
-  Future<void> write({required String key, required String value}) async =>
-      _storage.write(key: key, value: value);
+  /// Writes a value and updates the cache.
+  Future<void> write({required String key, required String value}) async {
+    await _storage.write(key: key, value: value);
+    _cache[key] = value;
+    _checkedKeys.add(key);
+  }
 
-  Future<String?> read({required String key}) async =>
-      _storage.read(key: key);
+  /// Reads a value, using cache if available.
+  ///
+  /// First read from storage populates the cache.
+  /// Subsequent reads return cached value instantly.
+  Future<String?> read({required String key}) async {
+    // Return from cache if key was already checked
+    if (_checkedKeys.contains(key)) {
+      return _cache[key];
+    }
 
-  Future<void> delete({required String key}) async =>
-      _storage.delete(key: key);
+    // Read from storage and cache the result
+    final value = await _storage.read(key: key);
+    _cache[key] = value;
+    _checkedKeys.add(key);
+    return value;
+  }
 
-  Future<void> deleteAll() async => _storage.deleteAll();
+  /// Deletes a key and invalidates the cache.
+  Future<void> delete({required String key}) async {
+    await _storage.delete(key: key);
+    _cache.remove(key);
+    _checkedKeys.remove(key);
+  }
 
-  Future<bool> containsKey({required String key}) async =>
-      _storage.containsKey(key: key);
+  /// Deletes all keys and clears the cache.
+  Future<void> deleteAll() async {
+    await _storage.deleteAll();
+    _cache.clear();
+    _checkedKeys.clear();
+  }
+
+  /// Checks if a key exists, using cache if available.
+  Future<bool> containsKey({required String key}) async {
+    if (_checkedKeys.contains(key)) {
+      return _cache[key] != null;
+    }
+    return _storage.containsKey(key: key);
+  }
+
+  /// Clears the in-memory cache without affecting storage.
+  ///
+  /// Use this when you need to force a fresh read from storage.
+  void invalidateCache() {
+    _cache.clear();
+    _checkedKeys.clear();
+  }
+
+  /// Pre-warms the cache by loading critical keys.
+  ///
+  /// Call this during app initialization to minimize latency
+  /// on first auth check. Reads are performed in parallel.
+  Future<void> prewarmCache() async {
+    final criticalKeys = [
+      accessTokenKey,
+      refreshTokenKey,
+      cachedUserKey,
+    ];
+
+    await Future.wait(
+      criticalKeys.map((key) => read(key: key)),
+    );
+  }
 
   // ── Storage Keys ────────────────────────────────────────────────────────────
 

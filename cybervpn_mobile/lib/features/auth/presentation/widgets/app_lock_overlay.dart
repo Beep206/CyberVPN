@@ -150,23 +150,32 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
 
                     // Biometric unlock button
                     if (!showPinFallback) ...[
-                      FilledButton.icon(
-                        onPressed: _isAuthenticating ? null : _attemptUnlock,
-                        icon: _isAuthenticating
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: theme.colorScheme.onPrimary,
-                                ),
-                              )
-                            : Icon(biometricIcon, size: 24),
-                        label: Text('Unlock with $biometricLabel'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Semantics(
+                        button: true,
+                        enabled: !_isAuthenticating,
+                        label: _isAuthenticating
+                            ? 'Authenticating, please wait'
+                            : 'Unlock with $biometricLabel',
+                        hint: 'Authenticate to unlock the app',
+                        child: FilledButton.icon(
+                          onPressed: _isAuthenticating ? null : _attemptUnlock,
+                          icon: _isAuthenticating
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: theme.colorScheme.onPrimary,
+                                  ),
+                                )
+                              : Icon(biometricIcon, size: 24, semanticLabel: ''),
+                          label: ExcludeSemantics(
+                              child: Text('Unlock with $biometricLabel')),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -174,10 +183,16 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                       // Failed attempts indicator
                       if (failedAttempts > 0) ...[
                         const SizedBox(height: 16),
-                        Text(
-                          'Failed attempts: $failedAttempts/${AppLockService.maxBiometricAttempts}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
+                        Semantics(
+                          label: 'Failed authentication attempts: $failedAttempts '
+                              'out of ${AppLockService.maxBiometricAttempts}',
+                          child: ExcludeSemantics(
+                            child: Text(
+                              'Failed attempts: $failedAttempts/${AppLockService.maxBiometricAttempts}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -193,35 +208,52 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                       ),
                       const SizedBox(height: 24),
 
-                      FilledButton.icon(
-                        onPressed: _isAuthenticating ? null : _attemptPinUnlock,
-                        icon: _isAuthenticating
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: theme.colorScheme.onPrimary,
-                                ),
-                              )
-                            : const Icon(Icons.pin, size: 24),
-                        label: const Text('Use device PIN'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Semantics(
+                        button: true,
+                        enabled: !_isAuthenticating,
+                        label: _isAuthenticating
+                            ? 'Authenticating, please wait'
+                            : 'Use device PIN',
+                        hint: 'Unlock using your device PIN or passcode',
+                        child: FilledButton.icon(
+                          onPressed:
+                              _isAuthenticating ? null : _attemptPinUnlock,
+                          icon: _isAuthenticating
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: theme.colorScheme.onPrimary,
+                                  ),
+                                )
+                              : const Icon(Icons.pin,
+                                  size: 24, semanticLabel: ''),
+                          label: const ExcludeSemantics(
+                              child: Text('Use device PIN')),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       // Try biometric again button
-                      TextButton(
-                        onPressed: () {
-                          ref.read(appLockServiceProvider).resetAttempts();
-                          setState(() {}); // Trigger rebuild
-                        },
-                        child: Text('Try $biometricLabel again'),
+                      Semantics(
+                        button: true,
+                        label: 'Try $biometricLabel again',
+                        hint: 'Reset failed attempts and try biometric authentication',
+                        child: TextButton(
+                          onPressed: () {
+                            ref.read(appLockServiceProvider).resetAttempts();
+                            setState(() {}); // Trigger rebuild
+                          },
+                          child: ExcludeSemantics(
+                              child: Text('Try $biometricLabel again')),
+                        ),
                       ),
                     ],
                   ],
