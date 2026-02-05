@@ -76,7 +76,10 @@ class JWTRevocationService:
         )
 
     async def _prune_user_tokens(self, user_id: str) -> None:
-        """Remove expired tokens from user's token list."""
+        """Remove expired tokens and enforce MAX_TOKENS_PER_USER limit.
+
+        SEC-010: Implements FIFO eviction when user exceeds session limit.
+        """
         user_tokens_key = f"{self.USER_TOKENS_PREFIX}{user_id}"
         tokens = await self._redis.hgetall(user_tokens_key)
 
@@ -85,6 +88,7 @@ class JWTRevocationService:
 
         now = datetime.now(UTC)
         expired_jtis = []
+        active_tokens: list[tuple[str, datetime]] = []
 
         for jti_bytes, expires_bytes in tokens.items():
             jti = jti_bytes.decode() if isinstance(jti_bytes, bytes) else jti_bytes
@@ -94,11 +98,34 @@ class JWTRevocationService:
                 expires_at = datetime.fromisoformat(expires_str)
                 if expires_at < now:
                     expired_jtis.append(jti)
+                else:
+                    active_tokens.append((jti, expires_at))
             except ValueError:
                 expired_jtis.append(jti)
 
+        # Remove expired tokens
         if expired_jtis:
             await self._redis.hdel(user_tokens_key, *expired_jtis)
+
+        # SEC-010: Enforce MAX_TOKENS_PER_USER with FIFO eviction
+        if len(active_tokens) > self.MAX_TOKENS_PER_USER:
+            # Sort by expiry (oldest first) and revoke excess
+            active_tokens.sort(key=lambda x: x[1])
+            tokens_to_revoke = len(active_tokens) - self.MAX_TOKENS_PER_USER
+
+            for i in range(tokens_to_revoke):
+                jti, expires_at = active_tokens[i]
+                await self.revoke_token(jti, expires_at)
+                await self._redis.hdel(user_tokens_key, jti)
+
+            logger.info(
+                "Enforced session limit - revoked oldest tokens",
+                extra={
+                    "user_id": user_id,
+                    "revoked_count": tokens_to_revoke,
+                    "max_tokens": self.MAX_TOKENS_PER_USER,
+                },
+            )
 
     async def revoke_token(self, jti: str, expires_at: datetime) -> None:
         """Revoke a specific token by its JTI.

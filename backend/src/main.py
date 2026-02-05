@@ -25,6 +25,7 @@ from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
 from src.presentation.api.v1.router import api_router
+from src.presentation.api.well_known.security_txt import router as security_txt_router
 from src.presentation.exception_handlers import (
     domain_error_handler,
     domain_validation_error_handler,
@@ -233,6 +234,7 @@ register_exception_handler(Exception, unhandled_exception_handler)
 
 # Routes
 app.include_router(api_router)
+app.include_router(security_txt_router)  # SEC-017: /.well-known/security.txt
 
 
 @app.get("/health")

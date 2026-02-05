@@ -1,15 +1,21 @@
 FROM python:3.13-slim
 
+# SEC-002: Create non-root user for security
+RUN groupadd -r cybervpn && useradd -r -g cybervpn cybervpn
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+COPY --chown=cybervpn:cybervpn pyproject.toml ./
 RUN pip install --no-cache-dir -e .
 
-COPY . .
+COPY --chown=cybervpn:cybervpn . .
+
+# SEC-002: Switch to non-root user
+USER cybervpn
 
 EXPOSE 8000
 

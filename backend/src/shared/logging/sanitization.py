@@ -129,3 +129,93 @@ def sanitize_path_params(path: str, *, patterns: list[str] | None = None) -> str
         )
 
     return sanitized
+
+
+# SEC-007: PII sanitization for audit logs
+
+def sanitize_email(email: str) -> str:
+    """Sanitize email address for audit logs.
+
+    SEC-007: Masks email while preserving domain for debugging.
+
+    Args:
+        email: Email address to sanitize.
+
+    Returns:
+        Masked email (e.g., "jo***@example.com").
+
+    Example:
+        >>> sanitize_email("john.doe@example.com")
+        "jo***@example.com"
+    """
+    if not email or "@" not in email:
+        return REDACTED
+
+    try:
+        local, domain = email.rsplit("@", 1)
+        if len(local) <= 2:
+            masked_local = local[0] + "***"
+        else:
+            masked_local = local[:2] + "***"
+        return f"{masked_local}@{domain}"
+    except Exception:
+        return REDACTED
+
+
+def sanitize_username(username: str) -> str:
+    """Sanitize username for audit logs.
+
+    SEC-007: Masks username while preserving prefix for debugging.
+
+    Args:
+        username: Username to sanitize.
+
+    Returns:
+        Masked username (e.g., "joh***").
+
+    Example:
+        >>> sanitize_username("johndoe")
+        "joh***"
+    """
+    if not username:
+        return REDACTED
+
+    if len(username) <= 3:
+        return username[0] + "***"
+    return username[:3] + "***"
+
+
+def sanitize_pii(data: dict, *, fields: set[str] | None = None) -> dict:
+    """Sanitize PII fields in a dictionary for audit logging.
+
+    SEC-007: Removes or masks PII from audit log entries.
+
+    Args:
+        data: Dictionary containing potential PII.
+        fields: Set of field names to sanitize (default includes email, login, username).
+
+    Returns:
+        New dictionary with PII fields sanitized.
+
+    Example:
+        >>> sanitize_pii({"email": "john@example.com", "login": "johndoe", "status": "active"})
+        {"email": "jo***@example.com", "login": "joh***", "status": "active"}
+    """
+    if fields is None:
+        fields = {"email", "login", "username", "user_email", "user_login"}
+
+    sanitized = {}
+    for key, value in data.items():
+        if key.lower() in fields:
+            if "email" in key.lower() and isinstance(value, str):
+                sanitized[key] = sanitize_email(value)
+            elif isinstance(value, str):
+                sanitized[key] = sanitize_username(value)
+            else:
+                sanitized[key] = REDACTED
+        elif isinstance(value, dict):
+            sanitized[key] = sanitize_pii(value, fields=fields)
+        else:
+            sanitized[key] = value
+
+    return sanitized

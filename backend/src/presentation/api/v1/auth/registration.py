@@ -22,6 +22,7 @@ from src.infrastructure.tasks.email_task_dispatcher import (
 )
 from src.presentation.api.v1.auth.schemas import RegisterRequest, RegisterResponse
 from src.presentation.dependencies.database import get_db
+from src.shared.logging.sanitization import sanitize_email, sanitize_username
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,7 +36,10 @@ async def _log_registration_attempt(
     reason: str | None = None,
     invite_token: str | None = None,
 ) -> None:
-    """Log registration attempt for audit trail."""
+    """Log registration attempt for audit trail.
+
+    SEC-007: PII is sanitized before storing in audit logs.
+    """
     try:
         await audit_repo.create(
             event_type="registration_attempt",
@@ -44,8 +48,8 @@ async def _log_registration_attempt(
             resource_id=None,
             details={
                 "success": success,
-                "email": email,
-                "login": login,
+                "email": sanitize_email(email),  # SEC-007: Sanitize PII
+                "login": sanitize_username(login),  # SEC-007: Sanitize PII
                 "reason": reason,
                 "invite_token_used": bool(invite_token),
             },
