@@ -21,14 +21,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # Add is_email_verified column to admin_users
-    op.add_column(
-        "admin_users",
-        sa.Column("is_email_verified", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-    )
-
-    # Mark existing active users as verified (data migration)
-    op.execute("UPDATE admin_users SET is_email_verified = true WHERE is_active = true")
+    # Note: is_email_verified column is created in initial migration
 
     # Create otp_codes table
     op.create_table(
@@ -82,5 +75,4 @@ def downgrade() -> None:
     # Drop otp_codes table
     op.drop_table("otp_codes")
 
-    # Drop is_email_verified column from admin_users
-    op.drop_column("admin_users", "is_email_verified")
+    # Note: is_email_verified column is dropped in initial migration downgrade

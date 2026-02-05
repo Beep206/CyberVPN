@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "20260205_mobile_auth"
-down_revision: str | None = None
+down_revision: str | None = "20260205_initial"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
