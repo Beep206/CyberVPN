@@ -258,6 +258,10 @@
           {
             "matcher": { "id": "byName", "options": "Brevo" },
             "properties": [{ "id": "color", "value": { "fixedColor": "#ff00ff", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SMTP (Dev)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#00ff88", "mode": "fixed" } }]
           }
         ]
       },
@@ -284,6 +288,12 @@
           "expr": "sum(rate(cybervpn_otp_emails_sent_total{provider=\"brevo\", status=\"success\"}[5m])) * 60",
           "legendFormat": "Brevo",
           "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "sum(rate(cybervpn_otp_emails_sent_total{provider=\"smtp\", status=\"success\"}[5m])) * 60",
+          "legendFormat": "SMTP (Dev)",
+          "refId": "C"
         }
       ],
       "title": "OTP Emails by Provider (per minute)",
@@ -652,6 +662,141 @@
         }
       ],
       "title": "Email Status by Provider (hourly)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Dev mode: Shows email distribution across Mailpit servers (round-robin rotation)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": { "tooltip": false, "viz": false, "legend": false }
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "mailpit-1" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#00ff88", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mailpit-2" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#00ffff", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mailpit-3" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#ff00ff", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 11,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "sum(increase(cybervpn_otp_emails_sent_total{provider=\"smtp\"}[24h])) by (server)",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Mailpit Server Distribution (Dev Mode, 24h)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Dev mode: Real-time email rate per Mailpit server",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": { "tooltip": false, "viz": false, "legend": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "mailpit-1" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#00ff88", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mailpit-2" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#00ffff", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mailpit-3" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#ff00ff", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": ["sum", "mean"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "expr": "sum(rate(cybervpn_otp_emails_sent_total{provider=\"smtp\"}[5m])) by (server) * 60",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Mailpit Server Rate (Dev Mode, per minute)",
       "type": "timeseries"
     }
   ],
