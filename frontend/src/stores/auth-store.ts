@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, User, TelegramWidgetData } from '@/lib/api/auth';
-import { RateLimitError } from '@/lib/api/client';
+import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { authAnalytics } from '@/lib/analytics';
 
 interface AuthState {
@@ -36,8 +36,13 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.loginStarted();
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
-          // Login returns tokens, then fetch user info
-          await authApi.login({ email, password, remember_me: rememberMe });
+          // Login returns tokens
+          const { data: tokenData } = await authApi.login({ email, password, remember_me: rememberMe });
+
+          // Store tokens in localStorage
+          tokenStorage.setTokens(tokenData.access_token, tokenData.refresh_token);
+
+          // Fetch user info with the new token
           const { data: user } = await authApi.me();
           set({ user, isAuthenticated: true, isLoading: false });
           authAnalytics.loginSuccess(user.id, 'email');
@@ -106,6 +111,9 @@ export const useAuthStore = create<AuthState>()(
           // Verify OTP - returns tokens AND user data (auto-login)
           const { data } = await authApi.verifyOtp({ email, code });
 
+          // Store tokens in localStorage
+          tokenStorage.setTokens(data.access_token, data.refresh_token);
+
           // User is now verified and authenticated
           set({
             user: {
@@ -143,6 +151,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.logout();
         } finally {
+          // Clear tokens from localStorage
+          tokenStorage.clearTokens();
           set({ user: null, isAuthenticated: false, isLoading: false, error: null });
           authAnalytics.logout();
         }
