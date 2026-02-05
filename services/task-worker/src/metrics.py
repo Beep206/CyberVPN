@@ -52,3 +52,27 @@ WORKER_INFO = Info(
     "cybervpn_worker",
     "Worker service information",
 )
+
+# OTP Email metrics (for Grafana monitoring per PRD requirements)
+OTP_EMAILS_SENT = Counter(
+    "cybervpn_otp_emails_sent_total",
+    "Total OTP emails sent",
+    ["provider", "action", "status"],  # provider=resend|brevo, action=initial|resend, status=success|failed
+)
+
+OTP_EMAIL_ERRORS = Counter(
+    "cybervpn_otp_email_errors_total",
+    "OTP email sending errors",
+    ["provider", "error_type"],  # error_type=api_error|network_error|unknown
+)
+
+OTP_VERIFIED = Counter(
+    "cybervpn_otp_verified_total",
+    "Total successful OTP verifications",
+)
+
+OTP_FAILED = Counter(
+    "cybervpn_otp_failed_total",
+    "Total failed OTP attempts",
+    ["reason"],  # reason=invalid_code|expired|exhausted
+)

@@ -53,8 +53,8 @@ class LoginUseCase:
         if not user:
             raise InvalidCredentialsError()
 
-        # Verify user is active
-        if not user.is_active:
+        # Verify user is active and email is verified
+        if not user.is_active or not user.is_email_verified:
             raise InvalidCredentialsError()
 
         # Verify password

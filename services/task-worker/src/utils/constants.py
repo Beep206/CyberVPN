@@ -77,6 +77,16 @@ class RetryPolicy(TypedDict):
 
 
 RETRY_POLICIES: Final[dict[str, RetryPolicy]] = {
+    "email_delivery": {
+        "max_retries": 3,
+        "backoff": "exponential",
+        "delays": [30, 120, 600],  # 30s, 2min, 10min - for OTP email delivery
+    },
+    "email": {
+        "max_retries": 3,
+        "backoff": "exponential",
+        "delays": [30, 120, 600],  # 30s, 2min, 10min - for queue-based lookup
+    },
     "payments_webhook": {
         "max_retries": 3,
         "backoff": "exponential",
@@ -160,6 +170,7 @@ QUEUE_CLEANUP: Final[str] = "cleanup"
 QUEUE_SYNC: Final[str] = "sync"
 QUEUE_REPORTS: Final[str] = "reports"
 QUEUE_BULK: Final[str] = "bulk"
+QUEUE_EMAIL: Final[str] = "email"
 
 # ============================================================================
 # Status Constants
@@ -239,6 +250,7 @@ __all__ = [
     "QUEUE_SYNC",
     "QUEUE_REPORTS",
     "QUEUE_BULK",
+    "QUEUE_EMAIL",
     # Status Constants
     "STATUS_PENDING",
     "STATUS_PROCESSING",

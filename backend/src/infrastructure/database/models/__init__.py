@@ -8,6 +8,7 @@ from src.infrastructure.database.models.mobile_device_model import MobileDeviceM
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.notification_queue_model import NotificationQueue
 from src.infrastructure.database.models.oauth_account_model import OAuthAccount
+from src.infrastructure.database.models.otp_code_model import OtpCodeModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
@@ -20,6 +21,7 @@ __all__ = [
     "MobileUserModel",
     "NotificationQueue",
     "OAuthAccount",
+    "OtpCodeModel",
     "PaymentModel",
     "RefreshToken",
     "ServerGeolocation",
