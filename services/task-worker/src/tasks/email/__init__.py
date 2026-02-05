@@ -1,4 +1,4 @@
-"""Email tasks for OTP delivery."""
+"""Email task definitions."""
 
 from src.tasks.email.send_otp import send_otp_email
 

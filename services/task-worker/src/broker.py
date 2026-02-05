@@ -158,3 +158,8 @@ async def shutdown_event(state) -> None:
     except Exception as exc:
         logger.exception("worker_shutdown_failed", error=str(exc))
         # Don't re-raise during shutdown to allow other cleanup to proceed
+
+
+# Import tasks at module end to register them with broker
+# This avoids circular imports while ensuring tasks are discovered
+import src.tasks  # noqa: F401, E402

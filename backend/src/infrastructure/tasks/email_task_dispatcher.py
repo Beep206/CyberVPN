@@ -81,8 +81,12 @@ class EmailTaskDispatcher:
             is_resend=is_resend,
         )
 
-        # Serialize task arguments in TaskIQ format
-        message_payload = {
+        # Create full TaskIQ message with task metadata
+        # The message must include ALL fields that TaskiqMessage expects
+        full_message = {
+            "task_id": task_id,
+            "task_name": "send_otp_email",
+            "labels": {"queue": "email", "retry_policy": "email_delivery"},
             "args": [],
             "kwargs": {
                 "email": email,
@@ -91,18 +95,17 @@ class EmailTaskDispatcher:
                 "is_resend": is_resend,
             },
         }
-        message_bytes = self._serializer.dumpb(message_payload)
+        message_bytes = self._serializer.dumpb(full_message)
 
-        # Create broker message matching task-worker's task definition
-        msg = BrokerMessage(
-            task_id=task_id,
-            task_name="send_otp_email",
-            message=message_bytes,
-            labels={"queue": "email"},
-        )
+        # Send directly to Redis stream (same queue as task-worker)
+        import redis.asyncio as redis
 
-        # Kick task to Redis stream
-        await broker.kick(msg)
+        redis_client = redis.from_url(self._redis_url)
+        try:
+            # TaskIQ RedisStreamBroker uses stream named "taskiq"
+            await redis_client.xadd("taskiq", {"data": message_bytes})
+        finally:
+            await redis_client.aclose()
 
         logger.info(
             "otp_email_task_dispatched",
