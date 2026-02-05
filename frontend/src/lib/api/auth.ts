@@ -38,7 +38,7 @@ export interface User {
   email: string;
   login?: string;
   telegram_id?: number;
-  role: 'user' | 'admin' | 'super_admin';
+  role: 'viewer' | 'user' | 'admin' | 'super_admin';
   is_active: boolean;
   is_email_verified: boolean;
   created_at: string;
