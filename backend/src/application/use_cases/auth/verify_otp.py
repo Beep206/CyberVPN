@@ -1,6 +1,6 @@
 """Verify OTP use case for email verification with auto-login."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Protocol
 
@@ -141,15 +141,18 @@ class VerifyOtpUseCase:
                 pass
 
         # Create tokens (auto-login)
-        access_token = self._auth_service.create_access_token(
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
         )
-        refresh_token = self._auth_service.create_refresh_token(subject=str(user.id))
+        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
+            subject=str(user.id)
+        )
 
         # Store refresh token hash in database
         token_hash = sha256(refresh_token.encode()).hexdigest()
-        expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+        expires_at = refresh_expire  # Use actual expiry from token creation
 
         refresh_token_record = RefreshToken(
             user_id=user.id,

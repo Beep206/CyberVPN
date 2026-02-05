@@ -2,14 +2,17 @@
 
 Request/response validation models for mobile-specific auth endpoints.
 Maps to DTOs in src/application/dto/mobile_auth.py.
+
+MED-001: Password requirements aligned with admin auth (12+ chars, complexity).
 """
 
-import re  # noqa: F401
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from src.shared.validators.password import validate_password_strength
 
 
 class Platform(StrEnum):
@@ -82,6 +85,7 @@ class RegisterRequest(BaseModel):
     """Request schema for mobile user registration.
 
     Used by POST /api/v1/mobile/auth/register endpoint.
+    MED-001: Password requirements aligned with admin auth.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -92,9 +96,9 @@ class RegisterRequest(BaseModel):
     )
     password: str = Field(
         ...,
-        min_length=8,
+        min_length=12,
         max_length=128,
-        description="User password (minimum 8 characters, requires complexity)",
+        description="User password (minimum 12 characters, requires complexity)",
     )
     device: DeviceInfo = Field(
         ...,
@@ -103,19 +107,18 @@ class RegisterRequest(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def validate_password_strength(cls, v: str) -> str:
-        """Validate password complexity requirements.
+    def validate_password(cls, v: str) -> str:
+        """Validate password complexity requirements (MED-001).
 
-        Requirements:
-        - At least 8 characters
-        - At least one letter
+        Requirements aligned with admin auth:
+        - Minimum 12 characters
+        - At least one uppercase letter
+        - At least one lowercase letter
         - At least one digit
+        - At least one special character
+        - Not in common password list
         """
-        if not re.search(r"[A-Za-z]", v):
-            raise ValueError("Password must contain at least one letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one digit")
-        return v
+        return validate_password_strength(v)
 
 
 class LoginRequest(BaseModel):

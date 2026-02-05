@@ -72,12 +72,13 @@ class MobileRefreshUseCase:
             raise InvalidTokenError()
 
         # Generate new tokens
-        access_token = self.auth_service.create_access_token(
+        # MED-003: Properly unpack token tuple (token, jti, expires_at)
+        access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
             subject=str(user.id),
             role="mobile_user",
             extra={"device_id": request.device_id},
         )
-        refresh_token = self.auth_service.create_refresh_token(
+        refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
             subject=str(user.id),
         )
 
