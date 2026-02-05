@@ -80,6 +80,11 @@ apiClient.interceptors.response.use(
 
     // 401 handling
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't redirect/refresh if checking session status fails
+      if (originalRequest.url?.includes('/auth/me')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
