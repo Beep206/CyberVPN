@@ -170,6 +170,8 @@ function NavigationTab({ onClose, isDark }: { onClose: () => void, isDark: boole
         { label: "Dashboard (User)", path: "/dashboard" },
         { label: "Login Page", path: "/login" },
         { label: "Landing Page", path: "/" },
+        { label: "Registration Page", path: "/register" },
+        { label: "OTP Verification", path: "/verify" },
     ];
 
     return (

@@ -94,7 +94,7 @@ export default function LoginPage() {
             {/* Login form */}
             <form onSubmit={handleSubmit} className="space-y-5">
                 <CyberInput
-                    label={t('email')}
+                    label={t('emailLabel')}
                     type="email"
                     prefix="email"
                     placeholder="user@cybervpn.io"
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 />
 
                 <CyberInput
-                    label={t('password')}
+                    label={t('passwordLabel')}
                     type="password"
                     prefix="pass"
                     placeholder="••••••••"
@@ -144,22 +144,23 @@ export default function LoginPage() {
                 <motion.div
                     whileHover={{ scale: isLoading || isRateLimited ? 1 : 1.01 }}
                     whileTap={{ scale: isLoading || isRateLimited ? 1 : 0.99 }}
+                    className="flex justify-center"
                 >
                     <Button
                         type="submit"
                         disabled={isLoading || isRateLimited}
-                        className="w-full h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label={isLoading ? t('authenticating') : t('submit')}
+                        className="min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={isLoading ? t('submitting') : t('submitButton')}
                     >
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                {t('authenticating')}
+                                {t('submitting')}
                             </>
                         ) : (
                             <>
                                 <LogIn className="mr-2 h-4 w-4" />
-                                {t('submit')}
+                                {t('submitButton')}
                             </>
                         )}
                     </Button>
@@ -173,7 +174,7 @@ export default function LoginPage() {
                     href="/register"
                     className="text-neon-purple hover:text-neon-purple/80 transition-colors underline underline-offset-4"
                 >
-                    {t('createAccount')}
+                    {t('signUpLink')}
                 </Link>
             </p>
         </AuthFormCard>

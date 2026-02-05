@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/privacy-policy',
   '/terms',
   '/', // Landing page
+  '/verify',
 ];
 
 // Routes that are always public (static assets, API, etc.)
@@ -29,7 +30,12 @@ function isPublicRoute(pathname: string): boolean {
 
   // Strip locale prefix for checking PUBLIC_ROUTES
   // Handles: /en-EN/login, /ru-RU/login, etc.
-  const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}-[A-Z]{2}/, '');
+  let pathWithoutLocale = pathname.replace(/^\/[a-z]{2}-[A-Z]{2}/, '');
+
+  // Strip trailing slash if present (except for root '/')
+  if (pathWithoutLocale.length > 1 && pathWithoutLocale.endsWith('/')) {
+    pathWithoutLocale = pathWithoutLocale.slice(0, -1);
+  }
 
   return PUBLIC_ROUTES.includes(pathWithoutLocale) || PUBLIC_ROUTES.includes(pathname);
 }
