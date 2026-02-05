@@ -11,6 +11,7 @@ import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/core/utils/performance_profiler.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
@@ -54,22 +55,38 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   /// Checks whether a cached session exists and returns the appropriate state.
+  ///
+  /// Performance target: < 200ms for cached auth check.
   Future<AuthState> _checkCachedAuth() async {
+    final profiler = AppProfilers.authCheck();
+    profiler.start();
+
     try {
       final isAuthed = await _repo.isAuthenticated();
-      if (!isAuthed) return const AuthUnauthenticated();
+      profiler.checkpoint('token_check');
+
+      if (!isAuthed) {
+        profiler.stop();
+        return const AuthUnauthenticated();
+      }
 
       final user = await _repo.getCurrentUser();
+      profiler.checkpoint('user_fetch');
+
       if (user != null) {
         _setSentryUser(user);
 
-        // Schedule proactive token refresh for existing session
+        // Schedule proactive token refresh for existing session (non-blocking)
         _scheduleTokenRefresh();
 
+        profiler.stop();
         return AuthAuthenticated(user);
       }
+
+      profiler.stop();
       return const AuthUnauthenticated();
     } catch (e) {
+      profiler.stop();
       return AuthError(e.toString());
     }
   }

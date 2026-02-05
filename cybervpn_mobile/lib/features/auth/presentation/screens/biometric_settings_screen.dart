@@ -313,40 +313,50 @@ class _BiometricUnavailableCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: theme.colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Biometrics Unavailable',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Your device does not support biometric authentication, '
-                    'or no biometrics are enrolled.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ],
+    return Semantics(
+      label: 'Biometrics unavailable. '
+          'Your device does not support biometric authentication, '
+          'or no biometrics are enrolled.',
+      child: Card(
+        color: theme.colorScheme.errorContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: theme.colorScheme.onErrorContainer,
+                semanticLabel: '', // Handled by parent Semantics
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ExcludeSemantics(
+                      child: Text(
+                        'Biometrics Unavailable',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ExcludeSemantics(
+                      child: Text(
+                        'Your device does not support biometric authentication, '
+                        'or no biometrics are enrolled.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -384,51 +394,66 @@ class _BiometricInfoCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return biometricTypes.when(
-      data: (types) => Card(
-        color: theme.colorScheme.primaryContainer,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                _getBiometricIcon(types),
-                size: 40,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getBiometricLabel(types),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
+      data: (types) {
+        final label = _getBiometricLabel(types);
+        return Semantics(
+          label: '$label available on this device',
+          child: Card(
+            color: theme.colorScheme.primaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    _getBiometricIcon(types),
+                    size: 40,
+                    color: theme.colorScheme.onPrimaryContainer,
+                    semanticLabel: '', // Handled by parent Semantics
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ExcludeSemantics(
+                          child: Text(
+                            label,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ExcludeSemantics(
+                          child: Text(
+                            'Available on this device',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Available on this device',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: theme.colorScheme.onPrimaryContainer,
+                    semanticLabel: '', // Handled by parent Semantics
+                  ),
+                ],
               ),
-              Icon(
-                Icons.check_circle,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
+        );
+      },
+      loading: () => Semantics(
+        label: 'Loading biometric information',
+        child: const Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
         ),
       ),
       error: (_, __) => _BiometricUnavailableCard(),
@@ -457,35 +482,48 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: disabled
-              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-              : theme.colorScheme.primary,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
+    return Semantics(
+      label: title,
+      hint: subtitle,
+      toggled: value,
+      enabled: !disabled,
+      child: Card(
+        child: ListTile(
+          leading: Icon(
+            icon,
             color: disabled
                 ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                : null,
+                : theme.colorScheme.primary,
+            semanticLabel: '', // Handled by Semantics wrapper
           ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            color: disabled
-                ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                : null,
+          title: ExcludeSemantics(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: disabled
+                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                    : null,
+              ),
+            ),
           ),
+          subtitle: ExcludeSemantics(
+            child: Text(
+              subtitle,
+              style: TextStyle(
+                color: disabled
+                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                    : null,
+              ),
+            ),
+          ),
+          trailing: ExcludeSemantics(
+            child: Switch(
+              value: value,
+              onChanged: disabled ? null : onChanged,
+            ),
+          ),
+          enabled: !disabled,
         ),
-        trailing: Switch(
-          value: value,
-          onChanged: disabled ? null : onChanged,
-        ),
-        enabled: !disabled,
       ),
     );
   }

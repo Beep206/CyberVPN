@@ -306,13 +306,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         "Don't have an account? ",
                         style: theme.textTheme.bodyMedium,
                       ),
-                      GestureDetector(
-                        onTap: () => context.go('/register'),
-                        child: Text(
-                          'Register',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                      Semantics(
+                        button: true,
+                        label: 'Register',
+                        hint: 'Create a new account',
+                        child: GestureDetector(
+                          onTap: () => context.go('/register'),
+                          child: ExcludeSemantics(
+                            child: Text(
+                              'Register',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -366,23 +373,29 @@ class _BiometricLoginButton extends ConsumerWidget {
       error: (_, __) => 'Sign in with biometrics',
     );
 
-    return FilledButton.icon(
-      onPressed: onPressed,
-      icon: isLoading
-          ? SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: theme.colorScheme.onPrimary,
-              ),
-            )
-          : Icon(icon, size: 24),
-      label: Text(label),
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      label: isLoading ? 'Authenticating with biometrics, please wait' : label,
+      hint: 'Use biometrics to sign in quickly',
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              )
+            : Icon(icon, size: 24, semanticLabel: ''),
+        label: ExcludeSemantics(child: Text(label)),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );

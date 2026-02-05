@@ -88,79 +88,112 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     final authState = authAsync.value;
     final isLoading = authState is AuthLoading;
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Email field
-          TextFormField(
-            controller: _emailController,
-            enabled: !isLoading,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              hintText: 'Enter your email',
-              prefixIcon: Icon(Icons.email_outlined),
+    return FocusTraversalGroup(
+      policy: OrderedTraversalPolicy(),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Email field
+            FocusTraversalOrder(
+              order: const NumericFocusOrder(1),
+              child: TextFormField(
+                controller: _emailController,
+                enabled: !isLoading,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter your email',
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    semanticLabel: '', // Hide from screen reader (label is sufficient)
+                  ),
+                ),
+                validator: InputValidators.validateEmail,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
             ),
-            validator: InputValidators.validateEmail,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-          ),
           const SizedBox(height: 16),
 
           // Password field
-          TextFormField(
-            controller: _passwordController,
-            enabled: !isLoading,
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.password],
-            decoration: InputDecoration(
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              prefixIcon: const Icon(Icons.lock_outlined),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(2),
+            child: TextFormField(
+              controller: _passwordController,
+              enabled: !isLoading,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(
+                labelText: 'Password',
+                hintText: 'Enter your password',
+                prefixIcon: const Icon(
+                  Icons.lock_outlined,
+                  semanticLabel: '', // Hide from screen reader
                 ),
-                onPressed: isLoading
-                    ? null
-                    : () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    semanticLabel: '', // Handled by tooltip
+                  ),
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                  onPressed: isLoading
+                      ? null
+                      : () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                ),
               ),
+              validator: InputValidators.validatePassword,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              onFieldSubmitted: (_) => _onSubmit(),
             ),
-            validator: InputValidators.validatePassword,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            onFieldSubmitted: (_) => _onSubmit(),
           ),
           const SizedBox(height: 8),
 
           // Remember me + Forgot password row
           Row(
             children: [
-              SizedBox(
-                height: 24,
-                width: 24,
-                child: Checkbox(
-                  value: _rememberMe,
-                  onChanged: isLoading
-                      ? null
-                      : (v) => setState(() => _rememberMe = v ?? false),
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(3),
+                child: Semantics(
+                  label: 'Remember me',
+                  hint: 'Keep me signed in on this device',
+                  child: SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: Checkbox(
+                      value: _rememberMe,
+                      onChanged: isLoading
+                          ? null
+                          : (v) => setState(() => _rememberMe = v ?? false),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Remember me', style: theme.textTheme.bodyMedium),
+              ExcludeSemantics(
+                child: Text('Remember me', style: theme.textTheme.bodyMedium),
+              ),
               const Spacer(),
-              TextButton(
-                onPressed: isLoading ? null : widget.onForgotPassword,
-                child: Text(
-                  'Forgot password?',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(4),
+                child: Semantics(
+                  button: true,
+                  hint: 'Opens password recovery',
+                  child: TextButton(
+                    onPressed: isLoading ? null : widget.onForgotPassword,
+                    child: Text(
+                      'Forgot password?',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -169,20 +202,30 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           const SizedBox(height: 24),
 
           // Login button
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              onPressed: isLoading ? null : _onSubmit,
-              child: isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
-                    )
-                  : const Text('Login'),
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(5),
+            child: Semantics(
+              button: true,
+              enabled: !isLoading,
+              label: isLoading ? 'Signing in, please wait' : 'Login',
+              hint: 'Sign in to your account',
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _onSubmit,
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : const ExcludeSemantics(child: Text('Login')),
+                ),
+              ),
             ),
           ),
         ],
+        ),
       ),
     );
   }
