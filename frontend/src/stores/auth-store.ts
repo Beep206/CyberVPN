@@ -14,6 +14,7 @@ interface AuthState {
   // Actions
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
   telegramAuth: (data: TelegramWidgetData) => Promise<void>;
@@ -94,6 +95,44 @@ export const useAuthStore = create<AuthState>()(
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Registration failed';
           authAnalytics.registerError(message);
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      verifyOtpAndLogin: async (email, code) => {
+        set({ isLoading: true, error: null });
+        try {
+          // Verify OTP - returns tokens AND user data (auto-login)
+          const { data } = await authApi.verifyOtp({ email, code });
+
+          // User is now verified and authenticated
+          set({
+            user: {
+              id: data.user.id,
+              email: data.user.email,
+              login: data.user.login,
+              is_active: data.user.is_active,
+              is_email_verified: data.user.is_email_verified,
+              role: data.user.role,
+              created_at: data.user.created_at,
+              telegram_id: data.user.telegram_id,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authAnalytics.loginSuccess(data.user.id, 'email');
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: unknown } } };
+          const errorDetail = axiosError.response?.data?.detail;
+          let message = 'Verification failed';
+
+          if (typeof errorDetail === 'object' && errorDetail !== null && 'detail' in errorDetail) {
+            message = (errorDetail as { detail: string }).detail;
+          } else if (typeof errorDetail === 'string') {
+            message = errorDetail;
+          }
+
           set({ error: message, isLoading: false });
           throw error;
         }

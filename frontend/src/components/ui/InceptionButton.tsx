@@ -52,7 +52,14 @@ export function InceptionButton({ children, onClick, className = "", wrapperClas
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+    // Don't prevent default for submit buttons - they need to trigger form submission
+    const target = e.target as HTMLElement;
+    const isSubmitButton = target.closest('button[type="submit"]');
+
+    if (!isSubmitButton) {
+      e.preventDefault();
+    }
+
     if (isExploding) return; // Prevent double click
 
     // Trigger user onClick first
