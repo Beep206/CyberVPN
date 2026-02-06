@@ -4,9 +4,15 @@ Security improvements:
 - Returns user context including role for authorization
 - Supports ticket-based authentication (HIGH-3) - preferred
 - Falls back to token-based for backwards compatibility
+
+Deprecation notice (LOW-006):
+- Token-based authentication is DEPRECATED and will be removed in v2.0 (Q3 2026)
+- Use ticket-based authentication via POST /api/v1/ws/ticket instead
+- Tokens in URLs appear in server logs, browser history, and proxy logs
 """
 
 import logging
+import warnings
 from dataclasses import dataclass
 
 from fastapi import Depends, Query, WebSocket, WebSocketException, status
@@ -18,11 +24,19 @@ from src.application.services.ws_ticket_service import WebSocketTicketService
 from src.domain.enums.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.metrics import websocket_auth_method_total
 from src.presentation.dependencies.database import get_db
 
 import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
+
+# LOW-006: Deprecation notice for token-based WebSocket authentication
+_TOKEN_AUTH_DEPRECATION_MSG = (
+    "WebSocket token-based authentication is DEPRECATED and will be removed in v2.0 (Q3 2026). "
+    "Use ticket-based authentication via POST /api/v1/ws/ticket instead. "
+    "Tokens in URLs appear in server logs, browser history, and proxy logs."
+)
 
 auth_service = AuthService()
 
@@ -42,6 +56,9 @@ async def ws_authenticate_ticket(
     redis_client: redis.Redis = Depends(get_redis),
 ) -> WSUserContext | None:
     """Authenticate WebSocket via ticket (preferred method).
+
+    This is the recommended authentication method for WebSocket connections.
+    Tickets are single-use, short-lived, and don't expose credentials in URLs.
 
     Args:
         websocket: The WebSocket connection
@@ -71,6 +88,9 @@ async def ws_authenticate_ticket(
     except ValueError:
         role = AdminRole.VIEWER
 
+    # LOW-006: Track preferred auth method usage
+    websocket_auth_method_total.labels(method="ticket").inc()
+
     return WSUserContext(
         user_id=ticket_data.user_id,
         role=role,
@@ -82,10 +102,15 @@ async def ws_authenticate_token(
     token: str | None,
     db: AsyncSession,
 ) -> WSUserContext | None:
-    """Authenticate WebSocket via JWT token (fallback method).
+    """Authenticate WebSocket via JWT token (DEPRECATED fallback method).
 
-    WARNING: Token in URL will appear in server logs. Use ticket-based
-    authentication when possible.
+    .. deprecated:: 1.0
+        Token-based WebSocket authentication is deprecated and will be removed
+        in v2.0 (Q3 2026). Use ticket-based authentication via
+        POST /api/v1/ws/ticket instead.
+
+    WARNING: Token in URL will appear in server logs, browser history,
+    and proxy logs. This is a security concern.
 
     Args:
         token: JWT access token
@@ -118,10 +143,24 @@ async def ws_authenticate_token(
         except ValueError:
             role = AdminRole.VIEWER
 
+        # LOW-006: Emit deprecation warning
+        warnings.warn(_TOKEN_AUTH_DEPRECATION_MSG, DeprecationWarning, stacklevel=2)
+
+        # LOW-006: Log deprecation with structured data for monitoring
         logger.warning(
-            "WebSocket authenticated via token - consider using ticket-based auth",
-            extra={"user_id": user_id},
+            "DEPRECATED: WebSocket token-based authentication used. "
+            "This method will be removed in v2.0 (Q3 2026). "
+            "Migrate to ticket-based auth via POST /api/v1/ws/ticket.",
+            extra={
+                "user_id": user_id,
+                "auth_method": "token",
+                "deprecation_removal_version": "v2.0",
+                "deprecation_removal_date": "Q3 2026",
+            },
         )
+
+        # LOW-006: Track deprecated auth method usage
+        websocket_auth_method_total.labels(method="token").inc()
 
         return WSUserContext(
             user_id=str(user.id),

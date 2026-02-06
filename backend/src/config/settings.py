@@ -10,6 +10,9 @@ _logger = logging.getLogger(__name__)
 class Settings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
+    # Environment (must be first for validators to access it)
+    environment: str = "development"  # development, staging, production
+
     # Database
     database_url: str = "postgresql+asyncpg://cybervpn:cybervpn@localhost:6767/cybervpn"
 
@@ -42,9 +45,6 @@ class Settings(BaseSettings):
 
     # Payment gateway
     cryptobot_token: SecretStr
-
-    # Environment
-    environment: str = "development"  # development, staging, production
 
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -101,10 +101,13 @@ class Settings(BaseSettings):
         stripped = v.strip()
         return stripped or None
 
-    # SEC-004: Known weak/test secrets to reject in production
+    # SEC-004 + MED-005: Known weak/test secrets to reject in production
     WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset({
         "test_token",
         "test_secret",
+        "dev_secret",
+        "local_secret",
+        "dummy_secret",
         "changeme",
         "password",
         "secret",

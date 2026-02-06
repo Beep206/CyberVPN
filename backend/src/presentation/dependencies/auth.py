@@ -1,4 +1,10 @@
+"""Authentication dependencies for FastAPI.
+
+LOW-007: All auth dependencies now include JWT revocation checks.
+"""
+
 import logging
+from dataclasses import dataclass
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -19,6 +25,62 @@ logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
 
+@dataclass
+class TokenValidationResult:
+    """Result of JWT token validation."""
+
+    user_id: str
+    jti: str | None = None
+
+
+async def _validate_token(
+    token: str,
+    auth_service: AuthService,
+    redis_client: redis.Redis | None = None,
+    *,
+    check_revocation: bool = True,
+) -> TokenValidationResult | None:
+    """Validate JWT token and optionally check revocation.
+
+    LOW-007: Common token validation logic extracted for reuse.
+
+    Args:
+        token: JWT access token
+        auth_service: Auth service for token decoding
+        redis_client: Redis client for revocation check (required if check_revocation=True)
+        check_revocation: Whether to check JWT revocation list
+
+    Returns:
+        TokenValidationResult if token is valid, None otherwise
+
+    Raises:
+        HTTPException: If token is revoked and check_revocation=True
+        JWTError: If token decoding fails (caller should handle)
+    """
+    payload = auth_service.decode_token(token)
+
+    if payload.get("type") != "access":
+        return None
+
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+
+    jti = payload.get("jti")
+
+    # SEC-003 + LOW-007: Check if token is revoked
+    if check_revocation and jti and redis_client:
+        revocation_service = JWTRevocationService(redis_client)
+        if await revocation_service.is_revoked(jti):
+            logger.warning(
+                "Revoked token used",
+                extra={"jti": jti[:8] + "..." if jti else None, "user_id": user_id},
+            )
+            return None  # Return None for optional auth, caller decides on exception
+
+    return TokenValidationResult(user_id=user_id, jti=jti)
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
@@ -28,28 +90,27 @@ async def get_current_user(
     """Get current authenticated user from JWT token.
 
     SEC-003: Includes JWT revocation check to ensure logout invalidates tokens.
+    LOW-007: Uses shared _validate_token() helper for consistent validation.
+
+    Raises:
+        HTTPException: 401 if token is invalid, expired, revoked, or user not found
     """
     try:
-        payload = auth_service.decode_token(credentials.credentials)
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-        # SEC-003: Check if token is revoked
-        jti = payload.get("jti")
-        if jti:
-            revocation_service = JWTRevocationService(redis_client)
-            if await revocation_service.is_revoked(jti):
-                logger.warning("Revoked token used", extra={"jti": jti[:8] + "...", "user_id": user_id})
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+        result = await _validate_token(
+            credentials.credentials,
+            auth_service,
+            redis_client,
+            check_revocation=True,
+        )
+        if not result:
+            # Token was invalid or revoked
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or revoked token")
 
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
     repo = AdminUserRepository(db)
-    user = await repo.get_by_id(UUID(user_id))
+    user = await repo.get_by_id(UUID(result.user_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
@@ -67,18 +128,36 @@ async def optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> AdminUserModel | None:
+    """Get user from JWT token if present and valid, None otherwise.
+
+    LOW-007: Now includes JWT revocation check for consistency with get_current_user.
+    Revoked tokens will return None (not authenticated) rather than the user.
+
+    Args:
+        credentials: Optional Bearer token
+        db: Database session
+        auth_service: Auth service for token decoding
+        redis_client: Redis client for revocation check
+
+    Returns:
+        AdminUserModel if token is valid and not revoked, None otherwise
+    """
     if not credentials:
         return None
     try:
-        payload = auth_service.decode_token(credentials.credentials)
-        if payload.get("type") != "access":
+        result = await _validate_token(
+            credentials.credentials,
+            auth_service,
+            redis_client,
+            check_revocation=True,
+        )
+        if not result:
             return None
-        user_id = payload.get("sub")
-        if not user_id:
-            return None
+
         repo = AdminUserRepository(db)
-        user = await repo.get_by_id(UUID(user_id))
+        user = await repo.get_by_id(UUID(result.user_id))
         if not user or not user.is_active:
             return None
         return user

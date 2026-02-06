@@ -2,11 +2,13 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Callable, cast
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from starlette.types import ExceptionHandler
+
+from src.presentation.dependencies.auth import get_current_active_user
 
 from src.config.settings import settings
 from src.domain.exceptions.domain_errors import (
@@ -239,4 +241,66 @@ app.include_router(security_txt_router)  # SEC-017: /.well-known/security.txt
 
 @app.get("/health")
 async def health_check() -> dict:
-    return {"status": "ok", "service": "cybervpn-backend"}
+    """Minimal health check for load balancers and orchestrators.
+
+    LOW-008: Returns only status to prevent service identification attacks.
+    For detailed health information, use the authenticated /health/detailed endpoint.
+    """
+    return {"status": "ok"}
+
+
+@app.get("/health/detailed")
+async def health_check_detailed(
+    _user=Depends(get_current_active_user),
+) -> dict:
+    """Detailed health check with dependency status (authenticated).
+
+    LOW-008: Service identification info only available to authenticated users.
+    Returns service name, version, environment, and dependency health.
+    """
+    from src.infrastructure.cache.redis_client import check_redis_connection
+    from src.infrastructure.database.session import check_db_connection
+
+    # Check dependencies
+    db_ok = False
+    redis_ok = False
+
+    try:
+        db_ok = await check_db_connection()
+    except Exception:
+        pass
+
+    try:
+        redis_ok, _ = await check_redis_connection()
+    except Exception:
+        pass
+
+    return {
+        "status": "ok" if (db_ok and redis_ok) else "degraded",
+        "service": "cybervpn-backend",
+        "version": "0.1.0",
+        "environment": settings.environment,
+        "dependencies": {
+            "database": "ok" if db_ok else "error",
+            "redis": "ok" if redis_ok else "error",
+        },
+    }
+
+
+@app.get("/metrics")
+async def metrics_endpoint():
+    """Prometheus metrics endpoint.
+
+    Exposes application metrics for Prometheus scraping.
+    LOW-006: Includes websocket_auth_method_total for deprecation tracking.
+    """
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+    from starlette.responses import Response
+
+    # Import metrics modules to ensure they're registered
+    from src.infrastructure.monitoring import metrics  # noqa: F401
+
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
