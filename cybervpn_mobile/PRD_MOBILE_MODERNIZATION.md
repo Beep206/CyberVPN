@@ -1,15 +1,20 @@
 # PRD: CyberVPN Mobile App — Modernization & Stability Fix
 
-**Version**: 1.1
+**Version**: 2.0
 **Date**: 2026-02-06
-**Author**: Engineering Team (Automated Analysis + Code Review)
+**Author**: Engineering Team (mobile-lead + senior-flutter + flutter-code-reviewer Analysis)
 **Status**: Draft — Pending Review
+**Analyzers**: mobile-lead agent, senior-flutter skill, flutter-code-reviewer agent
 
 ---
 
 ## 1. Executive Summary
 
-CyberVPN Mobile (Flutter) is a full-featured VPN client with 332 Dart files, Clean Architecture, Riverpod state management, and a feature-rich codebase. The app currently **hangs on the splash screen** during launch, making it unusable. This PRD documents all identified issues and proposes a phased remediation plan to achieve production-grade stability, performance, and code quality.
+CyberVPN Mobile (Flutter) is a full-featured VPN client with **332 Dart files** (~87,600 LOC), Clean Architecture, Riverpod 3.x state management, and 15 feature modules. The app currently **hangs on the splash screen** during launch, making it unusable.
+
+`flutter analyze` reports **2 compile errors** in production code, **10+ compile errors** in test code, **27 warnings**, and **60+ info-level issues**. Test suite cannot execute at all.
+
+This PRD v2.0 documents **30 identified issues** (8 critical, 7 high, 6 medium, 9 low), a precise root cause analysis of the splash screen hang, and a 4-phase remediation plan organized by the senior-flutter skill's production-readiness criteria.
 
 ---
 
@@ -17,249 +22,330 @@ CyberVPN Mobile (Flutter) is a full-featured VPN client with 332 Dart files, Cle
 
 ### 2.1 Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Framework | Flutter | **3.41.0-0.2.pre (beta)** — pubspec SDK constraint: ^3.10.8 |
-| Language | Dart | **3.11.0** (beta) — pubspec constraint: ^3.10.8 |
-| State Management | Riverpod 3.x | flutter_riverpod ^3.2.1 |
-| Navigation | go_router | ^17.0.0 |
-| HTTP | Dio | ^5.9.0 |
-| VPN Engine | flutter_v2ray_plus | ^1.0.11 |
-| Storage | flutter_secure_storage / shared_preferences | ^10.0.0 / ^2.5.3 |
-| Auth | local_auth (biometrics) | ^3.0.0 |
-| IAP | purchases_flutter (RevenueCat) | ^9.10.8 |
-| Firebase | firebase_core / messaging / analytics | ^4.4.0 / ^16.1.1 / ^12.1.1 |
-| Error Monitoring | sentry_flutter | ^9.0.0 |
-| Code Gen | freezed / json_serializable / riverpod_generator | ^3.2.5 / ^6.12.0 / ^4.0.3 |
-| Build | Android Gradle (Kotlin DSL) | Java 17, minSdk 24 |
+| Layer | Technology | Version | Status |
+|-------|-----------|---------|--------|
+| Framework | Flutter | **3.41.0-0.2.pre (BETA)** | RISK — should be stable |
+| Language | Dart | **3.11.0-296.4.beta** | RISK — beta channel |
+| State Management | flutter_riverpod | ^3.2.1 | OK |
+| Navigation | go_router | ^17.0.0 | OK |
+| HTTP | Dio | ^5.9.0 | OK |
+| VPN Engine | flutter_v2ray_plus | ^1.0.11 | RISK — stale (Nov 2025) |
+| Secure Storage | flutter_secure_storage | ^10.0.0 | DEPRECATED param |
+| Local Storage | shared_preferences | ^2.5.3 | OK |
+| Biometrics | local_auth | ^3.0.0 | API MISMATCH |
+| IAP | purchases_flutter (RevenueCat) | ^9.10.8 | OK |
+| Firebase | core / messaging / analytics | ^4.4.0 / ^16.1.1 / ^12.1.1 | OK |
+| Monitoring | sentry_flutter | ^9.0.0 | DEPRECATED API |
+| Sharing | share_plus | ^12.0.1 | RISK — needs patch |
+| Updates | in_app_update | ^4.2.4 | OK (guarded) |
+| Code Gen | freezed / json_serializable | ^3.2.5 / ^6.12.0 | DEPRECATED pattern |
+| Build | Android Gradle (Kotlin DSL) | Java 17, minSdk 24 | OK |
 
 ### 2.2 Architecture
 
 - **Pattern**: Clean Architecture (domain / data / presentation) per feature
-- **Features** (13 modules): auth, vpn, servers, subscription, settings, profile, referral, diagnostics, onboarding, config_import, notifications, quick_actions, quick_setup, widgets, navigation, review
-- **DI**: Riverpod Provider overrides via `buildProviderOverrides()` in `providers.dart`
+- **Features** (15 modules): auth, vpn, servers, subscription, settings, profile, referral, diagnostics, onboarding, config_import, notifications, quick_actions, quick_setup, widgets, navigation, review
+- **DI**: Riverpod Provider overrides via `buildProviderOverrides()` returning `List<Object?>` with unsafe `.cast()`
 - **Localization**: ARB-based, 33 locales, RTL support (Arabic, Hebrew, Farsi)
-- **Theming**: Material You / Dynamic Color with cyberpunk fallback palette
+- **Theming**: Material You / DynamicColorBuilder with cyberpunk fallback palette
 
-### 2.3 App Startup Flow (Current)
+### 2.3 App Startup Flow (Current — Annotated with Issues)
 
 ```
 main()
   ├─ WidgetsFlutterBinding.ensureInitialized()
   ├─ EnvironmentConfig.init()               // loads .env via flutter_dotenv
-  ├─ SharedPreferences.getInstance()         // BLOCKING await
-  ├─ ProviderContainer(overrides: ...)       // Eager DI — creates ALL repos, datasources, services
+  ├─ await SharedPreferences.getInstance()  // BLOCKING await (~10-50ms)
+  ├─ ProviderContainer(overrides: buildProviderOverrides(prefs).cast())
   │   ├─ SecureStorageWrapper()
-  │   │   └─ prewarmCache()                  // fire-and-forget async (3 secure storage reads)
+  │   │   └─ prewarmCache()                 // ⚠ FIRE-AND-FORGET — 3 SecureStorage reads
+  │   │      └─ accessToken, refreshToken, cachedUser (parallel Future.wait)
   │   ├─ NetworkInfo()
-  │   ├─ DeviceIntegrityChecker()
-  │   ├─ Dio + ApiClient + AuthInterceptor
-  │   ├─ FcmTokenService
-  │   ├─ All DataSources (7 concrete instances)
-  │   └─ All Repositories (7 concrete instances)
+  │   ├─ DeviceIntegrityChecker(prefs)
+  │   ├─ Dio + ApiClient(dio, baseUrl)
+  │   │   └─ LogInterceptor(requestBody:true, responseBody:true) // ⚠ ALWAYS ON — leaks in prod
+  │   ├─ AuthInterceptor(secureStorage, dio)
+  │   ├─ FcmTokenService(apiClient)
+  │   ├─ 7 DataSources (eager)              // ⚠ M1: unnecessary eager init
+  │   ├─ 7 Repositories (eager)             // ⚠ M1: unnecessary eager init
+  │   │   └─ VpnRepositoryImpl()
+  │   │       └─ _migrateOldConfigsIfNeeded() // ⚠ L2: FIRE-AND-FORGET async in constructor
+  │   └─ 16 provider overrides
+  │       └─ sharedPreferencesProvider override (from server_list_provider.dart ONLY)
+  │           └─ ⚠ C8: quick_setup_provider.dart declares its OWN sharedPreferencesProvider — NEVER overridden
+  │
   ├─ addPostFrameCallback → _initializeDeferredServices()
-  │   ├─ Firebase.initializeApp()
+  │   ├─ Firebase.initializeApp()           // ✓ try-catch wrapped
   │   ├─ PushNotificationService.initialize()
+  │   │   └─ AppLogger.info('FCM token: $_token')  // ⚠ H7: token logged in plaintext
   │   └─ QuickActionsService.initialize()
+  │
   ├─ SentryFlutter.init() OR direct _runApp()
   └─ runApp(UncontrolledProviderScope → CyberVpnApp)
-       ├─ CyberVpnApp.build() watches 6 providers simultaneously
+       │
+       ├─ CyberVpnApp.build() watches 6 providers:  // ⚠ C2: any hang blocks entire tree
        │   ├─ quickActionsListenerProvider
        │   ├─ widgetStateListenerProvider
        │   ├─ widgetToggleHandlerProvider
        │   ├─ quickSettingsChannelProvider
        │   ├─ untrustedWifiHandlerProvider
        │   └─ fcmTopicSyncProvider
+       │
+       ├─ DynamicColorBuilder → MaterialApp.router
+       │   └─ builder: wraps child with Directionality + MediaQuery (text scale)
+       │
        └─ GoRouter redirect() watches:
             ├─ isAuthenticatedProvider → authProvider.build()
-            │   └─ _checkCachedAuth() → repo.isAuthenticated() → repo.getCurrentUser()
-            ├─ shouldShowOnboardingProvider (FutureProvider)
-            └─ shouldShowQuickSetupProvider
+            │   └─ _checkCachedAuth()
+            │       ├─ _repo.isAuthenticated() → secureStorage.read('access_token')
+            │       │   └─ ⚠ C1: RACES with prewarmCache() — EncryptedSharedPreferences deadlock
+            │       └─ _repo.getCurrentUser() → secureStorage.read('cached_user')
+            │
+            ├─ shouldShowOnboardingProvider (FutureProvider → SharedPreferences)
+            │
+            ├─ shouldShowQuickSetupProvider → quickSetupProvider.build()
+            │   └─ ref.watch(sharedPreferencesProvider) — ⚠ C8: THROWS UnimplementedError
+            │       (this is quick_setup's LOCAL provider, NOT the overridden one)
+            │
+            └─ quickActionsHandlerProvider (kept alive)
 ```
+
+### 2.4 flutter analyze Summary
+
+| Severity | Count | Key Issues |
+|----------|-------|------------|
+| **error** (lib/) | 2 | `app_lock_overlay.dart:56` — `AuthenticationOptions` doesn't exist in local_auth 3.0 |
+| **error** (test/) | 10+ | Mock overrides don't match updated AuthRepository signatures; `linkOAuth` removed |
+| **warning** | 27 | 22 × `inference_failure_on_function_invocation`, 3 × `unused_local_variable`, 1 × `unused_import` |
+| **info** | 60+ | deprecated APIs (`Share.share`, `Radio.groupValue`, `encryptedSharedPreferences`), missing `const`, `use_build_context_synchronously` |
 
 ---
 
 ## 3. Identified Issues
 
-### 3.1 CRITICAL — Splash Screen Hang (P0)
+### 3.1 CRITICAL — Splash Screen Hang & Build Failures (P0)
 
-#### C1: GoRouter redirect depends on unresolved async providers
-**File**: `lib/app/router/app_router.dart:150-164`
-**Problem**: `appRouterProvider` synchronously watches `isAuthenticatedProvider`, which derives from `authProvider` (an `AsyncNotifier`). While `authProvider.build()` is loading (performing async I/O to check cached tokens), `isAuthenticatedProvider` returns `false`, causing the router to redirect to `/login`. But if the auth check never completes (e.g., SecureStorage hangs on Android), the app stays stuck.
-**Root Cause Hypothesis**: `SecureStorageWrapper.prewarmCache()` is fire-and-forget but `authProvider.build()` also reads from `SecureStorage` via `_localDataSource.getCachedToken()`. On some devices, `EncryptedSharedPreferences` can deadlock if accessed concurrently from multiple isolates or threads.
+#### C1: SecureStorage race condition blocks auth resolution
+**File**: `lib/core/di/providers.dart:190`, `lib/core/storage/secure_storage.dart:103-113`
+**Problem**: `prewarmCache()` is fire-and-forget in `buildProviderOverrides()`. Meanwhile `authProvider.build()` → `_checkCachedAuth()` also reads the same SecureStorage keys. On Android with `encryptedSharedPreferences: true` (deprecated), EncryptedSharedPreferences can deadlock when accessed concurrently — the Android Keystore may serialize operations, causing the second access to wait indefinitely for the first to release the lock.
+**Evidence**: `secure_storage.dart:39` uses deprecated `AndroidOptions(encryptedSharedPreferences: true)`. The deprecation notice states: "The Jetpack Security library is deprecated by Google."
+**Impact**: Auth check never resolves → GoRouter redirect hangs → native splash screen never dismissed.
 
-#### C2: Six providers watched in root widget build
-**File**: `lib/app/app.dart:48-66`
-**Problem**: `CyberVpnApp.build()` calls `ref.watch()` on 6 providers. Several of these create listeners, stream subscriptions, and platform channel calls during initialization. If any of these throws or hangs (e.g., `quickSettingsChannelProvider` on devices without Quick Settings support, `untrustedWifiHandlerProvider` requiring location permission), it blocks the entire widget tree.
+#### C2: Root widget watches 6 providers — any hang blocks entire tree
+**File**: `lib/app/app.dart:48-65`
+**Problem**: `CyberVpnApp.build()` calls `ref.watch()` on 6 providers simultaneously. These create platform channel listeners, stream subscriptions, and network monitors. If any provider's initialization throws or hangs (e.g., `quickSettingsChannelProvider` on devices without Quick Settings tile support, `untrustedWifiHandlerProvider` waiting for location permission), it blocks `MaterialApp.router` rendering.
+**Impact**: The widget tree never builds, splash screen stays visible.
 
-#### C3: VpnConnectionNotifier.build() does network I/O
+#### C3: VpnConnectionNotifier.build() does heavy async I/O
 **File**: `lib/features/vpn/presentation/providers/vpn_connection_provider.dart:180-233`
-**Problem**: The VPN notifier's `build()` method performs multiple async operations: checks `_repository.isConnected`, loads last server from SecureStorage, checks network connectivity, and potentially starts auto-connect. If the VPN engine initialization hangs (flutter_v2ray_plus native code), this blocks the provider resolution chain.
+**Problem**: `build()` performs: check `_repository.isConnected` (V2Ray native call), load last server from SecureStorage, check network connectivity, read vpnSettings, read authProvider state, potentially trigger auto-connect. Creates 3 stream subscriptions (state, network, WebSocket). If V2Ray engine native code hangs during `isConnected` check, this blocks the entire provider chain.
+**Impact**: Blocks VPN-dependent UI from rendering.
 
-#### C4: VPN engine re-initialized on every connect
-**File**: `lib/features/vpn/data/repositories/vpn_repository_impl.dart:44-52`
-**Problem**: `VpnRepositoryImpl.connect()` calls `_engine.initialize()` every time a connection is made, rather than initializing once. This can cause native resource leaks and unpredictable behavior.
+#### C4: VPN engine re-initialized on every connect() + stream subscription leak
+**File**: `lib/features/vpn/data/repositories/vpn_repository_impl.dart:44-49`, `lib/features/vpn/data/datasources/vpn_engine_datasource.dart:27-29`
+**Problem**: Two issues in one:
+1. `VpnRepositoryImpl.connect()` calls `_engine.initialize()` every time — creates native resources repeatedly
+2. Inside `initialize()`, `v2ray.onStatusChanged.listen(...)` is called but the `StreamSubscription` is never stored or cancelled. Each `connect()` creates a new orphan subscription.
+**Impact**: Growing memory leak with each reconnect. Native resource exhaustion.
 
-#### C5: BiometricService uses deprecated local_auth API — COMPILE ERROR
-**File**: `lib/features/auth/domain/usecases/biometric_service.dart:57-60`
-**Problem**: The `authenticate()` call passes `biometricOnly` and `persistAcrossBackgrounding` as **direct named parameters** (local_auth 2.x API). In local_auth 3.0.0, these parameters were moved to `AuthenticationOptions`. The code in `biometric_service.dart` does NOT use `AuthenticationOptions`:
-```dart
-// biometric_service.dart — BROKEN (local_auth 2.x API)
-_localAuth.authenticate(
-  localizedReason: reason,
-  biometricOnly: true,              // ← NOT a valid param in 3.0
-  persistAcrossBackgrounding: true,  // ← NOT a valid param in 3.0
-);
+#### C5: app_lock_overlay.dart — COMPILE ERROR (local_auth 3.0 API mismatch)
+**File**: `lib/features/auth/presentation/widgets/app_lock_overlay.dart:54-59`
+**Problem**: Uses `AuthenticationOptions` class and `options:` named parameter which **do not exist** in `local_auth 3.0.0`. Confirmed by flutter analyze:
 ```
-Meanwhile, `app_lock_overlay.dart:54-59` uses the **correct 3.0 API**:
-```dart
-// app_lock_overlay.dart — CORRECT (local_auth 3.0 API)
-localAuth.authenticate(
-  localizedReason: '...',
-  options: const AuthenticationOptions(
-    stickyAuth: true,
-    biometricOnly: false,
-  ),
-);
+error • The named parameter 'options' isn't defined • app_lock_overlay.dart:56:9
+error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.dart:56:24
 ```
-**Impact**: This inconsistency likely causes a compile error or runtime crash during biometric authentication, which can be triggered during startup if app lock is enabled.
+**Impact**: If app lock is enabled and biometric fails (triggering PIN fallback), calling `_attemptPinUnlock()` crashes. In release mode, R8 tree-shaking may exclude this dead code — but if the code path is reached, it's a hard crash.
 
-#### C6: Flutter SDK on beta channel (3.41.0) — potential instability
-**Problem**: The installed Flutter SDK is `3.41.0-0.2.pre` on the **beta channel** while the pubspec constraint is `^3.10.8`. While this satisfies the version constraint, beta SDKs can introduce breaking changes in framework APIs, rendering, and plugin compatibility that are not present in stable releases.
-**Risk**: Unpredictable behavior, plugins may not support beta SDK, app store submission may be rejected.
+#### C6: biometric_service.dart uses deprecated local_auth 2.x direct params
+**File**: `lib/features/auth/domain/usecases/biometric_service.dart:57-61`
+**Problem**: `authenticate()` passes `biometricOnly: true` and `persistAcrossBackgrounding: true` as direct named parameters. In `local_auth 3.0.0`, `biometricOnly` was deprecated and `persistAcrossBackgrounding` is undocumented. While this currently compiles (the parameters still exist as deprecated), the behavior is undefined and will break in future local_auth versions.
+**Impact**: Biometric authentication may silently use incorrect defaults.
 
-#### C7: `flutter analyze` reports compilation errors
-**Problem**: Running `flutter analyze` reveals multiple errors:
-- `linkOAuth` method doesn't exist on `ProfileRemoteDataSourceImpl` / `ProfileRepositoryImpl` (6+ errors in tests)
-- `linkTelegram` method doesn't exist on `ProfileNotifier` (1 error in test)
-- `quick_setup` prefix references undefined name (1 error in test)
-- Various `argument_type_not_assignable` errors
-**Impact**: Tests cannot run. Profile OAuth features may have incomplete implementations or were removed without updating tests.
+#### C7: Flutter SDK on beta channel (3.41.0-0.2.pre)
+**Problem**: Flutter SDK is on `beta` channel (3.41.0-0.2.pre, Dart 3.11.0-296.4.beta). Beta SDKs:
+- May introduce framework-level rendering regressions
+- Plugins may not test against beta
+- App Store / Play Store submission may fail with beta-built binaries
+- `Radio.groupValue` / `Radio.onChanged` deprecation warnings only appear in Flutter 3.32+ beta
+**Impact**: Unpredictable behavior across the entire app.
 
-### 3.2 HIGH — Dependency & API Issues (P1)
+#### C8: Duplicate `sharedPreferencesProvider` — quick_setup NEVER overridden
+**File**: `lib/features/quick_setup/presentation/providers/quick_setup_provider.dart:142-147`
+**Problem**: `quick_setup_provider.dart` declares its own `sharedPreferencesProvider` (line 142). The DI override in `providers.dart:250` only overrides the one imported from `server_list_provider.dart`. These are **two different Dart symbols** with the same name from different libraries. `QuickSetupNotifier.build()` (line 57) calls `ref.watch(sharedPreferencesProvider)` which resolves to the LOCAL (unoverridden) one, throwing `UnimplementedError`.
+**Chain reaction**:
+1. `quickSetupProvider` goes to `AsyncError` state
+2. `shouldShowQuickSetupProvider` returns `true` (default when value is null)
+3. GoRouter redirects authenticated users to `/quick-setup`
+4. `QuickSetupScreen` tries to use `quickSetupProvider` → same crash
+5. Infinite error → redirect loop for authenticated users
+**Impact**: Authenticated users are trapped in a crashing quick-setup redirect loop.
 
-#### H1: `buildProviderOverrides()` returns `List<Object?>` with `.cast()`
+### 3.2 HIGH — Security & API Issues (P1)
+
+#### H1: `buildProviderOverrides()` returns `List<Object?>` with unsafe `.cast()`
 **File**: `lib/core/di/providers.dart:182`, `lib/main.dart:35`
-**Problem**: The function returns `List<Object?>` and the call site uses `.cast()`. This is a Riverpod 3.x workaround for the `Override` type not being publicly exported, but it's fragile and can cause runtime `CastError` if any override is malformed. This pattern also prevents compile-time type checking.
+**Problem**: Returns `List<Object?>`, caller does `.cast()` without type argument. This bypasses Riverpod's type-safe override system. If any entry is not a valid `Override`, runtime `CastError` crashes the app immediately on startup.
+**Impact**: Fragile startup — any typo or mismatched provider crashes the entire app.
 
-#### H2: flutter_v2ray_plus at v1.0.11 — last updated Nov 2025
+#### H2: FCM token logged in plaintext
+**File**: `lib/core/services/push_notification_service.dart:116,121`
+**Problem**: Full FCM device token is logged via `AppLogger.info('FCM token: $_token')` and `AppLogger.info('FCM token refreshed: $newToken')`. If logs are collected by Sentry, crash reporting, or written to disk/logcat, the token is exposed.
+**Impact**: Attackers with log access can send unsolicited push notifications to user devices.
+
+#### H3: VPN engine stream subscription never cancelled
+**File**: `lib/features/vpn/data/datasources/vpn_engine_datasource.dart:27-29`
+**Problem**: `v2ray.onStatusChanged.listen((status) { _lastStatus = status; })` — the `StreamSubscription` returned by `.listen()` is discarded. Each call to `initialize()` (called on every `connect()`) adds a new orphan listener. The `dispose()` method only nulls `_v2ray` and `_lastStatus`, not the subscription.
+**Impact**: Memory leak growing linearly with reconnections. Old subscriptions process stale events.
+
+#### H4: `LogInterceptor` always enabled — leaks tokens in production
+**File**: `lib/core/network/api_client.dart:44-48`
+**Problem**: `LogInterceptor(requestBody: true, responseBody: true)` is added unconditionally. In production:
+- Logs JWT access tokens from Authorization headers
+- Logs refresh tokens from refresh request bodies
+- Logs user credentials during login/register
+- Performance overhead: serializing full request/response bodies to string
+**Impact**: Security: credentials visible in logcat. Performance: unnecessary string operations on every HTTP request.
+
+#### H5: flutter_v2ray_plus at v1.0.11 — stale dependency (Nov 2025)
 **File**: `pubspec.yaml`
-**Problem**: The VPN engine plugin has not been updated in 3+ months and may have compatibility issues with Flutter 3.10.x. The API surface (`initializeVless`, `startVless`, `stopVless`) uses a non-standard naming convention suggesting early development stage.
-**Risk**: Native crashes, memory leaks, VPN tunnel failures.
+**Problem**: The VPN engine plugin hasn't been updated in 3+ months. API naming (`initializeVless`, `startVless`, `stopVless`, `VlessStatus`) suggests early development. No guarantee of compatibility with Flutter 3.10+.
+**Risk**: Native crashes, memory leaks, VPN tunnel failures. No upstream support for bug fixes.
 
-#### H3: `local_auth` — deprecated parameter usage
-**File**: `lib/features/auth/domain/usecases/biometric_service.dart:57-60`
-**Problem**: `authenticate()` is called with `biometricOnly: true` and `persistAcrossBackgrounding: true`. The `biometricOnly` parameter was deprecated in favor of `AuthenticationOptions`. While it still works, it may be removed in future versions.
+#### H6: share_plus requires manual Python patch script
+**File**: `scripts/patch_share_plus.py`
+**Problem**: A Python script exists to patch the share_plus plugin post-install. This:
+- Breaks CI/CD reproducibility (patch must run after every `flutter pub get`)
+- Fragile against any share_plus version update
+- Not documented in pubspec.yaml or build scripts
+**Impact**: CI builds may fail silently if patch is not applied.
 
-#### H4: share_plus requires manual patching
-**File**: `cybervpn_mobile/scripts/patch_share_plus.py`
-**Problem**: A Python script exists to patch the share_plus plugin, indicating the current version has known issues that require post-install modification. This is fragile and breaks CI/CD reproducibility.
-
-#### H5: in_app_update is Android-only
-**File**: `pubspec.yaml` — `in_app_update: ^4.2.4`
-**Problem**: This package only supports Android. On iOS, calling any of its methods will throw or return null. No platform guard was found in the codebase.
+#### H7: `encryptedSharedPreferences` deprecated in flutter_secure_storage
+**File**: `lib/core/storage/secure_storage.dart:39`
+**Problem**: `AndroidOptions(encryptedSharedPreferences: true)` — deprecated. The deprecation notice states: "The Jetpack Security library is deprecated by Google. Your data will be automatically migrated to custom ciphers on first access. Remove this parameter."
+**Impact**: Will stop compiling in flutter_secure_storage v11. The deprecated migration path may cause slow first-access on app update (contributing to C1 splash screen hang).
 
 ### 3.3 MEDIUM — Performance Issues (P2)
 
-#### M1: Eager initialization of all 7 repositories + 7 datasources at startup
+#### M1: Eager initialization of all 14 DI objects at startup
 **File**: `lib/core/di/providers.dart:182-269`
-**Problem**: `buildProviderOverrides()` eagerly creates every datasource, repository, Dio client, and service during app launch, regardless of whether they are needed. This adds ~100-300ms to cold start on mid-range devices.
-**Fix**: Lazy initialization — only create instances when first accessed.
+**Problem**: `buildProviderOverrides()` eagerly creates 7 datasources, 7 repositories, Dio, ApiClient, NetworkInfo, DeviceIntegrityChecker, FcmTokenService — all before `runApp()`. Most are not needed until user navigates to specific features.
+**Impact**: ~100-300ms added to cold start on mid-range devices. Unnecessary memory allocation.
 
-#### M2: No widget rebuilding optimization
-**File**: `lib/app/app.dart`
-**Problem**: The root `CyberVpnApp` widget watches multiple providers. Any change to theme, locale, text scale, or any of the 6 listener providers triggers a full rebuild of the `MaterialApp.router` subtree.
+#### M2: Root widget rebuilds entire MaterialApp on any provider change
+**File**: `lib/app/app.dart:45-135`
+**Problem**: `CyberVpnApp.build()` watches 10+ providers (6 listeners + theme + locale + textScale + router). Any state change in ANY of these triggers a full rebuild of `DynamicColorBuilder` → `MaterialApp.router` subtree. No `RepaintBoundary` or widget splitting.
+**Impact**: Unnecessary frame drops during theme changes, locale switches, or background provider updates.
 
-#### M3: VPN engine status stream has no `distinct()`
-**File**: `lib/features/vpn/data/datasources/vpn_engine_datasource.dart:27`
-**Problem**: The status stream listener fires for every status event, including duplicate values. This causes unnecessary UI rebuilds and state updates.
+#### M3: VPN status stream has no deduplication
+**File**: `lib/features/vpn/data/datasources/vpn_engine_datasource.dart:54`
+**Problem**: `statusStream` returns `v2ray.onStatusChanged` directly without `.distinct()`. The V2Ray engine may emit duplicate status events (e.g., repeated "CONNECTED" states), triggering unnecessary UI rebuilds in `VpnConnectionNotifier`.
+**Impact**: Unnecessary widget rebuilds and state transitions.
 
-#### M4: `LogInterceptor` in production ApiClient
-**File**: `lib/core/network/api_client.dart:44-48`
-**Problem**: `LogInterceptor(requestBody: true, responseBody: true)` is always added to Dio, even in production. This logs full request/response bodies (including tokens) to the debug console, impacting both performance and security.
-
-#### M5: No connection pooling or retry logic in ApiClient
+#### M4: No Dio retry interceptor for transient failures
 **File**: `lib/core/network/api_client.dart`
-**Problem**: Each request creates a new connection. No retry interceptor for transient failures (5xx, timeouts). Auth token refresh via `AuthInterceptor` is the only interceptor besides logging.
+**Problem**: Only `LogInterceptor` and `AuthInterceptor` are added. No retry logic for transient failures (5xx errors, timeouts, connection resets). The auth interceptor handles 401 refresh but all other errors immediately throw.
+**Impact**: Flaky connections on poor networks. User sees errors for recoverable failures.
+
+#### M5: `analysis_options.yaml` missing critical lint rules
+**File**: `analysis_options.yaml`
+**Problem**: Does not include `unawaited_futures` or `discarded_futures` rules. Multiple fire-and-forget async patterns exist in the codebase (prewarmCache, _migrateOldConfigs, _registerFcmToken, _performAttestation, _scheduleTokenRefresh) that would be caught by these rules.
+**Impact**: Uncaught dangling futures may cause race conditions, unhandled errors, and silent failures.
+
+#### M6: `SentryFlutter.init` options.tracesSampleRate = 1.0 in all environments
+**File**: `lib/main.dart:49`
+**Problem**: `options.tracesSampleRate = 1.0` sends 100% of performance traces to Sentry. In production, this adds overhead to every transaction and may exceed Sentry quota.
+**Impact**: Performance overhead + Sentry cost in production.
 
 ### 3.4 LOW — Code Quality Issues (P3)
 
 #### L1: Mixed provider patterns — manual vs code-generated
-**Problem**: Some providers use `riverpod_generator` (annotation-based) while most use manual `Provider`/`AsyncNotifier` declarations. This inconsistency makes the codebase harder to maintain and prevents leveraging code generation benefits (auto-dispose, type safety).
+**Problem**: Most providers use manual `Provider`/`AsyncNotifier` declarations. `riverpod_generator` is listed as a dependency but barely used. Inconsistent patterns reduce maintainability and miss code-gen benefits (auto-dispose, type-safe families).
 
-#### L2: VpnRepositoryImpl runs migration in constructor
+#### L2: VpnRepositoryImpl runs async migration in constructor
 **File**: `lib/features/vpn/data/repositories/vpn_repository_impl.dart:38-41`
-**Problem**: `_migrateOldConfigsIfNeeded()` is called in the constructor but is async. It runs fire-and-forget, meaning the repository may be used before migration completes, leading to inconsistent state.
+**Problem**: `_migrateOldConfigsIfNeeded()` is async but called from synchronous constructor. Runs as fire-and-forget. If `getLastConfig()` or `getSavedConfigs()` is called before migration completes, data may be inconsistent.
 
-#### L3: Freezed entities use `abstract class` (deprecated in Freezed 3.x)
-**File**: `lib/features/auth/domain/entities/user_entity.dart:6`
-**Problem**: `@freezed abstract class UserEntity with _$UserEntity` — Freezed 3.x recommends `sealed class` or `class` instead of `abstract class`. While still functional, this generates deprecation warnings during code generation.
+#### L3: All 7 Freezed entities use deprecated `abstract class` pattern
+**Files**: `user_entity.dart:6`, `server_entity.dart:6`, `plan_entity.dart:8`, `subscription_entity.dart:8`, `vpn_config_entity.dart:8`, `connection_state_entity.dart:14`, `connection_stats_entity.dart:6`
+**Problem**: All use `@freezed abstract class X with _$X`. Freezed 3.x recommends `sealed class` or plain `class`. Generates deprecation warnings during `build_runner`.
 
-#### L4: No error boundary widgets
-**Problem**: The app uses `ErrorWidget.builder` and `GlobalErrorScreen` for framework errors, but there are no `ErrorBoundary` widgets around individual feature modules. A crash in one feature (e.g., diagnostics) will crash the entire app.
+#### L4: No error boundary widgets around feature modules
+**Problem**: `ErrorWidget.builder` is set to `GlobalErrorScreen`, but there are no per-feature `ErrorBoundary` widgets. A crash in diagnostics, referral, or settings crashes the entire app. With 15 feature modules, the blast radius of any uncaught error is maximized.
 
-#### L5: `Sentry.configureScope` is deprecated
-**File**: `lib/features/auth/presentation/providers/auth_provider.dart:219-226`
-**Problem**: `Sentry.configureScope()` was deprecated in sentry_flutter 8.x in favor of `Sentry.getDefaultScope()` or per-event scoping.
+#### L5: `Sentry.configureScope` deprecated — used in 3 locations
+**Files**: `auth_provider.dart:219,231`, `root_detection_dialog.dart:42`
+**Problem**: `Sentry.configureScope()` was deprecated in sentry_flutter 8.x. Modern API uses `Sentry.getDefaultScope()` or per-event scoping with `Scope`.
 
-#### L6: analysis_options.yaml uses `flutter_lints` instead of `flutter_lints` latest
-**File**: `analysis_options.yaml`
-**Problem**: Using `flutter_lints: ^6.0.0`. Should verify this is the latest version and all rules are still valid.
+#### L6: Hardcoded English strings in app_lock_overlay.dart and quick_actions_service.dart
+**Files**: `app_lock_overlay.dart:134-144,203-232`, `quick_actions_service.dart:47-62`
+**Problem**: Strings like 'CyberVPN Locked', 'Authenticate to continue', 'Quick Connect', 'Disconnect' bypass the ARB-based localization system. These are visible to users in all locales.
 
-#### L7: Android Gradle — no namespace in `build.gradle.kts` for plugins
-**File**: `android/build.gradle.kts:24-40`
-**Problem**: The root `build.gradle.kts` contains a workaround to extract namespace from `AndroidManifest.xml` for library plugins that don't declare one. This is a known Gradle 8.x migration issue and should be resolved upstream.
+#### L7: 22 type inference warnings from ApiClient generic methods
+**Files**: `auth_remote_ds.dart`, `profile_remote_ds.dart`, `server_remote_ds.dart`, `subscription_remote_ds.dart`
+**Problem**: Callers of `_apiClient.get()`, `_apiClient.post()`, etc. don't provide explicit type arguments. With strict-inference enabled in `analysis_options.yaml`, this generates 22 `inference_failure_on_function_invocation` warnings.
+
+#### L8: `BuildContext` used across async gaps in 12+ locations
+**Files**: `social_accounts_screen.dart:205-290`, `debug_screen.dart:304-423`, `navigation_flow_test.dart:326-542`
+**Problem**: `context` is used after `await` calls. While `mounted` checks exist, analyzer flags them as "guarded by an unrelated `mounted` check" — the check may be from a different State than the context being used.
+
+#### L9: Android Gradle — 8GB JVM heap + ManualPluginRegistrant maintenance burden
+**Files**: `android/gradle.properties:1`, `ManualPluginRegistrant.kt`
+**Problem**: `org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G` is excessive for a Flutter project. `ManualPluginRegistrant.kt` replaces auto-generated plugin registration (excluded via `build.gradle.kts:137`), requiring manual updates when adding/removing plugins.
 
 ---
 
 ## 4. Proposed Solution — Phased Approach
 
-### Phase 1: Fix Splash Screen Hang & Critical Build Errors (P0) — 3-4 days
+### Phase 1: Fix Splash Screen Hang & Critical Build Errors (P0) — 3-5 days
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1.1 | **Switch Flutter SDK to stable channel** — Run `flutter channel stable && flutter upgrade`. The current beta channel (3.41.0-0.2.pre) may introduce instability. Stable channel ensures plugin compatibility and app store acceptance. | System-level |
-| 1.2 | **Fix BiometricService local_auth API** — Replace deprecated direct named parameters (`biometricOnly`, `persistAcrossBackgrounding`) with `AuthenticationOptions` in `biometric_service.dart`. Match the pattern already used in `app_lock_overlay.dart`. | `biometric_service.dart` |
-| 1.3 | **Add splash/loading screen route** — Create a dedicated `/splash` route that shows a branded loading indicator. Router initial location changes from `/` to `/splash`. After auth check resolves, redirect to appropriate screen. | `app_router.dart`, new `splash_screen.dart` |
-| 1.4 | **Fix SecureStorage race condition** — Remove `prewarmCache()` fire-and-forget. Instead, `await` it before creating ProviderContainer. Alternatively, make `authProvider.build()` use the pre-warmed cache exclusively. | `main.dart`, `secure_storage.dart`, `providers.dart` |
-| 1.5 | **Add timeouts to auth check** — Wrap `_checkCachedAuth()` in `Future.timeout(Duration(seconds: 3))`. On timeout, treat as unauthenticated and proceed to login. | `auth_provider.dart` |
-| 1.6 | **Guard root widget providers** — Move 6 `ref.watch()` calls from `CyberVpnApp.build()` to a separate `_AppLifecycleManager` widget that handles errors gracefully. Use `try-catch` and log failures instead of propagating. | `app.dart` |
-| 1.7 | **Initialize VPN engine once** — Move `_engine.initialize()` from `VpnRepositoryImpl.connect()` to a one-time initialization (in provider setup or lazy singleton). | `vpn_repository_impl.dart`, `vpn_engine_datasource.dart` |
-| 1.8 | **Fix flutter analyze errors** — Fix all compilation errors found by `flutter analyze`: remove references to `linkOAuth`/`linkTelegram` in tests (methods no longer exist), fix `quick_setup` test prefix, fix `argument_type_not_assignable` errors. | `test/features/profile/**`, `test/features/quick_setup/**` |
-| 1.9 | **Add startup profiling** — Add `Stopwatch` logs at each initialization step to identify slow operations on real devices. | `main.dart` |
+| # | Task | Description | Files | Issues |
+|---|------|-------------|-------|--------|
+| 1.1 | **Switch Flutter SDK to stable channel** | Run `flutter channel stable && flutter upgrade`. Verify all plugins compile. Re-run `flutter analyze`. | System-level | C7 |
+| 1.2 | **Fix app_lock_overlay.dart compile error** | Replace `options: AuthenticationOptions(...)` with local_auth 3.0 direct params: `biometricOnly: false, stickyAuth: true`. | `app_lock_overlay.dart:54-59` | C5 |
+| 1.3 | **Fix biometric_service.dart deprecated API** | Replace `biometricOnly: true, persistAcrossBackgrounding: true` with correct local_auth 3.0 params. | `biometric_service.dart:57-61` | C6 |
+| 1.4 | **Fix duplicate sharedPreferencesProvider** | Remove duplicate declaration in `quick_setup_provider.dart`. Import from `server_list_provider.dart` or create a shared core provider. | `quick_setup_provider.dart:142-147`, `providers.dart` | C8 |
+| 1.5 | **Fix SecureStorage race condition** | Option A: `await secureStorage.prewarmCache()` before creating ProviderContainer. Option B: Remove fire-and-forget, let auth check warm cache on first read. Remove deprecated `encryptedSharedPreferences: true`. | `providers.dart:190`, `secure_storage.dart:39`, `main.dart` | C1, H7 |
+| 1.6 | **Add splash/loading screen route** | Create `/splash` route with branded loading indicator. Router initial location → `/splash`. After auth + onboarding check resolves, redirect to appropriate screen. Add `Future.timeout(3s)` to `_checkCachedAuth()`. | `app_router.dart`, new `splash_screen.dart`, `auth_provider.dart:60` | C1 |
+| 1.7 | **Extract root widget lifecycle providers** | Move 6 `ref.watch()` calls from `CyberVpnApp.build()` to a separate `_AppLifecycleManager` ConsumerWidget placed under MaterialApp.router. Wrap in try-catch. | `app.dart:48-65` | C2 |
+| 1.8 | **Fix VPN engine initialization** | Move `_engine.initialize()` out of `connect()` — call once in provider setup. Store stream subscription in `VpnEngineDatasource` and cancel in `dispose()`. | `vpn_repository_impl.dart:44-49`, `vpn_engine_datasource.dart:14-30` | C4, H3 |
+| 1.9 | **Fix flutter analyze errors** | Fix all 12+ compile errors in test files: update mock AuthRepository to match new signatures (device, rememberMe params), remove `linkOAuth`/`linkTelegram` references, fix clipboard_import_observer_test type error. | `test/features/**` | C7 (analyze) |
+| 1.10 | **Add startup profiling** | Add `Stopwatch` + `AppLogger` at each initialization step. Log total startup time. Target: identify operations > 100ms. | `main.dart`, `providers.dart` | — |
 
-### Phase 2: Dependency Upgrades & API Fixes (P1) — 2-3 days
+### Phase 2: Security & Dependency Fixes (P1) — 2-3 days
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 2.1 | **Audit & upgrade all dependencies** — Run `flutter pub outdated`, upgrade to latest compatible versions. Special attention to: `go_router`, `flutter_riverpod`, `sentry_flutter`, `firebase_*`. Do NOT downgrade any package. | `pubspec.yaml` |
-| 2.2 | **Fix provider overrides type safety** — Investigate Riverpod 3.x proper override pattern. If `Override` type is still not exported, create a typed wrapper function. | `providers.dart`, `main.dart` |
-| 2.3 | **Remove share_plus patch script** — Either upgrade share_plus to a version that doesn't need patching, or pin to a known-good version. Remove `scripts/patch_share_plus.py`. | `pubspec.yaml`, `scripts/` |
-| 2.4 | **Guard in_app_update for iOS** — Add `Platform.isAndroid` check around all `in_app_update` usage. | Search for `in_app_update` imports |
-| 2.5 | **Evaluate flutter_v2ray_plus alternatives** — Research `flutter_v2ray_client` (v2.0.0+) as a potential replacement with better maintenance. Document findings and migration path. | Research task |
+| # | Task | Description | Files | Issues |
+|---|------|-------------|-------|--------|
+| 2.1 | **Remove FCM token from logs** | Replace `AppLogger.info('FCM token: $_token')` with `AppLogger.debug('FCM token retrieved (${_token?.length ?? 0} chars)')`. Same for refresh log. | `push_notification_service.dart:116,121` | H2 |
+| 2.2 | **Conditionally add LogInterceptor** | Only add in `kDebugMode`. Remove `requestBody: true, responseBody: true` from production. Redact Authorization header in debug logs. | `api_client.dart:44-48` | H4 |
+| 2.3 | **Fix provider overrides type safety** | Investigate Riverpod 3.x proper override pattern. If `Override` type is still not exported, create `List<Override> buildTypedOverrides()` with proper typing. | `providers.dart:182`, `main.dart:35` | H1 |
+| 2.4 | **Remove share_plus patch script** | Upgrade share_plus to version that doesn't need patching. Migrate all `Share.share()` → `SharePlus.instance.share()` (7 locations). Remove `scripts/patch_share_plus.py`. | `pubspec.yaml`, `scripts/`, 7 files | H6 |
+| 2.5 | **Evaluate flutter_v2ray_plus alternatives** | Research `flutter_v2ray_client` or forking `flutter_v2ray_plus`. Document findings, API diff, migration effort. | Research task | H5 |
 
 ### Phase 3: Performance Optimization (P2) — 3-4 days
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 3.1 | **Lazy provider initialization** — Replace eager creation in `buildProviderOverrides()` with lazy `Provider` instances that create resources on first access. Only pre-create: SharedPreferences, SecureStorage, Dio, ApiClient. | `providers.dart` |
-| 3.2 | **Split root widget providers** — Extract lifecycle listeners into a `ProviderObserver` or a separate widget subtree that doesn't rebuild the router. | `app.dart` |
-| 3.3 | **Add `distinct()` to VPN status stream** — Prevent duplicate status events from causing unnecessary rebuilds. | `vpn_engine_datasource.dart` |
-| 3.4 | **Conditionally add LogInterceptor** — Only add in debug/dev builds. Remove `requestBody: true` and `responseBody: true` from production. | `api_client.dart` |
-| 3.5 | **Add Dio retry interceptor** — Implement retry with exponential backoff for transient network errors (5xx, timeouts). Max 3 retries. | `api_client.dart`, new `retry_interceptor.dart` |
-| 3.6 | **Profile and reduce startup time** — Target: cold start < 2 seconds on mid-range device. Measure with `flutter run --profile`. | All initialization files |
+| # | Task | Description | Files | Issues |
+|---|------|-------------|-------|--------|
+| 3.1 | **Lazy provider initialization** | Replace eager `buildProviderOverrides()` with lazy `Provider` instances. Only pre-create: SharedPreferences, SecureStorage, Dio, ApiClient, AuthInterceptor. All datasources and repositories created on first access. | `providers.dart` | M1 |
+| 3.2 | **Split root widget providers** | Extract lifecycle listeners into a dedicated `LifecycleObserverWidget` under the router. Root widget only watches theme/locale/router. Use `RepaintBoundary` for performance isolation. | `app.dart` | M2 |
+| 3.3 | **Add `distinct()` to VPN status stream** | Pipe `v2ray.onStatusChanged` through `.distinct()` to prevent duplicate events from triggering rebuilds. | `vpn_engine_datasource.dart:54` | M3 |
+| 3.4 | **Add Dio retry interceptor** | Implement retry with exponential backoff for 5xx, timeouts, connection errors. Max 3 retries. Skip retry for 4xx. | `api_client.dart`, new `retry_interceptor.dart` | M4 |
+| 3.5 | **Add `unawaited_futures` lint rule** | Add `unawaited_futures` and `discarded_futures` to `analysis_options.yaml`. Fix all violations (explicitly use `unawaited()` from `dart:async` where fire-and-forget is intentional). | `analysis_options.yaml`, various files | M5 |
+| 3.6 | **Configure Sentry sampling per environment** | Set `tracesSampleRate` to 1.0 in dev, 0.2 in staging, 0.05 in prod. Use `EnvironmentConfig.environment` to determine. | `main.dart:49` | M6 |
 
 ### Phase 4: Code Quality & Modernization (P3) — 4-5 days
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 4.1 | **Migrate to Riverpod code generation** — Convert manual providers to `@riverpod` annotation-based providers where beneficial. Focus on notifiers and async providers first. | All provider files |
-| 4.2 | **Fix Freezed abstract class warnings** — Update entity classes from `abstract class` to `sealed class` per Freezed 3.x guidelines. Re-run `build_runner`. | All `*.freezed.dart` entities |
-| 4.3 | **Add ErrorBoundary widgets** — Wrap each feature's root widget with an error boundary that catches rendering errors and shows a feature-specific fallback. | Feature screen files |
-| 4.4 | **Fix Sentry deprecated APIs** — Replace `configureScope` with modern Sentry API. | `auth_provider.dart`, any Sentry usage |
-| 4.5 | **Await migration in VpnRepositoryImpl** — Convert fire-and-forget migration to proper async initialization with completion tracking. | `vpn_repository_impl.dart` |
-| 4.6 | **Update analysis_options.yaml** — Upgrade to latest `flutter_lints`, add stricter rules: `unawaited_futures`, `discarded_futures`, `unnecessary_await_in_return`. | `analysis_options.yaml` |
-| 4.7 | **Add startup integration test** — Write a test that verifies the app launches from cold start to the login/connection screen within 5 seconds without hanging. | `integration_test/` |
+| # | Task | Description | Files | Issues |
+|---|------|-------------|-------|--------|
+| 4.1 | **Migrate Freezed entities to modern syntax** | Update all 7 entities from `@freezed abstract class X with _$X` to `@freezed sealed class X with _$X`. Re-run `build_runner`. | 7 entity files | L3 |
+| 4.2 | **Fix Sentry deprecated APIs** | Replace `Sentry.configureScope()` with modern API in 3 locations. | `auth_provider.dart:219,231`, `root_detection_dialog.dart:42` | L5 |
+| 4.3 | **Localize hardcoded strings** | Move hardcoded English strings in `app_lock_overlay.dart` and `quick_actions_service.dart` to ARB localization. | 2 files + ARB files | L6 |
+| 4.4 | **Add explicit type arguments to API calls** | Add `<Map<String, dynamic>>` to all `_apiClient.get()/.post()/.delete()` calls. Resolves 22 inference warnings. | 4 datasource files | L7 |
+| 4.5 | **Add ErrorBoundary widgets** | Create `FeatureErrorBoundary` widget. Wrap each feature's root screen. Shows graceful fallback + "Report" button. | New widget + 15 feature screens | L4 |
+| 4.6 | **Await VPN config migration** | Convert fire-and-forget `_migrateOldConfigsIfNeeded()` to proper async init with completion flag. Factory pattern: `VpnRepositoryImpl.create()` async factory. | `vpn_repository_impl.dart:38-41` | L2 |
+| 4.7 | **Fix BuildContext async gaps** | Ensure all `mounted` checks reference the correct State. Capture context before async operations. | 12+ locations | L8 |
+| 4.8 | **Reduce Gradle JVM memory** | Lower from 8G → 4G heap, 4G → 2G metaspace. Sufficient for Flutter builds. | `gradle.properties` | L9 |
+| 4.9 | **Add startup integration test** | Write integration test verifying: cold start → interactive screen in < 5s. Add `flutter test integration_test/` to CI. | `integration_test/` | — |
 
 ---
 
@@ -267,12 +353,16 @@ localAuth.authenticate(
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| App launch to interactive screen | **Infinite (hangs)** | < 2 seconds (cold start) |
+| App launch to interactive screen | **Infinite (hangs)** | < 2s cold start |
+| flutter analyze errors | **12+** (lib + test) | **0** |
+| flutter analyze warnings | **27** | < 5 |
 | Crash-free session rate | Unknown | > 99.5% |
-| Flutter analyze warnings | Unknown (many expected) | 0 errors, < 10 warnings |
-| Dependency age (oldest package) | 3+ months | < 2 months |
-| Test coverage (unit + integration) | Minimal | > 60% for core flows |
+| Test suite | **Cannot execute** | All tests pass |
+| Dependency age (oldest direct) | 3+ months | < 2 months |
+| Test coverage (core flows) | ~0% (tests broken) | > 60% |
 | Provider type safety | `List<Object?>` cast | Typed overrides |
+| Security: tokens in logs | **Exposed** | Redacted |
+| Production LogInterceptor | **Enabled** | Disabled |
 
 ---
 
@@ -280,21 +370,24 @@ localAuth.authenticate(
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| flutter_v2ray_plus incompatible with Flutter 3.10.x | VPN core broken | Medium | Evaluate `flutter_v2ray_client` as backup; maintain fork if needed |
-| Riverpod 3.x `Override` type still not exported | Cannot fix type safety | Low | Use extension methods or submit upstream PR |
-| SecureStorage deadlock is device-specific | Cannot reproduce | Medium | Add timeout + fallback; test on multiple Android OEMs |
-| Firebase initialization blocks on missing config | Crash on fresh install | Low | Already wrapped in try-catch (good) |
-| share_plus breaking changes on upgrade | Share feature broken | Medium | Pin version + add integration test |
+| Flutter stable channel breaks plugins | Build fails | Low | Test all plugins after switch; maintain compatibility matrix |
+| flutter_v2ray_plus incompatible with stable Flutter | VPN core broken | Medium | Fork plugin; evaluate `flutter_v2ray_client` |
+| Riverpod 3.x `Override` type not exported | Cannot fix type safety | Low | Use extension methods or submit upstream PR |
+| SecureStorage deadlock is device-specific | Cannot reproduce | Medium | Timeout + fallback; remove deprecated param; test on 5+ Android OEMs |
+| share_plus upgrade breaks share functionality | Share feature broken | Medium | Pin version + add integration test |
+| Quick setup provider fix affects authenticated users | Users re-see setup | Low | Check SharedPreferences value persisted correctly |
+| Beta→Stable SDK switch changes rendering | UI regressions | Medium | Visual regression testing; golden tests for key screens |
 
 ---
 
 ## 7. Dependencies & Constraints
 
-- **Flutter SDK**: Must stay at ^3.10.8 or upgrade forward
+- **Flutter SDK**: Must switch to stable; stay at ^3.10.8 or upgrade forward
 - **Android minSdk**: 24 (Android 7.0) — required by flutter_v2ray_plus
 - **No version downgrades**: All dependency changes must be forward-only
-- **Backend API**: Auth endpoints must remain compatible during migration
-- **App Store**: Changes must not break existing Play Store / App Store listings
+- **Backend API**: Auth endpoints must remain compatible
+- **App Store**: Changes must not break Play Store / App Store listings
+- **local_auth**: Must support both biometric + PIN/passcode fallback
 
 ---
 
@@ -303,8 +396,9 @@ localAuth.authenticate(
 - iOS-specific VPN NetworkExtension implementation
 - Backend API changes
 - Landing page / marketing site
-- New feature development (features freeze during stabilization)
+- New feature development (feature freeze during stabilization)
 - Admin dashboard changes
+- Riverpod 4.x migration (defer until stable release)
 
 ---
 
@@ -312,65 +406,118 @@ localAuth.authenticate(
 
 | File | Role | Issues |
 |------|------|--------|
-| `lib/main.dart` | App entry point | C1, M1 |
-| `lib/app/app.dart` | Root widget | C2, M2 |
-| `lib/app/router/app_router.dart` | Navigation & auth guards | C1 |
-| `lib/core/di/providers.dart` | Dependency injection | H1, M1 |
-| `lib/core/storage/secure_storage.dart` | Encrypted storage | C1 |
-| `lib/core/network/api_client.dart` | HTTP client | M4, M5 |
-| `lib/core/config/environment_config.dart` | Environment settings | — |
-| `lib/features/auth/presentation/providers/auth_provider.dart` | Auth state | C1, L5 |
-| `lib/features/auth/domain/usecases/biometric_service.dart` | Biometrics | H3 |
-| `lib/features/vpn/presentation/providers/vpn_connection_provider.dart` | VPN state | C3 |
-| `lib/features/vpn/data/datasources/vpn_engine_datasource.dart` | V2Ray engine | C4, M3 |
+| `lib/main.dart` | App entry point, deferred services | C1, M1, M6 |
+| `lib/app/app.dart` | Root ConsumerWidget | C2, M2 |
+| `lib/app/router/app_router.dart` | GoRouter + redirect guards | C1, C8 |
+| `lib/core/di/providers.dart` | Eager DI setup, 16 overrides | H1, M1, C1 |
+| `lib/core/storage/secure_storage.dart` | SecureStorage with cache | C1, H7 |
+| `lib/core/network/api_client.dart` | Dio HTTP client | H4, M4 |
+| `lib/core/network/auth_interceptor.dart` | JWT refresh with queue | — (well-implemented) |
+| `lib/core/services/push_notification_service.dart` | FCM setup | H2 |
+| `lib/features/auth/presentation/providers/auth_provider.dart` | Auth AsyncNotifier | C1, L5 |
+| `lib/features/auth/domain/usecases/biometric_service.dart` | Biometric auth | C6 |
+| `lib/features/auth/presentation/widgets/app_lock_overlay.dart` | App lock UI | C5, L6 |
+| `lib/features/vpn/presentation/providers/vpn_connection_provider.dart` | VPN state (851 lines) | C3 |
+| `lib/features/vpn/data/datasources/vpn_engine_datasource.dart` | V2Ray engine wrapper | C4, H3, M3 |
 | `lib/features/vpn/data/repositories/vpn_repository_impl.dart` | VPN repository | C4, L2 |
-| `pubspec.yaml` | Dependencies | H2, H4, H5 |
-| `android/app/build.gradle.kts` | Android build config | — |
-| `analysis_options.yaml` | Lint rules | L6 |
+| `lib/features/quick_setup/presentation/providers/quick_setup_provider.dart` | Quick setup state | C8 |
+| `pubspec.yaml` | Dependencies | H5, H6 |
+| `analysis_options.yaml` | Lint config | M5 |
+| `android/app/build.gradle.kts` | Android build | — |
+| `android/gradle.properties` | Gradle JVM config | L9 |
 
 ---
 
 ## 10. Appendix B: Dependency Audit
 
-**`dart pub outdated` result**: All direct dependencies are up-to-date (as of 2026-02-06).
+**`flutter pub outdated` result**: All direct dependencies up-to-date (2026-02-06).
 
-| Package | Current Version | Status | Notes |
-|---------|----------------|--------|-------|
-| flutter_riverpod | ^3.2.1 | UP-TO-DATE | Monitor for 4.x |
-| go_router | ^17.0.0 | UP-TO-DATE | Stable, feature-complete |
-| dio | ^5.9.0 | UP-TO-DATE | |
-| flutter_v2ray_plus | ^1.0.11 | RISK | Last update Nov 2025, low maintenance |
-| local_auth | ^3.0.0 | API MISMATCH | `biometric_service.dart` uses 2.x API |
-| purchases_flutter | ^9.10.8 | UP-TO-DATE | |
-| firebase_core | ^4.4.0 | UP-TO-DATE | |
-| firebase_messaging | ^16.1.1 | UP-TO-DATE | |
-| firebase_analytics | ^12.1.1 | UP-TO-DATE | |
-| sentry_flutter | ^9.0.0 | UPGRADE | 9.11.0-beta available |
-| flutter_secure_storage | ^10.0.0 | UP-TO-DATE | |
-| shared_preferences | ^2.5.3 | UP-TO-DATE | |
-| freezed | ^3.2.5 | UP-TO-DATE | |
-| freezed_annotation | ^3.0.0 | UP-TO-DATE | |
-| share_plus | ^12.0.1 | RISK | Requires Python patch script |
-| in_app_update | ^4.2.4 | RISK | Android-only, no iOS guard |
-| flutter_lints | ^6.0.0 | UP-TO-DATE | |
+| Package | Constraint | Status | Notes |
+|---------|-----------|--------|-------|
+| flutter_riverpod | ^3.2.1 | OK | Monitor for 4.x |
+| go_router | ^17.0.0 | OK | |
+| dio | ^5.9.0 | OK | |
+| flutter_v2ray_plus | ^1.0.11 | **RISK** | Last update Nov 2025, low maintenance |
+| local_auth | ^3.0.0 | **API MISMATCH** | biometric_service uses 2.x API, app_lock uses removed class |
+| purchases_flutter | ^9.10.8 | OK | |
+| firebase_core | ^4.4.0 | OK | |
+| firebase_messaging | ^16.1.1 | OK | |
+| firebase_analytics | ^12.1.1 | OK | |
+| sentry_flutter | ^9.0.0 | **DEPRECATED API** | `configureScope` deprecated |
+| flutter_secure_storage | ^10.0.0 | **DEPRECATED PARAM** | `encryptedSharedPreferences` |
+| shared_preferences | ^2.5.3 | OK | |
+| freezed | ^3.2.5 | OK | Entities use deprecated `abstract class` |
+| freezed_annotation | ^3.0.0 | OK | |
+| share_plus | ^12.0.1 | **RISK** | Needs Python patch; deprecated `Share.share()` API |
+| in_app_update | ^4.2.4 | OK | Platform guards confirmed in AndroidUpdateService |
+| flutter_lints | ^6.0.0 | OK | Missing `unawaited_futures` rule |
 
-**Flutter SDK**: 3.41.0-0.2.pre (beta) — **Should switch to stable channel**
-**Dart SDK**: 3.11.0 (beta)
 **Transitive upgradable**: `objective_c` 9.2.5 → 9.3.0
 
 ---
 
-## 11. Appendix C: Project Statistics
+## 11. Appendix C: flutter analyze Error Details
+
+### Production Code Errors (lib/)
+```
+error • The named parameter 'options' isn't defined
+       lib/features/auth/presentation/widgets/app_lock_overlay.dart:56:9
+error • The name 'AuthenticationOptions' isn't a class
+       lib/features/auth/presentation/widgets/app_lock_overlay.dart:56:24
+```
+
+### Test Code Errors (test/)
+```
+error • 'MockAuthRepository.login' signature mismatch (missing device, rememberMe)
+       test/features/auth/presentation/providers/auth_provider_test.dart:51
+error • 'MockAuthRepository.register' signature mismatch (missing device)
+       test/features/auth/presentation/providers/auth_provider_test.dart:63
+error • 'MockAuthRepository.logout' signature mismatch (missing refreshToken, deviceId)
+       test/features/auth/presentation/providers/auth_provider_test.dart:77
+error • 'MockAuthRepository.refreshToken' signature mismatch (missing deviceId)
+       test/features/auth/presentation/providers/auth_provider_test.dart:83
+error • Too many positional arguments (3 lines)
+       test/features/auth/presentation/providers/auth_provider_test.dart:371,393,407
+error • argument_type_not_assignable (clipboard_import_observer_test)
+       test/features/config_import/presentation/widgets/clipboard_import_observer_test.dart:19
+error • argument_type_not_assignable (providers_test)
+       test/core/di/providers_test.dart:35
+error • undefined_method 'linkOAuth'
+       test/features/profile/data/datasources/profile_remote_ds_test.dart:220
+```
+
+---
+
+## 12. Appendix D: Project Statistics
 
 | Metric | Value |
 |--------|-------|
 | Total Dart files in lib/ | 332 |
+| Total Dart files in test/ | 152 |
+| Total Dart files in integration_test/ | 4 |
+| Lines of code (total) | ~87,600 |
 | Feature modules | 15 |
-| Domain entities | 13+ |
+| Domain entities (Freezed) | 7 |
 | Repository implementations | 7 |
 | Data sources | 7 |
 | Provider overrides in DI | 16 |
 | Supported locales | 33 |
 | Android product flavors | 3 (dev, staging, prod) |
-| Integration test files | 1 (auth_flow_test.dart) |
-| Lines of code (est.) | ~20,000+ |
+| flutter analyze errors | 12+ |
+| flutter analyze warnings | 27 |
+| flutter analyze infos | 60+ |
+
+---
+
+## 13. Appendix E: Strengths (What to Preserve)
+
+1. **Well-structured DI pattern**: Provider overrides allow clean testing (despite the type safety issue)
+2. **Proper security storage classification**: Consistent `SecureStorageWrapper` for tokens, `LocalStorageWrapper` for preferences
+3. **Token refresh queue**: `AuthInterceptor` properly queues concurrent 401 requests — prevents multiple simultaneous refresh calls
+4. **Deferred Firebase init**: Post-frame callback pattern correctly avoids blocking cold start
+5. **VPN sealed class hierarchy**: Exhaustive pattern matching for all connection states
+6. **Proper error reporting**: Both `FlutterError.onError` and `PlatformDispatcher.onError` configured with Sentry
+7. **SecureStorage cache layer**: In-memory cache with proper invalidation reduces I/O from ~200ms to near-zero
+8. **Certificate pinning**: Implemented via `CertificatePinner` with configurable fingerprints
+9. **Platform-aware update service**: Proper `Platform.isAndroid` guards in `AndroidUpdateService`
+10. **App lock service**: Well-designed with biometric + PIN fallback, failed attempt tracking, and enrollment change detection
