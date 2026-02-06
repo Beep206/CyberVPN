@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
@@ -6,6 +8,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Returns a [Setup2FAResult] containing the TOTP secret and QR code URI
 /// that the user needs to configure their authenticator app.
+@immutable
 class Setup2FAUseCase {
   final ProfileRepository _repository;
 

@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// This is an irreversible action. Requires password confirmation
 /// and a TOTP code if two-factor authentication is enabled.
+@immutable
 class DeleteAccountUseCase {
   final ProfileRepository _repository;
 

@@ -1,7 +1,10 @@
+import 'package:meta/meta.dart';
+
 /// Base exception class for the application.
 ///
 /// All infrastructure-level exceptions extend this class, providing a
 /// consistent interface that maps to domain [Failure] types.
+@immutable
 abstract class AppException implements Exception {
   final String message;
   final int? code;

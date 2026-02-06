@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 /// Use case for unlinking an OAuth provider from the user's account
 ///
 /// Removes the specified provider's association with the user's account.
+@immutable
 class UnlinkSocialAccountUseCase {
   final ProfileRepository _repository;
 

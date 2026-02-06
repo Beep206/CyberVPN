@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
@@ -189,6 +191,7 @@ class ProtocolFallback {
 // ---------------------------------------------------------------------------
 
 /// Base result type for the protocol fallback operation.
+@immutable
 sealed class ProtocolFallbackResult {
   final List<ProtocolAttemptLog> attemptLog;
 

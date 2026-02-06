@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meta/meta.dart';
 
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
@@ -38,6 +39,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 // ---------------------------------------------------------------------------
 
 /// Sealed base class representing all possible VPN connection states.
+@immutable
 sealed class VpnConnectionState {
   const VpnConnectionState();
 
