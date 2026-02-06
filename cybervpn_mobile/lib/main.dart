@@ -65,7 +65,8 @@ Future<void> main() async {
     await SentryFlutter.init((options) {
       options.dsn = dsn;
       options.environment = EnvironmentConfig.environment;
-      options.tracesSampleRate = 1.0;
+      // Sample all traces in dev/staging; 20% in production to control costs.
+      options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
       options.sendDefaultPii = false;
     }, appRunner: () => _runApp(prefs));
     _logStep('SentryFlutter.init', stepSw);

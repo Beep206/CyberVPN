@@ -104,8 +104,10 @@ class CyberVpnApp extends ConsumerWidget {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(scaleFactor),
                   ),
-                  child: _AppLifecycleManager(
-                    child: child ?? const SizedBox.shrink(),
+                  child: RepaintBoundary(
+                    child: _AppLifecycleManager(
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               );
