@@ -1,21 +1,18 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
-import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
-import 'package:cybervpn_mobile/features/servers/data/repositories/server_repository_impl.dart';
-import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show serverRemoteDataSourceProvider, serverLocalDataSourceProvider;
-import 'package:cybervpn_mobile/features/servers/data/datasources/favorites_local_datasource.dart';
+    show serverRepositoryProvider, pingServiceProvider, favoritesLocalDatasourceProvider;
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+
+part 'server_list_provider.freezed.dart';
 
 // ---------------------------------------------------------------------------
 // Enums & State
@@ -25,27 +22,31 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 enum SortMode { recommended, countryName, latency, load }
 
 /// Immutable state for the server list screen.
-class ServerListState {
-  const ServerListState({
-    this.servers = const [],
-    this.sortMode = SortMode.recommended,
-    this.filterCountry,
-    this.filterProtocol,
-    this.isRefreshing = false,
-    this.favoriteServerIds = const [],
-  });
+@freezed
+sealed class ServerListState with _$ServerListState {
+  const ServerListState._();
 
-  final List<ServerEntity> servers;
-  final SortMode sortMode;
-  final String? filterCountry;
-  final VpnProtocol? filterProtocol;
-  final bool isRefreshing;
+  const factory ServerListState({
+    @Default([]) List<ServerEntity> servers,
+    @Default(SortMode.recommended) SortMode sortMode,
+    String? filterCountry,
+    VpnProtocol? filterProtocol,
+    @Default(false) bool isRefreshing,
+    /// Ordered list of favorite server IDs (persisted locally).
+    @Default([]) List<String> favoriteServerIds,
+  }) = _ServerListState;
 
-  /// Ordered list of favorite server IDs (persisted locally).
-  final List<String> favoriteServerIds;
+  /// Per-instance cache for [filteredServers] using identity-based [Expando].
+  /// Avoids recomputation when the same state instance is read multiple times.
+  static final Expando<List<ServerEntity>> _filteredCache =
+      Expando<List<ServerEntity>>('filteredServers');
 
   /// Convenience getter for the filtered + sorted view of servers.
+  /// Result is memoized per instance via [Expando].
   List<ServerEntity> get filteredServers {
+    final cached = _filteredCache[this];
+    if (cached != null) return cached;
+
     var result = List<ServerEntity>.from(servers);
 
     // Apply country filter.
@@ -93,58 +94,10 @@ class ServerListState {
         });
     }
 
+    _filteredCache[this] = result;
     return result;
   }
-
-  ServerListState copyWith({
-    List<ServerEntity>? servers,
-    SortMode? sortMode,
-    String? Function()? filterCountry,
-    VpnProtocol? Function()? filterProtocol,
-    bool? isRefreshing,
-    List<String>? favoriteServerIds,
-  }) {
-    return ServerListState(
-      servers: servers ?? this.servers,
-      sortMode: sortMode ?? this.sortMode,
-      filterCountry:
-          filterCountry != null ? filterCountry() : this.filterCountry,
-      filterProtocol:
-          filterProtocol != null ? filterProtocol() : this.filterProtocol,
-      isRefreshing: isRefreshing ?? this.isRefreshing,
-      favoriteServerIds: favoriteServerIds ?? this.favoriteServerIds,
-    );
-  }
 }
-
-// ---------------------------------------------------------------------------
-// Dependency providers
-// ---------------------------------------------------------------------------
-
-/// Provides the [ServerRepository] lazily via ref.watch.
-final serverRepositoryProvider = Provider<ServerRepository>((ref) {
-  return ServerRepositoryImpl(
-    remoteDataSource: ref.watch(serverRemoteDataSourceProvider),
-    localDataSource: ref.watch(serverLocalDataSourceProvider),
-  );
-});
-
-/// Singleton [PingService] instance.
-final pingServiceProvider = Provider<PingService>((ref) {
-  final service = PingService();
-  ref.onDispose(service.dispose);
-  return service;
-});
-
-/// Provider for [FavoritesLocalDatasource].
-///
-/// Requires [SharedPreferences] to be available. Use
-/// [sharedPreferencesProvider] to supply the instance.
-final favoritesLocalDatasourceProvider =
-    Provider<FavoritesLocalDatasource>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return FavoritesLocalDatasource(prefs);
-});
 
 // ---------------------------------------------------------------------------
 // ServerListNotifier
@@ -153,8 +106,15 @@ final favoritesLocalDatasourceProvider =
 class ServerListNotifier extends AsyncNotifier<ServerListState> {
   StreamSubscription<ServerStatusChanged>? _webSocketSubscription;
 
+  /// CancelToken for in-flight API requests. Cancelled when provider disposes.
+  CancelToken _cancelToken = CancelToken();
+
   @override
   Future<ServerListState> build() async {
+    // Create a fresh CancelToken for this build cycle.
+    _cancelToken = CancelToken();
+    ref.onDispose(() => _cancelToken.cancel('Provider disposed'));
+
     // Load favorite IDs from local storage.
     final favoritesDs = ref.read(favoritesLocalDatasourceProvider);
     final favoriteIds = await favoritesDs.getFavoriteIds();
@@ -206,7 +166,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     final current = state.value;
     if (current == null) return;
     state = AsyncData<ServerListState>(
-        current.copyWith(filterCountry: () => countryCode));
+        current.copyWith(filterCountry: countryCode));
   }
 
   /// Filter by VPN protocol. Pass `null` to clear.
@@ -214,7 +174,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     final current = state.value;
     if (current == null) return;
     state = AsyncData<ServerListState>(
-        current.copyWith(filterProtocol: () => protocol));
+        current.copyWith(filterProtocol: protocol));
   }
 
   /// Toggle a server's favorite status.
@@ -425,15 +385,24 @@ final serverListProvider =
 // Derived providers
 // ---------------------------------------------------------------------------
 
-/// Servers grouped by country code.
-final groupedByCountryProvider =
-    Provider<Map<String, List<ServerEntity>>>((ref) {
+/// Filtered + sorted server list, derived from [serverListProvider].
+///
+/// Riverpod auto-memoizes: downstream widgets only rebuild when the
+/// filtered list actually changes.
+final filteredServersProvider = Provider<List<ServerEntity>>((ref) {
   final asyncState = ref.watch(serverListProvider);
   final serverState = asyncState.value;
-  if (serverState == null) return {};
+  if (serverState == null) return [];
+  return serverState.filteredServers;
+});
+
+/// Servers grouped by country code, derived from [filteredServersProvider].
+final groupedByCountryProvider =
+    Provider<Map<String, List<ServerEntity>>>((ref) {
+  final servers = ref.watch(filteredServersProvider);
 
   final grouped = <String, List<ServerEntity>>{};
-  for (final ServerEntity server in serverState.filteredServers) {
+  for (final ServerEntity server in servers) {
     grouped.putIfAbsent(server.countryCode, () => []).add(server);
   }
   return grouped;

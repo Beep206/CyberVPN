@@ -2,6 +2,7 @@ import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/data/datasources/auth_remote_ds.dart';
@@ -105,8 +106,8 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
         refreshToken: refreshToken,
         deviceId: deviceId,
       );
-    } catch (_) {
-      // Swallow remote errors; always clear local auth below.
+    } catch (e, st) {
+      AppLogger.warning('Logout remote call failed', error: e, stackTrace: st);
     } finally {
       await _localDataSource.clearAuth();
     }
@@ -124,7 +125,8 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
       return Success(userModel.toEntity());
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.warning('getCurrentUser unexpected error', error: e, stackTrace: st);
       return const Success(null);
     }
   }

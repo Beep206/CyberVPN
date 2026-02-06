@@ -53,10 +53,13 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
     try {
       // Use local_auth with biometricOnly: false to allow PIN/passcode
       final localAuth = LocalAuthentication();
+      final l10n = AppLocalizations.of(context);
       final authenticated = await localAuth.authenticate(
-        localizedReason: 'Unlock CyberVPN with your device PIN',
-        biometricOnly: false,
-        persistAcrossBackgrounding: true,
+        localizedReason: l10n.appLockLocalizedReason,
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
       );
 
       if (authenticated) {
@@ -83,12 +86,12 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
     final biometricLabel = biometricTypes.when(
       data: (types) {
         if (types.contains(BiometricType.face)) {
-          return 'Face ID';
+          return l10n.appLockBiometricFaceId;
         }
-        return 'fingerprint';
+        return l10n.appLockBiometricFingerprint;
       },
-      loading: () => 'biometrics',
-      error: (_, __) => 'biometrics',
+      loading: () => l10n.appLockBiometricGeneric,
+      error: (_, _) => l10n.appLockBiometricGeneric,
     );
 
     final biometricIcon = biometricTypes.when(
@@ -99,7 +102,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
         return Icons.fingerprint;
       },
       loading: () => Icons.fingerprint,
-      error: (_, __) => Icons.fingerprint,
+      error: (_, _) => Icons.fingerprint,
     );
 
     return PopScope(
@@ -133,7 +136,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
 
                     // Title
                     Text(
-                      'CyberVPN Locked',
+                      l10n.appLockTitle,
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -142,7 +145,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
 
                     // Subtitle
                     Text(
-                      'Authenticate to continue',
+                      l10n.appLockSubtitle,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -155,9 +158,9 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                         button: true,
                         enabled: !_isAuthenticating,
                         label: _isAuthenticating
-                            ? 'Authenticating, please wait'
-                            : 'Unlock with $biometricLabel',
-                        hint: 'Authenticate to unlock the app',
+                            ? l10n.appLockAuthenticating
+                            : l10n.appLockUnlockWithBiometric(biometricLabel),
+                        hint: l10n.appLockUnlockHint,
                         child: FilledButton.icon(
                           onPressed: _isAuthenticating ? null : _attemptUnlock,
                           icon: _isAuthenticating
@@ -185,11 +188,12 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                       if (failedAttempts > 0) ...[
                         const SizedBox(height: 16),
                         Semantics(
-                          label: 'Failed authentication attempts: $failedAttempts '
-                              'out of ${AppLockService.maxBiometricAttempts}',
+                          label: l10n.appLockFailedAttemptsA11y(
+                              failedAttempts, AppLockService.maxBiometricAttempts),
                           child: ExcludeSemantics(
                             child: Text(
-                              'Failed attempts: $failedAttempts/${AppLockService.maxBiometricAttempts}',
+                              l10n.appLockFailedAttempts(
+                                  failedAttempts, AppLockService.maxBiometricAttempts),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.error,
                               ),
@@ -213,9 +217,9 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                         button: true,
                         enabled: !_isAuthenticating,
                         label: _isAuthenticating
-                            ? 'Authenticating, please wait'
-                            : 'Use device PIN',
-                        hint: 'Unlock using your device PIN or passcode',
+                            ? l10n.appLockAuthenticating
+                            : l10n.appLockUsePin,
+                        hint: l10n.appLockPinHint,
                         child: FilledButton.icon(
                           onPressed:
                               _isAuthenticating ? null : _attemptPinUnlock,
@@ -245,8 +249,8 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                       // Try biometric again button
                       Semantics(
                         button: true,
-                        label: 'Try $biometricLabel again',
-                        hint: 'Reset failed attempts and try biometric authentication',
+                        label: l10n.appLockTryAgain(biometricLabel),
+                        hint: l10n.appLockUnlockHint,
                         child: TextButton(
                           onPressed: () {
                             ref.read(appLockServiceProvider).resetAttempts();

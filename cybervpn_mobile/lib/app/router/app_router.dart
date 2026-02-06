@@ -103,7 +103,7 @@ CustomTransitionPage<void> _buildSlideTransition({
             parent: animation,
             curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
           ),
-          child: child,
+          child: RepaintBoundary(child: child),
         ),
       );
     },
@@ -132,11 +132,25 @@ CustomTransitionPage<void> _buildFadeTransition({
 }
 
 // ---------------------------------------------------------------------------
+// Router refresh notifier
+// ---------------------------------------------------------------------------
+
+/// A [ChangeNotifier] that triggers GoRouter redirect re-evaluation without
+/// recreating the entire router instance.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+// ---------------------------------------------------------------------------
 // Router provider
 // ---------------------------------------------------------------------------
 
 /// Creates the application [GoRouter] with onboarding, authentication, and
 /// deep link redirect guards.
+///
+/// Uses [GoRouter.refreshListenable] to re-evaluate redirects when auth or
+/// onboarding state changes, preserving the navigation stack instead of
+/// recreating the entire router.
 ///
 /// Redirect priority:
 /// 1. If the incoming URI is a deep link (cybervpn:// or https://cybervpn.app)
@@ -150,36 +164,38 @@ CustomTransitionPage<void> _buildFadeTransition({
 ///    `/connection`. Also, consume any pending deep link.
 /// 5. Otherwise -> no redirect.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-  final isAuthenticated = ref.watch(isAuthenticatedProvider);
+  // Notifier that fires when auth/onboarding state changes, triggering
+  // GoRouter redirect re-evaluation without recreating the router.
+  final refreshNotifier = _RouterRefreshNotifier();
 
-  // True while the auth subsystem is still performing the initial cached-auth
-  // check. During this window the splash screen should remain visible so the
-  // user does not briefly see login/onboarding before state has settled.
-  final isAuthLoading = authState.isLoading;
-
-  // shouldShowOnboardingProvider is a FutureProvider<bool>.
-  // While it is still loading we default to `false` (do not show onboarding)
-  // so the router does not flash the onboarding screen while the persisted
-  // completion flag is being read from disk.
-  final shouldShowOnboarding =
-      ref.watch(shouldShowOnboardingProvider).value ?? false;
-
-  // Check if the user should see the quick setup flow after first auth.
-  final shouldShowQuickSetup =
-      ref.watch(shouldShowQuickSetupProvider);
+  ref.listen(authProvider, (_, _) => refreshNotifier.notify());
+  ref.listen(shouldShowOnboardingProvider, (_, _) => refreshNotifier.notify());
+  ref.listen(shouldShowQuickSetupProvider, (_, _) => refreshNotifier.notify());
 
   // Initialize quick actions handler (keeps it alive)
   ref.watch(quickActionsHandlerProvider);
+
+  // Dispose the notifier when this provider is disposed.
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     debugLogDiagnostics: false,
+    refreshListenable: refreshNotifier,
     observers: [
       ScreenProtectionObserver(),
     ],
     redirect: (context, state) {
+      // Read current state inside redirect (not captured in provider body)
+      // so values are always fresh when redirect is re-evaluated.
+      final authState = ref.read(authProvider);
+      final isAuthenticated = ref.read(isAuthenticatedProvider);
+      final isAuthLoading = authState.isLoading;
+      final shouldShowOnboarding =
+          ref.read(shouldShowOnboardingProvider).value ?? false;
+      final shouldShowQuickSetup = ref.read(shouldShowQuickSetupProvider);
+
       final uri = state.uri;
       final path = uri.path;
       final isAuthRoute = path == '/login' || path == '/register';

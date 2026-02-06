@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/auth/jwt_parser.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
-import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show authRepositoryProvider, secureStorageProvider;
 
 /// How many minutes before expiry to trigger proactive refresh.
 const int _refreshBufferMinutes = 5;

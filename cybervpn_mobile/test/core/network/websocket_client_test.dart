@@ -11,7 +11,7 @@ void main() {
     setUp(() {
       client = WebSocketClient(
         baseUrl: 'https://api.example.com',
-        tokenProvider: () async => 'test-jwt-token',
+        ticketProvider: () async => 'test-ticket-uuid',
       );
     });
 
@@ -49,7 +49,7 @@ void main() {
     test('connect with null token stays disconnected', () async {
       final noTokenClient = WebSocketClient(
         baseUrl: 'https://api.example.com',
-        tokenProvider: () async => null,
+        ticketProvider: () async => null,
       );
 
       final states = <WebSocketConnectionState>[];
@@ -82,7 +82,7 @@ void main() {
       // We just test that a second connect call returns immediately.
       final noTokenClient = WebSocketClient(
         baseUrl: 'https://api.example.com',
-        tokenProvider: () async => null,
+        ticketProvider: () async => null,
       );
 
       await noTokenClient.connect();
@@ -215,7 +215,7 @@ void main() {
     test('converts https to wss', () {
       final client = WebSocketClient(
         baseUrl: 'https://api.cybervpn.com',
-        tokenProvider: () async => 'tok',
+        ticketProvider: () async => 'test-ticket',
       );
 
       // We cannot directly test _buildWsUrl since it is private.
@@ -228,7 +228,7 @@ void main() {
     test('accepts custom path', () {
       final client = WebSocketClient(
         baseUrl: 'https://api.cybervpn.com',
-        tokenProvider: () async => 'tok',
+        ticketProvider: () async => 'test-ticket',
         path: '/ws/custom',
       );
 
@@ -241,7 +241,7 @@ void main() {
     test('serverStatusEvents filters correctly', () async {
       final client = WebSocketClient(
         baseUrl: 'https://api.example.com',
-        tokenProvider: () async => null,
+        ticketProvider: () async => null,
       );
 
       // Since we cannot inject events directly (internal controller),

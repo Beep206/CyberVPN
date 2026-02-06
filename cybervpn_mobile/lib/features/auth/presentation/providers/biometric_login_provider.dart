@@ -5,7 +5,7 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider;
 
 /// State for biometric login flow.

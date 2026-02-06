@@ -10,13 +10,6 @@ class ConnectVpnUseCase {
 
   const ConnectVpnUseCase(this._repository);
 
-  Future<void> call(VpnConfigEntity config) async {
-    final result = await _repository.connect(config);
-    switch (result) {
-      case Success():
-        return;
-      case Failure(:final failure):
-        throw failure;
-    }
-  }
+  Future<Result<void>> call(VpnConfigEntity config) =>
+      _repository.connect(config);
 }

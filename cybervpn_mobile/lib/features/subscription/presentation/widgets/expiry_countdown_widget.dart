@@ -33,7 +33,7 @@ class ExpiryCountdownWidget extends ConsumerWidget {
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final color = _colorForDays(days);
+    final color = _colorForDays(days, theme.colorScheme);
 
     return Card(
       color: color.withValues(alpha: 0.15),
@@ -92,9 +92,9 @@ class ExpiryCountdownWidget extends ConsumerWidget {
     );
   }
 
-  Color _colorForDays(int days) {
-    if (days > 30) return Colors.green;
+  Color _colorForDays(int days, ColorScheme colorScheme) {
+    if (days > 30) return colorScheme.tertiary;
     if (days >= 7) return Colors.orange;
-    return Colors.red;
+    return colorScheme.error;
   }
 }

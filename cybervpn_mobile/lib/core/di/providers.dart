@@ -17,19 +17,61 @@ import 'package:cybervpn_mobile/features/auth/data/datasources/auth_local_ds.dar
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_ds.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
+import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_local_ds.dart';
 import 'package:cybervpn_mobile/features/referral/data/datasources/referral_remote_ds.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/vpn_engine_datasource.dart';
+import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
+import 'package:cybervpn_mobile/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/get_profile.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/setup_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/verify_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/disable_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/get_devices.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/remove_device.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/register_device.dart';
+import 'package:cybervpn_mobile/features/profile/domain/services/device_registration_service.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/link_social_account.dart'
+    show LinkSocialAccountUseCase, CompleteSocialAccountLinkUseCase;
+import 'package:cybervpn_mobile/features/profile/domain/usecases/unlink_social_account.dart';
+import 'package:cybervpn_mobile/features/notifications/data/datasources/fcm_datasource.dart';
+import 'package:cybervpn_mobile/features/notifications/data/datasources/notification_local_datasource.dart';
+import 'package:cybervpn_mobile/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:cybervpn_mobile/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:cybervpn_mobile/features/config_import/data/parsers/subscription_url_parser.dart';
+import 'package:cybervpn_mobile/features/config_import/data/repositories/config_import_repository_impl.dart';
+import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 
 // Repository implementations (lazy - created on first access via ref.watch)
+import 'package:cybervpn_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/login.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/register.dart';
 import 'package:cybervpn_mobile/features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
 import 'package:cybervpn_mobile/features/referral/data/repositories/referral_repository_impl.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
+import 'package:cybervpn_mobile/features/servers/data/repositories/server_repository_impl.dart';
+import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
+import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
+import 'package:cybervpn_mobile/features/servers/data/datasources/favorites_local_datasource.dart';
+import 'package:cybervpn_mobile/features/subscription/data/repositories/subscription_repository_impl.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
+import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
+import 'package:cybervpn_mobile/features/vpn/data/repositories/vpn_repository_impl.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
+import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
+import 'package:cybervpn_mobile/core/network/network_info.dart';
 
-// Provider symbols needed for eager overrides
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/device/device_provider.dart'
+    show secureStorageProvider;
+// Re-export so downstream files can access it via core/di/providers.dart.
+export 'package:cybervpn_mobile/core/device/device_provider.dart'
     show secureStorageProvider;
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/app/theme/theme_provider.dart'
@@ -69,8 +111,261 @@ final referralRepositoryProvider = Provider<ReferralRepository>((ref) {
 });
 
 // ---------------------------------------------------------------------------
+// Profile repository & use-case providers
+// ---------------------------------------------------------------------------
+
+/// Provides the [ProfileRepository] lazily via ref.watch.
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  return ProfileRepositoryImpl(
+    remoteDataSource: ProfileRemoteDataSourceImpl(ref.watch(apiClientProvider)),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// Provides the [GetProfileUseCase].
+final getProfileUseCaseProvider = Provider<GetProfileUseCase>((ref) {
+  return GetProfileUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [Setup2FAUseCase].
+final setup2FAUseCaseProvider = Provider<Setup2FAUseCase>((ref) {
+  return Setup2FAUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [Verify2FAUseCase].
+final verify2FAUseCaseProvider = Provider<Verify2FAUseCase>((ref) {
+  return Verify2FAUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [Disable2FAUseCase].
+final disable2FAUseCaseProvider = Provider<Disable2FAUseCase>((ref) {
+  return Disable2FAUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [GetDevicesUseCase].
+final getDevicesUseCaseProvider = Provider<GetDevicesUseCase>((ref) {
+  return GetDevicesUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [RemoveDeviceUseCase].
+final removeDeviceUseCaseProvider = Provider<RemoveDeviceUseCase>((ref) {
+  return RemoveDeviceUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [RegisterDeviceUseCase].
+final registerDeviceUseCaseProvider = Provider<RegisterDeviceUseCase>((ref) {
+  return RegisterDeviceUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides [SecureStorageWrapper] for device registration.
+final secureStorageWrapperProvider = Provider<SecureStorageWrapper>((ref) {
+  return SecureStorageWrapper();
+});
+
+/// Provides the [DeviceRegistrationService].
+final deviceRegistrationServiceProvider =
+    Provider<DeviceRegistrationService>((ref) {
+  return DeviceRegistrationService(
+    registerDevice: ref.watch(registerDeviceUseCaseProvider),
+    storage: ref.watch(secureStorageWrapperProvider),
+  );
+});
+
+/// Provides the [LinkSocialAccountUseCase].
+final linkSocialAccountUseCaseProvider =
+    Provider<LinkSocialAccountUseCase>((ref) {
+  return LinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [CompleteSocialAccountLinkUseCase].
+final completeSocialAccountLinkUseCaseProvider =
+    Provider<CompleteSocialAccountLinkUseCase>((ref) {
+  return CompleteSocialAccountLinkUseCase(ref.watch(profileRepositoryProvider));
+});
+
+/// Provides the [UnlinkSocialAccountUseCase].
+final unlinkSocialAccountUseCaseProvider =
+    Provider<UnlinkSocialAccountUseCase>((ref) {
+  return UnlinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
+});
+
+// ---------------------------------------------------------------------------
+// Notification repository & datasource providers
+// ---------------------------------------------------------------------------
+
+/// Provides the [FcmDatasource] singleton (lazily created).
+///
+/// Override in tests to inject a mock.
+final fcmDatasourceProvider = Provider<FcmDatasource>((ref) {
+  return FcmDatasourceImpl();
+});
+
+/// Provides the [NotificationRepositoryImpl] lazily via ref.watch.
+final notificationRepositoryImplProvider =
+    Provider<NotificationRepositoryImpl>((ref) {
+  return NotificationRepositoryImpl(
+    fcmDatasource: ref.watch(fcmDatasourceProvider),
+    localDatasource: NotificationLocalDatasourceImpl(ref.watch(localStorageProvider)),
+    apiClient: ref.watch(apiClientProvider),
+  );
+});
+
+/// Provides the [NotificationRepository] implementation via the impl provider.
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return ref.watch(notificationRepositoryImplProvider);
+});
+
+// ---------------------------------------------------------------------------
+// Config import repository provider
+// ---------------------------------------------------------------------------
+
+/// Provides the [ConfigImportRepository] lazily via ref.watch.
+final configImportRepositoryProvider = Provider<ConfigImportRepository>((ref) {
+  return ConfigImportRepositoryImpl(
+    sharedPreferences: ref.watch(sharedPreferencesProvider),
+    subscriptionUrlParser: SubscriptionUrlParser(dio: ref.watch(dioProvider)),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// VPN repository & related providers
+// ---------------------------------------------------------------------------
+
+/// Provides the [VpnRepository] implementation lazily via ref.watch.
+final vpnRepositoryProvider = Provider<VpnRepository>((ref) {
+  return VpnRepositoryImpl(
+    engine: ref.watch(vpnEngineDatasourceProvider),
+    localStorage: ref.watch(localStorageProvider),
+    secureStorage: ref.watch(secureStorageProvider),
+  );
+});
+
+/// Provides the [ConnectVpnUseCase].
+final connectVpnUseCaseProvider = Provider<ConnectVpnUseCase>((ref) {
+  return ConnectVpnUseCase(ref.watch(vpnRepositoryProvider));
+});
+
+/// Provides the [DisconnectVpnUseCase].
+final disconnectVpnUseCaseProvider = Provider<DisconnectVpnUseCase>((ref) {
+  return DisconnectVpnUseCase(ref.watch(vpnRepositoryProvider));
+});
+
+/// Provides the [AutoReconnectService].
+final autoReconnectServiceProvider = Provider<AutoReconnectService>((ref) {
+  return AutoReconnectService(
+    repository: ref.watch(vpnRepositoryProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// Provides the [KillSwitchService].
+final killSwitchServiceProvider = Provider<KillSwitchService>((ref) {
+  return KillSwitchService();
+});
+
+/// Holds the currently active DNS server list resolved from user settings.
+///
+/// Consumed by lower-level config generators and the VPN engine layer.
+/// `null` means use platform / system DNS defaults.
+final activeDnsServersProvider =
+    NotifierProvider<ActiveDnsServersNotifier, List<String>?>(
+  ActiveDnsServersNotifier.new,
+);
+
+/// Notifier for active DNS servers state.
+class ActiveDnsServersNotifier extends Notifier<List<String>?> {
+  @override
+  List<String>? build() => null;
+
+  void set(List<String>? servers) {
+    state = servers;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Subscription repository & related providers
+// ---------------------------------------------------------------------------
+
+/// Provides the [SubscriptionLocalDataSource] for persistent caching.
+final subscriptionLocalDataSourceProvider = Provider<SubscriptionLocalDataSource>((ref) {
+  return SubscriptionLocalDataSourceImpl(ref.watch(localStorageProvider));
+});
+
+/// Provides the [SubscriptionRepository] lazily via ref.watch.
+final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
+  return SubscriptionRepositoryImpl(
+    remoteDataSource: ref.watch(subscriptionRemoteDataSourceProvider),
+    localDataSource: ref.watch(subscriptionLocalDataSourceProvider),
+  );
+});
+
+/// Provides the [RevenueCatDataSource] singleton.
+///
+/// Override in tests to inject a mock.
+final revenueCatDataSourceProvider = Provider<RevenueCatDataSource>((ref) {
+  return RevenueCatDataSource();
+});
+
+// ---------------------------------------------------------------------------
+// Auth repository provider
+// ---------------------------------------------------------------------------
+
+/// Provides the [AuthRepository] implementation lazily via ref.watch.
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepositoryImpl(
+    remoteDataSource: ref.watch(authRemoteDataSourceProvider),
+    localDataSource: ref.watch(authLocalDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// Provides the [LoginUseCase] with input validation.
+final loginUseCaseProvider = Provider<LoginUseCase>((ref) {
+  return LoginUseCase(ref.watch(authRepositoryProvider));
+});
+
+/// Provides the [RegisterUseCase] with input validation.
+final registerUseCaseProvider = Provider<RegisterUseCase>((ref) {
+  return RegisterUseCase(ref.watch(authRepositoryProvider));
+});
+
+// ---------------------------------------------------------------------------
+// Server repository & related providers
+// ---------------------------------------------------------------------------
+
+/// Provides the [ServerRepository] lazily via ref.watch.
+final serverRepositoryProvider = Provider<ServerRepository>((ref) {
+  return ServerRepositoryImpl(
+    remoteDataSource: ref.watch(serverRemoteDataSourceProvider),
+    localDataSource: ref.watch(serverLocalDataSourceProvider),
+  );
+});
+
+/// Singleton [PingService] instance.
+final pingServiceProvider = Provider<PingService>((ref) {
+  final service = PingService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// Provider for [FavoritesLocalDatasource].
+///
+/// Requires [SharedPreferences] to be available. Use
+/// [sharedPreferencesProvider] to supply the instance.
+final favoritesLocalDatasourceProvider =
+    Provider<FavoritesLocalDatasource>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return FavoritesLocalDatasource(prefs);
+});
+
+// ---------------------------------------------------------------------------
 // Infrastructure providers (leaf dependencies)
 // ---------------------------------------------------------------------------
+
+/// Provides [NetworkInfo] for connectivity checks.
+final networkInfoProvider = Provider<NetworkInfo>((ref) {
+  return NetworkInfo();
+});
 
 /// Provides the [DeviceIntegrityChecker] for root/jailbreak detection.
 ///

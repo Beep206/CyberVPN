@@ -1,39 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
-import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/device/device_service.dart';
-import 'package:cybervpn_mobile/core/security/app_attestation.dart';
-import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/utils/performance_profiler.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
-import 'package:cybervpn_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/login.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/register.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show authRemoteDataSourceProvider, authLocalDataSourceProvider;
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
-    show networkInfoProvider;
-
-// ---------------------------------------------------------------------------
-// Repository provider
-// ---------------------------------------------------------------------------
-
-/// Provides the [AuthRepository] implementation lazily via ref.watch.
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl(
-    remoteDataSource: ref.watch(authRemoteDataSourceProvider),
-    localDataSource: ref.watch(authLocalDataSourceProvider),
-    networkInfo: ref.watch(networkInfoProvider),
-  );
-});
+    show authRepositoryProvider, loginUseCaseProvider, registerUseCaseProvider;
 
 // ---------------------------------------------------------------------------
 // Auth notifier
@@ -46,6 +28,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// auth operations.
 class AuthNotifier extends AsyncNotifier<AuthState> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
+  LoginUseCase get _loginUseCase => ref.read(loginUseCaseProvider);
+  RegisterUseCase get _registerUseCase => ref.read(registerUseCaseProvider);
   DeviceService get _deviceService => ref.read(deviceServiceProvider);
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
   TokenRefreshScheduler get _refreshScheduler =>
@@ -108,8 +92,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     final user = userResult.dataOrNull;
 
     if (user != null) {
-      unawaited(_setSentryUser(user));
-
       // Schedule proactive token refresh for existing session (non-blocking)
       _scheduleTokenRefresh();
 
@@ -130,7 +112,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Get device info for the login request
       final deviceInfo = await _deviceService.getDeviceInfo();
 
-      final result = await _repo.login(
+      // UseCase validates email/password before making network request
+      final result = await _loginUseCase(
         email: email,
         password: password,
         device: deviceInfo,
@@ -139,17 +122,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       switch (result) {
         case Success(:final data):
           final (user, _) = data;
-          unawaited(_setSentryUser(user));
           state = AsyncValue.data(AuthAuthenticated(user));
 
           // Schedule proactive token refresh (non-blocking)
           _scheduleTokenRefresh();
-
-          // Register FCM token after successful login (non-blocking)
-          _registerFcmToken();
-
-          // Perform app attestation in logging mode (non-blocking)
-          _performAttestation(AttestationTrigger.login);
         case Failure(:final failure):
           state = AsyncValue.data(AuthError(failure.message));
       }
@@ -165,7 +141,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Get device info for the register request
       final deviceInfo = await _deviceService.getDeviceInfo();
 
-      final result = await _repo.register(
+      // UseCase validates email/password/referralCode before making network request
+      final result = await _registerUseCase(
         email: email,
         password: password,
         device: deviceInfo,
@@ -174,17 +151,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       switch (result) {
         case Success(:final data):
           final (user, _) = data;
-          unawaited(_setSentryUser(user));
           state = AsyncValue.data(AuthAuthenticated(user));
 
           // Schedule proactive token refresh (non-blocking)
           _scheduleTokenRefresh();
-
-          // Register FCM token after successful registration (non-blocking)
-          _registerFcmToken();
-
-          // Perform app attestation in logging mode (non-blocking)
-          _performAttestation(AttestationTrigger.registration);
         case Failure(:final failure):
           state = AsyncValue.data(AuthError(failure.message));
       }
@@ -214,13 +184,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           AppLogger.warning('Logout backend returned failure: ${logoutResult.failureOrNull?.message}');
         }
       }
-      unawaited(_clearSentryUser());
       // Invalidate the notifier so all dependent providers reset.
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
     } catch (e) {
       // Even if backend logout fails, clear local state
-      unawaited(_clearSentryUser());
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
       AppLogger.warning('Logout backend call failed, cleared local state', error: e);
@@ -255,88 +223,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }));
   }
 
-  // ── Sentry user context ─────────────────────────────────────────────
-
-  /// Associates the authenticated [user] with Sentry so crash reports
-  /// can be correlated to a user session.
-  ///
-  /// **Privacy**: Only the user UUID is sent. Email and username are
-  /// intentionally omitted to comply with GDPR / `sendDefaultPii = false`
-  /// and to minimize the PII surface in third-party error monitoring.
-  Future<void> _setSentryUser(UserEntity user) async {
-    if (EnvironmentConfig.sentryDsn.isEmpty) return;
-    await Sentry.configureScope((scope) async {
-      await scope.setUser(SentryUser(id: user.id));
-    });
-  }
-
-  /// Removes the Sentry user context on logout.
-  Future<void> _clearSentryUser() async {
-    if (EnvironmentConfig.sentryDsn.isEmpty) return;
-    await Sentry.configureScope((scope) async {
-      await scope.setUser(null);
-    });
-  }
-
-  // ── FCM token registration ──────────────────────────────────────────
-
-  /// Registers the FCM device token with the backend after successful login.
-  ///
-  /// Runs asynchronously without blocking the auth flow. Errors are logged
-  /// but do not affect the authentication state.
-  void _registerFcmToken() {
-    // Run in a fire-and-forget manner
-    unawaited(Future(() async {
-      try {
-        final fcmService = ref.read(fcmTokenServiceProvider);
-        await fcmService.registerToken();
-      } catch (e, st) {
-        // Log but don't throw - FCM registration failure should not
-        // block the user from proceeding with the app
-        AppLogger.error(
-          'Failed to register FCM token after login',
-          error: e,
-          stackTrace: st,
-          category: 'auth',
-        );
-
-        // Also report to Sentry if configured
-        if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-          unawaited(Sentry.captureException(e, stackTrace: st));
-        }
-      }
-    }));
-  }
-
-  // ── App attestation (logging mode) ─────────────────────────────────
-
-  /// Performs app attestation for fraud detection (logging mode only).
-  ///
-  /// Runs asynchronously without blocking the auth flow. Results are logged
-  /// to analytics and Sentry for monitoring. Never enforces (blocks) on
-  /// failure in current logging-only mode.
-  void _performAttestation(AttestationTrigger trigger) {
-    // Run in a fire-and-forget manner
-    unawaited(Future(() async {
-      try {
-        final attestationService = ref.read(appAttestationServiceProvider);
-        final result = await attestationService.generateToken(trigger: trigger);
-        AppLogger.info(
-          'Attestation completed: ${result.status.name}',
-          category: 'auth.attestation',
-        );
-      } catch (e, st) {
-        // Log but don't throw - attestation failure should not
-        // block the user from proceeding with the app
-        AppLogger.warning(
-          'Attestation failed (non-blocking)',
-          error: e,
-          stackTrace: st,
-          category: 'auth.attestation',
-        );
-      }
-    }));
-  }
 }
 
 // ---------------------------------------------------------------------------

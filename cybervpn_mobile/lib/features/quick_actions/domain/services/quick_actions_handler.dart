@@ -9,6 +9,8 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_service.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show serverRepositoryProvider;
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';

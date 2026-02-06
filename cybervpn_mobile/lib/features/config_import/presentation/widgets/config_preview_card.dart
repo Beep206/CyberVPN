@@ -43,20 +43,20 @@ class ConfigPreviewCard extends StatelessWidget {
   final String? securityType;
 
   /// Maps protocol to badge color.
-  Color _getProtocolColor(String protocol) {
+  Color _getProtocolColor(String protocol, ColorScheme colorScheme) {
     final protocolLower = protocol.toLowerCase();
     switch (protocolLower) {
       case 'vless':
-        return Colors.blue;
+        return colorScheme.primary;
       case 'vmess':
-        return Colors.purple;
+        return colorScheme.secondary;
       case 'trojan':
-        return Colors.red;
+        return colorScheme.error;
       case 'shadowsocks':
       case 'ss':
-        return Colors.green;
+        return colorScheme.tertiary;
       default:
-        return Colors.grey;
+        return colorScheme.outline;
     }
   }
 
@@ -119,7 +119,7 @@ class ConfigPreviewCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       _ProtocolBadge(
                         protocol: config.protocol,
-                        color: _getProtocolColor(config.protocol),
+                        color: _getProtocolColor(config.protocol, colorScheme),
                       ),
                     ],
                   ),

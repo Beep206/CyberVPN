@@ -66,7 +66,6 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
     final usage = ref.watch(sessionUsageProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
       body: SafeArea(
         child: Column(
           children: [
@@ -129,6 +128,7 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = _statusLabel(vpnState, l10n);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -143,7 +143,7 @@ class _TopBar extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: _statusColor(vpnState),
+                color: _statusColor(vpnState, colorScheme),
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
@@ -169,14 +169,14 @@ class _TopBar extends StatelessWidget {
     };
   }
 
-  static Color _statusColor(VpnConnectionState state) {
+  static Color _statusColor(VpnConnectionState state, ColorScheme colorScheme) {
     return switch (state) {
-      VpnDisconnected() => Colors.grey.shade500,
-      VpnConnecting() => Colors.blue.shade400,
-      VpnConnected() => Colors.green.shade400,
+      VpnDisconnected() => colorScheme.outline,
+      VpnConnecting() => colorScheme.primary,
+      VpnConnected() => colorScheme.tertiary,
       VpnDisconnecting() => Colors.orange.shade400,
       VpnReconnecting() => Colors.orange.shade400,
-      VpnError() => Colors.red.shade400,
+      VpnError() => colorScheme.error,
     };
   }
 }
@@ -188,7 +188,7 @@ class _StatusDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _TopBar._statusColor(vpnState);
+    final color = _TopBar._statusColor(vpnState, Theme.of(context).colorScheme);
     return ExcludeSemantics(
       child: Container(
         width: 8,
@@ -215,6 +215,7 @@ class _SubscriptionBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     // TODO: Wire to a real subscription provider when available.
     return Semantics(
@@ -225,13 +226,13 @@ class _SubscriptionBadge extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.cyan.shade700.withValues(alpha: 0.4),
-              Colors.blue.shade700.withValues(alpha: 0.4),
+              colorScheme.primary.withValues(alpha: 0.4),
+              colorScheme.primary.withValues(alpha: 0.3),
             ],
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.cyan.shade400.withValues(alpha: 0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -239,13 +240,13 @@ class _SubscriptionBadge extends StatelessWidget {
           children: [
             ExcludeSemantics(
               child: Icon(Icons.star_rounded,
-                  color: Colors.cyan.shade300, size: 14),
+                  color: colorScheme.primary, size: 14),
             ),
             const SizedBox(width: 4),
             Text(
               l10n.connectionPremium,
               style: TextStyle(
-                color: Colors.cyan.shade300,
+                color: colorScheme.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -268,23 +269,24 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.shade900.withValues(alpha: 0.3),
+        color: colorScheme.error.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.shade700.withValues(alpha: 0.5)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: Colors.red.shade300, size: 18),
+          Icon(Icons.error_outline, color: colorScheme.error, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
               style: TextStyle(
-                color: Colors.red.shade200,
+                color: colorScheme.error.withValues(alpha: 0.8),
                 fontSize: 12,
               ),
             ),
@@ -313,15 +315,16 @@ class _BottomStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade800.withValues(alpha: 0.5),
+            color: theme.colorScheme.outlineVariant,
           ),
         ),
       ),
@@ -369,7 +372,7 @@ class _SessionSummaryRow extends StatelessWidget {
         Container(
           width: 1,
           height: 28,
-          color: Colors.grey.shade800,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
         _SummaryItem(
           icon: Icons.data_usage,
@@ -394,6 +397,7 @@ class _SummaryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       label: '$label: $value',
       readOnly: true,
@@ -401,7 +405,7 @@ class _SummaryItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ExcludeSemantics(
-            child: Icon(icon, color: Colors.grey.shade500, size: 16),
+            child: Icon(icon, color: colorScheme.onSurfaceVariant, size: 16),
           ),
           const SizedBox(width: 6),
           Column(
@@ -410,15 +414,15 @@ class _SummaryItem extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: colorScheme.onSurfaceVariant,
                   fontSize: 10,
                   letterSpacing: 0.5,
                 ),
               ),
               Text(
                 value,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   fontFeatures: [FontFeature.tabularFigures()],

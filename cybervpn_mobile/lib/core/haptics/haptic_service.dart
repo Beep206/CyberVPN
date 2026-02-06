@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -29,30 +30,33 @@ class HapticService {
   /// Creates a [HapticService] instance.
   ///
   /// [ref] is used to access the settings repository to check if haptics
-  /// are enabled.
-  HapticService(this._ref);
+  /// are enabled. The enabled state is cached at construction to avoid
+  /// async reads on every haptic call.
+  HapticService(this._ref) {
+    unawaited(_loadEnabledState());
+  }
 
   final Ref _ref;
 
+  /// Cached haptics-enabled state. Defaults to `true` until loaded.
+  bool _cachedEnabled = true;
+
   /// Checks if haptics are supported on the current platform.
-  ///
-  /// Haptics are generally supported on iOS and Android, but not on
-  /// web, desktop, or other platforms.
   bool get _isPlatformSupported {
     return Platform.isIOS || Platform.isAndroid;
   }
 
-  /// Checks if haptics are enabled in user settings.
-  ///
-  /// Returns `true` if haptics are enabled or if settings haven't been
-  /// loaded yet (default to enabled).
-  Future<bool> get _isEnabled async {
+  /// Whether haptics are currently enabled (synchronous, cached).
+  bool get isEnabled => _cachedEnabled;
+
+  /// Loads the haptics-enabled state from settings repository.
+  Future<void> _loadEnabledState() async {
     try {
       final settingsRepo = _ref.read(settingsRepositoryProvider);
       final result = await settingsRepo.getSettings();
-      return switch (result) {
+      _cachedEnabled = switch (result) {
         Success(:final data) => data.hapticsEnabled,
-        Failure() => true, // default to enabled on failure
+        Failure() => true,
       };
     } catch (e, st) {
       AppLogger.warning(
@@ -61,9 +65,12 @@ class HapticService {
         stackTrace: st,
         category: 'haptics',
       );
-      return true;
+      _cachedEnabled = true;
     }
   }
+
+  /// Call after the user changes the haptics setting to update the cache.
+  Future<void> refreshEnabledState() => _loadEnabledState();
 
   /// Triggers a selection haptic feedback.
   ///
@@ -73,7 +80,7 @@ class HapticService {
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> selection() async {
     if (!_isPlatformSupported) return;
-    if (!await _isEnabled) return;
+    if (!_cachedEnabled) return;
 
     try {
       await HapticFeedback.selectionClick();
@@ -95,7 +102,7 @@ class HapticService {
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> impact() async {
     if (!_isPlatformSupported) return;
-    if (!await _isEnabled) return;
+    if (!_cachedEnabled) return;
 
     try {
       await HapticFeedback.mediumImpact();
@@ -117,7 +124,7 @@ class HapticService {
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> heavy() async {
     if (!_isPlatformSupported) return;
-    if (!await _isEnabled) return;
+    if (!_cachedEnabled) return;
 
     try {
       await HapticFeedback.heavyImpact();
@@ -140,7 +147,7 @@ class HapticService {
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> success() async {
     if (!_isPlatformSupported) return;
-    if (!await _isEnabled) return;
+    if (!_cachedEnabled) return;
 
     try {
       // Create success pattern: light → delay → medium
@@ -165,7 +172,7 @@ class HapticService {
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> error() async {
     if (!_isPlatformSupported) return;
-    if (!await _isEnabled) return;
+    if (!_cachedEnabled) return;
 
     try {
       await HapticFeedback.heavyImpact();

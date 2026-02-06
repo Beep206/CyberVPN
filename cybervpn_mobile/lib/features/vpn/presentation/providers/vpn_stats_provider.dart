@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/utils/data_formatters.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_stats_entity.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show vpnRepositoryProvider;
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/widgets/data/widget_bridge_service.dart';
 

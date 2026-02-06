@@ -14,7 +14,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provid
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider, networkInfoProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

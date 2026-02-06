@@ -26,14 +26,29 @@ class ReferralRepositoryImpl
   ReferralStats? _cachedStats;
   String? _cachedCode;
 
+  // TTL cache for availability to avoid redundant network calls.
+  bool? _availabilityCache;
+  DateTime? _availabilityCacheTime;
+  static const _availabilityTtl = Duration(minutes: 5);
+
   ReferralRepositoryImpl({required ReferralRemoteDataSource remoteDataSource})
       : _remoteDataSource = remoteDataSource;
 
   @override
   Future<Result<bool>> isAvailable() async {
+    if (_availabilityCache != null && _availabilityCacheTime != null) {
+      if (DateTime.now().difference(_availabilityCacheTime!) < _availabilityTtl) {
+        return Success(_availabilityCache!);
+      }
+    }
     try {
-      return Success(await _remoteDataSource.checkAvailability());
+      final result = await _remoteDataSource.checkAvailability();
+      _availabilityCache = result;
+      _availabilityCacheTime = DateTime.now();
+      return Success(result);
     } on AppException catch (e) {
+      _availabilityCache = false;
+      _availabilityCacheTime = DateTime.now();
       return Failure(mapExceptionToFailure(e));
     }
   }

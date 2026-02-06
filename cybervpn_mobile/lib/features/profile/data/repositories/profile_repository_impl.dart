@@ -3,6 +3,7 @@ import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
@@ -41,6 +42,9 @@ class ProfileRepositoryImpl
       return Success(await _remoteDataSource.getProfile());
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -55,6 +59,9 @@ class ProfileRepositoryImpl
       return Success(await _remoteDataSource.setup2FA());
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -67,6 +74,9 @@ class ProfileRepositoryImpl
       return Success(await _remoteDataSource.verify2FA(code));
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -79,6 +89,9 @@ class ProfileRepositoryImpl
       return Success(await _remoteDataSource.validate2FA(code));
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -92,6 +105,9 @@ class ProfileRepositoryImpl
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -110,6 +126,9 @@ class ProfileRepositoryImpl
       );
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -126,6 +145,9 @@ class ProfileRepositoryImpl
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -139,6 +161,9 @@ class ProfileRepositoryImpl
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -153,6 +178,9 @@ class ProfileRepositoryImpl
       return Success(await _remoteDataSource.getDevices());
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -173,6 +201,9 @@ class ProfileRepositoryImpl
       ));
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -186,6 +217,9 @@ class ProfileRepositoryImpl
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 
@@ -204,6 +238,9 @@ class ProfileRepositoryImpl
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } catch (e, st) {
+      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      return Failure(UnknownFailure(message: e.toString()));
     }
   }
 }

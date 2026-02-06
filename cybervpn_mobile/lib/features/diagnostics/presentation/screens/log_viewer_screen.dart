@@ -91,17 +91,18 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
   }
 
   Color _getLogLevelColor(String level) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (level.toLowerCase()) {
       case 'debug':
-        return Colors.grey;
+        return colorScheme.outline;
       case 'info':
-        return Colors.white;
+        return colorScheme.onSurface;
       case 'warning':
         return Colors.orange;
       case 'error':
-        return Colors.red;
+        return colorScheme.error;
       default:
-        return Colors.white;
+        return colorScheme.onSurface;
     }
   }
 
@@ -148,7 +149,7 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: Theme.of(context).colorScheme.error,
             ),
             child: Text(l10n.confirm),
           ),

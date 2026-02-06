@@ -59,7 +59,11 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     // Drive pulse animation based on state.
     _syncAnimation(vpnState);
 
-    final config = _resolveConfig(vpnState, AppLocalizations.of(context));
+    final config = _resolveConfig(
+      vpnState,
+      AppLocalizations.of(context),
+      Theme.of(context).colorScheme,
+    );
 
     return RepaintBoundary(
       child: AnimatedBuilder(
@@ -238,20 +242,24 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     _previousState = currentState;
   }
 
-  _ButtonConfig _resolveConfig(VpnConnectionState vpnState, AppLocalizations l10n) {
+  _ButtonConfig _resolveConfig(
+    VpnConnectionState vpnState,
+    AppLocalizations l10n,
+    ColorScheme colorScheme,
+  ) {
     return switch (vpnState) {
       VpnDisconnected() => _ButtonConfig(
-          color: Colors.grey.shade600,
+          color: colorScheme.outline,
           label: l10n.connect,
           icon: Icons.power_settings_new,
         ),
       VpnConnecting() => _ButtonConfig(
-          color: Colors.blue.shade600,
+          color: colorScheme.primary,
           label: l10n.connecting,
           icon: Icons.sync,
         ),
       VpnConnected() => _ButtonConfig(
-          color: Colors.green.shade600,
+          color: colorScheme.tertiary,
           label: l10n.connected,
           icon: Icons.shield,
         ),
@@ -266,7 +274,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
           icon: Icons.sync_problem,
         ),
       VpnError() => _ButtonConfig(
-          color: Colors.red.shade600,
+          color: colorScheme.error,
           label: l10n.retry,
           icon: Icons.refresh,
         ),

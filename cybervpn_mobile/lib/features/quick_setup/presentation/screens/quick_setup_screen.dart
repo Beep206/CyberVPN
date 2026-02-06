@@ -487,12 +487,13 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
   }
 
   Color _getPingColor(int ping, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     if (ping < 50) {
-      return Colors.green;
+      return colorScheme.tertiary;
     } else if (ping < 150) {
       return Colors.orange;
     } else {
-      return Colors.red;
+      return colorScheme.error;
     }
   }
 }

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/device/device_provider.dart'
-    show deviceServiceProvider;
+    show deviceServiceProvider, secureStorageProvider;
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';

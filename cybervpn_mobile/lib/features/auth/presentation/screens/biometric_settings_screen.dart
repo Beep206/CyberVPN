@@ -6,7 +6,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider;
 
 /// Screen for managing biometric authentication settings.

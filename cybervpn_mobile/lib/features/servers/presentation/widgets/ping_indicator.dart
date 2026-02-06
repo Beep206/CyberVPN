@@ -36,12 +36,11 @@ class PingIndicator extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Color _backgroundColor(BuildContext context) {
-    if (latencyMs == null) {
-      return Colors.grey.shade700;
-    }
-    if (latencyMs! < 100) return Colors.green.shade700;
+    final colorScheme = Theme.of(context).colorScheme;
+    if (latencyMs == null) return colorScheme.outline;
+    if (latencyMs! < 100) return colorScheme.tertiary;
     if (latencyMs! < 200) return Colors.orange.shade700;
-    return Colors.red.shade700;
+    return colorScheme.error;
   }
 
   Color _foregroundColor() {

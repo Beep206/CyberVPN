@@ -9,9 +9,11 @@ import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/delete_account.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/delete_account.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show profileRepositoryProvider;
 
 // ---------------------------------------------------------------------------
 // DeleteAccountScreen

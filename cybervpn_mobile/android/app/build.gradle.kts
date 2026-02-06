@@ -95,7 +95,10 @@ android {
             versionNameSuffix = "-staging"
             buildConfigField("String", "API_BASE_URL", "\"https://staging.cybervpn.com\"")
             buildConfigField("String", "API_ENV", "\"staging\"")
-            buildConfigField("String", "SENTRY_DSN", "\"\"")
+            // Staging Sentry DSN injected via --dart-define=SENTRY_DSN=... in CI
+            // or STAGING_SENTRY_DSN environment variable. Leave empty for local dev.
+            val stagingSentryDsn = System.getenv("STAGING_SENTRY_DSN") ?: ""
+            buildConfigField("String", "SENTRY_DSN", "\"$stagingSentryDsn\"")
             manifestPlaceholders["appNameSuffix"] = " (Staging)"
         }
 
@@ -103,7 +106,10 @@ android {
             dimension = "environment"
             buildConfigField("String", "API_BASE_URL", "\"https://api.cybervpn.com\"")
             buildConfigField("String", "API_ENV", "\"prod\"")
-            buildConfigField("String", "SENTRY_DSN", "\"\"")
+            // Production Sentry DSN injected via --dart-define=SENTRY_DSN=... in CI
+            // or PROD_SENTRY_DSN environment variable. Leave empty for local dev.
+            val prodSentryDsn = System.getenv("PROD_SENTRY_DSN") ?: ""
+            buildConfigField("String", "SENTRY_DSN", "\"$prodSentryDsn\"")
             manifestPlaceholders["appNameSuffix"] = ""
         }
     }

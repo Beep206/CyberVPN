@@ -5,7 +5,7 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/register_device.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/register_device.dart';
 
 /// Service for managing device registration with the backend.
 ///

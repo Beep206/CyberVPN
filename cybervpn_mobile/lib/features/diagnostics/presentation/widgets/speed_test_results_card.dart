@@ -417,9 +417,10 @@ class _DeltaIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final isImprovement =
         higherIsBetter ? delta > 0 : delta < 0;
+    final colorScheme = Theme.of(context).colorScheme;
     final color = isImprovement
         ? CyberColors.matrixGreen
-        : (delta == 0 ? Colors.grey : Colors.red.shade400);
+        : (delta == 0 ? colorScheme.outline : colorScheme.error);
     final icon = delta > 0
         ? Icons.arrow_upward
         : (delta < 0 ? Icons.arrow_downward : Icons.remove);

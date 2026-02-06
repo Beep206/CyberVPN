@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wrapper for flutter_secure_storage providing encrypted storage for sensitive data.
@@ -112,6 +113,25 @@ class SecureStorageWrapper {
     );
   }
 
+  /// Migrates from plaintext biometric credentials to device token auth.
+  ///
+  /// Call this once during app startup (after [prewarmCache]). If the old
+  /// `biometric_credentials` key exists (plaintext email/password format),
+  /// it is cleared and the user must re-enroll with the new device-bound
+  /// token flow.
+  ///
+  /// Returns `true` if migration was performed (old format found and cleared).
+  Future<bool> migrateCredentialFormat() async {
+    final oldCredentials = await read(key: biometricCredentialsKey);
+    if (oldCredentials == null || oldCredentials.isEmpty) {
+      return false;
+    }
+
+    // Old format detected — clear it and require re-enrollment
+    await delete(key: biometricCredentialsKey);
+    return true;
+  }
+
   // ── Storage Keys ────────────────────────────────────────────────────────────
 
   /// SENSITIVE: JWT access token - must use SecureStorage for encryption at rest
@@ -126,8 +146,14 @@ class SecureStorageWrapper {
   /// SENSITIVE: Device ID for device fingerprinting - persists across app reinstalls
   static const String deviceIdKey = 'device_id';
 
-  /// SENSITIVE: Biometric credentials (email/password) for re-authentication
+  /// SENSITIVE: Device-bound token for biometric re-authentication.
+  /// Replaces the previous plaintext credential storage (email/password).
+  /// The device token is obtained from POST /mobile/auth/biometric/enroll
+  /// and is cryptographically bound to this device.
   static const String biometricCredentialsKey = 'biometric_credentials';
+
+  /// SENSITIVE: Device token for biometric re-authentication (Phase 2).
+  static const String deviceTokenKey = 'device_token';
 
   /// SENSITIVE: App lock enabled flag - security setting
   static const String appLockEnabledKey = 'app_lock_enabled';
@@ -144,8 +170,10 @@ class SecureStorageWrapper {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await write(key: accessTokenKey, value: accessToken);
-    await write(key: refreshTokenKey, value: refreshToken);
+    await Future.wait([
+      write(key: accessTokenKey, value: accessToken),
+      write(key: refreshTokenKey, value: refreshToken),
+    ]);
   }
 
   /// Retrieves the stored access token.
@@ -203,12 +231,38 @@ class SecureStorageWrapper {
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
-  // ── Biometric Credentials (Phase 4) ─────────────────────────────────────────
+  // ── Device Token (Biometric Re-auth) ────────────────────────────────────────
+
+  /// Stores a device-bound token for biometric re-authentication.
+  ///
+  /// The device token is obtained from the backend enrollment endpoint and
+  /// replaces the previous plaintext email/password storage. The token is
+  /// cryptographically bound to this device and cannot be used elsewhere.
+  Future<void> setDeviceToken(String token) async {
+    await write(key: deviceTokenKey, value: token);
+  }
+
+  /// Retrieves the stored device token for biometric re-authentication.
+  ///
+  /// Returns `null` if no device token is enrolled.
+  Future<String?> getDeviceToken() async {
+    return read(key: deviceTokenKey);
+  }
+
+  /// Clears the stored device token.
+  ///
+  /// Call this on enrollment change, logout, or when revoking biometric auth.
+  Future<void> clearDeviceToken() async {
+    await delete(key: deviceTokenKey);
+  }
+
+  // ── Legacy Biometric Credentials (deprecated) ──────────────────────────────
 
   /// Stores credentials for biometric re-authentication.
   ///
-  /// These credentials allow the app to re-authenticate the user
-  /// after biometric verification without requiring manual entry.
+  /// @deprecated Use [setDeviceToken] instead. Plaintext credential storage
+  /// will be removed in a future release. See DEVICE_BOUND_TOKEN_AUTH.md.
+  @Deprecated('Use setDeviceToken() instead. Plaintext credentials are insecure.')
   Future<void> setBiometricCredentials({
     required String email,
     required String password,
@@ -219,8 +273,8 @@ class SecureStorageWrapper {
 
   /// Retrieves stored biometric credentials.
   ///
-  /// Returns `null` if no credentials are stored.
-  /// Returns a record with email and password if stored.
+  /// @deprecated Use [getDeviceToken] instead.
+  @Deprecated('Use getDeviceToken() instead. Plaintext credentials are insecure.')
   Future<({String email, String password})?> getBiometricCredentials() async {
     final stored = await read(key: biometricCredentialsKey);
     if (stored == null || stored.isEmpty) {
@@ -235,12 +289,16 @@ class SecureStorageWrapper {
         return null;
       }
       return (email: email, password: password);
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to parse biometric credentials', error: e);
       return null;
     }
   }
 
   /// Clears stored biometric credentials.
+  ///
+  /// @deprecated Use [clearDeviceToken] instead.
+  @Deprecated('Use clearDeviceToken() instead.')
   Future<void> clearBiometricCredentials() async {
     await delete(key: biometricCredentialsKey);
   }
@@ -283,7 +341,8 @@ class SecureStorageWrapper {
 
     try {
       return jsonDecode(stored) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to parse cached user data', error: e);
       return null;
     }
   }
@@ -308,6 +367,7 @@ class SecureStorageWrapper {
     await delete(key: refreshTokenKey);
     await delete(key: userIdKey);
     await delete(key: biometricCredentialsKey);
+    await delete(key: deviceTokenKey);
     await delete(key: appLockEnabledKey);
     await delete(key: cachedUserKey);
 

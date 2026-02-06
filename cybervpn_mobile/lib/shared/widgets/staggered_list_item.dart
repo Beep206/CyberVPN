@@ -53,13 +53,21 @@ class StaggeredListItem extends StatefulWidget {
 
 class _StaggeredListItemState extends State<StaggeredListItem>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-  late final Animation<Offset> _slide;
+  /// Maximum number of items to animate. Items beyond this index render
+  /// immediately to avoid allocating controllers for large lists.
+  static const _maxAnimatedItems = 10;
+
+  AnimationController? _controller;
+  Animation<double>? _opacity;
+  Animation<Offset>? _slide;
+
+  bool get _shouldAnimate => widget.index < _maxAnimatedItems;
 
   @override
   void initState() {
     super.initState();
+
+    if (!_shouldAnimate) return;
 
     _controller = AnimationController(
       duration: widget.duration,
@@ -67,7 +75,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
     );
 
     final curved = CurvedAnimation(
-      parent: _controller,
+      parent: _controller!,
       curve: widget.curve,
     );
 
@@ -77,41 +85,35 @@ class _StaggeredListItemState extends State<StaggeredListItem>
       end: Offset.zero,
     ).animate(curved);
 
-    // Stagger the animation start based on index
     unawaited(_startAnimation());
   }
 
   Future<void> _startAnimation() async {
-    // Calculate delay based on index, capped at 10 items to avoid long waits
-    final cappedIndex = widget.index.clamp(0, 10);
-    final delay = widget.baseDelay * cappedIndex;
-
+    final delay = widget.baseDelay * widget.index;
     await Future<void>.delayed(delay);
 
     if (mounted) {
-      unawaited(_controller.forward());
+      unawaited(_controller?.forward());
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Respect system accessibility setting
-    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    if (!_shouldAnimate) return widget.child;
 
-    if (disableAnimations) {
-      return widget.child;
-    }
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    if (disableAnimations) return widget.child;
 
     return SlideTransition(
-      position: _slide,
+      position: _slide!,
       child: FadeTransition(
-        opacity: _opacity,
+        opacity: _opacity!,
         child: widget.child,
       ),
     );

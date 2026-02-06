@@ -8,6 +8,8 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entit
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show subscriptionRepositoryProvider, revenueCatDataSourceProvider;
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

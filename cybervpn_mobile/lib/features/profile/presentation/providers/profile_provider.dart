@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -8,104 +9,22 @@ import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
-import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
-import 'package:cybervpn_mobile/features/profile/data/repositories/profile_repository_impl.dart';
-import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider;
-import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
-import 'package:cybervpn_mobile/core/network/network_info.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
-    show networkInfoProvider;
-import 'package:cybervpn_mobile/features/profile/domain/services/device_registration_service.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/disable_2fa.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/get_devices.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/get_profile.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/link_social_account.dart'
+import 'package:cybervpn_mobile/features/profile/domain/usecases/get_profile.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/setup_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/verify_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/disable_2fa.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/get_devices.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/remove_device.dart';
+import 'package:cybervpn_mobile/features/profile/domain/usecases/link_social_account.dart'
     show LinkSocialAccountUseCase, CompleteSocialAccountLinkUseCase;
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/register_device.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/remove_device.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/setup_2fa.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/unlink_social_account.dart';
-import 'package:cybervpn_mobile/features/profile/domain/use_cases/verify_2fa.dart';
-
-// ---------------------------------------------------------------------------
-// Repository & use-case providers (override in DI setup / tests)
-// ---------------------------------------------------------------------------
-
-/// Provides the [ProfileRepository] lazily via ref.watch.
-final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepositoryImpl(
-    remoteDataSource: ProfileRemoteDataSourceImpl(ref.watch(apiClientProvider)),
-    networkInfo: ref.watch(networkInfoProvider),
-  );
-});
-
-/// Provides the [GetProfileUseCase].
-final getProfileUseCaseProvider = Provider<GetProfileUseCase>((ref) {
-  return GetProfileUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [Setup2FAUseCase].
-final setup2FAUseCaseProvider = Provider<Setup2FAUseCase>((ref) {
-  return Setup2FAUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [Verify2FAUseCase].
-final verify2FAUseCaseProvider = Provider<Verify2FAUseCase>((ref) {
-  return Verify2FAUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [Disable2FAUseCase].
-final disable2FAUseCaseProvider = Provider<Disable2FAUseCase>((ref) {
-  return Disable2FAUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [GetDevicesUseCase].
-final getDevicesUseCaseProvider = Provider<GetDevicesUseCase>((ref) {
-  return GetDevicesUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [RemoveDeviceUseCase].
-final removeDeviceUseCaseProvider = Provider<RemoveDeviceUseCase>((ref) {
-  return RemoveDeviceUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [RegisterDeviceUseCase].
-final registerDeviceUseCaseProvider = Provider<RegisterDeviceUseCase>((ref) {
-  return RegisterDeviceUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides [SecureStorageWrapper] for device registration.
-final secureStorageWrapperProvider = Provider<SecureStorageWrapper>((ref) {
-  return SecureStorageWrapper();
-});
-
-/// Provides the [DeviceRegistrationService].
-final deviceRegistrationServiceProvider =
-    Provider<DeviceRegistrationService>((ref) {
-  return DeviceRegistrationService(
-    registerDevice: ref.watch(registerDeviceUseCaseProvider),
-    storage: ref.watch(secureStorageWrapperProvider),
-  );
-});
-
-/// Provides the [LinkSocialAccountUseCase].
-final linkSocialAccountUseCaseProvider =
-    Provider<LinkSocialAccountUseCase>((ref) {
-  return LinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [CompleteSocialAccountLinkUseCase].
-final completeSocialAccountLinkUseCaseProvider =
-    Provider<CompleteSocialAccountLinkUseCase>((ref) {
-  return CompleteSocialAccountLinkUseCase(ref.watch(profileRepositoryProvider));
-});
-
-/// Provides the [UnlinkSocialAccountUseCase].
-final unlinkSocialAccountUseCaseProvider =
-    Provider<UnlinkSocialAccountUseCase>((ref) {
-  return UnlinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
-});
+import 'package:cybervpn_mobile/features/profile/domain/usecases/unlink_social_account.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show getProfileUseCaseProvider,
+         setup2FAUseCaseProvider, verify2FAUseCaseProvider,
+         disable2FAUseCaseProvider, getDevicesUseCaseProvider,
+         removeDeviceUseCaseProvider, linkSocialAccountUseCaseProvider,
+         completeSocialAccountLinkUseCaseProvider,
+         unlinkSocialAccountUseCaseProvider;
 
 // ---------------------------------------------------------------------------
 // Profile State
@@ -165,10 +84,16 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   late final CompleteSocialAccountLinkUseCase _completeSocialAccountLink;
   late final UnlinkSocialAccountUseCase _unlinkSocialAccount;
 
+  /// CancelToken for in-flight API requests. Cancelled when provider disposes.
+  CancelToken _cancelToken = CancelToken();
+
   // ---- Lifecycle -----------------------------------------------------------
 
   @override
   FutureOr<ProfileState> build() async {
+    // Create a fresh CancelToken for this build cycle.
+    _cancelToken = CancelToken();
+    ref.onDispose(() => _cancelToken.cancel('Provider disposed'));
     _getProfile = ref.watch(getProfileUseCaseProvider);
     _setup2FA = ref.watch(setup2FAUseCaseProvider);
     _verify2FA = ref.watch(verify2FAUseCaseProvider);

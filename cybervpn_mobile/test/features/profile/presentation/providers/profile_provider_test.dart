@@ -5,6 +5,8 @@ import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show profileRepositoryProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

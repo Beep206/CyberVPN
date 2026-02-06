@@ -8,6 +8,9 @@ import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notif
 import 'package:cybervpn_mobile/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_state.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show fcmDatasourceProvider, notificationRepositoryImplProvider,
+         notificationRepositoryProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

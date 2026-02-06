@@ -504,6 +504,16 @@
   "loginRememberMe": "Remember me",
   "loginButton": "Login",
   "loginContinueWithTelegram": "Continue with Telegram",
+  "loginTitle": "CyberVPN",
+  "loginSubtitle": "Secure your connection",
+  "loginOrUsePassword": "OR USE PASSWORD",
+  "loginOrSeparator": "OR",
+  "loginNoAccount": "Don't have an account? ",
+  "loginRegisterLink": "Register",
+  "loginBiometricFaceId": "Sign in with Face ID",
+  "loginBiometricFingerprint": "Sign in with fingerprint",
+  "loginBiometricGeneric": "Sign in with biometrics",
+  "loginBiometricAuthenticating": "Authenticating with biometrics, please wait",
   "registerTitle": "Create Account",
   "registerSubtitle": "Join CyberVPN for a secure experience",
   "registerPasswordHint": "Create a password",
@@ -549,6 +559,26 @@
     }
   },
   "appLockLocalizedReason": "Unlock CyberVPN with your device PIN",
+  "appLockBiometricFaceId": "Face ID",
+  "appLockBiometricFingerprint": "fingerprint",
+  "appLockBiometricGeneric": "biometrics",
+  "appLockAuthenticating": "Authenticating, please wait",
+  "appLockUnlockHint": "Authenticate to unlock the app",
+  "appLockPinHint": "Unlock using your device PIN or passcode",
+  "appLockFailedAttempts": "Failed attempts: {current}/{max}",
+  "@appLockFailedAttempts": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "appLockFailedAttemptsA11y": "Failed authentication attempts: {current} out of {max}",
+  "@appLockFailedAttemptsA11y": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
   "biometricSettingsTitle": "Security",
   "biometricAuthSection": "Biometric Authentication",
   "biometricLoginLabel": "Biometric Login",
@@ -1513,6 +1543,9 @@
   "serverFastest": "Fastest",
   "serverFailedToLoad": "Failed to load servers",
   "serverNotFound": "Server not found",
+  "serverListNoResults": "No servers match your search",
+  "serverListClearSearch": "Clear search",
+  "serverSelectPrompt": "Select a server to view details",
   "serverSingle": "Server",
   "serverDetailAddress": "Address",
   "serverDetailProtocol": "Protocol",

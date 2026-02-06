@@ -9,13 +9,5 @@ class DisconnectVpnUseCase {
 
   const DisconnectVpnUseCase(this._repository);
 
-  Future<void> call() async {
-    final result = await _repository.disconnect();
-    switch (result) {
-      case Success():
-        return;
-      case Failure(:final failure):
-        throw failure;
-    }
-  }
+  Future<Result<void>> call() => _repository.disconnect();
 }

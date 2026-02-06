@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider;
 
 class BiometricService {
@@ -56,8 +56,10 @@ class BiometricService {
   }) async {
     return _localAuth.authenticate(
       localizedReason: reason,
-      biometricOnly: true,
-      persistAcrossBackgrounding: true,
+      options: const AuthenticationOptions(
+        biometricOnly: true,
+        stickyAuth: true,
+      ),
     );
   }
 

@@ -135,4 +135,8 @@ class AppProfilers {
   /// App startup profiler (target: 500ms)
   static PerformanceProfiler appStartup() =>
       PerformanceProfiler('app.startup', targetMs: 500);
+
+  /// Server list filtering profiler (target: 16ms — one frame budget)
+  static PerformanceProfiler serverFiltering() =>
+      PerformanceProfiler('server.filtering', targetMs: 16);
 }

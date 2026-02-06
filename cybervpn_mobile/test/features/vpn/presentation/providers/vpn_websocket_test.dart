@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

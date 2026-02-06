@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:async';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
@@ -7,6 +8,8 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
+
+part 'settings_provider.freezed.dart';
 
 // ---------------------------------------------------------------------------
 // SettingsNotifier
@@ -491,79 +494,26 @@ final trustedWifiNetworksProvider = Provider<List<String>>((ref) {
 // ---------------------------------------------------------------------------
 
 /// Immutable subset of [AppSettings] containing only VPN-related preferences.
-class VpnSettings {
-  const VpnSettings({
-    this.preferredProtocol = PreferredProtocol.auto,
-    this.autoConnectOnLaunch = false,
-    this.autoConnectUntrustedWifi = false,
-    this.killSwitch = false,
-    this.splitTunneling = false,
-    this.dnsProvider = DnsProvider.system,
-    this.customDns,
-    this.mtuMode = MtuMode.auto,
-    this.mtuValue = 1400,
-    this.trustedWifiNetworks = const [],
-  });
+@freezed
+sealed class VpnSettings with _$VpnSettings {
+  const VpnSettings._();
 
-  final PreferredProtocol preferredProtocol;
-  final bool autoConnectOnLaunch;
-  final bool autoConnectUntrustedWifi;
-  final bool killSwitch;
-  final bool splitTunneling;
-  final DnsProvider dnsProvider;
-  final String? customDns;
-  final MtuMode mtuMode;
-  final int mtuValue;
-  final List<String> trustedWifiNetworks;
+  const factory VpnSettings({
+    @Default(PreferredProtocol.auto) PreferredProtocol preferredProtocol,
+    @Default(false) bool autoConnectOnLaunch,
+    @Default(false) bool autoConnectUntrustedWifi,
+    @Default(false) bool killSwitch,
+    @Default(false) bool splitTunneling,
+    @Default(DnsProvider.system) DnsProvider dnsProvider,
+    String? customDns,
+    @Default(MtuMode.auto) MtuMode mtuMode,
+    @Default(1400) int mtuValue,
+    @Default([]) List<String> trustedWifiNetworks,
+  }) = _VpnSettings;
 
   /// Check if an SSID is in the trusted networks list.
   bool isTrusted(String ssid) {
     final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
     return trustedWifiNetworks.contains(cleanSsid);
   }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! VpnSettings) return false;
-    return other.preferredProtocol == preferredProtocol &&
-        other.autoConnectOnLaunch == autoConnectOnLaunch &&
-        other.autoConnectUntrustedWifi == autoConnectUntrustedWifi &&
-        other.killSwitch == killSwitch &&
-        other.splitTunneling == splitTunneling &&
-        other.dnsProvider == dnsProvider &&
-        other.customDns == customDns &&
-        other.mtuMode == mtuMode &&
-        other.mtuValue == mtuValue &&
-        _listEquals(other.trustedWifiNetworks, trustedWifiNetworks);
-  }
-
-  static bool _listEquals<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-        preferredProtocol,
-        autoConnectOnLaunch,
-        autoConnectUntrustedWifi,
-        killSwitch,
-        splitTunneling,
-        dnsProvider,
-        customDns,
-        mtuMode,
-        mtuValue,
-        Object.hashAll(trustedWifiNetworks),
-      );
-
-  @override
-  String toString() =>
-      'VpnSettings(protocol: $preferredProtocol, autoConnect: $autoConnectOnLaunch, '
-      'autoConnectWifi: $autoConnectUntrustedWifi, killSwitch: $killSwitch, '
-      'splitTunneling: $splitTunneling, dns: $dnsProvider, customDns: $customDns, '
-      'mtuMode: $mtuMode, mtuValue: $mtuValue, trustedNetworks: ${trustedWifiNetworks.length})';
 }
