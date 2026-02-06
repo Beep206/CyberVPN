@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -18,6 +20,8 @@ import 'package:cybervpn_mobile/features/widgets/data/widget_toggle_handler.dart
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/untrusted_wifi_handler.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 
 /// Convert [TextScale] enum to a double scale factor.
 double _textScaleToDouble(TextScale scale, double systemScale) {
@@ -219,6 +223,40 @@ class _AppLifecycleManager extends ConsumerWidget {
     } catch (e, st) {
       AppLogger.error(
         'fcmTopicSyncProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Watch for biometric enrollment changes.
+    // When enrollment changes (user added/removed fingerprint or face),
+    // force logout and show a message explaining re-auth is needed.
+    try {
+      ref.listen(enrollmentChangeProvider, (_, next) {
+        if (next.hasValue) {
+          AppLogger.warning(
+            'Biometric enrollment changed — forcing logout',
+            category: 'lifecycle',
+          );
+          unawaited(ref.read(authProvider.notifier).logout());
+
+          // Show a snackbar explaining why re-auth is needed
+          final messenger = ScaffoldMessenger.maybeOf(context);
+          messenger?.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Your biometric data has changed. '
+                'Please sign in again for security.',
+              ),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      });
+    } catch (e, st) {
+      AppLogger.error(
+        'enrollmentChangeProvider listener failed',
         category: 'lifecycle',
         error: e,
         stackTrace: st,

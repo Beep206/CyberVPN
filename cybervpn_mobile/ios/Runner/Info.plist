@@ -60,5 +60,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>CyberVPN uses Face ID to secure app access and protect your account.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CyberVPN uses your location to detect WiFi network names for the trusted WiFi auto-connect feature.</string>
 </dict>
 </plist>
