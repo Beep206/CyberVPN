@@ -28,6 +28,7 @@ class AppLockService with WidgetsBindingObserver {
   static const int maxBiometricAttempts = 3;
 
   final _lockStateController = StreamController<bool>.broadcast();
+  final _enrollmentChangeController = StreamController<void>.broadcast();
 
   AppLockService({
     required SecureStorageWrapper storage,
@@ -39,6 +40,11 @@ class AppLockService with WidgetsBindingObserver {
 
   /// Stream of lock state changes.
   Stream<bool> get onLockStateChanged => _lockStateController.stream;
+
+  /// Stream that fires when biometric enrollment has changed.
+  ///
+  /// Listeners should invalidate the session and require password re-auth.
+  Stream<void> get onEnrollmentChanged => _enrollmentChangeController.stream;
 
   /// Whether the app is currently locked.
   bool get isLocked => _isLocked;
@@ -53,6 +59,7 @@ class AppLockService with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_lockStateController.close());
+    unawaited(_enrollmentChangeController.close());
   }
 
   @override
@@ -106,6 +113,33 @@ class AppLockService with WidgetsBindingObserver {
         category: 'auth.applock',
       );
       _lock();
+    }
+
+    // Check for biometric enrollment changes on every resume.
+    // If enrollment changed, notify listeners to invalidate the session.
+    await _checkEnrollmentChange();
+  }
+
+  /// Checks if biometric enrollment has changed and notifies listeners.
+  Future<void> _checkEnrollmentChange() async {
+    try {
+      final changed = await _biometricService.hasEnrollmentChanged();
+      if (changed) {
+        AppLogger.warning(
+          'Biometric enrollment changed — session invalidation required',
+          category: 'auth.applock',
+        );
+        // Disable biometric login until re-auth
+        await _biometricService.setBiometricEnabled(false);
+        _enrollmentChangeController.add(null);
+      }
+    } catch (e, st) {
+      AppLogger.error(
+        'Failed to check biometric enrollment',
+        error: e,
+        stackTrace: st,
+        category: 'auth.applock',
+      );
     }
   }
 
@@ -226,4 +260,14 @@ final isAppLockEnabledProvider = FutureProvider<bool>((ref) async {
 final canEnableAppLockProvider = FutureProvider<bool>((ref) async {
   final service = ref.watch(appLockServiceProvider);
   return service.canEnableAppLock();
+});
+
+/// Provider that streams biometric enrollment change events.
+///
+/// When enrollment changes, biometric login is automatically disabled and
+/// the session should be invalidated. The auth provider watches this to
+/// trigger a forced logout with a re-authentication message.
+final enrollmentChangeProvider = StreamProvider<void>((ref) {
+  final service = ref.watch(appLockServiceProvider);
+  return service.onEnrollmentChanged;
 });
