@@ -204,6 +204,21 @@ mixin CachedRepository {
     }
   }
 
+  /// Invalidates cached data by invoking [clearCache].
+  ///
+  /// Call this after write/mutation operations to ensure subsequent reads
+  /// fetch fresh data from the network instead of returning stale cache.
+  Future<void> invalidateCache({
+    required Future<void> Function() clearCache,
+  }) async {
+    try {
+      await clearCache();
+      AppLogger.debug('Cache invalidated after write operation');
+    } catch (e) {
+      AppLogger.debug('Cache invalidation failed (non-blocking)', error: e);
+    }
+  }
+
   Future<void> _backgroundRefresh<T>({
     required Future<T> Function() fetchFromNetwork,
     required Future<void> Function(T data) writeToCache,
