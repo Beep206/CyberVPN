@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,7 +32,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     super.initState();
     // Check for OAuth callback parameters on screen load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handleOAuthCallback();
+      unawaited(_handleOAuthCallback());
     });
   }
 
@@ -172,7 +173,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     OAuthProvider provider,
   ) async {
     try {
-      HapticFeedback.lightImpact();
+      unawaited(HapticFeedback.lightImpact());
 
       // Get the authorization URL from the backend
       final notifier = ref.read(profileProvider.notifier);
@@ -267,7 +268,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     OAuthProvider provider,
   ) async {
     try {
-      HapticFeedback.lightImpact();
+      unawaited(HapticFeedback.lightImpact());
 
       await ref.read(profileProvider.notifier).unlinkAccount(provider);
 

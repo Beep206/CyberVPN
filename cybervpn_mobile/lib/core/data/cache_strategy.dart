@@ -1,4 +1,5 @@
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
+import 'dart:async';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
@@ -186,10 +187,10 @@ mixin CachedRepository {
 
     if (cached != null) {
       // Fire-and-forget background refresh
-      _backgroundRefresh(
+      unawaited(_backgroundRefresh(
         fetchFromNetwork: fetchFromNetwork,
         writeToCache: writeToCache,
-      );
+      ));
       return Success(cached);
     }
 

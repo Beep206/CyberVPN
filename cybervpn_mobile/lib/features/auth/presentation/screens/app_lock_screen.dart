@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 
 class AppLockScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   void initState() {
     super.initState();
-    _authenticate();
+    unawaited(_authenticate());
   }
 
   Future<void> _authenticate() async {

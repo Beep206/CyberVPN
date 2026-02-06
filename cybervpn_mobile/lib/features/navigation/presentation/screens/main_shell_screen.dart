@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,7 +33,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   void initState() {
     super.initState();
     // Check device integrity on app startup (after user logs in/completes onboarding)
-    _checkDeviceIntegrity();
+    unawaited(_checkDeviceIntegrity());
   }
 
   /// Checks if the device is rooted/jailbroken and shows warning if needed.

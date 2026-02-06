@@ -20,7 +20,7 @@ class AutoReconnectService {
   void start(VpnConfigEntity config) {
     _lastConfig = config;
     _retryCount = 0;
-    _connectivitySub?.cancel();
+    unawaited(_connectivitySub?.cancel());
     _connectivitySub = _networkInfo.onConnectivityChanged.listen((connected) async {
       final isConnectedResult = await _repository.isConnected;
       final isCurrentlyConnected = switch (isConnectedResult) {
@@ -53,7 +53,7 @@ class AutoReconnectService {
   }
 
   void stop() {
-    _connectivitySub?.cancel();
+    unawaited(_connectivitySub?.cancel());
     _connectivitySub = null;
     _lastConfig = null;
     _retryCount = 0;

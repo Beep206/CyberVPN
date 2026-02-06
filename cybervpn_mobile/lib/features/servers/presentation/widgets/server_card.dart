@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -81,19 +82,19 @@ class _ServerCardState extends ConsumerState<ServerCard>
   void _handleFavoriteTap() {
     // Trigger haptic feedback on favorite toggle.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.impact();
+    unawaited(haptics.impact());
 
     // Trigger scale animation.
-    _starController.forward().then((_) => _starController.reverse());
+    unawaited(_starController.forward().then((_) => _starController.reverse()));
 
     // Toggle favorite via provider.
-    ref.read(serverListProvider.notifier).toggleFavorite(widget.server.id);
+    unawaited(ref.read(serverListProvider.notifier).toggleFavorite(widget.server.id));
   }
 
   void _handleServerTap() {
     // Trigger haptic feedback on server selection.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.selection();
+    unawaited(haptics.selection());
 
     // Call the provided onTap callback.
     widget.onTap?.call();

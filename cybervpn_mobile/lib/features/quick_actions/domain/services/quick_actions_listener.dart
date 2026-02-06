@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_service.dart';
@@ -31,7 +32,7 @@ class QuickActionsListener {
         // Only update if the connection state actually changed
         if (_lastIsConnectedState != isConnected) {
           _lastIsConnectedState = isConnected;
-          QuickActionsService.instance.updateForConnectionState(isConnected);
+          unawaited(QuickActionsService.instance.updateForConnectionState(isConnected));
 
           AppLogger.info(
             'Quick actions listener detected state change: isConnected=$isConnected',

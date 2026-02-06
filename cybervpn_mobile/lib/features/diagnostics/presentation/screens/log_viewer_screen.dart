@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
@@ -117,10 +118,10 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
       return;
     }
 
-    share_plus.Share.share(
+    unawaited(share_plus.Share.share(
       logs,
       subject: 'CyberVPN Logs - ${DateTime.now().toIso8601String()}',
-    );
+    ));
   }
 
   Future<void> _clearLogs() async {

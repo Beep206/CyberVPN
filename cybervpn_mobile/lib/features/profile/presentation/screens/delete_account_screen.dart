@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -612,7 +613,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
     // Trigger error haptic pattern on account deletion confirmation.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.error();
+    unawaited(haptics.error());
 
     setState(() => _isLoading = true);
 

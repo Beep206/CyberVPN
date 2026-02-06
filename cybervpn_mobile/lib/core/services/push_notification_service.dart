@@ -178,7 +178,7 @@ class PushNotificationService {
   /// Runs asynchronously without blocking. Errors are logged but not thrown.
   void _handleTokenRefresh(String newToken) {
     // Run in fire-and-forget manner
-    Future(() async {
+    unawaited(Future(() async {
       if (_fcmTokenService == null) {
         AppLogger.warning(
           'FCM token service not set - skipping token refresh registration',
@@ -214,14 +214,14 @@ class PushNotificationService {
           category: 'fcm',
         );
       }
-    });
+    }));
   }
 
   /// Releases resources held by this service.
   ///
   /// Call during app teardown if needed.
   void dispose() {
-    _tokenRefreshSub?.cancel();
+    unawaited(_tokenRefreshSub?.cancel());
     _tokenRefreshSub = null;
   }
 }

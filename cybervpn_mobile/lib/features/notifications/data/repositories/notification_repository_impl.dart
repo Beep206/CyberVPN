@@ -90,8 +90,8 @@ class NotificationRepositoryImpl with NetworkErrorHandler implements Notificatio
 
   /// Releases stream subscriptions and controllers.
   void dispose() {
-    _foregroundSub?.cancel();
-    _backgroundTapSub?.cancel();
-    _incomingController.close();
+    unawaited(_foregroundSub?.cancel());
+    unawaited(_backgroundTapSub?.cancel());
+    unawaited(_incomingController.close());
   }
 }

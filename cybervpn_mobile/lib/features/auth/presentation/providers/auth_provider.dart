@@ -241,7 +241,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Runs asynchronously without blocking the auth flow. Errors are logged
   /// but do not affect the authentication state.
   void _scheduleTokenRefresh() {
-    Future(() async {
+    unawaited(Future(() async {
       try {
         await _refreshScheduler.scheduleRefresh();
       } catch (e, st) {
@@ -252,7 +252,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           category: 'auth.refresh',
         );
       }
-    });
+    }));
   }
 
   // ── Sentry user context ─────────────────────────────────────────────
@@ -261,8 +261,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// include the user's identity.
   void _setSentryUser(UserEntity user) {
     if (EnvironmentConfig.sentryDsn.isEmpty) return;
+    // ignore: discarded_futures
     Sentry.configureScope((scope) {
-      scope.setUser(SentryUser(
+      scope.setUser(SentryUser(  // ignore: discarded_futures
         id: user.id,
         email: user.email,
         username: user.username,
@@ -273,8 +274,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Removes the Sentry user context on logout.
   void _clearSentryUser() {
     if (EnvironmentConfig.sentryDsn.isEmpty) return;
+    // ignore: discarded_futures
     Sentry.configureScope((scope) {
-      scope.setUser(null);
+      scope.setUser(null);  // ignore: discarded_futures
     });
   }
 
@@ -286,7 +288,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// but do not affect the authentication state.
   void _registerFcmToken() {
     // Run in a fire-and-forget manner
-    Future(() async {
+    unawaited(Future(() async {
       try {
         final fcmService = ref.read(fcmTokenServiceProvider);
         await fcmService.registerToken();
@@ -302,10 +304,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
         // Also report to Sentry if configured
         if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-          Sentry.captureException(e, stackTrace: st);
+          unawaited(Sentry.captureException(e, stackTrace: st));
         }
       }
-    });
+    }));
   }
 
   // ── App attestation (logging mode) ─────────────────────────────────
@@ -317,7 +319,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// failure in current logging-only mode.
   void _performAttestation(AttestationTrigger trigger) {
     // Run in a fire-and-forget manner
-    Future(() async {
+    unawaited(Future(() async {
       try {
         final attestationService = ref.read(appAttestationServiceProvider);
         final result = await attestationService.generateToken(trigger: trigger);
@@ -335,7 +337,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           category: 'auth.attestation',
         );
       }
-    });
+    }));
   }
 }
 

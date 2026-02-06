@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
@@ -45,7 +46,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   @override
   void initState() {
     super.initState();
-    _loadVersionInfo();
+    unawaited(_loadVersionInfo());
   }
 
   // ── Version Info ─────────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Log Level Dialog ─────────────────────────────────────────────────────
 
   void _showLogLevelDialog(BuildContext context, LogLevel currentLevel) {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log Level'),
@@ -245,9 +246,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
               groupValue: currentLevel,
               onChanged: (LogLevel? newLevel) {
                 if (newLevel != null) {
-                  ref
+                  unawaited(ref
                       .read(settingsProvider.notifier)
-                      .updateLogLevel(newLevel);
+                      .updateLogLevel(newLevel));
                   Navigator.pop(context);
                 }
               },
@@ -261,7 +262,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   String _logLevelDescription(LogLevel level) {
@@ -497,7 +498,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Developer Panel Actions ──────────────────────────────────────────────
 
   void _handleRawConfigViewer(BuildContext context) {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Raw VPN Config'),
@@ -524,7 +525,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   String _getRawConfig() {
@@ -576,7 +577,7 @@ retrieve the active configuration from the VPN engine.
   }
 
   void _handleForceCrash(BuildContext context) {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Force Crash'),
@@ -607,7 +608,7 @@ retrieve the active configuration from the VPN engine.
           ),
         ],
       ),
-    );
+    ));
   }
 
   void _handleExperimentalToggle(bool value) {

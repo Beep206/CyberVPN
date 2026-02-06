@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 /// Position of the tooltip relative to the target widget.
 enum TooltipPosition {
@@ -115,7 +116,7 @@ class _FeatureTooltipOverlayState extends State<_FeatureTooltipOverlay>
       ),
     );
 
-    _animationController.forward();
+    unawaited(_animationController.forward());
   }
 
   @override

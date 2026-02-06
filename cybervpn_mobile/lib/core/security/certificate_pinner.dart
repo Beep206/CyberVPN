@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -97,14 +98,14 @@ class CertificatePinner {
 
       // Report to Sentry for monitoring
       if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-        Sentry.captureMessage(
+        unawaited(Sentry.captureMessage(
           'Certificate pinning validation failed',
           level: SentryLevel.warning,
           withScope: (scope) {
-            scope.setTag('security', 'cert-pinning');
-            scope.setTag('subject', certificate.subject);
+            unawaited(scope.setTag('security', 'cert-pinning'));
+            unawaited(scope.setTag('subject', certificate.subject));
           },
-        );
+        ));
       }
     }
 

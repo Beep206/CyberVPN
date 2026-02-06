@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -72,7 +73,7 @@ class NotificationCenterScreen extends ConsumerWidget {
             TextButton(
               key: const Key('btn_mark_all_read'),
               onPressed: () {
-                ref.read(notificationProvider.notifier).markAllAsRead();
+                unawaited(ref.read(notificationProvider.notifier).markAllAsRead());
               },
               child: const Text('Mark all read'),
             ),
@@ -182,11 +183,11 @@ class NotificationCenterScreen extends ConsumerWidget {
     AppNotification notification,
   ) {
     if (!notification.isRead) {
-      ref.read(notificationProvider.notifier).markAsRead(notification.id);
+      unawaited(ref.read(notificationProvider.notifier).markAsRead(notification.id));
     }
     if (notification.actionRoute != null &&
         notification.actionRoute!.isNotEmpty) {
-      context.push(notification.actionRoute!);
+      unawaited(context.push(notification.actionRoute!));
     }
   }
 
@@ -195,7 +196,7 @@ class NotificationCenterScreen extends ConsumerWidget {
     WidgetRef ref,
     AppNotification notification,
   ) {
-    ref.read(notificationProvider.notifier).delete(notification.id);
+    unawaited(ref.read(notificationProvider.notifier).delete(notification.id));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Notification dismissed'),

@@ -59,7 +59,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    );
+    unawaited(_animationController.repeat(reverse: true));
 
     _barcodeSubscription = _scannerController.barcodes.listen(
       _handleBarcodeCapture,
@@ -68,9 +69,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   @override
   void dispose() {
-    _barcodeSubscription?.cancel();
+    unawaited(_barcodeSubscription?.cancel());
     _animationController.dispose();
-    _scannerController.dispose();
+    unawaited(_scannerController.dispose());
     super.dispose();
   }
 
@@ -114,12 +115,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   void _pauseScanner() {
     setState(() => _isPaused = true);
-    _scannerController.stop();
+    unawaited(_scannerController.stop());
   }
 
   void _resumeScanner() {
     if (!mounted) return;
-    _scannerController.start();
+    unawaited(_scannerController.start());
     setState(() {
       _isPaused = false;
       _isProcessing = false;
@@ -160,7 +161,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
   // ── Config preview bottom sheet ───────────────────────────────────────────
 
   void _showConfigPreviewSheet(ParsedConfig config, String rawUri) {
-    showModalBottomSheet<void>(
+    unawaited(showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -178,7 +179,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     ).whenComplete(() {
       // If dismissed by swipe rather than button press, resume scanning.
       if (_isPaused) _resumeScanner();
-    });
+    }));
   }
 
   Future<void> _addServer(String rawUri, BuildContext sheetContext) async {
@@ -196,7 +197,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     if (imported != null) {
       // Trigger success haptic when config is successfully imported.
       final haptics = ref.read(hapticServiceProvider);
-      haptics.success();
+      unawaited(haptics.success());
 
       navigator.pop();
       _showErrorSnackbar('Server added: ${imported.name}');
@@ -207,7 +208,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
     } else {
       // Trigger error haptic when import fails.
       final haptics = ref.read(hapticServiceProvider);
-      haptics.error();
+      unawaited(haptics.error());
 
       _showErrorSnackbar('Failed to add server');
       navigator.pop();
@@ -254,7 +255,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               return _ScannerErrorView(
                 error: error,
                 onRetry: () {
-                  _scannerController.start();
+                  unawaited(_scannerController.start());
                 },
               );
             },

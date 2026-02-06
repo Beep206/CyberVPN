@@ -1,4 +1,5 @@
 import 'package:in_app_review/in_app_review.dart';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -44,7 +45,7 @@ class ReviewService {
   void _ensureFirstInstallDate() {
     if (!_prefs.containsKey(_firstInstallDateKey)) {
       final now = DateTime.now();
-      _prefs.setString(_firstInstallDateKey, now.toIso8601String());
+      unawaited(_prefs.setString(_firstInstallDateKey, now.toIso8601String()));
       AppLogger.info(
         'First install date recorded: $now',
         category: 'review',
@@ -126,8 +127,8 @@ class ReviewService {
       yearlyCount = _prefs.getInt(_yearlyPromptCountKey) ?? 0;
     } else {
       // New year - reset counter
-      _prefs.setInt(_yearlyPromptYearKey, currentYear);
-      _prefs.setInt(_yearlyPromptCountKey, 0);
+      unawaited(_prefs.setInt(_yearlyPromptYearKey, currentYear));
+      unawaited(_prefs.setInt(_yearlyPromptCountKey, 0));
     }
 
     if (yearlyCount >= _maxPromptsPerYear) {

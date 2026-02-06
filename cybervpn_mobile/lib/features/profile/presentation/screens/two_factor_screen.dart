@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -50,13 +51,13 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   @override
   void initState() {
     super.initState();
-    enableProtection();
+    unawaited(enableProtection());
     _initializeState();
   }
 
   @override
   void dispose() {
-    disableProtection();
+    unawaited(disableProtection());
     _codeController.dispose();
     super.dispose();
   }
@@ -683,7 +684,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   void _showBackupCodesDialog(ThemeData theme) {
     if (_backupCodes == null) return;
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -733,7 +734,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
         actions: [
           FilledButton.icon(
             onPressed: () {
-              _copyToClipboard(_backupCodes!.join('\n'));
+              unawaited(_copyToClipboard(_backupCodes!.join('\n')));
             },
             icon: const Icon(Icons.copy),
             label: const Text('Copy All'),
@@ -744,7 +745,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   /// Generate mock backup codes (placeholder - real implementation would get from API)

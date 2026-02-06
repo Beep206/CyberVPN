@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
@@ -238,7 +239,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
       ..writeln('VPN: ${result.vpnActive ? "ON" : "OFF"}')
       ..writeln('Tested: ${result.testedAt.toLocal()}');
 
-    share_plus.Share.share(text.toString());
+    unawaited(share_plus.Share.share(text.toString()));
   }
 }
 

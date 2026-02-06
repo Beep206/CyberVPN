@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_stats_entity.dart';
@@ -61,13 +62,13 @@ class WidgetStateListener {
       final downloadSpeed = statsState?.downloadSpeed.toDouble() ?? 0.0;
       final sessionDuration = statsState?.connectionDuration ?? Duration.zero;
 
-      bridgeService.updateWidgetState(
+      unawaited(bridgeService.updateWidgetState(
         vpnStatus: vpnStatus,
         serverName: serverName,
         uploadSpeed: uploadSpeed,
         downloadSpeed: downloadSpeed,
         sessionDuration: sessionDuration,
-      );
+      ));
     } catch (e, st) {
       AppLogger.error(
         'WidgetStateListener: Failed to update widget from connection state',
@@ -88,13 +89,13 @@ class WidgetStateListener {
       final vpnStatus = _mapConnectionStateToStatus(connectionState);
       final serverName = connectionState.server?.name ?? '';
 
-      bridgeService.updateWidgetState(
+      unawaited(bridgeService.updateWidgetState(
         vpnStatus: vpnStatus,
         serverName: serverName,
         uploadSpeed: statsState.uploadSpeed.toDouble(),
         downloadSpeed: statsState.downloadSpeed.toDouble(),
         sessionDuration: statsState.connectionDuration,
-      );
+      ));
     } catch (e, st) {
       AppLogger.error(
         'WidgetStateListener: Failed to update widget from stats',

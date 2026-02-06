@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
@@ -40,7 +41,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final isRunning = ref.read(isRunningDiagnosticsProvider);
       if (!isRunning) {
-        ref.read(diagnosticsProvider.notifier).runDiagnostics();
+        unawaited(ref.read(diagnosticsProvider.notifier).runDiagnostics());
       }
     });
   }
@@ -251,7 +252,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
       }
     }
 
-    share_plus.Share.share(buffer.toString());
+    unawaited(share_plus.Share.share(buffer.toString()));
   }
 
   String _formatStatus(DiagnosticStepStatus status) {

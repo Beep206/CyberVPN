@@ -40,7 +40,7 @@ class VpnRepositoryImpl implements VpnRepository {
         _localStorage = localStorage,
         _secureStorage = secureStorage {
     // Perform migration on initialization
-    _migrateOldConfigsIfNeeded();
+    unawaited(_migrateOldConfigsIfNeeded());
   }
 
   /// Initializes the VPN engine only once, subsequent calls are no-ops.

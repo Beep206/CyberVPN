@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -60,7 +61,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTooltipIfNeeded();
+      unawaited(_showTooltipIfNeeded());
     });
   }
 

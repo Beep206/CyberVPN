@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
@@ -75,7 +76,7 @@ class _DiagnosticStepTileState extends State<DiagnosticStepTile>
 
     // Trigger animation when status changes.
     if (oldWidget.status != widget.status) {
-      _animationController.forward(from: 0);
+      unawaited(_animationController.forward(from: 0));
     }
   }
 
@@ -275,7 +276,7 @@ class _AnimatedMessageBoxState extends State<_AnimatedMessageBox>
       ),
     );
 
-    _controller.forward();
+    unawaited(_controller.forward());
   }
 
   @override
@@ -355,7 +356,7 @@ class _AnimatedSuggestionBoxState extends State<_AnimatedSuggestionBox>
     // Start animation after a brief delay to ensure message appears first.
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) {
-        _controller.forward();
+        unawaited(_controller.forward());
       }
     });
   }

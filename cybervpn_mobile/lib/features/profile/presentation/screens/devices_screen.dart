@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +39,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentDeviceId();
+    unawaited(_loadCurrentDeviceId());
   }
 
   /// Load the current device ID to mark it in the list
@@ -204,7 +205,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           );
 
       if (mounted) {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${device.name} removed successfully'),

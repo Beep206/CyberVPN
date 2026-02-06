@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -213,7 +214,7 @@ class SettingsTile extends ConsumerWidget {
     void handleToggle(bool newValue) {
       // Trigger haptic feedback on toggle.
       final haptics = ref.read(hapticServiceProvider);
-      haptics.selection();
+      unawaited(haptics.selection());
 
       onChanged?.call(newValue);
     }

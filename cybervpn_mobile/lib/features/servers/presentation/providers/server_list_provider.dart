@@ -336,7 +336,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   void _triggerPingTest(List<ServerEntity> servers) {
     final pingService = ref.read(pingServiceProvider);
-    pingService.pingAllConcurrent(servers).then((Map<String, int> results) {
+    unawaited(pingService.pingAllConcurrent(servers).then((Map<String, int> results) {
       final current = state.value;
       if (current == null) return;
 
@@ -347,7 +347,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
       }).toList();
 
       state = AsyncData<ServerListState>(current.copyWith(servers: updated));
-    });
+    }));
   }
 
   /// Listens to WebSocket server_status_changed events and updates
@@ -408,7 +408,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   /// Disposes resources when the provider is no longer used.
   void _dispose() {
-    _webSocketSubscription?.cancel();
+    unawaited(_webSocketSubscription?.cancel());
   }
 }
 

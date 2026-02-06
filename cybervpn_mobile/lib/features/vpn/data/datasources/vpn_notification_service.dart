@@ -99,7 +99,7 @@ class VpnNotificationService {
       final settings = next.value;
       if (settings == null) return;
 
-      _androidNotification.updateSpeedVisibility(settings.notificationVpnSpeed);
+      unawaited(_androidNotification.updateSpeedVisibility(settings.notificationVpnSpeed));
     });
   }
 
@@ -108,11 +108,11 @@ class VpnNotificationService {
   void _handleConnectionStateChange(VpnConnectionState state) {
     switch (state) {
       case VpnConnected(:final server, :final protocol):
-        _onConnected(server.name, protocol.name);
+        unawaited(_onConnected(server.name, protocol.name));
       case VpnDisconnected():
-        _onDisconnected();
+        unawaited(_onDisconnected());
       case VpnDisconnecting():
-        _onDisconnecting();
+        unawaited(_onDisconnecting());
       default:
         // No notification changes for connecting/reconnecting states
         break;
@@ -122,11 +122,11 @@ class VpnNotificationService {
   void _handleStatsUpdate(ConnectionStatsEntity stats) {
     if (!_isAndroid) return;
 
-    _androidNotification.updateNotification(
+    unawaited(_androidNotification.updateNotification(
       downloadSpeed: stats.downloadSpeed,
       uploadSpeed: stats.uploadSpeed,
       duration: stats.connectionDuration,
-    );
+    ));
   }
 
   // -- Connection event handlers ----------------------------------------------

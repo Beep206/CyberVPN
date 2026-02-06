@@ -52,7 +52,7 @@ class AppLockService with WidgetsBindingObserver {
   /// Disposes the service and removes the lifecycle observer.
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _lockStateController.close();
+    unawaited(_lockStateController.close());
   }
 
   @override
@@ -62,7 +62,7 @@ class AppLockService with WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         _onAppPaused();
       case AppLifecycleState.resumed:
-        _onAppResumed();
+        unawaited(_onAppResumed());
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         // Do nothing

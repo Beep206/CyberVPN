@@ -129,7 +129,7 @@ class _InAppBannerState extends State<InAppBanner>
     );
 
     // Start slide-in animation.
-    _controller.forward();
+    unawaited(_controller.forward());
   }
 
   @override
@@ -192,7 +192,7 @@ class _BannerOverlayState extends State<_BannerOverlay>
     );
 
     // Start slide-in animation.
-    _controller.forward();
+    unawaited(_controller.forward());
 
     // Start auto-dismiss timer.
     _autoDismissTimer = Timer(widget.config.duration, _dismiss);
@@ -216,13 +216,13 @@ class _BannerOverlayState extends State<_BannerOverlay>
   void _handleVerticalDragEnd(DragEndDetails details) {
     // Swipe up to dismiss (negative velocity).
     if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
-      _dismiss();
+      unawaited(_dismiss());
     }
   }
 
   void _handleTap() {
     widget.config.onTap?.call();
-    _dismiss();
+    unawaited(_dismiss());
   }
 
   @override

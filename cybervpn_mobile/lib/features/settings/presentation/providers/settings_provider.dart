@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
@@ -256,7 +257,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   ///
   /// Runs asynchronously without blocking the settings update.
   void _syncFcmTopicSubscription(NotificationType type, bool enabled) {
-    Future(() async {
+    unawaited(Future(() async {
       try {
         final topicService = ref.read(fcmTopicServiceProvider);
         await topicService.setTopicSubscription(type, enabled);
@@ -269,7 +270,7 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
           category: 'settings.fcm',
         );
       }
-    });
+    }));
   }
 
   // ── Privacy ──────────────────────────────────────────────────────────────

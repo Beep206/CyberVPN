@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 /// A widget that animates its child with a staggered fade-slide animation.
 ///
@@ -77,7 +78,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
     ).animate(curved);
 
     // Stagger the animation start based on index
-    _startAnimation();
+    unawaited(_startAnimation());
   }
 
   Future<void> _startAnimation() async {
@@ -88,7 +89,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
     await Future<void>.delayed(delay);
 
     if (mounted) {
-      _controller.forward();
+      unawaited(_controller.forward());
     }
   }
 

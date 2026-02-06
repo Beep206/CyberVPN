@@ -73,10 +73,10 @@ class SyncOnReconnectService {
     );
 
     // Check initial state
-    Future(() async {
+    unawaited(Future(() async {
       final isOnline = await _networkInfo.isConnected;
       _wasOffline = !isOnline;
-    });
+    }));
   }
 
   Future<void> _onConnectivityChanged(bool isOnline) async {
@@ -161,7 +161,7 @@ class SyncOnReconnectService {
       }
 
       // Trigger auth state refresh
-      _ref.read(authProvider.notifier).checkAuthStatus();
+      unawaited(_ref.read(authProvider.notifier).checkAuthStatus());
 
       _isSyncing = false;
       AppLogger.info('Sync completed successfully', category: 'auth.sync');
@@ -184,8 +184,8 @@ class SyncOnReconnectService {
 
   /// Stops listening for connectivity changes.
   void dispose() {
-    _connectivitySubscription?.cancel();
-    _syncResultController.close();
+    unawaited(_connectivitySubscription?.cancel());
+    unawaited(_syncResultController.close());
   }
 }
 

@@ -52,7 +52,7 @@ class TokenRefreshScheduler {
 
       if (payload.isExpired) {
         AppLogger.info('Access token already expired, triggering immediate refresh');
-        _triggerRefresh();
+        unawaited(_triggerRefresh());
         return;
       }
 

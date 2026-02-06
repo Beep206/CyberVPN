@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
@@ -151,14 +152,14 @@ class _PlansBodyState extends State<_PlansBody> {
   void _navigateToPurchase(BuildContext context, PlanEntity plan) {
     // Navigate to purchase screen. Uses named route if available,
     // otherwise a simple MaterialPageRoute placeholder.
-    Navigator.of(context).push(
+    unawaited(Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
           appBar: AppBar(title: const Text('Purchase')),
           body: Center(child: Text('Purchase flow for: ${plan.name}')),
         ),
       ),
-    );
+    ));
   }
 }
 

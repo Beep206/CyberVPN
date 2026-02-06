@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -104,9 +105,9 @@ class ScreenProtectionObserver extends NavigatorObserver {
   void _updateProtectionForRoute(String? routePath) {
     _currentRoutePath = routePath;
     if (_shouldProtectRoute(routePath)) {
-      _enableProtection();
+      unawaited(_enableProtection());
     } else {
-      _disableProtection();
+      unawaited(_disableProtection());
     }
   }
 

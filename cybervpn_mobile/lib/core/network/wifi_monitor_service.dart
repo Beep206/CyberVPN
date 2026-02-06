@@ -127,7 +127,7 @@ class WifiMonitorService {
   /// Call this once when the app starts if auto-connect on untrusted WiFi
   /// is enabled.
   void startMonitoring() {
-    _connectivitySubscription?.cancel();
+    unawaited(_connectivitySubscription?.cancel());
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
       _onConnectivityChanged,
       onError: (Object e) {
@@ -139,7 +139,7 @@ class WifiMonitorService {
 
   /// Stop monitoring WiFi changes.
   void stopMonitoring() {
-    _connectivitySubscription?.cancel();
+    unawaited(_connectivitySubscription?.cancel());
     _connectivitySubscription = null;
     AppLogger.info('WiFi monitor stopped', category: 'network.wifi');
   }
@@ -267,7 +267,7 @@ class WifiMonitorService {
   /// Dispose resources.
   void dispose() {
     stopMonitoring();
-    _wifiInfoController.close();
+    unawaited(_wifiInfoController.close());
   }
 }
 

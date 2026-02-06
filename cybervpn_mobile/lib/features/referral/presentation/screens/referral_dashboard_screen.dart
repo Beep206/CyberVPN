@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -42,7 +43,7 @@ class ReferralDashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
             onPressed: () {
-              ref.read(referralProvider.notifier).checkAvailability();
+              unawaited(ref.read(referralProvider.notifier).checkAvailability());
             },
           ),
         ],

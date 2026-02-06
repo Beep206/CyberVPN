@@ -83,7 +83,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
   void _abandonSetup() {
     _timeoutTimer?.cancel();
     _connectionTimeoutTimer?.cancel();
-    ref.read(quickSetupProvider.notifier).abandon();
+    unawaited(ref.read(quickSetupProvider.notifier).abandon());
     if (mounted) {
       context.go('/connection');
     }
@@ -163,7 +163,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
   void _navigateToServerList() {
     _timeoutTimer?.cancel();
     _connectionTimeoutTimer?.cancel();
-    ref.read(quickSetupProvider.notifier).complete();
+    unawaited(ref.read(quickSetupProvider.notifier).complete());
     if (mounted) {
       context.go('/servers');
     }
@@ -175,7 +175,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
       _showCelebration = true;
     });
 
-    _celebrationController.forward();
+    unawaited(_celebrationController.forward());
 
     // Wait for animation to complete, then navigate.
     Future.delayed(const Duration(milliseconds: 2000), () {
@@ -187,7 +187,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
   void _completeSetup() {
     _timeoutTimer?.cancel();
-    ref.read(quickSetupProvider.notifier).complete();
+    unawaited(ref.read(quickSetupProvider.notifier).complete());
     if (mounted) {
       context.go('/connection');
     }

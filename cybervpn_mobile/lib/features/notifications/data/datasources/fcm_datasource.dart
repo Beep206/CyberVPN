@@ -86,8 +86,8 @@ class FcmDatasourceImpl implements FcmDatasource {
 
   @override
   void dispose() {
-    _foregroundController.close();
-    _backgroundTapController.close();
+    unawaited(_foregroundController.close());
+    unawaited(_backgroundTapController.close());
   }
 
   // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
@@ -40,7 +41,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
   @override
   void initState() {
     super.initState();
-    enableProtection();
+    unawaited(enableProtection());
     // Reset purchase state when entering the screen.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(subscriptionProvider.notifier).clearPurchaseState();
@@ -49,7 +50,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
 
   @override
   void dispose() {
-    disableProtection();
+    unawaited(disableProtection());
     super.dispose();
   }
 
@@ -128,7 +129,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
       );
       return;
     }
-    ref.read(subscriptionProvider.notifier).purchase(widget.plan);
+    unawaited(ref.read(subscriptionProvider.notifier).purchase(widget.plan));
   }
 }
 

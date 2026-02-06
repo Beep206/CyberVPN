@@ -86,14 +86,14 @@ class UntrustedWifiHandler {
     );
 
     // Check current WiFi state immediately
-    _checkCurrentWifi();
+    unawaited(_checkCurrentWifi());
   }
 
   /// Stop monitoring WiFi changes.
   ///
   /// Call this when cleaning up or when the user disables auto-connect.
   void stop() {
-    _wifiSubscription?.cancel();
+    unawaited(_wifiSubscription?.cancel());
     _wifiSubscription = null;
 
     // Also stop the underlying WiFi service if we were the only user
