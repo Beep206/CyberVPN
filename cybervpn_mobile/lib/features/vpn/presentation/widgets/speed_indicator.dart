@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_provider.dart';
 
@@ -19,20 +20,21 @@ class SpeedIndicator extends ConsumerWidget {
     final speed = ref.watch(currentSpeedProvider);
     final usage = ref.watch(sessionUsageProvider);
 
+    final l10n = AppLocalizations.of(context);
+
     // Speed indicators should always remain LTR for consistency in data visualization
     return Directionality(
       textDirection: TextDirection.ltr,
       child: RepaintBoundary(
         child: Semantics(
-          label:
-              'Download speed: ${speed.download}, Upload speed: ${speed.upload}',
+          label: l10n.a11yDownloadUploadSpeed(speed.download, speed.upload),
           readOnly: true,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _SpeedGauge(
                 icon: Icons.arrow_downward_rounded,
-                label: 'Download',
+                label: l10n.downloadSpeed,
                 speed: speed.download,
                 total: usage.download,
                 isActive: isConnected,
@@ -40,7 +42,7 @@ class SpeedIndicator extends ConsumerWidget {
               const SizedBox(width: 32),
               _SpeedGauge(
                 icon: Icons.arrow_upward_rounded,
-                label: 'Upload',
+                label: l10n.uploadSpeed,
                 speed: speed.upload,
                 total: usage.upload,
                 isActive: isConnected,

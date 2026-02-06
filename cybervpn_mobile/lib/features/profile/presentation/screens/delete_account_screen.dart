@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/delete_account.dart';
@@ -63,10 +64,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Delete Account'),
+        title: Text(l10n.profileDeleteAccount),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -75,16 +77,16 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Danger header
-              _buildDangerHeader(theme),
+              _buildDangerHeader(theme, l10n),
               const SizedBox(height: Spacing.lg),
 
               // Step-specific content
               if (_currentStep == _DeletionStep.warning)
-                _buildWarningStep(theme),
+                _buildWarningStep(theme, l10n),
               if (_currentStep == _DeletionStep.reAuthentication)
-                _buildReAuthenticationStep(theme),
+                _buildReAuthenticationStep(theme, l10n),
               if (_currentStep == _DeletionStep.finalConfirmation)
-                _buildFinalConfirmationStep(theme),
+                _buildFinalConfirmationStep(theme, l10n),
 
               // Loading indicator
               if (_isLoading) ...[
@@ -100,7 +102,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   // ---- Danger Header -------------------------------------------------------
 
-  Widget _buildDangerHeader(ThemeData theme) {
+  Widget _buildDangerHeader(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
 
     return Container(
@@ -126,7 +128,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Danger Zone',
+                  l10n.profileDangerZone,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.error,
@@ -134,7 +136,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 ),
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  'This action cannot be undone',
+                  l10n.profileDeleteDangerZoneDesc,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -149,21 +151,21 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   // ---- Step 1: Warning -----------------------------------------------------
 
-  Widget _buildWarningStep(ThemeData theme) {
+  Widget _buildWarningStep(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'What will be deleted?',
+          l10n.profileDeleteWhatWillBeDeleted,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'The following data will be permanently deleted:',
+          l10n.profileDeletePermanentlyDeleted,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -173,29 +175,29 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
         // Data to be deleted list
         _buildDataItem(
           icon: Icons.person_outline,
-          title: 'Personal Information',
-          description: 'Email, username, and profile data',
+          title: l10n.profileDeletePersonalInfo,
+          description: l10n.profileDeletePersonalInfoDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.sm),
         _buildDataItem(
           icon: Icons.workspace_premium_outlined,
-          title: 'Subscription & Payment History',
-          description: 'All active subscriptions and transaction records',
+          title: l10n.profileDeleteSubscriptionHistory,
+          description: l10n.profileDeleteSubscriptionHistoryDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.sm),
         _buildDataItem(
           icon: Icons.vpn_key_outlined,
-          title: 'VPN Configurations',
-          description: 'Server settings and connection preferences',
+          title: l10n.profileDeleteVpnConfigs,
+          description: l10n.profileDeleteVpnConfigsDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.sm),
         _buildDataItem(
           icon: Icons.settings_outlined,
-          title: 'App Settings',
-          description: 'All preferences and customizations',
+          title: l10n.profileDeleteAppSettings,
+          description: l10n.profileDeleteAppSettingsDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.lg),
@@ -224,7 +226,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '30-Day Grace Period',
+                      l10n.profileDeleteGracePeriod,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.primary,
@@ -232,9 +234,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                     ),
                     const SizedBox(height: Spacing.xs),
                     Text(
-                      'Your account will be scheduled for deletion. You can cancel '
-                      'this request within 30 days by logging back in. After this '
-                      'period, all data will be permanently deleted.',
+                      l10n.profileDeleteGracePeriodDesc,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -255,8 +255,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             borderRadius: BorderRadius.circular(Radii.sm),
           ),
           child: Text(
-            'In compliance with App Store and Google Play data deletion policies, '
-            'all personal data will be permanently removed from our servers.',
+            l10n.profileDeleteStorePolicy,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -271,7 +270,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             backgroundColor: colorScheme.error,
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Continue with Deletion'),
+          child: Text(l10n.profileDeleteContinue),
         ),
         const SizedBox(height: Spacing.sm),
         OutlinedButton(
@@ -279,7 +278,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -334,7 +333,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   // ---- Step 2: Re-Authentication -------------------------------------------
 
-  Widget _buildReAuthenticationStep(ThemeData theme) {
+  Widget _buildReAuthenticationStep(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     final profileState = ref.watch(profileProvider).value;
     final is2FAEnabled = profileState?.is2FAEnabled ?? false;
@@ -343,15 +342,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Verify Your Identity',
+          l10n.profileDeleteVerifyIdentity,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'For security reasons, please re-enter your credentials to confirm '
-          'account deletion.',
+          l10n.profileDeleteVerifyIdentityDesc,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -363,8 +361,8 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           controller: _passwordController,
           obscureText: _obscurePassword,
           decoration: InputDecoration(
-            labelText: 'Password',
-            hintText: 'Enter your password',
+            labelText: l10n.profileDeletePasswordLabel,
+            hintText: l10n.profileDeletePasswordHint,
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               icon: Icon(
@@ -385,10 +383,10 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             controller: _totpController,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            decoration: const InputDecoration(
-              labelText: '6-digit code',
+            decoration: InputDecoration(
+              labelText: l10n.profileTwoFactorCodeLabel,
               hintText: '000000',
-              prefixIcon: Icon(Icons.security),
+              prefixIcon: const Icon(Icons.security),
               counterText: '',
             ),
             inputFormatters: [
@@ -399,7 +397,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           ),
           const SizedBox(height: Spacing.xs),
           Text(
-            'Enter the 6-digit code from your authenticator app',
+            l10n.profileTwoFactorEnterCodeShort,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -418,7 +416,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             backgroundColor: colorScheme.error,
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Verify and Continue'),
+          child: Text(l10n.profileDeleteVerifyAndContinue),
         ),
         const SizedBox(height: Spacing.sm),
         OutlinedButton(
@@ -426,7 +424,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Back'),
+          child: Text(l10n.commonBack),
         ),
       ],
     );
@@ -443,22 +441,21 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   // ---- Step 3: Final Confirmation ------------------------------------------
 
-  Widget _buildFinalConfirmationStep(ThemeData theme) {
+  Widget _buildFinalConfirmationStep(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Final Confirmation',
+          l10n.profileDeleteFinalConfirmation,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'This is your last chance to cancel. Once confirmed, your account '
-          'will be scheduled for permanent deletion.',
+          l10n.profileDeleteFinalConfirmationDesc,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -488,7 +485,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   ),
                   const SizedBox(width: Spacing.sm),
                   Text(
-                    'This action is irreversible',
+                    l10n.profileDeleteIrreversible,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.error,
@@ -498,10 +495,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               ),
               const SizedBox(height: Spacing.sm),
               Text(
-                '• All data will be permanently deleted after 30 days\n'
-                '• Active subscriptions will be cancelled\n'
-                '• You will be immediately logged out\n'
-                '• This cannot be undone',
+                l10n.profileDeleteIrreversibleList,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -513,7 +507,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
         // Type DELETE confirmation
         Text(
-          'Type DELETE to confirm',
+          l10n.profileDeleteConfirmInput,
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -538,7 +532,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             backgroundColor: colorScheme.error,
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Delete My Account'),
+          child: Text(l10n.profileDeleteAccountButton),
         ),
         const SizedBox(height: Spacing.sm),
         OutlinedButton(
@@ -546,7 +540,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Back'),
+          child: Text(l10n.commonBack),
         ),
       ],
     );
@@ -644,8 +638,10 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context);
+
       // Show success message
-      _showSuccessSnackbar('Account deletion scheduled successfully');
+      _showSuccessSnackbar(l10n.profileDeleteScheduledSuccess);
 
       // Navigate to login and clear navigation stack
       await Future<void>.delayed(const Duration(seconds: 1));

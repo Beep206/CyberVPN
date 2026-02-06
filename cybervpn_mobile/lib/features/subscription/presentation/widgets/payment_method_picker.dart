@@ -2,42 +2,50 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+
 // ---------------------------------------------------------------------------
 // Payment method enum
 // ---------------------------------------------------------------------------
 
 /// Available payment methods in the CyberVPN purchase flow.
 enum PaymentMethod {
-  applePay(
-    title: 'Apple Pay',
-    subtitle: 'Pay with Apple Pay',
-    icon: Icons.apple,
-  ),
-  googlePay(
-    title: 'Google Pay',
-    subtitle: 'Pay with Google Pay',
-    icon: Icons.g_mobiledata,
-  ),
-  cryptoBot(
-    title: 'CryptoBot',
-    subtitle: 'Pay with Crypto',
-    icon: Icons.currency_bitcoin,
-  ),
-  yooKassa(
-    title: 'YooKassa',
-    subtitle: 'Pay with Card (RU)',
-    icon: Icons.credit_card,
-  );
+  applePay(icon: Icons.apple),
+  googlePay(icon: Icons.g_mobiledata),
+  cryptoBot(icon: Icons.currency_bitcoin),
+  yooKassa(icon: Icons.credit_card);
 
-  const PaymentMethod({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
+  const PaymentMethod({required this.icon});
 
-  final String title;
-  final String subtitle;
   final IconData icon;
+
+  /// Returns the localized title for this payment method.
+  String title(AppLocalizations l10n) {
+    switch (this) {
+      case PaymentMethod.applePay:
+        return l10n.subscriptionApplePay;
+      case PaymentMethod.googlePay:
+        return l10n.subscriptionGooglePay;
+      case PaymentMethod.cryptoBot:
+        return l10n.subscriptionCryptoBot;
+      case PaymentMethod.yooKassa:
+        return l10n.subscriptionYooKassa;
+    }
+  }
+
+  /// Returns the localized subtitle for this payment method.
+  String subtitle(AppLocalizations l10n) {
+    switch (this) {
+      case PaymentMethod.applePay:
+        return l10n.subscriptionPayWithApplePay;
+      case PaymentMethod.googlePay:
+        return l10n.subscriptionPayWithGooglePay;
+      case PaymentMethod.cryptoBot:
+        return l10n.subscriptionPayWithCrypto;
+      case PaymentMethod.yooKassa:
+        return l10n.subscriptionPayWithCard;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +118,7 @@ class _PaymentMethodPickerState extends State<PaymentMethodPicker> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final methods = _availableMethods;
 
     if (methods.isEmpty) {
@@ -117,7 +126,7 @@ class _PaymentMethodPickerState extends State<PaymentMethodPicker> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'No payment methods available.',
+            l10n.subscriptionNoPaymentMethods,
             style: theme.textTheme.bodyLarge,
           ),
         ),
@@ -129,7 +138,7 @@ class _PaymentMethodPickerState extends State<PaymentMethodPicker> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Payment Method',
+          l10n.subscriptionPaymentMethod,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -164,6 +173,7 @@ class _PaymentMethodCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -202,14 +212,14 @@ class _PaymentMethodCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        method.title,
+                        method.title(l10n),
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        method.subtitle,
+                        method.subtitle(l10n),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),

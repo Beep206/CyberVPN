@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -95,9 +96,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   Widget build(BuildContext context) {
     final asyncSettings = ref.watch(settingsProvider);
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Debug & About'),
+        title: Text(l10n.settingsDebugAbout),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -111,6 +114,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
   Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -118,11 +122,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         children: [
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text('Failed to load settings', style: theme.textTheme.bodyLarge),
+          Text(l10n.settingsLoadError, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -132,17 +136,19 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Data state ───────────────────────────────────────────────────────────
 
   Widget _buildBody(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context);
+
     return ListView(
       children: [
         // --- Diagnostics ---
         SettingsSection(
-          title: 'Diagnostics',
+          title: l10n.settingsDiagnosticsSection,
           children: [
             _buildLogLevelTile(context, settings),
             SettingsTile.navigation(
               key: const Key('tile_export_logs'),
-              title: 'Export Logs',
-              subtitle: '${AppLogger.entryCount} entries',
+              title: l10n.settingsExportLogsLabel,
+              subtitle: l10n.settingsLogEntryCount(AppLogger.entryCount),
               leading: const Icon(Icons.upload_file_outlined),
               onTap: () => _handleExportLogs(context),
             ),
@@ -151,19 +157,19 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
         // --- Cache & Data ---
         SettingsSection(
-          title: 'Cache & Data',
+          title: l10n.settingsCacheDataSection,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_clear_cache'),
-              title: 'Clear Cache',
-              subtitle: 'Remove cached server lists and configs',
+              title: l10n.settingsClearCacheLabel,
+              subtitle: l10n.settingsClearCacheDescription,
               leading: const Icon(Icons.cleaning_services_outlined),
               onTap: () => _handleClearCache(context),
             ),
             SettingsTile.navigation(
               key: const Key('tile_reset_settings'),
-              title: 'Reset All Settings',
-              subtitle: 'Restore defaults',
+              title: l10n.settingsResetLabel,
+              subtitle: l10n.settingsResetSubtitle,
               leading: const Icon(Icons.restart_alt_outlined),
               onTap: () => _handleResetSettings(context),
             ),
@@ -172,13 +178,13 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
         // --- About ---
         SettingsSection(
-          title: 'About',
+          title: l10n.settingsAbout,
           children: [
             GestureDetector(
               onTap: _handleVersionTap,
               child: SettingsTile.info(
                 key: const Key('tile_app_version'),
-                title: 'App Version',
+                title: l10n.settingsAppVersionLabel,
                 subtitle: _buildNumber.isNotEmpty
                     ? '$_appVersion ($_buildNumber)'
                     : _appVersion,
@@ -187,7 +193,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
             ),
             SettingsTile.info(
               key: const Key('tile_xray_version'),
-              title: 'Xray-core Version',
+              title: l10n.settingsXrayCoreVersionLabel,
               subtitle: _xrayCoreVersion,
               leading: const Icon(Icons.shield_outlined),
             ),
@@ -206,10 +212,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Log Level Tile ───────────────────────────────────────────────────────
 
   Widget _buildLogLevelTile(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context);
+
     return ListTile(
       key: const Key('tile_log_level'),
       leading: const Icon(Icons.bug_report_outlined),
-      title: const Text('Log Level'),
+      title: Text(l10n.settingsLogLevelLabel),
       subtitle: Text(_logLevelLabel(settings.logLevel)),
       trailing: Icon(
         Icons.chevron_right,
@@ -221,11 +229,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
   /// Returns a human-readable label for the [LogLevel].
   String _logLevelLabel(LogLevel level) {
+    final l10n = AppLocalizations.of(context);
     return switch (level) {
-      LogLevel.debug => 'Debug',
-      LogLevel.info => 'Info',
-      LogLevel.warning => 'Warning',
-      LogLevel.error => 'Error',
+      LogLevel.debug => l10n.settingsLogLevelDebug,
+      LogLevel.info => l10n.settingsLogLevelInfo,
+      LogLevel.warning => l10n.settingsLogLevelWarning,
+      LogLevel.error => l10n.settingsLogLevelError,
     };
   }
 
@@ -234,43 +243,47 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   void _showLogLevelDialog(BuildContext context, LogLevel currentLevel) {
     unawaited(showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Log Level'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: LogLevel.values.map((level) {
-            return RadioListTile<LogLevel>(
-              title: Text(_logLevelLabel(level)),
-              subtitle: Text(_logLevelDescription(level)),
-              value: level,
-              groupValue: currentLevel,
-              onChanged: (LogLevel? newLevel) {
-                if (newLevel != null) {
-                  unawaited(ref
-                      .read(settingsProvider.notifier)
-                      .updateLogLevel(newLevel));
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder: (dialogCtx) {
+        final dialogL10n = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dialogL10n.settingsLogLevelLabel),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: LogLevel.values.map((level) {
+              return RadioListTile<LogLevel>(
+                title: Text(_logLevelLabel(level)),
+                subtitle: Text(_logLevelDescription(level)),
+                value: level,
+                groupValue: currentLevel,
+                onChanged: (LogLevel? newLevel) {
+                  if (newLevel != null) {
+                    unawaited(ref
+                        .read(settingsProvider.notifier)
+                        .updateLogLevel(newLevel));
+                    Navigator.pop(dialogCtx);
+                  }
+                },
+              );
+            }).toList(),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(dialogL10n.cancel),
+            ),
+          ],
+        );
+      },
     ));
   }
 
   String _logLevelDescription(LogLevel level) {
+    final l10n = AppLocalizations.of(context);
     return switch (level) {
-      LogLevel.debug => 'Detailed diagnostic information',
-      LogLevel.info => 'General informational messages',
-      LogLevel.warning => 'Potential issues',
-      LogLevel.error => 'Errors only',
+      LogLevel.debug => l10n.settingsLogLevelDebugDescription,
+      LogLevel.info => l10n.settingsLogLevelInfoDescription,
+      LogLevel.warning => l10n.settingsLogLevelWarningDescription,
+      LogLevel.error => l10n.settingsLogLevelErrorDescription,
     };
   }
 
@@ -282,7 +295,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
     final logs = AppLogger.exportLogs();
     if (logs.isEmpty) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('No logs to export')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).settingsNoLogsToExport)),
       );
       return;
     }
@@ -323,23 +336,23 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
     final confirmed = await showDialog<bool>(
       context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Clear Cache?'),
-        content: const Text(
-          'This will remove cached server lists and VPN configurations. '
-          'Your settings will not be affected.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsClearCacheDialogTitle),
+          content: Text(dl.settingsClearCacheDialogContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(dl.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(dl.settingsClearCacheDialogConfirm),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true || !ctx.mounted) return;
@@ -365,7 +378,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('Cache cleared successfully')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).settingsCacheClearedSuccess)),
       );
     } catch (e) {
       AppLogger.error('Failed to clear cache', error: e);
@@ -384,26 +397,26 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
     final confirmed = await showDialog<bool>(
       context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Reset All Settings?'),
-        content: const Text(
-          'This will restore all settings to their default values. '
-          'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(dialogCtx).colorScheme.error,
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsResetDialogTitle),
+          content: Text(dl.settingsResetDialogContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(dl.cancel),
             ),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogCtx).colorScheme.error,
+              ),
+              child: Text(dl.settingsResetDialogConfirm),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed != true || !ctx.mounted) return;
@@ -415,7 +428,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(content: Text('Settings reset successfully')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).settingsResetSuccess)),
       );
     } catch (e) {
       AppLogger.error('Failed to reset settings', error: e);
@@ -454,9 +467,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Developer mode activated'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).settingsDeveloperModeActivated),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -466,27 +479,29 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Developer Panel ──────────────────────────────────────────────────────
 
   Widget _buildDeveloperPanel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SettingsSection(
-      title: 'Developer Options',
+      title: l10n.settingsDeveloperOptions,
       children: [
         SettingsTile.navigation(
           key: const Key('tile_developer_raw_config'),
-          title: 'Raw VPN Config Viewer',
-          subtitle: 'View current Xray configuration',
+          title: l10n.settingsDeveloperRawConfig,
+          subtitle: l10n.settingsDeveloperRawConfigSubtitle,
           leading: const Icon(Icons.code_outlined),
           onTap: () => _handleRawConfigViewer(context),
         ),
         SettingsTile.navigation(
           key: const Key('tile_developer_force_crash'),
-          title: 'Force Crash (Sentry Test)',
-          subtitle: 'Test error reporting',
+          title: l10n.settingsDeveloperForceCrash,
+          subtitle: l10n.settingsDeveloperForceCrashSubtitle,
           leading: const Icon(Icons.warning_amber_outlined),
           onTap: () => _handleForceCrash(context),
         ),
         SettingsTile.toggle(
           key: const Key('tile_developer_experimental'),
-          title: 'Experimental Features',
-          subtitle: 'Enable unreleased features',
+          title: l10n.settingsDeveloperExperimental,
+          subtitle: l10n.settingsDeveloperExperimentalSubtitle,
           leading: const Icon(Icons.science_outlined),
           value: _experimentalFeaturesEnabled,
           onChanged: (value) => _handleExperimentalToggle(value as bool),
@@ -500,31 +515,34 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   void _handleRawConfigViewer(BuildContext context) {
     unawaited(showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Raw VPN Config'),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            _getRawConfig(),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsDeveloperRawConfigDialogTitle),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              _getRawConfig(),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          FilledButton.tonal(
-            onPressed: () async {
-              await Share.share(
-                _getRawConfig(),
-                subject: 'VPN Configuration',
-                sharePositionOrigin: _getSharePositionOrigin(context),
-              );
-            },
-            child: const Text('Share'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(dl.commonClose),
+            ),
+            FilledButton.tonal(
+              onPressed: () async {
+                await Share.share(
+                  _getRawConfig(),
+                  subject: 'VPN Configuration',
+                  sharePositionOrigin: _getSharePositionOrigin(dialogCtx),
+                );
+              },
+              child: Text(dl.commonShare),
+            ),
+          ],
+        );
+      },
     ));
   }
 
@@ -579,35 +597,34 @@ retrieve the active configuration from the VPN engine.
   void _handleForceCrash(BuildContext context) {
     unawaited(showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Force Crash'),
-        content: const Text(
-          'This will intentionally crash the app to test error reporting '
-          'via Sentry. Only use this for debugging purposes.\n\n'
-          'Are you sure you want to continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              AppLogger.error('Test crash triggered from developer panel');
-
-              // Delay to allow dialog to close and log to be recorded
-              Future.delayed(const Duration(milliseconds: 500), () {
-                throw Exception('Test crash from developer panel');
-              });
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsDeveloperForceCrashDialogTitle),
+          content: Text(dl.settingsDeveloperForceCrashDialogContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(dl.cancel),
             ),
-            child: const Text('Crash Now'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                AppLogger.error('Test crash triggered from developer panel');
+
+                // Delay to allow dialog to close and log to be recorded
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  throw Exception('Test crash from developer panel');
+                });
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogCtx).colorScheme.error,
+              ),
+              child: Text(dl.settingsDeveloperCrashNow),
+            ),
+          ],
+        );
+      },
     ));
   }
 
@@ -618,10 +635,11 @@ retrieve the active configuration from the VPN engine.
 
     AppLogger.info('Experimental features ${value ? 'enabled' : 'disabled'}');
 
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Experimental features ${value ? 'enabled' : 'disabled'}',
+          value ? l10n.settingsDeveloperExperimentalEnabled : l10n.settingsDeveloperExperimentalDisabled,
         ),
       ),
     );

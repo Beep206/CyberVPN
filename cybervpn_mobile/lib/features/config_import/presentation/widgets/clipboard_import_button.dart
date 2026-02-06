@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
@@ -332,16 +333,13 @@ class _ClipboardImportObserverState
     // Show result snackbar
     if (mounted && context.mounted) {
       final messenger = ScaffoldMessenger.of(context);
+      final l10n = AppLocalizations.of(context);
 
       if (successCount > 0 && failureCount == 0) {
         // All succeeded
         messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              successCount == 1
-                  ? 'Successfully imported 1 config'
-                  : 'Successfully imported $successCount configs',
-            ),
+            content: Text(l10n.configImportSuccessCount(successCount)),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
@@ -350,7 +348,7 @@ class _ClipboardImportObserverState
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Imported $successCount config(s), $failureCount failed',
+              l10n.configImportPartialSuccess(successCount, failureCount),
             ),
             backgroundColor: Theme.of(context).colorScheme.tertiary,
             duration: const Duration(seconds: 4),
@@ -360,11 +358,7 @@ class _ClipboardImportObserverState
         // All failed
         messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              failureCount == 1
-                  ? 'Failed to import config'
-                  : 'Failed to import $failureCount configs',
-            ),
+            content: Text(l10n.configImportFailureCount(failureCount)),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 4),
           ),
@@ -444,6 +438,7 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -476,7 +471,7 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
 
               // Title
               Text(
-                'VPN Config Detected',
+                l10n.configImportVpnConfigDetected,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -486,9 +481,7 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
 
               // Subtitle
               Text(
-                detectedConfigs.length == 1
-                    ? 'Found 1 VPN configuration in your clipboard'
-                    : 'Found ${detectedConfigs.length} VPN configurations in your clipboard',
+                l10n.configImportFoundConfigs(detectedConfigs.length),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt()),
                 ),
@@ -537,8 +530,8 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
                 ),
                 child: Text(
                   detectedConfigs.length == 1
-                      ? 'Import Config'
-                      : 'Import All (${detectedConfigs.length})',
+                      ? l10n.configImportImportConfig
+                      : l10n.configImportImportAll(detectedConfigs.length),
                 ),
               ),
               const SizedBox(height: 12),
@@ -549,7 +542,7 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Dismiss'),
+                child: Text(l10n.configImportDismiss),
               ),
               const SizedBox(height: 12),
 
@@ -557,7 +550,7 @@ class _ClipboardImportBottomSheet extends StatelessWidget {
               TextButton(
                 onPressed: onDontAskAgain,
                 child: Text(
-                  "Don't ask again",
+                  l10n.configImportDontAskAgain,
                   style: TextStyle(
                     color: colorScheme.error,
                   ),

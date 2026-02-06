@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/network/wifi_monitor_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -67,8 +68,8 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
       if (!wifiInfo.hasValidSsid) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Not connected to WiFi or SSID unavailable'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).settingsTrustedNotConnected),
           ),
         );
         return;
@@ -82,7 +83,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added "${wifiInfo.cleanSsid}" to trusted networks'),
+          content: Text(AppLocalizations.of(context).settingsTrustedAddedNetwork(wifiInfo.cleanSsid!)),
         ),
       );
     } catch (e) {
@@ -104,29 +105,32 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
   void _showAddManualDialog() {
     unawaited(showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Trusted Network'),
-        content: TextField(
-          controller: _addController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Network name (SSID)',
-            hintText: 'e.g. My Home WiFi',
-            border: OutlineInputBorder(),
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsTrustedAddDialogTitle),
+          content: TextField(
+            controller: _addController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: dl.settingsTrustedSsidLabel,
+              hintText: dl.settingsTrustedSsidHint,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _addManualNetwork(),
           ),
-          onSubmitted: (_) => _addManualNetwork(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: _addManualNetwork,
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: Text(dl.cancel),
+            ),
+            FilledButton(
+              onPressed: _addManualNetwork,
+              child: Text(dl.settingsTrustedAddButton),
+            ),
+          ],
+        );
+      },
     ));
   }
 
@@ -140,27 +144,30 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added "$ssid" to trusted networks')),
+      SnackBar(content: Text(AppLocalizations.of(context).settingsTrustedAddedNetwork(ssid))),
     );
   }
 
   Future<void> _removeNetwork(String ssid) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Network?'),
-        content: Text('Remove "$ssid" from trusted networks?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsTrustedRemoveDialogTitle),
+          content: Text(dl.settingsTrustedRemoveDialogContent(ssid)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: Text(dl.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              child: Text(dl.settingsTrustedRemoveButton),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true) {
@@ -173,39 +180,40 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
 
     unawaited(showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
-        content: Text(
-          isPermanent
-              ? 'Location permission is required to detect WiFi networks. '
-                  'Please enable it in your device settings.'
-              : 'Location permission is required to detect WiFi network names. '
-                  'This is a platform requirement for privacy reasons.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder: (dialogCtx) {
+        final dl = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dl.settingsTrustedPermissionTitle),
+          content: Text(
+            isPermanent
+                ? dl.settingsTrustedPermissionPermanent
+                : dl.settingsTrustedPermissionRequired,
           ),
-          if (isPermanent)
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Open app settings
-                unawaited(ref.read(wifiMonitorServiceProvider).openAppSettings());
-              },
-              child: const Text('Open Settings'),
-            )
-          else
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                unawaited(_addCurrentNetwork());
-              },
-              child: const Text('Try Again'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: Text(dl.cancel),
             ),
-        ],
-      ),
+            if (isPermanent)
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogCtx).pop();
+                  // Open app settings
+                  unawaited(ref.read(wifiMonitorServiceProvider).openAppSettings());
+                },
+                child: Text(dl.settingsTrustedOpenSettings),
+              )
+            else
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogCtx).pop();
+                  unawaited(_addCurrentNetwork());
+                },
+                child: Text(dl.settingsTrustedTryAgain),
+              ),
+          ],
+        );
+      },
     ));
   }
 
@@ -216,14 +224,15 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
     final trustedNetworks = ref.watch(trustedWifiNetworksProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trusted Networks'),
+        title: Text(l10n.settingsTrustedNetworksTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Add network manually',
+            tooltip: l10n.settingsTrustedAddManually,
             onPressed: _showAddManualDialog,
           ),
         ],
@@ -248,6 +257,8 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
   }
 
   Widget _buildAddCurrentButton(ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.all(Spacing.md),
       child: SizedBox(
@@ -265,14 +276,16 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
                 )
               : const Icon(Icons.add_circle_outline),
           label: Text(_isAddingCurrent
-              ? 'Detecting network...'
-              : 'Add Current WiFi Network'),
+              ? l10n.settingsTrustedDetectingNetwork
+              : l10n.settingsTrustedAddCurrentWifi),
         ),
       ),
     );
   }
 
   Widget _buildInfoCard(ThemeData theme, ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
       child: Card(
@@ -290,8 +303,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Text(
-                  'Trusted networks won\'t trigger auto-connect. '
-                  'Add your home or work WiFi networks here.',
+                  l10n.settingsTrustedInfoDescription,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -305,6 +317,8 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
   }
 
   Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+    final l10n = AppLocalizations.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(Spacing.xl),
@@ -318,15 +332,14 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
             ),
             const SizedBox(height: Spacing.md),
             Text(
-              'No trusted networks',
+              l10n.settingsTrustedEmptyTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: Spacing.sm),
             Text(
-              'Add networks you trust, like your home WiFi, '
-              'to prevent auto-connecting when on these networks.',
+              l10n.settingsTrustedEmptyDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -358,12 +371,12 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
           ),
           title: Text(ssid),
           subtitle: Text(
-            'Trusted network',
+            AppLocalizations.of(context).settingsTrustedNetworkSubtitle,
             style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
           trailing: IconButton(
             icon: Icon(Icons.delete_outline, color: colorScheme.error),
-            tooltip: 'Remove from trusted',
+            tooltip: AppLocalizations.of(context).settingsTrustedRemoveTooltip,
             onPressed: () => _removeNetwork(ssid),
           ),
         );

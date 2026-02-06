@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
@@ -29,10 +30,11 @@ class NotificationPrefsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSettings = ref.watch(settingsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notification Preferences'),
+        title: Text(l10n.settingsNotificationPrefsTitle),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -46,6 +48,7 @@ class NotificationPrefsScreen extends ConsumerWidget {
 
   Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -54,13 +57,13 @@ class NotificationPrefsScreen extends ConsumerWidget {
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
           Text(
-            'Failed to load notification settings',
+            l10n.settingsNotificationLoadError,
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -75,17 +78,18 @@ class NotificationPrefsScreen extends ConsumerWidget {
     AppSettings settings,
   ) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return ListView(
       children: [
         // --- General Notifications ---
         SettingsSection(
-          title: 'General',
+          title: l10n.settingsNotificationGeneralSection,
           children: [
             SettingsTile.toggle(
               key: const Key('toggle_notification_connection'),
-              title: 'Connection status changes',
-              subtitle: 'Get notified when VPN connects or disconnects',
+              title: l10n.settingsNotificationConnectionLabel,
+              subtitle: l10n.settingsNotificationConnectionDescription,
               leading: const Icon(Icons.wifi_outlined),
               value: settings.notificationConnection,
               onChanged: (_) =>
@@ -93,8 +97,8 @@ class NotificationPrefsScreen extends ConsumerWidget {
             ),
             SettingsTile.toggle(
               key: const Key('toggle_notification_expiry'),
-              title: 'Subscription expiry',
-              subtitle: 'Reminders before your subscription expires',
+              title: l10n.settingsNotificationExpiryLabel,
+              subtitle: l10n.settingsNotificationExpiryDescription,
               leading: const Icon(Icons.event_outlined),
               value: settings.notificationExpiry,
               onChanged: (_) =>
@@ -102,8 +106,8 @@ class NotificationPrefsScreen extends ConsumerWidget {
             ),
             SettingsTile.toggle(
               key: const Key('toggle_notification_promotional'),
-              title: 'Promotional',
-              subtitle: 'Offers, discounts, and new features',
+              title: l10n.settingsNotificationPromotionLabel,
+              subtitle: l10n.settingsNotificationPromotionalDescription,
               leading: const Icon(Icons.campaign_outlined),
               value: settings.notificationPromotional,
               onChanged: (_) =>
@@ -111,8 +115,8 @@ class NotificationPrefsScreen extends ConsumerWidget {
             ),
             SettingsTile.toggle(
               key: const Key('toggle_notification_referral'),
-              title: 'Referral activity',
-              subtitle: 'Updates on your referral rewards',
+              title: l10n.settingsNotificationReferralLabel,
+              subtitle: l10n.settingsNotificationReferralDescription,
               leading: const Icon(Icons.group_outlined),
               value: settings.notificationReferral,
               onChanged: (_) =>
@@ -122,9 +126,9 @@ class NotificationPrefsScreen extends ConsumerWidget {
         ),
 
         // --- Security Alerts (always on) ---
-        const SettingsSection(
-          title: 'Security',
-          children: [
+        SettingsSection(
+          title: l10n.settingsNotificationSecuritySection,
+          children: const [
             _SecurityAlertsTile(key: Key('toggle_notification_security')),
           ],
         ),
@@ -132,12 +136,12 @@ class NotificationPrefsScreen extends ConsumerWidget {
         // --- Android-only: VPN speed in notification ---
         if (_isAndroid)
           SettingsSection(
-            title: 'VPN Notification',
+            title: l10n.settingsNotificationVpnSection,
             children: [
               SettingsTile.toggle(
                 key: const Key('toggle_notification_vpn_speed'),
-                title: 'Show speed in VPN notification',
-                subtitle: 'Display connection speed in persistent notification',
+                title: l10n.settingsNotificationVpnSpeedLabel,
+                subtitle: l10n.settingsNotificationVpnSpeedDescription,
                 leading: const Icon(Icons.speed_outlined),
                 value: settings.notificationVpnSpeed,
                 onChanged: (_) =>
@@ -191,11 +195,13 @@ class _SecurityAlertsTile extends StatelessWidget {
       color: colorScheme.onSurfaceVariant,
     );
 
+    final l10n = AppLocalizations.of(context);
+
     return ListTile(
       leading: const Icon(Icons.shield_outlined),
-      title: Text('Security alerts', style: titleStyle),
+      title: Text(l10n.settingsNotificationSecurityLabel, style: titleStyle),
       subtitle: Text(
-        'Required for account security. Cannot be disabled.',
+        l10n.settingsNotificationSecurityRequired,
         style: subtitleStyle,
       ),
       trailing: const Switch(

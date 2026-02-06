@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
@@ -29,23 +30,24 @@ class ProfileDashboardScreen extends ConsumerWidget {
   /// Returns a greeting string based on the current hour.
   ///
   /// Morning: 05:00-11:59, Afternoon: 12:00-16:59, Evening: 17:00-04:59.
-  static String _greeting([DateTime? now]) {
+  static String _greeting(AppLocalizations l10n, [DateTime? now]) {
     final hour = (now ?? DateTime.now()).hour;
-    if (hour >= 5 && hour < 12) return 'Good morning';
-    if (hour >= 12 && hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour >= 5 && hour < 12) return l10n.profileGreetingMorning;
+    if (hour >= 12 && hour < 17) return l10n.profileGreetingAfternoon;
+    return l10n.profileGreetingEvening;
   }
 
   // ---- Build --------------------------------------------------------------
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final asyncProfile = ref.watch(profileProvider);
     final asyncSubscription = ref.watch(subscriptionProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_greeting()),
+        title: Text(_greeting(l10n)),
       ),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -56,7 +58,7 @@ class ProfileDashboardScreen extends ConsumerWidget {
         data: (profileState) {
           final profile = profileState.profile;
           if (profile == null) {
-            return const Center(child: Text('No profile data available.'));
+            return Center(child: Text(l10n.profileNoProfileData));
           }
 
           final subState = asyncSubscription.value;
@@ -120,16 +122,17 @@ class _ProfileHeader extends StatelessWidget {
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
   }
 
-  String _memberSince() {
+  String _memberSince(AppLocalizations l10n) {
     final date = profile.createdAt;
     if (date == null) return '';
-    return 'Member since ${DateFormat.yMMMM().format(date)}';
+    return l10n.profileMemberSince(DateFormat.yMMMM().format(date));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       children: [
@@ -166,7 +169,7 @@ class _ProfileHeader extends StatelessWidget {
         if (profile.createdAt != null) ...[
           const SizedBox(height: Spacing.xs),
           Text(
-            _memberSince(),
+            _memberSince(l10n),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -192,6 +195,7 @@ class _StatsCardsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final sub = subscription;
     final daysRemaining = subState?.daysRemaining ?? 0;
     final totalDays = sub != null
@@ -214,8 +218,8 @@ class _StatsCardsGrid extends StatelessWidget {
       _StatsCard(
         key: const Key('stats_plan'),
         icon: Icons.workspace_premium_outlined,
-        label: 'Current Plan',
-        value: sub != null ? _statusLabel(sub.status) : 'No Plan',
+        label: l10n.currentPlan,
+        value: sub != null ? _statusLabel(sub.status, l10n) : l10n.profileStatsNoPlan,
         accentColor: sub != null
             ? _statusColor(sub.status)
             : null,
@@ -225,10 +229,10 @@ class _StatsCardsGrid extends StatelessWidget {
       _StatsCard(
         key: const Key('stats_traffic'),
         icon: Icons.data_usage_outlined,
-        label: 'Traffic',
+        label: l10n.profileStatsTraffic,
         value: trafficLimitGb > 0
             ? '${trafficUsedGb.toStringAsFixed(1)} / ${trafficLimitGb.toStringAsFixed(0)} GB'
-            : 'Unlimited',
+            : l10n.profileStatsUnlimited,
         progress: trafficLimitGb > 0 ? trafficRatio : null,
         accentColor: _trafficColor(trafficRatio),
       ),
@@ -237,7 +241,7 @@ class _StatsCardsGrid extends StatelessWidget {
       _StatsCard(
         key: const Key('stats_days'),
         icon: Icons.calendar_today_outlined,
-        label: 'Days Left',
+        label: l10n.profileStatsDaysLeft,
         value: sub != null ? '$daysRemaining' : '--',
         progress: sub != null ? daysProgress : null,
       ),
@@ -246,7 +250,7 @@ class _StatsCardsGrid extends StatelessWidget {
       _StatsCard(
         key: const Key('stats_devices'),
         icon: Icons.devices_outlined,
-        label: 'Devices',
+        label: l10n.profileStatsDevices,
         value: sub != null
             ? '${sub.devicesConnected} / ${sub.maxDevices}'
             : '--',
@@ -265,13 +269,13 @@ class _StatsCardsGrid extends StatelessWidget {
     );
   }
 
-  String _statusLabel(SubscriptionStatus status) {
+  String _statusLabel(SubscriptionStatus status, AppLocalizations l10n) {
     return switch (status) {
-      SubscriptionStatus.active => 'Active',
-      SubscriptionStatus.trial => 'Trial',
-      SubscriptionStatus.expired => 'Expired',
-      SubscriptionStatus.cancelled => 'Cancelled',
-      SubscriptionStatus.pending => 'Pending',
+      SubscriptionStatus.active => l10n.profileSubActive,
+      SubscriptionStatus.trial => l10n.profileSubTrial,
+      SubscriptionStatus.expired => l10n.profileSubExpired,
+      SubscriptionStatus.cancelled => l10n.profileSubCancelled,
+      SubscriptionStatus.pending => l10n.profileSubPending,
     };
   }
 
@@ -385,12 +389,13 @@ class _QuickActionsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Actions',
+          l10n.profileQuickActions,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -401,7 +406,7 @@ class _QuickActionsSection extends StatelessWidget {
         _QuickActionButton(
           key: const Key('action_upgrade'),
           icon: Icons.rocket_launch_outlined,
-          label: 'Upgrade Plan',
+          label: l10n.upgradePlan,
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
             unawaited(context.push('/plans'));
@@ -412,7 +417,7 @@ class _QuickActionsSection extends StatelessWidget {
         _QuickActionButton(
           key: const Key('action_invite'),
           icon: Icons.people_outline,
-          label: 'Invite Friends',
+          label: l10n.profileInviteFriends,
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
             unawaited(context.push('/referral'));
@@ -423,7 +428,7 @@ class _QuickActionsSection extends StatelessWidget {
         _QuickActionButton(
           key: const Key('action_security'),
           icon: Icons.security_outlined,
-          label: 'Security Settings',
+          label: l10n.profileSecuritySettings,
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
             unawaited(context.push('/profile/security'));
@@ -511,6 +516,7 @@ class _ErrorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -533,7 +539,7 @@ class _ErrorBody extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ],

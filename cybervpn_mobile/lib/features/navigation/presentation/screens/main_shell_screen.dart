@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/widgets/root_detection_dialog.dart';
 import 'package:cybervpn_mobile/core/security/widgets/root_warning_banner.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -121,6 +122,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
       },
     );
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: Column(
         children: [
@@ -142,7 +145,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               Icons.power_settings_new,
               color: theme.colorScheme.primary,
             ),
-            label: 'Connection',
+            label: l10n.navConnection,
           ),
           NavigationDestination(
             icon: Icon(
@@ -153,7 +156,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               Icons.public,
               color: theme.colorScheme.primary,
             ),
-            label: 'Servers',
+            label: l10n.servers,
           ),
           NavigationDestination(
             icon: Icon(
@@ -164,7 +167,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               Icons.person,
               color: theme.colorScheme.primary,
             ),
-            label: 'Profile',
+            label: l10n.profile,
           ),
           NavigationDestination(
             icon: Icon(
@@ -175,7 +178,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               Icons.settings,
               color: theme.colorScheme.primary,
             ),
-            label: 'Settings',
+            label: l10n.settings,
           ),
         ],
       ),
@@ -204,6 +207,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   void _showAutoConnectNotification(BuildContext context, String? serverName) {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -222,8 +226,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             Expanded(
               child: Text(
                 serverName != null
-                    ? 'Auto-connecting to $serverName...'
-                    : 'Auto-connecting to VPN...',
+                    ? l10n.autoConnectingToServer(serverName)
+                    : l10n.autoConnectingToVpn,
                 style: const TextStyle(fontSize: 14),
               ),
             ),
@@ -241,6 +245,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   void _showAutoConnectError(BuildContext context, String message) {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -251,7 +256,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Auto-connect failed: $message',
+                l10n.autoConnectFailed(message),
                 style: const TextStyle(fontSize: 14),
               ),
             ),
@@ -262,7 +267,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         action: SnackBarAction(
-          label: 'Dismiss',
+          label: l10n.dismiss,
           textColor: Colors.white,
           onPressed: messenger.hideCurrentSnackBar,
         ),
@@ -274,6 +279,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   void _showAutoConnectSuccess(BuildContext context, String serverName) {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -284,7 +290,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Connected to $serverName',
+                l10n.autoConnectSuccess(serverName),
                 style: const TextStyle(fontSize: 14),
               ),
             ),

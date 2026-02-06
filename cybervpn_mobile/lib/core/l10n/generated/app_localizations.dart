@@ -525,6 +525,132 @@ abstract class AppLocalizations {
   /// **'Page {current} of {total}'**
   String onboardingPageIndicator(int current, int total);
 
+  /// No description provided for @onboardingConnectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One Tap Connect'**
+  String get onboardingConnectTitle;
+
+  /// No description provided for @onboardingConnectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to hundreds of servers worldwide with a single tap.'**
+  String get onboardingConnectDescription;
+
+  /// No description provided for @onboardingGlobeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Network'**
+  String get onboardingGlobeTitle;
+
+  /// No description provided for @onboardingGlobeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Access content from anywhere with our worldwide server network.'**
+  String get onboardingGlobeDescription;
+
+  /// No description provided for @onboardingGetStartedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to Go'**
+  String get onboardingGetStartedTitle;
+
+  /// No description provided for @onboardingGetStartedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your secure connection is just one tap away.'**
+  String get onboardingGetStartedDescription;
+
+  /// No description provided for @onboardingNoPages.
+  ///
+  /// In en, this message translates to:
+  /// **'No onboarding pages'**
+  String get onboardingNoPages;
+
+  /// No description provided for @permissionSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Up Permissions'**
+  String get permissionSetupTitle;
+
+  /// No description provided for @permissionSetupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CyberVPN needs a few permissions to keep you secure'**
+  String get permissionSetupSubtitle;
+
+  /// No description provided for @permissionVpnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN Connection'**
+  String get permissionVpnTitle;
+
+  /// No description provided for @permissionVpnDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'CyberVPN creates a secure tunnel to protect your data'**
+  String get permissionVpnDescription;
+
+  /// No description provided for @permissionNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get permissionNotificationsTitle;
+
+  /// No description provided for @permissionNotificationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay informed about connection status and security alerts'**
+  String get permissionNotificationsDescription;
+
+  /// No description provided for @permissionGrantButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant Permissions'**
+  String get permissionGrantButton;
+
+  /// No description provided for @permissionContinueAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Anyway'**
+  String get permissionContinueAnyway;
+
+  /// No description provided for @permissionAllSet.
+  ///
+  /// In en, this message translates to:
+  /// **'All Set!'**
+  String get permissionAllSet;
+
+  /// No description provided for @permissionAlmostReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost Ready'**
+  String get permissionAlmostReady;
+
+  /// No description provided for @permissionEnableLater.
+  ///
+  /// In en, this message translates to:
+  /// **'You can enable these permissions later in Settings if needed'**
+  String get permissionEnableLater;
+
+  /// No description provided for @permissionAppReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app is configured and ready to use'**
+  String get permissionAppReady;
+
+  /// No description provided for @permissionOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get permissionOpenSettings;
+
+  /// No description provided for @permissionEnableInSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enable permissions in your device Settings'**
+  String get permissionEnableInSettings;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
@@ -1077,6 +1203,60 @@ abstract class AppLocalizations {
   /// **'Clear All'**
   String get notificationCenterClearAll;
 
+  /// No description provided for @notificationCenterEmptyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When you receive notifications, they will appear here.'**
+  String get notificationCenterEmptyDescription;
+
+  /// No description provided for @notificationCenterLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load notifications'**
+  String get notificationCenterLoadError;
+
+  /// No description provided for @notificationCenterDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification dismissed'**
+  String get notificationCenterDismissed;
+
+  /// No description provided for @notificationTimeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get notificationTimeJustNow;
+
+  /// No description provided for @notificationTimeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String notificationTimeMinutesAgo(int count);
+
+  /// No description provided for @notificationTimeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String notificationTimeHoursAgo(int count);
+
+  /// No description provided for @notificationTimeDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d ago'**
+  String notificationTimeDaysAgo(int count);
+
+  /// No description provided for @notificationTimeWeeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}w ago'**
+  String notificationTimeWeeksAgo(int count);
+
+  /// No description provided for @notificationTimeMonthsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}mo ago'**
+  String notificationTimeMonthsAgo(int count);
+
   /// No description provided for @notificationTypeConnectionStatus.
   ///
   /// In en, this message translates to:
@@ -1374,7 +1554,7 @@ abstract class AppLocalizations {
   /// No description provided for @logViewerFilterAll.
   ///
   /// In en, this message translates to:
-  /// **'All'**
+  /// **'ALL'**
   String get logViewerFilterAll;
 
   /// No description provided for @logViewerFilterError.
@@ -3231,6 +3411,66 @@ abstract class AppLocalizations {
   /// **'You\'re all set!'**
   String get quickSetupComplete;
 
+  /// No description provided for @quickSetupReadyToProtect.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to protect you'**
+  String get quickSetupReadyToProtect;
+
+  /// No description provided for @quickSetupBestServer.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ve selected the best server for you'**
+  String get quickSetupBestServer;
+
+  /// No description provided for @quickSetupFindingServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding the best server...'**
+  String get quickSetupFindingServer;
+
+  /// No description provided for @quickSetupYoureProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re protected!'**
+  String get quickSetupYoureProtected;
+
+  /// No description provided for @quickSetupConnectionSecure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your connection is now secure'**
+  String get quickSetupConnectionSecure;
+
+  /// No description provided for @quickSetupTakeYourTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Take your time - you can connect anytime from the main screen'**
+  String get quickSetupTakeYourTime;
+
+  /// No description provided for @quickSetupNoServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No available servers found. Please try again later.'**
+  String get quickSetupNoServers;
+
+  /// No description provided for @quickSetupConnectionTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timeout. Please try selecting a different server.'**
+  String get quickSetupConnectionTimeout;
+
+  /// No description provided for @quickSetupConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {error}'**
+  String quickSetupConnectionFailed(String error);
+
+  /// No description provided for @quickSetupChooseServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Server'**
+  String get quickSetupChooseServer;
+
   /// No description provided for @splashLoading.
   ///
   /// In en, this message translates to:
@@ -3242,6 +3482,3288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Initializing...'**
   String get splashInitializing;
+
+  /// No description provided for @profileDeviceManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Management'**
+  String get profileDeviceManagement;
+
+  /// No description provided for @profileDevicesConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 device connected} other{{count} devices connected}}'**
+  String profileDevicesConnected(int count);
+
+  /// No description provided for @profileDeviceLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Device limit reached. Remove a device to add new ones.'**
+  String get profileDeviceLimitReached;
+
+  /// No description provided for @profileRemoveDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Device'**
+  String get profileRemoveDevice;
+
+  /// No description provided for @profileRemoveDeviceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {deviceName}?\n\nYou\'ll need to log in again on this device if you want to use it later.'**
+  String profileRemoveDeviceConfirm(String deviceName);
+
+  /// No description provided for @profileRemoveDeviceConfirmShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {deviceName}?\n\nYou\'ll need to log in again on this device.'**
+  String profileRemoveDeviceConfirmShort(String deviceName);
+
+  /// No description provided for @profileRemovingDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing device...'**
+  String get profileRemovingDevice;
+
+  /// No description provided for @profileDeviceRemovedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'{deviceName} removed successfully'**
+  String profileDeviceRemovedSuccess(String deviceName);
+
+  /// No description provided for @profileRemoveDeviceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove device: {error}'**
+  String profileRemoveDeviceFailed(String error);
+
+  /// No description provided for @profileThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get profileThisDevice;
+
+  /// No description provided for @profileRemoveDeviceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove device'**
+  String get profileRemoveDeviceTooltip;
+
+  /// No description provided for @profileNoDevicesConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices connected'**
+  String get profileNoDevicesConnected;
+
+  /// No description provided for @profileConnectToRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to VPN to register this device'**
+  String get profileConnectToRegister;
+
+  /// No description provided for @profileDeviceLastActiveNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get profileDeviceLastActiveNever;
+
+  /// No description provided for @profileDeviceLastActiveJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get profileDeviceLastActiveJustNow;
+
+  /// No description provided for @profileDeviceLastActiveMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String profileDeviceLastActiveMinutes(int count);
+
+  /// No description provided for @profileDeviceLastActiveHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String profileDeviceLastActiveHours(int count);
+
+  /// No description provided for @profileDeviceLastActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d ago'**
+  String profileDeviceLastActiveDays(int count);
+
+  /// No description provided for @profileRemoveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get profileRemoveButton;
+
+  /// No description provided for @profileTwoFactorEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'2FA Enabled'**
+  String get profileTwoFactorEnabled;
+
+  /// No description provided for @profileTwoFactorDisabledStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'2FA Disabled'**
+  String get profileTwoFactorDisabledStatus;
+
+  /// No description provided for @profileTwoFactorProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is protected with two-factor authentication'**
+  String get profileTwoFactorProtected;
+
+  /// No description provided for @profileTwoFactorEnablePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable 2FA to secure your account'**
+  String get profileTwoFactorEnablePrompt;
+
+  /// No description provided for @profileTwoFactorWhatIs.
+  ///
+  /// In en, this message translates to:
+  /// **'What is Two-Factor Authentication?'**
+  String get profileTwoFactorWhatIs;
+
+  /// No description provided for @profileTwoFactorFullDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-factor authentication (2FA) adds an extra layer of security to your account. You\'ll need both your password and a code from your authenticator app to sign in.'**
+  String get profileTwoFactorFullDescription;
+
+  /// No description provided for @profileTwoFactorEnhancedSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Enhanced Security'**
+  String get profileTwoFactorEnhancedSecurity;
+
+  /// No description provided for @profileTwoFactorEnhancedSecurityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Protects your account from unauthorized access'**
+  String get profileTwoFactorEnhancedSecurityDesc;
+
+  /// No description provided for @profileTwoFactorAuthenticatorApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticator App'**
+  String get profileTwoFactorAuthenticatorApp;
+
+  /// No description provided for @profileTwoFactorAuthenticatorAppDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use any TOTP app like Google Authenticator or Authy'**
+  String get profileTwoFactorAuthenticatorAppDesc;
+
+  /// No description provided for @profileTwoFactorBackupCodesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive backup codes for account recovery'**
+  String get profileTwoFactorBackupCodesDesc;
+
+  /// No description provided for @profileTwoFactorStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1: Scan QR Code'**
+  String get profileTwoFactorStep1;
+
+  /// No description provided for @profileTwoFactorStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2: Verify Code'**
+  String get profileTwoFactorStep2;
+
+  /// No description provided for @profileTwoFactorScanQrShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this QR code with your authenticator app'**
+  String get profileTwoFactorScanQrShort;
+
+  /// No description provided for @profileTwoFactorEnterManually.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter manually'**
+  String get profileTwoFactorEnterManually;
+
+  /// No description provided for @profileTwoFactorSecretKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Key:'**
+  String get profileTwoFactorSecretKey;
+
+  /// No description provided for @profileTwoFactorEnterCodeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your authenticator app'**
+  String get profileTwoFactorEnterCodeShort;
+
+  /// No description provided for @profileTwoFactorCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code'**
+  String get profileTwoFactorCodeLabel;
+
+  /// No description provided for @profileTwoFactorVerifyAndEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify and Enable'**
+  String get profileTwoFactorVerifyAndEnable;
+
+  /// No description provided for @profileTwoFactorActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Authentication is Active'**
+  String get profileTwoFactorActive;
+
+  /// No description provided for @profileTwoFactorActiveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is protected with two-factor authentication. You\'ll need to enter a code from your authenticator app every time you sign in.'**
+  String get profileTwoFactorActiveDesc;
+
+  /// No description provided for @profileTwoFactorViewBackupCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'View Backup Codes'**
+  String get profileTwoFactorViewBackupCodes;
+
+  /// No description provided for @profileTwoFactorCopyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy All'**
+  String get profileTwoFactorCopyAll;
+
+  /// No description provided for @profileTwoFactorBackupCodesInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Save these backup codes in a safe place. Each code can only be used once to sign in if you lose access to your authenticator app.'**
+  String get profileTwoFactorBackupCodesInstructions;
+
+  /// No description provided for @profileTwoFactorDisableConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable Two-Factor Authentication?'**
+  String get profileTwoFactorDisableConfirmTitle;
+
+  /// No description provided for @profileTwoFactorDisableWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabling 2FA will make your account less secure. You\'ll only need your password to sign in.'**
+  String get profileTwoFactorDisableWarning;
+
+  /// No description provided for @profileTwoFactorDisableButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get profileTwoFactorDisableButton;
+
+  /// No description provided for @profileTwoFactorEnterVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Verification Code'**
+  String get profileTwoFactorEnterVerificationCode;
+
+  /// No description provided for @profileTwoFactorFailedSetupData.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load setup data'**
+  String get profileTwoFactorFailedSetupData;
+
+  /// No description provided for @profileSocialAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Accounts'**
+  String get profileSocialAccounts;
+
+  /// No description provided for @profileSocialAccountsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Link your social accounts for easier sign-in and account recovery.'**
+  String get profileSocialAccountsDescription;
+
+  /// No description provided for @profileSocialLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get profileSocialLinked;
+
+  /// No description provided for @profileSocialNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Linked'**
+  String get profileSocialNotLinked;
+
+  /// No description provided for @profileSocialLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get profileSocialLink;
+
+  /// No description provided for @profileSocialCompleteAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete authorization in your browser, then return to the app.'**
+  String get profileSocialCompleteAuth;
+
+  /// No description provided for @profileSocialUnlinkConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink {provider}?'**
+  String profileSocialUnlinkConfirm(String provider);
+
+  /// No description provided for @profileSocialUnlinkDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to re-authorize to link this account again. This will not delete your {provider} account.'**
+  String profileSocialUnlinkDescription(String provider);
+
+  /// No description provided for @profileGreetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get profileGreetingMorning;
+
+  /// No description provided for @profileGreetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get profileGreetingAfternoon;
+
+  /// No description provided for @profileGreetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get profileGreetingEvening;
+
+  /// No description provided for @profileNoProfileData.
+  ///
+  /// In en, this message translates to:
+  /// **'No profile data available.'**
+  String get profileNoProfileData;
+
+  /// No description provided for @profileQuickActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Actions'**
+  String get profileQuickActions;
+
+  /// No description provided for @profileInviteFriends.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Friends'**
+  String get profileInviteFriends;
+
+  /// No description provided for @profileSecuritySettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Settings'**
+  String get profileSecuritySettings;
+
+  /// No description provided for @profileStatsTraffic.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic'**
+  String get profileStatsTraffic;
+
+  /// No description provided for @profileStatsUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get profileStatsUnlimited;
+
+  /// No description provided for @profileStatsDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Days Left'**
+  String get profileStatsDaysLeft;
+
+  /// No description provided for @profileStatsDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get profileStatsDevices;
+
+  /// No description provided for @profileStatsNoPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'No Plan'**
+  String get profileStatsNoPlan;
+
+  /// No description provided for @profileSubActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get profileSubActive;
+
+  /// No description provided for @profileSubTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial'**
+  String get profileSubTrial;
+
+  /// No description provided for @profileSubExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get profileSubExpired;
+
+  /// No description provided for @profileSubCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get profileSubCancelled;
+
+  /// No description provided for @profileSubPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get profileSubPending;
+
+  /// No description provided for @profileDeleteDangerZoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone'**
+  String get profileDeleteDangerZoneDesc;
+
+  /// No description provided for @profileDeleteWhatWillBeDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'What will be deleted?'**
+  String get profileDeleteWhatWillBeDeleted;
+
+  /// No description provided for @profileDeletePermanentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The following data will be permanently deleted:'**
+  String get profileDeletePermanentlyDeleted;
+
+  /// No description provided for @profileDeletePersonalInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Information'**
+  String get profileDeletePersonalInfo;
+
+  /// No description provided for @profileDeletePersonalInfoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Email, username, and profile data'**
+  String get profileDeletePersonalInfoDesc;
+
+  /// No description provided for @profileDeleteSubscriptionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription & Payment History'**
+  String get profileDeleteSubscriptionHistory;
+
+  /// No description provided for @profileDeleteSubscriptionHistoryDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'All active subscriptions and transaction records'**
+  String get profileDeleteSubscriptionHistoryDesc;
+
+  /// No description provided for @profileDeleteVpnConfigs.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN Configurations'**
+  String get profileDeleteVpnConfigs;
+
+  /// No description provided for @profileDeleteVpnConfigsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Server settings and connection preferences'**
+  String get profileDeleteVpnConfigsDesc;
+
+  /// No description provided for @profileDeleteAppSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App Settings'**
+  String get profileDeleteAppSettings;
+
+  /// No description provided for @profileDeleteAppSettingsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'All preferences and customizations'**
+  String get profileDeleteAppSettingsDesc;
+
+  /// No description provided for @profileDeleteGracePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'30-Day Grace Period'**
+  String get profileDeleteGracePeriod;
+
+  /// No description provided for @profileDeleteGracePeriodDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account will be scheduled for deletion. You can cancel this request within 30 days by logging back in. After this period, all data will be permanently deleted.'**
+  String get profileDeleteGracePeriodDesc;
+
+  /// No description provided for @profileDeleteStorePolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'In compliance with App Store and Google Play data deletion policies, all personal data will be permanently removed from our servers.'**
+  String get profileDeleteStorePolicy;
+
+  /// No description provided for @profileDeleteContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Deletion'**
+  String get profileDeleteContinue;
+
+  /// No description provided for @profileDeleteVerifyIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Your Identity'**
+  String get profileDeleteVerifyIdentity;
+
+  /// No description provided for @profileDeleteVerifyIdentityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'For security reasons, please re-enter your credentials to confirm account deletion.'**
+  String get profileDeleteVerifyIdentityDesc;
+
+  /// No description provided for @profileDeletePasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get profileDeletePasswordLabel;
+
+  /// No description provided for @profileDeletePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get profileDeletePasswordHint;
+
+  /// No description provided for @profileDeleteVerifyAndContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify and Continue'**
+  String get profileDeleteVerifyAndContinue;
+
+  /// No description provided for @profileDeleteFinalConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Final Confirmation'**
+  String get profileDeleteFinalConfirmation;
+
+  /// No description provided for @profileDeleteFinalConfirmationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your last chance to cancel. Once confirmed, your account will be scheduled for permanent deletion.'**
+  String get profileDeleteFinalConfirmationDesc;
+
+  /// No description provided for @profileDeleteIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is irreversible'**
+  String get profileDeleteIrreversible;
+
+  /// No description provided for @profileDeleteIrreversibleList.
+  ///
+  /// In en, this message translates to:
+  /// **'• All data will be permanently deleted after 30 days\n• Active subscriptions will be cancelled\n• You will be immediately logged out\n• This cannot be undone'**
+  String get profileDeleteIrreversibleList;
+
+  /// No description provided for @profileDeleteScheduledSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deletion scheduled successfully'**
+  String get profileDeleteScheduledSuccess;
+
+  /// No description provided for @settingsVpnProtocolPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol Preference'**
+  String get settingsVpnProtocolPreference;
+
+  /// No description provided for @settingsAutoConnectOnLaunchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-connect on launch'**
+  String get settingsAutoConnectOnLaunchLabel;
+
+  /// No description provided for @settingsAutoConnectOnLaunchDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to VPN when the app starts'**
+  String get settingsAutoConnectOnLaunchDescription;
+
+  /// No description provided for @settingsAutoConnectUntrustedWifiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-connect on untrusted WiFi'**
+  String get settingsAutoConnectUntrustedWifiLabel;
+
+  /// No description provided for @settingsAutoConnectUntrustedWifiDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically connect when joining open networks'**
+  String get settingsAutoConnectUntrustedWifiDescription;
+
+  /// No description provided for @settingsManageTrustedNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage trusted networks'**
+  String get settingsManageTrustedNetworks;
+
+  /// No description provided for @settingsNoTrustedNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'No networks marked as trusted'**
+  String get settingsNoTrustedNetworks;
+
+  /// No description provided for @settingsTrustedNetworkCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 trusted network} other{{count} trusted networks}}'**
+  String settingsTrustedNetworkCount(int count);
+
+  /// No description provided for @settingsSecuritySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get settingsSecuritySection;
+
+  /// No description provided for @settingsKillSwitchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Block traffic if VPN disconnects unexpectedly'**
+  String get settingsKillSwitchSubtitle;
+
+  /// No description provided for @settingsKillSwitchDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Kill Switch?'**
+  String get settingsKillSwitchDialogTitle;
+
+  /// No description provided for @settingsKillSwitchDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, all internet traffic will be blocked if the VPN connection drops unexpectedly. This protects your privacy but may temporarily prevent internet access.'**
+  String get settingsKillSwitchDialogContent;
+
+  /// No description provided for @settingsKillSwitchDialogEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get settingsKillSwitchDialogEnable;
+
+  /// No description provided for @settingsDnsProviderSection.
+  ///
+  /// In en, this message translates to:
+  /// **'DNS Provider'**
+  String get settingsDnsProviderSection;
+
+  /// No description provided for @settingsDnsCustomAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom DNS address'**
+  String get settingsDnsCustomAddressLabel;
+
+  /// No description provided for @settingsDnsCustomAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1.0.0.1'**
+  String get settingsDnsCustomAddressHint;
+
+  /// No description provided for @settingsAdvancedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get settingsAdvancedSection;
+
+  /// No description provided for @settingsSplitTunnelingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which apps use the VPN'**
+  String get settingsSplitTunnelingSubtitle;
+
+  /// No description provided for @settingsMtuAutoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'MTU: Auto'**
+  String get settingsMtuAutoLabel;
+
+  /// No description provided for @settingsMtuAutoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically determine optimal packet size'**
+  String get settingsMtuAutoDescription;
+
+  /// No description provided for @settingsMtuManualLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'MTU: Manual'**
+  String get settingsMtuManualLabel;
+
+  /// No description provided for @settingsMtuManualDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a custom MTU value'**
+  String get settingsMtuManualDescription;
+
+  /// No description provided for @settingsMtuValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'MTU value'**
+  String get settingsMtuValueLabel;
+
+  /// No description provided for @settingsMtuValueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'1280-1500'**
+  String get settingsMtuValueHint;
+
+  /// No description provided for @settingsChangesApplyOnNextConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes apply on next connection'**
+  String get settingsChangesApplyOnNextConnection;
+
+  /// No description provided for @settingsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load settings'**
+  String get settingsLoadError;
+
+  /// No description provided for @settingsNotificationCountEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 4 enabled'**
+  String settingsNotificationCountEnabled(int count);
+
+  /// No description provided for @settingsAccountSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & Security'**
+  String get settingsAccountSecurity;
+
+  /// No description provided for @settingsAccountSecuritySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile, password, 2FA'**
+  String get settingsAccountSecuritySubtitle;
+
+  /// No description provided for @settingsVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get settingsVersionLabel;
+
+  /// No description provided for @settingsOpenSourceLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get settingsOpenSourceLicenses;
+
+  /// No description provided for @settingsDebugDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug & Diagnostics'**
+  String get settingsDebugDiagnostics;
+
+  /// No description provided for @settingsDebugAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug & About'**
+  String get settingsDebugAbout;
+
+  /// No description provided for @settingsDebugAboutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App version, logs, developer options'**
+  String get settingsDebugAboutSubtitle;
+
+  /// No description provided for @settingsCouldNotOpenUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open URL'**
+  String get settingsCouldNotOpenUrl;
+
+  /// No description provided for @settingsDiagnosticsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsDiagnosticsSection;
+
+  /// No description provided for @settingsLogEntryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries'**
+  String settingsLogEntryCount(int count);
+
+  /// No description provided for @settingsCacheDataSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache & Data'**
+  String get settingsCacheDataSection;
+
+  /// No description provided for @settingsClearCacheLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache'**
+  String get settingsClearCacheLabel;
+
+  /// No description provided for @settingsClearCacheDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove cached server lists and configs'**
+  String get settingsClearCacheDescription;
+
+  /// No description provided for @settingsResetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get settingsResetSubtitle;
+
+  /// No description provided for @settingsAppVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App Version'**
+  String get settingsAppVersionLabel;
+
+  /// No description provided for @settingsXrayCoreVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Xray-core Version'**
+  String get settingsXrayCoreVersionLabel;
+
+  /// No description provided for @settingsDeveloperOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Options'**
+  String get settingsDeveloperOptions;
+
+  /// No description provided for @settingsDeveloperRawConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw VPN Config Viewer'**
+  String get settingsDeveloperRawConfig;
+
+  /// No description provided for @settingsDeveloperRawConfigSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View current Xray configuration'**
+  String get settingsDeveloperRawConfigSubtitle;
+
+  /// No description provided for @settingsDeveloperForceCrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Crash (Sentry Test)'**
+  String get settingsDeveloperForceCrash;
+
+  /// No description provided for @settingsDeveloperForceCrashSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test error reporting'**
+  String get settingsDeveloperForceCrashSubtitle;
+
+  /// No description provided for @settingsDeveloperExperimental.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental Features'**
+  String get settingsDeveloperExperimental;
+
+  /// No description provided for @settingsDeveloperExperimentalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable unreleased features'**
+  String get settingsDeveloperExperimentalSubtitle;
+
+  /// No description provided for @settingsLogLevelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Level'**
+  String get settingsLogLevelLabel;
+
+  /// No description provided for @settingsLogLevelDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug'**
+  String get settingsLogLevelDebug;
+
+  /// No description provided for @settingsLogLevelInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get settingsLogLevelInfo;
+
+  /// No description provided for @settingsLogLevelWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get settingsLogLevelWarning;
+
+  /// No description provided for @settingsLogLevelError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get settingsLogLevelError;
+
+  /// No description provided for @settingsLogLevelDebugDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed diagnostic information'**
+  String get settingsLogLevelDebugDescription;
+
+  /// No description provided for @settingsLogLevelInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'General informational messages'**
+  String get settingsLogLevelInfoDescription;
+
+  /// No description provided for @settingsLogLevelWarningDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Potential issues'**
+  String get settingsLogLevelWarningDescription;
+
+  /// No description provided for @settingsLogLevelErrorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors only'**
+  String get settingsLogLevelErrorDescription;
+
+  /// No description provided for @settingsNoLogsToExport.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs to export'**
+  String get settingsNoLogsToExport;
+
+  /// No description provided for @settingsClearCacheDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache?'**
+  String get settingsClearCacheDialogTitle;
+
+  /// No description provided for @settingsClearCacheDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove cached server lists and VPN configurations. Your settings will not be affected.'**
+  String get settingsClearCacheDialogContent;
+
+  /// No description provided for @settingsClearCacheDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get settingsClearCacheDialogConfirm;
+
+  /// No description provided for @settingsCacheClearedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared successfully'**
+  String get settingsCacheClearedSuccess;
+
+  /// No description provided for @settingsResetDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset All Settings?'**
+  String get settingsResetDialogTitle;
+
+  /// No description provided for @settingsResetDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This will restore all settings to their default values. This action cannot be undone.'**
+  String get settingsResetDialogContent;
+
+  /// No description provided for @settingsResetDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get settingsResetDialogConfirm;
+
+  /// No description provided for @settingsResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings reset successfully'**
+  String get settingsResetSuccess;
+
+  /// No description provided for @settingsDeveloperModeActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer mode activated'**
+  String get settingsDeveloperModeActivated;
+
+  /// No description provided for @settingsDeveloperRawConfigDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw VPN Config'**
+  String get settingsDeveloperRawConfigDialogTitle;
+
+  /// No description provided for @settingsDeveloperForceCrashDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Crash'**
+  String get settingsDeveloperForceCrashDialogTitle;
+
+  /// No description provided for @settingsDeveloperForceCrashDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This will intentionally crash the app to test error reporting via Sentry. Only use this for debugging purposes.\n\nAre you sure you want to continue?'**
+  String get settingsDeveloperForceCrashDialogContent;
+
+  /// No description provided for @settingsDeveloperCrashNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Crash Now'**
+  String get settingsDeveloperCrashNow;
+
+  /// No description provided for @settingsNoLanguagesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No languages found'**
+  String get settingsNoLanguagesFound;
+
+  /// No description provided for @settingsTrustedNetworksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted Networks'**
+  String get settingsTrustedNetworksTitle;
+
+  /// No description provided for @settingsTrustedAddManually.
+  ///
+  /// In en, this message translates to:
+  /// **'Add network manually'**
+  String get settingsTrustedAddManually;
+
+  /// No description provided for @settingsTrustedAddCurrentWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Current WiFi Network'**
+  String get settingsTrustedAddCurrentWifi;
+
+  /// No description provided for @settingsTrustedDetectingNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Detecting network...'**
+  String get settingsTrustedDetectingNetwork;
+
+  /// No description provided for @settingsTrustedInfoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted networks won\'t trigger auto-connect. Add your home or work WiFi networks here.'**
+  String get settingsTrustedInfoDescription;
+
+  /// No description provided for @settingsTrustedEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No trusted networks'**
+  String get settingsTrustedEmptyTitle;
+
+  /// No description provided for @settingsTrustedEmptyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add networks you trust, like your home WiFi, to prevent auto-connecting when on these networks.'**
+  String get settingsTrustedEmptyDescription;
+
+  /// No description provided for @settingsTrustedNetworkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted network'**
+  String get settingsTrustedNetworkSubtitle;
+
+  /// No description provided for @settingsTrustedRemoveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from trusted'**
+  String get settingsTrustedRemoveTooltip;
+
+  /// No description provided for @settingsTrustedAddDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Trusted Network'**
+  String get settingsTrustedAddDialogTitle;
+
+  /// No description provided for @settingsTrustedSsidLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Network name (SSID)'**
+  String get settingsTrustedSsidLabel;
+
+  /// No description provided for @settingsTrustedSsidHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. My Home WiFi'**
+  String get settingsTrustedSsidHint;
+
+  /// No description provided for @settingsTrustedAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get settingsTrustedAddButton;
+
+  /// No description provided for @settingsTrustedRemoveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Network?'**
+  String get settingsTrustedRemoveDialogTitle;
+
+  /// No description provided for @settingsTrustedRemoveDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{ssid}\" from trusted networks?'**
+  String settingsTrustedRemoveDialogContent(String ssid);
+
+  /// No description provided for @settingsTrustedRemoveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsTrustedRemoveButton;
+
+  /// No description provided for @settingsTrustedNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected to WiFi or SSID unavailable'**
+  String get settingsTrustedNotConnected;
+
+  /// No description provided for @settingsTrustedAddedNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Added \"{ssid}\" to trusted networks'**
+  String settingsTrustedAddedNetwork(String ssid);
+
+  /// No description provided for @settingsTrustedPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Required'**
+  String get settingsTrustedPermissionTitle;
+
+  /// No description provided for @settingsTrustedPermissionPermanent.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is required to detect WiFi networks. Please enable it in your device settings.'**
+  String get settingsTrustedPermissionPermanent;
+
+  /// No description provided for @settingsTrustedPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is required to detect WiFi network names. This is a platform requirement for privacy reasons.'**
+  String get settingsTrustedPermissionRequired;
+
+  /// No description provided for @settingsTrustedOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get settingsTrustedOpenSettings;
+
+  /// No description provided for @settingsTrustedTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get settingsTrustedTryAgain;
+
+  /// No description provided for @settingsAppearanceLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load appearance settings'**
+  String get settingsAppearanceLoadError;
+
+  /// No description provided for @settingsBrightnessSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get settingsBrightnessSection;
+
+  /// No description provided for @settingsTextSizeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Size'**
+  String get settingsTextSizeSection;
+
+  /// No description provided for @settingsDynamicColorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic Color'**
+  String get settingsDynamicColorLabel;
+
+  /// No description provided for @settingsDynamicColorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use colors from your wallpaper'**
+  String get settingsDynamicColorDescription;
+
+  /// No description provided for @settingsAnimationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Animations'**
+  String get settingsAnimationsSection;
+
+  /// No description provided for @settingsReduceAnimations.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce Animations'**
+  String get settingsReduceAnimations;
+
+  /// No description provided for @settingsAnimationsDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'System animations are disabled'**
+  String get settingsAnimationsDisabled;
+
+  /// No description provided for @settingsAnimationsEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'System animations are enabled'**
+  String get settingsAnimationsEnabled;
+
+  /// No description provided for @settingsAnimationsSystemDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Animations are disabled at the system level.'**
+  String get settingsAnimationsSystemDisabled;
+
+  /// No description provided for @settingsThemeMaterialYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Material You'**
+  String get settingsThemeMaterialYou;
+
+  /// No description provided for @settingsThemeCyberpunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk'**
+  String get settingsThemeCyberpunk;
+
+  /// No description provided for @settingsTextScaleSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsTextScaleSystem;
+
+  /// No description provided for @settingsTextScaleSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get settingsTextScaleSmall;
+
+  /// No description provided for @settingsTextScaleDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get settingsTextScaleDefault;
+
+  /// No description provided for @settingsTextScaleLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get settingsTextScaleLarge;
+
+  /// No description provided for @settingsTextScaleExtraLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra Large'**
+  String get settingsTextScaleExtraLarge;
+
+  /// No description provided for @settingsTextScaleSystemDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses your device accessibility settings'**
+  String get settingsTextScaleSystemDescription;
+
+  /// No description provided for @settingsTextScaleSmallDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Smaller text for more content on screen'**
+  String get settingsTextScaleSmallDescription;
+
+  /// No description provided for @settingsTextScaleDefaultDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Default text size'**
+  String get settingsTextScaleDefaultDescription;
+
+  /// No description provided for @settingsTextScaleLargeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Larger text for improved readability'**
+  String get settingsTextScaleLargeDescription;
+
+  /// No description provided for @settingsTextScaleExtraLargeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum text size for accessibility'**
+  String get settingsTextScaleExtraLargeDescription;
+
+  /// No description provided for @settingsTextSizePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview: The quick brown fox jumps over the lazy dog.'**
+  String get settingsTextSizePreview;
+
+  /// No description provided for @settingsNotificationLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load notification settings'**
+  String get settingsNotificationLoadError;
+
+  /// No description provided for @settingsNotificationGeneralSection.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsNotificationGeneralSection;
+
+  /// No description provided for @settingsNotificationExpiryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription expiry'**
+  String get settingsNotificationExpiryLabel;
+
+  /// No description provided for @settingsNotificationExpiryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders before your subscription expires'**
+  String get settingsNotificationExpiryDescription;
+
+  /// No description provided for @settingsNotificationPromotionalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Offers, discounts, and new features'**
+  String get settingsNotificationPromotionalDescription;
+
+  /// No description provided for @settingsNotificationReferralLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral activity'**
+  String get settingsNotificationReferralLabel;
+
+  /// No description provided for @settingsNotificationReferralDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates on your referral rewards'**
+  String get settingsNotificationReferralDescription;
+
+  /// No description provided for @settingsNotificationSecuritySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get settingsNotificationSecuritySection;
+
+  /// No description provided for @settingsNotificationSecurityRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required for account security. Cannot be disabled.'**
+  String get settingsNotificationSecurityRequired;
+
+  /// No description provided for @settingsNotificationVpnSection.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN Notification'**
+  String get settingsNotificationVpnSection;
+
+  /// No description provided for @settingsNotificationVpnSpeedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show speed in VPN notification'**
+  String get settingsNotificationVpnSpeedLabel;
+
+  /// No description provided for @settingsNotificationVpnSpeedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Display connection speed in persistent notification'**
+  String get settingsNotificationVpnSpeedDescription;
+
+  /// No description provided for @settingsDeveloperExperimentalEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental features enabled'**
+  String get settingsDeveloperExperimentalEnabled;
+
+  /// No description provided for @settingsDeveloperExperimentalDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental features disabled'**
+  String get settingsDeveloperExperimentalDisabled;
+
+  /// No description provided for @configImportSubscriptionUrlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription URL Import'**
+  String get configImportSubscriptionUrlTitle;
+
+  /// No description provided for @configImportPasteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to paste from clipboard'**
+  String get configImportPasteFailed;
+
+  /// No description provided for @configImportServersImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Imported 1 server} other{Imported {count} servers}}'**
+  String configImportServersImported(int count);
+
+  /// No description provided for @configImportSubscriptionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to import subscription URL'**
+  String get configImportSubscriptionFailed;
+
+  /// No description provided for @configImportSubscriptionUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription URL'**
+  String get configImportSubscriptionUrlLabel;
+
+  /// No description provided for @configImportSubscriptionUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter subscription URL'**
+  String get configImportSubscriptionUrlHint;
+
+  /// No description provided for @configImportPasteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste from clipboard'**
+  String get configImportPasteTooltip;
+
+  /// No description provided for @configImportPleaseEnterUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a URL'**
+  String get configImportPleaseEnterUrl;
+
+  /// No description provided for @configImportPleaseEnterValidUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid URL'**
+  String get configImportPleaseEnterValidUrl;
+
+  /// No description provided for @configImportImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing...'**
+  String get configImportImporting;
+
+  /// No description provided for @configImportImportButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get configImportImportButton;
+
+  /// No description provided for @configImportNoSubscriptionUrls.
+  ///
+  /// In en, this message translates to:
+  /// **'No subscription URLs imported yet'**
+  String get configImportNoSubscriptionUrls;
+
+  /// No description provided for @configImportNoSubscriptionUrlsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a subscription URL above to import servers'**
+  String get configImportNoSubscriptionUrlsHint;
+
+  /// No description provided for @configImportDeleteSubscriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Subscription'**
+  String get configImportDeleteSubscriptionTitle;
+
+  /// No description provided for @configImportDeleteSubscriptionContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all {count} servers from this subscription?'**
+  String configImportDeleteSubscriptionContent(int count);
+
+  /// No description provided for @configImportSubscriptionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription deleted'**
+  String get configImportSubscriptionDeleted;
+
+  /// No description provided for @configImportRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh subscription'**
+  String get configImportRefreshTooltip;
+
+  /// No description provided for @configImportDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete subscription'**
+  String get configImportDeleteTooltip;
+
+  /// No description provided for @configImportSubscriptionRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription refreshed'**
+  String get configImportSubscriptionRefreshed;
+
+  /// No description provided for @configImportServerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 server} other{{count} servers}}'**
+  String configImportServerCount(int count);
+
+  /// No description provided for @configImportLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {timeAgo}'**
+  String configImportLastUpdated(String timeAgo);
+
+  /// No description provided for @configImportTimeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get configImportTimeJustNow;
+
+  /// No description provided for @configImportTimeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute ago} other{{count} minutes ago}}'**
+  String configImportTimeMinutesAgo(int count);
+
+  /// No description provided for @configImportTimeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour ago} other{{count} hours ago}}'**
+  String configImportTimeHoursAgo(int count);
+
+  /// No description provided for @configImportTimeDaysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String configImportTimeDaysAgo(int count);
+
+  /// No description provided for @configImportDeleteServerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Server'**
+  String get configImportDeleteServerTitle;
+
+  /// No description provided for @configImportRemoveServerContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{name}\" from your custom servers?'**
+  String configImportRemoveServerContent(String name);
+
+  /// No description provided for @configImportServerRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Server removed'**
+  String get configImportServerRemoved;
+
+  /// No description provided for @configImportRenameServerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Server'**
+  String get configImportRenameServerTitle;
+
+  /// No description provided for @configImportServerNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server name'**
+  String get configImportServerNameLabel;
+
+  /// No description provided for @configImportServerRenamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Server renamed'**
+  String get configImportServerRenamed;
+
+  /// No description provided for @configImportServerReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is reachable'**
+  String get configImportServerReachable;
+
+  /// No description provided for @configImportServerUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is unreachable'**
+  String get configImportServerUnreachable;
+
+  /// No description provided for @configImportExportQrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as QR'**
+  String get configImportExportQrTitle;
+
+  /// No description provided for @configImportFromSubscriptionUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Subscription URL'**
+  String get configImportFromSubscriptionUrl;
+
+  /// No description provided for @configImportNoServersAtUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'No servers found at URL'**
+  String get configImportNoServersAtUrl;
+
+  /// No description provided for @configImportCustomServersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Servers'**
+  String get configImportCustomServersTitle;
+
+  /// No description provided for @configImportClearAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get configImportClearAllButton;
+
+  /// No description provided for @configImportClearAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Servers'**
+  String get configImportClearAllTitle;
+
+  /// No description provided for @configImportClearAllContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove all custom servers. This action cannot be undone.'**
+  String get configImportClearAllContent;
+
+  /// No description provided for @configImportAllServersRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'All custom servers removed'**
+  String get configImportAllServersRemoved;
+
+  /// No description provided for @configImportNoCustomServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No Custom Servers'**
+  String get configImportNoCustomServers;
+
+  /// No description provided for @configImportNoCustomServersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Import VPN configurations via QR code, clipboard, or subscription URL.'**
+  String get configImportNoCustomServersHint;
+
+  /// No description provided for @configImportImportServerButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Server'**
+  String get configImportImportServerButton;
+
+  /// No description provided for @configImportFailedToLoadServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load servers'**
+  String get configImportFailedToLoadServers;
+
+  /// No description provided for @configImportSourceQrCode.
+  ///
+  /// In en, this message translates to:
+  /// **'QR Code'**
+  String get configImportSourceQrCode;
+
+  /// No description provided for @configImportSourceClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard'**
+  String get configImportSourceClipboard;
+
+  /// No description provided for @configImportSourceSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get configImportSourceSubscription;
+
+  /// No description provided for @configImportSourceDeepLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep Link'**
+  String get configImportSourceDeepLink;
+
+  /// No description provided for @configImportSourceManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get configImportSourceManual;
+
+  /// No description provided for @configImportTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get configImportTestConnection;
+
+  /// No description provided for @configImportEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Name'**
+  String get configImportEditName;
+
+  /// No description provided for @configImportNotTested.
+  ///
+  /// In en, this message translates to:
+  /// **'Not tested'**
+  String get configImportNotTested;
+
+  /// No description provided for @configImportReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable'**
+  String get configImportReachable;
+
+  /// No description provided for @configImportUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unreachable'**
+  String get configImportUnreachable;
+
+  /// No description provided for @configImportTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get configImportTesting;
+
+  /// No description provided for @configImportServerAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Server added: {name}'**
+  String configImportServerAdded(String name);
+
+  /// No description provided for @configImportNoValidConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid VPN config in clipboard'**
+  String get configImportNoValidConfig;
+
+  /// No description provided for @configImportNoConfigInClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'No VPN configuration found in clipboard'**
+  String get configImportNoConfigInClipboard;
+
+  /// No description provided for @configImportSwitchCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch camera'**
+  String get configImportSwitchCamera;
+
+  /// No description provided for @configImportNotValidConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a valid VPN configuration'**
+  String get configImportNotValidConfig;
+
+  /// No description provided for @configImportConfigFound.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN Configuration Found'**
+  String get configImportConfigFound;
+
+  /// No description provided for @configImportNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get configImportNameLabel;
+
+  /// No description provided for @configImportUnknownServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Server'**
+  String get configImportUnknownServer;
+
+  /// No description provided for @configImportProtocolLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol'**
+  String get configImportProtocolLabel;
+
+  /// No description provided for @configImportAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get configImportAddressLabel;
+
+  /// No description provided for @configImportAddServerButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Server'**
+  String get configImportAddServerButton;
+
+  /// No description provided for @configImportScanAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Another'**
+  String get configImportScanAnother;
+
+  /// No description provided for @configImportPointCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at a VPN QR code'**
+  String get configImportPointCamera;
+
+  /// No description provided for @configImportCameraPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Permission Required'**
+  String get configImportCameraPermissionRequired;
+
+  /// No description provided for @configImportCameraPermissionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please grant camera access in your device settings to scan QR codes.'**
+  String get configImportCameraPermissionMessage;
+
+  /// No description provided for @configImportCameraError.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera Error'**
+  String get configImportCameraError;
+
+  /// No description provided for @configImportCameraStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start camera.'**
+  String get configImportCameraStartFailed;
+
+  /// No description provided for @configImportFailedToAddServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add server'**
+  String get configImportFailedToAddServer;
+
+  /// No description provided for @configImportTransportLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get configImportTransportLabel;
+
+  /// No description provided for @configImportSecurityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get configImportSecurityLabel;
+
+  /// No description provided for @configImportVpnConfigDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN Config Detected'**
+  String get configImportVpnConfigDetected;
+
+  /// No description provided for @configImportFoundConfigs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Found 1 VPN configuration in your clipboard} other{Found {count} VPN configurations in your clipboard}}'**
+  String configImportFoundConfigs(int count);
+
+  /// No description provided for @configImportImportConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Config'**
+  String get configImportImportConfig;
+
+  /// No description provided for @configImportImportAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Import All ({count})'**
+  String configImportImportAll(int count);
+
+  /// No description provided for @configImportDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get configImportDismiss;
+
+  /// No description provided for @configImportDontAskAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t ask again'**
+  String get configImportDontAskAgain;
+
+  /// No description provided for @configImportSuccessCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Successfully imported 1 config} other{Successfully imported {count} configs}}'**
+  String configImportSuccessCount(int count);
+
+  /// No description provided for @configImportPartialSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {success} config(s), {failure} failed'**
+  String configImportPartialSuccess(int success, int failure);
+
+  /// No description provided for @configImportFailureCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Failed to import config} other{Failed to import {count} configs}}'**
+  String configImportFailureCount(int count);
+
+  /// No description provided for @subscriptionChooseYourPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Your Plan'**
+  String get subscriptionChooseYourPlan;
+
+  /// No description provided for @subscriptionDuration1Month.
+  ///
+  /// In en, this message translates to:
+  /// **'1 Month'**
+  String get subscriptionDuration1Month;
+
+  /// No description provided for @subscriptionDuration3Months.
+  ///
+  /// In en, this message translates to:
+  /// **'3 Months'**
+  String get subscriptionDuration3Months;
+
+  /// No description provided for @subscriptionDuration1Year.
+  ///
+  /// In en, this message translates to:
+  /// **'1 Year'**
+  String get subscriptionDuration1Year;
+
+  /// No description provided for @subscriptionCardView.
+  ///
+  /// In en, this message translates to:
+  /// **'Card View'**
+  String get subscriptionCardView;
+
+  /// No description provided for @subscriptionComparePlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare Plans'**
+  String get subscriptionComparePlans;
+
+  /// No description provided for @subscriptionNoPlansForDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available for this duration.'**
+  String get subscriptionNoPlansForDuration;
+
+  /// No description provided for @subscriptionFeatureLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature'**
+  String get subscriptionFeatureLabel;
+
+  /// No description provided for @subscriptionPriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get subscriptionPriceLabel;
+
+  /// No description provided for @subscriptionTrafficLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic'**
+  String get subscriptionTrafficLabel;
+
+  /// No description provided for @subscriptionDevicesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get subscriptionDevicesLabel;
+
+  /// No description provided for @subscriptionDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get subscriptionDurationLabel;
+
+  /// No description provided for @subscriptionTrafficGb.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} GB'**
+  String subscriptionTrafficGb(int count);
+
+  /// No description provided for @subscriptionUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get subscriptionUnlimited;
+
+  /// No description provided for @subscriptionDurationDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String subscriptionDurationDays(int count);
+
+  /// No description provided for @subscriptionCompletePurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Purchase'**
+  String get subscriptionCompletePurchase;
+
+  /// No description provided for @subscriptionReviewYourOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Your Order'**
+  String get subscriptionReviewYourOrder;
+
+  /// No description provided for @subscriptionContinueToPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Payment'**
+  String get subscriptionContinueToPayment;
+
+  /// No description provided for @subscriptionTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get subscriptionTotal;
+
+  /// No description provided for @subscriptionSelectPaymentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Payment Method'**
+  String get subscriptionSelectPaymentMethod;
+
+  /// No description provided for @subscriptionPayNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay Now'**
+  String get subscriptionPayNow;
+
+  /// No description provided for @subscriptionDoNotCloseApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Please do not close the app.'**
+  String get subscriptionDoNotCloseApp;
+
+  /// No description provided for @subscriptionActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Activated!'**
+  String get subscriptionActivated;
+
+  /// No description provided for @subscriptionActivatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You are now subscribed to {planName}.'**
+  String subscriptionActivatedMessage(String planName);
+
+  /// No description provided for @subscriptionSecureVpnAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day of secure VPN access} other{{count} days of secure VPN access}}'**
+  String subscriptionSecureVpnAccess(int count);
+
+  /// No description provided for @subscriptionStartUsingVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Using VPN'**
+  String get subscriptionStartUsingVpn;
+
+  /// No description provided for @subscriptionPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Failed'**
+  String get subscriptionPaymentFailed;
+
+  /// No description provided for @subscriptionTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get subscriptionTryAgain;
+
+  /// No description provided for @subscriptionPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase'**
+  String get subscriptionPurchase;
+
+  /// No description provided for @subscriptionPurchaseFlowFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase flow for: {planName}'**
+  String subscriptionPurchaseFlowFor(String planName);
+
+  /// No description provided for @subscriptionSelectPaymentMethodSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a payment method'**
+  String get subscriptionSelectPaymentMethodSnack;
+
+  /// No description provided for @subscriptionPopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get subscriptionPopular;
+
+  /// No description provided for @subscriptionBestValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Best Value'**
+  String get subscriptionBestValue;
+
+  /// No description provided for @subscriptionFreeTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Trial'**
+  String get subscriptionFreeTrial;
+
+  /// No description provided for @subscriptionTrafficGbFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} GB traffic'**
+  String subscriptionTrafficGbFeature(int count);
+
+  /// No description provided for @subscriptionUnlimitedTraffic.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited traffic'**
+  String get subscriptionUnlimitedTraffic;
+
+  /// No description provided for @subscriptionUpToDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Up to 1 device} other{Up to {count} devices}}'**
+  String subscriptionUpToDevices(int count);
+
+  /// No description provided for @subscriptionPerMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'/ month'**
+  String get subscriptionPerMonth;
+
+  /// No description provided for @subscriptionPer3Months.
+  ///
+  /// In en, this message translates to:
+  /// **'/ 3 months'**
+  String get subscriptionPer3Months;
+
+  /// No description provided for @subscriptionPerYear.
+  ///
+  /// In en, this message translates to:
+  /// **'/ year'**
+  String get subscriptionPerYear;
+
+  /// No description provided for @subscriptionPerLifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'/ lifetime'**
+  String get subscriptionPerLifetime;
+
+  /// No description provided for @subscriptionStartFreeTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Free Trial'**
+  String get subscriptionStartFreeTrial;
+
+  /// No description provided for @subscriptionDataUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Usage'**
+  String get subscriptionDataUsage;
+
+  /// No description provided for @subscriptionPercentUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent} used'**
+  String subscriptionPercentUsed(String percent);
+
+  /// No description provided for @subscriptionNoPaymentMethods.
+  ///
+  /// In en, this message translates to:
+  /// **'No payment methods available.'**
+  String get subscriptionNoPaymentMethods;
+
+  /// No description provided for @subscriptionApplePay.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Pay'**
+  String get subscriptionApplePay;
+
+  /// No description provided for @subscriptionPayWithApplePay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Apple Pay'**
+  String get subscriptionPayWithApplePay;
+
+  /// No description provided for @subscriptionGooglePay.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Pay'**
+  String get subscriptionGooglePay;
+
+  /// No description provided for @subscriptionPayWithGooglePay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Google Pay'**
+  String get subscriptionPayWithGooglePay;
+
+  /// No description provided for @subscriptionCryptoBot.
+  ///
+  /// In en, this message translates to:
+  /// **'CryptoBot'**
+  String get subscriptionCryptoBot;
+
+  /// No description provided for @subscriptionPayWithCrypto.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Crypto'**
+  String get subscriptionPayWithCrypto;
+
+  /// No description provided for @subscriptionYooKassa.
+  ///
+  /// In en, this message translates to:
+  /// **'YooKassa'**
+  String get subscriptionYooKassa;
+
+  /// No description provided for @subscriptionPayWithCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with Card (RU)'**
+  String get subscriptionPayWithCard;
+
+  /// No description provided for @subscriptionQuarterly.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarterly'**
+  String get subscriptionQuarterly;
+
+  /// No description provided for @serverTooltipFastest.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Fastest to auto-select best server'**
+  String get serverTooltipFastest;
+
+  /// No description provided for @serverSortRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get serverSortRecommended;
+
+  /// No description provided for @serverSortCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get serverSortCountry;
+
+  /// No description provided for @serverSortLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency'**
+  String get serverSortLatency;
+
+  /// No description provided for @serverSortLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load'**
+  String get serverSortLoad;
+
+  /// No description provided for @serverFastest.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastest'**
+  String get serverFastest;
+
+  /// No description provided for @serverFailedToLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load servers'**
+  String get serverFailedToLoad;
+
+  /// No description provided for @serverNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Server not found'**
+  String get serverNotFound;
+
+  /// No description provided for @serverSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get serverSingle;
+
+  /// No description provided for @serverDetailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get serverDetailAddress;
+
+  /// No description provided for @serverDetailProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol'**
+  String get serverDetailProtocol;
+
+  /// No description provided for @serverDetailStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get serverDetailStatus;
+
+  /// No description provided for @serverDetailOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get serverDetailOnline;
+
+  /// No description provided for @serverDetailOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get serverDetailOffline;
+
+  /// No description provided for @serverDetailTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier'**
+  String get serverDetailTier;
+
+  /// No description provided for @serverDetailPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get serverDetailPremium;
+
+  /// No description provided for @serverDetailLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency'**
+  String get serverDetailLatency;
+
+  /// No description provided for @serverDetailNotTested.
+  ///
+  /// In en, this message translates to:
+  /// **'Not tested'**
+  String get serverDetailNotTested;
+
+  /// No description provided for @serverDetailServerLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Server Load'**
+  String get serverDetailServerLoad;
+
+  /// No description provided for @serverDetailUptime.
+  ///
+  /// In en, this message translates to:
+  /// **'Uptime'**
+  String get serverDetailUptime;
+
+  /// No description provided for @serverDetailUptimeValue.
+  ///
+  /// In en, this message translates to:
+  /// **'99.9%'**
+  String get serverDetailUptimeValue;
+
+  /// No description provided for @serverDetailUptimeNA.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get serverDetailUptimeNA;
+
+  /// No description provided for @serverDetailUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get serverDetailUnavailable;
+
+  /// No description provided for @serverDetailConnectingTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to {name}...'**
+  String serverDetailConnectingTo(String name);
+
+  /// No description provided for @serverDetailFailedToConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to connect: {error}'**
+  String serverDetailFailedToConnect(String error);
+
+  /// No description provided for @serverCustomBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'CUSTOM'**
+  String get serverCustomBadge;
+
+  /// No description provided for @serverFavoritesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get serverFavoritesTitle;
+
+  /// No description provided for @serverNoFavoritesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet'**
+  String get serverNoFavoritesTitle;
+
+  /// No description provided for @serverNoFavoritesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the star icon on any server to add it here.'**
+  String get serverNoFavoritesDescription;
+
+  /// No description provided for @serverPingUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'-- ms'**
+  String get serverPingUnknown;
+
+  /// No description provided for @serverPingMs.
+  ///
+  /// In en, this message translates to:
+  /// **'{ping} ms'**
+  String serverPingMs(int ping);
+
+  /// No description provided for @a11ySelectFastestServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Select fastest server'**
+  String get a11ySelectFastestServer;
+
+  /// No description provided for @a11ySelectFastestServerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to automatically connect to the fastest available server'**
+  String get a11ySelectFastestServerHint;
+
+  /// No description provided for @a11yServerCardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view server details and connect'**
+  String get a11yServerCardHint;
+
+  /// No description provided for @a11yToggleFavoriteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to toggle favorite status'**
+  String get a11yToggleFavoriteHint;
+
+  /// No description provided for @a11yMeasuringLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Measuring latency'**
+  String get a11yMeasuringLatency;
+
+  /// No description provided for @a11yLatencyUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency unknown'**
+  String get a11yLatencyUnknown;
+
+  /// No description provided for @a11yLatencyMs.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency: {ping} milliseconds'**
+  String a11yLatencyMs(int ping);
+
+  /// No description provided for @a11yRetestLatencyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to re-test server latency'**
+  String get a11yRetestLatencyHint;
+
+  /// No description provided for @a11yServerInCity.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} server in {city}'**
+  String a11yServerInCity(String name, String city);
+
+  /// No description provided for @a11yStatusOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'online'**
+  String get a11yStatusOnline;
+
+  /// No description provided for @a11yStatusOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'offline'**
+  String get a11yStatusOffline;
+
+  /// No description provided for @a11yLatencyMsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{ping} milliseconds latency'**
+  String a11yLatencyMsShort(int ping);
+
+  /// No description provided for @a11yLatencyUnknownShort.
+  ///
+  /// In en, this message translates to:
+  /// **'latency unknown'**
+  String get a11yLatencyUnknownShort;
+
+  /// No description provided for @a11yLoadPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{load} percent load'**
+  String a11yLoadPercent(int load);
+
+  /// No description provided for @a11yPremiumServer.
+  ///
+  /// In en, this message translates to:
+  /// **'premium server'**
+  String get a11yPremiumServer;
+
+  /// No description provided for @a11yCustomServer.
+  ///
+  /// In en, this message translates to:
+  /// **'custom server'**
+  String get a11yCustomServer;
+
+  /// No description provided for @serverCustomCountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get serverCustomCountry;
+
+  /// No description provided for @referralTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Referrals'**
+  String get referralTitle;
+
+  /// No description provided for @referralYourStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Stats'**
+  String get referralYourStats;
+
+  /// No description provided for @referralRecentReferrals.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Referrals'**
+  String get referralRecentReferrals;
+
+  /// No description provided for @referralActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get referralActive;
+
+  /// No description provided for @referralJoinedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined {date}'**
+  String referralJoinedDate(String date);
+
+  /// No description provided for @referralNoReferralsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No referrals yet'**
+  String get referralNoReferralsYet;
+
+  /// No description provided for @referralShareCodePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your code to start earning rewards!'**
+  String get referralShareCodePrompt;
+
+  /// No description provided for @referralComingSoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral Program Coming Soon'**
+  String get referralComingSoonTitle;
+
+  /// No description provided for @referralComingSoonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite friends and earn rewards when they subscribe. Stay tuned for our upcoming referral program!'**
+  String get referralComingSoonDescription;
+
+  /// No description provided for @referralNotifyMeConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll notify you when referrals launch!'**
+  String get referralNotifyMeConfirmation;
+
+  /// No description provided for @referralNotifyMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify Me'**
+  String get referralNotifyMe;
+
+  /// No description provided for @referralCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code copied!'**
+  String get referralCodeCopied;
+
+  /// No description provided for @referralShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Join CyberVPN with my referral link: {link}'**
+  String referralShareMessage(String link);
+
+  /// No description provided for @referralCopyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get referralCopyCode;
+
+  /// No description provided for @referralQrCodeSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral QR code'**
+  String get referralQrCodeSemantics;
+
+  /// No description provided for @referralStatsTotalInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Invited'**
+  String get referralStatsTotalInvited;
+
+  /// No description provided for @referralStatsPaidUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid Users'**
+  String get referralStatsPaidUsers;
+
+  /// No description provided for @referralStatsPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get referralStatsPoints;
+
+  /// No description provided for @referralStatsBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get referralStatsBalance;
+
+  /// No description provided for @diagnosticConnectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Diagnostics'**
+  String get diagnosticConnectionTitle;
+
+  /// No description provided for @diagnosticSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic Steps'**
+  String get diagnosticSteps;
+
+  /// No description provided for @diagnosticRunningTests.
+  ///
+  /// In en, this message translates to:
+  /// **'Running connection tests...'**
+  String get diagnosticRunningTests;
+
+  /// No description provided for @diagnosticCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics completed'**
+  String get diagnosticCompleted;
+
+  /// No description provided for @diagnosticTapToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Run Again to start'**
+  String get diagnosticTapToStart;
+
+  /// No description provided for @diagnosticUnknownStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Step'**
+  String get diagnosticUnknownStep;
+
+  /// No description provided for @diagnosticExportReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Report'**
+  String get diagnosticExportReport;
+
+  /// No description provided for @diagnosticRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running...'**
+  String get diagnosticRunning;
+
+  /// No description provided for @diagnosticRunAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Run Again'**
+  String get diagnosticRunAgain;
+
+  /// No description provided for @diagnosticReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CyberVPN Connection Diagnostics Report'**
+  String get diagnosticReportTitle;
+
+  /// No description provided for @diagnosticReportRanAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Ran at: {time}'**
+  String diagnosticReportRanAt(String time);
+
+  /// No description provided for @diagnosticReportTotalDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Total duration: {seconds}s'**
+  String diagnosticReportTotalDuration(int seconds);
+
+  /// No description provided for @diagnosticReportSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps:'**
+  String get diagnosticReportSteps;
+
+  /// No description provided for @diagnosticReportStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {status}'**
+  String diagnosticReportStatus(String status);
+
+  /// No description provided for @diagnosticReportDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: {duration}'**
+  String diagnosticReportDuration(String duration);
+
+  /// No description provided for @diagnosticReportDurationNa.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get diagnosticReportDurationNa;
+
+  /// No description provided for @diagnosticReportMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message: {message}'**
+  String diagnosticReportMessage(String message);
+
+  /// No description provided for @diagnosticReportSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestion: {suggestion}'**
+  String diagnosticReportSuggestion(String suggestion);
+
+  /// No description provided for @diagnosticStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'PENDING'**
+  String get diagnosticStatusPending;
+
+  /// No description provided for @diagnosticStatusRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'RUNNING'**
+  String get diagnosticStatusRunning;
+
+  /// No description provided for @diagnosticStatusSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'SUCCESS'**
+  String get diagnosticStatusSuccess;
+
+  /// No description provided for @diagnosticStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'FAILED'**
+  String get diagnosticStatusFailed;
+
+  /// No description provided for @diagnosticStatusWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'WARNING'**
+  String get diagnosticStatusWarning;
+
+  /// No description provided for @speedTestWithVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Test with VPN'**
+  String get speedTestWithVpn;
+
+  /// No description provided for @speedTestNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No speed tests yet'**
+  String get speedTestNoResults;
+
+  /// No description provided for @speedTestTapToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Start to measure your connection'**
+  String get speedTestTapToStart;
+
+  /// No description provided for @speedTestHistoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get speedTestHistoryLabel;
+
+  /// No description provided for @speedTestShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CyberVPN Speed Test Results'**
+  String get speedTestShareTitle;
+
+  /// No description provided for @speedTestShareDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download: {value} Mbps'**
+  String speedTestShareDownload(String value);
+
+  /// No description provided for @speedTestShareUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload: {value} Mbps'**
+  String speedTestShareUpload(String value);
+
+  /// No description provided for @speedTestShareLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency: {value} ms'**
+  String speedTestShareLatency(int value);
+
+  /// No description provided for @speedTestShareJitter.
+  ///
+  /// In en, this message translates to:
+  /// **'Jitter: {value} ms'**
+  String speedTestShareJitter(int value);
+
+  /// No description provided for @speedTestShareVpnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN: ON'**
+  String get speedTestShareVpnOn;
+
+  /// No description provided for @speedTestShareVpnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN: OFF'**
+  String get speedTestShareVpnOff;
+
+  /// No description provided for @speedTestShareTestedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Tested: {time}'**
+  String speedTestShareTestedAt(String time);
+
+  /// No description provided for @speedTestVpnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN ON'**
+  String get speedTestVpnOn;
+
+  /// No description provided for @speedTestVpnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN OFF'**
+  String get speedTestVpnOff;
+
+  /// No description provided for @speedTestLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'Latency'**
+  String get speedTestLatency;
+
+  /// No description provided for @speedTestJitter.
+  ///
+  /// In en, this message translates to:
+  /// **'Jitter'**
+  String get speedTestJitter;
+
+  /// No description provided for @speedTestCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare'**
+  String get speedTestCompare;
+
+  /// No description provided for @speedTestHideCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Compare'**
+  String get speedTestHideCompare;
+
+  /// No description provided for @logViewerAutoScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-scroll'**
+  String get logViewerAutoScroll;
+
+  /// No description provided for @logViewerTotalEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} total entries'**
+  String logViewerTotalEntries(int count);
+
+  /// No description provided for @logViewerFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} filtered'**
+  String logViewerFiltered(int count);
+
+  /// No description provided for @logViewerSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search logs...'**
+  String get logViewerSearchHint;
+
+  /// No description provided for @logViewerNoLogsToExport.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs to export'**
+  String get logViewerNoLogsToExport;
+
+  /// No description provided for @logViewerClearAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Logs?'**
+  String get logViewerClearAllTitle;
+
+  /// No description provided for @logViewerClearCannotUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone'**
+  String get logViewerClearCannotUndo;
+
+  /// No description provided for @logViewerClearedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs cleared successfully'**
+  String get logViewerClearedSuccess;
+
+  /// No description provided for @logViewerNoLogsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs available'**
+  String get logViewerNoLogsAvailable;
+
+  /// No description provided for @logViewerNoLogsMatchFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs match filters'**
+  String get logViewerNoLogsMatchFilters;
+
+  /// No description provided for @logViewerFilterDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'DEBUG'**
+  String get logViewerFilterDebug;
+
+  /// No description provided for @logViewerFilterInfo2.
+  ///
+  /// In en, this message translates to:
+  /// **'INFO'**
+  String get logViewerFilterInfo2;
+
+  /// No description provided for @logViewerFilterWarning2.
+  ///
+  /// In en, this message translates to:
+  /// **'WARNING'**
+  String get logViewerFilterWarning2;
+
+  /// No description provided for @logViewerFilterError2.
+  ///
+  /// In en, this message translates to:
+  /// **'ERROR'**
+  String get logViewerFilterError2;
+
+  /// No description provided for @connectionStatusNotProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Protected'**
+  String get connectionStatusNotProtected;
+
+  /// No description provided for @connectionStatusProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected'**
+  String get connectionStatusProtected;
+
+  /// No description provided for @connectionStatusReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting...'**
+  String get connectionStatusReconnecting;
+
+  /// No description provided for @connectionStatusConnectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Error'**
+  String get connectionStatusConnectionError;
+
+  /// No description provided for @connectionSelectServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a server to connect'**
+  String get connectionSelectServer;
+
+  /// No description provided for @connectionPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get connectionPremium;
+
+  /// No description provided for @connectionDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get connectionDuration;
+
+  /// No description provided for @connectionMonitorSpeedTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Monitor your real-time speed here'**
+  String get connectionMonitorSpeedTooltip;
+
+  /// No description provided for @a11yConnectToVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to VPN'**
+  String get a11yConnectToVpn;
+
+  /// No description provided for @a11yConnectingToVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to VPN'**
+  String get a11yConnectingToVpn;
+
+  /// No description provided for @a11yDisconnectFromVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect from VPN'**
+  String get a11yDisconnectFromVpn;
+
+  /// No description provided for @a11yDisconnectingFromVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnecting from VPN'**
+  String get a11yDisconnectingFromVpn;
+
+  /// No description provided for @a11yReconnectingToVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting to VPN'**
+  String get a11yReconnectingToVpn;
+
+  /// No description provided for @a11yRetryVpnConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry VPN connection'**
+  String get a11yRetryVpnConnection;
+
+  /// No description provided for @a11yTapToConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to connect to the VPN server'**
+  String get a11yTapToConnect;
+
+  /// No description provided for @a11yTapToDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to disconnect from the VPN server'**
+  String get a11yTapToDisconnect;
+
+  /// No description provided for @a11yTapToRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to retry the connection'**
+  String get a11yTapToRetry;
+
+  /// No description provided for @a11yPleaseWaitConnectionInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait, connection in progress'**
+  String get a11yPleaseWaitConnectionInProgress;
+
+  /// No description provided for @a11yPremiumSubscriptionActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium subscription active'**
+  String get a11yPremiumSubscriptionActive;
+
+  /// No description provided for @a11yUsingProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'Using {protocol} protocol'**
+  String a11yUsingProtocol(String protocol);
+
+  /// No description provided for @a11yConnectionDurationValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection duration: {duration}'**
+  String a11yConnectionDurationValue(String duration);
+
+  /// No description provided for @a11yIpAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'IP address: {ip}'**
+  String a11yIpAddress(String ip);
+
+  /// No description provided for @a11yDownloadUploadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download speed: {download}, Upload speed: {upload}'**
+  String a11yDownloadUploadSpeed(String download, String upload);
+
+  /// No description provided for @a11yConnectedToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name} server in {city}, {country}'**
+  String a11yConnectedToServer(String name, String city, String country);
+
+  /// No description provided for @errorSomethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get errorSomethingWentWrong;
+
+  /// No description provided for @errorUnexpectedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'An unexpected error occurred. You can report this issue or restart the app.'**
+  String get errorUnexpectedDescription;
+
+  /// No description provided for @errorFeatureCrashed.
+  ///
+  /// In en, this message translates to:
+  /// **'The {feature} feature encountered an error.'**
+  String errorFeatureCrashed(String feature);
+
+  /// No description provided for @errorReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get errorReport;
+
+  /// No description provided for @errorReported.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported'**
+  String get errorReported;
+
+  /// No description provided for @errorRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get errorRestart;
+
+  /// No description provided for @offlineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offlineLabel;
+
+  /// No description provided for @offlineYouAreOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline'**
+  String get offlineYouAreOffline;
+
+  /// No description provided for @offlineSomeFeaturesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Some features unavailable'**
+  String get offlineSomeFeaturesUnavailable;
+
+  /// No description provided for @offlineNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available offline'**
+  String get offlineNotAvailable;
+
+  /// No description provided for @offlineLastSyncJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: just now'**
+  String get offlineLastSyncJustNow;
+
+  /// No description provided for @offlineLastSyncMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {count}m ago'**
+  String offlineLastSyncMinutes(int count);
+
+  /// No description provided for @offlineLastSyncHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {count}h ago'**
+  String offlineLastSyncHours(int count);
+
+  /// No description provided for @offlineLastSyncDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {count}d ago'**
+  String offlineLastSyncDays(int count);
+
+  /// No description provided for @updateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Required'**
+  String get updateRequired;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Available'**
+  String get updateAvailable;
+
+  /// No description provided for @updateMandatoryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A mandatory update is required to continue using CyberVPN.'**
+  String get updateMandatoryDescription;
+
+  /// No description provided for @updateOptionalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of CyberVPN is available with improvements and bug fixes.'**
+  String get updateOptionalDescription;
+
+  /// No description provided for @updateCurrentVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Version:'**
+  String get updateCurrentVersion;
+
+  /// No description provided for @updateLatestVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest Version:'**
+  String get updateLatestVersion;
+
+  /// No description provided for @updateRemindLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me in 3 days'**
+  String get updateRemindLater;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Now'**
+  String get updateNow;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLater;
+
+  /// No description provided for @splashTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure. Private. Fast.'**
+  String get splashTagline;
+
+  /// No description provided for @navConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get navConnection;
+
+  /// No description provided for @autoConnectingToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-connecting to {server}...'**
+  String autoConnectingToServer(String server);
+
+  /// No description provided for @autoConnectingToVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-connecting to VPN...'**
+  String get autoConnectingToVpn;
+
+  /// No description provided for @autoConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-connect failed: {message}'**
+  String autoConnectFailed(String message);
+
+  /// No description provided for @autoConnectSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {server}'**
+  String autoConnectSuccess(String server);
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
 }
 
 class _AppLocalizationsDelegate

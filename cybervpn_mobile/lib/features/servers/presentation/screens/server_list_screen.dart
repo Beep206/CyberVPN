@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
@@ -72,7 +73,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       FeatureTooltip.show(
         context: context,
         targetKey: _fastestButtonKey,
-        message: 'Tap Fastest to auto-select best server',
+        message: AppLocalizations.of(context).serverTooltipFastest,
         position: TooltipPosition.bottom,
         onDismiss: () async {
           await _tooltipService.markTooltipAsShown(tooltipId);
@@ -132,7 +133,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Connecting to ${config.name}...'),
+            content: Text(AppLocalizations.of(context).serverDetailConnectingTo(config.name)),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -142,7 +143,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to connect: $e'),
+            content: Text(AppLocalizations.of(context).serverDetailFailedToConnect(e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 3),
           ),
@@ -156,11 +157,12 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   // ---------------------------------------------------------------------------
 
   String _sortModeLabel(SortMode mode) {
+    final l10n = AppLocalizations.of(context);
     return switch (mode) {
-      SortMode.recommended => 'Recommended',
-      SortMode.countryName => 'Country',
-      SortMode.latency => 'Latency',
-      SortMode.load => 'Load',
+      SortMode.recommended => l10n.serverSortRecommended,
+      SortMode.countryName => l10n.serverSortCountry,
+      SortMode.latency => l10n.serverSortLatency,
+      SortMode.load => l10n.serverSortLoad,
     };
   }
 
@@ -185,7 +187,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   /// Convert ImportedConfig to ServerEntity for unified display.
   ServerEntity _customConfigToServer(ImportedConfig config) {
     final countryCode = _extractCountryCode(config.name) ?? 'XX';
-    final countryName = countryCode == 'XX' ? 'Custom' : countryCode;
+    final countryName = countryCode == 'XX' ? AppLocalizations.of(context).serverCustomCountry : countryCode;
 
     return ServerEntity(
       id: config.id,
@@ -243,7 +245,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Servers'),
+        title: Text(AppLocalizations.of(context).servers),
       ),
       body: asyncState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -253,13 +255,13 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             children: [
               Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
               const SizedBox(height: 12),
-              Text('Failed to load servers',
+              Text(AppLocalizations.of(context).serverFailedToLoad,
                   style: theme.textTheme.bodyLarge),
               const SizedBox(height: 8),
               FilledButton.tonal(
                 onPressed: () =>
                     ref.read(serverListProvider.notifier).fetchServers(),
-                child: const Text('Retry'),
+                child: Text(AppLocalizations.of(context).retry),
               ),
             ],
           ),
@@ -289,7 +291,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'Search servers...',
+                        hintText: AppLocalizations.of(context).serverListSearchHint,
                         prefixIcon: const Icon(Icons.search, size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
@@ -344,16 +346,16 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                 spacing: 8,
                 children: [
                   Semantics(
-                    label: 'Select fastest server',
+                    label: AppLocalizations.of(context).a11ySelectFastestServer,
                     button: true,
-                    hint: 'Tap to automatically connect to the fastest available server',
+                    hint: AppLocalizations.of(context).a11ySelectFastestServerHint,
                     child: ActionChip(
                       key: _fastestButtonKey,
                       avatar: const ExcludeSemantics(
                         child: Icon(Icons.bolt,
                             size: 16, color: Colors.amber),
                       ),
-                      label: const Text('Fastest'),
+                      label: Text(AppLocalizations.of(context).serverFastest),
                       onPressed: _onFastestTap,
                     ),
                   ),
@@ -468,7 +470,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             const Icon(Icons.star, color: Colors.amber, size: 20),
             const SizedBox(width: 8),
             Text(
-              'Favorites',
+              AppLocalizations.of(context).serverFavoritesTitle,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),

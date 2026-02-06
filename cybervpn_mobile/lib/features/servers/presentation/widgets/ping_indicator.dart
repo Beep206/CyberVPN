@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+
 /// Small chip displaying server latency with color-coded background.
 ///
 /// Colors:
@@ -46,10 +48,10 @@ class PingIndicator extends ConsumerWidget {
     return Colors.white;
   }
 
-  String _label() {
+  String _label(AppLocalizations l10n) {
     if (isTesting) return '...';
-    if (latencyMs == null) return '-- ms';
-    return '$latencyMs ms';
+    if (latencyMs == null) return l10n.serverPingUnknown;
+    return l10n.serverPingMs(latencyMs!);
   }
 
   // ---------------------------------------------------------------------------
@@ -58,19 +60,20 @@ class PingIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final bg = _backgroundColor(context);
     final fg = _foregroundColor();
 
     final semanticLabel = isTesting
-        ? 'Measuring latency'
+        ? l10n.a11yMeasuringLatency
         : latencyMs == null
-            ? 'Latency unknown'
-            : 'Latency: $latencyMs milliseconds';
+            ? l10n.a11yLatencyUnknown
+            : l10n.a11yLatencyMs(latencyMs!);
 
     final chip = Semantics(
       label: semanticLabel,
       button: onTap != null,
-      hint: onTap != null ? 'Tap to re-test server latency' : null,
+      hint: onTap != null ? l10n.a11yRetestLatencyHint : null,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -86,7 +89,7 @@ class PingIndicator extends ConsumerWidget {
             child: isTesting
                 ? _ShimmerDots(color: fg)
                 : Text(
-                    _label(),
+                    _label(l10n),
                     style: TextStyle(
                       color: fg,
                       fontSize: 12,

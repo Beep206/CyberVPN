@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 
 /// A user-friendly error screen that replaces Flutter's default red error
 /// screen for unrecoverable widget build errors.
@@ -73,9 +74,27 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
     await SystemNavigator.pop();
   }
 
+  /// Attempts to resolve localization, falling back to English defaults.
+  AppLocalizations? _tryGetL10n(BuildContext context) {
+    try {
+      return Localizations.of<AppLocalizations>(context, AppLocalizations);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = _tryGetL10n(context);
+
+    final titleText = l10n?.errorSomethingWentWrong ?? 'Something went wrong';
+    final descText = l10n?.errorUnexpectedDescription ??
+        'An unexpected error occurred. You can report this issue or restart the app.';
+    final reportText = _reported
+        ? (l10n?.errorReported ?? 'Reported')
+        : (l10n?.errorReport ?? 'Report');
+    final restartText = l10n?.errorRestart ?? 'Restart';
 
     return Material(
       color: theme.colorScheme.surface,
@@ -96,7 +115,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
 
                 // Title
                 Text(
-                  'Something went wrong',
+                  titleText,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
@@ -107,8 +126,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
 
                 // Error description
                 Text(
-                  'An unexpected error occurred. You can report this '
-                  'issue or restart the app.',
+                  descText,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -122,7 +140,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
                   icon: Icon(
                     _reported ? Icons.check : Icons.bug_report_outlined,
                   ),
-                  label: Text(_reported ? 'Reported' : 'Report'),
+                  label: Text(reportText),
                 ),
                 const SizedBox(height: Spacing.md),
 
@@ -130,7 +148,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
                 OutlinedButton.icon(
                   onPressed: _onRestart,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Restart'),
+                  label: Text(restartText),
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 
 // ---------------------------------------------------------------------------
 // ReferralQrWidget
@@ -27,6 +28,7 @@ class ReferralQrWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(Spacing.md),
@@ -49,7 +51,7 @@ class ReferralQrWidget extends StatelessWidget {
           dataModuleShape: QrDataModuleShape.square,
           color: Color(0xFF111827),
         ),
-        semanticsLabel: 'Referral QR code',
+        semanticsLabel: l10n.referralQrCodeSemantics,
       ),
     );
   }

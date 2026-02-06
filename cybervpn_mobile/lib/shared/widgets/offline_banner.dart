@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/offline_session_service.dart';
 
 /// A banner that displays when the app is offline.
@@ -47,26 +48,27 @@ class _OfflineBannerContent extends StatelessWidget {
     this.compact = false,
   });
 
-  String _formatLastSync() {
+  String _formatLastSync(AppLocalizations l10n) {
     if (lastSyncTime == null) return '';
 
     final now = DateTime.now();
     final diff = now.difference(lastSyncTime!);
 
     if (diff.inMinutes < 1) {
-      return 'Last sync: just now';
+      return l10n.offlineLastSyncJustNow;
     } else if (diff.inMinutes < 60) {
-      return 'Last sync: ${diff.inMinutes}m ago';
+      return l10n.offlineLastSyncMinutes(diff.inMinutes);
     } else if (diff.inHours < 24) {
-      return 'Last sync: ${diff.inHours}h ago';
+      return l10n.offlineLastSyncHours(diff.inHours);
     } else {
-      return 'Last sync: ${diff.inDays}d ago';
+      return l10n.offlineLastSyncDays(diff.inDays);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     if (compact) {
       return Container(
@@ -85,7 +87,7 @@ class _OfflineBannerContent extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              'Offline',
+              l10n.offlineLabel,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,
                 fontWeight: FontWeight.w500,
@@ -116,7 +118,7 @@ class _OfflineBannerContent extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'You are offline',
+                      l10n.offlineYouAreOffline,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onErrorContainer,
                         fontWeight: FontWeight.w600,
@@ -125,7 +127,7 @@ class _OfflineBannerContent extends StatelessWidget {
                     if (lastSyncTime != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _formatLastSync(),
+                        _formatLastSync(l10n),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer
                               .withValues(alpha: 0.8),
@@ -136,7 +138,7 @@ class _OfflineBannerContent extends StatelessWidget {
                 ),
               ),
               Text(
-                'Some features unavailable',
+                l10n.offlineSomeFeaturesUnavailable,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
                 ),
@@ -187,7 +189,7 @@ class OfflineDisabled extends ConsumerWidget {
 
         if (showTooltip) {
           return Tooltip(
-            message: tooltipMessage ?? 'Not available offline',
+            message: tooltipMessage ?? AppLocalizations.of(context).offlineNotAvailable,
             child: disabledChild,
           );
         }
@@ -218,7 +220,7 @@ class OfflineIndicatorIcon extends ConsumerWidget {
       data: (online) {
         if (online) return const SizedBox.shrink();
         return Tooltip(
-          message: 'You are offline',
+          message: AppLocalizations.of(context).offlineYouAreOffline,
           child: Icon(
             Icons.cloud_off,
             size: size,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/diagnostic_service.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
@@ -17,11 +18,11 @@ import 'package:cybervpn_mobile/shared/widgets/cyber_app_bar.dart';
 /// Full-screen connection diagnostics interface with animated step checklist.
 ///
 /// Layout (top to bottom):
-/// 1. 6-step checklist — each row shows step name, animated status (spinner,
+/// 1. 6-step checklist -- each row shows step name, animated status (spinner,
 ///    green check, or red X), duration, and message.
 /// 2. On failure: displays suggestion text and optional 'Fix' button if
 ///    actionable.
-/// 3. 'Export Report' button → shares diagnostics result as formatted text.
+/// 3. 'Export Report' button -> shares diagnostics result as formatted text.
 /// 4. 'Run Again' button to re-trigger diagnostics.
 ///
 /// Auto-triggered after 3+ connection failures (optional, implemented in
@@ -48,6 +49,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isRunning = ref.watch(isRunningDiagnosticsProvider);
     final steps = ref.watch(diagnosticStepsProvider);
     final asyncState = ref.watch(diagnosticsProvider);
@@ -57,8 +59,8 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
 
     return Scaffold(
       backgroundColor: CyberColors.deepNavy,
-      appBar: const CyberAppBar(
-        title: 'Connection Diagnostics',
+      appBar: CyberAppBar(
+        title: l10n.diagnosticConnectionTitle,
         transparent: true,
       ),
       body: RefreshIndicator(
@@ -78,7 +80,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Diagnostic Steps',
+                      l10n.diagnosticSteps,
                       style: TextStyle(
                         color: CyberColors.neonCyan.withValues(alpha: 0.9),
                         fontSize: 18,
@@ -89,10 +91,10 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
                     const SizedBox(height: Spacing.xs),
                     Text(
                       isRunning
-                          ? 'Running connection tests...'
+                          ? l10n.diagnosticRunningTests
                           : hasResult
-                              ? 'Diagnostics completed'
-                              : 'Tap Run Again to start',
+                              ? l10n.diagnosticCompleted
+                              : l10n.diagnosticTapToStart,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 13,
@@ -113,7 +115,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
                   // If running and index >= steps.length, show pending placeholder.
                   if (index >= steps.length) {
                     return DiagnosticStepTile(
-                      stepName: _getStepNameByIndex(index),
+                      stepName: _getStepNameByIndex(context, index),
                       status: DiagnosticStepStatus.pending,
                     );
                   }
@@ -145,7 +147,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
                       // Export Report button
                       if (hasResult)
                         _ActionButton(
-                          label: 'Export Report',
+                          label: l10n.diagnosticExportReport,
                           icon: Icons.share,
                           onPressed: () => _exportReport(
                             asyncState.value!.diagnosticResult!,
@@ -162,7 +164,9 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
 
                       // Run Again button
                       _ActionButton(
-                        label: isRunning ? 'Running...' : 'Run Again',
+                        label: isRunning
+                            ? l10n.diagnosticRunning
+                            : l10n.diagnosticRunAgain,
                         icon: isRunning ? null : Icons.refresh,
                         onPressed: isRunning ? null : _onRunAgain,
                         isLoading: isRunning,
@@ -201,7 +205,8 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
   }
 
   /// Maps a step index (0-5) to the corresponding step name constant.
-  String _getStepNameByIndex(int index) {
+  String _getStepNameByIndex(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context);
     switch (index) {
       case 0:
         return DiagnosticStepNames.networkConnectivity;
@@ -216,7 +221,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
       case 5:
         return DiagnosticStepNames.fullTunnel;
       default:
-        return 'Unknown Step';
+        return l10n.diagnosticUnknownStep;
     }
   }
 
@@ -225,30 +230,31 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
   }
 
   void _exportReport(DiagnosticResult result) {
+    final l10n = AppLocalizations.of(context);
     final buffer = StringBuffer()
-      ..writeln('CyberVPN Connection Diagnostics Report')
+      ..writeln(l10n.diagnosticReportTitle)
       ..writeln('=' * 45)
-      ..writeln('Ran at: ${result.ranAt.toLocal()}')
-      ..writeln('Total duration: ${result.totalDuration.inSeconds}s')
+      ..writeln(l10n.diagnosticReportRanAt(result.ranAt.toLocal().toString()))
+      ..writeln(l10n.diagnosticReportTotalDuration(result.totalDuration.inSeconds))
       ..writeln()
-      ..writeln('Steps:')
+      ..writeln(l10n.diagnosticReportSteps)
       ..writeln('-' * 45);
 
     for (final step in result.steps) {
       buffer
         ..writeln()
         ..writeln(step.name)
-        ..writeln('  Status: ${_formatStatus(step.status)}')
+        ..writeln('  ${l10n.diagnosticReportStatus(_formatStatus(step.status))}')
         ..writeln(
-          '  Duration: ${step.duration != null ? '${step.duration!.inMilliseconds}ms' : 'N/A'}',
+          '  ${l10n.diagnosticReportDuration(step.duration != null ? '${step.duration!.inMilliseconds}ms' : l10n.diagnosticReportDurationNa)}',
         );
 
       if (step.message != null) {
-        buffer.writeln('  Message: ${step.message}');
+        buffer.writeln('  ${l10n.diagnosticReportMessage(step.message!)}');
       }
 
       if (step.suggestion != null) {
-        buffer.writeln('  Suggestion: ${step.suggestion}');
+        buffer.writeln('  ${l10n.diagnosticReportSuggestion(step.suggestion!)}');
       }
     }
 
@@ -256,17 +262,18 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
   }
 
   String _formatStatus(DiagnosticStepStatus status) {
+    final l10n = AppLocalizations.of(context);
     switch (status) {
       case DiagnosticStepStatus.pending:
-        return 'PENDING';
+        return l10n.diagnosticStatusPending;
       case DiagnosticStepStatus.running:
-        return 'RUNNING';
+        return l10n.diagnosticStatusRunning;
       case DiagnosticStepStatus.success:
-        return 'SUCCESS';
+        return l10n.diagnosticStatusSuccess;
       case DiagnosticStepStatus.failed:
-        return 'FAILED';
+        return l10n.diagnosticStatusFailed;
       case DiagnosticStepStatus.warning:
-        return 'WARNING';
+        return l10n.diagnosticStatusWarning;
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -39,10 +40,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncProfile = ref.watch(profileProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Social Accounts'),
+        title: Text(l10n.profileSocialAccounts),
       ),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -59,7 +61,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
             children: [
               // Header description
               Text(
-                'Link your social accounts for easier sign-in and account recovery.',
+                l10n.profileSocialAccountsDescription,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -203,12 +205,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       }
 
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Complete authorization in your browser, then return to the app.',
-          ),
-          duration: Duration(seconds: 4),
+        SnackBar(
+          content: Text(l10n.profileSocialCompleteAuth),
+          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {
@@ -233,25 +234,28 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     BuildContext ctx,
     OAuthProvider provider,
   ) async {
+    final providerDisplayName = _providerName(provider);
     final confirmed = await showDialog<bool>(
       context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text('Unlink ${_providerName(provider)}?'),
-        content: Text(
-          'You will need to re-authorize to link this account again. '
-          'This will not delete your ${_providerName(provider)} account.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text('Cancel'),
+      builder: (dialogCtx) {
+        final dialogL10n = AppLocalizations.of(dialogCtx);
+        return AlertDialog(
+          title: Text(dialogL10n.profileSocialUnlinkConfirm(providerDisplayName)),
+          content: Text(
+            dialogL10n.profileSocialUnlinkDescription(providerDisplayName),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: const Text('Unlink'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: Text(dialogL10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              child: Text(dialogL10n.profileOauthUnlink),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && mounted) {
@@ -324,6 +328,7 @@ class _ProviderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       child: Padding(
@@ -373,7 +378,7 @@ class _ProviderCard extends StatelessWidget {
                       const SizedBox(width: Spacing.xs),
                       // Status text
                       Text(
-                        isLinked ? 'Linked' : 'Not Linked',
+                        isLinked ? l10n.profileSocialLinked : l10n.profileSocialNotLinked,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -404,13 +409,13 @@ class _ProviderCard extends StatelessWidget {
                   foregroundColor: colorScheme.error,
                   side: BorderSide(color: colorScheme.error),
                 ),
-                child: const Text('Unlink'),
+                child: Text(l10n.profileOauthUnlink),
               )
             else
               FilledButton(
                 key: Key('link_${provider.name}'),
                 onPressed: onLinkTap,
-                child: const Text('Link'),
+                child: Text(l10n.profileSocialLink),
               ),
           ],
         ),
@@ -450,6 +455,7 @@ class _ErrorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -472,7 +478,7 @@ class _ErrorBody extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
@@ -110,26 +111,28 @@ class _ServerCardState extends ConsumerState<ServerCard>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final l10n = AppLocalizations.of(context);
+
     // Build semantic label for the server card
     final statusText =
-        server.isAvailable ? 'online' : 'offline';
+        server.isAvailable ? l10n.a11yStatusOnline : l10n.a11yStatusOffline;
     final latencyText = server.ping != null
-        ? '${server.ping} milliseconds latency'
-        : 'latency unknown';
+        ? l10n.a11yLatencyMsShort(server.ping!)
+        : l10n.a11yLatencyUnknownShort;
     final loadText = server.load != null
-        ? '${(server.load! * 100).toInt()} percent load'
+        ? l10n.a11yLoadPercent((server.load! * 100).toInt())
         : '';
-    final premiumText = server.isPremium ? ', premium server' : '';
-    final customText = widget.isCustomServer ? ', custom server' : '';
+    final premiumText = server.isPremium ? ', ${l10n.a11yPremiumServer}' : '';
+    final customText = widget.isCustomServer ? ', ${l10n.a11yCustomServer}' : '';
 
     final semanticLabel =
-        '${server.name} server in ${server.city}, $statusText, $latencyText$loadText$premiumText$customText';
+        '${l10n.a11yServerInCity(server.name, server.city)}, $statusText, $latencyText$loadText$premiumText$customText';
 
     return RepaintBoundary(
       child: Semantics(
         label: semanticLabel,
         button: true,
-        hint: 'Tap to view server details and connect',
+        hint: l10n.a11yServerCardHint,
         child: Card(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: InkWell(
@@ -195,7 +198,7 @@ class _ServerCardState extends ConsumerState<ServerCard>
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
-                                      'CUSTOM',
+                                      l10n.serverCustomBadge,
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w700,
@@ -256,10 +259,10 @@ class _ServerCardState extends ConsumerState<ServerCard>
               if (!widget.isCustomServer)
                 Semantics(
                   label: server.isFavorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites',
+                      ? l10n.serverListRemoveFavorite
+                      : l10n.serverListAddFavorite,
                   button: true,
-                  hint: 'Tap to toggle favorite status',
+                  hint: l10n.a11yToggleFavoriteHint,
                   child: ScaleTransition(
                     scale: _starScale,
                     child: IconButton(

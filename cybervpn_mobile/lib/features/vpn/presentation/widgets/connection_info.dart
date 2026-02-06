@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
@@ -68,7 +69,7 @@ class _NoServerSelected extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Select a server to connect',
+      AppLocalizations.of(context).connectionSelectServer,
       style: TextStyle(
         color: Colors.grey.shade500,
         fontSize: 14,
@@ -84,7 +85,8 @@ class _ServerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final semanticLabel = 'Connected to ${server.name} server in ${server.city}, ${server.countryName}';
+    final l10n = AppLocalizations.of(context);
+    final semanticLabel = l10n.a11yConnectedToServer(server.name, server.city, server.countryName);
 
     return Semantics(
       label: semanticLabel,
@@ -146,7 +148,7 @@ class _ProtocolChip extends StatelessWidget {
     final color = _protocolColor(protocol);
 
     return Semantics(
-      label: 'Using $label protocol',
+      label: AppLocalizations.of(context).a11yUsingProtocol(label),
       readOnly: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -195,7 +197,7 @@ class _DurationDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Connection duration: $duration',
+      label: AppLocalizations.of(context).a11yConnectionDurationValue(duration),
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -227,7 +229,7 @@ class _IpAddressDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'IP address: $ip',
+      label: AppLocalizations.of(context).a11yIpAddress(ip),
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,

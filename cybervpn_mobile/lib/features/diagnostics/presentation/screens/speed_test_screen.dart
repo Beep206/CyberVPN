@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speed_test_results_card.dart';
@@ -34,6 +35,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isRunning = ref.watch(speedTestProgressProvider);
     final latestResult = ref.watch(latestSpeedTestProvider);
     final history = ref.watch(speedHistoryProvider);
@@ -47,8 +49,8 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
 
     return Scaffold(
       backgroundColor: CyberColors.deepNavy,
-      appBar: const CyberAppBar(
-        title: 'Speed Test',
+      appBar: CyberAppBar(
+        title: l10n.speedTestTitle,
         transparent: true,
       ),
       body: RefreshIndicator(
@@ -85,7 +87,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Test with VPN',
+                      l10n.speedTestWithVpn,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 13,
@@ -151,7 +153,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                     Spacing.sm,
                   ),
                   child: Text(
-                    'History',
+                    l10n.speedTestHistoryLabel,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 16,
@@ -191,7 +193,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                         ),
                         const SizedBox(height: Spacing.md),
                         Text(
-                          'No speed tests yet',
+                          l10n.speedTestNoResults,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.3),
                             fontSize: 14,
@@ -199,7 +201,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                         ),
                         const SizedBox(height: Spacing.xs),
                         Text(
-                          'Tap Start to measure your connection',
+                          l10n.speedTestTapToStart,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.2),
                             fontSize: 12,
@@ -227,17 +229,18 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
   }
 
   void _shareResults(SpeedTestResult result) {
+    final l10n = AppLocalizations.of(context);
     final text = StringBuffer()
-      ..writeln('CyberVPN Speed Test Results')
+      ..writeln(l10n.speedTestShareTitle)
       ..writeln('---')
       ..writeln(
-          'Download: ${result.downloadMbps.toStringAsFixed(1)} Mbps')
+          l10n.speedTestShareDownload(result.downloadMbps.toStringAsFixed(1)))
       ..writeln(
-          'Upload: ${result.uploadMbps.toStringAsFixed(1)} Mbps')
-      ..writeln('Latency: ${result.latencyMs} ms')
-      ..writeln('Jitter: ${result.jitterMs} ms')
-      ..writeln('VPN: ${result.vpnActive ? "ON" : "OFF"}')
-      ..writeln('Tested: ${result.testedAt.toLocal()}');
+          l10n.speedTestShareUpload(result.uploadMbps.toStringAsFixed(1)))
+      ..writeln(l10n.speedTestShareLatency(result.latencyMs))
+      ..writeln(l10n.speedTestShareJitter(result.jitterMs))
+      ..writeln(result.vpnActive ? l10n.speedTestShareVpnOn : l10n.speedTestShareVpnOff)
+      ..writeln(l10n.speedTestShareTestedAt(result.testedAt.toLocal().toString()));
 
     unawaited(share_plus.Share.share(text.toString()));
   }
@@ -258,6 +261,8 @@ class _StartTestButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -289,10 +294,10 @@ class _StartTestButton extends StatelessWidget {
           ),
           child: Center(
             child: isRunning
-                ? const Row(
+                ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
@@ -300,10 +305,10 @@ class _StartTestButton extends StatelessWidget {
                           color: CyberColors.neonCyan,
                         ),
                       ),
-                      SizedBox(width: Spacing.sm),
+                      const SizedBox(width: Spacing.sm),
                       Text(
-                        'Testing...',
-                        style: TextStyle(
+                        l10n.speedTestRunning,
+                        style: const TextStyle(
                           color: CyberColors.neonCyan,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -312,9 +317,9 @@ class _StartTestButton extends StatelessWidget {
                       ),
                     ],
                   )
-                : const Text(
-                    'Start Test',
-                    style: TextStyle(
+                : Text(
+                    l10n.speedTestStart,
+                    style: const TextStyle(
                       color: CyberColors.deepNavy,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -74,11 +75,12 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final asyncProfile = ref.watch(profileProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Device Management'),
+        title: Text(l10n.profileDeviceManagement),
       ),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -109,7 +111,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
                 // Device count header
                 Text(
-                  '${devices.length} ${devices.length == 1 ? 'device' : 'devices'} connected',
+                  l10n.profileDevicesConnected(devices.length),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -156,25 +158,25 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   /// Show confirmation dialog before removing device
   Future<void> _showRemoveDialog(Device device) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Device'),
+        title: Text(l10n.profileRemoveDevice),
         content: Text(
-          'Remove ${device.name}?\n\n'
-          'You\'ll need to log in again on this device if you want to use it later.',
+          l10n.profileRemoveDeviceConfirm(device.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Remove'),
+            child: Text(l10n.profileRemoveButton),
           ),
         ],
       ),
@@ -187,13 +189,14 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   /// Remove a device via API and update state
   Future<void> _removeDevice(Device device) async {
+    final l10n = AppLocalizations.of(context);
     try {
       // Show loading indicator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Removing device...'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(l10n.profileRemovingDevice),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -208,7 +211,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         unawaited(HapticFeedback.lightImpact());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${device.name} removed successfully'),
+            content: Text(l10n.profileDeviceRemovedSuccess(device.name)),
             backgroundColor: CyberColors.matrixGreen,
           ),
         );
@@ -218,7 +221,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove device: ${e.toString()}'),
+            content: Text(l10n.profileRemoveDeviceFailed(e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -235,6 +238,7 @@ class _DeviceLimitWarning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(Spacing.md),
@@ -254,7 +258,7 @@ class _DeviceLimitWarning extends StatelessWidget {
           const SizedBox(width: Spacing.md),
           Expanded(
             child: Text(
-              'Device limit reached. Remove a device to add new ones.',
+              l10n.profileDeviceLimitReached,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFFFF5252),
               ),
@@ -288,11 +292,12 @@ class _DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     // Format last active time
     final lastActiveText = device.lastActiveAt != null
-        ? _formatLastActive(device.lastActiveAt!)
-        : 'Never';
+        ? _formatLastActive(device.lastActiveAt!, l10n)
+        : l10n.profileDeviceLastActiveNever;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.sm),
@@ -305,26 +310,28 @@ class _DeviceCard extends StatelessWidget {
                 // Show confirmation dialog
                 return await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Remove Device'),
-                    content: Text(
-                      'Remove ${device.name}?\n\n'
-                      'You\'ll need to log in again on this device.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Cancel'),
+                  builder: (context) {
+                    final dialogL10n = AppLocalizations.of(context);
+                    return AlertDialog(
+                      title: Text(dialogL10n.profileRemoveDevice),
+                      content: Text(
+                        dialogL10n.profileRemoveDeviceConfirmShort(device.name),
                       ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: colorScheme.error,
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text(dialogL10n.cancel),
                         ),
-                        child: const Text('Remove'),
-                      ),
-                    ],
-                  ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colorScheme.error,
+                          ),
+                          child: Text(dialogL10n.profileRemoveButton),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
         onDismissed: isCurrent ? null : (direction) => onRemove?.call(),
@@ -387,7 +394,7 @@ class _DeviceCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(Radii.sm),
                               ),
                               child: Text(
-                                'This device',
+                                l10n.profileThisDevice,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: CyberColors.matrixGreen,
                                   fontWeight: FontWeight.bold,
@@ -460,7 +467,7 @@ class _DeviceCard extends StatelessWidget {
                     key: Key('delete_btn_${device.id}'),
                     icon: Icon(Icons.delete_outline, color: colorScheme.error),
                     onPressed: onRemove,
-                    tooltip: 'Remove device',
+                    tooltip: l10n.profileRemoveDeviceTooltip,
                   ),
               ],
             ),
@@ -490,18 +497,18 @@ class _DeviceCard extends StatelessWidget {
   }
 
   /// Format last active timestamp
-  String _formatLastActive(DateTime dateTime) {
+  String _formatLastActive(DateTime dateTime, AppLocalizations l10n) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.profileDeviceLastActiveJustNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.profileDeviceLastActiveMinutes(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.profileDeviceLastActiveHours(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.profileDeviceLastActiveDays(difference.inDays);
     } else {
       return DateFormat.yMMMd().format(dateTime);
     }
@@ -518,6 +525,7 @@ class _EmptyDeviceList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -532,14 +540,14 @@ class _EmptyDeviceList extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.md),
             Text(
-              'No devices connected',
+              l10n.profileNoDevicesConnected,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: Spacing.sm),
             Text(
-              'Connect to VPN to register this device',
+              l10n.profileConnectToRegister,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withAlpha(180),
               ),
@@ -565,6 +573,7 @@ class _ErrorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -587,7 +596,7 @@ class _ErrorBody extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/entities/onboarding_page.dart';
 
 /// Renders a single onboarding page with a placeholder icon, title, and
@@ -25,6 +26,7 @@ class OnboardingPageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
@@ -37,7 +39,7 @@ class OnboardingPageWidget extends StatelessWidget {
 
           // -- Title --
           Text(
-            _resolveTitle(page.titleKey),
+            _resolveTitle(l10n, page.titleKey),
             style: theme.textTheme.headlineMedium?.copyWith(
               color: colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -48,7 +50,7 @@ class OnboardingPageWidget extends StatelessWidget {
 
           // -- Description --
           Text(
-            _resolveDescription(page.descriptionKey),
+            _resolveDescription(l10n, page.descriptionKey),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -90,18 +92,33 @@ class OnboardingPageWidget extends StatelessWidget {
     );
   }
 
-  /// Returns a user-facing title string from the localisation key.
-  ///
-  /// Since the app does not yet have full l10n wiring for onboarding, we
-  /// derive a readable fallback from the key itself.
-  String _resolveTitle(String key) {
-    return _fallbackText(key);
+  /// Maps a dotted localisation key (e.g. `onboarding.privacy.title`) to the
+  /// corresponding [AppLocalizations] title getter.
+  String _resolveTitle(AppLocalizations l10n, String key) {
+    return _l10nTitleMap(l10n)[key] ?? _fallbackText(key);
   }
 
-  /// Returns a user-facing description string from the localisation key.
-  String _resolveDescription(String key) {
-    return _fallbackText(key);
+  /// Maps a dotted localisation key to the corresponding description getter.
+  String _resolveDescription(AppLocalizations l10n, String key) {
+    return _l10nDescriptionMap(l10n)[key] ?? _fallbackText(key);
   }
+
+  /// Title lookup from dotted key to [AppLocalizations] getter.
+  static Map<String, String> _l10nTitleMap(AppLocalizations l10n) => {
+        'onboarding.privacy.title': l10n.onboardingPrivacyTitle,
+        'onboarding.connect.title': l10n.onboardingConnectTitle,
+        'onboarding.globe.title': l10n.onboardingGlobeTitle,
+        'onboarding.getStarted.title': l10n.onboardingGetStartedTitle,
+      };
+
+  /// Description lookup from dotted key to [AppLocalizations] getter.
+  static Map<String, String> _l10nDescriptionMap(AppLocalizations l10n) => {
+        'onboarding.privacy.description': l10n.onboardingPrivacyDescription,
+        'onboarding.connect.description': l10n.onboardingConnectDescription,
+        'onboarding.globe.description': l10n.onboardingGlobeDescription,
+        'onboarding.getStarted.description':
+            l10n.onboardingGetStartedDescription,
+      };
 
   /// Extracts a readable fallback string from a dotted localisation key.
   ///

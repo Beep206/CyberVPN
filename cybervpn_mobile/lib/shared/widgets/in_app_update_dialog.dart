@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/shared/services/version_service.dart';
 
 /// In-app update dialog supporting mandatory and optional update modes.
@@ -117,6 +118,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isMandatory = widget.updateInfo.isMandatory;
 
     return PopScope(
@@ -152,13 +154,13 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(theme, isMandatory),
+                _buildHeader(theme, isMandatory, l10n),
                 const SizedBox(height: Spacing.md),
-                _buildContent(theme),
+                _buildContent(theme, l10n),
                 const SizedBox(height: Spacing.lg),
-                if (!isMandatory) _buildSnoozeCheckbox(theme),
+                if (!isMandatory) _buildSnoozeCheckbox(theme, l10n),
                 if (!isMandatory) const SizedBox(height: Spacing.md),
-                _buildActions(theme, isMandatory),
+                _buildActions(theme, isMandatory, l10n),
               ],
             ),
           ),
@@ -167,7 +169,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, bool isMandatory) {
+  Widget _buildHeader(ThemeData theme, bool isMandatory, AppLocalizations l10n) {
     return Row(
       children: [
         Icon(
@@ -180,7 +182,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
         const SizedBox(width: Spacing.md),
         Expanded(
           child: Text(
-            isMandatory ? 'Update Required' : 'Update Available',
+            isMandatory ? l10n.updateRequired : l10n.updateAvailable,
             style: theme.textTheme.headlineSmall?.copyWith(
               color: isMandatory
                   ? theme.colorScheme.error
@@ -193,14 +195,14 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
     );
   }
 
-  Widget _buildContent(ThemeData theme) {
+  Widget _buildContent(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           isMandatory
-              ? 'A mandatory update is required to continue using CyberVPN.'
-              : 'A new version of CyberVPN is available with improvements and bug fixes.',
+              ? l10n.updateMandatoryDescription
+              : l10n.updateOptionalDescription,
           style: theme.textTheme.bodyLarge,
         ),
         const SizedBox(height: Spacing.md),
@@ -215,13 +217,13 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
             children: [
               _buildVersionRow(
                 theme,
-                'Current Version:',
+                l10n.updateCurrentVersion,
                 widget.updateInfo.currentVersion,
               ),
               const SizedBox(height: Spacing.sm),
               _buildVersionRow(
                 theme,
-                'Latest Version:',
+                l10n.updateLatestVersion,
                 widget.updateInfo.latestVersion,
               ),
             ],
@@ -252,7 +254,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
     );
   }
 
-  Widget _buildSnoozeCheckbox(ThemeData theme) {
+  Widget _buildSnoozeCheckbox(ThemeData theme, AppLocalizations l10n) {
     return CheckboxListTile(
       value: _snoozeEnabled,
       onChanged: (value) {
@@ -261,7 +263,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
         });
       },
       title: Text(
-        'Remind me in 3 days',
+        l10n.updateRemindLater,
         style: theme.textTheme.bodyMedium,
       ),
       controlAffinity: ListTileControlAffinity.leading,
@@ -270,7 +272,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
     );
   }
 
-  Widget _buildActions(ThemeData theme, bool isMandatory) {
+  Widget _buildActions(ThemeData theme, bool isMandatory, AppLocalizations l10n) {
     if (isMandatory) {
       return FilledButton(
         onPressed: widget.onUpdate,
@@ -279,7 +281,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
           foregroundColor: theme.colorScheme.onError,
           padding: const EdgeInsets.symmetric(vertical: Spacing.md),
         ),
-        child: const Text('Update Now'),
+        child: Text(l10n.updateNow),
       );
     }
 
@@ -288,7 +290,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
       children: [
         TextButton(
           onPressed: _handleDismiss,
-          child: const Text('Later'),
+          child: Text(l10n.updateLater),
         ),
         const SizedBox(width: Spacing.sm),
         FilledButton(
@@ -299,7 +301,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
               vertical: Spacing.md,
             ),
           ),
-          child: const Text('Update Now'),
+          child: Text(l10n.updateNow),
         ),
       ],
     );

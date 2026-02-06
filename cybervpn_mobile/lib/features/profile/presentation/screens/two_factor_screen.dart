@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -76,10 +77,11 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Two-Factor Authentication'),
+        title: Text(l10n.profileTwoFactorAuth),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -88,15 +90,15 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Status header
-              _buildStatusHeader(theme),
+              _buildStatusHeader(theme, l10n),
               const SizedBox(height: Spacing.lg),
 
               // Conditional content based on state
               if (_currentState == TwoFactorState.notEnabled)
-                _buildNotEnabledView(theme),
-              if (_currentState == TwoFactorState.setup) _buildSetupView(theme),
+                _buildNotEnabledView(theme, l10n),
+              if (_currentState == TwoFactorState.setup) _buildSetupView(theme, l10n),
               if (_currentState == TwoFactorState.enabled)
-                _buildEnabledView(theme),
+                _buildEnabledView(theme, l10n),
 
               // Loading indicator
               if (_isLoading) ...[
@@ -112,7 +114,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
   // ---- Status Header -------------------------------------------------------
 
-  Widget _buildStatusHeader(ThemeData theme) {
+  Widget _buildStatusHeader(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     final isEnabled = _currentState == TwoFactorState.enabled;
 
@@ -140,7 +142,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isEnabled ? '2FA Enabled' : '2FA Disabled',
+                  isEnabled ? l10n.profileTwoFactorEnabled : l10n.profileTwoFactorDisabledStatus,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color:
@@ -150,8 +152,8 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
                 const SizedBox(height: Spacing.xs),
                 Text(
                   isEnabled
-                      ? 'Your account is protected with two-factor authentication'
-                      : 'Enable 2FA to secure your account',
+                      ? l10n.profileTwoFactorProtected
+                      : l10n.profileTwoFactorEnablePrompt,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -166,23 +168,21 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
   // ---- Not Enabled View ----------------------------------------------------
 
-  Widget _buildNotEnabledView(ThemeData theme) {
+  Widget _buildNotEnabledView(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'What is Two-Factor Authentication?',
+          l10n.profileTwoFactorWhatIs,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'Two-factor authentication (2FA) adds an extra layer of security '
-          'to your account. You\'ll need both your password and a code '
-          'from your authenticator app to sign in.',
+          l10n.profileTwoFactorFullDescription,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -192,23 +192,22 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
         // Benefits list
         _buildBenefitItem(
           icon: Icons.shield_outlined,
-          title: 'Enhanced Security',
-          description: 'Protects your account from unauthorized access',
+          title: l10n.profileTwoFactorEnhancedSecurity,
+          description: l10n.profileTwoFactorEnhancedSecurityDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.sm),
         _buildBenefitItem(
           icon: Icons.phone_android_outlined,
-          title: 'Authenticator App',
-          description:
-              'Use any TOTP app like Google Authenticator or Authy',
+          title: l10n.profileTwoFactorAuthenticatorApp,
+          description: l10n.profileTwoFactorAuthenticatorAppDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.sm),
         _buildBenefitItem(
           icon: Icons.backup_outlined,
-          title: 'Backup Codes',
-          description: 'Receive backup codes for account recovery',
+          title: l10n.profileTwoFactorBackupCodes,
+          description: l10n.profileTwoFactorBackupCodesDesc,
           theme: theme,
         ),
         const SizedBox(height: Spacing.lg),
@@ -219,7 +218,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Enable 2FA'),
+          child: Text(l10n.profileTwoFactorEnable),
         ),
       ],
     );
@@ -274,26 +273,26 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
   // ---- Setup View ----------------------------------------------------------
 
-  Widget _buildSetupView(ThemeData theme) {
+  Widget _buildSetupView(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     final setup = _setup2FAResult;
 
     if (setup == null) {
-      return const Center(child: Text('Failed to load setup data'));
+      return Center(child: Text(l10n.profileTwoFactorFailedSetupData));
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Step 1: Scan QR Code',
+          l10n.profileTwoFactorStep1,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'Scan this QR code with your authenticator app',
+          l10n.profileTwoFactorScanQrShort,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -320,7 +319,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
         // Manual entry option
         ExpansionTile(
-          title: const Text('Enter manually'),
+          title: Text(l10n.profileTwoFactorEnterManually),
           children: [
             Padding(
               padding: const EdgeInsets.all(Spacing.md),
@@ -328,7 +327,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Secret Key:',
+                    l10n.profileTwoFactorSecretKey,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -366,14 +365,14 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
         // Step 2: Verify code
         Text(
-          'Step 2: Verify Code',
+          l10n.profileTwoFactorStep2,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'Enter the 6-digit code from your authenticator app',
+          l10n.profileTwoFactorEnterCodeShort,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -385,10 +384,10 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
           controller: _codeController,
           keyboardType: TextInputType.number,
           maxLength: 6,
-          decoration: const InputDecoration(
-            labelText: '6-digit code',
+          decoration: InputDecoration(
+            labelText: l10n.profileTwoFactorCodeLabel,
             hintText: '000000',
-            prefixIcon: Icon(Icons.lock_outline),
+            prefixIcon: const Icon(Icons.lock_outline),
             counterText: '',
           ),
           inputFormatters: [
@@ -405,7 +404,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Verify and Enable'),
+          child: Text(l10n.profileTwoFactorVerifyAndEnable),
         ),
         const SizedBox(height: Spacing.sm),
 
@@ -415,7 +414,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -425,23 +424,21 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
   // ---- Enabled View --------------------------------------------------------
 
-  Widget _buildEnabledView(ThemeData theme) {
+  Widget _buildEnabledView(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Two-Factor Authentication is Active',
+          l10n.profileTwoFactorActive,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          'Your account is protected with two-factor authentication. '
-          'You\'ll need to enter a code from your authenticator app '
-          'every time you sign in.',
+          l10n.profileTwoFactorActiveDesc,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -456,7 +453,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
               minimumSize: const Size.fromHeight(48),
             ),
             icon: const Icon(Icons.content_copy),
-            label: const Text('View Backup Codes'),
+            label: Text(l10n.profileTwoFactorViewBackupCodes),
           ),
           const SizedBox(height: Spacing.sm),
         ],
@@ -468,7 +465,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
             foregroundColor: colorScheme.error,
             minimumSize: const Size.fromHeight(48),
           ),
-          child: const Text('Disable 2FA'),
+          child: Text(l10n.profileTwoFactorDisable),
         ),
       ],
     );
@@ -576,10 +573,11 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   Future<void> _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Copied to clipboard'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.commonCopied),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -611,26 +609,26 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   Future<bool> _showDisableConfirmationDialog() async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Disable Two-Factor Authentication?'),
-        content: const Text(
-          'Disabling 2FA will make your account less secure. '
-          'You\'ll only need your password to sign in.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+      builder: (context) {
+        final dialogL10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(dialogL10n.profileTwoFactorDisableConfirmTitle),
+          content: Text(dialogL10n.profileTwoFactorDisableWarning),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(dialogL10n.cancel),
             ),
-            child: const Text('Disable'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: Text(dialogL10n.profileTwoFactorDisableButton),
+            ),
+          ],
+        );
+      },
     );
     return result ?? false;
   }
@@ -640,41 +638,44 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Verification Code'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter the 6-digit code from your authenticator app'),
-            const SizedBox(height: Spacing.md),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: '6-digit code',
-                hintText: '000000',
-                counterText: '',
+      builder: (context) {
+        final dialogL10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(dialogL10n.profileTwoFactorEnterVerificationCode),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(dialogL10n.profileTwoFactorEnterCodeShort),
+              const SizedBox(height: Spacing.md),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: dialogL10n.profileTwoFactorCodeLabel,
+                  hintText: '000000',
+                  counterText: '',
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
-              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(dialogL10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(dialogL10n.confirm),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
+        );
+      },
     );
     controller.dispose();
     return result;
@@ -687,64 +688,65 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
     unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Backup Codes'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Save these backup codes in a safe place. Each code can '
-                'only be used once to sign in if you lose access to your '
-                'authenticator app.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: Spacing.md),
-              Container(
-                padding: const EdgeInsets.all(Spacing.md),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(Radii.sm),
+      builder: (context) {
+        final dialogL10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(dialogL10n.profileTwoFactorBackupCodes),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dialogL10n.profileTwoFactorBackupCodesInstructions,
+                  style: theme.textTheme.bodyMedium,
                 ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: _backupCodes!.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: Spacing.xs),
-                  itemBuilder: (context, index) {
-                    final code = _backupCodes![index];
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            code,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontFamily: 'monospace',
+                const SizedBox(height: Spacing.md),
+                Container(
+                  padding: const EdgeInsets.all(Spacing.md),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _backupCodes!.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: Spacing.xs),
+                    itemBuilder: (context, index) {
+                      final code = _backupCodes![index];
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              code,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        actions: [
-          FilledButton.icon(
-            onPressed: () {
-              unawaited(_copyToClipboard(_backupCodes!.join('\n')));
-            },
-            icon: const Icon(Icons.copy),
-            label: const Text('Copy All'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+          actions: [
+            FilledButton.icon(
+              onPressed: () {
+                unawaited(_copyToClipboard(_backupCodes!.join('\n')));
+              },
+              icon: const Icon(Icons.copy),
+              label: Text(dialogL10n.profileTwoFactorCopyAll),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(dialogL10n.commonClose),
+            ),
+          ],
+        );
+      },
     ));
   }
 

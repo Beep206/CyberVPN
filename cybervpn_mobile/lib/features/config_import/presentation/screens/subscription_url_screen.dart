@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
 
@@ -58,7 +59,7 @@ class _SubscriptionUrlScreenState extends ConsumerState<SubscriptionUrlScreen> {
     } catch (e) {
       AppLogger.debug('Failed to read clipboard', error: e);
       if (mounted) {
-        _showSnackbar('Failed to paste from clipboard');
+        _showSnackbar(AppLocalizations.of(context).configImportPasteFailed);
       }
     }
   }
@@ -75,11 +76,12 @@ class _SubscriptionUrlScreenState extends ConsumerState<SubscriptionUrlScreen> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     if (importedConfigs.isNotEmpty) {
-      _showSnackbar('Imported ${importedConfigs.length} servers');
+      _showSnackbar(l10n.configImportServersImported(importedConfigs.length));
       _urlController.clear();
     } else {
-      _showSnackbar('Failed to import subscription URL');
+      _showSnackbar(l10n.configImportSubscriptionFailed);
     }
   }
 
@@ -102,9 +104,11 @@ class _SubscriptionUrlScreenState extends ConsumerState<SubscriptionUrlScreen> {
   Widget build(BuildContext context) {
     final isImporting = ref.watch(isImportingProvider);
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Subscription URL Import'),
+        title: Text(l10n.configImportSubscriptionUrlTitle),
       ),
       body: Column(
         children: [
@@ -120,7 +124,7 @@ class _SubscriptionUrlScreenState extends ConsumerState<SubscriptionUrlScreen> {
           const Divider(height: 1),
 
           // Subscription list section
-          const Expanded(
+          Expanded(
             child: _SubscriptionUrlList(),
           ),
         ],
@@ -151,6 +155,8 @@ class _UrlInputSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -165,23 +171,23 @@ class _UrlInputSection extends StatelessWidget {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(
-                labelText: 'Subscription URL',
-                hintText: 'Enter subscription URL',
+                labelText: l10n.configImportSubscriptionUrlLabel,
+                hintText: l10n.configImportSubscriptionUrlHint,
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   key: const Key('paste_button'),
                   icon: const Icon(Icons.content_paste),
-                  tooltip: 'Paste from clipboard',
+                  tooltip: l10n.configImportPasteTooltip,
                   onPressed: isImporting ? null : onPaste,
                 ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a URL';
+                  return l10n.configImportPleaseEnterUrl;
                 }
                 final uri = Uri.tryParse(value.trim());
                 if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-                  return 'Please enter a valid URL';
+                  return l10n.configImportPleaseEnterValidUrl;
                 }
                 return null;
               },
@@ -200,7 +206,7 @@ class _UrlInputSection extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.download),
-              label: Text(isImporting ? 'Importing...' : 'Import'),
+              label: Text(isImporting ? l10n.configImportImporting : l10n.configImportImportButton),
             ),
           ],
         ),
@@ -238,7 +244,7 @@ class _SubscriptionUrlList extends ConsumerWidget {
     if (subscriptions.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => _refreshAllSubscriptions(ref),
-        child: const _EmptyState(),
+        child: _EmptyState(),
       );
     }
 
@@ -274,6 +280,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -297,7 +304,7 @@ class _EmptyState extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No subscription URLs imported yet',
+                      l10n.configImportNoSubscriptionUrls,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -305,7 +312,7 @@ class _EmptyState extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Enter a subscription URL above to import servers',
+                      l10n.configImportNoSubscriptionUrlsHint,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant
                             .withValues(alpha: 0.7),
@@ -338,24 +345,28 @@ class _SubscriptionUrlCard extends ConsumerWidget {
 
   /// Show a confirmation dialog before deleting the subscription.
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Subscription'),
-        content: Text(
-          'Delete all ${subscription.serverCount} servers from this subscription?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+      builder: (dialogContext) {
+        final dialogL10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(dialogL10n.configImportDeleteSubscriptionTitle),
+          content: Text(
+            dialogL10n.configImportDeleteSubscriptionContent(subscription.serverCount),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(dialogL10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(dialogL10n.commonDelete),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true && context.mounted) {
@@ -364,8 +375,8 @@ class _SubscriptionUrlCard extends ConsumerWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Subscription deleted'),
+          SnackBar(
+            content: Text(l10n.configImportSubscriptionDeleted),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -379,9 +390,10 @@ class _SubscriptionUrlCard extends ConsumerWidget {
     await notifier.refreshSubscriptionUrl(subscription.url);
 
     if (context.mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Subscription refreshed'),
+        SnackBar(
+          content: Text(l10n.configImportSubscriptionRefreshed),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -391,6 +403,7 @@ class _SubscriptionUrlCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isImporting = ref.watch(isImportingProvider);
 
     // Format the last updated timestamp
@@ -399,16 +412,13 @@ class _SubscriptionUrlCard extends ConsumerWidget {
     final String timeAgo;
 
     if (difference.inMinutes < 1) {
-      timeAgo = 'Just now';
+      timeAgo = l10n.configImportTimeJustNow;
     } else if (difference.inHours < 1) {
-      final minutes = difference.inMinutes;
-      timeAgo = '$minutes ${minutes == 1 ? 'minute' : 'minutes'} ago';
+      timeAgo = l10n.configImportTimeMinutesAgo(difference.inMinutes);
     } else if (difference.inDays < 1) {
-      final hours = difference.inHours;
-      timeAgo = '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
+      timeAgo = l10n.configImportTimeHoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      final days = difference.inDays;
-      timeAgo = '$days ${days == 1 ? 'day' : 'days'} ago';
+      timeAgo = l10n.configImportTimeDaysAgo(difference.inDays);
     } else {
       timeAgo = DateFormat.yMMMd().format(subscription.lastUpdated);
     }
@@ -436,7 +446,7 @@ class _SubscriptionUrlCard extends ConsumerWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            '${subscription.serverCount} ${subscription.serverCount == 1 ? 'server' : 'servers'} • Last updated: $timeAgo',
+            '${l10n.configImportServerCount(subscription.serverCount)} \u2022 ${l10n.configImportLastUpdated(timeAgo)}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -449,7 +459,7 @@ class _SubscriptionUrlCard extends ConsumerWidget {
             IconButton(
               key: Key('refresh_${subscription.url}'),
               icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh subscription',
+              tooltip: l10n.configImportRefreshTooltip,
               onPressed: isImporting
                   ? null
                   : () => _refreshSubscription(context, ref),
@@ -459,7 +469,7 @@ class _SubscriptionUrlCard extends ConsumerWidget {
             IconButton(
               key: Key('delete_${subscription.url}'),
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete subscription',
+              tooltip: l10n.configImportDeleteTooltip,
               onPressed: isImporting
                   ? null
                   : () => _confirmDelete(context, ref),

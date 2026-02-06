@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/widgets/plan_card.dart';
-
-// ---------------------------------------------------------------------------
-// Duration filter options
-// ---------------------------------------------------------------------------
-
-const _durationFilters = <PlanDuration, String>{
-  PlanDuration.monthly: '1 Month',
-  PlanDuration.quarterly: '3 Months',
-  PlanDuration.yearly: '1 Year',
-  PlanDuration.lifetime: 'Lifetime',
-};
 
 // ---------------------------------------------------------------------------
 // Plans catalog screen
@@ -30,9 +20,10 @@ class PlansScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(subscriptionProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose Your Plan')),
+      appBar: AppBar(title: Text(l10n.subscriptionChooseYourPlan)),
       body: asyncState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBody(
@@ -69,8 +60,17 @@ class _PlansBodyState extends State<_PlansBody> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final plans = _filteredPlans;
     final currentPlanId = widget.subState.currentSubscription?.planId;
+
+    // Duration filter options — built from l10n
+    final durationFilters = <PlanDuration, String>{
+      PlanDuration.monthly: l10n.subscriptionDuration1Month,
+      PlanDuration.quarterly: l10n.subscriptionDuration3Months,
+      PlanDuration.yearly: l10n.subscriptionDuration1Year,
+      PlanDuration.lifetime: l10n.subscriptionLifetime,
+    };
 
     return Column(
       children: [
@@ -80,7 +80,7 @@ class _PlansBodyState extends State<_PlansBody> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _durationFilters.entries.map((entry) {
+              children: durationFilters.entries.map((entry) {
                 final isSelected = entry.key == _selectedDuration;
                 return Padding(
                   padding: const EdgeInsetsDirectional.only(end: 8),
@@ -108,7 +108,9 @@ class _PlansBodyState extends State<_PlansBody> {
                 _showComparison ? Icons.view_list : Icons.compare_arrows,
               ),
               label: Text(
-                _showComparison ? 'Card View' : 'Compare Plans',
+                _showComparison
+                    ? l10n.subscriptionCardView
+                    : l10n.subscriptionComparePlans,
               ),
             ),
           ),
@@ -119,7 +121,7 @@ class _PlansBodyState extends State<_PlansBody> {
           child: plans.isEmpty
               ? Center(
                   child: Text(
-                    'No plans available for this duration.',
+                    l10n.subscriptionNoPlansForDuration,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -133,7 +135,7 @@ class _PlansBodyState extends State<_PlansBody> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: plans.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final plan = plans[index];
                         return PlanCard(
@@ -150,13 +152,14 @@ class _PlansBodyState extends State<_PlansBody> {
   }
 
   void _navigateToPurchase(BuildContext context, PlanEntity plan) {
+    final l10n = AppLocalizations.of(context);
     // Navigate to purchase screen. Uses named route if available,
     // otherwise a simple MaterialPageRoute placeholder.
     unawaited(Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: const Text('Purchase')),
-          body: Center(child: Text('Purchase flow for: ${plan.name}')),
+          appBar: AppBar(title: Text(l10n.subscriptionPurchase)),
+          body: Center(child: Text(l10n.subscriptionPurchaseFlowFor(plan.name))),
         ),
       ),
     ));
@@ -180,6 +183,7 @@ class _ComparisonTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -190,7 +194,7 @@ class _ComparisonTable extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
           columns: [
-            const DataColumn(label: Text('Feature')),
+            DataColumn(label: Text(l10n.subscriptionFeatureLabel)),
             ...plans.map((p) => DataColumn(
                   label: Text(
                     p.id == currentPlanId ? '${p.name} \u2713' : p.name,
@@ -202,26 +206,26 @@ class _ComparisonTable extends StatelessWidget {
           ],
           rows: [
             DataRow(cells: [
-              const DataCell(Text('Price')),
+              DataCell(Text(l10n.subscriptionPriceLabel)),
               ...plans.map((p) => DataCell(Text(
                     '${p.currency} ${p.price.toStringAsFixed(2)}',
                   ))),
             ]),
             DataRow(cells: [
-              const DataCell(Text('Traffic')),
+              DataCell(Text(l10n.subscriptionTrafficLabel)),
               ...plans.map((p) => DataCell(Text(
                     p.trafficLimitGb > 0
-                        ? '${p.trafficLimitGb} GB'
-                        : 'Unlimited',
+                        ? l10n.subscriptionTrafficGb(p.trafficLimitGb)
+                        : l10n.subscriptionUnlimited,
                   ))),
             ]),
             DataRow(cells: [
-              const DataCell(Text('Devices')),
+              DataCell(Text(l10n.subscriptionDevicesLabel)),
               ...plans.map((p) => DataCell(Text('${p.maxDevices}'))),
             ]),
             DataRow(cells: [
-              const DataCell(Text('Duration')),
-              ...plans.map((p) => DataCell(Text('${p.durationDays} days'))),
+              DataCell(Text(l10n.subscriptionDurationLabel)),
+              ...plans.map((p) => DataCell(Text(l10n.subscriptionDurationDays(p.durationDays)))),
             ]),
           ],
         ),
@@ -242,6 +246,7 @@ class _ErrorBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -264,7 +269,7 @@ class _ErrorBody extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(l10n.retry),
               ),
             ],
           ],

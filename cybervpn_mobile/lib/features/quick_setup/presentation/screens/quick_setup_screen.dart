@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/providers/quick_setup_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -62,9 +63,10 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
   void _handleTimeout() {
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Take your time - you can connect anytime from the main screen'),
+          content: Text(l10n.quickSetupTakeYourTime),
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
@@ -94,7 +96,9 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
     final recommendedServer = ref.read(recommendedServerProvider);
     if (recommendedServer == null) {
-      _handleConnectionError('No available servers found. Please try again later.');
+      _handleConnectionError(
+        AppLocalizations.of(context).quickSetupNoServers,
+      );
       return;
     }
 
@@ -105,7 +109,9 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
     _connectionTimeoutTimer = Timer(const Duration(seconds: 30), () {
       if (_isConnecting && mounted) {
         AppLogger.warning('Quick setup connection timeout after 30 seconds');
-        _handleConnectionError('Connection timeout. Please try selecting a different server.');
+        _handleConnectionError(
+          AppLocalizations.of(context).quickSetupConnectionTimeout,
+        );
       }
     });
 
@@ -140,14 +146,15 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
     if (mounted) {
       // Show error snackbar with action to navigate to server list
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Connection failed: $error'),
+          content: Text(l10n.quickSetupConnectionFailed(error)),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 5),
           action: SnackBarAction(
-            label: 'Choose Server',
+            label: l10n.quickSetupChooseServer,
             textColor: Colors.white,
             onPressed: _navigateToServerList,
           ),
@@ -239,6 +246,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
   }
 
   Widget _buildSetupContent(ThemeData theme, ServerEntity? server) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
@@ -257,7 +265,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
           // -- Title --
           Text(
-            'Ready to protect you',
+            l10n.quickSetupReadyToProtect,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.onSurface,
@@ -268,7 +276,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
           // -- Subtitle --
           Text(
-            'We\'ve selected the best server for you',
+            l10n.quickSetupBestServer,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -284,7 +292,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
             const CircularProgressIndicator(),
             const SizedBox(height: Spacing.lg),
             Text(
-              'Finding the best server...',
+              l10n.quickSetupFindingServer,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -322,7 +330,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
                         const Icon(Icons.shield, size: 24),
                         const SizedBox(width: Spacing.sm),
                         Text(
-                          'Connect Now',
+                          l10n.quickSetupConnectButton,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.bold,
@@ -339,7 +347,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
           TextButton(
             onPressed: _isConnecting ? null : _handleSkip,
             child: Text(
-              'Skip for now',
+              l10n.quickSetupSkip,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -402,7 +410,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
                 ),
                 const SizedBox(width: Spacing.xs),
                 Text(
-                  '${server.ping} ms',
+                  AppLocalizations.of(context).serverListPing(server.ping!),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: _getPingColor(server.ping!, theme),
                     fontWeight: FontWeight.w600,
@@ -417,6 +425,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
   }
 
   Widget _buildCelebration(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return FadeTransition(
       opacity: _celebrationController,
       child: ScaleTransition(
@@ -437,7 +446,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
               ),
               const SizedBox(height: Spacing.xl),
               Text(
-                'You\'re protected!',
+                l10n.quickSetupYoureProtected,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary,
@@ -446,7 +455,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
               ),
               const SizedBox(height: Spacing.md),
               Text(
-                'Your connection is now secure',
+                l10n.quickSetupConnectionSecure,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
@@ -25,10 +26,11 @@ class AppearanceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSettings = ref.watch(settingsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Appearance'),
+        title: Text(l10n.settingsAppearance),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -42,6 +44,7 @@ class AppearanceScreen extends ConsumerWidget {
 
   Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -50,13 +53,13 @@ class AppearanceScreen extends ConsumerWidget {
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
           Text(
-            'Failed to load appearance settings',
+            l10n.settingsAppearanceLoadError,
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -73,11 +76,13 @@ class AppearanceScreen extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
     final disableAnimations = MediaQuery.of(context).disableAnimations;
 
+    final l10n = AppLocalizations.of(context);
+
     return ListView(
       children: [
         // --- Theme Mode ---
         SettingsSection(
-          title: 'Theme Mode',
+          title: l10n.settingsThemeModeLabel,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
@@ -91,7 +96,7 @@ class AppearanceScreen extends ConsumerWidget {
 
         // --- Brightness ---
         SettingsSection(
-          title: 'Brightness',
+          title: l10n.settingsBrightnessSection,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
@@ -105,7 +110,7 @@ class AppearanceScreen extends ConsumerWidget {
 
         // --- Text Size ---
         SettingsSection(
-          title: 'Text Size',
+          title: l10n.settingsTextSizeSection,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
@@ -120,12 +125,12 @@ class AppearanceScreen extends ConsumerWidget {
         // --- Dynamic Color (only on Android 12+ with Material You) ---
         if (_shouldShowDynamicColor(settings.themeMode))
           SettingsSection(
-            title: 'Dynamic Color',
+            title: l10n.settingsDynamicColorLabel,
             children: [
               SettingsTile.toggle(
                 key: const Key('tile_dynamic_color'),
-                title: 'Dynamic Color',
-                subtitle: 'Use colors from your wallpaper',
+                title: l10n.settingsDynamicColorLabel,
+                subtitle: l10n.settingsDynamicColorDescription,
                 leading: const Icon(Icons.format_paint_outlined),
                 value: settings.dynamicColor,
                 onChanged: (value) =>
@@ -136,7 +141,7 @@ class AppearanceScreen extends ConsumerWidget {
 
         // --- Animations ---
         SettingsSection(
-          title: 'Animations',
+          title: l10n.settingsAnimationsSection,
           children: [
             if (disableAnimations)
               const Padding(
@@ -148,10 +153,10 @@ class AppearanceScreen extends ConsumerWidget {
               ),
             SettingsTile.info(
               key: const Key('tile_animations'),
-              title: 'Reduce Animations',
+              title: l10n.settingsReduceAnimations,
               subtitle: disableAnimations
-                  ? 'System animations are disabled'
-                  : 'System animations are enabled',
+                  ? l10n.settingsAnimationsDisabled
+                  : l10n.settingsAnimationsEnabled,
               leading: const Icon(Icons.animation_outlined),
             ),
           ],
@@ -197,12 +202,14 @@ class _ThemeModePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Row(
       children: [
         Expanded(
           child: _ThemePreviewCard(
             key: const Key('theme_card_material_you'),
-            label: 'Material You',
+            label: l10n.settingsThemeMaterialYou,
             icon: Icons.auto_awesome_outlined,
             isSelected: selected == AppThemeMode.materialYou,
             previewColors: const _PreviewColors(
@@ -217,7 +224,7 @@ class _ThemeModePicker extends StatelessWidget {
         Expanded(
           child: _ThemePreviewCard(
             key: const Key('theme_card_cyberpunk'),
-            label: 'Cyberpunk',
+            label: l10n.settingsThemeCyberpunk,
             icon: Icons.electric_bolt_outlined,
             isSelected: selected == AppThemeMode.cyberpunk,
             previewColors: const _PreviewColors(
@@ -416,24 +423,26 @@ class _BrightnessSegmentedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return SizedBox(
       width: double.infinity,
       child: SegmentedButton<AppBrightness>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: AppBrightness.system,
-            label: Text('System'),
-            icon: Icon(Icons.brightness_auto_outlined),
+            label: Text(l10n.settingsThemeSystem),
+            icon: const Icon(Icons.brightness_auto_outlined),
           ),
           ButtonSegment(
             value: AppBrightness.light,
-            label: Text('Light'),
-            icon: Icon(Icons.light_mode_outlined),
+            label: Text(l10n.settingsThemeLight),
+            icon: const Icon(Icons.light_mode_outlined),
           ),
           ButtonSegment(
             value: AppBrightness.dark,
-            label: Text('Dark'),
-            icon: Icon(Icons.dark_mode_outlined),
+            label: Text(l10n.settingsThemeDark),
+            icon: const Icon(Icons.dark_mode_outlined),
           ),
         ],
         selected: {selected},
@@ -462,6 +471,7 @@ class _TextScalePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,8 +484,8 @@ class _TextScalePicker extends StatelessWidget {
             color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(Radii.md),
           ),
-          child: const Text(
-            'Preview: The quick brown fox jumps over the lazy dog.',
+          child: Text(
+            l10n.settingsTextSizePreview,
             textAlign: TextAlign.center,
           ),
         ),
@@ -489,7 +499,7 @@ class _TextScalePicker extends StatelessWidget {
             final isSelected = scale == selected;
             return ChoiceChip(
               key: Key('text_scale_${scale.name}'),
-              label: Text(_textScaleLabel(scale)),
+              label: Text(_textScaleLabel(l10n, scale)),
               selected: isSelected,
               onSelected: (_) => onChanged(scale),
             );
@@ -499,7 +509,7 @@ class _TextScalePicker extends StatelessWidget {
 
         // Description
         Text(
-          _textScaleDescription(selected),
+          _textScaleDescription(l10n, selected),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -508,23 +518,23 @@ class _TextScalePicker extends StatelessWidget {
     );
   }
 
-  String _textScaleLabel(TextScale scale) {
+  String _textScaleLabel(AppLocalizations l10n, TextScale scale) {
     return switch (scale) {
-      TextScale.system => 'System',
-      TextScale.small => 'Small',
-      TextScale.normal => 'Default',
-      TextScale.large => 'Large',
-      TextScale.extraLarge => 'Extra Large',
+      TextScale.system => l10n.settingsTextScaleSystem,
+      TextScale.small => l10n.settingsTextScaleSmall,
+      TextScale.normal => l10n.settingsTextScaleDefault,
+      TextScale.large => l10n.settingsTextScaleLarge,
+      TextScale.extraLarge => l10n.settingsTextScaleExtraLarge,
     };
   }
 
-  String _textScaleDescription(TextScale scale) {
+  String _textScaleDescription(AppLocalizations l10n, TextScale scale) {
     return switch (scale) {
-      TextScale.system => 'Uses your device accessibility settings',
-      TextScale.small => 'Smaller text for more content on screen',
-      TextScale.normal => 'Default text size',
-      TextScale.large => 'Larger text for improved readability',
-      TextScale.extraLarge => 'Maximum text size for accessibility',
+      TextScale.system => l10n.settingsTextScaleSystemDescription,
+      TextScale.small => l10n.settingsTextScaleSmallDescription,
+      TextScale.normal => l10n.settingsTextScaleDefaultDescription,
+      TextScale.large => l10n.settingsTextScaleLargeDescription,
+      TextScale.extraLarge => l10n.settingsTextScaleExtraLargeDescription,
     };
   }
 }
@@ -557,7 +567,7 @@ class _SystemAnimationNote extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              'Animations are disabled at the system level.',
+              AppLocalizations.of(context).settingsAnimationsSystemDisabled,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSecondaryContainer,
               ),

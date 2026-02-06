@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 
 /// Branded splash / loading screen shown while the app initialises
 /// authentication state, onboarding status, and deferred services.
@@ -16,6 +17,8 @@ class SplashScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
     final isDark = brightness == Brightness.dark;
+    // Splash may render before localizations are ready; use try-catch fallback.
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
 
     // Pick brand colours that work in both light and dark modes.
     final primaryColor =
@@ -41,7 +44,7 @@ class SplashScreen extends StatelessWidget {
 
             // -- Brand name -----------------------------------------------
             Text(
-              'CyberVPN',
+              l10n?.appName ?? 'CyberVPN',
               style: theme.textTheme.headlineMedium?.copyWith(
                 color: primaryColor,
                 fontWeight: FontWeight.w700,
@@ -52,7 +55,7 @@ class SplashScreen extends StatelessWidget {
 
             // -- Tagline --------------------------------------------------
             Text(
-              'Secure. Private. Fast.',
+              l10n?.splashTagline ?? 'Secure. Private. Fast.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: subtitleColor,
                 letterSpacing: AppTypography.bodyLetterSpacing,
