@@ -8,6 +8,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/app/app.dart';
+import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart'
+    show markFirebaseReady;
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
@@ -129,8 +131,11 @@ Future<void> _initializeDeferredServices() async {
 Future<void> _initializeFirebase() async {
   try {
     await Firebase.initializeApp();
+    markFirebaseReady();
     AppLogger.info('Firebase Core initialized', category: 'firebase');
   } catch (e, st) {
+    // Still mark as ready so gated calls don't hang indefinitely.
+    markFirebaseReady();
     AppLogger.warning(
       'Firebase Core initialization failed -- Firebase services will be unavailable',
       error: e,

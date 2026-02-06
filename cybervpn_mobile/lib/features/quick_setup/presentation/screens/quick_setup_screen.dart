@@ -115,12 +115,15 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
       // Check if connection was successful.
       final vpnState = ref.read(vpnConnectionProvider).value;
-      if (vpnState is VpnConnected) {
-        _connectionTimeoutTimer?.cancel();
-        _showSuccess();
-      } else if (vpnState is VpnError) {
-        _connectionTimeoutTimer?.cancel();
-        _handleConnectionError(vpnState.message);
+      switch (vpnState) {
+        case VpnConnected():
+          _connectionTimeoutTimer?.cancel();
+          _showSuccess();
+        case VpnError(:final message):
+          _connectionTimeoutTimer?.cancel();
+          _handleConnectionError(message);
+        default:
+          break;
       }
     } catch (e) {
       _connectionTimeoutTimer?.cancel();
@@ -206,11 +209,13 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
     // Listen to VPN connection state changes.
     ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider,
         (previous, next) {
-      final state = next.value;
-      if (state is VpnConnected && !_showCelebration) {
-        _showSuccess();
-      } else if (state is VpnError) {
-        _handleConnectionError(state.message);
+      switch (next.value) {
+        case VpnConnected() when !_showCelebration:
+          _showSuccess();
+        case VpnError(:final message):
+          _handleConnectionError(message);
+        default:
+          break;
       }
     });
 

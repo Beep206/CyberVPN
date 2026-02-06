@@ -20,6 +20,20 @@ const String analyticsConsentKey = 'analytics_consent';
 /// Whether Firebase has been successfully initialized in the current process.
 bool get _firebaseAvailable => Firebase.apps.isNotEmpty;
 
+/// Completer that resolves when Firebase initialization finishes.
+///
+/// Analytics calls are gated behind this to prevent race conditions
+/// when events are logged before `Firebase.initializeApp()` returns.
+final Completer<void> _firebaseReadyCompleter = Completer<void>();
+
+/// Marks Firebase as initialized. Call this from `main()` after
+/// `Firebase.initializeApp()` completes.
+void markFirebaseReady() {
+  if (!_firebaseReadyCompleter.isCompleted) {
+    _firebaseReadyCompleter.complete();
+  }
+}
+
 /// Synchronizes the Firebase Analytics collection-enabled flag with the
 /// given [enabled] value.
 ///
@@ -97,7 +111,7 @@ final analyticsConsentProvider =
 final analyticsProvider = Provider<AnalyticsService>((ref) {
   final hasConsent = ref.watch(analyticsConsentProvider);
   if (hasConsent && _firebaseAvailable) {
-    return FirebaseAnalyticsImpl();
+    return FirebaseAnalyticsImpl(readyFuture: _firebaseReadyCompleter.future);
   }
   return const NoopAnalytics();
 });

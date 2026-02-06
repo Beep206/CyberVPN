@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 
 import 'package:cybervpn_mobile/core/analytics/analytics_service.dart';
@@ -5,15 +7,21 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Firebase Analytics implementation of [AnalyticsService].
 ///
-/// Delegates all analytics calls to [FirebaseAnalytics]. Errors are
-/// caught and logged via [AppLogger] to avoid crashing the app for
-/// non-critical analytics failures.
+/// Delegates all analytics calls to [FirebaseAnalytics]. Each call awaits
+/// the [readyFuture] before accessing the Firebase instance, preventing
+/// crashes if analytics events are logged before `Firebase.initializeApp()`
+/// completes.
 class FirebaseAnalyticsImpl implements AnalyticsService {
-  /// Creates a [FirebaseAnalyticsImpl] wrapping the given [analytics] instance.
-  FirebaseAnalyticsImpl({FirebaseAnalytics? analytics})
-      : _analytics = analytics ?? FirebaseAnalytics.instance;
+  /// Creates a [FirebaseAnalyticsImpl].
+  ///
+  /// [readyFuture] gates all analytics calls until Firebase is initialized.
+  /// When `null`, calls proceed immediately (assume Firebase is ready).
+  FirebaseAnalyticsImpl({FirebaseAnalytics? analytics, Future<void>? readyFuture})
+      : _analytics = analytics ?? FirebaseAnalytics.instance,
+        _readyFuture = readyFuture ?? Future<void>.value();
 
   final FirebaseAnalytics _analytics;
+  final Future<void> _readyFuture;
 
   /// Exposes the underlying [FirebaseAnalytics] instance.
   ///
@@ -27,6 +35,7 @@ class FirebaseAnalyticsImpl implements AnalyticsService {
     Map<String, dynamic>? parameters,
   }) async {
     try {
+      await _readyFuture;
       // Firebase expects Map<String, Object>; filter out null values
       // and cast to the expected type.
       final Map<String, Object>? safeParams = parameters != null
@@ -47,6 +56,7 @@ class FirebaseAnalyticsImpl implements AnalyticsService {
   @override
   Future<void> setUserId(String? userId) async {
     try {
+      await _readyFuture;
       await _analytics.setUserId(id: userId);
     } catch (e, st) {
       AppLogger.warning('Analytics setUserId failed', error: e, stackTrace: st);
@@ -59,6 +69,7 @@ class FirebaseAnalyticsImpl implements AnalyticsService {
     required String value,
   }) async {
     try {
+      await _readyFuture;
       await _analytics.setUserProperty(name: name, value: value);
     } catch (e, st) {
       AppLogger.warning(
@@ -75,6 +86,7 @@ class FirebaseAnalyticsImpl implements AnalyticsService {
     String? screenClass,
   }) async {
     try {
+      await _readyFuture;
       await _analytics.logScreenView(
         screenName: screenName,
         screenClass: screenClass,

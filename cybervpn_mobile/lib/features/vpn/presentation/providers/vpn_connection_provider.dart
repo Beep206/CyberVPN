@@ -363,13 +363,13 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   /// If the user manually disconnects during an auto-connect attempt, the
   /// auto-connect will be cancelled gracefully.
   Future<void> disconnect() async {
-    final current = state.value;
-    if (current is VpnDisconnected || current is VpnDisconnecting) return;
-
-    // If disconnecting during auto-connect (VpnConnecting state), log it
-    // so the error handler in _handleAutoConnect doesn't treat it as a failure.
-    if (current is VpnConnecting) {
-      AppLogger.info('User manually disconnected during auto-connect');
+    switch (state.value) {
+      case VpnDisconnected() || VpnDisconnecting():
+        return;
+      case VpnConnecting():
+        AppLogger.info('User manually disconnected during auto-connect');
+      default:
+        break;
     }
 
     state = const AsyncData(VpnDisconnecting());
@@ -394,13 +394,16 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   /// When the device comes back online and the VPN was previously connected,
   /// a reconnection attempt is triggered via the [AutoReconnectService].
   Future<void> handleNetworkChange(bool isOnline) async {
-    final current = state.value;
-
-    if (!isOnline && current is VpnConnected) {
-      // Network lost while connected -- move to reconnecting.
-      state = AsyncData(VpnReconnecting(attempt: 1, server: current.server));
-      return;
+    switch (state.value) {
+      case VpnConnected(:final server) when !isOnline:
+        // Network lost while connected -- move to reconnecting.
+        state = AsyncData(VpnReconnecting(attempt: 1, server: server));
+        return;
+      default:
+        break;
     }
+
+    final current = state.value;
 
     if (isOnline && current is VpnReconnecting) {
       // Network restored -- the AutoReconnectService handles retry logic.
@@ -830,7 +833,8 @@ final currentServerProvider = Provider<ServerEntity?>((ref) {
 /// The active VPN protocol while connected.
 final activeProtocolProvider = Provider<VpnProtocol?>((ref) {
   final asyncState = ref.watch(vpnConnectionProvider);
-  final value = asyncState.value;
-  if (value is VpnConnected) return value.protocol;
-  return null;
+  return switch (asyncState.value) {
+    VpnConnected(:final protocol) => protocol,
+    _ => null,
+  };
 });

@@ -48,3 +48,5 @@ linter:
     - use_string_buffers
     - unawaited_futures
     - discarded_futures
+    - unnecessary_type_check
+    - exhaustive_cases
