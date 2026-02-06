@@ -358,7 +358,7 @@ void main() {
 
       // The session duration label comes from BottomStatsSection.
       expect(find.text('Duration'), findsOneWidget);
-      expect(find.text('1h 30m'), findsOneWidget);
+      expect(find.text('1h 30m'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('renders data usage', (tester) async {

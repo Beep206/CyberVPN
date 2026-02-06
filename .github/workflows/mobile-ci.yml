@@ -28,7 +28,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: beta
+          channel: stable
           cache: true
 
       - name: Install dependencies
@@ -48,7 +48,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: beta
+          channel: stable
           cache: true
 
       - name: Install dependencies
@@ -56,6 +56,39 @@ jobs:
 
       - name: Run tests
         run: flutter test --coverage
+
+      - name: Check overall coverage (min 70%)
+        run: |
+          if [ ! -f coverage/lcov.info ]; then
+            echo "No coverage file found, skipping threshold check"
+            exit 0
+          fi
+          sudo apt-get install -y lcov > /dev/null 2>&1
+          TOTAL=$(lcov --summary coverage/lcov.info 2>&1 | grep 'lines' | sed 's/.*:\s*//' | sed 's/%.*//')
+          echo "Overall line coverage: ${TOTAL}%"
+          if [ "$(echo "$TOTAL < 70.0" | bc -l)" -eq 1 ]; then
+            echo "::error::Overall coverage ${TOTAL}% is below 70% threshold"
+            exit 1
+          fi
+
+      - name: Check domain layer coverage (min 80%)
+        run: |
+          if [ ! -f coverage/lcov.info ]; then
+            echo "No coverage file found, skipping threshold check"
+            exit 0
+          fi
+          # Extract only domain layer files
+          lcov --extract coverage/lcov.info '*/domain/*' -o coverage/domain_lcov.info 2>/dev/null || true
+          if [ ! -s coverage/domain_lcov.info ]; then
+            echo "No domain layer files in coverage, skipping"
+            exit 0
+          fi
+          DOMAIN=$(lcov --summary coverage/domain_lcov.info 2>&1 | grep 'lines' | sed 's/.*:\s*//' | sed 's/%.*//')
+          echo "Domain layer line coverage: ${DOMAIN}%"
+          if [ "$(echo "$DOMAIN < 80.0" | bc -l)" -eq 1 ]; then
+            echo "::error::Domain layer coverage ${DOMAIN}% is below 80% threshold"
+            exit 1
+          fi
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -79,7 +112,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: beta
+          channel: stable
           cache: true
 
       - name: Install dependencies
