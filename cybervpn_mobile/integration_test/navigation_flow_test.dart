@@ -321,6 +321,7 @@ void main() {
           if (scaffoldElement.evaluate().isNotEmpty) {
             // ignore: use_build_context_synchronously
             final BuildContext context = tester.element(scaffoldElement);
+            // ignore: use_build_context_synchronously
             final navigator = Navigator.of(context);
 
             if (navigator.canPop()) {
@@ -414,6 +415,7 @@ void main() {
         if (scaffoldFinder.evaluate().isNotEmpty) {
           // ignore: use_build_context_synchronously
           final BuildContext context = tester.element(scaffoldFinder);
+          // ignore: use_build_context_synchronously
           final router = GoRouter.of(context);
 
           // Navigate to settings via deep link route
@@ -450,6 +452,7 @@ void main() {
         if (scaffoldFinder.evaluate().isNotEmpty) {
           // ignore: use_build_context_synchronously
           final BuildContext context = tester.element(scaffoldFinder);
+          // ignore: use_build_context_synchronously
           final router = GoRouter.of(context);
 
           // Navigate to servers list first
@@ -537,6 +540,7 @@ void main() {
         if (scaffoldFinder.evaluate().isNotEmpty) {
           // ignore: use_build_context_synchronously
           final BuildContext context = tester.element(scaffoldFinder);
+          // ignore: use_build_context_synchronously
           final router = GoRouter.of(context);
 
           // Attempt to navigate to non-existent route

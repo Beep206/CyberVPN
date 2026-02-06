@@ -32,6 +32,10 @@ class VpnRepositoryImpl implements VpnRepository {
   static const String _oldLastConfigKey = 'last_vpn_config';
   static const String _oldSavedConfigsKey = 'saved_vpn_configs';
 
+  /// Future that completes when the one-time config migration finishes.
+  /// Config-reading methods await this to prevent race conditions.
+  late final Future<void> _migrationFuture;
+
   VpnRepositoryImpl({
     required VpnEngineDatasource engine,
     required LocalStorageWrapper localStorage,
@@ -39,8 +43,7 @@ class VpnRepositoryImpl implements VpnRepository {
   })  : _engine = engine,
         _localStorage = localStorage,
         _secureStorage = secureStorage {
-    // Perform migration on initialization
-    unawaited(_migrateOldConfigsIfNeeded());
+    _migrationFuture = _migrateOldConfigsIfNeeded();
   }
 
   /// Initializes the VPN engine only once, subsequent calls are no-ops.
@@ -99,6 +102,8 @@ class VpnRepositoryImpl implements VpnRepository {
   @override
   Future<Result<VpnConfigEntity?>> getLastConfig() async {
     try {
+      await _migrationFuture;
+
       // NON-SENSITIVE: Read metadata from SharedPreferences
       final metaJsonStr = await _localStorage.getString(_lastConfigKey);
       if (metaJsonStr == null) return const Success(null);
@@ -159,6 +164,8 @@ class VpnRepositoryImpl implements VpnRepository {
   @override
   Future<Result<List<VpnConfigEntity>>> getSavedConfigs() async {
     try {
+      await _migrationFuture;
+
       // NON-SENSITIVE: Read metadata list from SharedPreferences
       final metaJsonStr = await _localStorage.getString(_savedConfigsKey);
       if (metaJsonStr == null) return const Success([]);
