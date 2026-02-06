@@ -1,7 +1,11 @@
+import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
 import 'package:cybervpn_mobile/core/device/device_info.dart';
-import 'package:cybervpn_mobile/core/errors/failures.dart' as errors;
+import 'package:cybervpn_mobile/core/device/device_provider.dart'
+    show deviceServiceProvider, secureStorageProvider;
+import 'package:cybervpn_mobile/core/device/device_service.dart';
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
+import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -147,6 +151,84 @@ class FakeAppAttestationService implements AppAttestationService {
 }
 
 // ---------------------------------------------------------------------------
+// Mock DeviceService
+// ---------------------------------------------------------------------------
+
+class FakeDeviceService implements DeviceService {
+  @override
+  Future<DeviceInfo> getDeviceInfo({String? pushToken}) async {
+    return const DeviceInfo(
+      deviceId: 'test-device-id',
+      platform: DevicePlatform.android,
+      platformId: 'android-test-id',
+      osVersion: '14',
+      appVersion: '1.0.0',
+      deviceModel: 'Test Device',
+    );
+  }
+
+  @override
+  Future<DeviceInfo> updatePushToken(String pushToken) async =>
+      getDeviceInfo(pushToken: pushToken);
+
+  @override
+  Future<String> getDeviceId() async => 'test-device-id';
+
+  @override
+  void clearCache() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+// ---------------------------------------------------------------------------
+// Mock SecureStorage
+// ---------------------------------------------------------------------------
+
+class FakeSecureStorage implements SecureStorageWrapper {
+  final Map<String, String> _data = {};
+
+  @override
+  Future<String?> read({required String key}) async => _data[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _data[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async => _data.remove(key);
+
+  @override
+  Future<String?> getRefreshToken() async => _data['refresh_token'];
+
+  @override
+  Future<String?> getAccessToken() async => _data['access_token'];
+
+  @override
+  Future<String> getOrCreateDeviceId() async =>
+      _data['device_id'] ?? 'test-device-id';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+// ---------------------------------------------------------------------------
+// Mock TokenRefreshScheduler
+// ---------------------------------------------------------------------------
+
+class FakeTokenRefreshScheduler implements TokenRefreshScheduler {
+  @override
+  Future<void> scheduleRefresh() async {}
+
+  @override
+  void cancel() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+// ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
@@ -165,10 +247,16 @@ ProviderContainer createContainer({
   required MockAuthRepository mockRepo,
   FakeFcmTokenService? mockFcm,
   FakeAppAttestationService? mockAttestation,
+  FakeDeviceService? mockDevice,
+  FakeSecureStorage? mockStorage,
+  FakeTokenRefreshScheduler? mockScheduler,
 }) {
   return ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(mockRepo),
+      deviceServiceProvider.overrideWithValue(mockDevice ?? FakeDeviceService()),
+      secureStorageProvider.overrideWithValue(mockStorage ?? FakeSecureStorage()),
+      tokenRefreshSchedulerProvider.overrideWithValue(mockScheduler ?? FakeTokenRefreshScheduler()),
       if (mockFcm != null) fcmTokenServiceProvider.overrideWithValue(mockFcm),
       if (mockAttestation != null)
         appAttestationServiceProvider.overrideWithValue(mockAttestation),
@@ -441,7 +529,11 @@ void main() {
       mockRepo.isAuthenticatedValue = true;
       mockRepo.currentUser = testUser;
 
-      container = createContainer(mockRepo: mockRepo);
+      final fakeStorage = FakeSecureStorage();
+      // Pre-populate a refresh token so logout() calls the repository
+      await fakeStorage.write(key: 'refresh_token', value: 'rt-abc');
+
+      container = createContainer(mockRepo: mockRepo, mockStorage: fakeStorage);
 
       await waitForState(container);
 
@@ -453,7 +545,7 @@ void main() {
       expect(mockRepo.logoutCalled, isTrue);
     });
 
-    test('transitions to AuthError on logout failure', () async {
+    test('clears local state even on backend logout failure', () async {
       mockRepo.isAuthenticatedValue = true;
       mockRepo.currentUser = testUser;
       mockRepo.logoutException = Exception('Logout failed');
@@ -465,9 +557,9 @@ void main() {
       final notifier = container.read(authProvider.notifier);
       await notifier.logout();
 
+      // Even if backend logout fails, local state should be cleared
       final finalState = container.read(authProvider).requireValue;
-      expect(finalState, isA<AuthError>());
-      expect((finalState as AuthError).message, contains('Logout failed'));
+      expect(finalState, isA<AuthUnauthenticated>());
     });
   });
 
