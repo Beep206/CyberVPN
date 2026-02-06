@@ -1575,6 +1575,23 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
+  String subscriptionDaysRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days remaining',
+      one: '1 day remaining',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionExpiringSoon => 'Expiring soon';
+
+  @override
+  String get subscriptionRenewNow => 'Renew Now';
+
+  @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';
 
   @override
