@@ -1797,6 +1797,18 @@ abstract class AppLocalizations {
   /// **'I Understand'**
   String get rootDetectionDialogDismiss;
 
+  /// No description provided for @rootDetectionBannerWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is rooted/jailbroken. Your connection may be less secure.'**
+  String get rootDetectionBannerWarning;
+
+  /// No description provided for @rootDetectionBannerBlocking.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN is unavailable on rooted/jailbroken devices.'**
+  String get rootDetectionBannerBlocking;
+
   /// No description provided for @loginEmailLabel.
   ///
   /// In en, this message translates to:

@@ -977,6 +977,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rootDetectionDialogDismiss => 'I Understand';
 
   @override
+  String get rootDetectionBannerWarning =>
+      'This device is rooted/jailbroken. Your connection may be less secure.';
+
+  @override
+  String get rootDetectionBannerBlocking =>
+      'VPN is unavailable on rooted/jailbroken devices.';
+
+  @override
   String get loginEmailLabel => 'Email';
 
   @override

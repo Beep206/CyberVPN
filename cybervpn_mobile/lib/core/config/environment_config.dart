@@ -75,6 +75,14 @@ class EnvironmentConfig {
     defaultValue: '',
   );
 
+  /// Value injected at compile time via `--dart-define=ROOT_ENFORCEMENT=...`.
+  ///
+  /// Controls root/jailbreak enforcement policy: `logging` (default) or `blocking`.
+  static const String _dartDefineRootEnforcement = String.fromEnvironment(
+    'ROOT_ENFORCEMENT',
+    defaultValue: 'logging',
+  );
+
   // ── Resolved values (dart-define > .env > default) ───────────────────
 
   /// Whether the `.env` file has been loaded.
@@ -219,6 +227,26 @@ class EnvironmentConfig {
     }
 
     return '';
+  }
+
+  /// The resolved root/jailbreak enforcement policy.
+  ///
+  /// Priority: `--dart-define` > `.env` > `logging` (default).
+  ///
+  /// Valid values: `logging`, `blocking`.
+  static String get rootEnforcement {
+    if (_dartDefineRootEnforcement != 'logging') {
+      return _dartDefineRootEnforcement;
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('ROOT_ENFORCEMENT');
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+    }
+
+    return 'logging';
   }
 
   // ── Convenience helpers ──────────────────────────────────────────────
