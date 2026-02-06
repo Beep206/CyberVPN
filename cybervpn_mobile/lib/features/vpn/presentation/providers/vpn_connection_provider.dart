@@ -24,7 +24,10 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/features/vpn/data/repositories/vpn_repository_impl.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show vpnEngineDatasourceProvider, localStorageProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
@@ -94,8 +97,10 @@ class VpnError extends VpnConnectionState {
 // ---------------------------------------------------------------------------
 
 final vpnRepositoryProvider = Provider<VpnRepository>((ref) {
-  throw UnimplementedError(
-    'vpnRepositoryProvider must be overridden with a concrete VpnRepository.',
+  return VpnRepositoryImpl(
+    engine: ref.watch(vpnEngineDatasourceProvider),
+    localStorage: ref.watch(localStorageProvider),
+    secureStorage: ref.watch(secureStorageProvider),
   );
 });
 

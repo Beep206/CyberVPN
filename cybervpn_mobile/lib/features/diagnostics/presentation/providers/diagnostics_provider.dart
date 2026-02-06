@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart' show dioProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/diagnostic_service.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/speed_test_service.dart';
@@ -91,24 +93,17 @@ class DiagnosticsState {
 // Dependency providers (override in DI setup / tests)
 // ---------------------------------------------------------------------------
 
-/// Provides the [SpeedTestService] instance.
-///
-/// Must be overridden in a [ProviderScope] with a configured instance.
+/// Provides the [SpeedTestService] lazily via ref.watch.
 final speedTestServiceProvider = Provider<SpeedTestService>((ref) {
-  throw UnimplementedError(
-    'speedTestServiceProvider must be overridden with a configured '
-    'SpeedTestService instance in a ProviderScope.',
+  return SpeedTestService(
+    dio: ref.watch(dioProvider),
+    sharedPreferences: ref.watch(sharedPreferencesProvider),
   );
 });
 
-/// Provides the [DiagnosticService] instance.
-///
-/// Must be overridden in a [ProviderScope] with a configured instance.
+/// Provides the [DiagnosticService] lazily via ref.watch.
 final diagnosticServiceProvider = Provider<DiagnosticService>((ref) {
-  throw UnimplementedError(
-    'diagnosticServiceProvider must be overridden with a configured '
-    'DiagnosticService instance in a ProviderScope.',
-  );
+  return DiagnosticService(dio: ref.watch(dioProvider));
 });
 
 // ---------------------------------------------------------------------------

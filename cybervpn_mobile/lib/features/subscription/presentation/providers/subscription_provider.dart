@@ -11,21 +11,20 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
+import 'package:cybervpn_mobile/features/subscription/data/repositories/subscription_repository_impl.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show subscriptionRemoteDataSourceProvider;
 
 // ---------------------------------------------------------------------------
 // Repository & datasource providers
 // ---------------------------------------------------------------------------
 
-/// Provides the [SubscriptionRepository] implementation.
-///
-/// Override this in tests or in the root [ProviderScope] to inject
-/// the concrete [SubscriptionRepositoryImpl].
+/// Provides the [SubscriptionRepository] lazily via ref.watch.
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
-  throw UnimplementedError(
-    'subscriptionRepositoryProvider must be overridden with a concrete '
-    'SubscriptionRepository (e.g. via ProviderScope overrides).',
+  return SubscriptionRepositoryImpl(
+    remoteDataSource: ref.watch(subscriptionRemoteDataSourceProvider),
   );
 });
 

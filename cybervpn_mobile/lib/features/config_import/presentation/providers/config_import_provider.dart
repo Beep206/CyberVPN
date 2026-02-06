@@ -1,7 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/di/providers.dart' show dioProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/config_import/data/parsers/subscription_url_parser.dart';
+import 'package:cybervpn_mobile/features/config_import/data/repositories/config_import_repository_impl.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
@@ -70,13 +74,11 @@ class ConfigImportState {
 // Repository provider (overridden in root ProviderScope)
 // ---------------------------------------------------------------------------
 
-/// Provides the [ConfigImportRepository].
-///
-/// Must be overridden with a concrete implementation in the root
-/// [ProviderScope] via [buildProviderOverrides].
+/// Provides the [ConfigImportRepository] lazily via ref.watch.
 final configImportRepositoryProvider = Provider<ConfigImportRepository>((ref) {
-  throw UnimplementedError(
-    'configImportRepositoryProvider must be overridden in the root ProviderScope',
+  return ConfigImportRepositoryImpl(
+    sharedPreferences: ref.watch(sharedPreferencesProvider),
+    subscriptionUrlParser: SubscriptionUrlParser(dio: ref.watch(dioProvider)),
   );
 });
 

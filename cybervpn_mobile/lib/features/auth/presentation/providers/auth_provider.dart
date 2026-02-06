@@ -14,22 +14,24 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/utils/performance_profiler.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
+import 'package:cybervpn_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show authRemoteDataSourceProvider, authLocalDataSourceProvider;
+import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+    show networkInfoProvider;
 
 // ---------------------------------------------------------------------------
 // Repository provider
 // ---------------------------------------------------------------------------
 
-/// Provides the [AuthRepository] implementation.
-///
-/// Override this in tests to inject a mock repository.
+/// Provides the [AuthRepository] implementation lazily via ref.watch.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  // These concrete datasource / network-info instances are placeholders.
-  // In production they would be supplied through their own providers.
-  throw UnimplementedError(
-    'authRepositoryProvider must be overridden with a concrete '
-    'AuthRepository (e.g. via ProviderScope overrides).',
+  return AuthRepositoryImpl(
+    remoteDataSource: ref.watch(authRemoteDataSourceProvider),
+    localDataSource: ref.watch(authLocalDataSourceProvider),
+    networkInfo: ref.watch(networkInfoProvider),
   );
 });
 

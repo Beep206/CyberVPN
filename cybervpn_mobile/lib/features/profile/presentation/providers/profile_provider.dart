@@ -8,8 +8,14 @@ import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
+import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
+import 'package:cybervpn_mobile/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider;
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+    show networkInfoProvider;
 import 'package:cybervpn_mobile/features/profile/domain/services/device_registration_service.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/disable_2fa.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/get_devices.dart';
@@ -26,13 +32,11 @@ import 'package:cybervpn_mobile/features/profile/domain/use_cases/verify_2fa.dar
 // Repository & use-case providers (override in DI setup / tests)
 // ---------------------------------------------------------------------------
 
-/// Provides the [ProfileRepository] implementation.
-///
-/// Must be overridden in a [ProviderScope] with a configured instance.
+/// Provides the [ProfileRepository] lazily via ref.watch.
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  throw UnimplementedError(
-    'profileRepositoryProvider must be overridden with a concrete '
-    'ProfileRepository (e.g. via ProviderScope overrides).',
+  return ProfileRepositoryImpl(
+    remoteDataSource: ProfileRemoteDataSourceImpl(ref.watch(apiClientProvider)),
+    networkInfo: ref.watch(networkInfoProvider),
   );
 });
 

@@ -7,7 +7,10 @@ import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart'
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
+import 'package:cybervpn_mobile/features/servers/data/repositories/server_repository_impl.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show serverRemoteDataSourceProvider, serverLocalDataSourceProvider;
 import 'package:cybervpn_mobile/features/servers/data/datasources/favorites_local_datasource.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
@@ -118,11 +121,11 @@ class ServerListState {
 // Dependency providers
 // ---------------------------------------------------------------------------
 
-/// Override this provider to supply a concrete [ServerRepository].
+/// Provides the [ServerRepository] lazily via ref.watch.
 final serverRepositoryProvider = Provider<ServerRepository>((ref) {
-  throw UnimplementedError(
-    'serverRepositoryProvider must be overridden with a concrete '
-    'ServerRepository (e.g. ServerRepositoryImpl) in a ProviderScope.',
+  return ServerRepositoryImpl(
+    remoteDataSource: ref.watch(serverRemoteDataSourceProvider),
+    localDataSource: ref.watch(serverLocalDataSourceProvider),
   );
 });
 
