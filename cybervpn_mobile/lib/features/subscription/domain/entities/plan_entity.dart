@@ -5,7 +5,7 @@ part 'plan_entity.freezed.dart';
 enum PlanDuration { monthly, quarterly, yearly, lifetime }
 
 @freezed
-abstract class PlanEntity with _$PlanEntity {
+sealed class PlanEntity with _$PlanEntity {
   const factory PlanEntity({
     required String id,
     required String name,

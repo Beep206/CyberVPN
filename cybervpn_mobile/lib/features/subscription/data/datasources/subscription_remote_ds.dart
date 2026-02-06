@@ -16,7 +16,7 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<List<PlanEntity>> fetchPlans() async {
-    final response = await _apiClient.get('/plans');
+    final response = await _apiClient.get<Map<String, dynamic>>('/plans');
     final data = response.data as List<dynamic>;
     return data.map((json) {
       final m = json as Map<String, dynamic>;
@@ -51,7 +51,7 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   @override
   Future<SubscriptionEntity?> fetchActiveSubscription() async {
     try {
-      final response = await _apiClient.get('/subscription/active');
+      final response = await _apiClient.get<Map<String, dynamic>>('/subscription/active');
       final data = response.data as Map<String, dynamic>;
       return SubscriptionEntity(
         id: data['id'] as String,
@@ -74,7 +74,7 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<SubscriptionEntity> createSubscription(String planId, {String? paymentMethod}) async {
-    final response = await _apiClient.post('/subscription', data: {
+    final response = await _apiClient.post<Map<String, dynamic>>('/subscription', data: {
       'plan_id': planId, if (paymentMethod != null) 'payment_method': paymentMethod,
     });
     final data = response.data as Map<String, dynamic>;
@@ -93,6 +93,6 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
-    await _apiClient.post('/subscription/$subscriptionId/cancel');
+    await _apiClient.post<Map<String, dynamic>>('/subscription/$subscriptionId/cancel');
   }
 }

@@ -19,7 +19,7 @@ enum NotificationType {
 /// Contains the notification content, type, read status, and optional
 /// deep-link route and arbitrary metadata payload.
 @freezed
-abstract class AppNotification with _$AppNotification {
+sealed class AppNotification with _$AppNotification {
   const factory AppNotification({
     required String id,
     required NotificationType type,

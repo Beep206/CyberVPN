@@ -42,7 +42,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required DeviceInfo device,
     bool rememberMe = false,
   }) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '$_basePath/login',
       data: {
         'email': email,
@@ -65,7 +65,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required DeviceInfo device,
     String? referralCode,
   }) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '$_basePath/register',
       data: {
         'email': email,
@@ -86,7 +86,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String refreshToken,
     required String deviceId,
   }) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '$_basePath/refresh',
       data: {
         'refresh_token': refreshToken,
@@ -101,7 +101,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String refreshToken,
     required String deviceId,
   }) async {
-    await _apiClient.post(
+    await _apiClient.post<Map<String, dynamic>>(
       '$_basePath/logout',
       data: {
         'refresh_token': refreshToken,
@@ -112,7 +112,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> getCurrentUser() async {
-    final response = await _apiClient.get('$_basePath/me');
+    final response = await _apiClient.get<Map<String, dynamic>>('$_basePath/me');
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

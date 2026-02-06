@@ -7,7 +7,7 @@ part 'speed_test_result.freezed.dart';
 /// Captures download/upload throughput, latency, and jitter measurements
 /// along with VPN connection context at the time of testing.
 @freezed
-abstract class SpeedTestResult with _$SpeedTestResult {
+sealed class SpeedTestResult with _$SpeedTestResult {
   const factory SpeedTestResult({
     required double downloadMbps,
     required double uploadMbps,

@@ -11,7 +11,7 @@ enum VpnConnectionStatus {
 }
 
 @freezed
-abstract class ConnectionStateEntity with _$ConnectionStateEntity {
+sealed class ConnectionStateEntity with _$ConnectionStateEntity {
   const factory ConnectionStateEntity({
     @Default(VpnConnectionStatus.disconnected) VpnConnectionStatus status,
     String? connectedServerId,

@@ -40,8 +40,8 @@ class RootDetectionDialog extends StatelessWidget {
     required DeviceIntegrityChecker integrityChecker,
   }) async {
     // Tag Sentry scope to track rooted device users
-    await Sentry.configureScope((scope) {
-      unawaited(scope.setTag('device_rooted', 'true'));
+    await Sentry.configureScope((scope) async {
+      await scope.setTag('device_rooted', 'true');
     });
 
     AppLogger.warning(

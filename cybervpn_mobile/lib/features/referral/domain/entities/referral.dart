@@ -16,7 +16,7 @@ enum ReferralStatus {
 
 /// Aggregated referral statistics for the current user.
 @freezed
-abstract class ReferralStats with _$ReferralStats {
+sealed class ReferralStats with _$ReferralStats {
   const factory ReferralStats({
     /// Total number of users invited via referral.
     required int totalInvited,
@@ -34,7 +34,7 @@ abstract class ReferralStats with _$ReferralStats {
 
 /// A single referral entry representing an invited user.
 @freezed
-abstract class ReferralEntry with _$ReferralEntry {
+sealed class ReferralEntry with _$ReferralEntry {
   const factory ReferralEntry({
     /// Unique referral code used for this invitation.
     required String code,

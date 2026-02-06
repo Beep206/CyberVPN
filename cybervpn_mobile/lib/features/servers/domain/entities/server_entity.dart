@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'server_entity.freezed.dart';
 
 @freezed
-abstract class ServerEntity with _$ServerEntity {
+sealed class ServerEntity with _$ServerEntity {
   const factory ServerEntity({
     required String id,
     required String name,

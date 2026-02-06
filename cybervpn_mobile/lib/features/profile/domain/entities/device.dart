@@ -7,7 +7,7 @@ part 'device.freezed.dart';
 /// Contains metadata about a logged-in device/session
 /// that can be viewed or revoked by the user.
 @freezed
-abstract class Device with _$Device {
+sealed class Device with _$Device {
   const factory Device({
     /// Unique identifier for this device session
     required String id,
