@@ -276,12 +276,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
   // ── Export Logs ──────────────────────────────────────────────────────────
 
-  Future<void> _handleExportLogs(BuildContext context) async {
-    if (!mounted) return;
+  Future<void> _handleExportLogs(BuildContext ctx) async {
+    if (!ctx.mounted) return;
 
     final logs = AppLogger.exportLogs();
     if (logs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(content: Text('No logs to export')),
       );
       return;
@@ -294,15 +294,15 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       await Share.share(
         logs,
         subject: 'CyberVPN Logs',
-        sharePositionOrigin: _getSharePositionOrigin(context),
+        sharePositionOrigin: _getSharePositionOrigin(ctx),
       );
 
       AppLogger.info('Logs exported: $filename');
     } catch (e) {
       AppLogger.error('Failed to export logs', error: e);
-      if (!mounted) return;
+      if (!ctx.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text('Failed to export logs: $e')),
       );
     }
@@ -318,12 +318,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
   // ── Clear Cache ──────────────────────────────────────────────────────────
 
-  Future<void> _handleClearCache(BuildContext context) async {
-    if (!mounted) return;
+  Future<void> _handleClearCache(BuildContext ctx) async {
+    if (!ctx.mounted) return;
 
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Clear Cache?'),
         content: const Text(
           'This will remove cached server lists and VPN configurations. '
@@ -331,18 +331,18 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogCtx, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogCtx, true),
             child: const Text('Clear'),
           ),
         ],
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !ctx.mounted) return;
 
     try {
       // Clear SharedPreferences cache (except settings)
@@ -363,15 +363,15 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
       AppLogger.info('Cache cleared successfully');
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(content: Text('Cache cleared successfully')),
       );
     } catch (e) {
       AppLogger.error('Failed to clear cache', error: e);
-      if (!mounted) return;
+      if (!ctx.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text('Failed to clear cache: $e')),
       );
     }
@@ -379,12 +379,12 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
   // ── Reset Settings ───────────────────────────────────────────────────────
 
-  Future<void> _handleResetSettings(BuildContext context) async {
-    if (!mounted) return;
+  Future<void> _handleResetSettings(BuildContext ctx) async {
+    if (!ctx.mounted) return;
 
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Reset All Settings?'),
         content: const Text(
           'This will restore all settings to their default values. '
@@ -392,13 +392,13 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogCtx, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogCtx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(dialogCtx).colorScheme.error,
             ),
             child: const Text('Reset'),
           ),
@@ -406,22 +406,22 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !ctx.mounted) return;
 
     try {
       await ref.read(settingsProvider.notifier).resetAll();
 
       AppLogger.info('Settings reset to defaults');
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(content: Text('Settings reset successfully')),
       );
     } catch (e) {
       AppLogger.error('Failed to reset settings', error: e);
-      if (!mounted) return;
+      if (!ctx.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(content: Text('Failed to reset settings: $e')),
       );
     }

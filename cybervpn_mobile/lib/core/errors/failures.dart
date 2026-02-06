@@ -1,17 +1,27 @@
-import 'package:equatable/equatable.dart';
-
 /// Base failure class for the application.
 ///
-/// All domain-level failures extend this class, providing a consistent
-/// interface for error handling across the app.
-abstract class Failure extends Equatable {
+/// All domain-level failures extend this sealed class, providing a consistent
+/// interface for error handling across the app. Exhaustive pattern matching
+/// is enforced at compile time via the `sealed` keyword.
+sealed class Failure {
   final String message;
   final int? code;
 
   const Failure({required this.message, this.code});
 
   @override
-  List<Object?> get props => [message, code];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Failure &&
+          runtimeType == other.runtimeType &&
+          message == other.message &&
+          code == other.code;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, message, code);
+
+  @override
+  String toString() => '$runtimeType(message: $message, code: $code)';
 }
 
 /// Failure originating from the remote server (e.g. 4xx/5xx responses).
@@ -66,7 +76,15 @@ class RateLimitFailure extends Failure {
   const RateLimitFailure({required super.message, super.code, this.retryAfter});
 
   @override
-  List<Object?> get props => [message, code, retryAfter];
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RateLimitFailure &&
+          message == other.message &&
+          code == other.code &&
+          retryAfter == other.retryAfter;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, message, code, retryAfter);
 }
 
 /// Catch-all failure for unexpected or unclassified errors.

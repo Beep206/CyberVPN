@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:developer' as developer;
 import 'dart:async';
 
@@ -82,7 +83,8 @@ class AppLogger {
   static const int maxBufferSize = 1000;
 
   /// In-memory FIFO ring buffer of recent log entries.
-  static final List<LogEntry> _ringBuffer = <LogEntry>[];
+  /// Uses [Queue] for O(1) eviction from the front.
+  static final Queue<LogEntry> _ringBuffer = Queue<LogEntry>();
 
   /// Whether Sentry breadcrumb recording is active.
   static bool get _sentryEnabled => EnvironmentConfig.sentryDsn.isNotEmpty;
@@ -188,8 +190,8 @@ class AppLogger {
 
   // ── Ring buffer access ──────────────────────────────────────────────
 
-  /// Returns a read-only view of the current ring buffer entries.
-  static List<LogEntry> get entries => List<LogEntry>.unmodifiable(_ringBuffer);
+  /// Returns a read-only snapshot of the current ring buffer entries.
+  static List<LogEntry> get entries => _ringBuffer.toList(growable: false);
 
   /// Returns the current number of entries in the ring buffer.
   static int get entryCount => _ringBuffer.length;
@@ -218,7 +220,7 @@ class AppLogger {
     Map<String, dynamic>? data,
   }) {
     if (_ringBuffer.length >= maxBufferSize) {
-      _ringBuffer.removeAt(0);
+      _ringBuffer.removeFirst();
     }
     _ringBuffer.add(
       LogEntry(

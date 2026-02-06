@@ -169,7 +169,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
   /// Initiates the OAuth linking flow by launching the authorization URL in browser
   Future<void> _handleLinkProvider(
-    BuildContext context,
+    BuildContext ctx,
     OAuthProvider provider,
   ) async {
     try {
@@ -203,8 +203,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       }
 
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             'Complete authorization in your browser, then return to the app.',
@@ -219,13 +218,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
         category: 'oauth',
       );
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final colorScheme = Theme.of(context).colorScheme;
       final providerDisplayName = _providerName(provider);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to link $providerDisplayName: $e'),
-          backgroundColor: colorScheme.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -233,12 +230,12 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
   /// Shows a confirmation dialog before unlinking the provider.
   Future<void> _showUnlinkDialog(
-    BuildContext context,
+    BuildContext ctx,
     OAuthProvider provider,
   ) async {
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
         title: Text('Unlink ${_providerName(provider)}?'),
         content: Text(
           'You will need to re-authorize to link this account again. '
@@ -246,11 +243,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text('Unlink'),
           ),
         ],
@@ -258,24 +255,20 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await _handleUnlinkProvider(context, provider);
+      await _handleUnlinkProvider(provider);
     }
   }
 
   /// Unlinks the provider after user confirmation.
-  Future<void> _handleUnlinkProvider(
-    BuildContext context,
-    OAuthProvider provider,
-  ) async {
+  Future<void> _handleUnlinkProvider(OAuthProvider provider) async {
     try {
       unawaited(HapticFeedback.lightImpact());
 
       await ref.read(profileProvider.notifier).unlinkAccount(provider);
 
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
       final providerDisplayName = _providerName(provider);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$providerDisplayName account unlinked'),
         ),
@@ -287,13 +280,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
         category: 'oauth',
       );
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final colorScheme = Theme.of(context).colorScheme;
       final providerDisplayName = _providerName(provider);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to unlink $providerDisplayName: $e'),
-          backgroundColor: colorScheme.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
