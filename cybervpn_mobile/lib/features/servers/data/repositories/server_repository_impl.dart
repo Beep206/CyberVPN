@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
@@ -8,33 +9,34 @@ import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_d
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 
-class ServerRepositoryImpl with NetworkErrorHandler implements ServerRepository {
+class ServerRepositoryImpl with NetworkErrorHandler, CachedRepository implements ServerRepository {
   final ServerRemoteDataSource _remoteDataSource;
   final ServerLocalDataSource _localDataSource;
-  final NetworkInfo _networkInfo;
 
   ServerRepositoryImpl({
     required ServerRemoteDataSource remoteDataSource,
     required ServerLocalDataSource localDataSource,
-    required NetworkInfo networkInfo,
+    // Kept in the signature for DI compatibility; no longer needed directly
+    // because CachedRepository handles offline-first logic.
+    NetworkInfo? networkInfo,
   })  : _remoteDataSource = remoteDataSource,
-        _localDataSource = localDataSource,
-        _networkInfo = networkInfo;
+        _localDataSource = localDataSource;
 
   @override
-  Future<Result<List<ServerEntity>>> getServers() async {
-    try {
-      final cached = await _localDataSource.getCachedServers();
-      if (cached != null) return Success(await _applyFavorites(cached));
-      if (!await _networkInfo.isConnected) {
-        return const Failure(NetworkFailure(message: 'No internet connection'));
-      }
-      final servers = await _remoteDataSource.fetchServers();
-      await _localDataSource.cacheServers(servers);
-      return Success(await _applyFavorites(servers));
-    } on Exception catch (e) {
-      return Failure(ServerFailure(message: e.toString()));
-    }
+  Future<Result<List<ServerEntity>>> getServers({
+    CacheStrategy strategy = CacheStrategy.staleWhileRevalidate,
+  }) async {
+    final result = await executeWithStrategy<List<ServerEntity>>(
+      strategy: strategy,
+      fetchFromNetwork: _remoteDataSource.fetchServers,
+      readFromCache: _localDataSource.getCachedServers,
+      writeToCache: _localDataSource.cacheServers,
+    );
+
+    // Apply favorites overlay to whichever source returned data.
+    return result.isSuccess
+        ? Success(await _applyFavorites(result.dataOrNull!))
+        : result;
   }
 
   @override

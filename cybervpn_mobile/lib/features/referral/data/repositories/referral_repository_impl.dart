@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
@@ -10,16 +11,20 @@ import 'package:share_plus/share_plus.dart' as share_plus;
 /// Implementation of [ReferralRepository] that delegates API calls to
 /// [ReferralRemoteDataSource] and applies graceful degradation.
 ///
+/// Uses [CachedRepository] with [CacheStrategy.networkFirst] for read
+/// methods so cached data is available when the network is down.
+///
 /// All data-fetching methods check [isAvailable] first. When the backend
 /// referral feature is unavailable (404/501), methods return appropriate
 /// empty states wrapped in [Success] instead of returning [Failure].
-///
-/// All methods return [Result<T>] instead of throwing, enabling callers
-/// to handle success and failure explicitly via pattern matching.
 class ReferralRepositoryImpl
-    with NetworkErrorHandler
+    with NetworkErrorHandler, CachedRepository
     implements ReferralRepository {
   final ReferralRemoteDataSource _remoteDataSource;
+
+  // In-memory caches for networkFirst fallback.
+  ReferralStats? _cachedStats;
+  String? _cachedCode;
 
   ReferralRepositoryImpl({required ReferralRemoteDataSource remoteDataSource})
       : _remoteDataSource = remoteDataSource;
@@ -34,18 +39,23 @@ class ReferralRepositoryImpl
   }
 
   @override
-  Future<Result<String>> getReferralCode() async {
+  Future<Result<String>> getReferralCode({
+    CacheStrategy strategy = CacheStrategy.networkFirst,
+  }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) return const Success('');
-    try {
-      return Success(await _remoteDataSource.getReferralCode());
-    } on AppException catch (e) {
-      return Failure(mapExceptionToFailure(e));
-    }
+    return executeWithStrategy<String>(
+      strategy: strategy,
+      fetchFromNetwork: _remoteDataSource.getReferralCode,
+      readFromCache: () async => _cachedCode,
+      writeToCache: (code) async => _cachedCode = code,
+    );
   }
 
   @override
-  Future<Result<ReferralStats>> getStats() async {
+  Future<Result<ReferralStats>> getStats({
+    CacheStrategy strategy = CacheStrategy.networkFirst,
+  }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
       return const Success(ReferralStats(
@@ -55,11 +65,12 @@ class ReferralRepositoryImpl
         balance: 0,
       ));
     }
-    try {
-      return Success(await _remoteDataSource.getReferralStats());
-    } on AppException catch (e) {
-      return Failure(mapExceptionToFailure(e));
-    }
+    return executeWithStrategy<ReferralStats>(
+      strategy: strategy,
+      fetchFromNetwork: _remoteDataSource.getReferralStats,
+      readFromCache: () async => _cachedStats,
+      writeToCache: (stats) async => _cachedStats = stats,
+    );
   }
 
   @override

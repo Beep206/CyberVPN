@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 
@@ -11,24 +12,21 @@ import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart'
 /// without relying on exceptions for control flow.
 abstract class ReferralRepository {
   /// Checks whether the referral feature is available on the backend.
-  ///
-  /// Attempts a lightweight API call to the referral endpoint.
-  /// Returns [Success(true)] on HTTP 200, [Success(false)] on 404/501 or any
-  /// network error. This enables graceful degradation when the backend has
-  /// not implemented the referral system.
   Future<Result<bool>> isAvailable();
 
   /// Retrieves the current user's unique referral code.
   ///
   /// Returns [Success('')]  if the referral feature is unavailable.
-  /// Returns [Failure] if the backend returns an unexpected error.
-  Future<Result<String>> getReferralCode();
+  Future<Result<String>> getReferralCode({
+    CacheStrategy strategy = CacheStrategy.networkFirst,
+  });
 
   /// Fetches aggregated referral statistics for the current user.
   ///
   /// Returns empty stats if the referral feature is unavailable.
-  /// Returns [Failure] if the backend returns an unexpected error.
-  Future<Result<ReferralStats>> getStats();
+  Future<Result<ReferralStats>> getStats({
+    CacheStrategy strategy = CacheStrategy.networkFirst,
+  });
 
   /// Returns the most recent referral entries.
   ///

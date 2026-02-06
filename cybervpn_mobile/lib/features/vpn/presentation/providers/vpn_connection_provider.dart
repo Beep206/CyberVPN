@@ -248,22 +248,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     state = AsyncData(VpnConnecting(server: server));
 
     try {
-      // Read VPN settings for protocol, DNS, and kill switch preferences.
       final vpnSettings = ref.read(vpnSettingsProvider);
-
-      // Resolve protocol from settings (or fall back to server default).
       final protocol = _resolveProtocol(server.protocol, vpnSettings);
 
-      // Resolve DNS servers from settings and publish for lower layers.
-      final dnsServers = _resolveDnsServers(vpnSettings);
-      ref.read(activeDnsServersProvider.notifier).set(dnsServers);
-
-      // Enable kill switch before connecting if the setting is on.
-      if (vpnSettings.killSwitch) {
-        await _killSwitch.enable();
-      }
-
-      // Build a VpnConfigEntity from the server.
       final config = VpnConfigEntity(
         id: server.id,
         name: server.name,
@@ -273,28 +260,11 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         configData: '', // populated by the repository / platform layer
       );
 
-      await _connectUseCase.call(config);
-
-      // Persist for auto-reconnect on app restart.
-      await _persistLastConnection(server, protocol);
-
-      // Start the auto-reconnect service.
-      _autoReconnect.start(config);
-
-      // Auto-register device on first connection
-      _registerDeviceIfNeeded();
-
-      state = AsyncData(VpnConnected(server: server, protocol: protocol));
-
-      // Trigger review prompt after successful connection
-      _handleReviewPrompt();
+      await _executeConnection(config: config, server: server, protocol: protocol);
     } catch (e, st) {
       AppLogger.error('VPN connect failed', error: e, stackTrace: st);
       _autoReconnect.stop();
-
-      // Disable kill switch on connection failure to avoid locking out the user.
       await _killSwitch.disable();
-
       state = AsyncData(VpnError(message: e.toString()));
     }
   }
@@ -323,59 +293,64 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     state = AsyncData(VpnConnecting(server: pseudoServer));
 
     try {
-      // Read VPN settings for DNS and kill switch preferences.
-      final vpnSettings = ref.read(vpnSettingsProvider);
-
-      // Resolve DNS servers from settings and publish for lower layers.
-      final dnsServers = _resolveDnsServers(vpnSettings);
-      ref.read(activeDnsServersProvider.notifier).set(dnsServers);
-
-      // Enable kill switch before connecting if the setting is on.
-      if (vpnSettings.killSwitch) {
-        await _killSwitch.enable();
-      }
-
-      // Parse protocol from custom server
       final protocol = VpnProtocol.values.firstWhere(
         (p) => p.name.toLowerCase() == customServer.protocol.toLowerCase(),
         orElse: () => VpnProtocol.vless,
       );
 
-      // Build a VpnConfigEntity from the custom server.
-      // The rawUri contains the full config string (e.g., vless://...)
       final config = VpnConfigEntity(
         id: customServer.id,
         name: customServer.name,
         serverAddress: customServer.serverAddress,
         port: customServer.port,
         protocol: protocol,
-        configData: customServer.rawUri, // Use raw URI as config data
+        configData: customServer.rawUri,
       );
 
-      await _connectUseCase.call(config);
-
-      // Persist for auto-reconnect on app restart.
-      await _persistLastConnection(pseudoServer, protocol);
-
-      // Start the auto-reconnect service.
-      _autoReconnect.start(config);
-
-      // Auto-register device on first connection
-      _registerDeviceIfNeeded();
-
-      state = AsyncData(VpnConnected(server: pseudoServer, protocol: protocol));
-
-      // Trigger review prompt after successful connection
-      _handleReviewPrompt();
+      await _executeConnection(config: config, server: pseudoServer, protocol: protocol);
     } catch (e, st) {
       AppLogger.error('VPN connect from custom server failed', error: e, stackTrace: st);
       _autoReconnect.stop();
-
-      // Disable kill switch on connection failure to avoid locking out the user.
       await _killSwitch.disable();
-
       state = AsyncData(VpnError(message: e.toString()));
     }
+  }
+
+  /// Shared connection execution logic.
+  ///
+  /// Handles DNS resolution, kill switch, connect use case, persistence,
+  /// auto-reconnect, device registration, and state transition.
+  Future<void> _executeConnection({
+    required VpnConfigEntity config,
+    required ServerEntity server,
+    required VpnProtocol protocol,
+  }) async {
+    final vpnSettings = ref.read(vpnSettingsProvider);
+
+    // Resolve DNS servers from settings and publish for lower layers.
+    final dnsServers = _resolveDnsServers(vpnSettings);
+    ref.read(activeDnsServersProvider.notifier).set(dnsServers);
+
+    // Enable kill switch before connecting if the setting is on.
+    if (vpnSettings.killSwitch) {
+      await _killSwitch.enable();
+    }
+
+    await _connectUseCase.call(config);
+
+    // Persist for auto-reconnect on app restart.
+    await _persistLastConnection(server, protocol);
+
+    // Start the auto-reconnect service.
+    _autoReconnect.start(config);
+
+    // Auto-register device on first connection
+    _registerDeviceIfNeeded();
+
+    state = AsyncData(VpnConnected(server: server, protocol: protocol));
+
+    // Trigger review prompt after successful connection
+    _handleReviewPrompt();
   }
 
   /// Gracefully disconnect from the VPN.

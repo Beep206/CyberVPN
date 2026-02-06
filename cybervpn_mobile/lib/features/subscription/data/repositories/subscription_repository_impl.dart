@@ -1,44 +1,52 @@
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
-import 'package:cybervpn_mobile/core/network/network_info.dart';
+// NetworkInfo import kept for DI parameter type compatibility.
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 
-class SubscriptionRepositoryImpl with NetworkErrorHandler implements SubscriptionRepository {
+class SubscriptionRepositoryImpl with NetworkErrorHandler, CachedRepository implements SubscriptionRepository {
   final SubscriptionRemoteDataSource _remoteDataSource;
-  final NetworkInfo _networkInfo;
 
-  SubscriptionRepositoryImpl({required SubscriptionRemoteDataSource remoteDataSource, required NetworkInfo networkInfo})
-      : _remoteDataSource = remoteDataSource,
-        _networkInfo = networkInfo;
+  // In-memory caches for cacheFirst strategy.
+  List<PlanEntity>? _cachedPlans;
+  SubscriptionEntity? _cachedSubscription;
+  bool _hasSubscriptionCache = false;
+
+  SubscriptionRepositoryImpl({
+    required SubscriptionRemoteDataSource remoteDataSource,
+    // Kept for DI compatibility; not used directly.
+    Object? networkInfo,
+  }) : _remoteDataSource = remoteDataSource;
 
   @override
-  Future<Result<List<PlanEntity>>> getPlans() async {
-    if (!await _networkInfo.isConnected) {
-      return const Failure(NetworkFailure(message: 'No internet connection'));
-    }
-    try {
-      final plans = await _remoteDataSource.fetchPlans();
-      return Success(plans);
-    } on AppException catch (e) {
-      return Failure(mapExceptionToFailure(e));
-    } catch (e) {
-      return Failure(UnknownFailure(message: e.toString()));
-    }
+  Future<Result<List<PlanEntity>>> getPlans({
+    CacheStrategy strategy = CacheStrategy.cacheFirst,
+  }) async {
+    return executeWithStrategy<List<PlanEntity>>(
+      strategy: strategy,
+      fetchFromNetwork: _remoteDataSource.fetchPlans,
+      readFromCache: () async => _cachedPlans,
+      writeToCache: (plans) async => _cachedPlans = plans,
+    );
   }
 
   @override
   Future<Result<SubscriptionEntity?>> getActiveSubscription() async {
-    if (!await _networkInfo.isConnected) {
-      return const Success(null);
+    // Manual cacheFirst: nullable T is incompatible with CachedRepository
+    // (which uses null to signal cache miss).
+    if (_hasSubscriptionCache) {
+      return Success(_cachedSubscription);
     }
     try {
-      final subscription = await _remoteDataSource.fetchActiveSubscription();
-      return Success(subscription);
+      final sub = await _remoteDataSource.fetchActiveSubscription();
+      _cachedSubscription = sub;
+      _hasSubscriptionCache = true;
+      return Success(sub);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e) {
@@ -48,11 +56,11 @@ class SubscriptionRepositoryImpl with NetworkErrorHandler implements Subscriptio
 
   @override
   Future<Result<SubscriptionEntity>> subscribe(String planId, {String? paymentMethod}) async {
-    if (!await _networkInfo.isConnected) {
-      return const Failure(NetworkFailure(message: 'No internet connection'));
-    }
     try {
       final subscription = await _remoteDataSource.createSubscription(planId, paymentMethod: paymentMethod);
+      // Invalidate caches on mutation.
+      _cachedSubscription = null;
+      _hasSubscriptionCache = false;
       return Success(subscription);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
@@ -63,11 +71,11 @@ class SubscriptionRepositoryImpl with NetworkErrorHandler implements Subscriptio
 
   @override
   Future<Result<void>> cancelSubscription(String subscriptionId) async {
-    if (!await _networkInfo.isConnected) {
-      return const Failure(NetworkFailure(message: 'No internet connection'));
-    }
     try {
       await _remoteDataSource.cancelSubscription(subscriptionId);
+      // Invalidate caches on mutation.
+      _cachedSubscription = null;
+      _hasSubscriptionCache = false;
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));

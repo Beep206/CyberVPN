@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -24,7 +25,9 @@ class MockServerRepository implements ServerRepository {
   }
 
   @override
-  Future<Result<List<ServerEntity>>> getServers() async {
+  Future<Result<List<ServerEntity>>> getServers({
+    CacheStrategy strategy = CacheStrategy.staleWhileRevalidate,
+  }) async {
     return Success(List.from(_servers));
   }
 

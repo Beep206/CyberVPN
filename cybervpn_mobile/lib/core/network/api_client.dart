@@ -62,11 +62,7 @@ class ApiClient {
     }
 
     if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (obj) => AppLogger.debug(obj.toString()),
-      ));
+      _dio.interceptors.add(_RedactedLogInterceptor());
     }
   }
 
@@ -145,5 +141,48 @@ class ApiClient {
       default:
         return ServerException(message: e.message ?? 'Unknown error');
     }
+  }
+}
+
+/// Debug-only log interceptor that redacts sensitive data.
+///
+/// Masks Authorization headers and suppresses response bodies for
+/// auth endpoints that return tokens.
+class _RedactedLogInterceptor extends Interceptor {
+  static const _sensitiveEndpoints = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/token'];
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final headers = Map<String, dynamic>.from(options.headers);
+    if (headers.containsKey('Authorization')) {
+      headers['Authorization'] = 'Bearer ***REDACTED***';
+    }
+    AppLogger.debug(
+      '→ ${options.method} ${options.uri}',
+      category: 'http',
+      data: {'headers': headers},
+    );
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+    final path = response.requestOptions.path;
+    final isSensitive = _sensitiveEndpoints.any(path.contains);
+    AppLogger.debug(
+      '← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}',
+      category: 'http',
+      data: isSensitive ? {'body': '***REDACTED***'} : null,
+    );
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    AppLogger.debug(
+      '✗ ${err.type.name} ${err.requestOptions.method} ${err.requestOptions.uri}',
+      category: 'http',
+    );
+    handler.next(err);
   }
 }
