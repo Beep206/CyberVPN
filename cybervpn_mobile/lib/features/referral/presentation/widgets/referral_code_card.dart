@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/widgets/referral_qr_widget.dart';
 
 // ---------------------------------------------------------------------------
@@ -40,22 +41,24 @@ class ReferralCodeCard extends ConsumerWidget {
 
     await Clipboard.setData(ClipboardData(text: referralCode));
     if (context.mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Referral code copied!'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.referralCodeCopied),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  Future<void> _onShare(WidgetRef ref) async {
+  Future<void> _onShare(BuildContext context, WidgetRef ref) async {
     final haptics = ref.read(hapticServiceProvider);
     unawaited(haptics.impact());
 
+    final l10n = AppLocalizations.of(context);
     await share_plus.Share.share(
-      'Join CyberVPN with my referral link: $referralLink',
+      l10n.referralShareMessage(referralLink),
     );
   }
 
@@ -64,6 +67,7 @@ class ReferralCodeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
 
     return Card(
@@ -74,7 +78,7 @@ class ReferralCodeCard extends ConsumerWidget {
           children: [
             // Section title
             Text(
-              'Your Referral Code',
+              l10n.referralCodeLabel,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -111,14 +115,14 @@ class ReferralCodeCard extends ConsumerWidget {
                   IconButton(
                     key: const Key('btn_copy_code'),
                     icon: const Icon(Icons.copy_outlined),
-                    tooltip: 'Copy code',
+                    tooltip: l10n.referralCopyCode,
                     onPressed: () => _onCopy(context, ref),
                   ),
                   IconButton(
                     key: const Key('btn_share_code'),
                     icon: const Icon(Icons.share_outlined),
-                    tooltip: 'Share',
-                    onPressed: () => _onShare(ref),
+                    tooltip: l10n.commonShare,
+                    onPressed: () => _onShare(context, ref),
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
@@ -56,6 +57,8 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     // Listen to purchase state changes to auto-advance steps.
     ref.listen<AsyncValue<SubscriptionState>>(subscriptionProvider,
         (previous, next) {
@@ -76,7 +79,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complete Purchase'),
+        title: Text(l10n.subscriptionCompletePurchase),
         leading: _currentStep <= 1
             ? const BackButton()
             : const SizedBox.shrink(),
@@ -89,6 +92,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
   }
 
   Widget _buildStep() {
+    final l10n = AppLocalizations.of(context);
     return switch (_currentStep) {
       0 => _ReviewStep(
           key: const ValueKey('review'),
@@ -113,7 +117,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
       _ => _ErrorStep(
           key: const ValueKey('error'),
           message: ref.read(subscriptionProvider).value?.purchaseError ??
-              'An error occurred',
+              l10n.errorOccurred,
           onRetry: () {
             ref.read(subscriptionProvider.notifier).clearPurchaseState();
             setState(() => _currentStep = 1);
@@ -124,8 +128,9 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
 
   void _startPurchase() {
     if (_selectedPaymentMethod == null) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a payment method')),
+        SnackBar(content: Text(l10n.subscriptionSelectPaymentMethodSnack)),
       );
       return;
     }
@@ -153,6 +158,7 @@ class _ReviewStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -162,7 +168,7 @@ class _ReviewStep extends StatelessWidget {
           Icon(Icons.receipt_long, size: 48, color: colorScheme.primary),
           const SizedBox(height: 16),
           Text(
-            'Review Your Order',
+            l10n.subscriptionReviewYourOrder,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -179,20 +185,26 @@ class _ReviewStep extends StatelessWidget {
                 children: [
                   Text(plan.name, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  _InfoRow(label: 'Duration', value: '${plan.durationDays} days'),
                   _InfoRow(
-                    label: 'Traffic',
-                    value: plan.trafficLimitGb > 0
-                        ? '${plan.trafficLimitGb} GB'
-                        : 'Unlimited',
+                    label: l10n.subscriptionDurationLabel,
+                    value: l10n.subscriptionDurationDays(plan.durationDays),
                   ),
-                  _InfoRow(label: 'Devices', value: '${plan.maxDevices}'),
+                  _InfoRow(
+                    label: l10n.subscriptionTrafficLabel,
+                    value: plan.trafficLimitGb > 0
+                        ? l10n.subscriptionTrafficGb(plan.trafficLimitGb)
+                        : l10n.subscriptionUnlimited,
+                  ),
+                  _InfoRow(
+                    label: l10n.subscriptionDevicesLabel,
+                    value: '${plan.maxDevices}',
+                  ),
                   const Divider(height: 24),
                   // Price
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Total', style: theme.textTheme.titleMedium),
+                      Text(l10n.subscriptionTotal, style: theme.textTheme.titleMedium),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -225,7 +237,7 @@ class _ReviewStep extends StatelessWidget {
 
           FilledButton(
             onPressed: onContinue,
-            child: const Text('Continue to Payment'),
+            child: Text(l10n.subscriptionContinueToPayment),
           ),
         ],
       ),
@@ -279,13 +291,14 @@ class _PaymentStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Select Payment Method',
+            l10n.subscriptionSelectPaymentMethod,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -302,12 +315,12 @@ class _PaymentStep extends StatelessWidget {
 
           FilledButton(
             onPressed: selectedMethod != null ? onPay : null,
-            child: const Text('Pay Now'),
+            child: Text(l10n.subscriptionPayNow),
           ),
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: onBack,
-            child: const Text('Back'),
+            child: Text(l10n.commonBack),
           ),
         ],
       ),
@@ -325,6 +338,7 @@ class _ProcessingStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -336,12 +350,12 @@ class _ProcessingStep extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Processing payment...',
+            l10n.subscriptionProcessing,
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Please do not close the app.',
+            l10n.subscriptionDoNotCloseApp,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -370,6 +384,7 @@ class _SuccessStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -379,14 +394,14 @@ class _SuccessStep extends StatelessWidget {
           Icon(Icons.check_circle, size: 72, color: colorScheme.primary),
           const SizedBox(height: 24),
           Text(
-            'Subscription Activated!',
+            l10n.subscriptionActivated,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            'You are now subscribed to ${plan.name}.',
+            l10n.subscriptionActivatedMessage(plan.name),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -394,7 +409,7 @@ class _SuccessStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${plan.durationDays} days of secure VPN access',
+            l10n.subscriptionSecureVpnAccess(plan.durationDays),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -403,7 +418,7 @@ class _SuccessStep extends StatelessWidget {
           FilledButton.icon(
             onPressed: onDone,
             icon: const Icon(Icons.vpn_key),
-            label: const Text('Start Using VPN'),
+            label: Text(l10n.subscriptionStartUsingVpn),
           ),
         ],
       ),
@@ -429,6 +444,7 @@ class _ErrorStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -438,7 +454,7 @@ class _ErrorStep extends StatelessWidget {
           Icon(Icons.error_outline, size: 72, color: colorScheme.error),
           const SizedBox(height: 24),
           Text(
-            'Payment Failed',
+            l10n.subscriptionPaymentFailed,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.error,
@@ -454,7 +470,7 @@ class _ErrorStep extends StatelessWidget {
           FilledButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh),
-            label: const Text('Try Again'),
+            label: Text(l10n.subscriptionTryAgain),
           ),
         ],
       ),

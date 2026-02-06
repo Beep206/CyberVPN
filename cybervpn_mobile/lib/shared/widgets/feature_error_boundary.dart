@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// An error boundary that catches errors in its child subtree and displays a
@@ -181,6 +182,7 @@ class _ErrorFallbackView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Material(
       color: theme.colorScheme.surface,
@@ -198,7 +200,7 @@ class _ErrorFallbackView extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.md),
                 Text(
-                  'Something went wrong',
+                  l10n.errorSomethingWentWrong,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -206,7 +208,7 @@ class _ErrorFallbackView extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.sm),
                 Text(
-                  'The $featureName feature encountered an error.',
+                  l10n.errorFeatureCrashed(featureName),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -216,7 +218,7 @@ class _ErrorFallbackView extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  label: Text(l10n.retry),
                 ),
                 const SizedBox(height: Spacing.sm),
                 _ReportButton(
@@ -258,6 +260,8 @@ class _ReportButtonState extends State<_ReportButton> {
   Widget build(BuildContext context) {
     final reported = widget.reported;
 
+    final l10n = AppLocalizations.of(context);
+
     return OutlinedButton.icon(
       onPressed: reported || _sending ? null : _onPressed,
       icon: _sending
@@ -267,7 +271,7 @@ class _ReportButtonState extends State<_ReportButton> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Icon(reported ? Icons.check : Icons.bug_report_outlined),
-      label: Text(reported ? 'Reported' : 'Report'),
+      label: Text(reported ? l10n.errorReported : l10n.errorReport),
     );
   }
 }

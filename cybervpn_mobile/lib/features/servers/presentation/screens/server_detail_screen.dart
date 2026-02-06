@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/widgets/ping_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
@@ -52,10 +53,12 @@ class ServerDetailScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final l10n = AppLocalizations.of(context);
+
     if (server == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Server')),
-        body: const Center(child: Text('Server not found')),
+        appBar: AppBar(title: Text(l10n.serverSingle)),
+        body: Center(child: Text(l10n.serverNotFound)),
       );
     }
 
@@ -109,7 +112,7 @@ class ServerDetailScreen extends ConsumerWidget {
             // ----- Info Cards -----
             _InfoRow(
               icon: Icons.dns_outlined,
-              label: 'Address',
+              label: l10n.serverDetailAddress,
               value: '${server.address}:${server.port}',
             ),
             const SizedBox(height: 12),
@@ -117,7 +120,7 @@ class ServerDetailScreen extends ConsumerWidget {
             // Protocol badge
             _InfoRow(
               icon: Icons.shield_outlined,
-              label: 'Protocol',
+              label: l10n.serverDetailProtocol,
               trailing: _ProtocolChip(protocol: server.protocol),
             ),
             const SizedBox(height: 12),
@@ -127,8 +130,8 @@ class ServerDetailScreen extends ConsumerWidget {
               icon: Icons.circle,
               iconColor: server.isAvailable ? Colors.green : Colors.red,
               iconSize: 12,
-              label: 'Status',
-              value: server.isAvailable ? 'Online' : 'Offline',
+              label: l10n.serverDetailStatus,
+              value: server.isAvailable ? l10n.serverDetailOnline : l10n.serverDetailOffline,
             ),
             const SizedBox(height: 12),
 
@@ -139,15 +142,15 @@ class ServerDetailScreen extends ConsumerWidget {
                 child: _InfoRow(
                   icon: Icons.workspace_premium,
                   iconColor: Colors.amber.shade600,
-                  label: 'Tier',
-                  value: 'Premium',
+                  label: l10n.serverDetailTier,
+                  value: l10n.serverDetailPremium,
                 ),
               ),
 
             const Divider(height: 32),
 
             // ----- Latency -----
-            const _SectionTitle(title: 'Latency'),
+            _SectionTitle(title: l10n.serverDetailLatency),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -155,7 +158,7 @@ class ServerDetailScreen extends ConsumerWidget {
                 PingIndicator(latencyMs: server.ping),
                 const SizedBox(width: 12),
                 Text(
-                  server.ping != null ? '${server.ping} ms' : 'Not tested',
+                  server.ping != null ? l10n.serverPingMs(server.ping!) : l10n.serverDetailNotTested,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: _latencyColor(server.ping),
@@ -166,7 +169,7 @@ class ServerDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // ----- Load -----
-            const _SectionTitle(title: 'Server Load'),
+            _SectionTitle(title: l10n.serverDetailServerLoad),
             const SizedBox(height: 8),
             Text(
               '$loadPercent%',
@@ -188,10 +191,10 @@ class ServerDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // ----- Uptime (estimated) -----
-            const _SectionTitle(title: 'Uptime'),
+            _SectionTitle(title: l10n.serverDetailUptime),
             const SizedBox(height: 8),
             Text(
-              server.isAvailable ? '99.9%' : 'N/A',
+              server.isAvailable ? l10n.serverDetailUptimeValue : l10n.serverDetailUptimeNA,
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: server.isAvailable
@@ -214,7 +217,7 @@ class ServerDetailScreen extends ConsumerWidget {
                     : null,
                 icon: const Icon(Icons.power_settings_new, size: 24),
                 label: Text(
-                  server.isAvailable ? 'Connect' : 'Unavailable',
+                  server.isAvailable ? l10n.connect : l10n.serverDetailUnavailable,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

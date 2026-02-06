@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_app_bar.dart';
 
@@ -108,9 +109,10 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
     final logs = AppLogger.exportLogs();
     if (logs.isEmpty) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No logs to export'),
+          SnackBar(
+            content: Text(l10n.logViewerNoLogsToExport),
             backgroundColor: CyberColors.darkBg,
           ),
         );
@@ -125,29 +127,30 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
   }
 
   Future<void> _clearLogs() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: CyberColors.darkBg,
-        title: const Text(
-          'Clear All Logs?',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.logViewerClearAllTitle,
+          style: const TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'This action cannot be undone',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          l10n.logViewerClearCannotUndo,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
               foregroundColor: Colors.red,
             ),
-            child: const Text('Confirm'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),
@@ -158,8 +161,8 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
       setState(() {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logs cleared successfully'),
+          SnackBar(
+            content: Text(l10n.logViewerClearedSuccess),
             backgroundColor: CyberColors.matrixGreen,
           ),
         );
@@ -169,13 +172,14 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final filteredLogs = _getFilteredLogs();
     final totalCount = AppLogger.entryCount;
 
     return Scaffold(
       backgroundColor: CyberColors.deepNavy,
       appBar: CyberAppBar(
-        title: 'Log Viewer',
+        title: l10n.logViewerTitle,
         transparent: true,
         actions: [
           IconButton(
@@ -183,7 +187,7 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
               _autoScroll ? Icons.vertical_align_bottom : Icons.lock_open,
               color: _autoScroll ? CyberColors.neonCyan : Colors.white54,
             ),
-            tooltip: 'Auto-scroll',
+            tooltip: l10n.logViewerAutoScroll,
             onPressed: () {
               setState(() {
                 _autoScroll = !_autoScroll;
@@ -195,12 +199,12 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.share),
-            tooltip: 'Export Logs',
+            tooltip: l10n.logViewerExportButton,
             onPressed: _exportLogs,
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: 'Clear Logs',
+            tooltip: l10n.logViewerClearButton,
             onPressed: _clearLogs,
           ),
         ],
@@ -223,7 +227,7 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
                 ),
                 const SizedBox(width: Spacing.xs),
                 Text(
-                  '$totalCount total entries',
+                  l10n.logViewerTotalEntries(totalCount),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -233,7 +237,7 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
                 if (filteredLogs.length != totalCount) ...[
                   const SizedBox(width: Spacing.sm),
                   Text(
-                    '• ${filteredLogs.length} filtered',
+                    '\u2022 ${l10n.logViewerFiltered(filteredLogs.length)}',
                     style: TextStyle(
                       color: CyberColors.neonCyan.withValues(alpha: 0.8),
                       fontSize: 12,
@@ -252,7 +256,7 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Search logs...',
+                hintText: l10n.logViewerSearchHint,
                 hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                 prefixIcon: Icon(
                   Icons.search,
@@ -299,34 +303,34 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               children: [
                 _FilterChip(
-                  label: 'ALL',
+                  label: l10n.logViewerFilterAll,
                   isSelected: _selectedLevel == 'ALL',
                   onSelected: () => setState(() => _selectedLevel = 'ALL'),
                 ),
                 const SizedBox(width: Spacing.sm),
                 _FilterChip(
-                  label: 'DEBUG',
+                  label: l10n.logViewerFilterDebug,
                   isSelected: _selectedLevel == 'DEBUG',
                   color: Colors.grey,
                   onSelected: () => setState(() => _selectedLevel = 'DEBUG'),
                 ),
                 const SizedBox(width: Spacing.sm),
                 _FilterChip(
-                  label: 'INFO',
+                  label: l10n.logViewerFilterInfo2,
                   isSelected: _selectedLevel == 'INFO',
                   color: CyberColors.neonCyan,
                   onSelected: () => setState(() => _selectedLevel = 'INFO'),
                 ),
                 const SizedBox(width: Spacing.sm),
                 _FilterChip(
-                  label: 'WARNING',
+                  label: l10n.logViewerFilterWarning2,
                   isSelected: _selectedLevel == 'WARNING',
                   color: Colors.orange,
                   onSelected: () => setState(() => _selectedLevel = 'WARNING'),
                 ),
                 const SizedBox(width: Spacing.sm),
                 _FilterChip(
-                  label: 'ERROR',
+                  label: l10n.logViewerFilterError2,
                   isSelected: _selectedLevel == 'ERROR',
                   color: Colors.red,
                   onSelected: () => setState(() => _selectedLevel = 'ERROR'),
@@ -352,8 +356,8 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
                         const SizedBox(height: Spacing.md),
                         Text(
                           totalCount == 0
-                              ? 'No logs available'
-                              : 'No logs match filters',
+                              ? l10n.logViewerNoLogsAvailable
+                              : l10n.logViewerNoLogsMatchFilters,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.3),
                             fontSize: 14,

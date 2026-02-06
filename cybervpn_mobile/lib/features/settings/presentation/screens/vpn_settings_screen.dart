@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
@@ -70,24 +71,23 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
   Future<bool> _showKillSwitchWarning() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enable Kill Switch?'),
-        content: const Text(
-          'When enabled, all internet traffic will be blocked if the VPN '
-          'connection drops unexpectedly. This protects your privacy but '
-          'may temporarily prevent internet access.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Enable'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final dialogL10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(dialogL10n.settingsKillSwitchDialogTitle),
+          content: Text(dialogL10n.settingsKillSwitchDialogContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(dialogL10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(dialogL10n.settingsKillSwitchDialogEnable),
+            ),
+          ],
+        );
+      },
     );
     return confirmed ?? false;
   }
@@ -97,10 +97,11 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncSettings = ref.watch(settingsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VPN Settings'),
+        title: Text(l10n.settingsVpn),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -121,11 +122,11 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
         children: [
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text('Failed to load settings', style: theme.textTheme.bodyLarge),
+          Text(AppLocalizations.of(context).settingsLoadError, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context).retry),
           ),
         ],
       ),
@@ -173,9 +174,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildProtocolSection(AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return SettingsSection(
-      title: 'Protocol Preference',
+      title: l10n.settingsVpnProtocolPreference,
       children: [
         for (final protocol in PreferredProtocol.values)
           SettingsTile.radio(
@@ -193,21 +195,22 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildAutoConnectSection(AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return SettingsSection(
-      title: 'Auto-Connect',
+      title: l10n.settingsAutoConnectLabel,
       children: [
         SettingsTile.toggle(
           key: const Key('toggle_auto_connect_launch'),
-          title: 'Auto-connect on launch',
-          subtitle: 'Connect to VPN when the app starts',
+          title: l10n.settingsAutoConnectOnLaunchLabel,
+          subtitle: l10n.settingsAutoConnectOnLaunchDescription,
           value: settings.autoConnectOnLaunch,
           onChanged: (_) => notifier.toggleAutoConnect(),
         ),
         SettingsTile.toggle(
           key: const Key('toggle_auto_connect_wifi'),
-          title: 'Auto-connect on untrusted WiFi',
-          subtitle: 'Automatically connect when joining open networks',
+          title: l10n.settingsAutoConnectUntrustedWifiLabel,
+          subtitle: l10n.settingsAutoConnectUntrustedWifiDescription,
           value: settings.autoConnectUntrustedWifi,
           onChanged: (_) => notifier.toggleAutoConnectUntrustedWifi(),
         ),
@@ -215,10 +218,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
         if (settings.autoConnectUntrustedWifi)
           SettingsTile.navigation(
             key: const Key('nav_trusted_networks'),
-            title: 'Manage trusted networks',
+            title: l10n.settingsManageTrustedNetworks,
             subtitle: settings.trustedWifiNetworks.isEmpty
-                ? 'No networks marked as trusted'
-                : '${settings.trustedWifiNetworks.length} trusted network${settings.trustedWifiNetworks.length == 1 ? '' : 's'}',
+                ? l10n.settingsNoTrustedNetworks
+                : l10n.settingsTrustedNetworkCount(settings.trustedWifiNetworks.length),
             onTap: () => Navigator.of(context).pushNamed('/settings/trusted-wifi'),
           ),
       ],
@@ -229,14 +232,15 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildSecuritySection(AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return SettingsSection(
-      title: 'Security',
+      title: l10n.settingsSecuritySection,
       children: [
         SettingsTile.toggle(
           key: const Key('toggle_kill_switch'),
-          title: 'Kill switch',
-          subtitle: 'Block traffic if VPN disconnects unexpectedly',
+          title: l10n.settingsKillSwitchLabel,
+          subtitle: l10n.settingsKillSwitchSubtitle,
           value: settings.killSwitch,
           onChanged: (dynamic newValue) async {
             final bool enabled = newValue as bool;
@@ -255,9 +259,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildDnsSection(AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return SettingsSection(
-      title: 'DNS Provider',
+      title: l10n.settingsDnsProviderSection,
       children: [
         for (final dns in DnsProvider.values)
           SettingsTile.radio(
@@ -281,10 +286,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
             child: TextField(
               key: const Key('input_custom_dns'),
               controller: _customDnsController,
-              decoration: const InputDecoration(
-                labelText: 'Custom DNS address',
-                hintText: 'e.g. 1.0.0.1',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.settingsDnsCustomAddressLabel,
+                hintText: l10n.settingsDnsCustomAddressHint,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.url,
               onSubmitted: (value) => notifier.updateDns(
@@ -301,15 +306,16 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildAdvancedSection(AppSettings settings) {
     final notifier = ref.read(settingsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return SettingsSection(
-      title: 'Advanced',
+      title: l10n.settingsAdvancedSection,
       children: [
         // Split tunneling toggle
         SettingsTile.toggle(
           key: const Key('toggle_split_tunneling'),
-          title: 'Split tunneling',
-          subtitle: 'Choose which apps use the VPN',
+          title: l10n.settingsSplitTunnelingLabel,
+          subtitle: l10n.settingsSplitTunnelingSubtitle,
           value: settings.splitTunneling,
           onChanged: (_) => notifier.toggleSplitTunneling(),
         ),
@@ -317,16 +323,16 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
         // MTU selection
         SettingsTile.radio(
           key: const Key('radio_mtu_auto'),
-          title: 'MTU: Auto',
-          subtitle: 'Automatically determine optimal packet size',
+          title: l10n.settingsMtuAutoLabel,
+          subtitle: l10n.settingsMtuAutoDescription,
           value: MtuMode.auto,
           groupValue: settings.mtuMode,
           onChanged: (_) => notifier.updateMtu(mode: MtuMode.auto),
         ),
         SettingsTile.radio(
           key: const Key('radio_mtu_manual'),
-          title: 'MTU: Manual',
-          subtitle: 'Set a custom MTU value',
+          title: l10n.settingsMtuManualLabel,
+          subtitle: l10n.settingsMtuManualDescription,
           value: MtuMode.manual,
           groupValue: settings.mtuMode,
           onChanged: (_) => notifier.updateMtu(mode: MtuMode.manual),
@@ -342,10 +348,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
             child: TextField(
               key: const Key('input_mtu_value'),
               controller: _mtuController,
-              decoration: const InputDecoration(
-                labelText: 'MTU value',
-                hintText: '1280-1500',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.settingsMtuValueLabel,
+                hintText: l10n.settingsMtuValueHint,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
               onSubmitted: (value) {
@@ -369,6 +375,7 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
 
   Widget _buildConnectionNotice() {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -385,7 +392,7 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              'Changes apply on next connection',
+              l10n.settingsChangesApplyOnNextConnection,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

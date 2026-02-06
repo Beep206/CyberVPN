@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 
 // ---------------------------------------------------------------------------
@@ -20,32 +21,34 @@ class ReferralStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     final cards = <_StatItem>[
       _StatItem(
         key: const Key('stat_total_invited'),
         icon: Icons.group_outlined,
-        label: 'Total Invited',
+        label: l10n.referralStatsTotalInvited,
         value: '${stats.totalInvited}',
         accentColor: CyberColors.neonCyan,
       ),
       _StatItem(
         key: const Key('stat_paid_users'),
         icon: Icons.verified_outlined,
-        label: 'Paid Users',
+        label: l10n.referralStatsPaidUsers,
         value: '${stats.paidUsers}',
         accentColor: CyberColors.matrixGreen,
       ),
       _StatItem(
         key: const Key('stat_points'),
         icon: Icons.stars_outlined,
-        label: 'Points',
+        label: l10n.referralStatsPoints,
         value: stats.pointsEarned.toStringAsFixed(0),
         accentColor: const Color(0xFFFFAB40),
       ),
       _StatItem(
         key: const Key('stat_balance'),
         icon: Icons.account_balance_wallet_outlined,
-        label: 'Balance',
+        label: l10n.referralStatsBalance,
         value: '\$${stats.balance.toStringAsFixed(2)}',
         accentColor: CyberColors.neonPink,
       ),

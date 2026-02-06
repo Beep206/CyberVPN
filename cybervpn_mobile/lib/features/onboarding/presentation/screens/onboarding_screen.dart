@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/onboarding_page_widget.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/page_indicator.dart';
@@ -72,7 +73,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: asyncState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('Error: $error')),
+          error: (error, _) => Center(
+            child: Text('${AppLocalizations.of(context).errorOccurred}: $error'),
+          ),
           data: (state) => _buildContent(context, state),
         ),
       ),
@@ -80,9 +83,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildContent(BuildContext context, OnboardingState state) {
+    final l10n = AppLocalizations.of(context);
     final pages = state.pages;
     if (pages.isEmpty) {
-      return const Center(child: Text('No onboarding pages'));
+      return Center(child: Text(l10n.onboardingNoPages));
     }
 
     return Column(
@@ -102,7 +106,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ignoring: state.isLastPage,
                 child: TextButton(
                   onPressed: _handleSkip,
-                  child: const Text('Skip'),
+                  child: Text(l10n.onboardingSkip),
                 ),
               ),
             ),
@@ -150,7 +154,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _handleGetStarted,
-                          child: const Text('Get Started'),
+                          child: Text(l10n.onboardingGetStarted),
                         ),
                       )
                     : const SizedBox(

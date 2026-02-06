@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connect_button.dart';
@@ -48,7 +49,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
       FeatureTooltip.show(
         context: context,
         targetKey: _speedIndicatorKey,
-        message: 'Monitor your real-time speed here',
+        message: AppLocalizations.of(context).connectionMonitorSpeedTooltip,
         position: TooltipPosition.top,
         onDismiss: () async {
           await _tooltipService.markTooltipAsShown(tooltipId);
@@ -126,6 +127,9 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final label = _statusLabel(vpnState, l10n);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -134,10 +138,10 @@ class _TopBar extends StatelessWidget {
           _StatusDot(vpnState: vpnState),
           const SizedBox(width: 8),
           Semantics(
-            label: 'Connection status: ${_statusLabel(vpnState)}',
+            label: l10n.a11yConnectionStatus(label),
             readOnly: true,
             child: Text(
-              _statusLabel(vpnState),
+              label,
               style: TextStyle(
                 color: _statusColor(vpnState),
                 fontSize: 13,
@@ -154,14 +158,14 @@ class _TopBar extends StatelessWidget {
     );
   }
 
-  static String _statusLabel(VpnConnectionState state) {
+  static String _statusLabel(VpnConnectionState state, AppLocalizations l10n) {
     return switch (state) {
-      VpnDisconnected() => 'Not Protected',
-      VpnConnecting() => 'Connecting...',
-      VpnConnected() => 'Protected',
-      VpnDisconnecting() => 'Disconnecting...',
-      VpnReconnecting() => 'Reconnecting...',
-      VpnError() => 'Connection Error',
+      VpnDisconnected() => l10n.connectionStatusNotProtected,
+      VpnConnecting() => l10n.connecting,
+      VpnConnected() => l10n.connectionStatusProtected,
+      VpnDisconnecting() => l10n.disconnecting,
+      VpnReconnecting() => l10n.connectionStatusReconnecting,
+      VpnError() => l10n.connectionStatusConnectionError,
     };
   }
 
@@ -210,9 +214,11 @@ class _SubscriptionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     // TODO: Wire to a real subscription provider when available.
     return Semantics(
-      label: 'Premium subscription active',
+      label: l10n.a11yPremiumSubscriptionActive,
       readOnly: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -237,7 +243,7 @@ class _SubscriptionBadge extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'Premium',
+              l10n.connectionPremium,
               style: TextStyle(
                 color: Colors.cyan.shade300,
                 fontSize: 11,
@@ -350,12 +356,14 @@ class _SessionSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _SummaryItem(
           icon: Icons.timer_outlined,
-          label: 'Duration',
+          label: l10n.connectionDuration,
           value: duration,
         ),
         Container(
@@ -365,7 +373,7 @@ class _SessionSummaryRow extends StatelessWidget {
         ),
         _SummaryItem(
           icon: Icons.data_usage,
-          label: 'Data Used',
+          label: l10n.dataUsed,
           value: totalUsage,
         ),
       ],

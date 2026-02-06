@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
@@ -92,9 +93,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open URL'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).settingsCouldNotOpenUrl),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -141,10 +142,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncSettings = ref.watch(settingsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -158,6 +160,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildError(BuildContext context, Object error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -165,11 +168,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text('Failed to load settings', style: theme.textTheme.bodyLarge),
+          Text(l10n.settingsLoadError, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -179,15 +182,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ── Data state ───────────────────────────────────────────────────────────
 
   Widget _buildBody(BuildContext context, AppSettings settings) {
+    final l10n = AppLocalizations.of(context);
+
     return ListView(
       children: [
         // --- VPN Settings ---
         SettingsSection(
-          title: 'VPN Settings',
+          title: l10n.settingsVpn,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_vpn_settings'),
-              title: 'VPN Settings',
+              title: l10n.settingsVpn,
               subtitle: _protocolLabel(settings.preferredProtocol),
               leading: const Icon(Icons.vpn_key_outlined),
               onTap: () => context.push('/settings/vpn'),
@@ -197,11 +202,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- Appearance ---
         SettingsSection(
-          title: 'Appearance',
+          title: l10n.settingsAppearance,
           children: [
             SettingsTile.navigation(
               key: _appearanceTileKey,
-              title: 'Appearance',
+              title: l10n.settingsAppearance,
               subtitle:
                   '${_themeModeLabel(settings.themeMode)} / ${_brightnessLabel(settings.brightness)}',
               leading: const Icon(Icons.palette_outlined),
@@ -212,11 +217,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- Language ---
         SettingsSection(
-          title: 'Language',
+          title: l10n.language,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_language'),
-              title: 'Language',
+              title: l10n.language,
               subtitle: _localeName(settings.locale),
               leading: const Icon(Icons.language_outlined),
               onTap: () => context.push('/settings/language'),
@@ -226,13 +231,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- Notifications ---
         SettingsSection(
-          title: 'Notifications',
+          title: l10n.settingsNotifications,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_notifications'),
-              title: 'Notifications',
-              subtitle:
-                  '${_enabledNotificationCount(settings)} of 4 enabled',
+              title: l10n.settingsNotifications,
+              subtitle: l10n.settingsNotificationCountEnabled(
+                  _enabledNotificationCount(settings)),
               leading: const Icon(Icons.notifications_outlined),
               onTap: () => context.push('/settings/notifications'),
             ),
@@ -241,12 +246,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- Account & Security ---
         SettingsSection(
-          title: 'Account & Security',
+          title: l10n.settingsAccountSecurity,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_account_security'),
-              title: 'Account & Security',
-              subtitle: 'Profile, password, 2FA',
+              title: l10n.settingsAccountSecurity,
+              subtitle: l10n.settingsAccountSecuritySubtitle,
               leading: const Icon(Icons.security_outlined),
               onTap: () => context.push('/profile'),
             ),
@@ -255,17 +260,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- About ---
         SettingsSection(
-          title: 'About',
+          title: l10n.settingsAbout,
           children: [
-            const SettingsTile.info(
-              key: Key('tile_about_version'),
-              title: 'Version',
+            SettingsTile.info(
+              key: const Key('tile_about_version'),
+              title: l10n.settingsVersionLabel,
               subtitle: '1.0.0',
-              leading: Icon(Icons.info_outline),
+              leading: const Icon(Icons.info_outline),
             ),
             SettingsTile.navigation(
               key: const Key('tile_about_licenses'),
-              title: 'Open-source licenses',
+              title: l10n.settingsOpenSourceLicenses,
               leading: const Icon(Icons.description_outlined),
               onTap: () => showLicensePage(
                 context: context,
@@ -275,7 +280,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             SettingsTile.navigation(
               key: const Key('tile_about_privacy'),
-              title: 'Privacy Policy',
+              title: l10n.privacyPolicy,
               leading: const Icon(Icons.privacy_tip_outlined),
               onTap: () => _launchUrl(
                 '${EnvironmentConfig.webBaseUrl}/privacy-policy',
@@ -283,7 +288,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             SettingsTile.navigation(
               key: const Key('tile_about_delete_account'),
-              title: 'Delete Account',
+              title: l10n.profileDeleteAccount,
               leading: const Icon(Icons.delete_forever_outlined),
               onTap: () => _launchUrl(
                 '${EnvironmentConfig.webBaseUrl}/delete-account',
@@ -294,12 +299,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // --- Debug & Diagnostics ---
         SettingsSection(
-          title: 'Debug & Diagnostics',
+          title: l10n.settingsDebugDiagnostics,
           children: [
             SettingsTile.navigation(
               key: const Key('tile_debug'),
-              title: 'Debug & About',
-              subtitle: 'App version, logs, developer options',
+              title: l10n.settingsDebugAbout,
+              subtitle: l10n.settingsDebugAboutSubtitle,
               leading: const Icon(Icons.bug_report_outlined),
               onTap: () => context.push('/settings/debug'),
             ),

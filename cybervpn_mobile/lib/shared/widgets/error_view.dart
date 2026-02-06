@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+
 class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
@@ -21,7 +23,7 @@ class ErrorView extends StatelessWidget {
             Text(message, style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: 24),
-              ElevatedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+              ElevatedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: Text(AppLocalizations.of(context).retry)),
             ],
           ],
         ),

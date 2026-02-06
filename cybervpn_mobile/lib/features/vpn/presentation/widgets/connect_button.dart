@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
 /// A large circular button (120dp diameter) that toggles VPN connection.
@@ -58,7 +59,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     // Drive pulse animation based on state.
     _syncAnimation(vpnState);
 
-    final config = _resolveConfig(vpnState);
+    final config = _resolveConfig(vpnState, AppLocalizations.of(context));
 
     return RepaintBoundary(
       child: AnimatedBuilder(
@@ -90,8 +91,9 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     VpnConnectionState vpnState,
     _ButtonConfig config,
   ) {
-    final semanticLabel = _getSemanticLabel(vpnState);
-    final semanticHint = _getSemanticHint(vpnState);
+    final l10n = AppLocalizations.of(context);
+    final semanticLabel = _getSemanticLabel(vpnState, l10n);
+    final semanticHint = _getSemanticHint(vpnState, l10n);
     final isEnabled = _isButtonEnabled(vpnState);
 
     return Semantics(
@@ -143,24 +145,24 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     );
   }
 
-  String _getSemanticLabel(VpnConnectionState vpnState) {
+  String _getSemanticLabel(VpnConnectionState vpnState, AppLocalizations l10n) {
     return switch (vpnState) {
-      VpnDisconnected() => 'Connect to VPN',
-      VpnConnecting() => 'Connecting to VPN',
-      VpnConnected() => 'Disconnect from VPN',
-      VpnDisconnecting() => 'Disconnecting from VPN',
-      VpnReconnecting() => 'Reconnecting to VPN',
-      VpnError() => 'Retry VPN connection',
+      VpnDisconnected() => l10n.a11yConnectToVpn,
+      VpnConnecting() => l10n.a11yConnectingToVpn,
+      VpnConnected() => l10n.a11yDisconnectFromVpn,
+      VpnDisconnecting() => l10n.a11yDisconnectingFromVpn,
+      VpnReconnecting() => l10n.a11yReconnectingToVpn,
+      VpnError() => l10n.a11yRetryVpnConnection,
     };
   }
 
-  String _getSemanticHint(VpnConnectionState vpnState) {
+  String _getSemanticHint(VpnConnectionState vpnState, AppLocalizations l10n) {
     return switch (vpnState) {
-      VpnDisconnected() => 'Tap to connect to the VPN server',
-      VpnConnected() => 'Tap to disconnect from the VPN server',
-      VpnError() => 'Tap to retry the connection',
+      VpnDisconnected() => l10n.a11yTapToConnect,
+      VpnConnected() => l10n.a11yTapToDisconnect,
+      VpnError() => l10n.a11yTapToRetry,
       VpnConnecting() || VpnDisconnecting() || VpnReconnecting() =>
-        'Please wait, connection in progress',
+        l10n.a11yPleaseWaitConnectionInProgress,
     };
   }
 
@@ -236,36 +238,36 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     _previousState = currentState;
   }
 
-  _ButtonConfig _resolveConfig(VpnConnectionState vpnState) {
+  _ButtonConfig _resolveConfig(VpnConnectionState vpnState, AppLocalizations l10n) {
     return switch (vpnState) {
       VpnDisconnected() => _ButtonConfig(
           color: Colors.grey.shade600,
-          label: 'Connect',
+          label: l10n.connect,
           icon: Icons.power_settings_new,
         ),
       VpnConnecting() => _ButtonConfig(
           color: Colors.blue.shade600,
-          label: 'Connecting...',
+          label: l10n.connecting,
           icon: Icons.sync,
         ),
       VpnConnected() => _ButtonConfig(
           color: Colors.green.shade600,
-          label: 'Connected',
+          label: l10n.connected,
           icon: Icons.shield,
         ),
       VpnDisconnecting() => _ButtonConfig(
           color: Colors.orange.shade600,
-          label: 'Disconnecting...',
+          label: l10n.disconnecting,
           icon: Icons.power_off,
         ),
       VpnReconnecting() => _ButtonConfig(
           color: Colors.orange.shade700,
-          label: 'Reconnecting...',
+          label: l10n.connectionStatusReconnecting,
           icon: Icons.sync_problem,
         ),
       VpnError() => _ButtonConfig(
           color: Colors.red.shade600,
-          label: 'Retry',
+          label: l10n.retry,
           icon: Icons.refresh,
         ),
     };

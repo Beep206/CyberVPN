@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/widgets/referral_code_card.dart';
@@ -32,16 +33,17 @@ class ReferralDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final asyncReferral = ref.watch(referralProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Referrals'),
+        title: Text(l10n.referralTitle),
         actions: [
           IconButton(
             key: const Key('btn_refresh_referral'),
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.commonRefresh,
             onPressed: () {
               unawaited(ref.read(referralProvider.notifier).checkAvailability());
             },
@@ -78,6 +80,7 @@ class _AvailableBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final code = state.referralCode ?? '';
     final referralLink = '${ReferralDashboardScreen._referralBaseUrl}$code';
 
@@ -100,7 +103,7 @@ class _AvailableBody extends StatelessWidget {
         // -- Stats grid --
         if (state.stats != null) ...[
           Text(
-            'Your Stats',
+            l10n.referralYourStats,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -115,7 +118,7 @@ class _AvailableBody extends StatelessWidget {
 
         // -- Recent referrals --
         Text(
-          'Recent Referrals',
+          l10n.referralRecentReferrals,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -156,17 +159,19 @@ class _ReferralEntryTile extends StatelessWidget {
     };
   }
 
-  String _statusLabel(ReferralStatus status) {
+  String _statusLabel(BuildContext context, ReferralStatus status) {
+    final l10n = AppLocalizations.of(context);
     return switch (status) {
-      ReferralStatus.completed => 'Completed',
-      ReferralStatus.active => 'Active',
-      ReferralStatus.pending => 'Pending',
+      ReferralStatus.completed => l10n.referralCompleted,
+      ReferralStatus.active => l10n.referralActive,
+      ReferralStatus.pending => l10n.referralPending,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
     final statusColor = _statusColor(entry.status);
 
@@ -188,7 +193,7 @@ class _ReferralEntryTile extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          'Joined ${DateFormat.yMMMd().format(entry.joinDate)}',
+          l10n.referralJoinedDate(DateFormat.yMMMd().format(entry.joinDate)),
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -203,7 +208,7 @@ class _ReferralEntryTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.sm),
           ),
           child: Text(
-            _statusLabel(entry.status),
+            _statusLabel(context, entry.status),
             style: theme.textTheme.labelSmall?.copyWith(
               color: statusColor,
               fontWeight: FontWeight.w600,
@@ -223,6 +228,7 @@ class _EmptyReferralsPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
 
     return Center(
@@ -239,14 +245,14 @@ class _EmptyReferralsPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.sm),
             Text(
-              'No referrals yet',
+              l10n.referralNoReferralsYet,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: Spacing.xs),
             Text(
-              'Share your code to start earning rewards!',
+              l10n.referralShareCodePrompt,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant.withAlpha(180),
               ),
@@ -273,6 +279,7 @@ class _ComingSoonBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
 
     return Center(
@@ -299,7 +306,7 @@ class _ComingSoonBody extends StatelessWidget {
 
             // Headline
             Text(
-              'Referral Program Coming Soon',
+              l10n.referralComingSoonTitle,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -309,8 +316,7 @@ class _ComingSoonBody extends StatelessWidget {
 
             // Subtitle
             Text(
-              'Invite friends and earn rewards when they subscribe. '
-              'Stay tuned for our upcoming referral program!',
+              l10n.referralComingSoonDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -323,15 +329,15 @@ class _ComingSoonBody extends StatelessWidget {
               key: const Key('btn_notify_me'),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("We'll notify you when referrals launch!"),
-                    duration: Duration(seconds: 3),
+                  SnackBar(
+                    content: Text(l10n.referralNotifyMeConfirmation),
+                    duration: const Duration(seconds: 3),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
               icon: const Icon(Icons.notifications_active_outlined),
-              label: const Text('Notify Me'),
+              label: Text(l10n.referralNotifyMe),
             ),
           ],
         ),
@@ -353,6 +359,7 @@ class _ErrorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Padding(
@@ -375,7 +382,7 @@ class _ErrorBody extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ],

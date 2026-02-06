@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/language_repository.dart';
 import 'package:cybervpn_mobile/features/settings/domain/models/language_item.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -57,10 +58,11 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
   Widget build(BuildContext context) {
     final currentLocale = ref.watch(currentLocaleProvider);
     final filtered = _filteredLanguages();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Language'),
+        title: Text(l10n.language),
       ),
       body: Column(
         children: [
@@ -74,7 +76,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
               key: const Key('language_search_field'),
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search language...',
+                hintText: l10n.settingsLanguageSearchHint,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -121,6 +123,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -133,7 +136,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
           ),
           const SizedBox(height: Spacing.sm),
           Text(
-            'No languages found',
+            l10n.settingsNoLanguagesFound,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

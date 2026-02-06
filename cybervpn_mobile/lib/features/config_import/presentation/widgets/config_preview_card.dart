@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 
 /// Card widget for previewing imported VPN configuration details.
@@ -63,6 +64,7 @@ class ConfigPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -89,7 +91,7 @@ class ConfigPreviewCard extends StatelessWidget {
             _buildDetailRow(
               context,
               icon: Icons.dns,
-              label: 'Address',
+              label: l10n.configImportAddressLabel,
               value: '${config.serverAddress}:${config.port}',
             ),
             const SizedBox(height: 12),
@@ -109,7 +111,7 @@ class ConfigPreviewCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Protocol',
+                        l10n.configImportProtocolLabel,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -131,7 +133,7 @@ class ConfigPreviewCard extends StatelessWidget {
               _buildDetailRow(
                 context,
                 icon: Icons.swap_horiz,
-                label: 'Transport',
+                label: l10n.configImportTransportLabel,
                 value: transportType!.toUpperCase(),
               ),
             ],
@@ -142,7 +144,7 @@ class ConfigPreviewCard extends StatelessWidget {
               _buildDetailRow(
                 context,
                 icon: Icons.lock,
-                label: 'Security',
+                label: l10n.configImportSecurityLabel,
                 value: securityType!.toUpperCase(),
               ),
             ],
@@ -156,7 +158,7 @@ class ConfigPreviewCard extends StatelessWidget {
                 // Cancel button (secondary)
                 TextButton(
                   onPressed: onCancel,
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 const SizedBox(width: 12),
 
@@ -168,7 +170,7 @@ class ConfigPreviewCard extends StatelessWidget {
                     foregroundColor: colorScheme.onPrimary,
                     minimumSize: const Size(120, 48),
                   ),
-                  child: const Text('Add Server'),
+                  child: Text(l10n.configImportAddServerButton),
                 ),
               ],
             ),

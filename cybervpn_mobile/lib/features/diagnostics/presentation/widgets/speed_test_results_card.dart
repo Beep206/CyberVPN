@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,8 @@ class SpeedTestResultsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF111827),
@@ -89,7 +92,9 @@ class SpeedTestResultsCard extends StatelessWidget {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.compare_arrows,
-                      label: showComparison ? 'Hide Compare' : 'Compare',
+                      label: showComparison
+                          ? l10n.speedTestHideCompare
+                          : l10n.speedTestCompare,
                       onTap: onCompare,
                     ),
                   ),
@@ -97,7 +102,7 @@ class SpeedTestResultsCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.share_outlined,
-                    label: 'Share',
+                    label: l10n.commonShare,
                     onTap: onShare,
                   ),
                 ),
@@ -127,6 +132,7 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final timeStr = _formatTime(testedAt);
 
     return Padding(
@@ -141,7 +147,7 @@ class _CardHeader extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              'Speed Test Results',
+              l10n.speedTestResult,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
@@ -182,6 +188,8 @@ class _VpnBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -196,7 +204,7 @@ class _VpnBadge extends StatelessWidget {
         ),
       ),
       child: Text(
-        active ? 'VPN ON' : 'VPN OFF',
+        active ? l10n.speedTestVpnOn : l10n.speedTestVpnOff,
         style: TextStyle(
           color: active ? CyberColors.matrixGreen : Colors.grey,
           fontSize: 9,
@@ -223,6 +231,8 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Row(
       children: [
         Expanded(
@@ -230,7 +240,7 @@ class _MetricsGrid extends StatelessWidget {
             children: [
               _MetricTile(
                 icon: Icons.download,
-                label: 'Download',
+                label: l10n.downloadSpeed,
                 value: result.downloadMbps.toStringAsFixed(1),
                 unit: 'Mbps',
                 color: CyberColors.matrixGreen,
@@ -242,7 +252,7 @@ class _MetricsGrid extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               _MetricTile(
                 icon: Icons.network_ping,
-                label: 'Latency',
+                label: l10n.speedTestLatency,
                 value: result.latencyMs.toString(),
                 unit: 'ms',
                 color: CyberColors.neonCyan,
@@ -260,7 +270,7 @@ class _MetricsGrid extends StatelessWidget {
             children: [
               _MetricTile(
                 icon: Icons.upload,
-                label: 'Upload',
+                label: l10n.uploadSpeed,
                 value: result.uploadMbps.toStringAsFixed(1),
                 unit: 'Mbps',
                 color: CyberColors.neonPink,
@@ -272,7 +282,7 @@ class _MetricsGrid extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               _MetricTile(
                 icon: Icons.swap_vert,
-                label: 'Jitter',
+                label: l10n.speedTestJitter,
                 value: result.jitterMs.toString(),
                 unit: 'ms',
                 color: Colors.amber,

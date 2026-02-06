@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 
@@ -41,16 +42,16 @@ class NotificationCenterScreen extends ConsumerWidget {
   // ---- Helpers --------------------------------------------------------------
 
   /// Returns a human-readable relative timestamp string.
-  String _formatTimestamp(DateTime receivedAt) {
+  String _formatTimestamp(DateTime receivedAt, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(receivedAt);
 
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
-    return '${(diff.inDays / 30).floor()}mo ago';
+    if (diff.inMinutes < 1) return l10n.notificationTimeJustNow;
+    if (diff.inMinutes < 60) return l10n.notificationTimeMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.notificationTimeHoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.notificationTimeDaysAgo(diff.inDays);
+    if (diff.inDays < 30) return l10n.notificationTimeWeeksAgo((diff.inDays / 7).floor());
+    return l10n.notificationTimeMonthsAgo((diff.inDays / 30).floor());
   }
 
   /// Returns the icon for a given [NotificationType].
@@ -64,10 +65,11 @@ class NotificationCenterScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(notificationProvider);
     final unreadCount = ref.watch(unreadCountProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.notificationCenterTitle),
         actions: [
           if (unreadCount > 0)
             TextButton(
@@ -75,7 +77,7 @@ class NotificationCenterScreen extends ConsumerWidget {
               onPressed: () {
                 unawaited(ref.read(notificationProvider.notifier).markAllAsRead());
               },
-              child: const Text('Mark all read'),
+              child: Text(l10n.notificationCenterMarkAllRead),
             ),
         ],
       ),
@@ -96,6 +98,7 @@ class NotificationCenterScreen extends ConsumerWidget {
 
   Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       child: Column(
@@ -103,12 +106,12 @@ class NotificationCenterScreen extends ConsumerWidget {
         children: [
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text('Failed to load notifications',
+          Text(l10n.notificationCenterLoadError,
               style: theme.textTheme.bodyLarge),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(notificationProvider),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -120,6 +123,7 @@ class NotificationCenterScreen extends ConsumerWidget {
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Center(
       key: const Key('empty_state'),
@@ -133,14 +137,14 @@ class NotificationCenterScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'No notifications yet',
+            l10n.notificationCenterEmpty,
             style: theme.textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'When you receive notifications, they will appear here.',
+            l10n.notificationCenterEmptyDescription,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
@@ -158,6 +162,8 @@ class NotificationCenterScreen extends ConsumerWidget {
     WidgetRef ref,
     List<AppNotification> notifications,
   ) {
+    final l10n = AppLocalizations.of(context);
+
     return ListView.builder(
       itemCount: notifications.length,
       padding: const EdgeInsets.only(bottom: 80),
@@ -167,7 +173,7 @@ class NotificationCenterScreen extends ConsumerWidget {
           key: ValueKey(notification.id),
           notification: notification,
           icon: _iconForType(notification.type),
-          timestamp: _formatTimestamp(notification.receivedAt),
+          timestamp: _formatTimestamp(notification.receivedAt, l10n),
           onTap: () => _onNotificationTap(context, ref, notification),
           onDismissed: () => _onNotificationDismissed(context, ref, notification),
         );
@@ -197,10 +203,11 @@ class NotificationCenterScreen extends ConsumerWidget {
     AppNotification notification,
   ) {
     unawaited(ref.read(notificationProvider.notifier).delete(notification.id));
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Notification dismissed'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.notificationCenterDismissed),
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/parsed_config.dart';
@@ -106,7 +107,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
       case ParseFailure(:final message):
         AppLogger.debug('Invalid QR: $message');
-        _showErrorSnackbar('Not a valid VPN configuration');
+        _showErrorSnackbar(AppLocalizations.of(context).configImportNotValidConfig);
         _isProcessing = false;
     }
   }
@@ -194,13 +195,14 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     if (imported != null) {
       // Trigger success haptic when config is successfully imported.
       final haptics = ref.read(hapticServiceProvider);
       unawaited(haptics.success());
 
       navigator.pop();
-      _showErrorSnackbar('Server added: ${imported.name}');
+      _showErrorSnackbar(l10n.configImportServerAdded(imported.name));
       // Brief delay so the user sees the message before popping.
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) rootNavigator.pop();
@@ -210,7 +212,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
       final haptics = ref.read(hapticServiceProvider);
       unawaited(haptics.error());
 
-      _showErrorSnackbar('Failed to add server');
+      _showErrorSnackbar(l10n.configImportFailedToAddServer);
       navigator.pop();
       _resumeScanner();
     }
@@ -232,15 +234,15 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Scan QR Code',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          AppLocalizations.of(context).configImportScanQrButton,
+          style: const TextStyle(color: Colors.white),
         ),
         actions: [
           IconButton(
             key: const Key('qr_camera_switch'),
             icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
-            tooltip: 'Switch camera',
+            tooltip: AppLocalizations.of(context).configImportSwitchCamera,
             onPressed: _switchCamera,
           ),
         ],
@@ -388,10 +390,10 @@ class _ScanOverlay extends StatelessWidget {
               left: 0,
               right: 0,
               top: viewfinderRect.bottom + 24,
-              child: const Text(
-                'Point your camera at a VPN QR code',
+              child: Text(
+                AppLocalizations.of(context).configImportPointCamera,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
                 ),
@@ -467,18 +469,17 @@ class _ScannerErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final String title;
     final String subtitle;
 
     switch (error.errorCode) {
       case MobileScannerErrorCode.permissionDenied:
-        title = 'Camera Permission Required';
-        subtitle =
-            'Please grant camera access in your device settings to scan '
-            'QR codes.';
+        title = l10n.configImportCameraPermissionRequired;
+        subtitle = l10n.configImportCameraPermissionMessage;
       default:
-        title = 'Camera Error';
-        subtitle = error.errorDetails?.message ?? 'Failed to start camera.';
+        title = l10n.configImportCameraError;
+        subtitle = error.errorDetails?.message ?? l10n.configImportCameraStartFailed;
     }
 
     return Container(
@@ -513,7 +514,7 @@ class _ScannerErrorView extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ],
           ),
@@ -547,6 +548,7 @@ class _ConfigPreviewSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return SafeArea(
       child: Padding(
@@ -570,7 +572,7 @@ class _ConfigPreviewSheet extends StatelessWidget {
 
             // Title
             Text(
-              'VPN Configuration Found',
+              l10n.configImportConfigFound,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -585,15 +587,15 @@ class _ConfigPreviewSheet extends StatelessWidget {
                     // Server name
                     _DetailRow(
                       icon: Icons.dns_outlined,
-                      label: 'Name',
-                      value: config.remark ?? 'Unknown Server',
+                      label: l10n.configImportNameLabel,
+                      value: config.remark ?? l10n.configImportUnknownServer,
                     ),
                     const SizedBox(height: 12),
 
                     // Protocol badge
                     _DetailRow(
                       icon: Icons.shield_outlined,
-                      label: 'Protocol',
+                      label: l10n.configImportProtocolLabel,
                       value: config.protocol.toUpperCase(),
                     ),
                     const SizedBox(height: 12),
@@ -601,7 +603,7 @@ class _ConfigPreviewSheet extends StatelessWidget {
                     // Address
                     _DetailRow(
                       icon: Icons.language_outlined,
-                      label: 'Address',
+                      label: l10n.configImportAddressLabel,
                       value: '${config.serverAddress}:${config.port}',
                     ),
                   ],
@@ -615,7 +617,7 @@ class _ConfigPreviewSheet extends StatelessWidget {
               key: const Key('qr_add_server_button'),
               onPressed: onAddServer,
               icon: const Icon(Icons.add),
-              label: const Text('Add Server'),
+              label: Text(l10n.configImportAddServerButton),
             ),
             const SizedBox(height: 8),
 
@@ -624,7 +626,7 @@ class _ConfigPreviewSheet extends StatelessWidget {
               key: const Key('qr_scan_another_button'),
               onPressed: onScanAnother,
               icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan Another'),
+              label: Text(l10n.configImportScanAnother),
             ),
           ],
         ),

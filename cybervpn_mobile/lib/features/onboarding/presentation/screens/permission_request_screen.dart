@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/permission_request_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/permission_card.dart';
 
@@ -31,6 +32,7 @@ class PermissionRequestScreen extends ConsumerWidget {
 
   Widget _buildError(BuildContext context, String error) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(Spacing.xl),
@@ -44,7 +46,7 @@ class PermissionRequestScreen extends ConsumerWidget {
             ),
             const SizedBox(height: Spacing.lg),
             Text(
-              'Something went wrong',
+              l10n.errorGeneric,
               style: theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
@@ -59,7 +61,7 @@ class PermissionRequestScreen extends ConsumerWidget {
             const SizedBox(height: Spacing.xl),
             ElevatedButton(
               onPressed: () => context.go('/login'),
-              child: const Text('Continue Anyway'),
+              child: Text(l10n.permissionContinueAnyway),
             ),
           ],
         ),
@@ -74,6 +76,7 @@ class PermissionRequestScreen extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     // If all permissions are processed, show completion view
     if (state.isComplete) {
@@ -96,7 +99,7 @@ class PermissionRequestScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: Spacing.lg),
                 Text(
-                  'Set Up Permissions',
+                  l10n.permissionSetupTitle,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -105,7 +108,7 @@ class PermissionRequestScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: Spacing.md),
                 Text(
-                  'CyberVPN needs a few permissions to keep you secure',
+                  l10n.permissionSetupSubtitle,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -116,18 +119,16 @@ class PermissionRequestScreen extends ConsumerWidget {
                 // Permission cards
                 PermissionCard(
                   icon: Icons.vpn_lock,
-                  title: 'VPN Connection',
-                  description:
-                      'CyberVPN creates a secure tunnel to protect your data',
+                  title: l10n.permissionVpnTitle,
+                  description: l10n.permissionVpnDescription,
                   isGranted: state.vpnPermissionGranted,
                   isProcessing: state.isRequestingVpnPermission,
                 ),
                 const SizedBox(height: Spacing.md),
                 PermissionCard(
                   icon: Icons.notifications_active,
-                  title: 'Notifications',
-                  description:
-                      'Stay informed about connection status and security alerts',
+                  title: l10n.permissionNotificationsTitle,
+                  description: l10n.permissionNotificationsDescription,
                   isGranted: state.notificationPermissionGranted,
                   isProcessing: state.isRequestingNotificationPermission,
                 ),
@@ -143,7 +144,9 @@ class PermissionRequestScreen extends ConsumerWidget {
                   ? () => _handleRequestPermissions(context, ref)
                   : null,
               child: Text(
-                state.hasRequestedAnyPermission ? 'Continue' : 'Grant Permissions',
+                state.hasRequestedAnyPermission
+                    ? l10n.commonContinue
+                    : l10n.permissionGrantButton,
               ),
             ),
           ),
@@ -159,6 +162,7 @@ class PermissionRequestScreen extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     final allGranted = state.allPermissionsGranted;
     final someDenied = state.hasRequestedAnyPermission && !allGranted;
@@ -175,7 +179,7 @@ class PermissionRequestScreen extends ConsumerWidget {
           ),
           const SizedBox(height: Spacing.lg),
           Text(
-            allGranted ? 'All Set!' : 'Almost Ready',
+            allGranted ? l10n.permissionAllSet : l10n.permissionAlmostReady,
             style: theme.textTheme.headlineMedium?.copyWith(
               color: colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -185,8 +189,8 @@ class PermissionRequestScreen extends ConsumerWidget {
           const SizedBox(height: Spacing.md),
           Text(
             someDenied
-                ? 'You can enable these permissions later in Settings if needed'
-                : 'Your app is configured and ready to use',
+                ? l10n.permissionEnableLater
+                : l10n.permissionAppReady,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -197,14 +201,14 @@ class PermissionRequestScreen extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => _handleContinue(context, ref),
-              child: const Text('Get Started'),
+              child: Text(l10n.onboardingGetStarted),
             ),
           ),
           if (someDenied) ...[
             const SizedBox(height: Spacing.md),
             TextButton(
               onPressed: () => _handleOpenSettings(context),
-              child: const Text('Open Settings'),
+              child: Text(l10n.permissionOpenSettings),
             ),
           ],
         ],
@@ -230,9 +234,10 @@ class PermissionRequestScreen extends ConsumerWidget {
     // TODO: Implement navigation to app settings
     // This would use a package like app_settings or url_launcher
     // to open the device's app settings page
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please enable permissions in your device Settings'),
+      SnackBar(
+        content: Text(l10n.permissionEnableInSettings),
       ),
     );
   }

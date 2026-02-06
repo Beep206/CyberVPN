@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 
 // ---------------------------------------------------------------------------
@@ -38,10 +39,10 @@ class PlanCard extends StatelessWidget {
 
   // ---- Tag helpers --------------------------------------------------------
 
-  String? get _tagLabel {
-    if (plan.isPopular) return 'Popular';
-    if (plan.duration == PlanDuration.yearly) return 'Best Value';
-    if (plan.isTrial) return 'Free Trial';
+  String? _tagLabel(AppLocalizations l10n) {
+    if (plan.isPopular) return l10n.subscriptionPopular;
+    if (plan.duration == PlanDuration.yearly) return l10n.subscriptionBestValue;
+    if (plan.isTrial) return l10n.subscriptionFreeTrial;
     return null;
   }
 
@@ -56,18 +57,18 @@ class PlanCard extends StatelessWidget {
 
   // ---- Feature list -------------------------------------------------------
 
-  List<String> get _featureLines {
+  List<String> _featureLines(AppLocalizations l10n) {
     final lines = <String>[];
 
     // Traffic limit.
     if (plan.trafficLimitGb > 0) {
-      lines.add('${plan.trafficLimitGb} GB traffic');
+      lines.add(l10n.subscriptionTrafficGbFeature(plan.trafficLimitGb));
     } else {
-      lines.add('Unlimited traffic');
+      lines.add(l10n.subscriptionUnlimitedTraffic);
     }
 
     // Device count.
-    lines.add('Up to ${plan.maxDevices} device${plan.maxDevices > 1 ? 's' : ''}');
+    lines.add(l10n.subscriptionUpToDevices(plan.maxDevices));
 
     // Extra features from the entity.
     if (plan.features != null) {
@@ -83,7 +84,8 @@ class PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final tag = _tagLabel;
+    final l10n = AppLocalizations.of(context);
+    final tag = _tagLabel(l10n);
 
     return Card(
       elevation: _isRecommended ? 4 : 1,
@@ -98,7 +100,7 @@ class PlanCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row: name + tag chip ──────────────────────────
+            // -- Header row: name + tag chip --------------------------
             Row(
               children: [
                 Expanded(
@@ -138,8 +140,8 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Feature list ─────────────────────────────────────────
-            ..._featureLines.map(
+            // -- Feature list -----------------------------------------
+            ..._featureLines(l10n).map(
               (feature) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
@@ -163,7 +165,7 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Price display ────────────────────────────────────────
+            // -- Price display ----------------------------------------
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -188,7 +190,7 @@ class PlanCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
-                    '/ ${_durationLabel(plan.duration)}',
+                    _durationLabel(plan.duration, l10n),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -199,7 +201,7 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Duration pills ───────────────────────────────────────
+            // -- Duration pills ---------------------------------------
             Wrap(
               spacing: 6,
               children: [
@@ -212,19 +214,21 @@ class PlanCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Action button ────────────────────────────────────────
+            // -- Action button ----------------------------------------
             SizedBox(
               width: double.infinity,
               child: isCurrentPlan
                   ? OutlinedButton.icon(
                       onPressed: null,
                       icon: const Icon(Icons.check),
-                      label: const Text('Current Plan'),
+                      label: Text(l10n.currentPlan),
                     )
                   : FilledButton(
                       onPressed: onSubscribe,
                       child: Text(
-                        plan.isTrial ? 'Start Free Trial' : 'Subscribe',
+                        plan.isTrial
+                            ? l10n.subscriptionStartFreeTrial
+                            : l10n.subscriptionSubscribeButton,
                       ),
                     ),
             ),
@@ -234,16 +238,16 @@ class PlanCard extends StatelessWidget {
     );
   }
 
-  static String _durationLabel(PlanDuration duration) {
+  static String _durationLabel(PlanDuration duration, AppLocalizations l10n) {
     switch (duration) {
       case PlanDuration.monthly:
-        return 'month';
+        return l10n.subscriptionPerMonth;
       case PlanDuration.quarterly:
-        return '3 months';
+        return l10n.subscriptionPer3Months;
       case PlanDuration.yearly:
-        return 'year';
+        return l10n.subscriptionPerYear;
       case PlanDuration.lifetime:
-        return 'lifetime';
+        return l10n.subscriptionPerLifetime;
     }
   }
 }
