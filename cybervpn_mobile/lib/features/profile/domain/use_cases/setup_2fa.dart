@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -10,7 +11,7 @@ class Setup2FAUseCase {
 
   const Setup2FAUseCase(this._repository);
 
-  Future<Setup2FAResult> call() async {
+  Future<Result<Setup2FAResult>> call() async {
     return _repository.setup2FA();
   }
 }

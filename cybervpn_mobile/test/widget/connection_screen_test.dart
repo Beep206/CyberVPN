@@ -69,6 +69,9 @@ class _FakeVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState>
   Future<void> applyKillSwitchSetting(bool enabled) async {}
 
   @override
+  Future<void> connectToLastOrRecommended() async {}
+
+  @override
   Future<void> connectFromCustomServer(ImportedConfig customServer) async {}
 }
 

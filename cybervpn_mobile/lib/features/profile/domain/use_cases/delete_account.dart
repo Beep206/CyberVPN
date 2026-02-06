@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
 /// Use case for permanently deleting the user's account
@@ -16,7 +17,7 @@ class DeleteAccountUseCase {
   ///
   /// Throws [ArgumentError] if password is empty or totpCode is
   /// required but missing/invalid.
-  Future<void> call({
+  Future<Result<void>> call({
     required String password,
     required bool is2FAEnabled,
     String? totpCode,

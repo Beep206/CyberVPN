@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.dart';
@@ -21,7 +22,12 @@ class AutoReconnectService {
     _retryCount = 0;
     _connectivitySub?.cancel();
     _connectivitySub = _networkInfo.onConnectivityChanged.listen((connected) async {
-      if (connected && _lastConfig != null && !await _repository.isConnected) {
+      final isConnectedResult = await _repository.isConnected;
+      final isCurrentlyConnected = switch (isConnectedResult) {
+        Success(:final data) => data,
+        Failure() => false,
+      };
+      if (connected && _lastConfig != null && !isCurrentlyConnected) {
         await _attemptReconnect();
       }
     });

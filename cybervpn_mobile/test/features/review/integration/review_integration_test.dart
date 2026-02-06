@@ -8,8 +8,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_service.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/features/review/data/services/review_service.dart';
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show sharedPreferencesProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 
 class MockInAppReview extends Mock implements InAppReview {}
 

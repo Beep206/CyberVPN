@@ -1,5 +1,4 @@
-import 'package:cybervpn_mobile/features/quick_setup/presentation/providers/quick_setup_provider.dart'
-    as quick_setup;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/screens/quick_setup_screen.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
@@ -25,7 +24,7 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
-        quick_setup.quick_setup.sharedPreferencesProvider.overrideWithValue(mockPrefs),
+        sharedPreferencesProvider.overrideWithValue(mockPrefs),
         recommendedServerProvider.overrideWith((ref) {
           return recommendedServer;
         }),
@@ -102,7 +101,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            quick_setup.sharedPreferencesProvider.overrideWithValue(mockPrefs),
+            sharedPreferencesProvider.overrideWithValue(mockPrefs),
             recommendedServerProvider.overrideWith((ref) => server),
             vpnConnectionProvider.overrideWith(() => vpnNotifier),
           ],
@@ -147,7 +146,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            quick_setup.sharedPreferencesProvider.overrideWithValue(mockPrefs),
+            sharedPreferencesProvider.overrideWithValue(mockPrefs),
             recommendedServerProvider.overrideWith((ref) => server),
             vpnConnectionProvider.overrideWith(() => vpnNotifier),
           ],
@@ -228,7 +227,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            quick_setup.sharedPreferencesProvider.overrideWithValue(mockPrefs),
+            sharedPreferencesProvider.overrideWithValue(mockPrefs),
             recommendedServerProvider.overrideWith((ref) => server),
             vpnConnectionProvider.overrideWith(() => vpnNotifier),
           ],
@@ -313,7 +312,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            quick_setup.sharedPreferencesProvider.overrideWithValue(mockPrefs),
+            sharedPreferencesProvider.overrideWithValue(mockPrefs),
             recommendedServerProvider.overrideWith((ref) => server),
             vpnConnectionProvider.overrideWith(() => vpnNotifier),
           ],
@@ -338,7 +337,7 @@ void main() {
 // Test VPN Connection Notifier
 // ---------------------------------------------------------------------------
 
-class TestVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
+class TestVpnConnectionNotifier extends VpnConnectionNotifier {
   VpnConnectionState? initialState;
   bool connectCalled = false;
   ServerEntity? lastConnectedServer;
@@ -350,15 +349,26 @@ class TestVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     return initialState ?? const VpnDisconnected();
   }
 
+  @override
   Future<void> connect(ServerEntity server) async {
     connectCalled = true;
     lastConnectedServer = server;
     state = AsyncData(VpnConnecting(server: server));
   }
 
+  @override
   Future<void> disconnect() async {
     state = const AsyncData(VpnDisconnecting());
   }
+
+  @override
+  Future<void> handleNetworkChange(bool isOnline) async {}
+
+  @override
+  Future<void> applyKillSwitchSetting(bool enabled) async {}
+
+  @override
+  Future<void> connectToLastOrRecommended() async {}
 
   void setState(VpnConnectionState newState) {
     state = AsyncData(newState);

@@ -39,6 +39,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/settings_
 import 'package:cybervpn_mobile/features/settings/presentation/screens/trusted_wifi_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans_screen.dart';
+import 'package:cybervpn_mobile/features/splash/presentation/screens/splash_screen.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -147,7 +148,13 @@ CustomTransitionPage<void> _buildFadeTransition({
 ///    `/connection`. Also, consume any pending deep link.
 /// 5. Otherwise -> no redirect.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
   final isAuthenticated = ref.watch(isAuthenticatedProvider);
+
+  // True while the auth subsystem is still performing the initial cached-auth
+  // check. During this window the splash screen should remain visible so the
+  // user does not briefly see login/onboarding before state has settled.
+  final isAuthLoading = authState.isLoading;
 
   // shouldShowOnboardingProvider is a FutureProvider<bool>.
   // While it is still loading we default to `false` (do not show onboarding)
@@ -165,7 +172,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: '/splash',
     debugLogDiagnostics: false,
     observers: [
       ScreenProtectionObserver(),
@@ -176,6 +183,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = path == '/login' || path == '/register';
       final isOnboardingRoute = path == '/onboarding';
       final isQuickSetupRoute = path == '/quick-setup';
+      final isSplashRoute = path == '/splash';
+
+      // -- Splash handling --------------------------------------------------
+      // While the auth subsystem is loading (initial cached-auth check) keep
+      // the user on the splash screen.  Once auth resolves, redirect from
+      // splash into the normal guard chain by falling through below.
+      if (isSplashRoute && isAuthLoading) {
+        return null; // stay on /splash
+      }
+      if (isSplashRoute && !isAuthLoading) {
+        // Auth resolved. Redirect to root so the standard guards below
+        // decide the correct destination (onboarding, login, or connection).
+        return '/';
+      }
 
       // -- Deep link handling -----------------------------------------------
       // Check if the incoming URI is an external deep link.
@@ -573,6 +594,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+
+      // -- Splash route (shown during initial auth resolution) ---------------
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildFadeTransition(
+          state: state,
+          child: const SplashScreen(),
+        ),
       ),
 
       // -- Root redirect ----------------------------------------------------

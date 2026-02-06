@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 
 class RefreshTokenUseCase {
@@ -5,7 +6,7 @@ class RefreshTokenUseCase {
 
   const RefreshTokenUseCase(this._repository);
 
-  Future<String> call({
+  Future<Result<String>> call({
     required String refreshToken,
     required String deviceId,
   }) async {

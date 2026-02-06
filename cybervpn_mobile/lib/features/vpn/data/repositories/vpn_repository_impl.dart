@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/vpn_engine_datasource.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
@@ -13,6 +15,7 @@ class VpnRepositoryImpl implements VpnRepository {
   final VpnEngineDatasource _engine;
   final LocalStorageWrapper _localStorage;
   final SecureStorageWrapper _secureStorage;
+  bool _engineInitialized = false;
 
   // NON-SENSITIVE: VPN config metadata - SharedPreferences is sufficient
   static const String _lastConfigKey = 'last_vpn_config_meta';
@@ -40,24 +43,46 @@ class VpnRepositoryImpl implements VpnRepository {
     _migrateOldConfigsIfNeeded();
   }
 
-  @override
-  Future<void> connect(VpnConfigEntity config) async {
-    // Initialize with app bundle identifiers for iOS Network Extension
+  /// Initializes the VPN engine only once, subsequent calls are no-ops.
+  Future<void> _ensureInitialized() async {
+    if (_engineInitialized) return;
     await _engine.initialize(
       providerBundleIdentifier: 'com.cybervpn.vpnextension',
       groupIdentifier: 'group.com.cybervpn',
     );
-    await _engine.connect(config.configData, remark: config.name);
-    AppLogger.info('VPN connected to ${config.name}');
+    _engineInitialized = true;
   }
 
   @override
-  Future<void> disconnect() async {
-    await _engine.disconnect();
+  Future<Result<void>> connect(VpnConfigEntity config) async {
+    try {
+      await _ensureInitialized();
+      await _engine.connect(config.configData, remark: config.name);
+      AppLogger.info('VPN connected to ${config.name}');
+      return const Success(null);
+    } catch (e) {
+      return Failure(VpnFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<bool> get isConnected async => _engine.isConnected;
+  Future<Result<void>> disconnect() async {
+    try {
+      await _engine.disconnect();
+      return const Success(null);
+    } catch (e) {
+      return Failure(VpnFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<bool>> get isConnected async {
+    try {
+      return Success(_engine.isConnected);
+    } catch (e) {
+      return Failure(VpnFailure(message: e.toString()));
+    }
+  }
 
   @override
   Stream<ConnectionStateEntity> get connectionStateStream {
@@ -72,116 +97,141 @@ class VpnRepositoryImpl implements VpnRepository {
   }
 
   @override
-  Future<VpnConfigEntity?> getLastConfig() async {
-    // NON-SENSITIVE: Read metadata from SharedPreferences
-    final metaJsonStr = await _localStorage.getString(_lastConfigKey);
-    if (metaJsonStr == null) return null;
+  Future<Result<VpnConfigEntity?>> getLastConfig() async {
+    try {
+      // NON-SENSITIVE: Read metadata from SharedPreferences
+      final metaJsonStr = await _localStorage.getString(_lastConfigKey);
+      if (metaJsonStr == null) return const Success(null);
 
-    final meta = jsonDecode(metaJsonStr) as Map<String, dynamic>;
-
-    // SENSITIVE: Read config data from SecureStorage
-    final configData = await _secureStorage.read(key: _lastConfigDataKey);
-    if (configData == null) {
-      AppLogger.warning('VPN config metadata exists but config data is missing');
-      return null;
-    }
-
-    return VpnConfigEntity(
-      id: meta['id'] as String,
-      name: meta['name'] as String,
-      serverAddress: meta['serverAddress'] as String,
-      port: meta['port'] as int,
-      protocol: VpnProtocol.values.firstWhere(
-        (e) => e.name == meta['protocol'],
-        orElse: () => VpnProtocol.vless,
-      ),
-      configData: configData,
-    );
-  }
-
-  @override
-  Future<void> saveConfig(VpnConfigEntity config) async {
-    // NON-SENSITIVE: Store metadata in SharedPreferences
-    await _localStorage.setString(
-      _lastConfigKey,
-      jsonEncode({
-        'id': config.id,
-        'name': config.name,
-        'serverAddress': config.serverAddress,
-        'port': config.port,
-        'protocol': config.protocol.name,
-      }),
-    );
-
-    // SENSITIVE: Store config data in SecureStorage for encryption at rest
-    await _secureStorage.write(
-      key: _lastConfigDataKey,
-      value: config.configData,
-    );
-
-    AppLogger.info('VPN config saved securely for ${config.name}');
-  }
-
-  @override
-  Future<List<VpnConfigEntity>> getSavedConfigs() async {
-    // NON-SENSITIVE: Read metadata list from SharedPreferences
-    final metaJsonStr = await _localStorage.getString(_savedConfigsKey);
-    if (metaJsonStr == null) return [];
-
-    final metaList = jsonDecode(metaJsonStr) as List<dynamic>;
-    final configs = <VpnConfigEntity>[];
-
-    for (final metaItem in metaList) {
-      final meta = metaItem as Map<String, dynamic>;
-      final configId = meta['id'] as String;
+      final meta = jsonDecode(metaJsonStr) as Map<String, dynamic>;
 
       // SENSITIVE: Read config data from SecureStorage
-      final configData = await _secureStorage.read(
-        key: '$_savedConfigDataPrefix$configId',
-      );
-
-      if (configData != null) {
-        configs.add(VpnConfigEntity(
-          id: configId,
-          name: meta['name'] as String,
-          serverAddress: meta['serverAddress'] as String,
-          port: meta['port'] as int,
-          protocol: VpnProtocol.values.firstWhere(
-            (e) => e.name == meta['protocol'],
-            orElse: () => VpnProtocol.vless,
-          ),
-          configData: configData,
-        ));
-      } else {
-        AppLogger.warning('Skipping config $configId: metadata exists but data is missing');
+      final configData = await _secureStorage.read(key: _lastConfigDataKey);
+      if (configData == null) {
+        AppLogger.warning('VPN config metadata exists but config data is missing');
+        return const Success(null);
       }
-    }
 
-    return configs;
+      return Success(VpnConfigEntity(
+        id: meta['id'] as String,
+        name: meta['name'] as String,
+        serverAddress: meta['serverAddress'] as String,
+        port: meta['port'] as int,
+        protocol: VpnProtocol.values.firstWhere(
+          (e) => e.name == meta['protocol'],
+          orElse: () => VpnProtocol.vless,
+        ),
+        configData: configData,
+      ));
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<void> deleteConfig(String id) async {
-    // Get current configs
-    final configs = await getSavedConfigs();
-    configs.removeWhere((c) => c.id == id);
+  Future<Result<void>> saveConfig(VpnConfigEntity config) async {
+    try {
+      // NON-SENSITIVE: Store metadata in SharedPreferences
+      await _localStorage.setString(
+        _lastConfigKey,
+        jsonEncode({
+          'id': config.id,
+          'name': config.name,
+          'serverAddress': config.serverAddress,
+          'port': config.port,
+          'protocol': config.protocol.name,
+        }),
+      );
 
-    // NON-SENSITIVE: Update metadata list in SharedPreferences
-    await _localStorage.setString(
-      _savedConfigsKey,
-      jsonEncode(configs.map((c) => {
-            'id': c.id,
-            'name': c.name,
-            'serverAddress': c.serverAddress,
-            'port': c.port,
-            'protocol': c.protocol.name,
-          }).toList()),
-    );
+      // SENSITIVE: Store config data in SecureStorage for encryption at rest
+      await _secureStorage.write(
+        key: _lastConfigDataKey,
+        value: config.configData,
+      );
 
-    // SENSITIVE: Delete config data from SecureStorage
-    await _secureStorage.delete(key: '$_savedConfigDataPrefix$id');
+      AppLogger.info('VPN config saved securely for ${config.name}');
+      return const Success(null);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
+    }
+  }
 
-    AppLogger.info('VPN config deleted: $id');
+  @override
+  Future<Result<List<VpnConfigEntity>>> getSavedConfigs() async {
+    try {
+      // NON-SENSITIVE: Read metadata list from SharedPreferences
+      final metaJsonStr = await _localStorage.getString(_savedConfigsKey);
+      if (metaJsonStr == null) return const Success([]);
+
+      final metaList = jsonDecode(metaJsonStr) as List<dynamic>;
+      final configs = <VpnConfigEntity>[];
+
+      for (final metaItem in metaList) {
+        final meta = metaItem as Map<String, dynamic>;
+        final configId = meta['id'] as String;
+
+        // SENSITIVE: Read config data from SecureStorage
+        final configData = await _secureStorage.read(
+          key: '$_savedConfigDataPrefix$configId',
+        );
+
+        if (configData != null) {
+          configs.add(VpnConfigEntity(
+            id: configId,
+            name: meta['name'] as String,
+            serverAddress: meta['serverAddress'] as String,
+            port: meta['port'] as int,
+            protocol: VpnProtocol.values.firstWhere(
+              (e) => e.name == meta['protocol'],
+              orElse: () => VpnProtocol.vless,
+            ),
+            configData: configData,
+          ));
+        } else {
+          AppLogger.warning('Skipping config $configId: metadata exists but data is missing');
+        }
+      }
+
+      return Success(configs);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteConfig(String id) async {
+    try {
+      // Get current configs
+      final result = await getSavedConfigs();
+      final List<VpnConfigEntity> configs;
+      switch (result) {
+        case Success(:final data):
+          configs = List<VpnConfigEntity>.from(data);
+        case Failure(:final failure):
+          return Failure(failure);
+      }
+      configs.removeWhere((c) => c.id == id);
+
+      // NON-SENSITIVE: Update metadata list in SharedPreferences
+      await _localStorage.setString(
+        _savedConfigsKey,
+        jsonEncode(configs.map((c) => {
+              'id': c.id,
+              'name': c.name,
+              'serverAddress': c.serverAddress,
+              'port': c.port,
+              'protocol': c.protocol.name,
+            }).toList()),
+      );
+
+      // SENSITIVE: Delete config data from SecureStorage
+      await _secureStorage.delete(key: '$_savedConfigDataPrefix$id');
+
+      AppLogger.info('VPN config deleted: $id');
+      return const Success(null);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
+    }
   }
 
   // ── Migration Logic ──────────────────────────────────────────────────────

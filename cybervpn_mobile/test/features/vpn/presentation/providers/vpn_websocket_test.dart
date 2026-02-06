@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
@@ -33,21 +34,23 @@ class MockVpnRepository implements VpnRepository {
       _stateController.stream;
 
   @override
-  Future<bool> get isConnected async => _isConnected;
+  Future<Result<bool>> get isConnected async => Success(_isConnected);
 
   @override
-  Future<VpnConfigEntity?> getLastConfig() async => _lastConfig;
+  Future<Result<VpnConfigEntity?>> getLastConfig() async => Success(_lastConfig);
 
   @override
-  Future<void> connect(VpnConfigEntity config) async {
+  Future<Result<void>> connect(VpnConfigEntity config) async {
     _isConnected = true;
     _lastConfig = config;
+    return const Success<void>(null);
   }
 
   @override
-  Future<void> disconnect() async {
+  Future<Result<void>> disconnect() async {
     _isConnected = false;
     _lastConfig = null;
+    return const Success<void>(null);
   }
 
   void dispose() {

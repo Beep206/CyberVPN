@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_ds.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_ds.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -21,74 +22,102 @@ class ServerRepositoryImpl with NetworkErrorHandler implements ServerRepository 
         _networkInfo = networkInfo;
 
   @override
-  Future<List<ServerEntity>> getServers() async {
-    final cached = await _localDataSource.getCachedServers();
-    if (cached != null) return await _applyFavorites(cached);
-    if (!await _networkInfo.isConnected) {
-      throw const NetworkFailure(message: 'No internet connection');
+  Future<Result<List<ServerEntity>>> getServers() async {
+    try {
+      final cached = await _localDataSource.getCachedServers();
+      if (cached != null) return Success(await _applyFavorites(cached));
+      if (!await _networkInfo.isConnected) {
+        return const Failure(NetworkFailure(message: 'No internet connection'));
+      }
+      final servers = await _remoteDataSource.fetchServers();
+      await _localDataSource.cacheServers(servers);
+      return Success(await _applyFavorites(servers));
+    } on Exception catch (e) {
+      return Failure(ServerFailure(message: e.toString()));
     }
-    final servers = await _remoteDataSource.fetchServers();
-    await _localDataSource.cacheServers(servers);
-    return await _applyFavorites(servers);
   }
 
   @override
-  Future<ServerEntity> getServerById(String id) async {
-    return _remoteDataSource.fetchServerById(id);
+  Future<Result<ServerEntity>> getServerById(String id) async {
+    try {
+      final server = await _remoteDataSource.fetchServerById(id);
+      return Success(server);
+    } on Exception catch (e) {
+      return Failure(ServerFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<List<ServerEntity>> getServersByCountry(String countryCode) async {
-    final servers = await getServers();
-    return servers.where((s) => s.countryCode == countryCode).toList();
+  Future<Result<List<ServerEntity>>> getServersByCountry(String countryCode) async {
+    final serversResult = await getServers();
+    return serversResult.map(
+      (servers) => servers.where((s) => s.countryCode == countryCode).toList(),
+    );
   }
 
   @override
-  Future<List<ServerEntity>> getFavoriteServers() async {
+  Future<Result<List<ServerEntity>>> getFavoriteServers() async {
     final favoriteIds = await _localDataSource.getFavoriteIds();
-    final servers = await getServers();
-    return servers.where((s) => favoriteIds.contains(s.id)).toList();
+    final serversResult = await getServers();
+    return serversResult.map(
+      (servers) => servers.where((s) => favoriteIds.contains(s.id)).toList(),
+    );
   }
 
   @override
-  Future<void> toggleFavorite(String serverId) async {
-    final favorites = (await _localDataSource.getFavoriteIds()).toList();
-    if (favorites.contains(serverId)) {
-      favorites.remove(serverId);
-    } else {
-      favorites.add(serverId);
+  Future<Result<void>> toggleFavorite(String serverId) async {
+    try {
+      final favorites = (await _localDataSource.getFavoriteIds()).toList();
+      if (favorites.contains(serverId)) {
+        favorites.remove(serverId);
+      } else {
+        favorites.add(serverId);
+      }
+      await _localDataSource.cacheFavorites(favorites);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
     }
-    await _localDataSource.cacheFavorites(favorites);
   }
 
   @override
-  Future<int> pingServer(String serverAddress) async {
+  Future<Result<int>> pingServer(String serverAddress) async {
     try {
       final stopwatch = Stopwatch()..start();
       final result = await InternetAddress.lookup(serverAddress);
       stopwatch.stop();
-      if (result.isNotEmpty) return stopwatch.elapsedMilliseconds;
-      return -1;
+      if (result.isNotEmpty) return Success(stopwatch.elapsedMilliseconds);
+      return const Success(-1);
     } catch (_) {
-      return -1;
+      return const Success(-1);
     }
   }
 
   @override
-  Future<ServerEntity> getBestServer() async {
-    final servers = await getServers();
+  Future<Result<ServerEntity>> getBestServer() async {
+    final serversResult = await getServers();
+    return switch (serversResult) {
+      Failure(:final failure) => Failure(failure),
+      Success(:final data) => await _findBestServer(data),
+    };
+  }
+
+  Future<Result<ServerEntity>> _findBestServer(List<ServerEntity> servers) async {
     final available = servers.where((s) => s.isAvailable && !s.isPremium).toList();
-    if (available.isEmpty) throw const ServerFailure(message: 'No servers available');
+    if (available.isEmpty) {
+      return const Failure(ServerFailure(message: 'No servers available'));
+    }
     int bestPing = 999999;
     ServerEntity best = available.first;
     for (final server in available.take(5)) {
-      final ping = await pingServer(server.address);
+      final pingResult = await pingServer(server.address);
+      final ping = pingResult.dataOrNull ?? -1;
       if (ping > 0 && ping < bestPing) {
         bestPing = ping;
         best = server;
       }
     }
-    return best;
+    return Success(best);
   }
 
   Future<List<ServerEntity>> _applyFavorites(List<ServerEntity> servers) async {

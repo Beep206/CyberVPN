@@ -5,6 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/device/device_service.dart';
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
@@ -57,38 +58,65 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Checks whether a cached session exists and returns the appropriate state.
   ///
   /// Performance target: < 200ms for cached auth check.
+  /// Hard timeout of 3 seconds prevents the splash screen from hanging
+  /// indefinitely when the repository is unreachable.
   Future<AuthState> _checkCachedAuth() async {
     final profiler = AppProfilers.authCheck();
     profiler.start();
 
     try {
-      final isAuthed = await _repo.isAuthenticated();
-      profiler.checkpoint('token_check');
-
-      if (!isAuthed) {
-        profiler.stop();
-        return const AuthUnauthenticated();
-      }
-
-      final user = await _repo.getCurrentUser();
-      profiler.checkpoint('user_fetch');
-
-      if (user != null) {
-        _setSentryUser(user);
-
-        // Schedule proactive token refresh for existing session (non-blocking)
-        _scheduleTokenRefresh();
-
-        profiler.stop();
-        return AuthAuthenticated(user);
-      }
-
-      profiler.stop();
-      return const AuthUnauthenticated();
+      final result = await _performCachedAuthCheck(profiler)
+          .timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          AppLogger.warning(
+            'Cached auth check timed out after 3 s, treating as unauthenticated',
+            category: 'auth',
+          );
+          profiler.stop();
+          return const AuthUnauthenticated();
+        },
+      );
+      return result;
     } catch (e) {
       profiler.stop();
       return AuthError(e.toString());
     }
+  }
+
+  /// Inner implementation extracted so [_checkCachedAuth] can apply a
+  /// [Future.timeout] wrapper around the entire operation.
+  Future<AuthState> _performCachedAuthCheck(PerformanceProfiler profiler) async {
+    final authResult = await _repo.isAuthenticated();
+    profiler.checkpoint('token_check');
+
+    final isAuthed = switch (authResult) {
+      Success(:final data) => data,
+      Failure() => false,
+    };
+
+    if (!isAuthed) {
+      profiler.stop();
+      return const AuthUnauthenticated();
+    }
+
+    final userResult = await _repo.getCurrentUser();
+    profiler.checkpoint('user_fetch');
+
+    final user = userResult.dataOrNull;
+
+    if (user != null) {
+      _setSentryUser(user);
+
+      // Schedule proactive token refresh for existing session (non-blocking)
+      _scheduleTokenRefresh();
+
+      profiler.stop();
+      return AuthAuthenticated(user);
+    }
+
+    profiler.stop();
+    return const AuthUnauthenticated();
   }
 
   /// Authenticate with [email] and [password].
@@ -100,23 +128,29 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Get device info for the login request
       final deviceInfo = await _deviceService.getDeviceInfo();
 
-      final (user, _) = await _repo.login(
+      final result = await _repo.login(
         email: email,
         password: password,
         device: deviceInfo,
         rememberMe: rememberMe,
       );
-      _setSentryUser(user);
-      state = AsyncValue.data(AuthAuthenticated(user));
+      switch (result) {
+        case Success(:final data):
+          final (user, _) = data;
+          _setSentryUser(user);
+          state = AsyncValue.data(AuthAuthenticated(user));
 
-      // Schedule proactive token refresh (non-blocking)
-      _scheduleTokenRefresh();
+          // Schedule proactive token refresh (non-blocking)
+          _scheduleTokenRefresh();
 
-      // Register FCM token after successful login (non-blocking)
-      _registerFcmToken();
+          // Register FCM token after successful login (non-blocking)
+          _registerFcmToken();
 
-      // Perform app attestation in logging mode (non-blocking)
-      _performAttestation(AttestationTrigger.login);
+          // Perform app attestation in logging mode (non-blocking)
+          _performAttestation(AttestationTrigger.login);
+        case Failure(:final failure):
+          state = AsyncValue.data(AuthError(failure.message));
+      }
     } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
@@ -129,23 +163,29 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Get device info for the register request
       final deviceInfo = await _deviceService.getDeviceInfo();
 
-      final (user, _) = await _repo.register(
+      final result = await _repo.register(
         email: email,
         password: password,
         device: deviceInfo,
         referralCode: referralCode,
       );
-      _setSentryUser(user);
-      state = AsyncValue.data(AuthAuthenticated(user));
+      switch (result) {
+        case Success(:final data):
+          final (user, _) = data;
+          _setSentryUser(user);
+          state = AsyncValue.data(AuthAuthenticated(user));
 
-      // Schedule proactive token refresh (non-blocking)
-      _scheduleTokenRefresh();
+          // Schedule proactive token refresh (non-blocking)
+          _scheduleTokenRefresh();
 
-      // Register FCM token after successful registration (non-blocking)
-      _registerFcmToken();
+          // Register FCM token after successful registration (non-blocking)
+          _registerFcmToken();
 
-      // Perform app attestation in logging mode (non-blocking)
-      _performAttestation(AttestationTrigger.registration);
+          // Perform app attestation in logging mode (non-blocking)
+          _performAttestation(AttestationTrigger.registration);
+        case Failure(:final failure):
+          state = AsyncValue.data(AuthError(failure.message));
+      }
     } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
     }
@@ -164,10 +204,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final deviceId = await _deviceService.getDeviceId();
 
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        await _repo.logout(
+        final logoutResult = await _repo.logout(
           refreshToken: refreshToken,
           deviceId: deviceId,
         );
+        if (logoutResult is Failure) {
+          AppLogger.warning('Logout backend returned failure: ${logoutResult.failureOrNull?.message}');
+        }
       }
       _clearSentryUser();
       // Invalidate the notifier so all dependent providers reset.

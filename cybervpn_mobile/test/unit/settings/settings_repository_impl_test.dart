@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 
@@ -16,6 +17,13 @@ void main() {
     repository = SettingsRepositoryImpl(sharedPreferences: prefs);
   }
 
+  /// Helper to unwrap getSettings Result for assertion convenience.
+  Future<AppSettings> getSettings() async {
+    final result = await repository.getSettings();
+    expect(result, isA<Success<AppSettings>>());
+    return (result as Success<AppSettings>).data;
+  }
+
   // ---------------------------------------------------------------------------
   // getSettings - default values
   // ---------------------------------------------------------------------------
@@ -23,7 +31,7 @@ void main() {
     setUp(() => initRepo());
 
     test('returns AppSettings with all defaults', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       const defaults = AppSettings();
 
       expect(settings.themeMode, equals(defaults.themeMode));
@@ -67,32 +75,32 @@ void main() {
     });
 
     test('default themeMode is cyberpunk', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.themeMode, AppThemeMode.cyberpunk);
     });
 
     test('default brightness is system', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.brightness, AppBrightness.system);
     });
 
     test('default preferredProtocol is auto', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.preferredProtocol, PreferredProtocol.auto);
     });
 
     test('default locale is en', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.locale, 'en');
     });
 
     test('default mtuValue is 1400', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.mtuValue, 1400);
     });
 
     test('default logLevel is info', () async {
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.logLevel, LogLevel.info);
     });
   });
@@ -125,7 +133,7 @@ void main() {
         'settings.logLevel': 'debug',
       });
 
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
 
       expect(settings.themeMode, AppThemeMode.materialYou);
       expect(settings.brightness, AppBrightness.dark);
@@ -156,7 +164,7 @@ void main() {
         'settings.logLevel': 'verbose', // not in enum
       });
 
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       const defaults = AppSettings();
 
       expect(settings.themeMode, defaults.themeMode);
@@ -170,7 +178,7 @@ void main() {
         'settings.killSwitch': true,
       });
 
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
 
       expect(settings.locale, 'de');
       expect(settings.killSwitch, isTrue);
@@ -212,7 +220,7 @@ void main() {
       );
 
       await repository.updateSettings(custom);
-      final result = await repository.getSettings();
+      final result = await getSettings();
 
       expect(result.themeMode, AppThemeMode.materialYou);
       expect(result.brightness, AppBrightness.light);
@@ -240,13 +248,13 @@ void main() {
       await initRepo({'settings.customDns': '1.1.1.1'});
 
       // First verify it has a value
-      var settings = await repository.getSettings();
+      var settings = await getSettings();
       expect(settings.customDns, '1.1.1.1');
 
       // Update with null customDns
       await repository.updateSettings(const AppSettings(customDns: null));
 
-      settings = await repository.getSettings();
+      settings = await getSettings();
       expect(settings.customDns, isNull);
     });
 
@@ -255,7 +263,7 @@ void main() {
 
       await repository.updateSettings(const AppSettings(locale: 'fr'));
 
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.locale, 'fr');
     });
 
@@ -274,7 +282,7 @@ void main() {
       await repository.updateSettings(settings);
 
       // Read back and verify enum round-trip
-      final result = await repository.getSettings();
+      final result = await getSettings();
       expect(result.themeMode, AppThemeMode.materialYou);
       expect(result.brightness, AppBrightness.dark);
       expect(result.preferredProtocol, PreferredProtocol.vlessWsTls);
@@ -303,7 +311,7 @@ void main() {
       });
 
       // Verify non-default values are present
-      var settings = await repository.getSettings();
+      var settings = await getSettings();
       expect(settings.themeMode, AppThemeMode.materialYou);
       expect(settings.locale, 'zh');
       expect(settings.mtuValue, 1200);
@@ -312,7 +320,7 @@ void main() {
       await repository.resetSettings();
 
       // All should be defaults now
-      settings = await repository.getSettings();
+      settings = await getSettings();
       const defaults = AppSettings();
 
       expect(settings.themeMode, defaults.themeMode);
@@ -350,7 +358,7 @@ void main() {
       await repository.resetSettings();
       await repository.updateSettings(const AppSettings(locale: 'es'));
 
-      final settings = await repository.getSettings();
+      final settings = await getSettings();
       expect(settings.locale, 'es');
     });
   });
@@ -363,7 +371,7 @@ void main() {
       await initRepo();
 
       // 1. Read defaults
-      var settings = await repository.getSettings();
+      var settings = await getSettings();
       expect(settings, equals(const AppSettings()));
 
       // 2. Update with custom values
@@ -377,7 +385,7 @@ void main() {
       await repository.updateSettings(custom);
 
       // 3. Read back custom values
-      settings = await repository.getSettings();
+      settings = await getSettings();
       expect(settings.themeMode, AppThemeMode.materialYou);
       expect(settings.locale, 'ko');
       expect(settings.killSwitch, isTrue);
@@ -388,7 +396,7 @@ void main() {
       await repository.resetSettings();
 
       // 5. Read defaults again
-      settings = await repository.getSettings();
+      settings = await getSettings();
       expect(settings.themeMode, AppThemeMode.cyberpunk);
       expect(settings.locale, 'en');
       expect(settings.killSwitch, isFalse);
@@ -404,7 +412,7 @@ void main() {
     test('all AppThemeMode values round-trip correctly', () async {
       for (final mode in AppThemeMode.values) {
         await initRepo({'settings.themeMode': mode.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.themeMode, mode, reason: 'Failed for ${mode.name}');
       }
     });
@@ -412,7 +420,7 @@ void main() {
     test('all AppBrightness values round-trip correctly', () async {
       for (final brightness in AppBrightness.values) {
         await initRepo({'settings.brightness': brightness.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.brightness, brightness,
             reason: 'Failed for ${brightness.name}');
       }
@@ -421,7 +429,7 @@ void main() {
     test('all PreferredProtocol values round-trip correctly', () async {
       for (final protocol in PreferredProtocol.values) {
         await initRepo({'settings.preferredProtocol': protocol.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.preferredProtocol, protocol,
             reason: 'Failed for ${protocol.name}');
       }
@@ -430,7 +438,7 @@ void main() {
     test('all DnsProvider values round-trip correctly', () async {
       for (final dns in DnsProvider.values) {
         await initRepo({'settings.dnsProvider': dns.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.dnsProvider, dns, reason: 'Failed for ${dns.name}');
       }
     });
@@ -438,7 +446,7 @@ void main() {
     test('all MtuMode values round-trip correctly', () async {
       for (final mtu in MtuMode.values) {
         await initRepo({'settings.mtuMode': mtu.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.mtuMode, mtu, reason: 'Failed for ${mtu.name}');
       }
     });
@@ -446,7 +454,7 @@ void main() {
     test('all LogLevel values round-trip correctly', () async {
       for (final level in LogLevel.values) {
         await initRepo({'settings.logLevel': level.name});
-        final settings = await repository.getSettings();
+        final settings = await getSettings();
         expect(settings.logLevel, level, reason: 'Failed for ${level.name}');
       }
     });

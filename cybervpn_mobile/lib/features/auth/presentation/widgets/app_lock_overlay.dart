@@ -53,10 +53,8 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
       final localAuth = LocalAuthentication();
       final authenticated = await localAuth.authenticate(
         localizedReason: 'Unlock CyberVPN with your device PIN',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false, // Allow PIN/passcode
-        ),
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
 
       if (authenticated) {

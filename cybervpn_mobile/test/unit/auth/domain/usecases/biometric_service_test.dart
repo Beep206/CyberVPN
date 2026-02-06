@@ -13,10 +13,6 @@ void main() {
   late MockLocalAuthentication mockLocalAuth;
   late FakeSecureStorage fakeSecureStorage;
 
-  setUpAll(() {
-    registerFallbackValue(const AuthenticationOptions());
-  });
-
   setUp(() {
     mockLocalAuth = MockLocalAuthentication();
     fakeSecureStorage = FakeSecureStorage();
@@ -78,7 +74,8 @@ void main() {
       test('returns true on successful authentication', () async {
         when(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              biometricOnly: any(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         final result = await biometricService.authenticate();
@@ -86,14 +83,16 @@ void main() {
         expect(result, isTrue);
         verify(() => mockLocalAuth.authenticate(
               localizedReason: 'Authenticate to continue',
-              options: any(named: 'options'),
+              biometricOnly: true,
+              persistAcrossBackgrounding: true,
             )).called(1);
       });
 
       test('returns false on failed authentication', () async {
         when(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              biometricOnly: any(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => false);
 
         final result = await biometricService.authenticate();
@@ -105,38 +104,40 @@ void main() {
         const customReason = 'Unlock CyberVPN';
         when(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              biometricOnly: any(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         await biometricService.authenticate(reason: customReason);
 
         verify(() => mockLocalAuth.authenticate(
               localizedReason: customReason,
-              options: any(named: 'options'),
+              biometricOnly: true,
+              persistAcrossBackgrounding: true,
             )).called(1);
       });
 
-      test('uses stickyAuth and biometricOnly options', () async {
+      test('uses biometricOnly and persistAcrossBackgrounding params', () async {
         when(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              biometricOnly: any(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         await biometricService.authenticate();
 
-        final captured = verify(() => mockLocalAuth.authenticate(
+        verify(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: captureAny(named: 'options'),
-            )).captured.single as AuthenticationOptions;
-
-        expect(captured.stickyAuth, isTrue);
-        expect(captured.biometricOnly, isTrue);
+              biometricOnly: true,
+              persistAcrossBackgrounding: true,
+            )).called(1);
       });
 
       test('propagates exception from local_auth', () async {
         when(() => mockLocalAuth.authenticate(
               localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              biometricOnly: any(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any(named: 'persistAcrossBackgrounding'),
             )).thenThrow(Exception('Biometric hardware error'));
 
         expect(

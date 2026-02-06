@@ -87,9 +87,19 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   @override
   Future<void> updateDynamicColor(bool enabled) async {}
   @override
+  Future<void> updateTextScale(TextScale scale) async {}
+  @override
   Future<void> updateLocale(String locale) async {}
   @override
   Future<void> toggleNotification(NotificationType type) async {}
+  @override
+  Future<void> addTrustedNetwork(String ssid) async {}
+  @override
+  Future<void> removeTrustedNetwork(String ssid) async {}
+  @override
+  bool isTrustedNetwork(String ssid) => false;
+  @override
+  Future<void> clearTrustedNetworks() async {}
   @override
   Future<void> resetAll() async {}
   @override

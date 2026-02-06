@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
@@ -38,8 +39,9 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provid
     show authRepositoryProvider;
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
     show vpnRepositoryProvider, secureStorageProvider, networkInfoProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show serverRepositoryProvider, sharedPreferencesProvider;
+    show serverRepositoryProvider;
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart'
     show subscriptionRepositoryProvider;
 import 'package:cybervpn_mobile/app/theme/theme_provider.dart'
@@ -159,13 +161,14 @@ final serverLocalDataSourceProvider = Provider<ServerLocalDataSource>((ref) {
 /// Provides the [SubscriptionRemoteDataSource] backed by the [ApiClient].
 final subscriptionRemoteDataSourceProvider =
     Provider<SubscriptionRemoteDataSource>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return SubscriptionRemoteDataSourceImpl(apiClient);
-});
+      final apiClient = ref.watch(apiClientProvider);
+      return SubscriptionRemoteDataSourceImpl(apiClient);
+    });
 
 /// Provides the [ReferralRemoteDataSource] backed by the [ApiClient].
-final referralRemoteDataSourceProvider =
-    Provider<ReferralRemoteDataSource>((ref) {
+final referralRemoteDataSourceProvider = Provider<ReferralRemoteDataSource>((
+  ref,
+) {
   final apiClient = ref.watch(apiClientProvider);
   return ReferralRemoteDataSourceImpl(apiClient);
 });
@@ -178,16 +181,15 @@ final referralRemoteDataSourceProvider =
 ///
 /// [prefs] must be an already-initialized [SharedPreferences] instance
 /// obtained via `await SharedPreferences.getInstance()` before `runApp`.
-// ignore: strict_raw_type
-List buildProviderOverrides(SharedPreferences prefs) {
+Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   // We create concrete instances here that require synchronous access to
   // pre-initialized resources (SharedPreferences).
   final secureStorage = SecureStorageWrapper();
 
-  // Start pre-warming critical keys in background for faster auth check.
-  // This is fire-and-forget - the auth check will use cached values if
-  // ready, or fall back to regular reads.
-  secureStorage.prewarmCache();
+  // Await pre-warming critical keys to prevent race conditions during
+  // auth check. Without this, _checkCachedAuth can read before keys are
+  // cached, causing the app to hang on the splash screen.
+  await secureStorage.prewarmCache();
 
   final localStorage = LocalStorageWrapper();
   final networkInfo = NetworkInfo();

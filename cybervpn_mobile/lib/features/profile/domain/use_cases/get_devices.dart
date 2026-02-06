@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -9,7 +10,7 @@ class GetDevicesUseCase {
 
   const GetDevicesUseCase(this._repository);
 
-  Future<List<Device>> call() async {
+  Future<Result<List<Device>>> call() async {
     return _repository.getDevices();
   }
 }

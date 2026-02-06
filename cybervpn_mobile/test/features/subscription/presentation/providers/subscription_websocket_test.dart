@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
@@ -29,14 +30,14 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<SubscriptionEntity?> getActiveSubscription() async {
+  Future<Result<SubscriptionEntity?>> getActiveSubscription() async {
     getActiveSubscriptionCallCount++;
-    return _subscription;
+    return Success(_subscription);
   }
 
   @override
-  Future<List<PlanEntity>> getPlans() async {
-    return List.from(_plans);
+  Future<Result<List<PlanEntity>>> getPlans() async {
+    return Success(List.from(_plans));
   }
 
   @override

@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
 
@@ -87,104 +89,120 @@ class SettingsRepositoryImpl implements SettingsRepository {
   // ---------------------------------------------------------------------------
 
   @override
-  Future<AppSettings> getSettings() async {
-    // Construct AppSettings by reading each key with a fallback to the
-    // default value defined in the freezed factory constructor.
-    const defaults = AppSettings();
+  Future<Result<AppSettings>> getSettings() async {
+    try {
+      // Construct AppSettings by reading each key with a fallback to the
+      // default value defined in the freezed factory constructor.
+      const defaults = AppSettings();
 
-    return AppSettings(
-      themeMode: _readEnum(
-        _prefs.getString(_kThemeMode),
-        AppThemeMode.values,
-        defaults.themeMode,
-      ),
-      brightness: _readEnum(
-        _prefs.getString(_kBrightness),
-        AppBrightness.values,
-        defaults.brightness,
-      ),
-      dynamicColor: _prefs.getBool(_kDynamicColor) ?? defaults.dynamicColor,
-      preferredProtocol: _readEnum(
-        _prefs.getString(_kPreferredProtocol),
-        PreferredProtocol.values,
-        defaults.preferredProtocol,
-      ),
-      autoConnectOnLaunch:
-          _prefs.getBool(_kAutoConnectOnLaunch) ?? defaults.autoConnectOnLaunch,
-      autoConnectUntrustedWifi: _prefs.getBool(_kAutoConnectUntrustedWifi) ??
-          defaults.autoConnectUntrustedWifi,
-      killSwitch: _prefs.getBool(_kKillSwitch) ?? defaults.killSwitch,
-      splitTunneling:
-          _prefs.getBool(_kSplitTunneling) ?? defaults.splitTunneling,
-      dnsProvider: _readEnum(
-        _prefs.getString(_kDnsProvider),
-        DnsProvider.values,
-        defaults.dnsProvider,
-      ),
-      customDns: _prefs.getString(_kCustomDns) ?? defaults.customDns,
-      mtuMode: _readEnum(
-        _prefs.getString(_kMtuMode),
-        MtuMode.values,
-        defaults.mtuMode,
-      ),
-      mtuValue: _prefs.getInt(_kMtuValue) ?? defaults.mtuValue,
-      locale: _prefs.getString(_kLocale) ?? defaults.locale,
-      notificationConnection: _prefs.getBool(_kNotificationConnection) ??
-          defaults.notificationConnection,
-      notificationExpiry:
-          _prefs.getBool(_kNotificationExpiry) ?? defaults.notificationExpiry,
-      notificationPromotional: _prefs.getBool(_kNotificationPromotional) ??
-          defaults.notificationPromotional,
-      notificationReferral:
-          _prefs.getBool(_kNotificationReferral) ?? defaults.notificationReferral,
-      notificationVpnSpeed:
-          _prefs.getBool(_kNotificationVpnSpeed) ?? defaults.notificationVpnSpeed,
-      clipboardAutoDetect:
-          _prefs.getBool(_kClipboardAutoDetect) ?? defaults.clipboardAutoDetect,
-      logLevel: _readEnum(
-        _prefs.getString(_kLogLevel),
-        LogLevel.values,
-        defaults.logLevel,
-      ),
-    );
-  }
+      final settings = AppSettings(
+        themeMode: _readEnum(
+          _prefs.getString(_kThemeMode),
+          AppThemeMode.values,
+          defaults.themeMode,
+        ),
+        brightness: _readEnum(
+          _prefs.getString(_kBrightness),
+          AppBrightness.values,
+          defaults.brightness,
+        ),
+        dynamicColor: _prefs.getBool(_kDynamicColor) ?? defaults.dynamicColor,
+        preferredProtocol: _readEnum(
+          _prefs.getString(_kPreferredProtocol),
+          PreferredProtocol.values,
+          defaults.preferredProtocol,
+        ),
+        autoConnectOnLaunch:
+            _prefs.getBool(_kAutoConnectOnLaunch) ?? defaults.autoConnectOnLaunch,
+        autoConnectUntrustedWifi: _prefs.getBool(_kAutoConnectUntrustedWifi) ??
+            defaults.autoConnectUntrustedWifi,
+        killSwitch: _prefs.getBool(_kKillSwitch) ?? defaults.killSwitch,
+        splitTunneling:
+            _prefs.getBool(_kSplitTunneling) ?? defaults.splitTunneling,
+        dnsProvider: _readEnum(
+          _prefs.getString(_kDnsProvider),
+          DnsProvider.values,
+          defaults.dnsProvider,
+        ),
+        customDns: _prefs.getString(_kCustomDns) ?? defaults.customDns,
+        mtuMode: _readEnum(
+          _prefs.getString(_kMtuMode),
+          MtuMode.values,
+          defaults.mtuMode,
+        ),
+        mtuValue: _prefs.getInt(_kMtuValue) ?? defaults.mtuValue,
+        locale: _prefs.getString(_kLocale) ?? defaults.locale,
+        notificationConnection: _prefs.getBool(_kNotificationConnection) ??
+            defaults.notificationConnection,
+        notificationExpiry:
+            _prefs.getBool(_kNotificationExpiry) ?? defaults.notificationExpiry,
+        notificationPromotional: _prefs.getBool(_kNotificationPromotional) ??
+            defaults.notificationPromotional,
+        notificationReferral:
+            _prefs.getBool(_kNotificationReferral) ?? defaults.notificationReferral,
+        notificationVpnSpeed:
+            _prefs.getBool(_kNotificationVpnSpeed) ?? defaults.notificationVpnSpeed,
+        clipboardAutoDetect:
+            _prefs.getBool(_kClipboardAutoDetect) ?? defaults.clipboardAutoDetect,
+        logLevel: _readEnum(
+          _prefs.getString(_kLogLevel),
+          LogLevel.values,
+          defaults.logLevel,
+        ),
+      );
 
-  @override
-  Future<void> updateSettings(AppSettings settings) async {
-    await _prefs.setString(_kThemeMode, settings.themeMode.name);
-    await _prefs.setString(_kBrightness, settings.brightness.name);
-    await _prefs.setBool(_kDynamicColor, settings.dynamicColor);
-    await _prefs.setString(
-        _kPreferredProtocol, settings.preferredProtocol.name);
-    await _prefs.setBool(_kAutoConnectOnLaunch, settings.autoConnectOnLaunch);
-    await _prefs.setBool(
-        _kAutoConnectUntrustedWifi, settings.autoConnectUntrustedWifi);
-    await _prefs.setBool(_kKillSwitch, settings.killSwitch);
-    await _prefs.setBool(_kSplitTunneling, settings.splitTunneling);
-    await _prefs.setString(_kDnsProvider, settings.dnsProvider.name);
-    if (settings.customDns != null) {
-      await _prefs.setString(_kCustomDns, settings.customDns!);
-    } else {
-      await _prefs.remove(_kCustomDns);
+      return Success(settings);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
     }
-    await _prefs.setString(_kMtuMode, settings.mtuMode.name);
-    await _prefs.setInt(_kMtuValue, settings.mtuValue);
-    await _prefs.setString(_kLocale, settings.locale);
-    await _prefs.setBool(
-        _kNotificationConnection, settings.notificationConnection);
-    await _prefs.setBool(_kNotificationExpiry, settings.notificationExpiry);
-    await _prefs.setBool(
-        _kNotificationPromotional, settings.notificationPromotional);
-    await _prefs.setBool(_kNotificationReferral, settings.notificationReferral);
-    await _prefs.setBool(_kNotificationVpnSpeed, settings.notificationVpnSpeed);
-    await _prefs.setBool(_kClipboardAutoDetect, settings.clipboardAutoDetect);
-    await _prefs.setString(_kLogLevel, settings.logLevel.name);
   }
 
   @override
-  Future<void> resetSettings() async {
-    for (final key in _allKeys) {
-      await _prefs.remove(key);
+  Future<Result<void>> updateSettings(AppSettings settings) async {
+    try {
+      await _prefs.setString(_kThemeMode, settings.themeMode.name);
+      await _prefs.setString(_kBrightness, settings.brightness.name);
+      await _prefs.setBool(_kDynamicColor, settings.dynamicColor);
+      await _prefs.setString(
+          _kPreferredProtocol, settings.preferredProtocol.name);
+      await _prefs.setBool(_kAutoConnectOnLaunch, settings.autoConnectOnLaunch);
+      await _prefs.setBool(
+          _kAutoConnectUntrustedWifi, settings.autoConnectUntrustedWifi);
+      await _prefs.setBool(_kKillSwitch, settings.killSwitch);
+      await _prefs.setBool(_kSplitTunneling, settings.splitTunneling);
+      await _prefs.setString(_kDnsProvider, settings.dnsProvider.name);
+      if (settings.customDns != null) {
+        await _prefs.setString(_kCustomDns, settings.customDns!);
+      } else {
+        await _prefs.remove(_kCustomDns);
+      }
+      await _prefs.setString(_kMtuMode, settings.mtuMode.name);
+      await _prefs.setInt(_kMtuValue, settings.mtuValue);
+      await _prefs.setString(_kLocale, settings.locale);
+      await _prefs.setBool(
+          _kNotificationConnection, settings.notificationConnection);
+      await _prefs.setBool(_kNotificationExpiry, settings.notificationExpiry);
+      await _prefs.setBool(
+          _kNotificationPromotional, settings.notificationPromotional);
+      await _prefs.setBool(_kNotificationReferral, settings.notificationReferral);
+      await _prefs.setBool(_kNotificationVpnSpeed, settings.notificationVpnSpeed);
+      await _prefs.setBool(_kClipboardAutoDetect, settings.clipboardAutoDetect);
+      await _prefs.setString(_kLogLevel, settings.logLevel.name);
+      return const Success(null);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> resetSettings() async {
+    try {
+      for (final key in _allKeys) {
+        await _prefs.remove(key);
+      }
+      return const Success(null);
+    } catch (e) {
+      return Failure(CacheFailure(message: e.toString()));
     }
   }
 }

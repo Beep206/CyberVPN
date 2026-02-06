@@ -847,6 +847,68 @@ class AppLocalizationsCs extends AppLocalizations {
   String get errorQrScanFailed => 'Failed to scan QR code. Please try again.';
 
   @override
+  String get errorTelegramAuthCancelled => 'Telegram login was cancelled.';
+
+  @override
+  String get errorTelegramAuthFailed =>
+      'Telegram authentication failed. Please try again.';
+
+  @override
+  String get errorTelegramAuthExpired =>
+      'Telegram login expired. Please try again.';
+
+  @override
+  String get errorTelegramNotInstalled =>
+      'Telegram is not installed on this device.';
+
+  @override
+  String get errorTelegramAuthInvalid =>
+      'Invalid Telegram authentication data.';
+
+  @override
+  String get errorBiometricUnavailable =>
+      'Biometric authentication is not available on this device.';
+
+  @override
+  String get errorBiometricNotEnrolled =>
+      'No biometric data enrolled. Please set up fingerprint or face recognition in device settings.';
+
+  @override
+  String get errorBiometricFailed =>
+      'Biometric authentication failed. Please try again.';
+
+  @override
+  String get errorBiometricLocked =>
+      'Biometric authentication is locked. Try again later or use your password.';
+
+  @override
+  String get errorSessionExpired =>
+      'Your session has expired. Please log in again.';
+
+  @override
+  String get errorAccountDisabled =>
+      'Your account has been disabled. Please contact support.';
+
+  @override
+  String errorRateLimitedWithCountdown(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconds',
+      one: '1 second',
+    );
+    return 'Too many attempts. Please try again in $_temp0.';
+  }
+
+  @override
+  String get errorOfflineLoginRequired =>
+      'You need to be online to log in. Please check your connection.';
+
+  @override
+  String get errorOfflineSessionExpired =>
+      'Your cached session has expired. Please connect to the internet to log in.';
+
+  @override
   String get a11yConnectButton => 'Connect to VPN server';
 
   @override

@@ -103,7 +103,7 @@ void main() {
           SettingsTile.toggle(
             title: 'Kill Switch',
             value: false,
-            onChanged: (v) => changedValue = v,
+            onChanged: (v) => changedValue = v as bool?,
           ),
         ),
       );
@@ -120,7 +120,7 @@ void main() {
           SettingsTile.toggle(
             title: 'Auto Connect',
             value: false,
-            onChanged: (v) => changedValue = v,
+            onChanged: (v) => changedValue = v as bool?,
           ),
         ),
       );

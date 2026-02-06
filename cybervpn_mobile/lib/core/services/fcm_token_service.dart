@@ -120,7 +120,11 @@ class FcmTokenService {
     AppLogger.debug(
       'Sending FCM token to backend',
       category: 'fcm_token_service',
-      data: payload,
+      data: {
+        'token_prefix': token.length >= 8 ? '${token.substring(0, 8)}...' : '(short)',
+        'platform': platform,
+        'os_version': osVersion,
+      },
     );
 
     // POST to backend endpoint (will return 404 until backend implements it)

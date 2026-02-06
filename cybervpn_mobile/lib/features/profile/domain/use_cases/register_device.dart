@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -20,7 +21,7 @@ class RegisterDeviceUseCase {
   /// Returns the registered [Device] entity.
   ///
   /// Throws [ArgumentError] if any parameter is empty.
-  Future<Device> call({
+  Future<Result<Device>> call({
     required String deviceName,
     required String platform,
     required String deviceId,

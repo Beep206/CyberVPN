@@ -1,6 +1,8 @@
-import 'package:cybervpn_mobile/core/network/network_info.dart';
-import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/errors/exceptions.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
+import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
@@ -15,37 +17,68 @@ class SubscriptionRepositoryImpl with NetworkErrorHandler implements Subscriptio
         _networkInfo = networkInfo;
 
   @override
-  Future<List<PlanEntity>> getPlans() async {
+  Future<Result<List<PlanEntity>>> getPlans() async {
     if (!await _networkInfo.isConnected) {
-      throw const NetworkFailure(message: 'No internet connection');
+      return const Failure(NetworkFailure(message: 'No internet connection'));
     }
-    return _remoteDataSource.fetchPlans();
+    try {
+      final plans = await _remoteDataSource.fetchPlans();
+      return Success(plans);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<SubscriptionEntity?> getActiveSubscription() async {
-    if (!await _networkInfo.isConnected) return null;
-    return _remoteDataSource.fetchActiveSubscription();
-  }
-
-  @override
-  Future<SubscriptionEntity> subscribe(String planId, {String? paymentMethod}) async {
+  Future<Result<SubscriptionEntity?>> getActiveSubscription() async {
     if (!await _networkInfo.isConnected) {
-      throw const NetworkFailure(message: 'No internet connection');
+      return const Success(null);
     }
-    return _remoteDataSource.createSubscription(planId, paymentMethod: paymentMethod);
+    try {
+      final subscription = await _remoteDataSource.fetchActiveSubscription();
+      return Success(subscription);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<void> cancelSubscription(String subscriptionId) async {
+  Future<Result<SubscriptionEntity>> subscribe(String planId, {String? paymentMethod}) async {
     if (!await _networkInfo.isConnected) {
-      throw const NetworkFailure(message: 'No internet connection');
+      return const Failure(NetworkFailure(message: 'No internet connection'));
     }
-    await _remoteDataSource.cancelSubscription(subscriptionId);
+    try {
+      final subscription = await _remoteDataSource.createSubscription(planId, paymentMethod: paymentMethod);
+      return Success(subscription);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
   }
 
   @override
-  Future<void> restorePurchases() async {
+  Future<Result<void>> cancelSubscription(String subscriptionId) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
+    try {
+      await _remoteDataSource.cancelSubscription(subscriptionId);
+      return const Success(null);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> restorePurchases() async {
     // RevenueCat handles restore; this is a placeholder
+    return const Success(null);
   }
 }

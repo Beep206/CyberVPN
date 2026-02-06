@@ -1,4 +1,5 @@
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/data/datasources/referral_remote_ds.dart';
 import 'package:cybervpn_mobile/features/referral/data/repositories/referral_repository_impl.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
@@ -22,23 +23,25 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('isAvailable', () {
-    test('delegates to data source and returns true on success', () async {
+    test('delegates to data source and returns Success(true) on success', () async {
       when(() => mockDataSource.checkAvailability())
           .thenAnswer((_) async => true);
 
       final result = await repository.isAvailable();
 
-      expect(result, isTrue);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isTrue);
       verify(() => mockDataSource.checkAvailability()).called(1);
     });
 
-    test('delegates to data source and returns false on 404', () async {
+    test('delegates to data source and returns Success(false) on 404', () async {
       when(() => mockDataSource.checkAvailability())
           .thenAnswer((_) async => false);
 
       final result = await repository.isAvailable();
 
-      expect(result, isFalse);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isFalse);
     });
   });
 
@@ -47,17 +50,18 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('getReferralCode', () {
-    test('returns empty string when feature is unavailable', () async {
+    test('returns Success with empty string when feature is unavailable', () async {
       when(() => mockDataSource.checkAvailability())
           .thenAnswer((_) async => false);
 
       final result = await repository.getReferralCode();
 
-      expect(result, isEmpty);
+      expect(result, isA<Success<String>>());
+      expect((result as Success<String>).data, isEmpty);
       verifyNever(() => mockDataSource.getReferralCode());
     });
 
-    test('returns code from data source when available', () async {
+    test('returns Success with code from data source when available', () async {
       when(() => mockDataSource.checkAvailability())
           .thenAnswer((_) async => true);
       when(() => mockDataSource.getReferralCode())
@@ -65,7 +69,8 @@ void main() {
 
       final result = await repository.getReferralCode();
 
-      expect(result, equals('ABC123'));
+      expect(result, isA<Success<String>>());
+      expect((result as Success<String>).data, equals('ABC123'));
       verify(() => mockDataSource.getReferralCode()).called(1);
     });
   });
@@ -81,10 +86,12 @@ void main() {
 
       final result = await repository.getStats();
 
-      expect(result.totalInvited, equals(0));
-      expect(result.paidUsers, equals(0));
-      expect(result.pointsEarned, equals(0));
-      expect(result.balance, equals(0));
+      expect(result, isA<Success<ReferralStats>>());
+      final stats = (result as Success<ReferralStats>).data;
+      expect(stats.totalInvited, equals(0));
+      expect(stats.paidUsers, equals(0));
+      expect(stats.pointsEarned, equals(0));
+      expect(stats.balance, equals(0));
       verifyNever(() => mockDataSource.getReferralStats());
     });
 
@@ -102,10 +109,12 @@ void main() {
 
       final result = await repository.getStats();
 
-      expect(result.totalInvited, equals(5));
-      expect(result.paidUsers, equals(2));
-      expect(result.pointsEarned, equals(150.0));
-      expect(result.balance, equals(75.0));
+      expect(result, isA<Success<ReferralStats>>());
+      final stats = (result as Success<ReferralStats>).data;
+      expect(stats.totalInvited, equals(5));
+      expect(stats.paidUsers, equals(2));
+      expect(stats.pointsEarned, equals(150.0));
+      expect(stats.balance, equals(75.0));
     });
   });
 
@@ -120,7 +129,8 @@ void main() {
 
       final result = await repository.getRecentReferrals();
 
-      expect(result, isEmpty);
+      expect(result, isA<Success<List<ReferralEntry>>>());
+      expect((result as Success<List<ReferralEntry>>).data, isEmpty);
       verifyNever(() => mockDataSource.getRecentReferrals(limit: any(named: 'limit')));
     });
 
@@ -145,9 +155,11 @@ void main() {
 
       final result = await repository.getRecentReferrals();
 
-      expect(result, hasLength(2));
-      expect(result[0].code, equals('REF1'));
-      expect(result[1].status, equals(ReferralStatus.completed));
+      expect(result, isA<Success<List<ReferralEntry>>>());
+      final data = (result as Success<List<ReferralEntry>>).data;
+      expect(data, hasLength(2));
+      expect(data[0].code, equals('REF1'));
+      expect(data[1].status, equals(ReferralStatus.completed));
     });
   });
 }

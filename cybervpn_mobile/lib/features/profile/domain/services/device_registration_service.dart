@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/register_device.dart';
@@ -129,11 +130,16 @@ class DeviceRegistrationService {
 
       AppLogger.info('Registering device: $deviceName ($platform)');
 
-      final device = await _registerDevice.call(
+      final result = await _registerDevice.call(
         deviceName: deviceName,
         platform: platform,
         deviceId: deviceId,
       );
+
+      final device = switch (result) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
 
       // Mark as registered locally
       await _storage.write(key: _deviceRegisteredKey, value: 'true');

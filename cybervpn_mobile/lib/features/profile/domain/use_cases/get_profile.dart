@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -10,7 +11,7 @@ class GetProfileUseCase {
 
   const GetProfileUseCase(this._repository);
 
-  Future<Profile> call() async {
+  Future<Result<Profile>> call() async {
     return _repository.getProfile();
   }
 }

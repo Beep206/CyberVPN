@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/delete_account.dart';
 
 import '../../helpers/mock_repositories.dart';
@@ -32,7 +33,7 @@ void main() {
     test('proceeds when password is provided and 2FA disabled', () async {
       // Arrange
       when(() => mockRepository.deleteAccount('mypassword'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(password: 'mypassword', is2FAEnabled: false);
@@ -103,7 +104,7 @@ void main() {
       // Arrange
       when(() =>
               mockRepository.deleteAccount('mypassword', totpCode: '123456'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(
@@ -122,7 +123,7 @@ void main() {
       // Arrange
       when(() =>
               mockRepository.deleteAccount('pass', totpCode: '123456'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act: passing totpCode even though 2FA is disabled
       await useCase(
@@ -199,7 +200,7 @@ void main() {
     test('accepts minimum valid password (single character)', () async {
       // Arrange
       when(() => mockRepository.deleteAccount('x'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(password: 'x', is2FAEnabled: false);
@@ -212,7 +213,7 @@ void main() {
       // Arrange
       const password = r'P@$$w0rd!#%^&*()';
       when(() => mockRepository.deleteAccount(password))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(password: password, is2FAEnabled: false);
@@ -225,7 +226,7 @@ void main() {
       // Arrange
       when(() =>
               mockRepository.deleteAccount('pass', totpCode: '000001'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(

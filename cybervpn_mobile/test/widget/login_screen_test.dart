@@ -145,6 +145,7 @@ void main() {
         verify(() => mockAuthRepo.login(
               email: kValidEmail,
               password: kValidPassword,
+              device: any(named: 'device'),
             )).called(1);
       });
 

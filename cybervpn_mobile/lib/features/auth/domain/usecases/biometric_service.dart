@@ -18,8 +18,8 @@ class BiometricService {
   BiometricService({
     LocalAuthentication? localAuth,
     required SecureStorageWrapper secureStorage,
-  })  : _localAuth = localAuth ?? LocalAuthentication(),
-        _secureStorage = secureStorage;
+  }) : _localAuth = localAuth ?? LocalAuthentication(),
+       _secureStorage = secureStorage;
 
   Future<bool> isBiometricAvailable() async {
     final canCheck = await _localAuth.canCheckBiometrics;
@@ -51,13 +51,13 @@ class BiometricService {
     return types.contains(BiometricType.face);
   }
 
-  Future<bool> authenticate({String reason = 'Authenticate to continue'}) async {
+  Future<bool> authenticate({
+    String reason = 'Authenticate to continue',
+  }) async {
     return _localAuth.authenticate(
       localizedReason: reason,
-      options: const AuthenticationOptions(
-        stickyAuth: true,
-        biometricOnly: true,
-      ),
+      biometricOnly: true,
+      persistAcrossBackgrounding: true,
     );
   }
 
@@ -149,8 +149,9 @@ final isBiometricAvailableProvider = FutureProvider<bool>((ref) async {
 });
 
 /// Provider that returns available biometric types.
-final availableBiometricsProvider =
-    FutureProvider<List<BiometricType>>((ref) async {
+final availableBiometricsProvider = FutureProvider<List<BiometricType>>((
+  ref,
+) async {
   final service = ref.watch(biometricServiceProvider);
   return service.getAvailableBiometrics();
 });

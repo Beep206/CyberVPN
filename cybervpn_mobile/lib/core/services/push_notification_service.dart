@@ -31,7 +31,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 ///
 /// Handles:
 /// * Requesting notification permissions from the user.
-/// * Retrieving and logging the FCM device token.
+/// * Retrieving the FCM device token (logged truncated for security).
 /// * Registering foreground and background message handlers.
 /// * Listening for token refresh events and re-registering with backend.
 ///
@@ -113,12 +113,18 @@ class PushNotificationService {
 
       // Retrieve the device token.
       _token = await _messaging.getToken();
-      AppLogger.info('FCM token: $_token', category: 'fcm');
+      AppLogger.info(
+        'FCM token retrieved: ${_token != null && _token!.length >= 8 ? '${_token!.substring(0, 8)}...' : '(empty)'}',
+        category: 'fcm',
+      );
 
       // Listen for token refresh events and re-register with backend.
       _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) {
         _token = newToken;
-        AppLogger.info('FCM token refreshed: $newToken', category: 'fcm');
+        AppLogger.info(
+          'FCM token refreshed: ${newToken.length >= 8 ? '${newToken.substring(0, 8)}...' : '(empty)'}',
+          category: 'fcm',
+        );
 
         // Re-register the new token with the backend
         _handleTokenRefresh(newToken);

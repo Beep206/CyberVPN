@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Service for managing haptic feedback throughout the application.
@@ -48,8 +49,11 @@ class HapticService {
   Future<bool> get _isEnabled async {
     try {
       final settingsRepo = _ref.read(settingsRepositoryProvider);
-      final settings = await settingsRepo.getSettings();
-      return settings.hapticsEnabled;
+      final result = await settingsRepo.getSettings();
+      return switch (result) {
+        Success(:final data) => data.hapticsEnabled,
+        Failure() => true, // default to enabled on failure
+      };
     } catch (e, st) {
       AppLogger.warning(
         'Failed to check haptics setting, defaulting to enabled',

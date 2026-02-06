@@ -1,5 +1,7 @@
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/data/datasources/referral_remote_ds.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
@@ -10,7 +12,10 @@ import 'package:share_plus/share_plus.dart' as share_plus;
 ///
 /// All data-fetching methods check [isAvailable] first. When the backend
 /// referral feature is unavailable (404/501), methods return appropriate
-/// empty states instead of throwing.
+/// empty states wrapped in [Success] instead of returning [Failure].
+///
+/// All methods return [Result<T>] instead of throwing, enabling callers
+/// to handle success and failure explicitly via pattern matching.
 class ReferralRepositoryImpl
     with NetworkErrorHandler
     implements ReferralRepository {
@@ -20,53 +25,71 @@ class ReferralRepositoryImpl
       : _remoteDataSource = remoteDataSource;
 
   @override
-  Future<bool> isAvailable() => _remoteDataSource.checkAvailability();
-
-  @override
-  Future<String> getReferralCode() async {
-    if (!await isAvailable()) {
-      return '';
-    }
+  Future<Result<bool>> isAvailable() async {
     try {
-      return await _remoteDataSource.getReferralCode();
+      return Success(await _remoteDataSource.checkAvailability());
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<ReferralStats> getStats() async {
-    if (!await isAvailable()) {
-      return const ReferralStats(
+  Future<Result<String>> getReferralCode() async {
+    final isAvail = (await isAvailable()).dataOrNull ?? false;
+    if (!isAvail) return const Success('');
+    try {
+      return Success(await _remoteDataSource.getReferralCode());
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Result<ReferralStats>> getStats() async {
+    final isAvail = (await isAvailable()).dataOrNull ?? false;
+    if (!isAvail) {
+      return const Success(ReferralStats(
         totalInvited: 0,
         paidUsers: 0,
         pointsEarned: 0,
         balance: 0,
+      ));
+    }
+    try {
+      return Success(await _remoteDataSource.getReferralStats());
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Result<List<ReferralEntry>>> getRecentReferrals({
+    int limit = 10,
+  }) async {
+    final isAvail = (await isAvailable()).dataOrNull ?? false;
+    if (!isAvail) return const Success([]);
+    try {
+      return Success(
+        await _remoteDataSource.getRecentReferrals(limit: limit),
+      );
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Result<void>> shareReferral(String code) async {
+    try {
+      await share_plus.SharePlus.instance.share(
+        share_plus.ShareParams(
+          text: 'Join CyberVPN with my referral code: $code',
+        ),
+      );
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        UnknownFailure(message: 'Failed to share referral: $e'),
       );
     }
-    try {
-      return await _remoteDataSource.getReferralStats();
-    } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
-    }
-  }
-
-  @override
-  Future<List<ReferralEntry>> getRecentReferrals({int limit = 10}) async {
-    if (!await isAvailable()) {
-      return const [];
-    }
-    try {
-      return await _remoteDataSource.getRecentReferrals(limit: limit);
-    } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
-    }
-  }
-
-  @override
-  Future<void> shareReferral(String code) async {
-    await share_plus.Share.share(
-      'Join CyberVPN with my referral code: $code',
-    );
   }
 }

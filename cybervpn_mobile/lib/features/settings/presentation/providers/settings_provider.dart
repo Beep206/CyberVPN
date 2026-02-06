@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
@@ -23,7 +24,11 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   @override
   Future<AppSettings> build() async {
     _repository = ref.watch(settingsRepositoryProvider);
-    return _repository.getSettings();
+    final result = await _repository.getSettings();
+    return switch (result) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
   }
 
   // ── Appearance ────────────────────────────────────────────────────────────
@@ -297,11 +302,21 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 
     try {
       state = const AsyncLoading<AppSettings>();
-      await _repository.resetSettings();
-      final defaults = await _repository.getSettings();
-      state = AsyncData(defaults);
-      _lastFailedOperation = null;
-      AppLogger.info('Settings reset to defaults');
+
+      final resetResult = await _repository.resetSettings();
+      if (resetResult is Failure<void>) {
+        throw resetResult.failure;
+      }
+
+      final getResult = await _repository.getSettings();
+      switch (getResult) {
+        case Success(:final data):
+          state = AsyncData(data);
+          _lastFailedOperation = null;
+          AppLogger.info('Settings reset to defaults');
+        case Failure(:final failure):
+          throw failure;
+      }
     } catch (e, st) {
       AppLogger.error('Failed to reset settings', error: e, stackTrace: st);
       // Rollback to previous state on failure.
@@ -335,12 +350,19 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   /// if they differ. Useful after app restart or suspected corruption.
   Future<void> validateConsistency() async {
     try {
-      final persisted = await _repository.getSettings();
-      final current = state.value;
-
-      if (current != persisted) {
-        AppLogger.info('Settings consistency mismatch detected, reconciling');
-        state = AsyncData(persisted);
+      final result = await _repository.getSettings();
+      switch (result) {
+        case Success(:final data):
+          final current = state.value;
+          if (current != data) {
+            AppLogger.info('Settings consistency mismatch detected, reconciling');
+            state = AsyncData(data);
+          }
+        case Failure(:final failure):
+          AppLogger.error(
+            'Failed to validate settings consistency',
+            error: failure,
+          );
       }
     } catch (e, st) {
       AppLogger.error(
@@ -370,20 +392,20 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     // Optimistic update: show the new state immediately.
     state = AsyncData(updated);
 
-    try {
-      await _repository.updateSettings(updated);
-      _lastFailedOperation = null;
-      AppLogger.debug('Settings updated: $operationName');
-    } catch (e, st) {
-      AppLogger.error(
-        'Failed to persist setting: $operationName',
-        error: e,
-        stackTrace: st,
-      );
-      // Rollback to previous state on persistence failure.
-      state = AsyncData(current);
-      _lastFailedOperation = () => _updateSetting(updater, operationName);
-      rethrow;
+    final result = await _repository.updateSettings(updated);
+    switch (result) {
+      case Success():
+        _lastFailedOperation = null;
+        AppLogger.debug('Settings updated: $operationName');
+      case Failure(:final failure):
+        AppLogger.error(
+          'Failed to persist setting: $operationName',
+          error: failure,
+        );
+        // Rollback to previous state on persistence failure.
+        state = AsyncData(current);
+        _lastFailedOperation = () => _updateSetting(updater, operationName);
+        throw failure;
     }
   }
 }

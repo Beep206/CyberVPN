@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 
@@ -41,30 +42,32 @@ void main() {
     group('getServers', () {
       test('returns a list of servers', () async {
         when(() => repository.getServers())
-            .thenAnswer((_) async => testServers);
+            .thenAnswer((_) async => Success(testServers));
 
         final result = await repository.getServers();
 
-        expect(result, hasLength(3));
+        expect(result, isA<Success<List<ServerEntity>>>());
+        expect((result as Success<List<ServerEntity>>).data, hasLength(3));
         verify(() => repository.getServers()).called(1);
       });
 
       test('returns empty list when no servers exist', () async {
-        when(() => repository.getServers()).thenAnswer((_) async => []);
+        when(() => repository.getServers()).thenAnswer((_) async => const Success(<ServerEntity>[]));
 
         final result = await repository.getServers();
 
-        expect(result, isEmpty);
+        expect(result, isA<Success<List<ServerEntity>>>());
+        expect((result as Success<List<ServerEntity>>).data, isEmpty);
       });
 
-      test('throws NetworkFailure when offline and no cache', () async {
+      test('returns Failure with NetworkFailure when offline and no cache', () async {
         when(() => repository.getServers())
-            .thenThrow(const NetworkFailure(message: 'No internet connection'));
+            .thenAnswer((_) async => const Failure(NetworkFailure(message: 'No internet connection')));
 
-        expect(
-          () => repository.getServers(),
-          throwsA(isA<NetworkFailure>()),
-        );
+        final result = await repository.getServers();
+
+        expect(result, isA<Failure<List<ServerEntity>>>());
+        expect((result as Failure<List<ServerEntity>>).failure, isA<NetworkFailure>());
       });
     });
 
@@ -76,22 +79,23 @@ void main() {
       test('returns the requested server', () async {
         final server = createMockServer(id: 's1');
         when(() => repository.getServerById('s1'))
-            .thenAnswer((_) async => server);
+            .thenAnswer((_) async => Success(server));
 
         final result = await repository.getServerById('s1');
 
-        expect(result.id, equals('s1'));
+        expect(result, isA<Success<ServerEntity>>());
+        expect((result as Success<ServerEntity>).data.id, equals('s1'));
         verify(() => repository.getServerById('s1')).called(1);
       });
 
-      test('throws when server not found', () async {
+      test('returns Failure when server not found', () async {
         when(() => repository.getServerById('nonexistent'))
-            .thenThrow(const ServerFailure(message: 'Not found'));
+            .thenAnswer((_) async => const Failure(ServerFailure(message: 'Not found')));
 
-        expect(
-          () => repository.getServerById('nonexistent'),
-          throwsA(isA<ServerFailure>()),
-        );
+        final result = await repository.getServerById('nonexistent');
+
+        expect(result, isA<Failure<ServerEntity>>());
+        expect((result as Failure<ServerEntity>).failure, isA<ServerFailure>());
       });
     });
 
@@ -104,21 +108,24 @@ void main() {
         final usServers =
             testServers.where((s) => s.countryCode == 'US').toList();
         when(() => repository.getServersByCountry('US'))
-            .thenAnswer((_) async => usServers);
+            .thenAnswer((_) async => Success(usServers));
 
         final result = await repository.getServersByCountry('US');
 
-        expect(result, hasLength(2));
-        expect(result.every((s) => s.countryCode == 'US'), isTrue);
+        expect(result, isA<Success<List<ServerEntity>>>());
+        final data = (result as Success<List<ServerEntity>>).data;
+        expect(data, hasLength(2));
+        expect(data.every((s) => s.countryCode == 'US'), isTrue);
       });
 
       test('returns empty list for unknown country code', () async {
         when(() => repository.getServersByCountry('XX'))
-            .thenAnswer((_) async => []);
+            .thenAnswer((_) async => const Success(<ServerEntity>[]));
 
         final result = await repository.getServersByCountry('XX');
 
-        expect(result, isEmpty);
+        expect(result, isA<Success<List<ServerEntity>>>());
+        expect((result as Success<List<ServerEntity>>).data, isEmpty);
       });
     });
 
@@ -132,22 +139,25 @@ void main() {
           createMockServer(id: 's1', isFavorite: true),
         ];
         when(() => repository.getFavoriteServers())
-            .thenAnswer((_) async => favorites);
+            .thenAnswer((_) async => Success(favorites));
 
         final result = await repository.getFavoriteServers();
 
-        expect(result, hasLength(1));
-        expect(result.first.id, equals('s1'));
-        expect(result.first.isFavorite, isTrue);
+        expect(result, isA<Success<List<ServerEntity>>>());
+        final data = (result as Success<List<ServerEntity>>).data;
+        expect(data, hasLength(1));
+        expect(data.first.id, equals('s1'));
+        expect(data.first.isFavorite, isTrue);
       });
 
       test('returns empty list when no favorites are set', () async {
         when(() => repository.getFavoriteServers())
-            .thenAnswer((_) async => []);
+            .thenAnswer((_) async => const Success(<ServerEntity>[]));
 
         final result = await repository.getFavoriteServers();
 
-        expect(result, isEmpty);
+        expect(result, isA<Success<List<ServerEntity>>>());
+        expect((result as Success<List<ServerEntity>>).data, isEmpty);
       });
     });
 
@@ -158,13 +168,11 @@ void main() {
     group('toggleFavorite', () {
       test('completes successfully', () async {
         when(() => repository.toggleFavorite(any()))
-            .thenAnswer((_) async {});
+            .thenAnswer((_) async => const Success<void>(null));
 
-        await expectLater(
-          repository.toggleFavorite('s1'),
-          completes,
-        );
+        final result = await repository.toggleFavorite('s1');
 
+        expect(result, isA<Success<void>>());
         verify(() => repository.toggleFavorite('s1')).called(1);
       });
     });
@@ -176,20 +184,22 @@ void main() {
     group('pingServer', () {
       test('returns latency in milliseconds for reachable host', () async {
         when(() => repository.pingServer(any()))
-            .thenAnswer((_) async => 42);
+            .thenAnswer((_) async => const Success(42));
 
         final result = await repository.pingServer('203.0.113.1');
 
-        expect(result, equals(42));
+        expect(result, isA<Success<int>>());
+        expect((result as Success<int>).data, equals(42));
       });
 
       test('returns -1 for unreachable host', () async {
         when(() => repository.pingServer(any()))
-            .thenAnswer((_) async => -1);
+            .thenAnswer((_) async => const Success(-1));
 
         final result = await repository.pingServer('invalid-host');
 
-        expect(result, equals(-1));
+        expect(result, isA<Success<int>>());
+        expect((result as Success<int>).data, equals(-1));
       });
     });
 
@@ -201,35 +211,39 @@ void main() {
       test('returns the server with best metrics', () async {
         final bestServer = createMockServer(id: 's2', ping: 10, load: 0.1);
         when(() => repository.getBestServer())
-            .thenAnswer((_) async => bestServer);
+            .thenAnswer((_) async => Success(bestServer));
 
         final result = await repository.getBestServer();
 
-        expect(result.id, equals('s2'));
-        expect(result.ping, equals(10));
+        expect(result, isA<Success<ServerEntity>>());
+        final data = (result as Success<ServerEntity>).data;
+        expect(data.id, equals('s2'));
+        expect(data.ping, equals(10));
       });
 
-      test('throws ServerFailure when no servers are available', () async {
-        when(() => repository.getBestServer()).thenThrow(
-          const ServerFailure(message: 'No servers available'),
+      test('returns Failure when no servers are available', () async {
+        when(() => repository.getBestServer()).thenAnswer(
+          (_) async => const Failure(ServerFailure(message: 'No servers available')),
         );
 
-        expect(
-          () => repository.getBestServer(),
-          throwsA(isA<ServerFailure>()),
-        );
+        final result = await repository.getBestServer();
+
+        expect(result, isA<Failure<ServerEntity>>());
+        expect((result as Failure<ServerEntity>).failure, isA<ServerFailure>());
       });
 
       test('returns a non-premium server', () async {
         final server =
             createMockServer(id: 's1', isPremium: false, isAvailable: true);
         when(() => repository.getBestServer())
-            .thenAnswer((_) async => server);
+            .thenAnswer((_) async => Success(server));
 
         final result = await repository.getBestServer();
 
-        expect(result.isPremium, isFalse);
-        expect(result.isAvailable, isTrue);
+        expect(result, isA<Success<ServerEntity>>());
+        final data = (result as Success<ServerEntity>).data;
+        expect(data.isPremium, isFalse);
+        expect(data.isAvailable, isTrue);
       });
     });
   });

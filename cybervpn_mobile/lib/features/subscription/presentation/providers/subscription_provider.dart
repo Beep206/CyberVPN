@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
@@ -60,12 +61,15 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
   FutureOr<SubscriptionState> build() async {
     // Fetch plans and active subscription in parallel.
     final results = await Future.wait([
-      _repo.getPlans().catchError((_) => <PlanEntity>[]),
-      _repo.getActiveSubscription().catchError((_) => null),
+      _repo.getPlans(),
+      _repo.getActiveSubscription(),
     ]);
 
-    final plans = results[0] as List<PlanEntity>;
-    final subscription = results[1] as SubscriptionEntity?;
+    final plansResult = results[0] as Result<List<PlanEntity>>;
+    final subResult = results[1] as Result<SubscriptionEntity?>;
+
+    final plans = plansResult.dataOrNull ?? <PlanEntity>[];
+    final subscription = subResult.dataOrNull;
 
     // Determine trial eligibility: eligible when there is no active
     // subscription and at least one plan is marked as a trial.
@@ -92,12 +96,12 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
     final current = state.value;
     if (current == null) return;
 
-    try {
-      final plans = await _repo.getPlans();
-      state = AsyncValue.data(current.copyWith(availablePlans: plans));
-    } catch (e, st) {
-      // Keep existing plans; surface error via AsyncValue.
-      state = AsyncValue.error(e, st);
+    final result = await _repo.getPlans();
+    switch (result) {
+      case Success(:final data):
+        state = AsyncValue.data(current.copyWith(availablePlans: data));
+      case Failure(:final failure):
+        state = AsyncValue.error(failure, StackTrace.current);
     }
   }
 
@@ -106,18 +110,19 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
     final current = state.value;
     if (current == null) return;
 
-    try {
-      final sub = await _repo.getActiveSubscription();
-      state = AsyncValue.data(
-        current.copyWith(
-          currentSubscription: sub,
-          clearSubscription: sub == null,
-          trialEligibility: sub == null &&
-              current.availablePlans.any((p) => p.isTrial),
-        ),
-      );
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    final result = await _repo.getActiveSubscription();
+    switch (result) {
+      case Success(:final data):
+        state = AsyncValue.data(
+          current.copyWith(
+            currentSubscription: data,
+            clearSubscription: data == null,
+            trialEligibility: data == null &&
+                current.availablePlans.any((p) => p.isTrial),
+          ),
+        );
+      case Failure(:final failure):
+        state = AsyncValue.error(failure, StackTrace.current);
     }
   }
 
@@ -141,27 +146,28 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
     // This runs inline but never blocks - failures are logged and ignored.
     await _performAttestation(AttestationTrigger.purchase);
 
-    try {
-      final subscription = await _repo.subscribe(
-        plan.id,
-        paymentMethod: plan.storeProductId,
-      );
+    final result = await _repo.subscribe(
+      plan.id,
+      paymentMethod: plan.storeProductId,
+    );
 
-      state = AsyncValue.data(
-        current.copyWith(
-          currentSubscription: subscription,
-          purchaseState: PurchaseState.success,
-          trialEligibility: false,
-          clearPurchaseError: true,
-        ),
-      );
-    } catch (e) {
-      state = AsyncValue.data(
-        current.copyWith(
-          purchaseState: PurchaseState.error,
-          purchaseError: e.toString(),
-        ),
-      );
+    switch (result) {
+      case Success(:final data):
+        state = AsyncValue.data(
+          current.copyWith(
+            currentSubscription: data,
+            purchaseState: PurchaseState.success,
+            trialEligibility: false,
+            clearPurchaseError: true,
+          ),
+        );
+      case Failure(:final failure):
+        state = AsyncValue.data(
+          current.copyWith(
+            purchaseState: PurchaseState.error,
+            purchaseError: failure.message,
+          ),
+        );
     }
   }
 
@@ -208,10 +214,20 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
       await _revenueCat.restorePurchases();
 
       // Then sync with our backend.
-      await _repo.restorePurchases();
+      final restoreResult = await _repo.restorePurchases();
+      if (restoreResult is Failure<void>) {
+        state = AsyncValue.data(
+          current.copyWith(
+            purchaseState: PurchaseState.error,
+            purchaseError: restoreResult.failure.message,
+          ),
+        );
+        return;
+      }
 
       // Reload subscription to reflect restored state.
-      final sub = await _repo.getActiveSubscription();
+      final subResult = await _repo.getActiveSubscription();
+      final sub = subResult.dataOrNull;
 
       state = AsyncValue.data(
         current.copyWith(

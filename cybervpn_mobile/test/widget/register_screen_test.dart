@@ -247,6 +247,7 @@ void main() {
         verify(() => mockAuthRepo.register(
               email: kValidEmail,
               password: kValidPassword,
+              device: any(named: 'device'),
               referralCode: null,
             )).called(1);
       });
@@ -454,6 +455,7 @@ void main() {
         verify(() => mockAuthRepo.register(
               email: kValidEmail,
               password: kValidPassword,
+              device: any(named: 'device'),
               referralCode: 'MYCODE2024',
             )).called(1);
       });

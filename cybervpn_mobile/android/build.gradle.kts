@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.LibraryExtension
+
 allprojects {
     repositories {
         google()
@@ -17,6 +19,24 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+subprojects {
+    plugins.withId("com.android.library") {
+        extensions.configure<LibraryExtension>("android") {
+            if (namespace == null) {
+                val manifestFile = project.file("src/main/AndroidManifest.xml")
+                val manifestNamespace = if (manifestFile.exists()) {
+                    val match = Regex("package=\"([^\"]+)\"").find(manifestFile.readText())
+                    match?.groupValues?.getOrNull(1)
+                } else {
+                    null
+                }
+
+                namespace = manifestNamespace ?: "com.cybervpn.${project.name}"
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {

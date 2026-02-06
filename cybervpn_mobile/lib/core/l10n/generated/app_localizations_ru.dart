@@ -866,6 +866,70 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось отсканировать QR-код. Попробуйте снова.';
 
   @override
+  String get errorTelegramAuthCancelled => 'Вход через Telegram был отменён.';
+
+  @override
+  String get errorTelegramAuthFailed =>
+      'Ошибка аутентификации через Telegram. Попробуйте снова.';
+
+  @override
+  String get errorTelegramAuthExpired =>
+      'Время входа через Telegram истекло. Попробуйте снова.';
+
+  @override
+  String get errorTelegramNotInstalled =>
+      'Telegram не установлен на этом устройстве.';
+
+  @override
+  String get errorTelegramAuthInvalid =>
+      'Неверные данные аутентификации Telegram.';
+
+  @override
+  String get errorBiometricUnavailable =>
+      'Биометрическая аутентификация недоступна на этом устройстве.';
+
+  @override
+  String get errorBiometricNotEnrolled =>
+      'Биометрические данные не зарегистрированы. Настройте отпечаток пальца или распознавание лица в настройках устройства.';
+
+  @override
+  String get errorBiometricFailed =>
+      'Ошибка биометрической аутентификации. Попробуйте снова.';
+
+  @override
+  String get errorBiometricLocked =>
+      'Биометрическая аутентификация заблокирована. Попробуйте позже или используйте пароль.';
+
+  @override
+  String get errorSessionExpired =>
+      'Ваша сессия истекла. Войдите в систему снова.';
+
+  @override
+  String get errorAccountDisabled =>
+      'Ваш аккаунт отключён. Обратитесь в службу поддержки.';
+
+  @override
+  String errorRateLimitedWithCountdown(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds секунд',
+      many: '$seconds секунд',
+      few: '$seconds секунды',
+      one: '1 секунду',
+    );
+    return 'Слишком много попыток. Повторите через $_temp0.';
+  }
+
+  @override
+  String get errorOfflineLoginRequired =>
+      'Для входа требуется подключение к интернету. Проверьте соединение.';
+
+  @override
+  String get errorOfflineSessionExpired =>
+      'Кэшированная сессия истекла. Подключитесь к интернету для входа.';
+
+  @override
   String get a11yConnectButton => 'Подключиться к VPN-серверу';
 
   @override

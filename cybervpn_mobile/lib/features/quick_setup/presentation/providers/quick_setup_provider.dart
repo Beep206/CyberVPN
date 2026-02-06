@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -133,18 +134,6 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Dependency providers
-// ---------------------------------------------------------------------------
-
-/// Provider for [SharedPreferences]. Must be overridden in DI setup.
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden with a SharedPreferences '
-    'instance in a ProviderScope.',
-  );
-});
 
 // ---------------------------------------------------------------------------
 // Main provider

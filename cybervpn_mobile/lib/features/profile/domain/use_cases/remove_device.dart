@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
 /// Use case for revoking a device session
@@ -14,7 +15,7 @@ class RemoveDeviceUseCase {
   /// Throws [ArgumentError] if [deviceId] is empty.
   /// Throws [StateError] if attempting to remove the current device
   /// (identified by [currentDeviceId]).
-  Future<void> call({
+  Future<Result<void>> call({
     required String deviceId,
     required String currentDeviceId,
   }) async {

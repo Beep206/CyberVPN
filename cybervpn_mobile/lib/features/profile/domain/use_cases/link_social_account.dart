@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -15,7 +16,7 @@ class LinkSocialAccountUseCase {
   /// Checks that the provider is not already linked before proceeding.
   /// Throws [StateError] if the provider is already linked.
   /// Returns the authorization URL to open in a browser.
-  Future<String> call({
+  Future<Result<String>> call({
     required OAuthProvider provider,
     required List<OAuthProvider> currentlyLinked,
   }) async {
@@ -33,7 +34,7 @@ class CompleteSocialAccountLinkUseCase {
   const CompleteSocialAccountLinkUseCase(this._repository);
 
   /// Completes the OAuth linking flow by sending the [code] to the backend.
-  Future<void> call({
+  Future<Result<void>> call({
     required OAuthProvider provider,
     required String code,
   }) async {
