@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_service.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -107,7 +108,11 @@ class QuickActionsHandler {
       // No last server -- try to connect to best available server
       try {
         final serverRepo = _ref.read(serverRepositoryProvider);
-        final servers = await serverRepo.getServers();
+        final serversResult = await serverRepo.getServers();
+        final servers = switch (serversResult) {
+          Success(:final data) => data,
+          Failure() => <ServerEntity>[],
+        };
 
         if (servers.isEmpty) {
           AppLogger.warning(

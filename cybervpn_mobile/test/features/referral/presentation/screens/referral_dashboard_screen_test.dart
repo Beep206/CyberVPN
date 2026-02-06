@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
@@ -60,16 +61,16 @@ Widget buildTestWidget(MockReferralRepository mockRepo) {
 }
 
 void _stubAvailable(MockReferralRepository mockRepo) {
-  when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+  when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
   when(() => mockRepo.getReferralCode())
-      .thenAnswer((_) async => 'CYBER123');
-  when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+      .thenAnswer((_) async => const Success('CYBER123'));
+  when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
   when(() => mockRepo.getRecentReferrals())
-      .thenAnswer((_) async => _sampleReferrals);
+      .thenAnswer((_) async => Success(_sampleReferrals));
 }
 
 void _stubUnavailable(MockReferralRepository mockRepo) {
-  when(() => mockRepo.isAvailable()).thenAnswer((_) async => false);
+  when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ void main() {
   group('ReferralDashboardScreen - loading state', () {
     testWidgets('shows loading indicator while data loads', (tester) async {
       // Use a completer to hold the future in loading state without timers.
-      final completer = Completer<bool>();
+      final completer = Completer<Result<bool>>();
       when(() => mockRepo.isAvailable())
           .thenAnswer((_) => completer.future);
 
@@ -243,7 +244,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       // Complete to avoid pending timer issues.
-      completer.complete(false);
+      completer.complete(const Success(false));
       await tester.pumpAndSettle();
     });
   });

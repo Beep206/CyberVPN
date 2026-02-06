@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
@@ -43,12 +44,14 @@ void main() {
         secret: 'JBSWY3DPEHPK3PXP',
         qrCodeUri: 'otpauth://totp/CyberVPN:user@example.com?secret=JBSWY3DPEHPK3PXP',
       );
-      when(() => mockRepository.setup2FA()).thenAnswer((_) async => result);
+      when(() => mockRepository.setup2FA()).thenAnswer((_) async => Success(result));
 
       final actual = await useCase();
 
-      expect(actual, equals(result));
-      expect(actual.secret, equals('JBSWY3DPEHPK3PXP'));
+      expect(actual, isA<Success<Setup2FAResult>>());
+      final data = (actual as Success<Setup2FAResult>).data;
+      expect(data, equals(result));
+      expect(data.secret, equals('JBSWY3DPEHPK3PXP'));
       verify(() => mockRepository.setup2FA()).called(1);
     });
   });
@@ -64,11 +67,12 @@ void main() {
     });
 
     test('returns true when code is valid', () async {
-      when(() => mockRepository.verify2FA('123456')).thenAnswer((_) async => true);
+      when(() => mockRepository.verify2FA('123456')).thenAnswer((_) async => const Success(true));
 
       final result = await useCase('123456');
 
-      expect(result, isTrue);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isTrue);
       verify(() => mockRepository.verify2FA('123456')).called(1);
     });
 
@@ -94,7 +98,7 @@ void main() {
     });
 
     test('calls repository when code is valid', () async {
-      when(() => mockRepository.disable2FA('654321')).thenAnswer((_) async {});
+      when(() => mockRepository.disable2FA('654321')).thenAnswer((_) async => const Success<void>(null));
 
       await useCase('654321');
 
@@ -120,16 +124,18 @@ void main() {
       useCase = LinkSocialAccountUseCase(mockRepository);
     });
 
-    test('calls repository when provider is not yet linked', () async {
-      when(() => mockRepository.linkOAuth(OAuthProvider.github))
-          .thenAnswer((_) async {});
+    test('returns auth URL when provider is not yet linked', () async {
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github))
+          .thenAnswer((_) async => const Success('https://auth.example.com/github'));
 
-      await useCase(
+      final result = await useCase(
         provider: OAuthProvider.github,
         currentlyLinked: const [OAuthProvider.google],
       );
 
-      verify(() => mockRepository.linkOAuth(OAuthProvider.github)).called(1);
+      expect(result, isA<Success<String>>());
+      expect((result as Success<String>).data, equals('https://auth.example.com/github'));
+      verify(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github)).called(1);
     });
 
     test('throws StateError when provider is already linked', () async {
@@ -140,6 +146,7 @@ void main() {
         ),
         throwsA(isA<StateError>()),
       );
+      verifyNever(() => mockRepository.getOAuthAuthorizationUrl(any()));
     });
   });
 
@@ -155,7 +162,7 @@ void main() {
 
     test('calls repository when provider is currently linked', () async {
       when(() => mockRepository.unlinkOAuth(OAuthProvider.google))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       await useCase(
         provider: OAuthProvider.google,
@@ -188,7 +195,7 @@ void main() {
 
     test('calls repository when password provided and 2FA disabled', () async {
       when(() => mockRepository.deleteAccount('mypassword'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       await useCase(password: 'mypassword', is2FAEnabled: false);
 
@@ -197,7 +204,7 @@ void main() {
 
     test('calls repository when password and valid TOTP provided with 2FA enabled', () async {
       when(() => mockRepository.deleteAccount('mypassword', totpCode: '123456'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       await useCase(
         password: 'mypassword',
@@ -259,21 +266,24 @@ void main() {
           platform: 'Web',
         ),
       ];
-      when(() => mockRepository.getDevices()).thenAnswer((_) async => devices);
+      when(() => mockRepository.getDevices()).thenAnswer((_) async => Success(devices));
 
       final result = await useCase();
 
-      expect(result, equals(devices));
-      expect(result.length, equals(2));
+      expect(result, isA<Success<List<Device>>>());
+      final data = (result as Success<List<Device>>).data;
+      expect(data, equals(devices));
+      expect(data.length, equals(2));
       verify(() => mockRepository.getDevices()).called(1);
     });
 
     test('returns empty list when no devices', () async {
-      when(() => mockRepository.getDevices()).thenAnswer((_) async => []);
+      when(() => mockRepository.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
 
       final result = await useCase();
 
-      expect(result, isEmpty);
+      expect(result, isA<Success<List<Device>>>());
+      expect((result as Success<List<Device>>).data, isEmpty);
     });
   });
 
@@ -288,7 +298,7 @@ void main() {
     });
 
     test('calls repository when removing a different device', () async {
-      when(() => mockRepository.removeDevice('dev-2')).thenAnswer((_) async {});
+      when(() => mockRepository.removeDevice('dev-2')).thenAnswer((_) async => const Success<void>(null));
 
       await useCase(deviceId: 'dev-2', currentDeviceId: 'dev-1');
 
@@ -328,13 +338,15 @@ void main() {
         is2FAEnabled: true,
         linkedProviders: [OAuthProvider.google],
       );
-      when(() => mockRepository.getProfile()).thenAnswer((_) async => profile);
+      when(() => mockRepository.getProfile()).thenAnswer((_) async => const Success(profile));
 
       final result = await useCase();
 
-      expect(result, equals(profile));
-      expect(result.is2FAEnabled, isTrue);
-      expect(result.linkedProviders, contains(OAuthProvider.google));
+      expect(result, isA<Success<Profile>>());
+      final data = (result as Success<Profile>).data;
+      expect(data, equals(profile));
+      expect(data.is2FAEnabled, isTrue);
+      expect(data.linkedProviders, contains(OAuthProvider.google));
       verify(() => mockRepository.getProfile()).called(1);
     });
   });

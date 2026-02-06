@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/link_social_account.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/unlink_social_account.dart';
@@ -28,20 +29,22 @@ void main() {
       useCase = LinkSocialAccountUseCase(mockRepository);
     });
 
-    test('calls repository.linkOAuth when provider is not yet linked',
+    test('returns auth URL when provider is not yet linked',
         () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(OAuthProvider.github))
-          .thenAnswer((_) async {});
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github))
+          .thenAnswer((_) async => const Success('https://auth.example.com/github'));
 
       // Act
-      await useCase(
+      final result = await useCase(
         provider: OAuthProvider.github,
         currentlyLinked: const [OAuthProvider.google],
       );
 
       // Assert
-      verify(() => mockRepository.linkOAuth(OAuthProvider.github)).called(1);
+      expect(result, isA<Success<String>>());
+      expect((result as Success<String>).data, equals('https://auth.example.com/github'));
+      verify(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github)).called(1);
     });
 
     test('throws StateError when provider is already linked', () async {
@@ -56,28 +59,30 @@ void main() {
         ),
         throwsA(isA<StateError>()),
       );
-      verifyNever(() => mockRepository.linkOAuth(any()));
+      verifyNever(() => mockRepository.getOAuthAuthorizationUrl(any()));
     });
 
     test('allows linking when currentlyLinked is empty', () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(OAuthProvider.google))
-          .thenAnswer((_) async {});
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.google))
+          .thenAnswer((_) async => const Success('https://auth.example.com/google'));
 
       // Act
-      await useCase(
+      final result = await useCase(
         provider: OAuthProvider.google,
         currentlyLinked: const [],
       );
 
       // Assert
-      verify(() => mockRepository.linkOAuth(OAuthProvider.google)).called(1);
+      expect(result, isA<Success<String>>());
+      expect((result as Success<String>).data, equals('https://auth.example.com/google'));
+      verify(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.google)).called(1);
     });
 
     test('links each provider individually', () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(any()))
-          .thenAnswer((_) async {});
+      when(() => mockRepository.getOAuthAuthorizationUrl(any()))
+          .thenAnswer((_) async => const Success('https://auth.example.com/provider'));
 
       // Act: link all providers sequentially
       for (final provider in OAuthProvider.values) {
@@ -89,13 +94,13 @@ void main() {
 
       // Assert: each provider was linked exactly once
       for (final provider in OAuthProvider.values) {
-        verify(() => mockRepository.linkOAuth(provider)).called(1);
+        verify(() => mockRepository.getOAuthAuthorizationUrl(provider)).called(1);
       }
     });
 
     test('propagates repository exceptions', () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(OAuthProvider.apple))
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.apple))
           .thenThrow(Exception('OAuth error'));
 
       // Act & Assert
@@ -122,7 +127,7 @@ void main() {
     test('calls repository.unlinkOAuth when provider is linked', () async {
       // Arrange
       when(() => mockRepository.unlinkOAuth(OAuthProvider.google))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase(
@@ -189,10 +194,10 @@ void main() {
 
     test('link then unlink the same provider succeeds', () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(OAuthProvider.github))
-          .thenAnswer((_) async {});
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github))
+          .thenAnswer((_) async => const Success('https://auth.example.com/github'));
       when(() => mockRepository.unlinkOAuth(OAuthProvider.github))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act: link
       await linkUseCase(
@@ -207,14 +212,14 @@ void main() {
       );
 
       // Assert
-      verify(() => mockRepository.linkOAuth(OAuthProvider.github)).called(1);
+      verify(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.github)).called(1);
       verify(() => mockRepository.unlinkOAuth(OAuthProvider.github)).called(1);
     });
 
     test('cannot link an already-linked provider', () async {
       // Arrange
-      when(() => mockRepository.linkOAuth(OAuthProvider.google))
-          .thenAnswer((_) async {});
+      when(() => mockRepository.getOAuthAuthorizationUrl(OAuthProvider.google))
+          .thenAnswer((_) async => const Success('https://auth.example.com/google'));
 
       // Act: link first time
       await linkUseCase(

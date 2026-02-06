@@ -21,22 +21,35 @@ import 'package:cybervpn_mobile/shared/widgets/global_error_screen.dart';
 late final ProviderContainer _globalContainer;
 
 Future<void> main() async {
+  final totalSw = Stopwatch()..start();
+  final stepSw = Stopwatch();
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load .env file for local development fallback values.
+  stepSw.start();
   await EnvironmentConfig.init();
+  _logStep('EnvironmentConfig.init', stepSw);
 
   // Initialize SharedPreferences before runApp so providers can access
   // it synchronously via the overridden sharedPreferencesProvider.
+  stepSw
+    ..reset()
+    ..start();
   final prefs = await SharedPreferences.getInstance();
+  _logStep('SharedPreferences.getInstance', stepSw);
 
-  // Create the provider container with all overrides
+  // Create the provider container with all overrides.
+  // buildProviderOverrides is async because it awaits SecureStorage
+  // prewarmCache to prevent race conditions during auth resolution.
+  stepSw
+    ..reset()
+    ..start();
+  final overrides = await buildProviderOverrides(prefs);
   _globalContainer = ProviderContainer(
-    // buildProviderOverrides returns List (raw) because Riverpod 3.0.3
-    // does not publicly export the Override type.
-    // ignore: argument_type_not_assignable
-    overrides: buildProviderOverrides(prefs),
+    overrides: overrides,
   );
+  _logStep('buildProviderOverrides + ProviderContainer', stepSw);
 
   // Defer non-critical initialization to post-launch for faster cold start.
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,18 +59,41 @@ Future<void> main() async {
   final dsn = EnvironmentConfig.sentryDsn;
 
   if (dsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = dsn;
-        options.environment = EnvironmentConfig.environment;
-        options.tracesSampleRate = 1.0;
-        options.sendDefaultPii = false;
-      },
-      appRunner: () => _runApp(prefs),
-    );
+    stepSw
+      ..reset()
+      ..start();
+    await SentryFlutter.init((options) {
+      options.dsn = dsn;
+      options.environment = EnvironmentConfig.environment;
+      options.tracesSampleRate = 1.0;
+      options.sendDefaultPii = false;
+    }, appRunner: () => _runApp(prefs));
+    _logStep('SentryFlutter.init', stepSw);
   } else {
     // Sentry disabled (local/dev) -- run the app directly.
     _runApp(prefs);
+  }
+
+  totalSw.stop();
+  final isDebug = () { bool d = false; assert(d = true); return d; }();
+  AppLogger.info(
+    'Startup complete in ${totalSw.elapsedMilliseconds}ms '
+    '(${isDebug ? "debug" : "release"})',
+    category: 'startup',
+  );
+}
+
+/// Logs a startup step's duration. Warns if it exceeded 100ms.
+void _logStep(String name, Stopwatch sw) {
+  sw.stop();
+  final ms = sw.elapsedMilliseconds;
+  if (ms > 100) {
+    AppLogger.warning(
+      'Startup step "$name" took ${ms}ms (>100ms)',
+      category: 'startup',
+    );
+  } else {
+    AppLogger.info('Startup step "$name" took ${ms}ms', category: 'startup');
   }
 }
 
@@ -112,10 +148,7 @@ void _runApp(SharedPreferences prefs) {
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-      Sentry.captureException(
-        details.exception,
-        stackTrace: details.stack,
-      );
+      Sentry.captureException(details.exception, stackTrace: details.stack);
     }
   };
 

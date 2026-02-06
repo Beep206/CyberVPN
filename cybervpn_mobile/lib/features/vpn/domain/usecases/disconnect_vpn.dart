@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.dart';
 
 class DisconnectVpnUseCase {
@@ -6,6 +7,12 @@ class DisconnectVpnUseCase {
   const DisconnectVpnUseCase(this._repository);
 
   Future<void> call() async {
-    await _repository.disconnect();
+    final result = await _repository.disconnect();
+    switch (result) {
+      case Success():
+        return;
+      case Failure(:final failure):
+        throw failure;
+    }
   }
 }

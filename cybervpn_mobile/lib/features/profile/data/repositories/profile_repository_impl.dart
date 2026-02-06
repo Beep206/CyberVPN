@@ -1,7 +1,8 @@
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
-import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
@@ -14,6 +15,9 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 /// Delegates to [ProfileRemoteDataSource] for all network calls and uses
 /// [NetworkErrorHandler] to convert infrastructure exceptions into domain
 /// [Failure] types with retry logic for transient errors.
+///
+/// All methods return [Result<T>] instead of throwing, enabling callers
+/// to handle success and failure explicitly via pattern matching.
 class ProfileRepositoryImpl
     with NetworkErrorHandler
     implements ProfileRepository {
@@ -29,147 +33,177 @@ class ProfileRepositoryImpl
   // -- Profile --
 
   @override
-  Future<Profile> getProfile() async {
-    await _ensureConnected();
+  Future<Result<Profile>> getProfile() async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.getProfile();
+      return Success(await _remoteDataSource.getProfile());
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   // -- Two-Factor Authentication --
 
   @override
-  Future<Setup2FAResult> setup2FA() async {
-    await _ensureConnected();
+  Future<Result<Setup2FAResult>> setup2FA() async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.setup2FA();
+      return Success(await _remoteDataSource.setup2FA());
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<bool> verify2FA(String code) async {
-    await _ensureConnected();
+  Future<Result<bool>> verify2FA(String code) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.verify2FA(code);
+      return Success(await _remoteDataSource.verify2FA(code));
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<bool> validate2FA(String code) async {
-    await _ensureConnected();
+  Future<Result<bool>> validate2FA(String code) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.validate2FA(code);
+      return Success(await _remoteDataSource.validate2FA(code));
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<void> disable2FA(String code) async {
-    await _ensureConnected();
+  Future<Result<void>> disable2FA(String code) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
       await _remoteDataSource.disable2FA(code);
+      return const Success(null);
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   // -- OAuth Provider Linking --
 
   @override
-  Future<String> getOAuthAuthorizationUrl(OAuthProvider provider) async {
-    await _ensureConnected();
+  Future<Result<String>> getOAuthAuthorizationUrl(
+    OAuthProvider provider,
+  ) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.getOAuthAuthorizationUrl(provider);
+      return Success(
+        await _remoteDataSource.getOAuthAuthorizationUrl(provider),
+      );
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<void> completeOAuthLink(OAuthProvider provider, String code) async {
-    await _ensureConnected();
+  Future<Result<void>> completeOAuthLink(
+    OAuthProvider provider,
+    String code,
+  ) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
       await _remoteDataSource.completeOAuthLink(provider, code);
+      return const Success(null);
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<void> unlinkOAuth(OAuthProvider provider) async {
-    await _ensureConnected();
+  Future<Result<void>> unlinkOAuth(OAuthProvider provider) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
       await _remoteDataSource.unlinkOAuth(provider);
+      return const Success(null);
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   // -- Device / Session Management --
 
   @override
-  Future<List<Device>> getDevices() async {
-    await _ensureConnected();
+  Future<Result<List<Device>>> getDevices() async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.getDevices();
+      return Success(await _remoteDataSource.getDevices());
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<Device> registerDevice({
+  Future<Result<Device>> registerDevice({
     required String deviceName,
     required String platform,
     required String deviceId,
   }) async {
-    await _ensureConnected();
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
-      return await _remoteDataSource.registerDevice(
+      return Success(await _remoteDataSource.registerDevice(
         deviceName: deviceName,
         platform: platform,
         deviceId: deviceId,
-      );
+      ));
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   @override
-  Future<void> removeDevice(String id) async {
-    await _ensureConnected();
+  Future<Result<void>> removeDevice(String id) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
       await _remoteDataSource.removeDevice(id);
+      return const Success(null);
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
+      return Failure(mapExceptionToFailure(e));
     }
   }
 
   // -- Account Deletion --
 
   @override
-  Future<void> deleteAccount(String password, {String? totpCode}) async {
-    await _ensureConnected();
+  Future<Result<void>> deleteAccount(
+    String password, {
+    String? totpCode,
+  }) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
     try {
       await _remoteDataSource.deleteAccount(password, totpCode: totpCode);
+      return const Success(null);
     } on AppException catch (e) {
-      throw mapExceptionToFailure(e);
-    }
-  }
-
-  // -- Private Helpers --
-
-  /// Throws [NetworkFailure] if the device is offline.
-  Future<void> _ensureConnected() async {
-    if (!await _networkInfo.isConnected) {
-      throw const NetworkFailure(message: 'No internet connection');
+      return Failure(mapExceptionToFailure(e));
     }
   }
 }

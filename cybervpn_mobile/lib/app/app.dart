@@ -17,6 +17,7 @@ import 'package:cybervpn_mobile/features/widgets/presentation/widget_state_liste
 import 'package:cybervpn_mobile/features/widgets/data/widget_toggle_handler.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/untrusted_wifi_handler.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Convert [TextScale] enum to a double scale factor.
 double _textScaleToDouble(TextScale scale, double systemScale) {
@@ -43,27 +44,6 @@ class CyberVpnApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Initialize quick actions listener to watch VPN state changes.
-    // This keeps the listener alive for the lifetime of the app.
-    ref.watch(quickActionsListenerProvider);
-
-    // Initialize widget state listener to sync VPN state to home screen widgets.
-    ref.watch(widgetStateListenerProvider);
-
-    // Initialize widget toggle handler to respond to widget button taps.
-    ref.watch(widgetToggleHandlerProvider);
-
-    // Initialize Quick Settings channel for Android Quick Settings tile.
-    ref.watch(quickSettingsChannelProvider);
-
-    // Initialize untrusted WiFi handler to auto-connect VPN when joining
-    // untrusted networks (starts/stops based on user preference).
-    ref.watch(untrustedWifiHandlerProvider);
-
-    // Sync FCM topic subscriptions when settings change.
-    // Ensures notification preferences are reflected in FCM topic subscriptions.
-    ref.watch(fcmTopicSyncProvider);
-
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         // Push platform dynamic colors into the Riverpod state graph so that
@@ -124,7 +104,9 @@ class CyberVpnApp extends ConsumerWidget {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(scaleFactor),
                   ),
-                  child: child ?? const SizedBox.shrink(),
+                  child: _AppLifecycleManager(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               );
             },
@@ -148,5 +130,99 @@ class CyberVpnApp extends ConsumerWidget {
           .read(dynamicColorProvider.notifier)
           .update(light: lightDynamic, dark: darkDynamic);
     });
+  }
+}
+
+/// Watches all lifecycle providers that must stay alive for the duration of
+/// the app.
+///
+/// Each [ref.watch] is wrapped in a try-catch so that a single provider
+/// failure cannot block the entire widget tree from rendering. Errors are
+/// reported through [AppLogger] for diagnostics.
+///
+/// Placed inside the [MaterialApp.router] builder so that it participates in
+/// the widget tree beneath the router, receiving proper [BuildContext] with
+/// localization, theme, and directionality already configured.
+class _AppLifecycleManager extends ConsumerWidget {
+  const _AppLifecycleManager({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Initialize quick actions listener to watch VPN state changes.
+    try {
+      ref.watch(quickActionsListenerProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'quickActionsListenerProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Initialize widget state listener to sync VPN state to home screen widgets.
+    try {
+      ref.watch(widgetStateListenerProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'widgetStateListenerProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Initialize widget toggle handler to respond to widget button taps.
+    try {
+      ref.watch(widgetToggleHandlerProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'widgetToggleHandlerProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Initialize Quick Settings channel for Android Quick Settings tile.
+    try {
+      ref.watch(quickSettingsChannelProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'quickSettingsChannelProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Initialize untrusted WiFi handler to auto-connect VPN when joining
+    // untrusted networks (starts/stops based on user preference).
+    try {
+      ref.watch(untrustedWifiHandlerProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'untrustedWifiHandlerProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Sync FCM topic subscriptions when settings change.
+    try {
+      ref.watch(fcmTopicSyncProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'fcmTopicSyncProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    return child;
   }
 }

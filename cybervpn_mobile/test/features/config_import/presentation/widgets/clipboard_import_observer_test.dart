@@ -16,7 +16,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            settingsProvider.overrideWith((ref) {
+            settingsProvider.overrideWith(() {
               return _MockSettingsNotifier();
             }),
           ],

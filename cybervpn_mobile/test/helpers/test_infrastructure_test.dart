@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
@@ -164,7 +165,7 @@ void main() {
     test('MockServerRepository can be stubbed', () {
       final mock = MockServerRepository();
       when(() => mock.getServers()).thenAnswer(
-        (_) async => createMockServerList(),
+        (_) async => Success(createMockServerList()),
       );
 
       expect(mock.getServers(), completes);
@@ -173,7 +174,7 @@ void main() {
     test('MockSubscriptionRepository can be stubbed', () {
       final mock = MockSubscriptionRepository();
       when(() => mock.getPlans()).thenAnswer(
-        (_) async => createMockPlanList(),
+        (_) async => Success(createMockPlanList()),
       );
 
       expect(mock.getPlans(), completes);

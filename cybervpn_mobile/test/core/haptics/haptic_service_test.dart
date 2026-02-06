@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
 
@@ -34,7 +35,7 @@ void main() {
     group('when haptics are enabled in settings', () {
       setUp(() {
         when(() => mockSettingsRepo.getSettings()).thenAnswer(
-          (_) async => const AppSettings(hapticsEnabled: true),
+          (_) async => const Success(AppSettings(hapticsEnabled: true)),
         );
       });
 
@@ -164,7 +165,7 @@ void main() {
     group('when haptics are disabled in settings', () {
       setUp(() {
         when(() => mockSettingsRepo.getSettings()).thenAnswer(
-          (_) async => const AppSettings(hapticsEnabled: false),
+          (_) async => const Success(AppSettings(hapticsEnabled: false)),
         );
       });
 

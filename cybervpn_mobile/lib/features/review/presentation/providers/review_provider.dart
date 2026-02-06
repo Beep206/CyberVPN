@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/review/data/services/review_service.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show sharedPreferencesProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 
 /// Provides the [ReviewService] instance.
 ///

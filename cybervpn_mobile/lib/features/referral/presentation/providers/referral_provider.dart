@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
@@ -105,7 +106,11 @@ class ReferralNotifier extends AsyncNotifier<ReferralState> {
 
   @override
   FutureOr<ReferralState> build() async {
-    final available = await _repo.isAvailable();
+    final availableResult = await _repo.isAvailable();
+    final available = switch (availableResult) {
+      Success(:final data) => data,
+      Failure() => false,
+    };
 
     if (!available) {
       return const ReferralState(isAvailable: false);
@@ -120,7 +125,11 @@ class ReferralNotifier extends AsyncNotifier<ReferralState> {
   Future<void> checkAvailability() async {
     state = const AsyncLoading();
     try {
-      final available = await _repo.isAvailable();
+      final availableResult = await _repo.isAvailable();
+      final available = switch (availableResult) {
+        Success(:final data) => data,
+        Failure() => false,
+      };
       if (!available) {
         state = const AsyncData(ReferralState(isAvailable: false));
         return;
@@ -150,8 +159,17 @@ class ReferralNotifier extends AsyncNotifier<ReferralState> {
         _repo.getRecentReferrals(),
       ]);
 
-      final newStats = results[0] as ReferralStats;
-      final newReferrals = results[1] as List<ReferralEntry>;
+      final statsResult = results[0] as Result<ReferralStats>;
+      final referralsResult = results[1] as Result<List<ReferralEntry>>;
+
+      final newStats = switch (statsResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
+      final newReferrals = switch (referralsResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
 
       state = AsyncData(
         current.copyWith(
@@ -201,9 +219,22 @@ class ReferralNotifier extends AsyncNotifier<ReferralState> {
       _repo.getRecentReferrals(),
     ]);
 
-    final code = results[0] as String;
-    final stats = results[1] as ReferralStats;
-    final referrals = results[2] as List<ReferralEntry>;
+    final codeResult = results[0] as Result<String>;
+    final statsResult = results[1] as Result<ReferralStats>;
+    final referralsResult = results[2] as Result<List<ReferralEntry>>;
+
+    final code = switch (codeResult) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
+    final stats = switch (statsResult) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
+    final referrals = switch (referralsResult) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
 
     return ReferralState(
       isAvailable: true,

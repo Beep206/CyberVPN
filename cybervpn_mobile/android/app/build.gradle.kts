@@ -1,3 +1,8 @@
+import java.util.Properties
+
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -20,7 +25,7 @@ plugins {
 // ---------------------------------------------------------------------------
 
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
@@ -30,13 +35,10 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     buildFeatures {
@@ -45,18 +47,22 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(
-                System.getenv("ANDROID_KEYSTORE_PATH")
-                    ?: keystoreProperties.getProperty("storeFile")
-                    ?: "debug.keystore"
-            )
+            val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+                ?.takeIf { it.isNotBlank() }
+                ?: keystoreProperties.getProperty("storeFile")
+                ?: "debug.keystore"
+            storeFile = file(keystorePath)
+
             storePassword = System.getenv("KEYSTORE_PASSWORD")
+                ?.takeIf { it.isNotBlank() }
                 ?: keystoreProperties.getProperty("storePassword")
                 ?: ""
             keyAlias = System.getenv("KEY_ALIAS")
+                ?.takeIf { it.isNotBlank() }
                 ?: keystoreProperties.getProperty("keyAlias")
                 ?: ""
             keyPassword = System.getenv("KEY_PASSWORD")
+                ?.takeIf { it.isNotBlank() }
                 ?: keystoreProperties.getProperty("keyPassword")
                 ?: ""
         }
@@ -124,6 +130,16 @@ android {
                 "proguard-rules.pro",
             )
         }
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    exclude("io/flutter/plugins/GeneratedPluginRegistrant.java")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

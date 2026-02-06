@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
@@ -208,9 +209,14 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     _listenToWebSocketEvents();
 
     // Check whether we are already connected (e.g. after process restart).
-    final alreadyConnected = await _repository.isConnected;
+    final connectedResult = await _repository.isConnected;
+    final alreadyConnected = switch (connectedResult) {
+      Success(:final data) => data,
+      Failure() => false,
+    };
     if (alreadyConnected) {
-      final lastConfig = await _repository.getLastConfig();
+      final lastConfigResult = await _repository.getLastConfig();
+      final lastConfig = lastConfigResult.dataOrNull;
       final savedServer = await _loadLastServer();
       if (savedServer != null && lastConfig != null) {
         return VpnConnected(

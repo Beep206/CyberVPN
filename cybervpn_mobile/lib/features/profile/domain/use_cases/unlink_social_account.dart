@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -13,7 +14,7 @@ class UnlinkSocialAccountUseCase {
   ///
   /// Validates that the provider is currently linked before attempting removal.
   /// Throws [StateError] if the provider is not linked.
-  Future<void> call({
+  Future<Result<void>> call({
     required OAuthProvider provider,
     required List<OAuthProvider> currentlyLinked,
   }) async {

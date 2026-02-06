@@ -41,8 +41,7 @@ void main() {
     Future<void> pumpCyberVpnApp(WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          // buildProviderOverrides returns List (raw) because Riverpod 3.0.3
-          // does not publicly export the Override type.
+          // TODO: await buildProviderOverrides(prefs) -- currently passes a Future.
           // ignore: argument_type_not_assignable
           overrides: buildProviderOverrides(prefs),
           child: const CyberVpnApp(),
@@ -240,8 +239,7 @@ void main() {
     Future<void> pumpCyberVpnApp(WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          // buildProviderOverrides returns List (raw) because Riverpod 3.0.3
-          // does not publicly export the Override type.
+          // TODO: await buildProviderOverrides(prefs) -- currently passes a Future.
           // ignore: argument_type_not_assignable
           overrides: buildProviderOverrides(prefs),
           child: const CyberVpnApp(),

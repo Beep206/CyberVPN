@@ -1,27 +1,28 @@
 import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
-  Future<(UserEntity, String)> login({
+  Future<Result<(UserEntity, String)>> login({
     required String email,
     required String password,
     required DeviceInfo device,
     bool rememberMe = false,
   });
-  Future<(UserEntity, String)> register({
+  Future<Result<(UserEntity, String)>> register({
     required String email,
     required String password,
     required DeviceInfo device,
     String? referralCode,
   });
-  Future<String> refreshToken({
+  Future<Result<String>> refreshToken({
     required String refreshToken,
     required String deviceId,
   });
-  Future<void> logout({
+  Future<Result<void>> logout({
     required String refreshToken,
     required String deviceId,
   });
-  Future<UserEntity?> getCurrentUser();
-  Future<bool> isAuthenticated();
+  Future<Result<UserEntity?>> getCurrentUser();
+  Future<Result<bool>> isAuthenticated();
 }

@@ -1599,6 +1599,90 @@ abstract class AppLocalizations {
   /// **'Failed to scan QR code. Please try again.'**
   String get errorQrScanFailed;
 
+  /// No description provided for @errorTelegramAuthCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram login was cancelled.'**
+  String get errorTelegramAuthCancelled;
+
+  /// No description provided for @errorTelegramAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram authentication failed. Please try again.'**
+  String get errorTelegramAuthFailed;
+
+  /// No description provided for @errorTelegramAuthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram login expired. Please try again.'**
+  String get errorTelegramAuthExpired;
+
+  /// No description provided for @errorTelegramNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram is not installed on this device.'**
+  String get errorTelegramNotInstalled;
+
+  /// No description provided for @errorTelegramAuthInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Telegram authentication data.'**
+  String get errorTelegramAuthInvalid;
+
+  /// No description provided for @errorBiometricUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric authentication is not available on this device.'**
+  String get errorBiometricUnavailable;
+
+  /// No description provided for @errorBiometricNotEnrolled.
+  ///
+  /// In en, this message translates to:
+  /// **'No biometric data enrolled. Please set up fingerprint or face recognition in device settings.'**
+  String get errorBiometricNotEnrolled;
+
+  /// No description provided for @errorBiometricFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric authentication failed. Please try again.'**
+  String get errorBiometricFailed;
+
+  /// No description provided for @errorBiometricLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric authentication is locked. Try again later or use your password.'**
+  String get errorBiometricLocked;
+
+  /// No description provided for @errorSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again.'**
+  String get errorSessionExpired;
+
+  /// No description provided for @errorAccountDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been disabled. Please contact support.'**
+  String get errorAccountDisabled;
+
+  /// No description provided for @errorRateLimitedWithCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in {seconds, plural, =1{1 second} other{{seconds} seconds}}.'**
+  String errorRateLimitedWithCountdown(int seconds);
+
+  /// No description provided for @errorOfflineLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need to be online to log in. Please check your connection.'**
+  String get errorOfflineLoginRequired;
+
+  /// No description provided for @errorOfflineSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cached session has expired. Please connect to the internet to log in.'**
+  String get errorOfflineSessionExpired;
+
   /// No description provided for @a11yConnectButton.
   ///
   /// In en, this message translates to:

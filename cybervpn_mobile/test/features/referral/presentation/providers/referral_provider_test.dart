@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
@@ -109,7 +110,7 @@ void main() {
   group('ReferralNotifier build - unavailable', () {
     test('returns state with isAvailable=false when backend unavailable',
         () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => false);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
 
       final container = createContainer(mockRepo);
 
@@ -132,12 +133,12 @@ void main() {
 
   group('ReferralNotifier build - available', () {
     test('loads code, stats, and recent referrals when available', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
       when(() => mockRepo.getReferralCode())
-          .thenAnswer((_) async => 'CYBER123');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+          .thenAnswer((_) async => const Success('CYBER123'));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => _sampleReferrals);
+          .thenAnswer((_) async => Success(_sampleReferrals));
 
       final container = createContainer(mockRepo);
       final state = await container.read(referralProvider.future);
@@ -149,11 +150,11 @@ void main() {
     });
 
     test('sets referralCode to null when code is empty string', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
-      when(() => mockRepo.getReferralCode()).thenAnswer((_) async => '');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _emptyStats);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
+      when(() => mockRepo.getReferralCode()).thenAnswer((_) async => const Success(''));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_emptyStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => const []);
+          .thenAnswer((_) async => const Success(<ReferralEntry>[]));
 
       final container = createContainer(mockRepo);
       final state = await container.read(referralProvider.future);
@@ -168,18 +169,18 @@ void main() {
   group('checkAvailability', () {
     test('transitions to unavailable state', () async {
       // Build initially as available.
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
       when(() => mockRepo.getReferralCode())
-          .thenAnswer((_) async => 'CODE1');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+          .thenAnswer((_) async => const Success('CODE1'));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => _sampleReferrals);
+          .thenAnswer((_) async => Success(_sampleReferrals));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
 
       // Now backend becomes unavailable.
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => false);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
 
       await container.read(referralProvider.notifier).checkAvailability();
       final state = container.read(referralProvider).value;
@@ -195,20 +196,20 @@ void main() {
 
   group('refreshStats', () {
     test('updates stats and referrals when available', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
       when(() => mockRepo.getReferralCode())
-          .thenAnswer((_) async => 'CODE1');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _emptyStats);
+          .thenAnswer((_) async => const Success('CODE1'));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_emptyStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => const []);
+          .thenAnswer((_) async => const Success(<ReferralEntry>[]));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
 
       // Setup new data for refresh.
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => _sampleReferrals);
+          .thenAnswer((_) async => Success(_sampleReferrals));
 
       await container.read(referralProvider.notifier).refreshStats();
       final state = container.read(referralProvider).value;
@@ -218,7 +219,7 @@ void main() {
     });
 
     test('is a no-op when feature is unavailable', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => false);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
@@ -237,14 +238,14 @@ void main() {
 
   group('shareReferralCode', () {
     test('calls repository shareReferral with code', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
       when(() => mockRepo.getReferralCode())
-          .thenAnswer((_) async => 'SHARE_ME');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+          .thenAnswer((_) async => const Success('SHARE_ME'));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => const []);
+          .thenAnswer((_) async => const Success(<ReferralEntry>[]));
       when(() => mockRepo.shareReferral(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
@@ -255,11 +256,11 @@ void main() {
     });
 
     test('is a no-op when referral code is null', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
-      when(() => mockRepo.getReferralCode()).thenAnswer((_) async => '');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _emptyStats);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
+      when(() => mockRepo.getReferralCode()).thenAnswer((_) async => const Success(''));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_emptyStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => const []);
+          .thenAnswer((_) async => const Success(<ReferralEntry>[]));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
@@ -274,12 +275,12 @@ void main() {
 
   group('isReferralAvailableProvider', () {
     test('returns true when referral feature is available', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => true);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
       when(() => mockRepo.getReferralCode())
-          .thenAnswer((_) async => 'CODE');
-      when(() => mockRepo.getStats()).thenAnswer((_) async => _sampleStats);
+          .thenAnswer((_) async => const Success('CODE'));
+      when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
       when(() => mockRepo.getRecentReferrals())
-          .thenAnswer((_) async => const []);
+          .thenAnswer((_) async => const Success(<ReferralEntry>[]));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);
@@ -289,7 +290,7 @@ void main() {
     });
 
     test('returns false when referral feature is unavailable', () async {
-      when(() => mockRepo.isAvailable()).thenAnswer((_) async => false);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
 
       final container = createContainer(mockRepo);
       await container.read(referralProvider.future);

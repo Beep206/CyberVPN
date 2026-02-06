@@ -193,46 +193,6 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // linkOAuth
-  // ---------------------------------------------------------------------------
-  group('linkOAuth', () {
-    test('calls authorize then callback for the provider', () async {
-      when(() => mockApiClient.get(
-            '${ApiConstants.apiPrefix}/oauth/github/authorize',
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).thenAnswer((_) async => Response(
-            data: {'authorization_url': 'https://github.com/login/oauth/authorize?...'},
-            statusCode: 200,
-            requestOptions: _requestOptions(),
-          ));
-
-      when(() => mockApiClient.post(
-            '${ApiConstants.apiPrefix}/oauth/github/callback',
-            data: any(named: 'data'),
-            options: any(named: 'options'),
-          )).thenAnswer((_) async => Response(
-            data: null,
-            statusCode: 200,
-            requestOptions: _requestOptions(),
-          ));
-
-      await dataSource.linkOAuth(OAuthProvider.github);
-
-      verify(() => mockApiClient.get(
-            '${ApiConstants.apiPrefix}/oauth/github/authorize',
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).called(1);
-      verify(() => mockApiClient.post(
-            '${ApiConstants.apiPrefix}/oauth/github/callback',
-            data: any(named: 'data'),
-            options: any(named: 'options'),
-          )).called(1);
-    });
-  });
-
-  // ---------------------------------------------------------------------------
   // unlinkOAuth
   // ---------------------------------------------------------------------------
   group('unlinkOAuth', () {

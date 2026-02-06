@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 
@@ -63,7 +64,11 @@ class SmartServerSelection {
     double? userLongitude,
     String? preferredProtocol,
   }) async {
-    final servers = await _repository.getServers();
+    final serversResult = await _repository.getServers();
+    final servers = switch (serversResult) {
+      Success(:final data) => data,
+      Failure() => <ServerEntity>[],
+    };
 
     if (servers.isEmpty) return null;
 
@@ -97,7 +102,11 @@ class SmartServerSelection {
     double? userLongitude,
     String? preferredProtocol,
   }) async {
-    final servers = await _repository.getServers();
+    final serversResult = await _repository.getServers();
+    final servers = switch (serversResult) {
+      Success(:final data) => data,
+      Failure() => <ServerEntity>[],
+    };
     final available = servers.where((s) => s.isAvailable).toList();
 
     final scored = available.map((server) {

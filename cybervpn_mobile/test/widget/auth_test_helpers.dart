@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -43,8 +44,8 @@ Finder findLoadingIndicator() => find.byType(CircularProgressIndicator);
 /// Configures [mockRepo] to return [AuthUnauthenticated] on initial check
 /// (isAuthenticated returns false).
 void stubUnauthenticated(MockAuthRepository mockRepo) {
-  when(() => mockRepo.isAuthenticated()).thenAnswer((_) async => false);
-  when(() => mockRepo.getCurrentUser()).thenAnswer((_) async => null);
+  when(() => mockRepo.isAuthenticated()).thenAnswer((_) async => const Success(false));
+  when(() => mockRepo.getCurrentUser()).thenAnswer((_) async => const Success(null));
 }
 
 /// Configures [mockRepo] so that [login] succeeds with a default user.
@@ -53,7 +54,8 @@ void stubLoginSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
   when(() => mockRepo.login(
         email: any(named: 'email'),
         password: any(named: 'password'),
-      )).thenAnswer((_) async => (mockUser, 'mock-token'));
+        device: any(named: 'device'),
+      )).thenAnswer((_) async => Success((mockUser, 'mock-token')));
 }
 
 /// Configures [mockRepo] so that [login] throws an error.
@@ -61,6 +63,7 @@ void stubLoginFailure(MockAuthRepository mockRepo, {String? message}) {
   when(() => mockRepo.login(
         email: any(named: 'email'),
         password: any(named: 'password'),
+        device: any(named: 'device'),
       )).thenThrow(Exception(message ?? 'Invalid credentials'));
 }
 
@@ -70,8 +73,9 @@ void stubRegisterSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
   when(() => mockRepo.register(
         email: any(named: 'email'),
         password: any(named: 'password'),
+        device: any(named: 'device'),
         referralCode: any(named: 'referralCode'),
-      )).thenAnswer((_) async => (mockUser, 'mock-token'));
+      )).thenAnswer((_) async => Success((mockUser, 'mock-token')));
 }
 
 /// Configures [mockRepo] so that [register] throws an error.
@@ -79,6 +83,7 @@ void stubRegisterFailure(MockAuthRepository mockRepo, {String? message}) {
   when(() => mockRepo.register(
         email: any(named: 'email'),
         password: any(named: 'password'),
+        device: any(named: 'device'),
         referralCode: any(named: 'referralCode'),
       )).thenThrow(Exception(message ?? 'Email already taken'));
 }

@@ -1,5 +1,8 @@
+import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' as errors;
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -36,33 +39,36 @@ class MockAuthRepository implements AuthRepository {
   String? lastRegisterReferralCode;
 
   @override
-  Future<bool> isAuthenticated() async {
+  Future<Result<bool>> isAuthenticated() async {
     if (isAuthenticatedException != null) throw isAuthenticatedException!;
-    return isAuthenticatedValue;
+    return Success(isAuthenticatedValue);
   }
 
   @override
-  Future<UserEntity?> getCurrentUser() async {
+  Future<Result<UserEntity?>> getCurrentUser() async {
     if (getCurrentUserException != null) throw getCurrentUserException!;
-    return currentUser;
+    return Success(currentUser);
   }
 
   @override
-  Future<(UserEntity, String)> login({
+  Future<Result<(UserEntity, String)>> login({
     required String email,
     required String password,
+    required DeviceInfo device,
+    bool rememberMe = false,
   }) async {
     loginCalled = true;
     lastLoginEmail = email;
     lastLoginPassword = password;
     if (loginException != null) throw loginException!;
-    return (loginUser!, loginToken);
+    return Success((loginUser!, loginToken));
   }
 
   @override
-  Future<(UserEntity, String)> register({
+  Future<Result<(UserEntity, String)>> register({
     required String email,
     required String password,
+    required DeviceInfo device,
     String? referralCode,
   }) async {
     registerCalled = true;
@@ -70,18 +76,25 @@ class MockAuthRepository implements AuthRepository {
     lastRegisterPassword = password;
     lastRegisterReferralCode = referralCode;
     if (registerException != null) throw registerException!;
-    return (registerUser!, registerToken);
+    return Success((registerUser!, registerToken));
   }
 
   @override
-  Future<void> logout() async {
+  Future<Result<void>> logout({
+    required String refreshToken,
+    required String deviceId,
+  }) async {
     logoutCalled = true;
     if (logoutException != null) throw logoutException!;
+    return const Success<void>(null);
   }
 
   @override
-  Future<String> refreshToken(String refreshToken) async {
-    return 'new-access-token';
+  Future<Result<String>> refreshToken({
+    required String refreshToken,
+    required String deviceId,
+  }) async {
+    return const Success('new-access-token');
   }
 }
 
@@ -368,7 +381,7 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('new@example.com', 'password123', null);
+      await notifier.register('new@example.com', 'password123');
 
       final finalState = container.read(authProvider).requireValue;
       expect(finalState, isA<AuthAuthenticated>());
@@ -390,7 +403,7 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('new@example.com', 'password123', 'REFERRAL123');
+      await notifier.register('new@example.com', 'password123', referralCode: 'REFERRAL123');
 
       expect(mockRepo.lastRegisterReferralCode, equals('REFERRAL123'));
     });
@@ -404,7 +417,7 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('existing@example.com', 'password123', null);
+      await notifier.register('existing@example.com', 'password123');
 
       final finalState = container.read(authProvider).requireValue;
       expect(finalState, isA<AuthError>());

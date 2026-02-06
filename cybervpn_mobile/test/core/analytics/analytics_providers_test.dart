@@ -5,8 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_service.dart';
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show sharedPreferencesProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 
 /// Stub implementation of [AnalyticsService] used only to verify
 /// that the provider returns a non-noop implementation when consent

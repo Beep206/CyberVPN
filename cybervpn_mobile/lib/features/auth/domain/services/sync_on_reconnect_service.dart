@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/offline_session_service.dart';
@@ -143,7 +144,8 @@ class SyncOnReconnectService {
       // Fetch fresh user profile
       AppLogger.info('Fetching fresh user profile...', category: 'auth.sync');
       try {
-        final user = await _authRepository.getCurrentUser();
+        final userResult = await _authRepository.getCurrentUser();
+        final user = userResult.dataOrNull;
         if (user != null) {
           AppLogger.info(
             'User profile synced: ${user.email}',

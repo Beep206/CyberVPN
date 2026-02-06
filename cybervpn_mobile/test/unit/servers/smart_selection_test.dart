@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/usecases/smart_server_selection.dart';
 
@@ -23,7 +24,7 @@ void main() {
 
     group('getRecommendedServer', () {
       test('returns null when no servers are available', () async {
-        when(() => mockRepository.getServers()).thenAnswer((_) async => []);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => const Success(<ServerEntity>[]));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -35,7 +36,7 @@ void main() {
           createMockServer(id: 's1', isAvailable: false, ping: 10),
           createMockServer(id: 's2', isAvailable: false, ping: 20),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -48,7 +49,7 @@ void main() {
           createMockServer(id: 's2', ping: 20, load: 0.3, protocol: 'vless'),
           createMockServer(id: 's3', ping: 200, load: 0.3, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -62,7 +63,7 @@ void main() {
           createMockServer(id: 's2', ping: 50, load: 0.1, protocol: 'vless'),
           createMockServer(id: 's3', ping: 50, load: 0.5, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -77,7 +78,7 @@ void main() {
           createMockServer(id: 's1', ping: 30, load: 0.75, protocol: 'vless'),
           createMockServer(id: 's2', ping: 50, load: 0.40, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -90,7 +91,7 @@ void main() {
           createMockServer(id: 's1', ping: null, load: 0.1, protocol: 'vless'),
           createMockServer(id: 's2', ping: 200, load: 0.1, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -103,7 +104,7 @@ void main() {
           createMockServer(id: 's1', ping: 50, load: null, protocol: 'vless'),
           createMockServer(id: 's2', ping: 50, load: 0.1, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -117,7 +118,7 @@ void main() {
           createMockServer(id: 's2', isAvailable: true, ping: 100),
           createMockServer(id: 's3', isAvailable: false, ping: 5),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -131,7 +132,7 @@ void main() {
           createMockServer(id: 's2', ping: 480, load: 0.5, protocol: 'vless'),
           createMockServer(id: 's3', ping: 499, load: 0.5, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -146,7 +147,7 @@ void main() {
           createMockServer(id: 's1', ping: 20, load: 0.3, protocol: 'vmess'),
           createMockServer(id: 's2', ping: 40, load: 0.3, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer(
           preferredProtocol: 'vless',
@@ -163,7 +164,7 @@ void main() {
         final servers = [
           createMockServer(id: 's1', ping: 50, load: 0.3),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRecommendedServer();
 
@@ -178,7 +179,7 @@ void main() {
 
     group('getRankedServers', () {
       test('returns empty list when no servers are available', () async {
-        when(() => mockRepository.getServers()).thenAnswer((_) async => []);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => const Success(<ServerEntity>[]));
 
         final result = await smartSelection.getRankedServers();
 
@@ -190,7 +191,7 @@ void main() {
           createMockServer(id: 's1', isAvailable: true, ping: 50),
           createMockServer(id: 's2', isAvailable: false, ping: 10),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRankedServers();
 
@@ -204,7 +205,7 @@ void main() {
           createMockServer(id: 's2', ping: 20, load: 0.1, protocol: 'vless'),
           createMockServer(id: 's3', ping: 100, load: 0.3, protocol: 'vless'),
         ];
-        when(() => mockRepository.getServers()).thenAnswer((_) async => servers);
+        when(() => mockRepository.getServers()).thenAnswer((_) async => Success(servers));
 
         final result = await smartSelection.getRankedServers();
 

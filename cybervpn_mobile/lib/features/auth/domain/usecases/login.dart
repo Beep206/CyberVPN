@@ -1,4 +1,5 @@
 import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -8,7 +9,7 @@ class LoginUseCase {
 
   const LoginUseCase(this._repository);
 
-  Future<(UserEntity, String)> call({
+  Future<Result<(UserEntity, String)>> call({
     required String email,
     required String password,
     required DeviceInfo device,

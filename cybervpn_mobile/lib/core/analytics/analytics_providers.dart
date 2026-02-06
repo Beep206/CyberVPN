@@ -7,8 +7,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_service.dart';
 import 'package:cybervpn_mobile/core/analytics/firebase_analytics_impl.dart';
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show sharedPreferencesProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 
 /// Key used to persist the user's analytics consent preference.
 const String analyticsConsentKey = 'analytics_consent';

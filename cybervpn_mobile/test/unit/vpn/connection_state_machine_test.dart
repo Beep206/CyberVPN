@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_state_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_stats_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
@@ -137,7 +138,7 @@ void main() {
   group('ConnectVpnUseCase - state transitions', () {
     test('calls repository.connect with the given config', () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       await connectUseCase.call(config);
 
@@ -146,7 +147,7 @@ void main() {
 
     test('connects with VLESS protocol config', () async {
       final config = createMockVpnConfig(protocol: VpnProtocol.vless);
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       await connectUseCase.call(config);
 
@@ -159,7 +160,7 @@ void main() {
         name: 'VMess Server',
         protocol: VpnProtocol.vmess,
       );
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       await connectUseCase.call(config);
 
@@ -172,7 +173,7 @@ void main() {
         name: 'Trojan Server',
         protocol: VpnProtocol.trojan,
       );
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       await connectUseCase.call(config);
 
@@ -185,7 +186,7 @@ void main() {
         name: 'SS Server',
         protocol: VpnProtocol.shadowsocks,
       );
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       await connectUseCase.call(config);
 
@@ -210,7 +211,7 @@ void main() {
 
   group('DisconnectVpnUseCase - state transitions', () {
     test('calls repository.disconnect', () async {
-      when(() => mockRepository.disconnect()).thenAnswer((_) async {});
+      when(() => mockRepository.disconnect()).thenAnswer((_) async => const Success<void>(null));
 
       await disconnectUseCase.call();
 
@@ -412,20 +413,22 @@ void main() {
   group('VpnRepository - isConnected', () {
     test('returns true when connected', () async {
       when(() => mockRepository.isConnected)
-          .thenAnswer((_) async => true);
+          .thenAnswer((_) async => const Success(true));
 
       final result = await mockRepository.isConnected;
 
-      expect(result, isTrue);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isTrue);
     });
 
     test('returns false when disconnected', () async {
       when(() => mockRepository.isConnected)
-          .thenAnswer((_) async => false);
+          .thenAnswer((_) async => const Success(false));
 
       final result = await mockRepository.isConnected;
 
-      expect(result, isFalse);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isFalse);
     });
   });
 
@@ -436,13 +439,15 @@ void main() {
   group('VpnRepository - config persistence', () {
     test('saveConfig and getLastConfig round-trip', () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.saveConfig(any())).thenAnswer((_) async {});
+      when(() => mockRepository.saveConfig(any())).thenAnswer((_) async => const Success<void>(null));
       when(() => mockRepository.getLastConfig())
-          .thenAnswer((_) async => config);
+          .thenAnswer((_) async => Success(config));
 
       await mockRepository.saveConfig(config);
-      final retrieved = await mockRepository.getLastConfig();
+      final result = await mockRepository.getLastConfig();
 
+      expect(result, isA<Success<VpnConfigEntity?>>());
+      final retrieved = (result as Success<VpnConfigEntity?>).data;
       expect(retrieved, isNotNull);
       expect(retrieved!.id, config.id);
       expect(retrieved.name, config.name);
@@ -451,11 +456,12 @@ void main() {
 
     test('getLastConfig returns null when no config saved', () async {
       when(() => mockRepository.getLastConfig())
-          .thenAnswer((_) async => null);
+          .thenAnswer((_) async => const Success<VpnConfigEntity?>(null));
 
       final result = await mockRepository.getLastConfig();
 
-      expect(result, isNull);
+      expect(result, isA<Success<VpnConfigEntity?>>());
+      expect((result as Success<VpnConfigEntity?>).data, isNull);
     });
 
     test('getSavedConfigs returns list of configs', () async {
@@ -465,27 +471,30 @@ void main() {
         createMockVpnConfig(id: 'config-3', name: 'Server 3'),
       ];
       when(() => mockRepository.getSavedConfigs())
-          .thenAnswer((_) async => configs);
+          .thenAnswer((_) async => Success(configs));
 
       final result = await mockRepository.getSavedConfigs();
 
-      expect(result, hasLength(3));
-      expect(result[0].id, 'config-1');
-      expect(result[2].id, 'config-3');
+      expect(result, isA<Success<List<VpnConfigEntity>>>());
+      final data = (result as Success<List<VpnConfigEntity>>).data;
+      expect(data, hasLength(3));
+      expect(data[0].id, 'config-1');
+      expect(data[2].id, 'config-3');
     });
 
     test('getSavedConfigs returns empty list when none saved', () async {
       when(() => mockRepository.getSavedConfigs())
-          .thenAnswer((_) async => []);
+          .thenAnswer((_) async => const Success(<VpnConfigEntity>[]));
 
       final result = await mockRepository.getSavedConfigs();
 
-      expect(result, isEmpty);
+      expect(result, isA<Success<List<VpnConfigEntity>>>());
+      expect((result as Success<List<VpnConfigEntity>>).data, isEmpty);
     });
 
     test('deleteConfig removes config by id', () async {
       when(() => mockRepository.deleteConfig(any()))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       await mockRepository.deleteConfig('config-to-delete');
 

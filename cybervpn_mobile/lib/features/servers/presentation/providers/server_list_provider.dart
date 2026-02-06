@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
@@ -135,13 +137,6 @@ final pingServiceProvider = Provider<PingService>((ref) {
 ///
 /// Requires [SharedPreferences] to be available. Use
 /// [sharedPreferencesProvider] to supply the instance.
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden with a SharedPreferences '
-    'instance in a ProviderScope.',
-  );
-});
-
 final favoritesLocalDatasourceProvider =
     Provider<FavoritesLocalDatasource>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -249,8 +244,8 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
         ..add(serverId);
     }
 
-    // Also notify remote repository.
-    await repo.toggleFavorite(serverId);
+    // Also notify remote repository (ignore Result; fire-and-forget).
+    final _ = await repo.toggleFavorite(serverId);
 
     final updatedServers = current.servers.map((ServerEntity s) {
       if (s.id == serverId) return s.copyWith(isFavorite: !s.isFavorite);
@@ -314,7 +309,11 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   Future<List<ServerEntity>> _fetchServers() async {
     final repo = ref.read(serverRepositoryProvider);
-    return repo.getServers();
+    final result = await repo.getServers();
+    return switch (result) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
   }
 
   /// Applies the `isFavorite` flag to servers based on the persisted IDs.

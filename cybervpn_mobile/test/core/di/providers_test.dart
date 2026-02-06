@@ -17,8 +17,9 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provid
     show authRepositoryProvider;
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
     show vpnRepositoryProvider, secureStorageProvider, networkInfoProvider;
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show serverRepositoryProvider, sharedPreferencesProvider;
+    show serverRepositoryProvider;
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart'
     show subscriptionRepositoryProvider;
 
@@ -31,8 +32,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
+      final overrides = await buildProviderOverrides(prefs);
       container = ProviderContainer(
-        overrides: buildProviderOverrides(prefs),
+        overrides: overrides,
       );
     });
 

@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,12 +24,14 @@ class MockServerRepository implements ServerRepository {
   }
 
   @override
-  Future<List<ServerEntity>> getServers() async {
-    return List.from(_servers);
+  Future<Result<List<ServerEntity>>> getServers() async {
+    return Success(List.from(_servers));
   }
 
   @override
-  Future<void> toggleFavorite(String serverId) async {}
+  Future<Result<void>> toggleFavorite(String serverId) async {
+    return const Success<void>(null);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

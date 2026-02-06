@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
@@ -13,15 +14,34 @@ class ApiClient {
   ApiClient({Dio? dio, String? baseUrl, CertificatePinner? certificatePinner}) {
     _dio = dio ?? Dio();
 
+    final resolvedBaseUrl = baseUrl ?? EnvironmentConfig.baseUrl;
+
+    // Enforce HTTPS in production to prevent accidental cleartext traffic.
+    // In non-production environments (dev/staging) http:// is allowed for
+    // local development against emulators and localhost.
+    if (EnvironmentConfig.isProd) {
+      assert(
+        resolvedBaseUrl.startsWith('https://'),
+        'Production API base URL must use HTTPS. '
+        'Got: $resolvedBaseUrl',
+      );
+    }
+
     _dio.options = BaseOptions(
-      baseUrl: baseUrl ?? EnvironmentConfig.baseUrl,
+      baseUrl: resolvedBaseUrl,
       connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeout),
       receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeout),
       sendTimeout: const Duration(milliseconds: ApiConstants.sendTimeout),
       contentType: ApiConstants.contentType,
     );
 
-    // Configure certificate pinning if fingerprints are provided
+    // Configure certificate pinning if fingerprints are provided.
+    // TODO(security): For production releases, configure CERT_FINGERPRINTS
+    // via --dart-define or .env with the SHA-256 fingerprint(s) of the
+    // api.cybervpn.com TLS certificate. Include at least one backup
+    // fingerprint to allow for certificate rotation without app updates.
+    // Example:
+    //   flutter build apk --dart-define=CERT_FINGERPRINTS=AA:BB:CC:...,DD:EE:FF:...
     final fingerprints = EnvironmentConfig.certificateFingerprints;
     if (fingerprints.isNotEmpty) {
       final pinner = certificatePinner ?? CertificatePinner(
@@ -41,11 +61,13 @@ class ApiClient {
       );
     }
 
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (obj) => AppLogger.debug(obj.toString()),
-    ));
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) => AppLogger.debug(obj.toString()),
+      ));
+    }
   }
 
   /// Configures the Dio client to use certificate pinning.

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/setup_2fa.dart';
 import 'package:cybervpn_mobile/features/profile/domain/use_cases/verify_2fa.dart';
@@ -32,15 +33,17 @@ void main() {
         qrCodeUri:
             'otpauth://totp/CyberVPN:user@example.com?secret=JBSWY3DPEHPK3PXP',
       );
-      when(() => mockRepository.setup2FA()).thenAnswer((_) async => result);
+      when(() => mockRepository.setup2FA()).thenAnswer((_) async => Success(result));
 
       // Act
       final actual = await useCase();
 
       // Assert
-      expect(actual, equals(result));
-      expect(actual.secret, 'JBSWY3DPEHPK3PXP');
-      expect(actual.qrCodeUri, contains('otpauth://'));
+      expect(actual, isA<Success<Setup2FAResult>>());
+      final data = (actual as Success<Setup2FAResult>).data;
+      expect(data, equals(result));
+      expect(data.secret, 'JBSWY3DPEHPK3PXP');
+      expect(data.qrCodeUri, contains('otpauth://'));
       verify(() => mockRepository.setup2FA()).called(1);
     });
 
@@ -67,26 +70,28 @@ void main() {
     test('returns true when code is valid', () async {
       // Arrange
       when(() => mockRepository.verify2FA('123456'))
-          .thenAnswer((_) async => true);
+          .thenAnswer((_) async => const Success(true));
 
       // Act
       final result = await useCase('123456');
 
       // Assert
-      expect(result, isTrue);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isTrue);
       verify(() => mockRepository.verify2FA('123456')).called(1);
     });
 
     test('returns false when code is invalid but format is correct', () async {
       // Arrange
       when(() => mockRepository.verify2FA('000000'))
-          .thenAnswer((_) async => false);
+          .thenAnswer((_) async => const Success(false));
 
       // Act
       final result = await useCase('000000');
 
       // Assert
-      expect(result, isFalse);
+      expect(result, isA<Success<bool>>());
+      expect((result as Success<bool>).data, isFalse);
     });
 
     test('throws ArgumentError for empty code', () async {
@@ -146,7 +151,7 @@ void main() {
     test('calls repository.disable2FA with valid code', () async {
       // Arrange
       when(() => mockRepository.disable2FA('654321'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await useCase('654321');
@@ -208,17 +213,19 @@ void main() {
         qrCodeUri: 'otpauth://totp/Test?secret=SECRET123',
       );
       when(() => mockRepository.setup2FA())
-          .thenAnswer((_) async => setupResult);
+          .thenAnswer((_) async => Success(setupResult));
       when(() => mockRepository.verify2FA('111111'))
-          .thenAnswer((_) async => true);
+          .thenAnswer((_) async => const Success(true));
 
       // Act: setup
       final result = await setupUseCase();
-      expect(result.secret, 'SECRET123');
+      expect(result, isA<Success<Setup2FAResult>>());
+      expect((result as Success<Setup2FAResult>).data.secret, 'SECRET123');
 
       // Act: verify
       final verified = await verifyUseCase('111111');
-      expect(verified, isTrue);
+      expect(verified, isA<Success<bool>>());
+      expect((verified as Success<bool>).data, isTrue);
 
       // Assert: both called
       verify(() => mockRepository.setup2FA()).called(1);
@@ -232,11 +239,11 @@ void main() {
         qrCodeUri: 'otpauth://totp/Test?secret=SECRET456',
       );
       when(() => mockRepository.setup2FA())
-          .thenAnswer((_) async => setupResult);
+          .thenAnswer((_) async => Success(setupResult));
       when(() => mockRepository.verify2FA('111111'))
-          .thenAnswer((_) async => false);
+          .thenAnswer((_) async => const Success(false));
       when(() => mockRepository.verify2FA('222222'))
-          .thenAnswer((_) async => true);
+          .thenAnswer((_) async => const Success(true));
 
       // Act
       await setupUseCase();
@@ -244,14 +251,14 @@ void main() {
       final secondAttempt = await verifyUseCase('222222');
 
       // Assert
-      expect(firstAttempt, isFalse);
-      expect(secondAttempt, isTrue);
+      expect((firstAttempt as Success<bool>).data, isFalse);
+      expect((secondAttempt as Success<bool>).data, isTrue);
     });
 
     test('disable requires valid code format', () async {
       // Arrange
       when(() => mockRepository.disable2FA('999999'))
-          .thenAnswer((_) async {});
+          .thenAnswer((_) async => const Success<void>(null));
 
       // Act
       await disableUseCase('999999');

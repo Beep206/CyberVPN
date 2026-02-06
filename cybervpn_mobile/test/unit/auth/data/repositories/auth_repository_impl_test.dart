@@ -7,9 +7,11 @@ import 'package:cybervpn_mobile/features/auth/data/models/token_model.dart';
 import 'package:cybervpn_mobile/features/auth/data/models/user_model.dart';
 import 'package:cybervpn_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
-import 'package:cybervpn_mobile/core/errors/failures.dart';
+import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 
 class MockAuthRemoteDataSource extends Mock implements AuthRemoteDataSource {}
 
@@ -37,6 +39,16 @@ void main() {
   const testEmail = 'test@example.com';
   const testPassword = 'Password1';
   const testRefreshToken = 'refresh-token-123';
+  const testDeviceId = 'test-device-id';
+
+  const testDevice = DeviceInfo(
+    deviceId: testDeviceId,
+    platform: DevicePlatform.android,
+    platformId: 'test-platform-id',
+    osVersion: '14.0',
+    appVersion: '1.0.0',
+    deviceModel: 'Test Device',
+  );
 
   final testTokenModel = TokenModel(
     accessToken: 'access-token-abc',
@@ -59,6 +71,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(testTokenModel);
     registerFallbackValue(testUserModel);
+    registerFallbackValue(testDevice);
   });
 
   group('AuthRepositoryImpl', () {
@@ -71,17 +84,21 @@ void main() {
         when(() => mockRemoteDataSource.login(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
             )).thenAnswer((_) async => (testUserModel, testTokenModel));
         when(() => mockLocalDataSource.cacheToken(any()))
             .thenAnswer((_) async {});
         when(() => mockLocalDataSource.cacheUser(any()))
             .thenAnswer((_) async {});
 
-        final (user, token) = await repository.login(
+        final result = await repository.login(
           email: testEmail,
           password: testPassword,
+          device: testDevice,
         );
 
+        expect(result, isA<Success<(UserEntity, String)>>());
+        final (user, token) = (result as Success<(UserEntity, String)>).data;
         expect(user, isA<UserEntity>());
         expect(user.id, equals('user-001'));
         expect(user.email, equals(testEmail));
@@ -90,43 +107,51 @@ void main() {
         verify(() => mockRemoteDataSource.login(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
             )).called(1);
         verify(() => mockLocalDataSource.cacheToken(testTokenModel)).called(1);
         verify(() => mockLocalDataSource.cacheUser(testUserModel)).called(1);
       });
 
-      test('throws NetworkFailure when device is offline', () async {
+      test('returns Failure with NetworkFailure when device is offline', () async {
         when(() => mockNetworkInfo.isConnected)
             .thenAnswer((_) async => false);
 
-        expect(
-          () => repository.login(email: testEmail, password: testPassword),
-          throwsA(isA<NetworkFailure>().having(
-            (f) => f.message,
-            'message',
-            'No internet connection',
-          )),
+        final result = await repository.login(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
         );
+
+        expect(result, isA<Failure<(UserEntity, String)>>());
+        final failure = (result as Failure<(UserEntity, String)>).failure;
+        expect(failure, isA<NetworkFailure>());
+        expect(failure.message, equals('No internet connection'));
 
         verifyNever(() => mockRemoteDataSource.login(
               email: any(named: 'email'),
               password: any(named: 'password'),
+              device: any(named: 'device'),
             ));
       });
 
-      test('propagates exception from remote data source', () async {
+      test('returns Failure from remote data source exception', () async {
         when(() => mockNetworkInfo.isConnected)
             .thenAnswer((_) async => true);
         when(() => mockRemoteDataSource.login(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
             )).thenThrow(
                 const ServerException(message: 'Invalid credentials', code: 401));
 
-        expect(
-          () => repository.login(email: testEmail, password: testPassword),
-          throwsA(isA<ServerException>()),
+        final result = await repository.login(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
         );
+
+        expect(result, isA<Failure<(UserEntity, String)>>());
       });
 
       test('caches token and user after successful login', () async {
@@ -135,13 +160,18 @@ void main() {
         when(() => mockRemoteDataSource.login(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
             )).thenAnswer((_) async => (testUserModel, testTokenModel));
         when(() => mockLocalDataSource.cacheToken(any()))
             .thenAnswer((_) async {});
         when(() => mockLocalDataSource.cacheUser(any()))
             .thenAnswer((_) async {});
 
-        await repository.login(email: testEmail, password: testPassword);
+        await repository.login(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
+        );
 
         verify(() => mockLocalDataSource.cacheToken(testTokenModel)).called(1);
         verify(() => mockLocalDataSource.cacheUser(testUserModel)).called(1);
@@ -157,6 +187,7 @@ void main() {
         when(() => mockRemoteDataSource.register(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
               referralCode: null,
             )).thenAnswer((_) async => (testUserModel, testTokenModel));
         when(() => mockLocalDataSource.cacheToken(any()))
@@ -164,11 +195,14 @@ void main() {
         when(() => mockLocalDataSource.cacheUser(any()))
             .thenAnswer((_) async {});
 
-        final (user, token) = await repository.register(
+        final result = await repository.register(
           email: testEmail,
           password: testPassword,
+          device: testDevice,
         );
 
+        expect(result, isA<Success<(UserEntity, String)>>());
+        final (user, token) = (result as Success<(UserEntity, String)>).data;
         expect(user, isA<UserEntity>());
         expect(user.email, equals(testEmail));
         expect(token, equals('access-token-abc'));
@@ -181,6 +215,7 @@ void main() {
         when(() => mockRemoteDataSource.register(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
               referralCode: referralCode,
             )).thenAnswer((_) async => (testUserModel, testTokenModel));
         when(() => mockLocalDataSource.cacheToken(any()))
@@ -191,40 +226,51 @@ void main() {
         await repository.register(
           email: testEmail,
           password: testPassword,
+          device: testDevice,
           referralCode: referralCode,
         );
 
         verify(() => mockRemoteDataSource.register(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
               referralCode: referralCode,
             )).called(1);
       });
 
-      test('throws NetworkFailure when device is offline', () async {
+      test('returns Failure with NetworkFailure when device is offline', () async {
         when(() => mockNetworkInfo.isConnected)
             .thenAnswer((_) async => false);
 
-        expect(
-          () => repository.register(email: testEmail, password: testPassword),
-          throwsA(isA<NetworkFailure>()),
+        final result = await repository.register(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
         );
+
+        expect(result, isA<Failure<(UserEntity, String)>>());
+        final failure = (result as Failure<(UserEntity, String)>).failure;
+        expect(failure, isA<NetworkFailure>());
       });
 
-      test('propagates exception for duplicate email', () async {
+      test('returns Failure for duplicate email', () async {
         when(() => mockNetworkInfo.isConnected)
             .thenAnswer((_) async => true);
         when(() => mockRemoteDataSource.register(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
               referralCode: null,
             )).thenThrow(const ServerException(
                 message: 'Email already exists', code: 409));
 
-        expect(
-          () => repository.register(email: testEmail, password: testPassword),
-          throwsA(isA<ServerException>()),
+        final result = await repository.register(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
         );
+
+        expect(result, isA<Failure<(UserEntity, String)>>());
       });
 
       test('caches token and user after successful registration', () async {
@@ -233,6 +279,7 @@ void main() {
         when(() => mockRemoteDataSource.register(
               email: testEmail,
               password: testPassword,
+              device: testDevice,
               referralCode: null,
             )).thenAnswer((_) async => (testUserModel, testTokenModel));
         when(() => mockLocalDataSource.cacheToken(any()))
@@ -240,7 +287,11 @@ void main() {
         when(() => mockLocalDataSource.cacheUser(any()))
             .thenAnswer((_) async {});
 
-        await repository.register(email: testEmail, password: testPassword);
+        await repository.register(
+          email: testEmail,
+          password: testPassword,
+          device: testDevice,
+        );
 
         verify(() => mockLocalDataSource.cacheToken(testTokenModel)).called(1);
         verify(() => mockLocalDataSource.cacheUser(testUserModel)).called(1);
@@ -254,16 +305,24 @@ void main() {
           refreshToken: 'new-refresh-token',
           expiresIn: 3600,
         );
-        when(() => mockRemoteDataSource.refreshToken(testRefreshToken))
-            .thenAnswer((_) async => newTokenModel);
+        when(() => mockRemoteDataSource.refreshToken(
+              refreshToken: testRefreshToken,
+              deviceId: testDeviceId,
+            )).thenAnswer((_) async => newTokenModel);
         when(() => mockLocalDataSource.cacheToken(any()))
             .thenAnswer((_) async {});
 
-        final result = await repository.refreshToken(testRefreshToken);
+        final result = await repository.refreshToken(
+          refreshToken: testRefreshToken,
+          deviceId: testDeviceId,
+        );
 
-        expect(result, equals('new-access-token'));
-        verify(() => mockRemoteDataSource.refreshToken(testRefreshToken))
-            .called(1);
+        expect(result, isA<Success<String>>());
+        expect((result as Success<String>).data, equals('new-access-token'));
+        verify(() => mockRemoteDataSource.refreshToken(
+              refreshToken: testRefreshToken,
+              deviceId: testDeviceId,
+            )).called(1);
         verify(() => mockLocalDataSource.cacheToken(newTokenModel)).called(1);
       });
 
@@ -273,35 +332,52 @@ void main() {
           refreshToken: 'new-refresh-token',
           expiresIn: 3600,
         );
-        when(() => mockRemoteDataSource.refreshToken(testRefreshToken))
-            .thenAnswer((_) async => newTokenModel);
+        when(() => mockRemoteDataSource.refreshToken(
+              refreshToken: testRefreshToken,
+              deviceId: testDeviceId,
+            )).thenAnswer((_) async => newTokenModel);
         when(() => mockLocalDataSource.cacheToken(any()))
             .thenAnswer((_) async {});
 
-        await repository.refreshToken(testRefreshToken);
+        await repository.refreshToken(
+          refreshToken: testRefreshToken,
+          deviceId: testDeviceId,
+        );
 
         verifyNever(() => mockNetworkInfo.isConnected);
       });
 
-      test('propagates exception for expired refresh token', () async {
-        when(() => mockRemoteDataSource.refreshToken(testRefreshToken))
-            .thenThrow(
+      test('returns Failure for expired refresh token', () async {
+        when(() => mockRemoteDataSource.refreshToken(
+              refreshToken: testRefreshToken,
+              deviceId: testDeviceId,
+            )).thenThrow(
                 const AuthException(message: 'Token expired', code: 401));
 
-        expect(
-          () => repository.refreshToken(testRefreshToken),
-          throwsA(isA<AuthException>()),
+        final result = await repository.refreshToken(
+          refreshToken: testRefreshToken,
+          deviceId: testDeviceId,
         );
+
+        expect(result, isA<Failure<String>>());
       });
     });
 
     group('logout', () {
       test('clears local auth data', () async {
+        when(() => mockRemoteDataSource.logout(
+              refreshToken: testRefreshToken,
+              deviceId: testDeviceId,
+            )).thenAnswer((_) async {});
         when(() => mockLocalDataSource.clearAuth())
             .thenAnswer((_) async {});
 
-        await repository.logout();
+        final result = await repository.logout(
+          refreshToken: testRefreshToken,
+          deviceId: testDeviceId,
+        );
 
+        expect(result, isA<Success<void>>());
         verify(() => mockLocalDataSource.clearAuth()).called(1);
       });
     });
@@ -313,8 +389,10 @@ void main() {
 
         final result = await repository.getCurrentUser();
 
-        expect(result, isA<UserEntity>());
-        expect(result?.id, equals('user-001'));
+        expect(result, isA<Success<UserEntity?>>());
+        final user = (result as Success<UserEntity?>).data;
+        expect(user, isA<UserEntity>());
+        expect(user?.id, equals('user-001'));
         verifyNever(() => mockRemoteDataSource.getCurrentUser());
       });
 
@@ -330,12 +408,14 @@ void main() {
 
         final result = await repository.getCurrentUser();
 
-        expect(result, isA<UserEntity>());
-        expect(result?.email, equals(testEmail));
+        expect(result, isA<Success<UserEntity?>>());
+        final user = (result as Success<UserEntity?>).data;
+        expect(user, isA<UserEntity>());
+        expect(user?.email, equals(testEmail));
         verify(() => mockLocalDataSource.cacheUser(testUserModel)).called(1);
       });
 
-      test('returns null when no cached user and offline', () async {
+      test('returns Success(null) when no cached user and offline', () async {
         when(() => mockLocalDataSource.getCachedUser())
             .thenAnswer((_) async => null);
         when(() => mockNetworkInfo.isConnected)
@@ -343,10 +423,11 @@ void main() {
 
         final result = await repository.getCurrentUser();
 
-        expect(result, isNull);
+        expect(result, isA<Success<UserEntity?>>());
+        expect((result as Success<UserEntity?>).data, isNull);
       });
 
-      test('returns null when remote fetch throws', () async {
+      test('returns Success(null) when remote fetch throws', () async {
         when(() => mockLocalDataSource.getCachedUser())
             .thenAnswer((_) async => null);
         when(() => mockNetworkInfo.isConnected)
@@ -356,27 +437,30 @@ void main() {
 
         final result = await repository.getCurrentUser();
 
-        expect(result, isNull);
+        expect(result, isA<Success<UserEntity?>>());
+        expect((result as Success<UserEntity?>).data, isNull);
       });
     });
 
     group('isAuthenticated', () {
-      test('returns true when token is cached', () async {
+      test('returns Success(true) when token is cached', () async {
         when(() => mockLocalDataSource.getCachedToken())
             .thenAnswer((_) async => testTokenModel);
 
         final result = await repository.isAuthenticated();
 
-        expect(result, isTrue);
+        expect(result, isA<Success<bool>>());
+        expect((result as Success<bool>).data, isTrue);
       });
 
-      test('returns false when no token is cached', () async {
+      test('returns Success(false) when no token is cached', () async {
         when(() => mockLocalDataSource.getCachedToken())
             .thenAnswer((_) async => null);
 
         final result = await repository.isAuthenticated();
 
-        expect(result, isFalse);
+        expect(result, isA<Success<bool>>());
+        expect((result as Success<bool>).data, isFalse);
       });
     });
   });

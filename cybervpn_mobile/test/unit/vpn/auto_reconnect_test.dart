@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -61,8 +62,8 @@ void main() {
 
       // After stop, no reconnect attempts should happen even if connectivity
       // changes.
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       connectivityController.add(true);
 
@@ -76,7 +77,7 @@ void main() {
       service.dispose();
 
       // Should not throw or attempt reconnection after dispose.
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
       connectivityController.add(true);
       verifyNever(() => mockRepository.connect(any()));
     });
@@ -90,8 +91,8 @@ void main() {
     test('attempts reconnect when connectivity restored and not connected',
         () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       service.start(config);
       connectivityController.add(true);
@@ -104,7 +105,7 @@ void main() {
 
     test('does not attempt reconnect when already connected', () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.isConnected).thenAnswer((_) async => true);
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(true));
 
       service.start(config);
       connectivityController.add(true);
@@ -116,7 +117,7 @@ void main() {
 
     test('does not attempt reconnect on connectivity loss (false)', () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
 
       service.start(config);
       connectivityController.add(false);
@@ -178,10 +179,11 @@ void main() {
       final config = createMockVpnConfig();
       int callCount = 0;
 
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
       when(() => mockRepository.connect(any())).thenAnswer((_) async {
         callCount++;
         // First call succeeds.
+        return const Success<void>(null);
       });
 
       service.start(config);
@@ -201,8 +203,8 @@ void main() {
 
     test('start resets retry counter', () async {
       final config = createMockVpnConfig();
-      when(() => mockRepository.isConnected).thenAnswer((_) async => false);
-      when(() => mockRepository.connect(any())).thenAnswer((_) async {});
+      when(() => mockRepository.isConnected).thenAnswer((_) async => const Success(false));
+      when(() => mockRepository.connect(any())).thenAnswer((_) async => const Success<void>(null));
 
       // Start, then re-start with new config should reset retry count.
       service.start(config);

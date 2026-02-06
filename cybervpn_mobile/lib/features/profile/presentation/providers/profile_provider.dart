@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
@@ -174,8 +175,17 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     _completeSocialAccountLink = ref.watch(completeSocialAccountLinkUseCaseProvider);
     _unlinkSocialAccount = ref.watch(unlinkSocialAccountUseCaseProvider);
 
-    final profile = await _getProfile.call();
-    final devices = await _getDevices.call();
+    final profileResult = await _getProfile.call();
+    final devicesResult = await _getDevices.call();
+
+    final profile = switch (profileResult) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
+    final devices = switch (devicesResult) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
 
     return ProfileState(profile: profile, devices: devices);
   }
@@ -186,8 +196,18 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   Future<void> refreshProfile() async {
     state = const AsyncLoading();
     try {
-      final profile = await _getProfile.call();
-      final devices = await _getDevices.call();
+      final profileResult = await _getProfile.call();
+      final devicesResult = await _getDevices.call();
+
+      final profile = switch (profileResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
+      final devices = switch (devicesResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
+
       state = AsyncData(ProfileState(profile: profile, devices: devices));
     } catch (e, st) {
       AppLogger.error('Failed to refresh profile', error: e, stackTrace: st);
@@ -201,8 +221,12 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   Future<Setup2FAResult> setup2FA() async {
     try {
       final result = await _setup2FA.call();
+      final data = switch (result) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
       AppLogger.info('2FA setup initiated');
-      return result;
+      return data;
     } catch (e, st) {
       AppLogger.error('Failed to setup 2FA', error: e, stackTrace: st);
       rethrow;
@@ -214,10 +238,15 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   /// Returns `true` if the code was valid and 2FA is now enabled.
   Future<bool> verify2FA(String code) async {
     try {
-      final success = await _verify2FA.call(code);
+      final verifyResult = await _verify2FA.call(code);
+      final success = switch (verifyResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
       if (success) {
         // Refresh profile to pick up the new 2FA-enabled status.
-        final profile = await _getProfile.call();
+        final profileResult = await _getProfile.call();
+        final profile = profileResult.dataOrNull;
         final current = state.value;
         if (current != null) {
           state = AsyncData(current.copyWith(profile: () => profile));
@@ -234,9 +263,16 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   /// Disables 2FA on the account using the provided TOTP [code].
   Future<void> disable2FA(String code) async {
     try {
-      await _disable2FA.call(code);
+      final disableResult = await _disable2FA.call(code);
+      switch (disableResult) {
+        case Success():
+          break;
+        case Failure(:final failure):
+          throw failure;
+      }
       // Refresh profile to pick up the new 2FA-disabled status.
-      final profile = await _getProfile.call();
+      final profileResult = await _getProfile.call();
+      final profile = profileResult.dataOrNull;
       final current = state.value;
       if (current != null) {
         state = AsyncData(current.copyWith(profile: () => profile));
@@ -259,13 +295,23 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     required String currentDeviceId,
   }) async {
     try {
-      await _removeDevice.call(
+      final removeResult = await _removeDevice.call(
         deviceId: deviceId,
         currentDeviceId: currentDeviceId,
       );
+      switch (removeResult) {
+        case Success():
+          break;
+        case Failure(:final failure):
+          throw failure;
+      }
 
       // Refresh devices list to reflect the removal
-      final devices = await _getDevices.call();
+      final devicesResult = await _getDevices.call();
+      final devices = switch (devicesResult) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
       final current = state.value;
       if (current != null) {
         state = AsyncData(current.copyWith(devices: devices));
@@ -294,9 +340,16 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   /// Completes the OAuth linking flow with the authorization code.
   Future<void> completeOAuthLink(OAuthProvider provider, String code) async {
     try {
-      await _completeSocialAccountLink.call(provider: provider, code: code);
+      final linkResult = await _completeSocialAccountLink.call(provider: provider, code: code);
+      switch (linkResult) {
+        case Success():
+          break;
+        case Failure(:final failure):
+          throw failure;
+      }
       // Refresh profile to pick up the updated linked providers list.
-      final profile = await _getProfile.call();
+      final profileResult = await _getProfile.call();
+      final profile = profileResult.dataOrNull;
       final current = state.value;
       if (current != null) {
         state = AsyncData(current.copyWith(profile: () => profile));
@@ -318,12 +371,19 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     if (current == null) return;
 
     try {
-      await _unlinkSocialAccount.call(
+      final unlinkResult = await _unlinkSocialAccount.call(
         provider: provider,
         currentlyLinked: current.linkedProviders,
       );
+      switch (unlinkResult) {
+        case Success():
+          break;
+        case Failure(:final failure):
+          throw failure;
+      }
       // Refresh profile to pick up the updated linked providers list.
-      final profile = await _getProfile.call();
+      final profileResult = await _getProfile.call();
+      final profile = profileResult.dataOrNull;
       state = AsyncData(current.copyWith(profile: () => profile));
       AppLogger.info('Unlinked ${provider.name}');
     } catch (e, st) {
@@ -346,10 +406,14 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     }
 
     try {
-      return await _linkSocialAccount.call(
+      final result = await _linkSocialAccount.call(
         provider: provider,
         currentlyLinked: current.linkedProviders,
       );
+      return switch (result) {
+        Success(:final data) => data,
+        Failure(:final failure) => throw failure,
+      };
     } catch (e, st) {
       AppLogger.error(
         'Failed to get auth URL for ${provider.name}',
