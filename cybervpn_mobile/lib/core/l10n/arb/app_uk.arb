@@ -43,10 +43,12 @@
   "dataUsed": "Data Used",
   "currentPlan": "Current Plan",
   "upgradePlan": "Upgrade Plan",
-  "daysRemaining": "{count, plural, =1{1 day remaining} other{{count} days remaining}}",
+  "daysRemaining": "{count, plural, one{Залишився {count} день} few{Залишилось {count} дні} many{Залишилось {count} днів} other{Залишилось {count} днів}}",
   "@daysRemaining": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "referral": "Referral",
@@ -57,10 +59,11 @@
   "version": "Version {version}",
   "@version": {
     "placeholders": {
-      "version": {"type": "String"}
+      "version": {
+        "type": "String"
+      }
     }
   },
-
   "onboardingWelcomeTitle": "Welcome to CyberVPN",
   "onboardingWelcomeDescription": "Secure, fast, and private internet access at your fingertips.",
   "onboardingFeaturesTitle": "Powerful Features",
@@ -76,11 +79,14 @@
   "onboardingPageIndicator": "Page {current} of {total}",
   "@onboardingPageIndicator": {
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
-
   "settingsTitle": "Settings",
   "settingsGeneral": "General",
   "settingsVpn": "VPN Settings",
@@ -114,13 +120,14 @@
   "settingsStartOnBootDescription": "Automatically launch CyberVPN when your device starts.",
   "settingsConnectionTimeoutLabel": "Connection Timeout",
   "settingsConnectionTimeoutDescription": "Maximum time to wait before a connection attempt is aborted.",
-  "settingsConnectionTimeoutSeconds": "{count, plural, =1{1 second} other{{count} seconds}}",
+  "settingsConnectionTimeoutSeconds": "{count, plural, one{{count} секунда} few{{count} секунди} many{{count} секунд} other{{count} секунд}}",
   "@settingsConnectionTimeoutSeconds": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "profileDashboard": "Profile Dashboard",
   "profileEditProfile": "Edit Profile",
   "profileDisplayName": "Display Name",
@@ -149,7 +156,9 @@
   "profileDeviceLastActive": "Last active {date}",
   "@profileDeviceLastActive": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
   "profileDeviceRevoke": "Revoke Access",
@@ -163,10 +172,11 @@
   "profileMemberSince": "Member since {date}",
   "@profileMemberSince": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
-
   "configImportTitle": "Import Configuration",
   "configImportQrScanTitle": "Scan QR Code",
   "configImportQrScanDescription": "Point your camera at a VPN configuration QR code.",
@@ -186,7 +196,6 @@
   "configImportInvalidFormat": "Invalid configuration format.",
   "configImportDuplicate": "This configuration already exists.",
   "configImportCameraPermission": "Camera permission is required to scan QR codes.",
-
   "notificationCenterTitle": "Notifications",
   "notificationCenterEmpty": "No notifications yet.",
   "notificationCenterMarkAllRead": "Mark All as Read",
@@ -200,59 +209,71 @@
   "notificationConnected": "Connected to {serverName}",
   "@notificationConnected": {
     "placeholders": {
-      "serverName": {"type": "String"}
+      "serverName": {
+        "type": "String"
+      }
     }
   },
   "notificationDisconnected": "Disconnected from VPN.",
   "notificationServerSwitched": "Switched to {serverName}.",
   "@notificationServerSwitched": {
     "placeholders": {
-      "serverName": {"type": "String"}
+      "serverName": {
+        "type": "String"
+      }
     }
   },
-  "notificationSubscriptionExpiring": "Your subscription expires in {count, plural, =1{1 day} other{{count} days}}.",
+  "notificationSubscriptionExpiring": "Ваша підписка закінчується через {count, plural, one{{count} день} few{{count} дні} many{{count} днів} other{{count} днів}}.",
   "@notificationSubscriptionExpiring": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "notificationSubscriptionExpired": "Your subscription has expired. Renew to continue using CyberVPN.",
-  "notificationUnreadCount": "{count, plural, =0{No unread notifications} =1{1 unread notification} other{{count} unread notifications}}",
+  "notificationUnreadCount": "{count, plural, =0{Немає непрочитаних сповіщень} one{{count} непрочитане сповіщення} few{{count} непрочитані сповіщення} many{{count} непрочитаних сповіщень} other{{count} непрочитаних сповіщень}}",
   "@notificationUnreadCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "referralDashboardTitle": "Referral Program",
   "referralDashboardDescription": "Invite friends and earn rewards.",
   "referralShareLink": "Share Referral Link",
   "referralCopyLink": "Copy Link",
   "referralLinkCopied": "Referral link copied to clipboard.",
   "referralCodeLabel": "Your Referral Code",
-  "referralRewardsEarned": "{count, plural, =0{No rewards earned} =1{1 reward earned} other{{count} rewards earned}}",
+  "referralRewardsEarned": "{count, plural, =0{Немає отриманих нагород} one{{count} нагорода отримана} few{{count} нагороди отримано} many{{count} нагород отримано} other{{count} нагород отримано}}",
   "@referralRewardsEarned": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "referralFriendsInvited": "{count, plural, =0{No friends invited} =1{1 friend invited} other{{count} friends invited}}",
+  "referralFriendsInvited": "{count, plural, =0{Немає запрошених друзів} one{{count} друг запрошений} few{{count} друзі запрошено} many{{count} друзів запрошено} other{{count} друзів запрошено}}",
   "@referralFriendsInvited": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "referralRewardDescription": "Get {days} free days for each friend who subscribes.",
   "@referralRewardDescription": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "referralHistory": "Referral History",
   "referralPending": "Pending",
   "referralCompleted": "Completed",
   "referralExpired": "Expired",
-
   "diagnosticsTitle": "Diagnostics",
   "diagnosticsDescription": "Test your connection and troubleshoot issues.",
   "speedTestTitle": "Speed Test",
@@ -264,13 +285,17 @@
   "speedTestPingMs": "{value} ms",
   "@speedTestPingMs": {
     "placeholders": {
-      "value": {"type": "int"}
+      "value": {
+        "type": "int"
+      }
     }
   },
   "speedTestMbps": "{value} Mbps",
   "@speedTestMbps": {
     "placeholders": {
-      "value": {"type": "String"}
+      "value": {
+        "type": "String"
+      }
     }
   },
   "speedTestResult": "Speed Test Result",
@@ -294,7 +319,6 @@
   "logViewerCopied": "Log entry copied to clipboard.",
   "logViewerExportSuccess": "Logs exported successfully.",
   "logViewerExportError": "Failed to export logs.",
-
   "widgetConnectLabel": "Connect VPN",
   "widgetDisconnectLabel": "Disconnect VPN",
   "widgetStatusLabel": "VPN Status",
@@ -305,7 +329,6 @@
   "quickActionSpeedTest": "Speed Test",
   "quickActionSettings": "Settings",
   "quickActionSupport": "Support",
-
   "errorConnectionFailed": "Connection failed. Please try again.",
   "errorConnectionTimeout": "Connection timed out. Check your internet connection.",
   "errorServerUnavailable": "Server is currently unavailable. Try another server.",
@@ -327,7 +350,6 @@
   "errorFieldRequired": "This field is required.",
   "errorPaymentFailed": "Payment failed. Please try again or use a different method.",
   "errorQrScanFailed": "Failed to scan QR code. Please try again.",
-
   "a11yConnectButton": "Connect to VPN server",
   "a11yDisconnectButton": "Disconnect from VPN server",
   "a11yServerStatusOnline": "Server is online",
@@ -336,20 +358,28 @@
   "a11ySpeedIndicator": "Current speed: {speed}",
   "@a11ySpeedIndicator": {
     "placeholders": {
-      "speed": {"type": "String"}
+      "speed": {
+        "type": "String"
+      }
     }
   },
   "a11yConnectionStatus": "Connection status: {status}",
   "@a11yConnectionStatus": {
     "placeholders": {
-      "status": {"type": "String"}
+      "status": {
+        "type": "String"
+      }
     }
   },
   "a11yServerSelect": "Select server {name} in {country}",
   "@a11yServerSelect": {
     "placeholders": {
-      "name": {"type": "String"},
-      "country": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
     }
   },
   "a11yNavigationMenu": "Navigation menu",
@@ -357,21 +387,427 @@
   "a11yToggleSwitch": "Toggle {label}",
   "@a11yToggleSwitch": {
     "placeholders": {
-      "label": {"type": "String"}
+      "label": {
+        "type": "String"
+      }
     }
   },
-  "a11yNotificationBadge": "{count, plural, =0{No notifications} =1{1 notification} other{{count} notifications}}",
+  "a11yNotificationBadge": "{count, plural, =0{Немає сповіщень} one{{count} сповіщення} few{{count} сповіщення} many{{count} сповіщень} other{{count} сповіщень}}",
   "@a11yNotificationBadge": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "a11yLoadingIndicator": "Loading",
   "a11yRefreshContent": "Refresh content",
   "a11yBackButton": "Go back",
   "a11ySearchField": "Search",
-
   "rootDetectionDialogTitle": "Rooted/Jailbroken Device Detected",
   "rootDetectionDialogDescription": "Your device appears to be rooted (Android) or jailbroken (iOS). While CyberVPN will continue to work, please note that using a rooted/jailbroken device may expose you to security risks.\n\nWe understand that users in censored regions often rely on rooted devices for additional privacy tools. CyberVPN will not block your access, but we recommend being cautious about the apps you install and the permissions you grant.",
-  "rootDetectionDialogDismiss": "I Understand"
+  "rootDetectionDialogDismiss": "I Understand",
+  "errorTelegramAuthCancelled": "Telegram login was cancelled.",
+  "errorTelegramAuthFailed": "Telegram authentication failed. Please try again.",
+  "errorTelegramAuthExpired": "Telegram login expired. Please try again.",
+  "errorTelegramNotInstalled": "Telegram is not installed on this device.",
+  "errorTelegramAuthInvalid": "Invalid Telegram authentication data.",
+  "errorBiometricUnavailable": "Biometric authentication is not available on this device.",
+  "errorBiometricNotEnrolled": "No biometric data enrolled. Please set up fingerprint or face recognition in device settings.",
+  "errorBiometricFailed": "Biometric authentication failed. Please try again.",
+  "errorBiometricLocked": "Biometric authentication is locked. Try again later or use your password.",
+  "errorSessionExpired": "Your session has expired. Please log in again.",
+  "errorAccountDisabled": "Your account has been disabled. Please contact support.",
+  "errorRateLimitedWithCountdown": "Too many attempts. Please try again in {seconds, plural, one{1 second} other{{seconds} seconds}}.",
+  "@errorRateLimitedWithCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "errorOfflineLoginRequired": "You need to be online to log in. Please check your connection.",
+  "errorOfflineSessionExpired": "Your cached session has expired. Please connect to the internet to log in.",
+  "loginEmailLabel": "Email",
+  "loginEmailHint": "Enter your email",
+  "loginPasswordLabel": "Password",
+  "loginPasswordHint": "Enter your password",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginRememberMe": "Remember me",
+  "loginButton": "Login",
+  "loginContinueWithTelegram": "Continue with Telegram",
+  "registerTitle": "Create Account",
+  "registerSubtitle": "Join CyberVPN for a secure experience",
+  "registerPasswordHint": "Create a password",
+  "registerConfirmPasswordLabel": "Confirm Password",
+  "registerConfirmPasswordHint": "Re-enter your password",
+  "registerConfirmPasswordError": "Please confirm your password",
+  "registerPasswordMismatch": "Passwords do not match",
+  "registerReferralCodeLabel": "Referral Code (optional)",
+  "registerReferralCodeHint": "Enter referral code",
+  "registerReferralApplied": "Applied!",
+  "registerReferralFromLink": "Referral code applied from link",
+  "registerAgreePrefix": "I agree to the ",
+  "registerTermsAndConditions": "Terms & Conditions",
+  "registerAndSeparator": " and ",
+  "registerAcceptTermsError": "Please accept the Terms & Conditions",
+  "registerButton": "Register",
+  "registerOrSeparator": "OR",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerLoginLink": "Login",
+  "telegramNotInstalledTitle": "Telegram Not Installed",
+  "telegramNotInstalledMessage": "The Telegram app is not installed on your device. You can install it from the app store or use the web version.",
+  "telegramUseWeb": "Use Web",
+  "telegramInstall": "Install",
+  "appLockTitle": "CyberVPN Locked",
+  "appLockSubtitle": "Authenticate to continue",
+  "appLockUnlockButton": "Unlock",
+  "appLockUnlockWithBiometric": "Unlock with {biometricLabel}",
+  "@appLockUnlockWithBiometric": {
+    "placeholders": {
+      "biometricLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "appLockTooManyAttempts": "Too many failed attempts",
+  "appLockUsePin": "Use device PIN",
+  "appLockTryAgain": "Try {biometricLabel} again",
+  "@appLockTryAgain": {
+    "placeholders": {
+      "biometricLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "appLockLocalizedReason": "Unlock CyberVPN with your device PIN",
+  "biometricSettingsTitle": "Security",
+  "biometricAuthSection": "Biometric Authentication",
+  "biometricLoginLabel": "Biometric Login",
+  "biometricLoginDescription": "Use biometrics to sign in quickly",
+  "biometricLoginEnabled": "Biometric login enabled",
+  "biometricLoginDisabled": "Biometric login disabled",
+  "biometricVerificationRequired": "Biometric verification required",
+  "biometricEnterCredentialsTitle": "Enter credentials",
+  "biometricEnterCredentialsMessage": "Enter your login credentials to enable quick sign-in with biometrics.",
+  "biometricSave": "Save",
+  "biometricAppLockLabel": "App Lock",
+  "biometricAppLockDescription": "Require biometrics when returning to app (30+ seconds)",
+  "biometricAppLockEnabled": "App lock enabled",
+  "biometricAppLockDisabled": "App lock disabled",
+  "biometricUnavailableTitle": "Biometrics Unavailable",
+  "biometricUnavailableMessage": "Your device does not support biometric authentication, or no biometrics are enrolled.",
+  "biometricLoadingState": "Loading...",
+  "biometricUnavailableState": "Unavailable",
+  "biometricLabelFingerprint": "Fingerprint",
+  "biometricLabelGeneric": "Biometrics",
+  "biometricAvailableOnDevice": "Available on this device",
+  "biometricSettingsChanged": "Your biometric settings have changed. Please sign in with your password and re-enable biometric login in settings.",
+  "biometricPasswordChanged": "Your password has changed. Please sign in with your password.",
+  "settingsNotificationPrefsTitle": "Notification Preferences",
+  "settingsNotificationConnectionLabel": "Connection Status",
+  "settingsNotificationConnectionDescription": "Get notified when VPN connects or disconnects",
+  "settingsNotificationServerLabel": "Server Changes",
+  "settingsNotificationServerDescription": "Get notified when server is switched",
+  "settingsNotificationSubscriptionLabel": "Subscription Alerts",
+  "settingsNotificationSubscriptionDescription": "Get notified about subscription expiry",
+  "settingsNotificationSecurityLabel": "Security Alerts",
+  "settingsNotificationSecurityDescription": "Get notified about security events",
+  "settingsNotificationPromotionLabel": "Promotions",
+  "settingsNotificationPromotionDescription": "Receive promotional notifications",
+  "settingsNotificationUpdateLabel": "System Updates",
+  "settingsNotificationUpdateDescription": "Get notified about app updates",
+  "settingsVpnProtocolWireGuard": "WireGuard",
+  "settingsVpnProtocolOpenVpn": "OpenVPN",
+  "settingsVpnProtocolIkev2": "IKEv2",
+  "settingsVpnProtocolAuto": "Auto",
+  "settingsThemeDark": "Dark",
+  "settingsThemeLight": "Light",
+  "settingsThemeSystem": "System",
+  "settingsLanguageSearchHint": "Search languages",
+  "settingsVersionInfo": "Version Info",
+  "settingsPrivacyAndTerms": "Privacy & Terms",
+  "settingsContactSupport": "Contact Support",
+  "settingsAppVersion": "App version {version}",
+  "@settingsAppVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsBuildNumber": "Build {build}",
+  "@settingsBuildNumber": {
+    "placeholders": {
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsRateApp": "Rate CyberVPN",
+  "settingsShareApp": "Share with Friends",
+  "settingsDeleteData": "Delete All Data",
+  "profileSaveButton": "Save",
+  "profileSaveSuccess": "Profile updated successfully",
+  "profileAvatarChange": "Change Avatar",
+  "profileAvatarRemove": "Remove Avatar",
+  "profilePasswordUpdated": "Password updated successfully",
+  "profilePasswordRequirements": "Password must be at least 8 characters with letters and numbers",
+  "profileAccountInfo": "Account Information",
+  "profileSecuritySection": "Security",
+  "profileDangerZone": "Danger Zone",
+  "profileDeleteConfirmInput": "Type DELETE to confirm",
+  "profileDeleteInProgress": "Deleting account...",
+  "profileSessionInfo": "Session Information",
+  "profileLastLogin": "Last login: {date}",
+  "@profileLastLogin": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileCreatedAt": "Account created: {date}",
+  "@profileCreatedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportManualEntry": "Manual Entry",
+  "configImportManualDescription": "Enter VPN configuration details manually.",
+  "configImportServerAddress": "Server Address",
+  "configImportServerPort": "Port",
+  "configImportProtocol": "Protocol",
+  "configImportPrivateKey": "Private Key",
+  "configImportPublicKey": "Public Key",
+  "configImportConfigName": "Configuration Name",
+  "configImportConfigNameHint": "Enter a name for this configuration",
+  "configImportSaving": "Saving configuration...",
+  "configImportDeleteConfirm": "Are you sure you want to delete this configuration?",
+  "configImportDeleteSuccess": "Configuration deleted.",
+  "configImportNoConfigs": "No imported configurations yet.",
+  "configImportManageTitle": "Manage Configurations",
+  "configImportActiveLabel": "Active",
+  "configImportConnectButton": "Connect",
+  "configImportEditButton": "Edit",
+  "configImportDeleteButton": "Delete",
+  "subscriptionTitle": "Subscription Plans",
+  "subscriptionCurrentPlan": "Current Plan",
+  "subscriptionFreePlan": "Free",
+  "subscriptionTrialPlan": "Trial",
+  "subscriptionBasicPlan": "Basic",
+  "subscriptionPremiumPlan": "Premium",
+  "subscriptionMonthly": "Monthly",
+  "subscriptionYearly": "Yearly",
+  "subscriptionLifetime": "Lifetime",
+  "subscriptionPricePerMonth": "{price}/month",
+  "@subscriptionPricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionPricePerYear": "{price}/year",
+  "@subscriptionPricePerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionSavePercent": "Save {percent}%",
+  "@subscriptionSavePercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSubscribeButton": "Subscribe",
+  "subscriptionRestorePurchases": "Restore Purchases",
+  "subscriptionRestoreSuccess": "Purchases restored successfully",
+  "subscriptionRestoreNotFound": "No previous purchases found",
+  "subscriptionCancelButton": "Cancel Subscription",
+  "subscriptionCancelConfirm": "Are you sure you want to cancel your subscription?",
+  "subscriptionCancelSuccess": "Subscription cancelled",
+  "subscriptionRenewButton": "Renew Subscription",
+  "subscriptionExpiresOn": "Expires on {date}",
+  "@subscriptionExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionAutoRenew": "Auto-renew enabled",
+  "subscriptionFeatureUnlimitedData": "Unlimited data",
+  "subscriptionFeatureAllServers": "Access to all servers",
+  "subscriptionFeatureNoAds": "No ads",
+  "subscriptionFeaturePriority": "Priority support",
+  "subscriptionFeatureDevices": "Up to {count} devices",
+  "@subscriptionFeatureDevices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionTrafficUsed": "{used} of {total} used",
+  "@subscriptionTrafficUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradePrompt": "Upgrade for more features",
+  "subscriptionProcessing": "Processing payment...",
+  "subscriptionPaymentMethod": "Payment Method",
+  "serverListTitle": "Server List",
+  "serverListSearchHint": "Search servers...",
+  "serverListFilterAll": "All",
+  "serverListFilterFavorites": "Favorites",
+  "serverListFilterRecommended": "Recommended",
+  "serverListNoResults": "No servers found",
+  "serverListPing": "{ping} ms",
+  "@serverListPing": {
+    "placeholders": {
+      "ping": {
+        "type": "int"
+      }
+    }
+  },
+  "serverListLoad": "{load}% load",
+  "@serverListLoad": {
+    "placeholders": {
+      "load": {
+        "type": "int"
+      }
+    }
+  },
+  "serverListAddFavorite": "Add to favorites",
+  "serverListRemoveFavorite": "Remove from favorites",
+  "serverListConnecting": "Connecting to {server}...",
+  "@serverListConnecting": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "serverListSortBy": "Sort by",
+  "serverListSortName": "Name",
+  "serverListSortPing": "Ping",
+  "serverListSortLoad": "Load",
+  "notificationSettingsTitle": "Notification Settings",
+  "notificationEnablePush": "Enable Push Notifications",
+  "notificationEnablePushDescription": "Receive important updates about your VPN connection",
+  "notificationSoundLabel": "Notification Sound",
+  "notificationVibrationLabel": "Vibration",
+  "notificationQuietHoursLabel": "Quiet Hours",
+  "notificationQuietHoursDescription": "Mute notifications during specified hours",
+  "diagnosticsNetworkCheck": "Network Check",
+  "diagnosticsDnsCheck": "DNS Resolution",
+  "diagnosticsLatencyCheck": "Latency Check",
+  "diagnosticsFirewallCheck": "Firewall Check",
+  "diagnosticsStatusPassed": "Passed",
+  "diagnosticsStatusFailed": "Failed",
+  "diagnosticsStatusRunning": "Running...",
+  "diagnosticsRunAll": "Run All Checks",
+  "diagnosticsShareResults": "Share Results",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+  "commonEdit": "Edit",
+  "commonClose": "Close",
+  "commonBack": "Back",
+  "commonNext": "Next",
+  "commonDone": "Done",
+  "commonSearch": "Search",
+  "commonLoading": "Loading...",
+  "commonNoData": "No data available",
+  "commonRefresh": "Refresh",
+  "commonCopy": "Copy",
+  "commonCopied": "Copied to clipboard",
+  "commonShare": "Share",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "commonOk": "OK",
+  "commonContinue": "Continue",
+  "commonSkip": "Skip",
+  "commonLearnMore": "Learn More",
+  "errorNoConnection": "No internet connection. Please check your network.",
+  "errorTimeout": "Request timed out. Please try again.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorLoadingData": "Failed to load data.",
+  "errorSavingData": "Failed to save data.",
+  "errorSessionInvalid": "Your session is invalid. Please log in again.",
+  "a11yShowPassword": "Show password",
+  "a11yHidePassword": "Hide password",
+  "a11yServerPing": "Server ping: {ping} milliseconds",
+  "@a11yServerPing": {
+    "placeholders": {
+      "ping": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yServerLoad": "Server load: {load} percent",
+  "@a11yServerLoad": {
+    "placeholders": {
+      "load": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yFavoriteServer": "Favorite server",
+  "a11yRemoveFavorite": "Remove from favorites",
+  "a11ySubscriptionActive": "Active subscription",
+  "a11ySubscriptionExpired": "Expired subscription",
+  "a11yBiometricLogin": "Biometric login toggle",
+  "a11yAppLockToggle": "App lock toggle",
+  "a11yProtocolSelect": "Select VPN protocol",
+  "a11yThemeSelect": "Select theme mode",
+  "a11yLanguageSelect": "Select language",
+  "a11yNotificationToggle": "Toggle notification for {type}",
+  "@a11yNotificationToggle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySpeedTestProgress": "Speed test in progress",
+  "a11yDiagnosticsProgress": "Diagnostics in progress",
+  "a11yTrafficUsage": "Traffic usage: {percent} percent",
+  "@a11yTrafficUsage": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yConnectionDuration": "Connected for {duration}",
+  "@a11yConnectionDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "quickSetupTitle": "Quick Setup",
+  "quickSetupWelcome": "Let's get you connected",
+  "quickSetupSelectServer": "Select a server to get started",
+  "quickSetupRecommended": "Recommended for you",
+  "quickSetupConnectButton": "Connect Now",
+  "quickSetupSkip": "Skip for now",
+  "quickSetupComplete": "You're all set!",
+  "splashLoading": "Loading...",
+  "splashInitializing": "Initializing..."
 }

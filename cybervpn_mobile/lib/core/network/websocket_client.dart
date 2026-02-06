@@ -413,11 +413,15 @@ class WebSocketClient {
     });
   }
 
+  static final _random = math.Random();
+
   Duration _calculateBackoff() {
     final seconds = _initialBackoff.inSeconds *
         math.pow(_backoffMultiplier, _reconnectAttempt).toInt();
     final capped = math.min(seconds, _maxBackoff.inSeconds);
-    return Duration(seconds: capped);
+    // Add 0-50% jitter to prevent thundering herd on mass reconnect.
+    final jitter = (capped * _random.nextDouble() * 0.5).toInt();
+    return Duration(seconds: capped + jitter);
   }
 
   void _cancelReconnect() {

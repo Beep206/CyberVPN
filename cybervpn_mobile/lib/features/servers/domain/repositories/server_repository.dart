@@ -1,8 +1,11 @@
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 
 abstract class ServerRepository {
-  Future<Result<List<ServerEntity>>> getServers();
+  Future<Result<List<ServerEntity>>> getServers({
+    CacheStrategy strategy = CacheStrategy.staleWhileRevalidate,
+  });
   Future<Result<ServerEntity>> getServerById(String id);
   Future<Result<List<ServerEntity>>> getServersByCountry(String countryCode);
   Future<Result<List<ServerEntity>>> getFavoriteServers();

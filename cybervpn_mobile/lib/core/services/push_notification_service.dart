@@ -113,16 +113,16 @@ class PushNotificationService {
 
       // Retrieve the device token.
       _token = await _messaging.getToken();
-      AppLogger.info(
-        'FCM token retrieved: ${_token != null && _token!.length >= 8 ? '${_token!.substring(0, 8)}...' : '(empty)'}',
+      AppLogger.debug(
+        'FCM token retrieved (${_token?.length ?? 0} chars)',
         category: 'fcm',
       );
 
       // Listen for token refresh events and re-register with backend.
       _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) {
         _token = newToken;
-        AppLogger.info(
-          'FCM token refreshed: ${newToken.length >= 8 ? '${newToken.substring(0, 8)}...' : '(empty)'}',
+        AppLogger.debug(
+          'FCM token refreshed (${newToken.length} chars)',
           category: 'fcm',
         );
 

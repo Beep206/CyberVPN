@@ -70,17 +70,19 @@ class CertificatePinner {
 
     final fingerprint = _computeFingerprint(certificate);
 
-    AppLogger.debug(
-      'Validating certificate',
-      category: 'CertificatePinner',
-      data: {
-        'fingerprint': fingerprint,
-        'subject': certificate.subject,
-        'issuer': certificate.issuer,
-        'startDate': certificate.startValidity.toIso8601String(),
-        'endDate': certificate.endValidity.toIso8601String(),
-      },
-    );
+    if (kDebugMode) {
+      AppLogger.debug(
+        'Validating certificate',
+        category: 'CertificatePinner',
+        data: {
+          'fingerprint': fingerprint,
+          'subject': certificate.subject,
+          'issuer': certificate.issuer,
+          'startDate': certificate.startValidity.toIso8601String(),
+          'endDate': certificate.endValidity.toIso8601String(),
+        },
+      );
+    }
 
     final isValid = pinnedFingerprints.contains(fingerprint);
 
@@ -89,9 +91,6 @@ class CertificatePinner {
         'Certificate validation failed: fingerprint not in pinned list',
         category: 'CertificatePinner',
         data: {
-          'fingerprint': fingerprint,
-          'subject': certificate.subject,
-          'issuer': certificate.issuer,
           'pinnedCount': pinnedFingerprints.length,
         },
       );
@@ -103,9 +102,7 @@ class CertificatePinner {
           level: SentryLevel.warning,
           withScope: (scope) {
             scope.setTag('security', 'cert-pinning');
-            scope.setTag('fingerprint', fingerprint);
             scope.setTag('subject', certificate.subject);
-            scope.setTag('issuer', certificate.issuer);
           },
         );
       }

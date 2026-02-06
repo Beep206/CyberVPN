@@ -1,373 +1,813 @@
 {
   "@@locale": "ar",
   "appName": "CyberVPN",
-  "login": "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644",
-  "register": "\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628",
-  "email": "\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a",
-  "password": "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631",
-  "confirmPassword": "\u062a\u0623\u0643\u064a\u062f \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631",
-  "forgotPassword": "\u0646\u0633\u064a\u062a \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631\u061f",
-  "orContinueWith": "\u0623\u0648 \u062a\u0627\u0628\u0639 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645",
-  "connect": "\u0627\u062a\u0635\u0627\u0644",
-  "disconnect": "\u0642\u0637\u0639 \u0627\u0644\u0627\u062a\u0635\u0627\u0644",
-  "connecting": "\u062c\u0627\u0631\u064d \u0627\u0644\u0627\u062a\u0635\u0627\u0644...",
-  "disconnecting": "\u062c\u0627\u0631\u064d \u0642\u0637\u0639 \u0627\u0644\u0627\u062a\u0635\u0627\u0644...",
-  "connected": "\u0645\u062a\u0635\u0644",
-  "disconnected": "\u063a\u064a\u0631 \u0645\u062a\u0635\u0644",
-  "servers": "\u0627\u0644\u062e\u0648\u0627\u062f\u0645",
-  "subscription": "\u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643",
-  "settings": "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "profile": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a",
-  "selectServer": "\u0627\u062e\u062a\u0631 \u062e\u0627\u062f\u0645\u0627\u064b",
-  "autoSelect": "\u0627\u062e\u062a\u064a\u0627\u0631 \u062a\u0644\u0642\u0627\u0626\u064a",
-  "fastestServer": "\u0623\u0633\u0631\u0639 \u062e\u0627\u062f\u0645",
-  "nearestServer": "\u0623\u0642\u0631\u0628 \u062e\u0627\u062f\u0645",
-  "killSwitch": "\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0625\u064a\u0642\u0627\u0641",
-  "splitTunneling": "\u0627\u0644\u0646\u0641\u0642 \u0627\u0644\u0645\u0642\u0633\u0651\u0645",
-  "autoConnect": "\u0627\u062a\u0635\u0627\u0644 \u062a\u0644\u0642\u0627\u0626\u064a",
-  "language": "\u0627\u0644\u0644\u063a\u0629",
-  "theme": "\u0627\u0644\u0645\u0638\u0647\u0631",
-  "darkMode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646",
-  "lightMode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d",
-  "systemDefault": "\u0625\u0639\u062f\u0627\u062f \u0627\u0644\u0646\u0638\u0627\u0645",
-  "logout": "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c",
-  "logoutConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c\u061f",
-  "cancel": "\u0625\u0644\u063a\u0627\u0621",
-  "confirm": "\u062a\u0623\u0643\u064a\u062f",
-  "retry": "\u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629",
-  "errorOccurred": "\u062d\u062f\u062b \u062e\u0637\u0623",
-  "noInternet": "\u0644\u0627 \u064a\u0648\u062c\u062f \u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a",
-  "downloadSpeed": "\u0627\u0644\u062a\u0646\u0632\u064a\u0644",
-  "uploadSpeed": "\u0627\u0644\u0631\u0641\u0639",
-  "connectionTime": "\u0648\u0642\u062a \u0627\u0644\u0627\u062a\u0635\u0627\u0644",
-  "dataUsed": "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0629",
-  "currentPlan": "\u0627\u0644\u062e\u0637\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629",
-  "upgradePlan": "\u062a\u0631\u0642\u064a\u0629 \u0627\u0644\u062e\u0637\u0629",
-  "daysRemaining": "{count, plural, zero{\u0644\u0627 \u0623\u064a\u0627\u0645 \u0645\u062a\u0628\u0642\u064a\u0629} one{\u064a\u0648\u0645 \u0648\u0627\u062d\u062f \u0645\u062a\u0628\u0642\u064d} two{\u064a\u0648\u0645\u0627\u0646 \u0645\u062a\u0628\u0642\u064a\u0627\u0646} few{{count} \u0623\u064a\u0627\u0645 \u0645\u062a\u0628\u0642\u064a\u0629} many{{count} \u064a\u0648\u0645\u064b\u0627 \u0645\u062a\u0628\u0642\u064a\u064b\u0627} other{{count} \u064a\u0648\u0645 \u0645\u062a\u0628\u0642\u064d}}",
+  "login": "تسجيل الدخول",
+  "register": "إنشاء حساب",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "confirmPassword": "تأكيد كلمة المرور",
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "orContinueWith": "أو تابع باستخدام",
+  "connect": "اتصال",
+  "disconnect": "قطع الاتصال",
+  "connecting": "جارٍ الاتصال...",
+  "disconnecting": "جارٍ قطع الاتصال...",
+  "connected": "متصل",
+  "disconnected": "غير متصل",
+  "servers": "الخوادم",
+  "subscription": "الاشتراك",
+  "settings": "الإعدادات",
+  "profile": "الملف الشخصي",
+  "selectServer": "اختر خادماً",
+  "autoSelect": "اختيار تلقائي",
+  "fastestServer": "أسرع خادم",
+  "nearestServer": "أقرب خادم",
+  "killSwitch": "مفتاح الإيقاف",
+  "splitTunneling": "النفق المقسّم",
+  "autoConnect": "اتصال تلقائي",
+  "language": "اللغة",
+  "theme": "المظهر",
+  "darkMode": "الوضع الداكن",
+  "lightMode": "الوضع الفاتح",
+  "systemDefault": "إعداد النظام",
+  "logout": "تسجيل الخروج",
+  "logoutConfirm": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+  "cancel": "إلغاء",
+  "confirm": "تأكيد",
+  "retry": "إعادة المحاولة",
+  "errorOccurred": "حدث خطأ",
+  "noInternet": "لا يوجد اتصال بالإنترنت",
+  "downloadSpeed": "التنزيل",
+  "uploadSpeed": "الرفع",
+  "connectionTime": "وقت الاتصال",
+  "dataUsed": "البيانات المستخدمة",
+  "currentPlan": "الخطة الحالية",
+  "upgradePlan": "ترقية الخطة",
+  "daysRemaining": "{count, plural, zero{لا أيام متبقية} one{يوم واحد متبقٍ} two{يومان متبقيان} few{{count} أيام متبقية} many{{count} يومًا متبقيًا} other{{count} يوم متبقٍ}}",
   "@daysRemaining": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "referral": "\u0627\u0644\u0625\u062d\u0627\u0644\u0629",
-  "shareReferralCode": "\u0645\u0634\u0627\u0631\u0643\u0629 \u0631\u0645\u0632 \u0627\u0644\u0625\u062d\u0627\u0644\u0629",
-  "support": "\u0627\u0644\u062f\u0639\u0645",
-  "privacyPolicy": "\u0633\u064a\u0627\u0633\u0629 \u0627\u0644\u062e\u0635\u0648\u0635\u064a\u0629",
-  "termsOfService": "\u0634\u0631\u0648\u0637 \u0627\u0644\u062e\u062f\u0645\u0629",
-  "version": "\u0627\u0644\u0625\u0635\u062f\u0627\u0631 {version}",
+  "referral": "الإحالة",
+  "shareReferralCode": "مشاركة رمز الإحالة",
+  "support": "الدعم",
+  "privacyPolicy": "سياسة الخصوصية",
+  "termsOfService": "شروط الخدمة",
+  "version": "الإصدار {version}",
   "@version": {
     "placeholders": {
-      "version": {"type": "String"}
+      "version": {
+        "type": "String"
+      }
     }
   },
-
-  "onboardingWelcomeTitle": "\u0645\u0631\u062d\u0628\u064b\u0627 \u0628\u0643 \u0641\u064a CyberVPN",
-  "onboardingWelcomeDescription": "\u0648\u0635\u0648\u0644 \u0622\u0645\u0646 \u0648\u0633\u0631\u064a\u0639 \u0648\u062e\u0627\u0635 \u0625\u0644\u0649 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a \u0641\u064a \u0645\u062a\u0646\u0627\u0648\u0644 \u064a\u062f\u0643.",
-  "onboardingFeaturesTitle": "\u0645\u064a\u0632\u0627\u062a \u0642\u0648\u064a\u0629",
-  "onboardingFeaturesDescription": "\u0645\u0641\u062a\u0627\u062d \u0625\u064a\u0642\u0627\u0641\u060c \u0646\u0641\u0642 \u0645\u0642\u0633\u0651\u0645\u060c \u0648\u062a\u0634\u0641\u064a\u0631 \u0628\u0645\u0633\u062a\u0648\u0649 \u0639\u0633\u0643\u0631\u064a \u0644\u0644\u062d\u0641\u0627\u0638 \u0639\u0644\u0649 \u0623\u0645\u0627\u0646\u0643.",
-  "onboardingPrivacyTitle": "\u062e\u0635\u0648\u0635\u064a\u062a\u0643 \u0645\u0647\u0645\u0629",
-  "onboardingPrivacyDescription": "\u0633\u064a\u0627\u0633\u0629 \u0639\u062f\u0645 \u0627\u0644\u0627\u062d\u062a\u0641\u0627\u0638 \u0628\u0627\u0644\u0633\u062c\u0644\u0627\u062a. \u0644\u0627 \u0646\u062a\u062a\u0628\u0639 \u0623\u0648 \u0646\u062e\u0632\u0651\u0646 \u0623\u0648 \u0646\u0634\u0627\u0631\u0643 \u0628\u064a\u0627\u0646\u0627\u062a \u062a\u0635\u0641\u062d\u0643 \u0623\u0628\u062f\u064b\u0627.",
-  "onboardingSpeedTitle": "\u0633\u0631\u064a\u0639 \u0643\u0627\u0644\u0628\u0631\u0642",
-  "onboardingSpeedDescription": "\u0627\u062a\u0635\u0644 \u0628\u062e\u0648\u0627\u062f\u0645 \u0645\u062d\u0633\u0651\u0646\u0629 \u062d\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645 \u0644\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 \u0623\u0641\u0636\u0644 \u0627\u0644\u0633\u0631\u0639\u0627\u062a.",
-  "onboardingSkip": "\u062a\u062e\u0637\u064a",
-  "onboardingNext": "\u0627\u0644\u062a\u0627\u0644\u064a",
-  "onboardingGetStarted": "\u0627\u0628\u062f\u0623 \u0627\u0644\u0622\u0646",
-  "onboardingBack": "\u0631\u062c\u0648\u0639",
-  "onboardingPageIndicator": "\u0627\u0644\u0635\u0641\u062d\u0629 {current} \u0645\u0646 {total}",
+  "onboardingWelcomeTitle": "مرحبًا بك في CyberVPN",
+  "onboardingWelcomeDescription": "وصول آمن وسريع وخاص إلى الإنترنت في متناول يدك.",
+  "onboardingFeaturesTitle": "ميزات قوية",
+  "onboardingFeaturesDescription": "مفتاح إيقاف، نفق مقسّم، وتشفير بمستوى عسكري للحفاظ على أمانك.",
+  "onboardingPrivacyTitle": "خصوصيتك مهمة",
+  "onboardingPrivacyDescription": "سياسة عدم الاحتفاظ بالسجلات. لا نتتبع أو نخزّن أو نشارك بيانات تصفحك أبدًا.",
+  "onboardingSpeedTitle": "سريع كالبرق",
+  "onboardingSpeedDescription": "اتصل بخوادم محسّنة حول العالم للحصول على أفضل السرعات.",
+  "onboardingSkip": "تخطي",
+  "onboardingNext": "التالي",
+  "onboardingGetStarted": "ابدأ الآن",
+  "onboardingBack": "رجوع",
+  "onboardingPageIndicator": "الصفحة {current} من {total}",
   "@onboardingPageIndicator": {
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
-
-  "settingsTitle": "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "settingsGeneral": "\u0639\u0627\u0645",
-  "settingsVpn": "\u0625\u0639\u062f\u0627\u062f\u0627\u062a VPN",
-  "settingsAppearance": "\u0627\u0644\u0645\u0638\u0647\u0631",
-  "settingsDebug": "\u0627\u0644\u062a\u0635\u062d\u064a\u062d",
-  "settingsNotifications": "\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a",
-  "settingsAbout": "\u062d\u0648\u0644",
-  "settingsVpnProtocolLabel": "\u0627\u0644\u0628\u0631\u0648\u062a\u0648\u0643\u0648\u0644",
-  "settingsVpnProtocolDescription": "\u062d\u062f\u062f \u0628\u0631\u0648\u062a\u0648\u0643\u0648\u0644 VPN \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0644\u0644\u0627\u062a\u0635\u0627\u0644\u0627\u062a.",
-  "settingsAutoConnectLabel": "\u0627\u062a\u0635\u0627\u0644 \u062a\u0644\u0642\u0627\u0626\u064a",
-  "settingsAutoConnectDescription": "\u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627 \u0639\u0646\u062f \u0628\u062f\u0621 \u0627\u0644\u062a\u0637\u0628\u064a\u0642.",
-  "settingsKillSwitchLabel": "\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0625\u064a\u0642\u0627\u0641",
-  "settingsKillSwitchDescription": "\u062d\u0638\u0631 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a \u0625\u0630\u0627 \u0627\u0646\u0642\u0637\u0639 \u0627\u062a\u0635\u0627\u0644 VPN.",
-  "settingsDnsLabel": "DNS \u0645\u062e\u0635\u0635",
-  "settingsDnsDescription": "\u0627\u0633\u062a\u062e\u062f\u0645 \u062e\u0627\u062f\u0645 DNS \u0645\u062e\u0635\u0635 \u0644\u0644\u062a\u062d\u0644\u064a\u0644.",
-  "settingsDnsPlaceholder": "\u0623\u062f\u062e\u0644 \u0639\u0646\u0648\u0627\u0646 DNS",
-  "settingsSplitTunnelingLabel": "\u0627\u0644\u0646\u0641\u0642 \u0627\u0644\u0645\u0642\u0633\u0651\u0645",
-  "settingsSplitTunnelingDescription": "\u0627\u062e\u062a\u0631 \u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u0633\u062a\u062e\u062f\u0645 \u0627\u062a\u0635\u0627\u0644 VPN.",
-  "settingsThemeModeLabel": "\u0648\u0636\u0639 \u0627\u0644\u0645\u0638\u0647\u0631",
-  "settingsThemeModeDescription": "\u0627\u062e\u062a\u0631 \u0628\u064a\u0646 \u0627\u0644\u0645\u0638\u0647\u0631 \u0627\u0644\u0641\u0627\u062a\u062d \u0623\u0648 \u0627\u0644\u062f\u0627\u0643\u0646 \u0623\u0648 \u0645\u0638\u0647\u0631 \u0627\u0644\u0646\u0638\u0627\u0645.",
-  "settingsLanguageLabel": "\u0627\u0644\u0644\u063a\u0629",
-  "settingsLanguageDescription": "\u062d\u062f\u062f \u0644\u063a\u062a\u0643 \u0627\u0644\u0645\u0641\u0636\u0644\u0629.",
-  "settingsDebugLogsLabel": "\u0633\u062c\u0644\u0627\u062a \u0627\u0644\u062a\u0635\u062d\u064a\u062d",
-  "settingsDebugLogsDescription": "\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0645\u0641\u0635\u0644 \u0644\u0627\u0633\u062a\u0643\u0634\u0627\u0641 \u0627\u0644\u0623\u062e\u0637\u0627\u0621.",
-  "settingsExportLogsLabel": "\u062a\u0635\u062f\u064a\u0631 \u0627\u0644\u0633\u062c\u0644\u0627\u062a",
-  "settingsExportLogsDescription": "\u062a\u0635\u062f\u064a\u0631 \u0633\u062c\u0644\u0627\u062a \u0627\u0644\u062a\u0635\u062d\u064a\u062d \u0644\u0644\u062f\u0639\u0645.",
-  "settingsResetLabel": "\u0625\u0639\u0627\u062f\u0629 \u062a\u0639\u064a\u064a\u0646 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "settingsResetDescription": "\u0627\u0633\u062a\u0639\u0627\u062f\u0629 \u062c\u0645\u064a\u0639 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0642\u064a\u0645 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629.",
-  "settingsResetConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u0625\u0639\u0627\u062f\u0629 \u062a\u0639\u064a\u064a\u0646 \u062c\u0645\u064a\u0639 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0625\u0644\u0649 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629\u061f",
-  "settingsStartOnBootLabel": "\u0627\u0644\u0628\u062f\u0621 \u0639\u0646\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
-  "settingsStartOnBootDescription": "\u062a\u0634\u063a\u064a\u0644 CyberVPN \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627 \u0639\u0646\u062f \u0628\u062f\u0621 \u062a\u0634\u063a\u064a\u0644 \u062c\u0647\u0627\u0632\u0643.",
-  "settingsConnectionTimeoutLabel": "\u0645\u0647\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644",
-  "settingsConnectionTimeoutDescription": "\u0627\u0644\u062d\u062f \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u0644\u0648\u0642\u062a \u0642\u0628\u0644 \u0625\u0644\u063a\u0627\u0621 \u0645\u062d\u0627\u0648\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644.",
-  "settingsConnectionTimeoutSeconds": "{count, plural, zero{\u0644\u0627 \u062b\u0648\u0627\u0646\u064d} one{\u062b\u0627\u0646\u064a\u0629 \u0648\u0627\u062d\u062f\u0629} two{\u062b\u0627\u0646\u064a\u062a\u0627\u0646} few{{count} \u062b\u0648\u0627\u0646\u064d} many{{count} \u062b\u0627\u0646\u064a\u0629\u064b} other{{count} \u062b\u0627\u0646\u064a\u0629}}",
+  "settingsTitle": "الإعدادات",
+  "settingsGeneral": "عام",
+  "settingsVpn": "إعدادات VPN",
+  "settingsAppearance": "المظهر",
+  "settingsDebug": "التصحيح",
+  "settingsNotifications": "الإشعارات",
+  "settingsAbout": "حول",
+  "settingsVpnProtocolLabel": "البروتوكول",
+  "settingsVpnProtocolDescription": "حدد بروتوكول VPN المستخدم للاتصالات.",
+  "settingsAutoConnectLabel": "اتصال تلقائي",
+  "settingsAutoConnectDescription": "الاتصال تلقائيًا عند بدء التطبيق.",
+  "settingsKillSwitchLabel": "مفتاح الإيقاف",
+  "settingsKillSwitchDescription": "حظر الإنترنت إذا انقطع اتصال VPN.",
+  "settingsDnsLabel": "DNS مخصص",
+  "settingsDnsDescription": "استخدم خادم DNS مخصص للتحليل.",
+  "settingsDnsPlaceholder": "أدخل عنوان DNS",
+  "settingsSplitTunnelingLabel": "النفق المقسّم",
+  "settingsSplitTunnelingDescription": "اختر التطبيقات التي تستخدم اتصال VPN.",
+  "settingsThemeModeLabel": "وضع المظهر",
+  "settingsThemeModeDescription": "اختر بين المظهر الفاتح أو الداكن أو مظهر النظام.",
+  "settingsLanguageLabel": "اللغة",
+  "settingsLanguageDescription": "حدد لغتك المفضلة.",
+  "settingsDebugLogsLabel": "سجلات التصحيح",
+  "settingsDebugLogsDescription": "تفعيل التسجيل المفصل لاستكشاف الأخطاء.",
+  "settingsExportLogsLabel": "تصدير السجلات",
+  "settingsExportLogsDescription": "تصدير سجلات التصحيح للدعم.",
+  "settingsResetLabel": "إعادة تعيين الإعدادات",
+  "settingsResetDescription": "استعادة جميع الإعدادات إلى القيم الافتراضية.",
+  "settingsResetConfirm": "هل أنت متأكد أنك تريد إعادة تعيين جميع الإعدادات إلى الافتراضية؟",
+  "settingsStartOnBootLabel": "البدء عند التشغيل",
+  "settingsStartOnBootDescription": "تشغيل CyberVPN تلقائيًا عند بدء تشغيل جهازك.",
+  "settingsConnectionTimeoutLabel": "مهلة الاتصال",
+  "settingsConnectionTimeoutDescription": "الحد الأقصى للوقت قبل إلغاء محاولة الاتصال.",
+  "settingsConnectionTimeoutSeconds": "{count, plural, zero{لا ثوانٍ} one{ثانية واحدة} two{ثانيتان} few{{count} ثوانٍ} many{{count} ثانيةً} other{{count} ثانية}}",
   "@settingsConnectionTimeoutSeconds": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
-  "profileDashboard": "\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a",
-  "profileEditProfile": "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a",
-  "profileDisplayName": "\u0627\u0633\u0645 \u0627\u0644\u0639\u0631\u0636",
-  "profileEmailAddress": "\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a",
-  "profileChangePassword": "\u062a\u063a\u064a\u064a\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631",
-  "profileCurrentPassword": "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629",
-  "profileNewPassword": "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629",
-  "profileConfirmNewPassword": "\u062a\u0623\u0643\u064a\u062f \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629",
-  "profileTwoFactorAuth": "\u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629 \u0627\u0644\u062b\u0646\u0627\u0626\u064a\u0629",
-  "profileTwoFactorAuthDescription": "\u0623\u0636\u0641 \u0637\u0628\u0642\u0629 \u0625\u0636\u0627\u0641\u064a\u0629 \u0645\u0646 \u0627\u0644\u0623\u0645\u0627\u0646 \u0644\u062d\u0633\u0627\u0628\u0643.",
-  "profileTwoFactorEnable": "\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629 \u0627\u0644\u062b\u0646\u0627\u0626\u064a\u0629",
-  "profileTwoFactorDisable": "\u062a\u0639\u0637\u064a\u0644 \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629 \u0627\u0644\u062b\u0646\u0627\u0626\u064a\u0629",
-  "profileTwoFactorSetup": "\u0625\u0639\u062f\u0627\u062f \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629 \u0627\u0644\u062b\u0646\u0627\u0626\u064a\u0629",
-  "profileTwoFactorScanQr": "\u0627\u0645\u0633\u062d \u0631\u0645\u0632 QR \u0647\u0630\u0627 \u0628\u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629.",
-  "profileTwoFactorEnterCode": "\u0623\u062f\u062e\u0644 \u0627\u0644\u0631\u0645\u0632 \u0627\u0644\u0645\u0643\u0648\u0646 \u0645\u0646 6 \u0623\u0631\u0642\u0627\u0645 \u0645\u0646 \u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629.",
-  "profileTwoFactorBackupCodes": "\u0631\u0645\u0648\u0632 \u0627\u0644\u0627\u0633\u062a\u0631\u062f\u0627\u062f",
-  "profileTwoFactorBackupCodesDescription": "\u0627\u062d\u0641\u0638 \u0647\u0630\u0647 \u0627\u0644\u0631\u0645\u0648\u0632 \u0641\u064a \u0645\u0643\u0627\u0646 \u0622\u0645\u0646. \u064a\u0645\u0643\u0646\u0643 \u0627\u0633\u062a\u062e\u062f\u0627\u0645\u0647\u0627 \u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0625\u0630\u0627 \u0641\u0642\u062f\u062a \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629.",
-  "profileOauthAccounts": "\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629",
-  "profileOauthAccountsDescription": "\u0625\u062f\u0627\u0631\u0629 \u062d\u0633\u0627\u0628\u0627\u062a\u0643 \u0627\u0644\u0627\u062c\u062a\u0645\u0627\u0639\u064a\u0629 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629.",
-  "profileOauthLink": "\u0631\u0628\u0637 \u062d\u0633\u0627\u0628",
-  "profileOauthUnlink": "\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0631\u0628\u0637",
-  "profileOauthUnlinkConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u0625\u0644\u063a\u0627\u0621 \u0631\u0628\u0637 \u0647\u0630\u0627 \u0627\u0644\u062d\u0633\u0627\u0628\u061f",
-  "profileTrustedDevices": "\u0627\u0644\u0623\u062c\u0647\u0632\u0629 \u0627\u0644\u0645\u0648\u062b\u0648\u0642\u0629",
-  "profileTrustedDevicesDescription": "\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0623\u062c\u0647\u0632\u0629 \u0627\u0644\u062a\u064a \u064a\u0645\u0643\u0646\u0647\u0627 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u062d\u0633\u0627\u0628\u0643.",
-  "profileDeviceCurrent": "\u0627\u0644\u062c\u0647\u0627\u0632 \u0627\u0644\u062d\u0627\u0644\u064a",
-  "profileDeviceLastActive": "\u0622\u062e\u0631 \u0646\u0634\u0627\u0637 {date}",
+  "profileDashboard": "لوحة الملف الشخصي",
+  "profileEditProfile": "تعديل الملف الشخصي",
+  "profileDisplayName": "اسم العرض",
+  "profileEmailAddress": "عنوان البريد الإلكتروني",
+  "profileChangePassword": "تغيير كلمة المرور",
+  "profileCurrentPassword": "كلمة المرور الحالية",
+  "profileNewPassword": "كلمة المرور الجديدة",
+  "profileConfirmNewPassword": "تأكيد كلمة المرور الجديدة",
+  "profileTwoFactorAuth": "المصادقة الثنائية",
+  "profileTwoFactorAuthDescription": "أضف طبقة إضافية من الأمان لحسابك.",
+  "profileTwoFactorEnable": "تفعيل المصادقة الثنائية",
+  "profileTwoFactorDisable": "تعطيل المصادقة الثنائية",
+  "profileTwoFactorSetup": "إعداد المصادقة الثنائية",
+  "profileTwoFactorScanQr": "امسح رمز QR هذا بتطبيق المصادقة.",
+  "profileTwoFactorEnterCode": "أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة.",
+  "profileTwoFactorBackupCodes": "رموز الاسترداد",
+  "profileTwoFactorBackupCodesDescription": "احفظ هذه الرموز في مكان آمن. يمكنك استخدامها لتسجيل الدخول إذا فقدت الوصول إلى تطبيق المصادقة.",
+  "profileOauthAccounts": "الحسابات المرتبطة",
+  "profileOauthAccountsDescription": "إدارة حساباتك الاجتماعية المرتبطة.",
+  "profileOauthLink": "ربط حساب",
+  "profileOauthUnlink": "إلغاء الربط",
+  "profileOauthUnlinkConfirm": "هل أنت متأكد أنك تريد إلغاء ربط هذا الحساب؟",
+  "profileTrustedDevices": "الأجهزة الموثوقة",
+  "profileTrustedDevicesDescription": "إدارة الأجهزة التي يمكنها الوصول إلى حسابك.",
+  "profileDeviceCurrent": "الجهاز الحالي",
+  "profileDeviceLastActive": "آخر نشاط {date}",
   "@profileDeviceLastActive": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
-  "profileDeviceRevoke": "\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0648\u0635\u0648\u0644",
-  "profileDeviceRevokeConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u0625\u0644\u063a\u0627\u0621 \u0648\u0635\u0648\u0644 \u0647\u0630\u0627 \u0627\u0644\u062c\u0647\u0627\u0632\u061f",
-  "profileDeviceRevokeAll": "\u0625\u0644\u063a\u0627\u0621 \u0648\u0635\u0648\u0644 \u062c\u0645\u064a\u0639 \u0627\u0644\u0623\u062c\u0647\u0632\u0629",
-  "profileDeleteAccount": "\u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628",
-  "profileDeleteAccountDescription": "\u062d\u0630\u0641 \u062d\u0633\u0627\u0628\u0643 \u0648\u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0647 \u0646\u0647\u0627\u0626\u064a\u064b\u0627.",
-  "profileDeleteAccountConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u062d\u0630\u0641 \u062d\u0633\u0627\u0628\u0643\u061f \u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062a\u0631\u0627\u062c\u0639 \u0639\u0646 \u0647\u0630\u0627 \u0627\u0644\u0625\u062c\u0631\u0627\u0621.",
-  "profileDeleteAccountButton": "\u062d\u0630\u0641 \u062d\u0633\u0627\u0628\u064a",
-  "profileSubscriptionStatus": "\u062d\u0627\u0644\u0629 \u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643",
-  "profileMemberSince": "\u0639\u0636\u0648 \u0645\u0646\u0630 {date}",
+  "profileDeviceRevoke": "إلغاء الوصول",
+  "profileDeviceRevokeConfirm": "هل أنت متأكد أنك تريد إلغاء وصول هذا الجهاز؟",
+  "profileDeviceRevokeAll": "إلغاء وصول جميع الأجهزة",
+  "profileDeleteAccount": "حذف الحساب",
+  "profileDeleteAccountDescription": "حذف حسابك وجميع البيانات المرتبطة به نهائيًا.",
+  "profileDeleteAccountConfirm": "هل أنت متأكد أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.",
+  "profileDeleteAccountButton": "حذف حسابي",
+  "profileSubscriptionStatus": "حالة الاشتراك",
+  "profileMemberSince": "عضو منذ {date}",
   "@profileMemberSince": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
-
-  "configImportTitle": "\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "configImportQrScanTitle": "\u0645\u0633\u062d \u0631\u0645\u0632 QR",
-  "configImportQrScanDescription": "\u0648\u062c\u0651\u0647 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627 \u0646\u062d\u0648 \u0631\u0645\u0632 QR \u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a VPN.",
-  "configImportScanQrButton": "\u0645\u0633\u062d \u0631\u0645\u0632 QR",
-  "configImportFromClipboard": "\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0645\u0646 \u0627\u0644\u062d\u0627\u0641\u0638\u0629",
-  "configImportFromClipboardDescription": "\u0627\u0644\u0635\u0642 \u0631\u0627\u0628\u0637 \u0623\u0648 \u0646\u0635 \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0645\u0646 \u0627\u0644\u062d\u0627\u0641\u0638\u0629.",
-  "configImportFromFile": "\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0645\u0646 \u0645\u0644\u0641",
-  "configImportFromFileDescription": "\u062d\u062f\u062f \u0645\u0644\u0641 \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0645\u0646 \u062c\u0647\u0627\u0632\u0643.",
-  "configImportPreviewTitle": "\u0645\u0639\u0627\u064a\u0646\u0629 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "configImportPreviewServer": "\u0627\u0644\u062e\u0627\u062f\u0645",
-  "configImportPreviewProtocol": "\u0627\u0644\u0628\u0631\u0648\u062a\u0648\u0643\u0648\u0644",
-  "configImportPreviewPort": "\u0627\u0644\u0645\u0646\u0641\u0630",
-  "configImportConfirmButton": "\u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "configImportCancelButton": "\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0627\u0633\u062a\u064a\u0631\u0627\u062f",
-  "configImportSuccess": "\u062a\u0645 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0628\u0646\u062c\u0627\u062d.",
-  "configImportError": "\u0641\u0634\u0644 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a.",
-  "configImportInvalidFormat": "\u062a\u0646\u0633\u064a\u0642 \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u063a\u064a\u0631 \u0635\u0627\u0644\u062d.",
-  "configImportDuplicate": "\u0647\u0630\u0647 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0645\u0648\u062c\u0648\u062f\u0629 \u0628\u0627\u0644\u0641\u0639\u0644.",
-  "configImportCameraPermission": "\u0645\u0637\u0644\u0648\u0628 \u0625\u0630\u0646 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627 \u0644\u0645\u0633\u062d \u0631\u0645\u0648\u0632 QR.",
-
-  "notificationCenterTitle": "\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a",
-  "notificationCenterEmpty": "\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u0628\u0639\u062f.",
-  "notificationCenterMarkAllRead": "\u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0643\u0644 \u0643\u0645\u0642\u0631\u0648\u0621",
-  "notificationCenterClearAll": "\u0645\u0633\u062d \u0627\u0644\u0643\u0644",
-  "notificationTypeConnectionStatus": "\u062d\u0627\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644",
-  "notificationTypeServerSwitch": "\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062e\u0627\u062f\u0645",
-  "notificationTypeSubscriptionExpiry": "\u0627\u0646\u062a\u0647\u0627\u0621 \u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643",
-  "notificationTypeSecurityAlert": "\u062a\u0646\u0628\u064a\u0647 \u0623\u0645\u0646\u064a",
-  "notificationTypePromotion": "\u0639\u0631\u0636 \u062a\u0631\u0648\u064a\u062c\u064a",
-  "notificationTypeSystemUpdate": "\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645",
-  "notificationConnected": "\u0645\u062a\u0635\u0644 \u0628\u0640 {serverName}",
+  "configImportTitle": "استيراد الإعدادات",
+  "configImportQrScanTitle": "مسح رمز QR",
+  "configImportQrScanDescription": "وجّه الكاميرا نحو رمز QR لإعدادات VPN.",
+  "configImportScanQrButton": "مسح رمز QR",
+  "configImportFromClipboard": "استيراد من الحافظة",
+  "configImportFromClipboardDescription": "الصق رابط أو نص إعدادات من الحافظة.",
+  "configImportFromFile": "استيراد من ملف",
+  "configImportFromFileDescription": "حدد ملف إعدادات من جهازك.",
+  "configImportPreviewTitle": "معاينة الإعدادات",
+  "configImportPreviewServer": "الخادم",
+  "configImportPreviewProtocol": "البروتوكول",
+  "configImportPreviewPort": "المنفذ",
+  "configImportConfirmButton": "استيراد الإعدادات",
+  "configImportCancelButton": "إلغاء الاستيراد",
+  "configImportSuccess": "تم استيراد الإعدادات بنجاح.",
+  "configImportError": "فشل استيراد الإعدادات.",
+  "configImportInvalidFormat": "تنسيق إعدادات غير صالح.",
+  "configImportDuplicate": "هذه الإعدادات موجودة بالفعل.",
+  "configImportCameraPermission": "مطلوب إذن الكاميرا لمسح رموز QR.",
+  "notificationCenterTitle": "الإشعارات",
+  "notificationCenterEmpty": "لا توجد إشعارات بعد.",
+  "notificationCenterMarkAllRead": "تحديد الكل كمقروء",
+  "notificationCenterClearAll": "مسح الكل",
+  "notificationTypeConnectionStatus": "حالة الاتصال",
+  "notificationTypeServerSwitch": "تبديل الخادم",
+  "notificationTypeSubscriptionExpiry": "انتهاء الاشتراك",
+  "notificationTypeSecurityAlert": "تنبيه أمني",
+  "notificationTypePromotion": "عرض ترويجي",
+  "notificationTypeSystemUpdate": "تحديث النظام",
+  "notificationConnected": "متصل بـ {serverName}",
   "@notificationConnected": {
     "placeholders": {
-      "serverName": {"type": "String"}
+      "serverName": {
+        "type": "String"
+      }
     }
   },
-  "notificationDisconnected": "\u062a\u0645 \u0642\u0637\u0639 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0640 VPN.",
-  "notificationServerSwitched": "\u062a\u0645 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 {serverName}.",
+  "notificationDisconnected": "تم قطع الاتصال بـ VPN.",
+  "notificationServerSwitched": "تم التبديل إلى {serverName}.",
   "@notificationServerSwitched": {
     "placeholders": {
-      "serverName": {"type": "String"}
+      "serverName": {
+        "type": "String"
+      }
     }
   },
-  "notificationSubscriptionExpiring": "{count, plural, zero{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u0627\u0644\u064a\u0648\u0645} one{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u062e\u0644\u0627\u0644 \u064a\u0648\u0645 \u0648\u0627\u062d\u062f} two{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u062e\u0644\u0627\u0644 \u064a\u0648\u0645\u064a\u0646} few{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u062e\u0644\u0627\u0644 {count} \u0623\u064a\u0627\u0645} many{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u062e\u0644\u0627\u0644 {count} \u064a\u0648\u0645\u064b\u0627} other{\u064a\u0646\u062a\u0647\u064a \u0627\u0634\u062a\u0631\u0627\u0643\u0643 \u062e\u0644\u0627\u0644 {count} \u064a\u0648\u0645}}.",
+  "notificationSubscriptionExpiring": "{count, plural, zero{ينتهي اشتراكك اليوم} one{ينتهي اشتراكك خلال يوم واحد} two{ينتهي اشتراكك خلال يومين} few{ينتهي اشتراكك خلال {count} أيام} many{ينتهي اشتراكك خلال {count} يومًا} other{ينتهي اشتراكك خلال {count} يوم}}.",
   "@notificationSubscriptionExpiring": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "notificationSubscriptionExpired": "\u0627\u0646\u062a\u0647\u0649 \u0627\u0634\u062a\u0631\u0627\u0643\u0643. \u062c\u062f\u062f \u0644\u0644\u0627\u0633\u062a\u0645\u0631\u0627\u0631 \u0641\u064a \u0627\u0633\u062a\u062e\u062f\u0627\u0645 CyberVPN.",
-  "notificationUnreadCount": "{count, plural, zero{\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u0629} one{\u0625\u0634\u0639\u0627\u0631 \u0648\u0627\u062d\u062f \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621} two{\u0625\u0634\u0639\u0627\u0631\u0627\u0646 \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u064a\u0646} few{{count} \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u0629} many{{count} \u0625\u0634\u0639\u0627\u0631\u064b\u0627 \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621} other{{count} \u0625\u0634\u0639\u0627\u0631 \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621}}",
+  "notificationSubscriptionExpired": "انتهى اشتراكك. جدد للاستمرار في استخدام CyberVPN.",
+  "notificationUnreadCount": "{count, plural, zero{لا توجد إشعارات غير مقروءة} one{إشعار واحد غير مقروء} two{إشعاران غير مقروءين} few{{count} إشعارات غير مقروءة} many{{count} إشعارًا غير مقروء} other{{count} إشعار غير مقروء}}",
   "@notificationUnreadCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
-  "referralDashboardTitle": "\u0628\u0631\u0646\u0627\u0645\u062c \u0627\u0644\u0625\u062d\u0627\u0644\u0629",
-  "referralDashboardDescription": "\u0627\u062f\u0639\u064f \u0623\u0635\u062f\u0642\u0627\u0621\u0643 \u0648\u0627\u062d\u0635\u0644 \u0639\u0644\u0649 \u0645\u0643\u0627\u0641\u0622\u062a.",
-  "referralShareLink": "\u0645\u0634\u0627\u0631\u0643\u0629 \u0631\u0627\u0628\u0637 \u0627\u0644\u0625\u062d\u0627\u0644\u0629",
-  "referralCopyLink": "\u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637",
-  "referralLinkCopied": "\u062a\u0645 \u0646\u0633\u062e \u0631\u0627\u0628\u0637 \u0627\u0644\u0625\u062d\u0627\u0644\u0629 \u0625\u0644\u0649 \u0627\u0644\u062d\u0627\u0641\u0638\u0629.",
-  "referralCodeLabel": "\u0631\u0645\u0632 \u0627\u0644\u0625\u062d\u0627\u0644\u0629 \u0627\u0644\u062e\u0627\u0635 \u0628\u0643",
-  "referralRewardsEarned": "{count, plural, zero{\u0644\u0627 \u0645\u0643\u0627\u0641\u0622\u062a \u0645\u0643\u062a\u0633\u0628\u0629} one{\u0645\u0643\u0627\u0641\u0623\u0629 \u0648\u0627\u062d\u062f\u0629 \u0645\u0643\u062a\u0633\u0628\u0629} two{\u0645\u0643\u0627\u0641\u0623\u062a\u0627\u0646 \u0645\u0643\u062a\u0633\u0628\u062a\u0627\u0646} few{{count} \u0645\u0643\u0627\u0641\u0622\u062a \u0645\u0643\u062a\u0633\u0628\u0629} many{{count} \u0645\u0643\u0627\u0641\u0623\u0629\u064b \u0645\u0643\u062a\u0633\u0628\u0629\u064b} other{{count} \u0645\u0643\u0627\u0641\u0623\u0629 \u0645\u0643\u062a\u0633\u0628\u0629}}",
+  "referralDashboardTitle": "برنامج الإحالة",
+  "referralDashboardDescription": "ادعُ أصدقاءك واحصل على مكافآت.",
+  "referralShareLink": "مشاركة رابط الإحالة",
+  "referralCopyLink": "نسخ الرابط",
+  "referralLinkCopied": "تم نسخ رابط الإحالة إلى الحافظة.",
+  "referralCodeLabel": "رمز الإحالة الخاص بك",
+  "referralRewardsEarned": "{count, plural, zero{لا مكافآت مكتسبة} one{مكافأة واحدة مكتسبة} two{مكافأتان مكتسبتان} few{{count} مكافآت مكتسبة} many{{count} مكافأةً مكتسبةً} other{{count} مكافأة مكتسبة}}",
   "@referralRewardsEarned": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "referralFriendsInvited": "{count, plural, zero{\u0644\u0645 \u062a\u062a\u0645 \u062f\u0639\u0648\u0629 \u0623\u0635\u062f\u0642\u0627\u0621} one{\u062a\u0645\u062a \u062f\u0639\u0648\u0629 \u0635\u062f\u064a\u0642 \u0648\u0627\u062d\u062f} two{\u062a\u0645\u062a \u062f\u0639\u0648\u0629 \u0635\u062f\u064a\u0642\u064a\u0646} few{\u062a\u0645\u062a \u062f\u0639\u0648\u0629 {count} \u0623\u0635\u062f\u0642\u0627\u0621} many{\u062a\u0645\u062a \u062f\u0639\u0648\u0629 {count} \u0635\u062f\u064a\u0642\u064b\u0627} other{\u062a\u0645\u062a \u062f\u0639\u0648\u0629 {count} \u0635\u062f\u064a\u0642}}",
+  "referralFriendsInvited": "{count, plural, zero{لم تتم دعوة أصدقاء} one{تمت دعوة صديق واحد} two{تمت دعوة صديقين} few{تمت دعوة {count} أصدقاء} many{تمت دعوة {count} صديقًا} other{تمت دعوة {count} صديق}}",
   "@referralFriendsInvited": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "referralRewardDescription": "\u0627\u062d\u0635\u0644 \u0639\u0644\u0649 {days} \u0623\u064a\u0627\u0645 \u0645\u062c\u0627\u0646\u064a\u0629 \u0644\u0643\u0644 \u0635\u062f\u064a\u0642 \u064a\u0634\u062a\u0631\u0643.",
+  "referralRewardDescription": "احصل على {days} أيام مجانية لكل صديق يشترك.",
   "@referralRewardDescription": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
-  "referralHistory": "\u0633\u062c\u0644 \u0627\u0644\u0625\u062d\u0627\u0644\u0627\u062a",
-  "referralPending": "\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631",
-  "referralCompleted": "\u0645\u0643\u062a\u0645\u0644",
-  "referralExpired": "\u0645\u0646\u062a\u0647\u064a \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0629",
-
-  "diagnosticsTitle": "\u0627\u0644\u062a\u0634\u062e\u064a\u0635\u0627\u062a",
-  "diagnosticsDescription": "\u0627\u062e\u062a\u0628\u0631 \u0627\u062a\u0635\u0627\u0644\u0643 \u0648\u0627\u0633\u062a\u0643\u0634\u0641 \u0627\u0644\u0645\u0634\u0643\u0644\u0627\u062a.",
-  "speedTestTitle": "\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0633\u0631\u0639\u0629",
-  "speedTestStart": "\u0628\u062f\u0621 \u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0633\u0631\u0639\u0629",
-  "speedTestRunning": "\u062c\u0627\u0631\u064d \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631...",
-  "speedTestDownloadSpeed": "\u0633\u0631\u0639\u0629 \u0627\u0644\u062a\u0646\u0632\u064a\u0644",
-  "speedTestUploadSpeed": "\u0633\u0631\u0639\u0629 \u0627\u0644\u0631\u0641\u0639",
-  "speedTestPing": "\u0632\u0645\u0646 \u0627\u0644\u0627\u0633\u062a\u062c\u0627\u0628\u0629",
-  "speedTestPingMs": "{value} \u0645\u0644\u0644\u064a \u062b\u0627\u0646\u064a\u0629",
+  "referralHistory": "سجل الإحالات",
+  "referralPending": "قيد الانتظار",
+  "referralCompleted": "مكتمل",
+  "referralExpired": "منتهي الصلاحية",
+  "diagnosticsTitle": "التشخيصات",
+  "diagnosticsDescription": "اختبر اتصالك واستكشف المشكلات.",
+  "speedTestTitle": "اختبار السرعة",
+  "speedTestStart": "بدء اختبار السرعة",
+  "speedTestRunning": "جارٍ الاختبار...",
+  "speedTestDownloadSpeed": "سرعة التنزيل",
+  "speedTestUploadSpeed": "سرعة الرفع",
+  "speedTestPing": "زمن الاستجابة",
+  "speedTestPingMs": "{value} مللي ثانية",
   "@speedTestPingMs": {
     "placeholders": {
-      "value": {"type": "int"}
+      "value": {
+        "type": "int"
+      }
     }
   },
-  "speedTestMbps": "{value} \u0645\u064a\u063a\u0627\u0628\u062a/\u062b",
+  "speedTestMbps": "{value} ميغابت/ث",
   "@speedTestMbps": {
     "placeholders": {
-      "value": {"type": "String"}
+      "value": {
+        "type": "String"
+      }
     }
   },
-  "speedTestResult": "\u0646\u062a\u064a\u062c\u0629 \u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0633\u0631\u0639\u0629",
-  "speedTestHistory": "\u0633\u062c\u0644 \u0627\u062e\u062a\u0628\u0627\u0631\u0627\u062a \u0627\u0644\u0633\u0631\u0639\u0629",
-  "speedTestStepConnecting": "\u062c\u0627\u0631\u064d \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u062e\u0627\u062f\u0645 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631...",
-  "speedTestStepDownload": "\u062c\u0627\u0631\u064d \u0627\u062e\u062a\u0628\u0627\u0631 \u0633\u0631\u0639\u0629 \u0627\u0644\u062a\u0646\u0632\u064a\u0644...",
-  "speedTestStepUpload": "\u062c\u0627\u0631\u064d \u0627\u062e\u062a\u0628\u0627\u0631 \u0633\u0631\u0639\u0629 \u0627\u0644\u0631\u0641\u0639...",
-  "speedTestStepPing": "\u062c\u0627\u0631\u064d \u0642\u064a\u0627\u0633 \u0632\u0645\u0646 \u0627\u0644\u0627\u0633\u062a\u062c\u0627\u0628\u0629...",
-  "speedTestStepComplete": "\u0627\u0643\u062a\u0645\u0644 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631.",
-  "speedTestNoVpn": "\u0627\u062a\u0635\u0644 \u0628\u0640 VPN \u0642\u0628\u0644 \u0625\u062c\u0631\u0627\u0621 \u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0633\u0631\u0639\u0629.",
-  "logViewerTitle": "\u0639\u0627\u0631\u0636 \u0627\u0644\u0633\u062c\u0644\u0627\u062a",
-  "logViewerEmpty": "\u0644\u0627 \u062a\u0648\u062c\u062f \u0633\u062c\u0644\u0627\u062a \u0645\u062a\u0627\u062d\u0629.",
-  "logViewerExportButton": "\u062a\u0635\u062f\u064a\u0631 \u0627\u0644\u0633\u062c\u0644\u0627\u062a",
-  "logViewerClearButton": "\u0645\u0633\u062d \u0627\u0644\u0633\u062c\u0644\u0627\u062a",
-  "logViewerClearConfirm": "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0623\u0646\u0643 \u062a\u0631\u064a\u062f \u0645\u0633\u062d \u062c\u0645\u064a\u0639 \u0627\u0644\u0633\u062c\u0644\u0627\u062a\u061f",
-  "logViewerFilterLabel": "\u062a\u0635\u0641\u064a\u0629",
-  "logViewerFilterAll": "\u0627\u0644\u0643\u0644",
-  "logViewerFilterError": "\u0623\u062e\u0637\u0627\u0621",
-  "logViewerFilterWarning": "\u062a\u062d\u0630\u064a\u0631\u0627\u062a",
-  "logViewerFilterInfo": "\u0645\u0639\u0644\u0648\u0645\u0627\u062a",
-  "logViewerCopied": "\u062a\u0645 \u0646\u0633\u062e \u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0633\u062c\u0644 \u0625\u0644\u0649 \u0627\u0644\u062d\u0627\u0641\u0638\u0629.",
-  "logViewerExportSuccess": "\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 \u0627\u0644\u0633\u062c\u0644\u0627\u062a \u0628\u0646\u062c\u0627\u062d.",
-  "logViewerExportError": "\u0641\u0634\u0644 \u062a\u0635\u062f\u064a\u0631 \u0627\u0644\u0633\u062c\u0644\u0627\u062a.",
-
-  "widgetConnectLabel": "\u0627\u062a\u0635\u0644 \u0628\u0640 VPN",
-  "widgetDisconnectLabel": "\u0627\u0642\u0637\u0639 VPN",
-  "widgetStatusLabel": "\u062d\u0627\u0644\u0629 VPN",
-  "widgetServerLabel": "\u0627\u0644\u062e\u0627\u062f\u0645 \u0627\u0644\u062d\u0627\u0644\u064a",
-  "quickActionConnect": "\u0627\u062a\u0635\u0627\u0644",
-  "quickActionDisconnect": "\u0642\u0637\u0639",
-  "quickActionServers": "\u0627\u0644\u062e\u0648\u0627\u062f\u0645",
-  "quickActionSpeedTest": "\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0633\u0631\u0639\u0629",
-  "quickActionSettings": "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
-  "quickActionSupport": "\u0627\u0644\u062f\u0639\u0645",
-
-  "errorConnectionFailed": "\u0641\u0634\u0644 \u0627\u0644\u0627\u062a\u0635\u0627\u0644. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.",
-  "errorConnectionTimeout": "\u0627\u0646\u062a\u0647\u062a \u0645\u0647\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u062a\u0635\u0627\u0644\u0643 \u0628\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a.",
-  "errorServerUnavailable": "\u0627\u0644\u062e\u0627\u062f\u0645 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u062d\u0627\u0644\u064a\u064b\u0627. \u062c\u0631\u0628 \u062e\u0627\u062f\u0645\u064b\u0627 \u0622\u062e\u0631.",
-  "errorInvalidConfig": "\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629. \u064a\u0631\u062c\u0649 \u0625\u0639\u0627\u062f\u0629 \u0627\u0633\u062a\u064a\u0631\u0627\u062f \u0625\u0639\u062f\u0627\u062f\u0627\u062a\u0643.",
-  "errorSubscriptionExpired": "\u0627\u0646\u062a\u0647\u0649 \u0627\u0634\u062a\u0631\u0627\u0643\u0643. \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u062c\u062f\u064a\u062f \u0644\u0644\u0627\u0633\u062a\u0645\u0631\u0627\u0631.",
-  "errorSubscriptionRequired": "\u064a\u0644\u0632\u0645 \u0627\u0634\u062a\u0631\u0627\u0643 \u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0647\u0630\u0647 \u0627\u0644\u0645\u064a\u0632\u0629.",
-  "errorAuthenticationFailed": "\u0641\u0634\u0644\u062a \u0627\u0644\u0645\u0635\u0627\u062f\u0642\u0629. \u064a\u0631\u062c\u0649 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.",
-  "errorTokenExpired": "\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629. \u064a\u0631\u062c\u0649 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.",
-  "errorNetworkUnreachable": "\u0627\u0644\u0634\u0628\u0643\u0629 \u063a\u064a\u0631 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0648\u0635\u0648\u0644. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u062a\u0635\u0627\u0644\u0643.",
-  "errorPermissionDenied": "\u062a\u0645 \u0631\u0641\u0636 \u0627\u0644\u0625\u0630\u0646.",
-  "errorRateLimited": "\u0637\u0644\u0628\u0627\u062a \u0643\u062b\u064a\u0631\u0629 \u062c\u062f\u064b\u0627. \u064a\u0631\u062c\u0649 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631 \u0644\u062d\u0638\u0629.",
-  "errorUnexpected": "\u062d\u062f\u062b \u062e\u0637\u0623 \u063a\u064a\u0631 \u0645\u062a\u0648\u0642\u0639. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.",
-  "errorServerError": "\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u062e\u0627\u062f\u0645. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627.",
-  "errorInvalidCredentials": "\u0628\u0631\u064a\u062f \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0623\u0648 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629.",
-  "errorAccountLocked": "\u062a\u0645 \u0642\u0641\u0644 \u062d\u0633\u0627\u0628\u0643. \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0648\u0627\u0635\u0644 \u0645\u0639 \u0627\u0644\u062f\u0639\u0645.",
-  "errorWeakPassword": "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0636\u0639\u064a\u0641\u0629 \u062c\u062f\u064b\u0627. \u0627\u0633\u062a\u062e\u062f\u0645 8 \u0623\u062d\u0631\u0641 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0645\u0639 \u062d\u0631\u0648\u0641 \u0648\u0623\u0631\u0642\u0627\u0645.",
-  "errorEmailAlreadyInUse": "\u0647\u0630\u0627 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0645\u0633\u062c\u0644 \u0628\u0627\u0644\u0641\u0639\u0644.",
-  "errorInvalidEmail": "\u064a\u0631\u062c\u0649 \u0625\u062f\u062e\u0627\u0644 \u0639\u0646\u0648\u0627\u0646 \u0628\u0631\u064a\u062f \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a \u0635\u0627\u0644\u062d.",
-  "errorFieldRequired": "\u0647\u0630\u0627 \u0627\u0644\u062d\u0642\u0644 \u0645\u0637\u0644\u0648\u0628.",
-  "errorPaymentFailed": "\u0641\u0634\u0644 \u0627\u0644\u062f\u0641\u0639. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649 \u0623\u0648 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0637\u0631\u064a\u0642\u0629 \u0623\u062e\u0631\u0649.",
-  "errorQrScanFailed": "\u0641\u0634\u0644 \u0645\u0633\u062d \u0631\u0645\u0632 QR. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.",
-
-  "a11yConnectButton": "\u0627\u062a\u0635\u0644 \u0628\u062e\u0627\u062f\u0645 VPN",
-  "a11yDisconnectButton": "\u0627\u0642\u0637\u0639 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u062e\u0627\u062f\u0645 VPN",
-  "a11yServerStatusOnline": "\u0627\u0644\u062e\u0627\u062f\u0645 \u0645\u062a\u0635\u0644",
-  "a11yServerStatusOffline": "\u0627\u0644\u062e\u0627\u062f\u0645 \u063a\u064a\u0631 \u0645\u062a\u0635\u0644",
-  "a11yServerStatusMaintenance": "\u0627\u0644\u062e\u0627\u062f\u0645 \u0642\u064a\u062f \u0627\u0644\u0635\u064a\u0627\u0646\u0629",
-  "a11ySpeedIndicator": "\u0627\u0644\u0633\u0631\u0639\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629: {speed}",
+  "speedTestResult": "نتيجة اختبار السرعة",
+  "speedTestHistory": "سجل اختبارات السرعة",
+  "speedTestStepConnecting": "جارٍ الاتصال بخادم الاختبار...",
+  "speedTestStepDownload": "جارٍ اختبار سرعة التنزيل...",
+  "speedTestStepUpload": "جارٍ اختبار سرعة الرفع...",
+  "speedTestStepPing": "جارٍ قياس زمن الاستجابة...",
+  "speedTestStepComplete": "اكتمل الاختبار.",
+  "speedTestNoVpn": "اتصل بـ VPN قبل إجراء اختبار السرعة.",
+  "logViewerTitle": "عارض السجلات",
+  "logViewerEmpty": "لا توجد سجلات متاحة.",
+  "logViewerExportButton": "تصدير السجلات",
+  "logViewerClearButton": "مسح السجلات",
+  "logViewerClearConfirm": "هل أنت متأكد أنك تريد مسح جميع السجلات؟",
+  "logViewerFilterLabel": "تصفية",
+  "logViewerFilterAll": "الكل",
+  "logViewerFilterError": "أخطاء",
+  "logViewerFilterWarning": "تحذيرات",
+  "logViewerFilterInfo": "معلومات",
+  "logViewerCopied": "تم نسخ إدخال السجل إلى الحافظة.",
+  "logViewerExportSuccess": "تم تصدير السجلات بنجاح.",
+  "logViewerExportError": "فشل تصدير السجلات.",
+  "widgetConnectLabel": "اتصل بـ VPN",
+  "widgetDisconnectLabel": "اقطع VPN",
+  "widgetStatusLabel": "حالة VPN",
+  "widgetServerLabel": "الخادم الحالي",
+  "quickActionConnect": "اتصال",
+  "quickActionDisconnect": "قطع",
+  "quickActionServers": "الخوادم",
+  "quickActionSpeedTest": "اختبار السرعة",
+  "quickActionSettings": "الإعدادات",
+  "quickActionSupport": "الدعم",
+  "errorConnectionFailed": "فشل الاتصال. يرجى المحاولة مرة أخرى.",
+  "errorConnectionTimeout": "انتهت مهلة الاتصال. تحقق من اتصالك بالإنترنت.",
+  "errorServerUnavailable": "الخادم غير متاح حاليًا. جرب خادمًا آخر.",
+  "errorInvalidConfig": "إعدادات غير صالحة. يرجى إعادة استيراد إعداداتك.",
+  "errorSubscriptionExpired": "انتهى اشتراكك. يرجى التجديد للاستمرار.",
+  "errorSubscriptionRequired": "يلزم اشتراك لاستخدام هذه الميزة.",
+  "errorAuthenticationFailed": "فشلت المصادقة. يرجى تسجيل الدخول مرة أخرى.",
+  "errorTokenExpired": "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  "errorNetworkUnreachable": "الشبكة غير قابلة للوصول. تحقق من اتصالك.",
+  "errorPermissionDenied": "تم رفض الإذن.",
+  "errorRateLimited": "طلبات كثيرة جدًا. يرجى الانتظار لحظة.",
+  "errorUnexpected": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+  "errorServerError": "خطأ في الخادم. يرجى المحاولة لاحقًا.",
+  "errorInvalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة.",
+  "errorAccountLocked": "تم قفل حسابك. يرجى التواصل مع الدعم.",
+  "errorWeakPassword": "كلمة المرور ضعيفة جدًا. استخدم 8 أحرف على الأقل مع حروف وأرقام.",
+  "errorEmailAlreadyInUse": "هذا البريد الإلكتروني مسجل بالفعل.",
+  "errorInvalidEmail": "يرجى إدخال عنوان بريد إلكتروني صالح.",
+  "errorFieldRequired": "هذا الحقل مطلوب.",
+  "errorPaymentFailed": "فشل الدفع. يرجى المحاولة مرة أخرى أو استخدام طريقة أخرى.",
+  "errorQrScanFailed": "فشل مسح رمز QR. يرجى المحاولة مرة أخرى.",
+  "a11yConnectButton": "اتصل بخادم VPN",
+  "a11yDisconnectButton": "اقطع الاتصال بخادم VPN",
+  "a11yServerStatusOnline": "الخادم متصل",
+  "a11yServerStatusOffline": "الخادم غير متصل",
+  "a11yServerStatusMaintenance": "الخادم قيد الصيانة",
+  "a11ySpeedIndicator": "السرعة الحالية: {speed}",
   "@a11ySpeedIndicator": {
     "placeholders": {
-      "speed": {"type": "String"}
+      "speed": {
+        "type": "String"
+      }
     }
   },
-  "a11yConnectionStatus": "\u062d\u0627\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644: {status}",
+  "a11yConnectionStatus": "حالة الاتصال: {status}",
   "@a11yConnectionStatus": {
     "placeholders": {
-      "status": {"type": "String"}
+      "status": {
+        "type": "String"
+      }
     }
   },
-  "a11yServerSelect": "\u0627\u062e\u062a\u0631 \u062e\u0627\u062f\u0645 {name} \u0641\u064a {country}",
+  "a11yServerSelect": "اختر خادم {name} في {country}",
   "@a11yServerSelect": {
     "placeholders": {
-      "name": {"type": "String"},
-      "country": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
     }
   },
-  "a11yNavigationMenu": "\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u062a\u0646\u0642\u0644",
-  "a11yCloseDialog": "\u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062d\u0648\u0627\u0631",
-  "a11yToggleSwitch": "\u062a\u0628\u062f\u064a\u0644 {label}",
+  "a11yNavigationMenu": "قائمة التنقل",
+  "a11yCloseDialog": "إغلاق الحوار",
+  "a11yToggleSwitch": "تبديل {label}",
   "@a11yToggleSwitch": {
     "placeholders": {
-      "label": {"type": "String"}
+      "label": {
+        "type": "String"
+      }
     }
   },
-  "a11yNotificationBadge": "{count, plural, zero{\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0634\u0639\u0627\u0631\u0627\u062a} one{\u0625\u0634\u0639\u0627\u0631 \u0648\u0627\u062d\u062f} two{\u0625\u0634\u0639\u0627\u0631\u0627\u0646} few{{count} \u0625\u0634\u0639\u0627\u0631\u0627\u062a} many{{count} \u0625\u0634\u0639\u0627\u0631\u064b\u0627} other{{count} \u0625\u0634\u0639\u0627\u0631}}",
+  "a11yNotificationBadge": "{count, plural, zero{لا توجد إشعارات} one{إشعار واحد} two{إشعاران} few{{count} إشعارات} many{{count} إشعارًا} other{{count} إشعار}}",
   "@a11yNotificationBadge": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "a11yLoadingIndicator": "\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644",
-  "a11yRefreshContent": "\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0645\u062d\u062a\u0648\u0649",
-  "a11yBackButton": "\u0631\u062c\u0648\u0639",
-  "a11ySearchField": "\u0628\u062d\u062b"
+  "a11yLoadingIndicator": "جارٍ التحميل",
+  "a11yRefreshContent": "تحديث المحتوى",
+  "a11yBackButton": "رجوع",
+  "a11ySearchField": "بحث",
+  "errorTelegramAuthCancelled": "Telegram login was cancelled.",
+  "errorTelegramAuthFailed": "Telegram authentication failed. Please try again.",
+  "errorTelegramAuthExpired": "Telegram login expired. Please try again.",
+  "errorTelegramNotInstalled": "Telegram is not installed on this device.",
+  "errorTelegramAuthInvalid": "Invalid Telegram authentication data.",
+  "errorBiometricUnavailable": "Biometric authentication is not available on this device.",
+  "errorBiometricNotEnrolled": "No biometric data enrolled. Please set up fingerprint or face recognition in device settings.",
+  "errorBiometricFailed": "Biometric authentication failed. Please try again.",
+  "errorBiometricLocked": "Biometric authentication is locked. Try again later or use your password.",
+  "errorSessionExpired": "Your session has expired. Please log in again.",
+  "errorAccountDisabled": "Your account has been disabled. Please contact support.",
+  "errorRateLimitedWithCountdown": "Too many attempts. Please try again in {seconds, plural, one{1 second} other{{seconds} seconds}}.",
+  "@errorRateLimitedWithCountdown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "errorOfflineLoginRequired": "You need to be online to log in. Please check your connection.",
+  "errorOfflineSessionExpired": "Your cached session has expired. Please connect to the internet to log in.",
+  "rootDetectionDialogTitle": "Rooted/Jailbroken Device Detected",
+  "rootDetectionDialogDescription": "Your device appears to be rooted (Android) or jailbroken (iOS). While CyberVPN will continue to work, please note that using a rooted/jailbroken device may expose you to security risks.\n\nWe understand that users in censored regions often rely on rooted devices for additional privacy tools. CyberVPN will not block your access, but we recommend being cautious about the apps you install and the permissions you grant.",
+  "rootDetectionDialogDismiss": "I Understand",
+  "loginEmailLabel": "Email",
+  "loginEmailHint": "Enter your email",
+  "loginPasswordLabel": "Password",
+  "loginPasswordHint": "Enter your password",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginRememberMe": "Remember me",
+  "loginButton": "Login",
+  "loginContinueWithTelegram": "Continue with Telegram",
+  "registerTitle": "Create Account",
+  "registerSubtitle": "Join CyberVPN for a secure experience",
+  "registerPasswordHint": "Create a password",
+  "registerConfirmPasswordLabel": "Confirm Password",
+  "registerConfirmPasswordHint": "Re-enter your password",
+  "registerConfirmPasswordError": "Please confirm your password",
+  "registerPasswordMismatch": "Passwords do not match",
+  "registerReferralCodeLabel": "Referral Code (optional)",
+  "registerReferralCodeHint": "Enter referral code",
+  "registerReferralApplied": "Applied!",
+  "registerReferralFromLink": "Referral code applied from link",
+  "registerAgreePrefix": "I agree to the ",
+  "registerTermsAndConditions": "Terms & Conditions",
+  "registerAndSeparator": " and ",
+  "registerAcceptTermsError": "Please accept the Terms & Conditions",
+  "registerButton": "Register",
+  "registerOrSeparator": "OR",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerLoginLink": "Login",
+  "telegramNotInstalledTitle": "Telegram Not Installed",
+  "telegramNotInstalledMessage": "The Telegram app is not installed on your device. You can install it from the app store or use the web version.",
+  "telegramUseWeb": "Use Web",
+  "telegramInstall": "Install",
+  "appLockTitle": "CyberVPN Locked",
+  "appLockSubtitle": "Authenticate to continue",
+  "appLockUnlockButton": "Unlock",
+  "appLockUnlockWithBiometric": "Unlock with {biometricLabel}",
+  "@appLockUnlockWithBiometric": {
+    "placeholders": {
+      "biometricLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "appLockTooManyAttempts": "Too many failed attempts",
+  "appLockUsePin": "Use device PIN",
+  "appLockTryAgain": "Try {biometricLabel} again",
+  "@appLockTryAgain": {
+    "placeholders": {
+      "biometricLabel": {
+        "type": "String"
+      }
+    }
+  },
+  "appLockLocalizedReason": "Unlock CyberVPN with your device PIN",
+  "biometricSettingsTitle": "Security",
+  "biometricAuthSection": "Biometric Authentication",
+  "biometricLoginLabel": "Biometric Login",
+  "biometricLoginDescription": "Use biometrics to sign in quickly",
+  "biometricLoginEnabled": "Biometric login enabled",
+  "biometricLoginDisabled": "Biometric login disabled",
+  "biometricVerificationRequired": "Biometric verification required",
+  "biometricEnterCredentialsTitle": "Enter credentials",
+  "biometricEnterCredentialsMessage": "Enter your login credentials to enable quick sign-in with biometrics.",
+  "biometricSave": "Save",
+  "biometricAppLockLabel": "App Lock",
+  "biometricAppLockDescription": "Require biometrics when returning to app (30+ seconds)",
+  "biometricAppLockEnabled": "App lock enabled",
+  "biometricAppLockDisabled": "App lock disabled",
+  "biometricUnavailableTitle": "Biometrics Unavailable",
+  "biometricUnavailableMessage": "Your device does not support biometric authentication, or no biometrics are enrolled.",
+  "biometricLoadingState": "Loading...",
+  "biometricUnavailableState": "Unavailable",
+  "biometricLabelFingerprint": "Fingerprint",
+  "biometricLabelGeneric": "Biometrics",
+  "biometricAvailableOnDevice": "Available on this device",
+  "biometricSettingsChanged": "Your biometric settings have changed. Please sign in with your password and re-enable biometric login in settings.",
+  "biometricPasswordChanged": "Your password has changed. Please sign in with your password.",
+  "settingsNotificationPrefsTitle": "Notification Preferences",
+  "settingsNotificationConnectionLabel": "Connection Status",
+  "settingsNotificationConnectionDescription": "Get notified when VPN connects or disconnects",
+  "settingsNotificationServerLabel": "Server Changes",
+  "settingsNotificationServerDescription": "Get notified when server is switched",
+  "settingsNotificationSubscriptionLabel": "Subscription Alerts",
+  "settingsNotificationSubscriptionDescription": "Get notified about subscription expiry",
+  "settingsNotificationSecurityLabel": "Security Alerts",
+  "settingsNotificationSecurityDescription": "Get notified about security events",
+  "settingsNotificationPromotionLabel": "Promotions",
+  "settingsNotificationPromotionDescription": "Receive promotional notifications",
+  "settingsNotificationUpdateLabel": "System Updates",
+  "settingsNotificationUpdateDescription": "Get notified about app updates",
+  "settingsVpnProtocolWireGuard": "WireGuard",
+  "settingsVpnProtocolOpenVpn": "OpenVPN",
+  "settingsVpnProtocolIkev2": "IKEv2",
+  "settingsVpnProtocolAuto": "Auto",
+  "settingsThemeDark": "Dark",
+  "settingsThemeLight": "Light",
+  "settingsThemeSystem": "System",
+  "settingsLanguageSearchHint": "Search languages",
+  "settingsVersionInfo": "Version Info",
+  "settingsPrivacyAndTerms": "Privacy & Terms",
+  "settingsContactSupport": "Contact Support",
+  "settingsAppVersion": "App version {version}",
+  "@settingsAppVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsBuildNumber": "Build {build}",
+  "@settingsBuildNumber": {
+    "placeholders": {
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsRateApp": "Rate CyberVPN",
+  "settingsShareApp": "Share with Friends",
+  "settingsDeleteData": "Delete All Data",
+  "profileSaveButton": "Save",
+  "profileSaveSuccess": "Profile updated successfully",
+  "profileAvatarChange": "Change Avatar",
+  "profileAvatarRemove": "Remove Avatar",
+  "profilePasswordUpdated": "Password updated successfully",
+  "profilePasswordRequirements": "Password must be at least 8 characters with letters and numbers",
+  "profileAccountInfo": "Account Information",
+  "profileSecuritySection": "Security",
+  "profileDangerZone": "Danger Zone",
+  "profileDeleteConfirmInput": "Type DELETE to confirm",
+  "profileDeleteInProgress": "Deleting account...",
+  "profileSessionInfo": "Session Information",
+  "profileLastLogin": "Last login: {date}",
+  "@profileLastLogin": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileCreatedAt": "Account created: {date}",
+  "@profileCreatedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "configImportManualEntry": "Manual Entry",
+  "configImportManualDescription": "Enter VPN configuration details manually.",
+  "configImportServerAddress": "Server Address",
+  "configImportServerPort": "Port",
+  "configImportProtocol": "Protocol",
+  "configImportPrivateKey": "Private Key",
+  "configImportPublicKey": "Public Key",
+  "configImportConfigName": "Configuration Name",
+  "configImportConfigNameHint": "Enter a name for this configuration",
+  "configImportSaving": "Saving configuration...",
+  "configImportDeleteConfirm": "Are you sure you want to delete this configuration?",
+  "configImportDeleteSuccess": "Configuration deleted.",
+  "configImportNoConfigs": "No imported configurations yet.",
+  "configImportManageTitle": "Manage Configurations",
+  "configImportActiveLabel": "Active",
+  "configImportConnectButton": "Connect",
+  "configImportEditButton": "Edit",
+  "configImportDeleteButton": "Delete",
+  "subscriptionTitle": "Subscription Plans",
+  "subscriptionCurrentPlan": "Current Plan",
+  "subscriptionFreePlan": "Free",
+  "subscriptionTrialPlan": "Trial",
+  "subscriptionBasicPlan": "Basic",
+  "subscriptionPremiumPlan": "Premium",
+  "subscriptionMonthly": "Monthly",
+  "subscriptionYearly": "Yearly",
+  "subscriptionLifetime": "Lifetime",
+  "subscriptionPricePerMonth": "{price}/month",
+  "@subscriptionPricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionPricePerYear": "{price}/year",
+  "@subscriptionPricePerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionSavePercent": "Save {percent}%",
+  "@subscriptionSavePercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSubscribeButton": "Subscribe",
+  "subscriptionRestorePurchases": "Restore Purchases",
+  "subscriptionRestoreSuccess": "Purchases restored successfully",
+  "subscriptionRestoreNotFound": "No previous purchases found",
+  "subscriptionCancelButton": "Cancel Subscription",
+  "subscriptionCancelConfirm": "Are you sure you want to cancel your subscription?",
+  "subscriptionCancelSuccess": "Subscription cancelled",
+  "subscriptionRenewButton": "Renew Subscription",
+  "subscriptionExpiresOn": "Expires on {date}",
+  "@subscriptionExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionAutoRenew": "Auto-renew enabled",
+  "subscriptionFeatureUnlimitedData": "Unlimited data",
+  "subscriptionFeatureAllServers": "Access to all servers",
+  "subscriptionFeatureNoAds": "No ads",
+  "subscriptionFeaturePriority": "Priority support",
+  "subscriptionFeatureDevices": "Up to {count} devices",
+  "@subscriptionFeatureDevices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionTrafficUsed": "{used} of {total} used",
+  "@subscriptionTrafficUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradePrompt": "Upgrade for more features",
+  "subscriptionProcessing": "Processing payment...",
+  "subscriptionPaymentMethod": "Payment Method",
+  "serverListTitle": "Server List",
+  "serverListSearchHint": "Search servers...",
+  "serverListFilterAll": "All",
+  "serverListFilterFavorites": "Favorites",
+  "serverListFilterRecommended": "Recommended",
+  "serverListNoResults": "No servers found",
+  "serverListPing": "{ping} ms",
+  "@serverListPing": {
+    "placeholders": {
+      "ping": {
+        "type": "int"
+      }
+    }
+  },
+  "serverListLoad": "{load}% load",
+  "@serverListLoad": {
+    "placeholders": {
+      "load": {
+        "type": "int"
+      }
+    }
+  },
+  "serverListAddFavorite": "Add to favorites",
+  "serverListRemoveFavorite": "Remove from favorites",
+  "serverListConnecting": "Connecting to {server}...",
+  "@serverListConnecting": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "serverListSortBy": "Sort by",
+  "serverListSortName": "Name",
+  "serverListSortPing": "Ping",
+  "serverListSortLoad": "Load",
+  "notificationSettingsTitle": "Notification Settings",
+  "notificationEnablePush": "Enable Push Notifications",
+  "notificationEnablePushDescription": "Receive important updates about your VPN connection",
+  "notificationSoundLabel": "Notification Sound",
+  "notificationVibrationLabel": "Vibration",
+  "notificationQuietHoursLabel": "Quiet Hours",
+  "notificationQuietHoursDescription": "Mute notifications during specified hours",
+  "diagnosticsNetworkCheck": "Network Check",
+  "diagnosticsDnsCheck": "DNS Resolution",
+  "diagnosticsLatencyCheck": "Latency Check",
+  "diagnosticsFirewallCheck": "Firewall Check",
+  "diagnosticsStatusPassed": "Passed",
+  "diagnosticsStatusFailed": "Failed",
+  "diagnosticsStatusRunning": "Running...",
+  "diagnosticsRunAll": "Run All Checks",
+  "diagnosticsShareResults": "Share Results",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+  "commonEdit": "Edit",
+  "commonClose": "Close",
+  "commonBack": "Back",
+  "commonNext": "Next",
+  "commonDone": "Done",
+  "commonSearch": "Search",
+  "commonLoading": "Loading...",
+  "commonNoData": "No data available",
+  "commonRefresh": "Refresh",
+  "commonCopy": "Copy",
+  "commonCopied": "Copied to clipboard",
+  "commonShare": "Share",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "commonOk": "OK",
+  "commonContinue": "Continue",
+  "commonSkip": "Skip",
+  "commonLearnMore": "Learn More",
+  "errorNoConnection": "No internet connection. Please check your network.",
+  "errorTimeout": "Request timed out. Please try again.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorLoadingData": "Failed to load data.",
+  "errorSavingData": "Failed to save data.",
+  "errorSessionInvalid": "Your session is invalid. Please log in again.",
+  "a11yShowPassword": "Show password",
+  "a11yHidePassword": "Hide password",
+  "a11yServerPing": "Server ping: {ping} milliseconds",
+  "@a11yServerPing": {
+    "placeholders": {
+      "ping": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yServerLoad": "Server load: {load} percent",
+  "@a11yServerLoad": {
+    "placeholders": {
+      "load": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yFavoriteServer": "Favorite server",
+  "a11yRemoveFavorite": "Remove from favorites",
+  "a11ySubscriptionActive": "Active subscription",
+  "a11ySubscriptionExpired": "Expired subscription",
+  "a11yBiometricLogin": "Biometric login toggle",
+  "a11yAppLockToggle": "App lock toggle",
+  "a11yProtocolSelect": "Select VPN protocol",
+  "a11yThemeSelect": "Select theme mode",
+  "a11yLanguageSelect": "Select language",
+  "a11yNotificationToggle": "Toggle notification for {type}",
+  "@a11yNotificationToggle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySpeedTestProgress": "Speed test in progress",
+  "a11yDiagnosticsProgress": "Diagnostics in progress",
+  "a11yTrafficUsage": "Traffic usage: {percent} percent",
+  "@a11yTrafficUsage": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yConnectionDuration": "Connected for {duration}",
+  "@a11yConnectionDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "quickSetupTitle": "Quick Setup",
+  "quickSetupWelcome": "Let's get you connected",
+  "quickSetupSelectServer": "Select a server to get started",
+  "quickSetupRecommended": "Recommended for you",
+  "quickSetupConnectButton": "Connect Now",
+  "quickSetupSkip": "Skip for now",
+  "quickSetupComplete": "You're all set!",
+  "splashLoading": "Loading...",
+  "splashInitializing": "Initializing..."
 }
