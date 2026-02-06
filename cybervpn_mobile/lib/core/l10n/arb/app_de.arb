@@ -653,6 +653,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 Tag verbleibend} other{{count} Tage verbleibend}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Läuft bald ab",
+  "subscriptionRenewNow": "Jetzt erneuern",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

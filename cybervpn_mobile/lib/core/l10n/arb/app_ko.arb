@@ -653,6 +653,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1일 남음} other{{count}일 남음}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "곧 만료",
+  "subscriptionRenewNow": "지금 갱신",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

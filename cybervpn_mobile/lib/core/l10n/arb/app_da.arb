@@ -652,6 +652,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 dag tilbage} other{{count} dage tilbage}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Udløber snart",
+  "subscriptionRenewNow": "Forny nu",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

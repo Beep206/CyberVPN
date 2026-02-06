@@ -652,6 +652,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 zi rămasă} few{{count} zile rămase} other{{count} de zile rămase}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Expiră curând",
+  "subscriptionRenewNow": "Reînnoiește acum",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

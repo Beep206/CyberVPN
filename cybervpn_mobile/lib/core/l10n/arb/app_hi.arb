@@ -652,6 +652,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 दिन शेष} other{{count} दिन शेष}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "जल्द समाप्त हो रहा है",
+  "subscriptionRenewNow": "अभी नवीनीकरण करें",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

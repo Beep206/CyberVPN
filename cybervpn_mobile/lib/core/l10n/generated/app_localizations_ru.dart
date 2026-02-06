@@ -1600,17 +1600,19 @@ class AppLocalizationsRu extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
+      other: 'Осталось $count дней',
+      many: 'Осталось $count дней',
+      few: 'Осталось $count дня',
+      one: 'Остался 1 день',
     );
     return '$_temp0';
   }
 
   @override
-  String get subscriptionExpiringSoon => 'Expiring soon';
+  String get subscriptionExpiringSoon => 'Скоро истечёт';
 
   @override
-  String get subscriptionRenewNow => 'Renew Now';
+  String get subscriptionRenewNow => 'Продлить сейчас';
 
   @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';

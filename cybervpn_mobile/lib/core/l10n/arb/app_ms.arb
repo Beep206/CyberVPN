@@ -652,6 +652,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 hari lagi} other{{count} hari lagi}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Akan tamat tempoh",
+  "subscriptionRenewNow": "Perbaharui sekarang",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

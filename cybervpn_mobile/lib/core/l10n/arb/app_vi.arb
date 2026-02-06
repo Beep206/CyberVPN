@@ -652,6 +652,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{Còn 1 ngày} other{Còn {count} ngày}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Sắp hết hạn",
+  "subscriptionRenewNow": "Gia hạn ngay",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

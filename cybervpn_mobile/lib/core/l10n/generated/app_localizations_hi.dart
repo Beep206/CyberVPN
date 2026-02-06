@@ -1577,17 +1577,17 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
+      other: '$count दिन शेष',
+      one: '1 दिन शेष',
     );
     return '$_temp0';
   }
 
   @override
-  String get subscriptionExpiringSoon => 'Expiring soon';
+  String get subscriptionExpiringSoon => 'जल्द समाप्त हो रहा है';
 
   @override
-  String get subscriptionRenewNow => 'Renew Now';
+  String get subscriptionRenewNow => 'अभी नवीनीकरण करें';
 
   @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';
