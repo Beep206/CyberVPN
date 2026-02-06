@@ -2859,6 +2859,24 @@ abstract class AppLocalizations {
   /// **'Expires on {date}'**
   String subscriptionExpiresOn(String date);
 
+  /// No description provided for @subscriptionDaysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day remaining} other{{count} days remaining}}'**
+  String subscriptionDaysRemaining(int count);
+
+  /// No description provided for @subscriptionExpiringSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring soon'**
+  String get subscriptionExpiringSoon;
+
+  /// No description provided for @subscriptionRenewNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew Now'**
+  String get subscriptionRenewNow;
+
   /// No description provided for @subscriptionAutoRenew.
   ///
   /// In en, this message translates to:

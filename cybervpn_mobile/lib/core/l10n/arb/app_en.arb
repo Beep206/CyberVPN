@@ -710,6 +710,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{1 day remaining} other{{count} days remaining}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "Expiring soon",
+  "subscriptionRenewNow": "Renew Now",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",
