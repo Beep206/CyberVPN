@@ -1,9 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Centralized environment configuration for CyberVPN.
 ///
 /// Reads values from compile-time `--dart-define` flags first, then falls
 /// back to a `.env` file loaded via `flutter_dotenv` for local development.
+///
+/// **Security**: The `.env` file is **never** bundled as a Flutter asset.
+/// In release builds, all configuration must come from `--dart-define` flags.
+/// The `.env` fallback is only active in debug/profile builds.
 ///
 /// ### Compile-time configuration (recommended for CI / release builds)
 ///
@@ -90,10 +95,19 @@ class EnvironmentConfig {
 
   /// Initializes `flutter_dotenv` by loading the `.env` file.
   ///
-  /// Call once in `main()` before `runApp()`. If the `.env` file does not
-  /// exist the call is a no-op (errors are silently caught so the app can
-  /// still start with compile-time defaults).
+  /// Call once in `main()` before `runApp()`. In **release** builds this is
+  /// a no-op: the `.env` file is not bundled as an asset and all configuration
+  /// must come from `--dart-define`. In debug/profile builds the `.env` file
+  /// is loaded from disk as a convenience for local development.
   static Future<void> init() async {
+    // SECURITY: Never load .env in release builds. All config must come from
+    // --dart-define flags which are compiled into the binary and do not expose
+    // a readable file in the APK/IPA.
+    if (kReleaseMode) {
+      _dotenvLoaded = false;
+      return;
+    }
+
     try {
       await dotenv.load(fileName: '.env');
       _dotenvLoaded = true;

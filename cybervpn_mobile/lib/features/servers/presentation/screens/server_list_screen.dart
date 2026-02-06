@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -100,10 +101,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   }
 
   void _onServerTap(ServerEntity server) {
-    unawaited(Navigator.of(context).pushNamed(
-      '/server-detail',
-      arguments: server.id,
-    ));
+    unawaited(context.push('/servers/${server.id}'));
   }
 
   void _onFastestTap() {

@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Mixin that provides screenshot prevention functionality for sensitive screens.
 ///
@@ -43,18 +44,23 @@ mixin ScreenProtection<T extends StatefulWidget> on State<T> {
       if (Platform.isAndroid || Platform.isIOS) {
         await _channel.invokeMethod('enableProtection');
         _isProtectionEnabled = true;
-        if (kDebugMode) {
-          print('[ScreenProtection] Protection enabled');
-        }
+        AppLogger.debug(
+          'Screen protection enabled',
+          category: 'security.screen_protection',
+        );
       }
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('[ScreenProtection] Failed to enable protection: ${e.message}');
-      }
+      AppLogger.warning(
+        'Failed to enable screen protection',
+        error: e,
+        category: 'security.screen_protection',
+      );
     } catch (e) {
-      if (kDebugMode) {
-        print('[ScreenProtection] Unexpected error enabling protection: $e');
-      }
+      AppLogger.warning(
+        'Unexpected error enabling screen protection',
+        error: e,
+        category: 'security.screen_protection',
+      );
     }
   }
 
@@ -72,18 +78,23 @@ mixin ScreenProtection<T extends StatefulWidget> on State<T> {
       if (Platform.isAndroid || Platform.isIOS) {
         await _channel.invokeMethod('disableProtection');
         _isProtectionEnabled = false;
-        if (kDebugMode) {
-          print('[ScreenProtection] Protection disabled');
-        }
+        AppLogger.debug(
+          'Screen protection disabled',
+          category: 'security.screen_protection',
+        );
       }
     } on PlatformException catch (e) {
-      if (kDebugMode) {
-        print('[ScreenProtection] Failed to disable protection: ${e.message}');
-      }
+      AppLogger.warning(
+        'Failed to disable screen protection',
+        error: e,
+        category: 'security.screen_protection',
+      );
     } catch (e) {
-      if (kDebugMode) {
-        print('[ScreenProtection] Unexpected error disabling protection: $e');
-      }
+      AppLogger.warning(
+        'Unexpected error disabling screen protection',
+        error: e,
+        category: 'security.screen_protection',
+      );
     }
   }
 

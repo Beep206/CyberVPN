@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:meta/meta.dart';
 
 import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
@@ -182,6 +182,11 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   StreamSubscription<bool>? _networkSubscription;
   StreamSubscription<ForceDisconnect>? _webSocketSubscription;
 
+  /// Observes app lifecycle events to reconcile VPN state when the app
+  /// resumes from background. Without this, the UI can show "Connected"
+  /// when the OS has killed the VPN tunnel while the app was paused.
+  _VpnLifecycleObserver? _lifecycleObserver;
+
   /// Flag to prevent duplicate auto-connect attempts during initialization.
   bool _autoConnectAttempted = false;
 
@@ -198,6 +203,10 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
 
     // Clean up subscriptions when the provider is disposed.
     ref.onDispose(_dispose);
+
+    // Observe app lifecycle events (pause/resume) to reconcile VPN state.
+    _lifecycleObserver = _VpnLifecycleObserver(onResumed: _reconcileStateOnResume);
+    WidgetsBinding.instance.addObserver(_lifecycleObserver!);
 
     // Listen to the repository's connection-state stream for external changes.
     _stateSubscription = _repository.connectionStateStream.listen(
@@ -832,11 +841,92 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     }
   }
 
+  /// Reconciles the UI VPN state with the actual engine state when the
+  /// app resumes from background.
+  ///
+  /// iOS aggressively kills background VPN tunnels, so the UI may show
+  /// "Connected" when the tunnel is dead. This check catches that mismatch
+  /// and transitions the state accordingly.
+  Future<void> _reconcileStateOnResume() async {
+    final current = state.value;
+    if (current is! VpnConnected) return; // only reconcile when UI says connected
+
+    try {
+      final connectedResult = await _repository.isConnected;
+      final isActuallyConnected = switch (connectedResult) {
+        Success(:final data) => data,
+        Failure() => false,
+      };
+
+      if (!isActuallyConnected) {
+        AppLogger.warning(
+          'VPN state mismatch on resume: UI shows connected but engine is disconnected',
+          category: 'vpn.lifecycle',
+        );
+        // Attempt auto-reconnect if the setting is on, otherwise transition
+        // to disconnected.
+        final vpnSettings = ref.read(vpnSettingsProvider);
+        if (vpnSettings.autoConnectOnLaunch && current.server.isAvailable) {
+          state = AsyncData(
+            VpnReconnecting(attempt: 1, server: current.server),
+          );
+          try {
+            await connect(current.server);
+          } catch (e) {
+            AppLogger.error(
+              'Auto-reconnect on resume failed',
+              error: e,
+              category: 'vpn.lifecycle',
+            );
+            state = const AsyncData(VpnDisconnected());
+          }
+        } else {
+          state = const AsyncData(VpnDisconnected());
+        }
+      } else {
+        AppLogger.debug(
+          'VPN state reconciliation on resume: still connected',
+          category: 'vpn.lifecycle',
+        );
+      }
+    } catch (e, st) {
+      AppLogger.error(
+        'Failed to reconcile VPN state on resume',
+        error: e,
+        stackTrace: st,
+        category: 'vpn.lifecycle',
+      );
+    }
+  }
+
   void _dispose() {
+    if (_lifecycleObserver != null) {
+      WidgetsBinding.instance.removeObserver(_lifecycleObserver!);
+      _lifecycleObserver = null;
+    }
     unawaited(_stateSubscription?.cancel());
     unawaited(_networkSubscription?.cancel());
     unawaited(_webSocketSubscription?.cancel());
     _autoReconnect.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle observer
+// ---------------------------------------------------------------------------
+
+/// Lightweight [WidgetsBindingObserver] that triggers a callback when the
+/// app transitions from background to foreground (resumed).
+class _VpnLifecycleObserver extends WidgetsBindingObserver {
+  final Future<void> Function() onResumed;
+
+  _VpnLifecycleObserver({required this.onResumed});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(onResumed());
+    }
   }
 }
 
