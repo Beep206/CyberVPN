@@ -653,6 +653,14 @@
       }
     }
   },
+  "subscriptionDaysRemaining": "{count, plural, =1{剩余1天} other{剩余{count}天}}",
+  "@subscriptionDaysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "subscriptionExpiringSoon": "即将到期",
+  "subscriptionRenewNow": "立即续费",
   "subscriptionAutoRenew": "Auto-renew enabled",
   "subscriptionFeatureUnlimitedData": "Unlimited data",
   "subscriptionFeatureAllServers": "Access to all servers",

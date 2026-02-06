@@ -1579,17 +1579,18 @@ class AppLocalizationsCs extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
+      other: 'Zbývá $count dní',
+      few: 'Zbývají $count dny',
+      one: 'Zbývá 1 den',
     );
     return '$_temp0';
   }
 
   @override
-  String get subscriptionExpiringSoon => 'Expiring soon';
+  String get subscriptionExpiringSoon => 'Brzy vyprší';
 
   @override
-  String get subscriptionRenewNow => 'Renew Now';
+  String get subscriptionRenewNow => 'Obnovit nyní';
 
   @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';

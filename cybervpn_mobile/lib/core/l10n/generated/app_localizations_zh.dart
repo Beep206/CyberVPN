@@ -1570,17 +1570,17 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count days remaining',
-      one: '1 day remaining',
+      other: '剩余$count天',
+      one: '剩余1天',
     );
     return '$_temp0';
   }
 
   @override
-  String get subscriptionExpiringSoon => 'Expiring soon';
+  String get subscriptionExpiringSoon => '即将到期';
 
   @override
-  String get subscriptionRenewNow => 'Renew Now';
+  String get subscriptionRenewNow => '立即续费';
 
   @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';
@@ -5438,6 +5438,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String subscriptionExpiresOn(String date) {
     return 'Expires on $date';
   }
+
+  @override
+  String subscriptionDaysRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '剩餘$count天',
+      one: '剩餘1天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionExpiringSoon => '即將到期';
+
+  @override
+  String get subscriptionRenewNow => '立即續費';
 
   @override
   String get subscriptionAutoRenew => 'Auto-renew enabled';
