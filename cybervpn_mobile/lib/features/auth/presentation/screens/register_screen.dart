@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
@@ -72,8 +73,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       // Show a brief confirmation
       if (mounted && _isReferralCodeValid) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Referral code applied from link'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).registerReferralFromLink),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -137,40 +138,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     unawaited(showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Telegram Not Installed'),
-        content: const Text(
-          'The Telegram app is not installed on your device. '
-          'You can install it from the app store or use the web version.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              notifier.cancel();
-            },
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.telegramNotInstalledTitle),
+          content: Text(l10n.telegramNotInstalledMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                notifier.cancel();
+              },
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              unawaited(notifier.useWebFallback());
-            },
-            child: const Text('Use Web'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              unawaited(notifier.openAppStore());
-              notifier.cancel();
-            },
-            child: const Text('Install'),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(notifier.useWebFallback());
+              },
+              child: Text(l10n.telegramUseWeb),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(notifier.openAppStore());
+                notifier.cancel();
+              },
+              child: Text(l10n.telegramInstall),
+            ),
+          ],
+        );
+      },
     ));
   }
 
@@ -182,7 +183,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please accept the Terms & Conditions'),
+          content: Text(AppLocalizations.of(context).registerAcceptTermsError),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -608,7 +609,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       child: CircularProgressIndicator(
                                           strokeWidth: 2.5),
                                     )
-                                  : const ExcludeSemantics(child: Text('Register')),
+                                  : ExcludeSemantics(child: Text(AppLocalizations.of(context).registerButton)),
                             ),
                           ),
                         ),

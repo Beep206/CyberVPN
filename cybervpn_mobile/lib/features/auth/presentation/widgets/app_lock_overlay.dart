@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 
@@ -72,6 +73,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final service = ref.watch(appLockServiceProvider);
     final failedAttempts = service.failedAttempts;
     final showPinFallback = service.shouldShowPasswordFallback;
@@ -169,7 +171,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                                 )
                               : Icon(biometricIcon, size: 24, semanticLabel: ''),
                           label: ExcludeSemantics(
-                              child: Text('Unlock with $biometricLabel')),
+                              child: Text(l10n.appLockUnlockWithBiometric(biometricLabel))),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(double.infinity, 56),
                             shape: RoundedRectangleBorder(
@@ -200,7 +202,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                     // PIN/passcode fallback (shown after max attempts)
                     if (showPinFallback) ...[
                       Text(
-                        'Too many failed attempts',
+                        l10n.appLockTooManyAttempts,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -228,8 +230,8 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                                 )
                               : const Icon(Icons.pin,
                                   size: 24, semanticLabel: ''),
-                          label: const ExcludeSemantics(
-                              child: Text('Use device PIN')),
+                          label: ExcludeSemantics(
+                              child: Text(l10n.appLockUsePin)),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(double.infinity, 56),
                             shape: RoundedRectangleBorder(
@@ -251,7 +253,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
                             setState(() {}); // Trigger rebuild
                           },
                           child: ExcludeSemantics(
-                              child: Text('Try $biometricLabel again')),
+                              child: Text(l10n.appLockTryAgain(biometricLabel))),
                         ),
                       ),
                     ],

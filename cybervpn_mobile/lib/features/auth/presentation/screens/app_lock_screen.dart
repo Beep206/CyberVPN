@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 
 class AppLockScreen extends StatefulWidget {
@@ -37,6 +38,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Center(
         child: Column(
@@ -44,14 +46,14 @@ class _AppLockScreenState extends State<AppLockScreen> {
           children: [
             Icon(Icons.lock_outline, size: 80, color: theme.colorScheme.primary),
             const SizedBox(height: 24),
-            Text('CyberVPN Locked', style: theme.textTheme.headlineMedium),
+            Text(l10n.appLockTitle, style: theme.textTheme.headlineMedium),
             const SizedBox(height: 8),
-            Text('Authenticate to continue', style: theme.textTheme.bodyLarge),
+            Text(l10n.appLockSubtitle, style: theme.textTheme.bodyLarge),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: _isAuthenticating ? null : _authenticate,
               icon: const Icon(Icons.fingerprint),
-              label: const Text('Unlock'),
+              label: Text(l10n.appLockUnlockButton),
             ),
           ],
         ),
