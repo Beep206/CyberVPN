@@ -30,6 +30,30 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
+// ---------------------------------------------------------------------------
+// Extract dart-define values from local.properties
+//
+// Flutter stores --dart-define values in local.properties with the format:
+// dart.define.KEY=VALUE
+//
+// We extract CERT_FINGERPRINTS to make it available in BuildConfig for
+// native Android code (e.g., OkHttp SSL pinning configuration).
+// ---------------------------------------------------------------------------
+
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties()
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+/**
+ * Extracts a dart-define value from local.properties.
+ * Returns the value or defaultValue if not found.
+ */
+fun getDartDefine(key: String, defaultValue: String = ""): String {
+    return localProperties.getProperty("dart.define.$key", defaultValue)
+}
+
 android {
     namespace = "com.cybervpn.cybervpn_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -86,6 +110,8 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000\"")
             buildConfigField("String", "API_ENV", "\"dev\"")
             buildConfigField("String", "SENTRY_DSN", "\"\"")
+            // Dev: Empty cert fingerprints by default (pinning disabled for development)
+            buildConfigField("String", "CERT_FINGERPRINTS", "\"${getDartDefine("CERT_FINGERPRINTS", "")}\"")
             manifestPlaceholders["appNameSuffix"] = " (Dev)"
         }
 
@@ -96,6 +122,8 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"https://staging.cybervpn.com\"")
             buildConfigField("String", "API_ENV", "\"staging\"")
             buildConfigField("String", "SENTRY_DSN", "\"\"")
+            // Staging: Require explicit cert fingerprints via --dart-define
+            buildConfigField("String", "CERT_FINGERPRINTS", "\"${getDartDefine("CERT_FINGERPRINTS", "")}\"")
             manifestPlaceholders["appNameSuffix"] = " (Staging)"
         }
 
@@ -104,6 +132,8 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"https://api.cybervpn.com\"")
             buildConfigField("String", "API_ENV", "\"prod\"")
             buildConfigField("String", "SENTRY_DSN", "\"\"")
+            // Prod: Require explicit cert fingerprints via --dart-define
+            buildConfigField("String", "CERT_FINGERPRINTS", "\"${getDartDefine("CERT_FINGERPRINTS", "")}\"")
             manifestPlaceholders["appNameSuffix"] = ""
         }
     }
