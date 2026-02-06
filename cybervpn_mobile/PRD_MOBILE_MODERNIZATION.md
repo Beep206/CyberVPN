@@ -1,6 +1,6 @@
 # PRD: CyberVPN Mobile App — Modernization & Stability Fix
 
-**Version**: 2.0
+**Version**: 2.1
 **Date**: 2026-02-06
 **Author**: Engineering Team (mobile-lead + senior-flutter + flutter-code-reviewer Analysis)
 **Status**: Draft — Pending Review
@@ -14,7 +14,7 @@ CyberVPN Mobile (Flutter) is a full-featured VPN client with **332 Dart files** 
 
 `flutter analyze` reports **2 compile errors** in production code, **10+ compile errors** in test code, **27 warnings**, and **60+ info-level issues**. Test suite cannot execute at all.
 
-This PRD v2.0 documents **30 identified issues** (8 critical, 7 high, 6 medium, 9 low), a precise root cause analysis of the splash screen hang, and a 4-phase remediation plan organized by the senior-flutter skill's production-readiness criteria.
+This PRD v2.1 documents **35 identified issues** (8 critical, 9 high, 7 medium, 11 low), a precise root cause analysis of the splash screen hang, and a 4-phase remediation plan organized by the senior-flutter skill's production-readiness criteria.
 
 ---
 
@@ -225,6 +225,16 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 **Problem**: `AndroidOptions(encryptedSharedPreferences: true)` — deprecated. The deprecation notice states: "The Jetpack Security library is deprecated by Google. Your data will be automatically migrated to custom ciphers on first access. Remove this parameter."
 **Impact**: Will stop compiling in flutter_secure_storage v11. The deprecated migration path may cause slow first-access on app update (contributing to C1 splash screen hang).
 
+#### H8: Certificate pinning effectively disabled by default
+**Files**: `lib/core/config/environment_config.dart:64-67`, `lib/core/security/certificate_pinner.dart:57-69`
+**Problem**: `CERT_FINGERPRINTS` dart-define defaults to empty string, meaning certificate pinning is disabled by default. In `kDebugMode` validation is bypassed entirely. The build.gradle.kts product flavors do not set `CERT_FINGERPRINTS`, and there is no documentation of required fingerprints. Production builds are only pinned if explicitly passing `--dart-define=CERT_FINGERPRINTS=...` during build.
+**Impact**: MITM attacks possible in production if fingerprints not configured during build. False sense of security from the `CertificatePinner` class existing.
+
+#### H9: CertificatePinner logs fingerprints in debug output
+**File**: `lib/core/security/certificate_pinner.dart:73-82`
+**Problem**: Certificate fingerprints, subjects, and issuers are logged at debug level. On rooted devices with debug log capture, this provides attackers with the exact certificate fingerprints the app expects, making it easier to prepare MITM attacks.
+**Impact**: Reduces effectiveness of certificate pinning when combined with rooted device access.
+
 ### 3.3 MEDIUM — Performance Issues (P2)
 
 #### M1: Eager initialization of all 14 DI objects at startup
@@ -256,6 +266,11 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 **File**: `lib/main.dart:49`
 **Problem**: `options.tracesSampleRate = 1.0` sends 100% of performance traces to Sentry. In production, this adds overhead to every transaction and may exceed Sentry quota.
 **Impact**: Performance overhead + Sentry cost in production.
+
+#### M7: AppLogger ring buffer uses `List.removeAt(0)` — O(n) per eviction
+**File**: `lib/core/utils/app_logger.dart:219`
+**Problem**: The log ring buffer (max 1000 entries) uses `_ringBuffer.removeAt(0)` which is O(n) for a Dart `List`. With high logging volume (VPN status events, network requests), this degrades to quadratic performance. A `Queue` from `dart:collection` would be O(1).
+**Impact**: Subtle performance degradation under high log volume.
 
 ### 3.4 LOW — Code Quality Issues (P3)
 
@@ -289,7 +304,15 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 **Files**: `social_accounts_screen.dart:205-290`, `debug_screen.dart:304-423`, `navigation_flow_test.dart:326-542`
 **Problem**: `context` is used after `await` calls. While `mounted` checks exist, analyzer flags them as "guarded by an unrelated `mounted` check" — the check may be from a different State than the context being used.
 
-#### L9: Android Gradle — 8GB JVM heap + ManualPluginRegistrant maintenance burden
+#### L9: iOS Info.plist missing privacy usage descriptions
+**File**: `ios/Runner/Info.plist`
+**Problem**: The app uses `local_auth` (biometrics) and WiFi SSID detection (untrusted WiFi handler) but the iOS Info.plist is missing:
+- `NSFaceIDUsageDescription` — required for Face ID biometric prompts
+- `NSLocationWhenInUseUsageDescription` — required for WiFi SSID reading on iOS
+Without these, biometric auth fails silently or shows a generic dialog, and WiFi detection crashes or silently returns nil on iOS.
+**Impact**: iOS users cannot use biometric login; untrusted WiFi feature non-functional on iOS.
+
+#### L10: Android Gradle — 8GB JVM heap + ManualPluginRegistrant maintenance burden
 **Files**: `android/gradle.properties:1`, `ManualPluginRegistrant.kt`
 **Problem**: `org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G` is excessive for a Flutter project. `ManualPluginRegistrant.kt` replaces auto-generated plugin registration (excluded via `build.gradle.kts:137`), requiring manual updates when adding/removing plugins.
 
@@ -321,6 +344,7 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 | 2.3 | **Fix provider overrides type safety** | Investigate Riverpod 3.x proper override pattern. If `Override` type is still not exported, create `List<Override> buildTypedOverrides()` with proper typing. | `providers.dart:182`, `main.dart:35` | H1 |
 | 2.4 | **Remove share_plus patch script** | Upgrade share_plus to version that doesn't need patching. Migrate all `Share.share()` → `SharePlus.instance.share()` (7 locations). Remove `scripts/patch_share_plus.py`. | `pubspec.yaml`, `scripts/`, 7 files | H6 |
 | 2.5 | **Evaluate flutter_v2ray_plus alternatives** | Research `flutter_v2ray_client` or forking `flutter_v2ray_plus`. Document findings, API diff, migration effort. | Research task | H5 |
+| 2.6 | **Fix certificate pinning defaults** | Document required certificate fingerprints. Add `CERT_FINGERPRINTS` to each build flavor. Redact fingerprint logging in `CertificatePinner` behind `kDebugMode`. | `environment_config.dart`, `certificate_pinner.dart`, `build.gradle.kts` | H8, H9 |
 
 ### Phase 3: Performance Optimization (P2) — 3-4 days
 
@@ -344,8 +368,10 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 | 4.5 | **Add ErrorBoundary widgets** | Create `FeatureErrorBoundary` widget. Wrap each feature's root screen. Shows graceful fallback + "Report" button. | New widget + 15 feature screens | L4 |
 | 4.6 | **Await VPN config migration** | Convert fire-and-forget `_migrateOldConfigsIfNeeded()` to proper async init with completion flag. Factory pattern: `VpnRepositoryImpl.create()` async factory. | `vpn_repository_impl.dart:38-41` | L2 |
 | 4.7 | **Fix BuildContext async gaps** | Ensure all `mounted` checks reference the correct State. Capture context before async operations. | 12+ locations | L8 |
-| 4.8 | **Reduce Gradle JVM memory** | Lower from 8G → 4G heap, 4G → 2G metaspace. Sufficient for Flutter builds. | `gradle.properties` | L9 |
-| 4.9 | **Add startup integration test** | Write integration test verifying: cold start → interactive screen in < 5s. Add `flutter test integration_test/` to CI. | `integration_test/` | — |
+| 4.8 | **Add iOS Info.plist privacy descriptions** | Add `NSFaceIDUsageDescription` for biometric auth and `NSLocationWhenInUseUsageDescription` for WiFi SSID detection. | `ios/Runner/Info.plist` | L9 |
+| 4.9 | **Reduce Gradle JVM memory** | Lower from 8G → 4G heap, 4G → 2G metaspace. Sufficient for Flutter builds. | `gradle.properties` | L10 |
+| 4.10 | **Fix AppLogger ring buffer performance** | Replace `List.removeAt(0)` with `Queue` from `dart:collection` for O(1) eviction. | `app_logger.dart:219` | M7 |
+| 4.11 | **Add startup integration test** | Write integration test verifying: cold start → interactive screen in < 5s. Add `flutter test integration_test/` to CI. | `integration_test/` | — |
 
 ---
 
@@ -424,7 +450,8 @@ error • The name 'AuthenticationOptions' isn't a class • app_lock_overlay.da
 | `pubspec.yaml` | Dependencies | H5, H6 |
 | `analysis_options.yaml` | Lint config | M5 |
 | `android/app/build.gradle.kts` | Android build | — |
-| `android/gradle.properties` | Gradle JVM config | L9 |
+| `ios/Runner/Info.plist` | iOS config | L9 |
+| `android/gradle.properties` | Gradle JVM config | L10 |
 
 ---
 
@@ -518,6 +545,6 @@ error • undefined_method 'linkOAuth'
 5. **VPN sealed class hierarchy**: Exhaustive pattern matching for all connection states
 6. **Proper error reporting**: Both `FlutterError.onError` and `PlatformDispatcher.onError` configured with Sentry
 7. **SecureStorage cache layer**: In-memory cache with proper invalidation reduces I/O from ~200ms to near-zero
-8. **Certificate pinning**: Implemented via `CertificatePinner` with configurable fingerprints
+8. **Certificate pinning infrastructure**: `CertificatePinner` class exists with configurable fingerprints (but currently disabled by default — see H8)
 9. **Platform-aware update service**: Proper `Platform.isAndroid` guards in `AndroidUpdateService`
 10. **App lock service**: Well-designed with biometric + PIN fallback, failed attempt tracking, and enrollment change detection
