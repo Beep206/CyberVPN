@@ -113,6 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isTelegramAvailable = ref.watch(isTelegramLoginAvailableProvider);
     final isTelegramLoading = ref.watch(isTelegramAuthLoadingProvider);
     final biometricState = ref.watch(biometricLoginProvider);
@@ -213,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'CyberVPN',
+                    l10n.loginTitle,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -221,7 +222,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Secure your connection',
+                    l10n.loginSubtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -243,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OR USE PASSWORD',
+                            l10n.loginOrUsePassword,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -276,7 +277,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OR',
+                            l10n.loginOrSeparator,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -303,18 +304,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        l10n.loginNoAccount,
                         style: theme.textTheme.bodyMedium,
                       ),
                       Semantics(
                         button: true,
-                        label: 'Register',
-                        hint: 'Create a new account',
+                        label: l10n.loginRegisterLink,
+                        hint: l10n.register,
                         child: GestureDetector(
                           onTap: () => context.go('/register'),
                           child: ExcludeSemantics(
                             child: Text(
-                              'Register',
+                              l10n.loginRegisterLink,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w600,
@@ -359,24 +360,25 @@ class _BiometricLoginButton extends ConsumerWidget {
         return Icons.fingerprint;
       },
       loading: () => Icons.fingerprint,
-      error: (_, __) => Icons.fingerprint,
+      error: (_, _) => Icons.fingerprint,
     );
 
+    final l10n = AppLocalizations.of(context);
     final String label = biometricTypes.when(
       data: (types) {
         if (types.contains(BiometricType.face)) {
-          return 'Sign in with Face ID';
+          return l10n.loginBiometricFaceId;
         }
-        return 'Sign in with fingerprint';
+        return l10n.loginBiometricFingerprint;
       },
-      loading: () => 'Sign in with biometrics',
-      error: (_, __) => 'Sign in with biometrics',
+      loading: () => l10n.loginBiometricGeneric,
+      error: (_, _) => l10n.loginBiometricGeneric,
     );
 
     return Semantics(
       button: true,
       enabled: onPressed != null,
-      label: isLoading ? 'Authenticating with biometrics, please wait' : label,
+      label: isLoading ? l10n.loginBiometricAuthenticating : label,
       hint: 'Use biometrics to sign in quickly',
       child: FilledButton.icon(
         onPressed: onPressed,

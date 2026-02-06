@@ -1117,6 +1117,37 @@ class AppLocalizationsHe extends AppLocalizations {
   String get loginContinueWithTelegram => 'Continue with Telegram';
 
   @override
+  String get loginTitle => 'CyberVPN';
+
+  @override
+  String get loginSubtitle => 'Secure your connection';
+
+  @override
+  String get loginOrUsePassword => 'OR USE PASSWORD';
+
+  @override
+  String get loginOrSeparator => 'OR';
+
+  @override
+  String get loginNoAccount => 'Don\'t have an account? ';
+
+  @override
+  String get loginRegisterLink => 'Register';
+
+  @override
+  String get loginBiometricFaceId => 'Sign in with Face ID';
+
+  @override
+  String get loginBiometricFingerprint => 'Sign in with fingerprint';
+
+  @override
+  String get loginBiometricGeneric => 'Sign in with biometrics';
+
+  @override
+  String get loginBiometricAuthenticating =>
+      'Authenticating with biometrics, please wait';
+
+  @override
   String get registerTitle => 'Create Account';
 
   @override
@@ -1213,6 +1244,34 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get appLockLocalizedReason => 'Unlock CyberVPN with your device PIN';
+
+  @override
+  String get appLockBiometricFaceId => 'Face ID';
+
+  @override
+  String get appLockBiometricFingerprint => 'fingerprint';
+
+  @override
+  String get appLockBiometricGeneric => 'biometrics';
+
+  @override
+  String get appLockAuthenticating => 'Authenticating, please wait';
+
+  @override
+  String get appLockUnlockHint => 'Authenticate to unlock the app';
+
+  @override
+  String get appLockPinHint => 'Unlock using your device PIN or passcode';
+
+  @override
+  String appLockFailedAttempts(int current, int max) {
+    return 'Failed attempts: $current/$max';
+  }
+
+  @override
+  String appLockFailedAttemptsA11y(int current, int max) {
+    return 'Failed authentication attempts: $current out of $max';
+  }
 
   @override
   String get biometricSettingsTitle => 'Security';
@@ -3283,6 +3342,12 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get serverNotFound => 'Server not found';
+
+  @override
+  String get serverListClearSearch => 'Clear search';
+
+  @override
+  String get serverSelectPrompt => 'Select a server to view details';
 
   @override
   String get serverSingle => 'Server';

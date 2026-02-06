@@ -74,10 +74,10 @@ class _ServerCardState extends ConsumerState<ServerCard>
   // Helpers
   // ---------------------------------------------------------------------------
 
-  Color _loadColor(double load) {
-    if (load < 0.5) return Colors.green;
+  Color _loadColor(double load, ColorScheme colorScheme) {
+    if (load < 0.5) return colorScheme.tertiary;
     if (load < 0.7) return Colors.orange;
-    return Colors.red;
+    return colorScheme.error;
   }
 
   void _handleFavoriteTap() {
@@ -246,7 +246,7 @@ class _ServerCardState extends ConsumerState<ServerCard>
                         backgroundColor:
                             colorScheme.onSurface.withValues(alpha: 0.12),
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          _loadColor(server.load ?? 0),
+                          _loadColor(server.load ?? 0, colorScheme),
                         ),
                       ),
                     ),

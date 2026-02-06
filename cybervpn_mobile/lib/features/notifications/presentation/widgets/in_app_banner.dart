@@ -258,14 +258,14 @@ class _BannerContent extends StatelessWidget {
   final BannerConfig config;
   final VoidCallback onDismiss;
 
-  Color _getAccentColor() {
+  Color _getAccentColor(ColorScheme colorScheme) {
     switch (config.type) {
       case BannerNotificationType.error:
-        return Colors.red[400]!;
+        return colorScheme.error;
       case BannerNotificationType.success:
-        return Colors.green[400]!;
+        return colorScheme.tertiary;
       case BannerNotificationType.info:
-        return Colors.blue[400]!;
+        return colorScheme.primary;
     }
   }
 
@@ -282,7 +282,7 @@ class _BannerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = _getAccentColor();
+    final accentColor = _getAccentColor(Theme.of(context).colorScheme);
     final icon = _getIcon();
 
     return Container(
@@ -345,7 +345,7 @@ class _BannerContent extends StatelessWidget {
                         config.message,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[400],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

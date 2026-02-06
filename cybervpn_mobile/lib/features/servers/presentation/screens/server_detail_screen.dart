@@ -21,26 +21,31 @@ class ServerDetailScreen extends ConsumerWidget {
   const ServerDetailScreen({
     super.key,
     required this.serverId,
+    this.embedded = false,
   });
 
   /// The ID of the server to display.
   final String serverId;
 
+  /// When `true`, renders without a Scaffold/AppBar so it can be embedded
+  /// in a master-detail layout.
+  final bool embedded;
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  Color _latencyColor(int? latency) {
-    if (latency == null) return Colors.grey;
-    if (latency < 100) return Colors.green;
+  Color _latencyColor(int? latency, ColorScheme colorScheme) {
+    if (latency == null) return colorScheme.outline;
+    if (latency < 100) return colorScheme.tertiary;
     if (latency < 200) return Colors.orange;
-    return Colors.red;
+    return colorScheme.error;
   }
 
-  Color _loadColor(double load) {
-    if (load < 0.5) return Colors.green;
+  Color _loadColor(double load, ColorScheme colorScheme) {
+    if (load < 0.5) return colorScheme.tertiary;
     if (load < 0.7) return Colors.orange;
-    return Colors.red;
+    return colorScheme.error;
   }
 
   // ---------------------------------------------------------------------------
@@ -56,6 +61,9 @@ class ServerDetailScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     if (server == null) {
+      if (embedded) {
+        return Center(child: Text(l10n.serverNotFound));
+      }
       return Scaffold(
         appBar: AppBar(title: Text(l10n.serverSingle)),
         body: Center(child: Text(l10n.serverNotFound)),
@@ -65,22 +73,7 @@ class ServerDetailScreen extends ConsumerWidget {
     final load = (server.load ?? 0.0).clamp(0.0, 1.0);
     final loadPercent = (load * 100).toInt();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(server.name),
-        actions: [
-          IconButton(
-            icon: Icon(
-              server.isFavorite ? Icons.star : Icons.star_border,
-              color: server.isFavorite ? Colors.amber : null,
-            ),
-            onPressed: () {
-              unawaited(ref.read(serverListProvider.notifier).toggleFavorite(server.id));
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+    final body = SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -128,7 +121,7 @@ class ServerDetailScreen extends ConsumerWidget {
             // Availability
             _InfoRow(
               icon: Icons.circle,
-              iconColor: server.isAvailable ? Colors.green : Colors.red,
+              iconColor: server.isAvailable ? colorScheme.tertiary : colorScheme.error,
               iconSize: 12,
               label: l10n.serverDetailStatus,
               value: server.isAvailable ? l10n.serverDetailOnline : l10n.serverDetailOffline,
@@ -161,7 +154,7 @@ class ServerDetailScreen extends ConsumerWidget {
                   server.ping != null ? l10n.serverPingMs(server.ping!) : l10n.serverDetailNotTested,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: _latencyColor(server.ping),
+                    color: _latencyColor(server.ping, colorScheme),
                   ),
                 ),
               ],
@@ -175,7 +168,7 @@ class ServerDetailScreen extends ConsumerWidget {
               '$loadPercent%',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: _loadColor(load),
+                color: _loadColor(load, colorScheme),
               ),
             ),
             const SizedBox(height: 8),
@@ -185,7 +178,7 @@ class ServerDetailScreen extends ConsumerWidget {
                 value: load,
                 minHeight: 10,
                 backgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
-                valueColor: AlwaysStoppedAnimation<Color>(_loadColor(load)),
+                valueColor: AlwaysStoppedAnimation<Color>(_loadColor(load, colorScheme)),
               ),
             ),
             const SizedBox(height: 24),
@@ -198,7 +191,7 @@ class ServerDetailScreen extends ConsumerWidget {
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: server.isAvailable
-                    ? Colors.green
+                    ? colorScheme.tertiary
                     : colorScheme.onSurfaceVariant,
               ),
             ),
@@ -237,7 +230,27 @@ class ServerDetailScreen extends ConsumerWidget {
             const SizedBox(height: 32),
           ],
         ),
+      );
+
+    if (embedded) return body;
+
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(server.name),
+        actions: [
+          IconButton(
+            icon: Icon(
+              server.isFavorite ? Icons.star : Icons.star_border,
+              color: server.isFavorite ? Colors.amber : null,
+            ),
+            onPressed: () {
+              unawaited(ref.read(serverListProvider.notifier).toggleFavorite(server.id));
+            },
+          ),
+        ],
       ),
+      body: body,
     );
   }
 }

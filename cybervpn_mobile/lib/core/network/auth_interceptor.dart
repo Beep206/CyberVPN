@@ -37,6 +37,9 @@ class AuthInterceptor extends Interceptor {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
 
+  /// Maximum retry attempts for transient refresh failures.
+  static const int _maxRefreshRetries = 2;
+
   /// Extra key used to mark refresh requests so they bypass the 401 handler.
   /// Without this, a 401 response from the refresh endpoint itself would
   /// trigger another refresh attempt, creating an infinite loop.
@@ -111,17 +114,8 @@ class AuthInterceptor extends Interceptor {
         return;
       }
 
-      // Perform the token refresh. The extra flag prevents the interceptor
-      // from attempting to refresh again if this request itself returns 401.
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/mobile/auth/refresh',
-        data: {'refresh_token': refreshToken},
-        options: Options(extra: {_isRefreshRequestKey: true}),
-      );
-
-      final responseData = response.data!;
-      final newAccessToken = responseData['access_token'] as String;
-      final newRefreshToken = responseData['refresh_token'] as String?;
+      final (newAccessToken, newRefreshToken) =
+          await _performRefreshWithRetry(refreshToken);
 
       // Store new tokens atomically
       await Future.wait([
@@ -142,16 +136,19 @@ class AuthInterceptor extends Interceptor {
       // Retry all queued requests with the new token
       await _retryAllQueuedRequests(newAccessToken);
     } catch (e, st) {
+      final isPermanent = _isPermanentRefreshError(e);
       AppLogger.error(
-        'Token refresh failed',
+        'Token refresh failed (permanent=$isPermanent)',
         error: e,
         stackTrace: st,
         category: 'auth.interceptor',
       );
 
-      // Clear tokens on refresh failure
-      await _secureStorage.delete(key: _accessTokenKey);
-      await _secureStorage.delete(key: _refreshTokenKey);
+      if (isPermanent) {
+        // Only clear tokens on permanent auth failures (401, invalid_grant)
+        await _secureStorage.delete(key: _accessTokenKey);
+        await _secureStorage.delete(key: _refreshTokenKey);
+      }
 
       // Fail all queued requests
       _failAllQueuedRequests(err);
@@ -161,6 +158,79 @@ class AuthInterceptor extends Interceptor {
     } finally {
       _isRefreshing = false;
     }
+  }
+
+  /// Performs the token refresh call with exponential backoff retry for
+  /// transient errors.
+  Future<(String accessToken, String? refreshToken)> _performRefreshWithRetry(
+    String refreshToken,
+  ) async {
+    for (var attempt = 0; attempt <= _maxRefreshRetries; attempt++) {
+      try {
+        final response = await _dio.post<Map<String, dynamic>>(
+          '/mobile/auth/refresh',
+          data: {'refresh_token': refreshToken},
+          options: Options(extra: {_isRefreshRequestKey: true}),
+        );
+
+        final responseData = response.data;
+        if (responseData == null) {
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            message: 'Token refresh returned null response body',
+          );
+        }
+        final newAccessToken = responseData['access_token'] as String?;
+        if (newAccessToken == null) {
+          throw DioException(
+            requestOptions: response.requestOptions,
+            response: response,
+            message: 'Token refresh response missing access_token',
+          );
+        }
+        final newRefreshToken = responseData['refresh_token'] as String?;
+        return (newAccessToken, newRefreshToken);
+      } catch (e) {
+        if (_isPermanentRefreshError(e) || attempt >= _maxRefreshRetries) {
+          rethrow;
+        }
+        // Exponential backoff: 500ms, 1000ms
+        final delay = Duration(milliseconds: 500 * (attempt + 1));
+        AppLogger.warning(
+          'Transient refresh error (attempt ${attempt + 1}/$_maxRefreshRetries), retrying in ${delay.inMilliseconds}ms',
+          error: e,
+          category: 'auth.interceptor',
+        );
+        await Future<void>.delayed(delay);
+      }
+    }
+    // Should not reach here, but satisfy the compiler
+    throw StateError('Exhausted refresh retries');
+  }
+
+  /// Returns `true` for errors that indicate the refresh token is permanently
+  /// invalid (401, 403, or invalid_grant). Transient errors (timeouts, 502/503)
+  /// return `false` and are eligible for retry.
+  bool _isPermanentRefreshError(Object error) {
+    if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      // 401/403 = refresh token invalid/expired
+      if (statusCode == 401 || statusCode == 403) return true;
+      // Timeouts and connection errors are transient
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.connectionError) {
+        return false;
+      }
+      // 502/503/504 are transient server errors
+      if (statusCode == 502 || statusCode == 503 || statusCode == 504) {
+        return false;
+      }
+    }
+    // Default: treat as permanent to avoid infinite retries
+    return true;
   }
 
   /// Queues a request to wait for token refresh to complete.

@@ -9,7 +9,6 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/services/device_registration_service.dart';
-import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 import 'package:cybervpn_mobile/features/review/data/services/review_service.dart';
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -22,6 +21,7 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

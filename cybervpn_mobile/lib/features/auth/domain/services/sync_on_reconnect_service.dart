@@ -8,9 +8,10 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/offline_session_service.dart';
-import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
-    show networkInfoProvider;
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show authRepositoryProvider, networkInfoProvider;
+import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart'
+    show authProvider;
 
 /// Result of a sync operation.
 enum SyncResult {

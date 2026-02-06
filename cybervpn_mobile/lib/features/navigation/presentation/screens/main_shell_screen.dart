@@ -124,64 +124,133 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: Column(
-        children: [
-          const RootWarningBanner(),
-          Expanded(child: widget.navigationShell),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: _onTabSelected,
-        indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-        destinations: [
-          NavigationDestination(
-            icon: Icon(
-              Icons.power_settings_new,
-              color: _iconColor(context, 0),
+    /// Tablet / landscape breakpoint (Material 3 compact → medium).
+    const tabletBreakpoint = 600.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= tabletBreakpoint;
+
+        if (isWide) {
+          return Scaffold(
+            body: Column(
+              children: [
+                const RootWarningBanner(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      NavigationRail(
+                        selectedIndex: widget.navigationShell.currentIndex,
+                        onDestinationSelected: _onTabSelected,
+                        labelType: NavigationRailLabelType.all,
+                        indicatorColor: theme.colorScheme.primary
+                            .withValues(alpha: 0.15),
+                        destinations: [
+                          NavigationRailDestination(
+                            icon: const Icon(Icons.power_settings_new),
+                            selectedIcon: Icon(
+                              Icons.power_settings_new,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(l10n.navConnection),
+                          ),
+                          NavigationRailDestination(
+                            icon: const Icon(Icons.public),
+                            selectedIcon: Icon(
+                              Icons.public,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(l10n.servers),
+                          ),
+                          NavigationRailDestination(
+                            icon: const Icon(Icons.person),
+                            selectedIcon: Icon(
+                              Icons.person,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(l10n.profile),
+                          ),
+                          NavigationRailDestination(
+                            icon: const Icon(Icons.settings),
+                            selectedIcon: Icon(
+                              Icons.settings,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(l10n.settings),
+                          ),
+                        ],
+                      ),
+                      const VerticalDivider(thickness: 1, width: 1),
+                      Expanded(child: widget.navigationShell),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            selectedIcon: Icon(
-              Icons.power_settings_new,
-              color: theme.colorScheme.primary,
-            ),
-            label: l10n.navConnection,
+          );
+        }
+
+        return Scaffold(
+          body: Column(
+            children: [
+              const RootWarningBanner(),
+              Expanded(child: widget.navigationShell),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.public,
-              color: _iconColor(context, 1),
-            ),
-            selectedIcon: Icon(
-              Icons.public,
-              color: theme.colorScheme.primary,
-            ),
-            label: l10n.servers,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: widget.navigationShell.currentIndex,
+            onDestinationSelected: _onTabSelected,
+            indicatorColor:
+                theme.colorScheme.primary.withValues(alpha: 0.15),
+            destinations: [
+              NavigationDestination(
+                icon: Icon(
+                  Icons.power_settings_new,
+                  color: _iconColor(context, 0),
+                ),
+                selectedIcon: Icon(
+                  Icons.power_settings_new,
+                  color: theme.colorScheme.primary,
+                ),
+                label: l10n.navConnection,
+              ),
+              NavigationDestination(
+                icon: Icon(
+                  Icons.public,
+                  color: _iconColor(context, 1),
+                ),
+                selectedIcon: Icon(
+                  Icons.public,
+                  color: theme.colorScheme.primary,
+                ),
+                label: l10n.servers,
+              ),
+              NavigationDestination(
+                icon: Icon(
+                  Icons.person,
+                  color: _iconColor(context, 2),
+                ),
+                selectedIcon: Icon(
+                  Icons.person,
+                  color: theme.colorScheme.primary,
+                ),
+                label: l10n.profile,
+              ),
+              NavigationDestination(
+                icon: Icon(
+                  Icons.settings,
+                  color: _iconColor(context, 3),
+                ),
+                selectedIcon: Icon(
+                  Icons.settings,
+                  color: theme.colorScheme.primary,
+                ),
+                label: l10n.settings,
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.person,
-              color: _iconColor(context, 2),
-            ),
-            selectedIcon: Icon(
-              Icons.person,
-              color: theme.colorScheme.primary,
-            ),
-            label: l10n.profile,
-          ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.settings,
-              color: _iconColor(context, 3),
-            ),
-            selectedIcon: Icon(
-              Icons.settings,
-              color: theme.colorScheme.primary,
-            ),
-            label: l10n.settings,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -233,7 +302,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -262,7 +331,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.red.shade800,
+        backgroundColor: Theme.of(context).colorScheme.error,
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
@@ -296,7 +365,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.green.shade800,
+        backgroundColor: Theme.of(context).colorScheme.tertiary,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),

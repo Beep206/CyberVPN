@@ -54,6 +54,32 @@ void main() {
         expect(token, isNull);
       });
 
+      test('setTokens writes both tokens in parallel via Future.wait', () async {
+        // Verify both tokens are written (parallel execution)
+        await storage.setTokens(
+          accessToken: 'at_parallel',
+          refreshToken: 'rt_parallel',
+        );
+
+        // Both should be present after the call
+        expect(await storage.getAccessToken(), 'at_parallel');
+        expect(await storage.getRefreshToken(), 'rt_parallel');
+      });
+
+      test('setTokens propagates error if one write fails', () async {
+        final failingStorage = _FailOnKeyStorage(
+          failKey: SecureStorageWrapper.refreshTokenKey,
+        );
+
+        expect(
+          () => failingStorage.setTokens(
+            accessToken: 'access_ok',
+            refreshToken: 'refresh_fail',
+          ),
+          throwsA(isA<Exception>()),
+        );
+      });
+
       test('clearTokens removes both tokens', () async {
         await storage.setTokens(
           accessToken: 'access_123',
@@ -315,4 +341,30 @@ void main() {
       });
     });
   });
+}
+
+/// A fake storage that throws when writing a specific key.
+class _FailOnKeyStorage extends SecureStorageWrapper {
+  _FailOnKeyStorage({required this.failKey});
+  final String failKey;
+  final Map<String, String> _store = {};
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    if (key == failKey) throw Exception('Write failed for $key');
+    _store[key] = value;
+  }
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> delete({required String key}) async => _store.remove(key);
+
+  @override
+  Future<void> deleteAll() async => _store.clear();
+
+  @override
+  Future<bool> containsKey({required String key}) async =>
+      _store.containsKey(key);
 }

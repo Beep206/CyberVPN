@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart'
+    show rootNavigatorKey;
 
 /// Top-level handler for background FCM messages.
 ///
@@ -47,6 +53,23 @@ class PushNotificationService {
   /// Must be set before calling [initialize].
   FcmTokenService? _fcmTokenService;
 
+  /// Local notifications plugin for displaying foreground notifications.
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  /// Android notification channel for VPN-related notifications.
+  static const _vpnChannel = AndroidNotificationChannel(
+    'cybervpn_notifications',
+    'CyberVPN Notifications',
+    description: 'VPN status and account notifications',
+    importance: Importance.high,
+  );
+
+  /// Callback invoked when a local notification is tapped.
+  ///
+  /// Set this to handle deep linking from notification taps.
+  void Function(String? payload)? onNotificationTap;
+
   /// The underlying [FirebaseMessaging] instance.
   FirebaseMessaging get _messaging => FirebaseMessaging.instance;
 
@@ -85,6 +108,15 @@ class PushNotificationService {
         return;
       }
 
+      // Initialize local notifications for foreground display.
+      // Wire notification tap handler for deep linking.
+      onNotificationTap = (payload) {
+        if (payload != null && payload.isNotEmpty) {
+          _navigateToRoute(payload);
+        }
+      };
+      await _initLocalNotifications();
+
       // Register the background handler before any other messaging calls.
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
@@ -118,6 +150,11 @@ class PushNotificationService {
         category: 'fcm',
       );
 
+      // Store initial token locally so it survives app restarts.
+      if (_token != null && _token!.isNotEmpty) {
+        unawaited(_fcmTokenService?.storePendingToken(_token!));
+      }
+
       // Listen for token refresh events and re-register with backend.
       _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) {
         _token = newToken;
@@ -125,6 +162,9 @@ class PushNotificationService {
           'FCM token refreshed (${newToken.length} chars)',
           category: 'fcm',
         );
+
+        // Store refreshed token locally before attempting registration.
+        unawaited(_fcmTokenService?.storePendingToken(newToken));
 
         // Re-register the new token with the backend
         _handleTokenRefresh(newToken);
@@ -159,7 +199,31 @@ class PushNotificationService {
       'title=${message.notification?.title}',
       category: 'fcm',
     );
-    // TODO(task-141): Forward the message to an in-app notification handler.
+
+    final notification = message.notification;
+    if (notification == null) return;
+
+    unawaited(_localNotifications.show(
+      id: notification.hashCode,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _vpnChannel.id,
+          _vpnChannel.name,
+          channelDescription: _vpnChannel.description,
+          importance: _vpnChannel.importance,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: message.data['route'] as String?,
+    ));
   }
 
   /// Handles a notification tap that opened the app from the background or
@@ -170,7 +234,81 @@ class PushNotificationService {
       'data=${message.data}',
       category: 'fcm',
     );
-    // TODO(task-141): Navigate to the appropriate screen based on message data.
+
+    final route = message.data['route'] as String?;
+    if (route != null && route.isNotEmpty) {
+      _navigateToRoute(route);
+    }
+  }
+
+  /// Initializes the local notifications plugin and creates the Android
+  /// notification channel.
+  Future<void> _initLocalNotifications() async {
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await _localNotifications.initialize(
+      settings: initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        AppLogger.info(
+          'Local notification tapped: payload=${response.payload}',
+          category: 'fcm',
+        );
+        onNotificationTap?.call(response.payload);
+      },
+    );
+
+    // Create the Android notification channel.
+    if (Platform.isAndroid) {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_vpnChannel);
+    }
+  }
+
+  /// Navigates to the given [route] using the root navigator.
+  ///
+  /// Only navigates if the route starts with `/` and a navigator context is
+  /// available. The delay ensures the app frame has fully rendered after
+  /// launch from a terminated state.
+  void _navigateToRoute(String route) {
+    if (!route.startsWith('/')) {
+      AppLogger.warning(
+        'Invalid notification route (must start with /): $route',
+        category: 'fcm',
+      );
+      return;
+    }
+
+    // Delay navigation slightly to ensure the app is fully initialized
+    // (important when launching from terminated state via notification tap).
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 300), () {
+      final context = rootNavigatorKey.currentContext;
+      if (context == null) {
+        AppLogger.warning(
+          'Cannot navigate to $route: no navigator context',
+          category: 'fcm',
+        );
+        return;
+      }
+
+      AppLogger.info('Navigating from notification tap: $route', category: 'fcm');
+      // The context here is from rootNavigatorKey.currentContext which is
+      // always valid if non-null — the `mounted` lint is a false positive
+      // for GlobalKey contexts.
+      // ignore: use_build_context_synchronously
+      unawaited(GoRouter.of(context).push(route));
+    }));
   }
 
   /// Handles FCM token refresh by re-registering with the backend.

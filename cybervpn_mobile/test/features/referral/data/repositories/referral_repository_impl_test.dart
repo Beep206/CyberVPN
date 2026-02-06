@@ -43,6 +43,45 @@ void main() {
       expect(result, isA<Success<bool>>());
       expect((result as Success<bool>).data, isFalse);
     });
+
+    test('returns Failure on AppException', () async {
+      when(() => mockDataSource.checkAvailability())
+          .thenThrow(const ServerException(message: 'Server error'));
+
+      final result = await repository.isAvailable();
+
+      expect(result, isA<Failure<bool>>());
+    });
+
+    test('caches result and reuses within TTL window', () async {
+      when(() => mockDataSource.checkAvailability())
+          .thenAnswer((_) async => true);
+
+      // First call hits network.
+      await repository.isAvailable();
+      verify(() => mockDataSource.checkAvailability()).called(1);
+
+      // Second call within 5 min should use cache.
+      await repository.isAvailable();
+      verifyNever(() => mockDataSource.checkAvailability());
+    });
+
+    test('caches false on exception and reuses within TTL', () async {
+      when(() => mockDataSource.checkAvailability())
+          .thenThrow(const ServerException(message: 'down'));
+
+      // First call — returns Failure, caches false.
+      final first = await repository.isAvailable();
+      expect(first, isA<Failure<bool>>());
+      verify(() => mockDataSource.checkAvailability()).called(1);
+
+      // Second call — uses cached false, returns Success(false).
+      final second = await repository.isAvailable();
+      expect(second, isA<Success<bool>>());
+      expect((second as Success<bool>).data, isFalse);
+      // Still only 1 network call total.
+      verifyNever(() => mockDataSource.checkAvailability());
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -72,6 +111,25 @@ void main() {
       expect(result, isA<Success<String>>());
       expect((result as Success<String>).data, equals('ABC123'));
       verify(() => mockDataSource.getReferralCode()).called(1);
+    });
+
+    test('networkFirst caches after first fetch and falls back to cache on error', () async {
+      when(() => mockDataSource.checkAvailability())
+          .thenAnswer((_) async => true);
+      when(() => mockDataSource.getReferralCode())
+          .thenAnswer((_) async => 'CACHED-CODE');
+
+      // First call populates cache.
+      final first = await repository.getReferralCode();
+      expect((first as Success<String>).data, equals('CACHED-CODE'));
+
+      // Make network call fail — cache fallback should be used.
+      when(() => mockDataSource.getReferralCode())
+          .thenThrow(const ServerException(message: 'Network error'));
+
+      final second = await repository.getReferralCode();
+      expect(second, isA<Success<String>>());
+      expect((second as Success<String>).data, equals('CACHED-CODE'));
     });
   });
 
@@ -160,6 +218,17 @@ void main() {
       expect(data, hasLength(2));
       expect(data[0].code, equals('REF1'));
       expect(data[1].status, equals(ReferralStatus.completed));
+    });
+
+    test('returns Failure when available but data source throws', () async {
+      when(() => mockDataSource.checkAvailability())
+          .thenAnswer((_) async => true);
+      when(() => mockDataSource.getRecentReferrals(limit: 10))
+          .thenThrow(const ServerException(message: 'Internal error'));
+
+      final result = await repository.getRecentReferrals();
+
+      expect(result, isA<Failure<List<ReferralEntry>>>());
     });
   });
 }

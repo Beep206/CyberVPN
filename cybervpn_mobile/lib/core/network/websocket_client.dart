@@ -152,11 +152,15 @@ class ForceDisconnect extends WebSocketEvent {
 /// A WebSocket client that connects to the CyberVPN notification endpoint
 /// with automatic reconnection using exponential backoff.
 ///
+/// Uses ticket-based authentication: the client first requests a single-use
+/// ticket via POST /api/v1/ws/ticket, then connects with ?ticket=<uuid>.
+/// JWT tokens never appear in WebSocket URLs.
+///
 /// Usage:
 /// ```dart
 /// final client = WebSocketClient(
 ///   baseUrl: 'https://api.cybervpn.com',
-///   tokenProvider: () async => secureStorage.read(key: 'access_token'),
+///   ticketProvider: () async => apiClient.requestWsTicket(),
 /// );
 ///
 /// client.events.listen((event) {
@@ -174,10 +178,14 @@ class WebSocketClient {
   /// The HTTP(S) base URL of the API server.
   final String baseUrl;
 
-  /// Async callback that provides the current JWT access token.
+  /// Async callback that provides a single-use WebSocket ticket.
   ///
-  /// Returning `null` means no token is available (e.g. logged out).
-  final Future<String?> Function() tokenProvider;
+  /// The ticket is obtained from POST /api/v1/ws/ticket and is valid for
+  /// 30 seconds. Returning `null` means authentication is unavailable.
+  ///
+  /// For backwards compatibility, [tokenProvider] is accepted as an alias
+  /// but the value is used as a ticket parameter in the URL.
+  final Future<String?> Function() ticketProvider;
 
   /// The WebSocket endpoint path (appended to [baseUrl]).
   final String path;
@@ -214,9 +222,11 @@ class WebSocketClient {
 
   WebSocketClient({
     required this.baseUrl,
-    required this.tokenProvider,
+    Future<String?> Function()? ticketProvider,
+    @Deprecated('Use ticketProvider instead. Token auth removed in v2.0.')
+    Future<String?> Function()? tokenProvider,
     this.path = '/ws/notifications',
-  });
+  }) : ticketProvider = ticketProvider ?? tokenProvider ?? (() async => null);
 
   // ── Public API ───────────────────────────────────────────────────────
 
@@ -286,14 +296,14 @@ class WebSocketClient {
           : WebSocketConnectionState.connecting,
     );
 
-    final token = await tokenProvider();
-    if (token == null || token.isEmpty) {
-      AppLogger.warning('WebSocket: no auth token available, aborting connect');
+    final ticket = await ticketProvider();
+    if (ticket == null || ticket.isEmpty) {
+      AppLogger.warning('WebSocket: no auth ticket available, aborting connect');
       _setConnectionState(WebSocketConnectionState.disconnected);
       return;
     }
 
-    final wsUrl = _buildWsUrl(token);
+    final wsUrl = _buildWsUrl(ticket);
     AppLogger.debug('WebSocket connecting to: $wsUrl');
 
     try {
@@ -316,8 +326,8 @@ class WebSocketClient {
     }
   }
 
-  /// Converts the HTTP(S) base URL to a WS(S) URL and appends the token.
-  String _buildWsUrl(String token) {
+  /// Converts the HTTP(S) base URL to a WS(S) URL and appends the ticket.
+  String _buildWsUrl(String ticket) {
     var url = baseUrl;
 
     // Convert http(s) scheme to ws(s).
@@ -332,7 +342,7 @@ class WebSocketClient {
       url = url.substring(0, url.length - 1);
     }
 
-    return '$url$path?token=${Uri.encodeComponent(token)}';
+    return '$url$path?ticket=${Uri.encodeComponent(ticket)}';
   }
 
   // ── Message Handling ─────────────────────────────────────────────────

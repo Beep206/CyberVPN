@@ -577,9 +577,9 @@ class _CustomServerTile extends StatelessWidget {
   final VoidCallback onTestConnection;
   final VoidCallback onExportQr;
 
-  Color? _reachabilityColor(bool? isReachable) {
+  Color? _reachabilityColor(bool? isReachable, ColorScheme colorScheme) {
     if (isReachable == null) return null;
-    return isReachable ? Colors.green : Colors.red;
+    return isReachable ? colorScheme.tertiary : colorScheme.error;
   }
 
   String _reachabilityLabel(bool? isReachable, AppLocalizations l10n) {
@@ -660,7 +660,7 @@ class _CustomServerTile extends StatelessWidget {
                                   ? Icons.cancel
                                   : Icons.help_outline,
                           size: 14,
-                          color: _reachabilityColor(config.isReachable) ??
+                          color: _reachabilityColor(config.isReachable, colorScheme) ??
                               colorScheme.onSurfaceVariant,
                         ),
                       const SizedBox(width: 4),
@@ -669,7 +669,7 @@ class _CustomServerTile extends StatelessWidget {
                             ? l10n.configImportTesting
                             : _reachabilityLabel(config.isReachable, l10n),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: _reachabilityColor(config.isReachable) ??
+                          color: _reachabilityColor(config.isReachable, colorScheme) ??
                               colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -729,9 +729,9 @@ class _CustomServerTile extends StatelessWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                      Icon(Icons.delete_outline, size: 20, color: colorScheme.error),
                       const SizedBox(width: 12),
-                      Text(l10n.commonDelete, style: const TextStyle(color: Colors.red)),
+                      Text(l10n.commonDelete, style: TextStyle(color: colorScheme.error)),
                     ],
                   ),
                 ),

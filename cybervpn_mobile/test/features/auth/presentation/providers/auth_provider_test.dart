@@ -8,6 +8,8 @@ import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show authRepositoryProvider;
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';

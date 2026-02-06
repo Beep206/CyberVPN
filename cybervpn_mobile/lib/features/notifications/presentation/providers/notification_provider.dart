@@ -5,39 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider, localStorageProvider;
 import 'package:cybervpn_mobile/features/notifications/data/datasources/fcm_datasource.dart';
-import 'package:cybervpn_mobile/features/notifications/data/datasources/notification_local_datasource.dart';
 import 'package:cybervpn_mobile/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_state.dart';
-
-// ---------------------------------------------------------------------------
-// Repository & datasource providers
-// ---------------------------------------------------------------------------
-
-/// Provides the [FcmDatasource] singleton (lazily created).
-///
-/// Override in tests to inject a mock.
-final fcmDatasourceProvider = Provider<FcmDatasource>((ref) {
-  return FcmDatasourceImpl();
-});
-
-/// Provides the [NotificationRepositoryImpl] lazily via ref.watch.
-final notificationRepositoryImplProvider =
-    Provider<NotificationRepositoryImpl>((ref) {
-  return NotificationRepositoryImpl(
-    fcmDatasource: ref.watch(fcmDatasourceProvider),
-    localDatasource: NotificationLocalDatasourceImpl(ref.watch(localStorageProvider)),
-    apiClient: ref.watch(apiClientProvider),
-  );
-});
-
-/// Provides the [NotificationRepository] implementation via the impl provider.
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return ref.watch(notificationRepositoryImplProvider);
-});
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show fcmDatasourceProvider, notificationRepositoryImplProvider,
+         notificationRepositoryProvider;
 
 // ---------------------------------------------------------------------------
 // Notification notifier

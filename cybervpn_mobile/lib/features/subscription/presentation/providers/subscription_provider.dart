@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
@@ -11,29 +12,10 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
-import 'package:cybervpn_mobile/features/subscription/data/repositories/subscription_repository_impl.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show subscriptionRemoteDataSourceProvider;
-
-// ---------------------------------------------------------------------------
-// Repository & datasource providers
-// ---------------------------------------------------------------------------
-
-/// Provides the [SubscriptionRepository] lazily via ref.watch.
-final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
-  return SubscriptionRepositoryImpl(
-    remoteDataSource: ref.watch(subscriptionRemoteDataSourceProvider),
-  );
-});
-
-/// Provides the [RevenueCatDataSource] singleton.
-///
-/// Override in tests to inject a mock.
-final revenueCatDataSourceProvider = Provider<RevenueCatDataSource>((ref) {
-  return RevenueCatDataSource();
-});
+    show subscriptionRepositoryProvider, revenueCatDataSourceProvider;
 
 // ---------------------------------------------------------------------------
 // Subscription notifier
@@ -54,10 +36,17 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
 
   StreamSubscription<SubscriptionUpdated>? _webSocketSubscription;
 
+  /// CancelToken for in-flight API requests. Cancelled when provider disposes.
+  CancelToken _cancelToken = CancelToken();
+
   // ---- Lifecycle -----------------------------------------------------------
 
   @override
   FutureOr<SubscriptionState> build() async {
+    // Create a fresh CancelToken for this build cycle.
+    _cancelToken = CancelToken();
+    ref.onDispose(() => _cancelToken.cancel('Provider disposed'));
+
     // Fetch plans and active subscription in parallel.
     final results = await Future.wait([
       _repo.getPlans(),

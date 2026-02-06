@@ -12,16 +12,8 @@ import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repo
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.dart';
 
-// Re-import the provider symbols used in overrides so we can resolve them.
-import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart'
-    show authRepositoryProvider;
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
-    show vpnRepositoryProvider, secureStorageProvider, networkInfoProvider;
+// All repository and infrastructure providers are now in core/di/providers.dart (imported above)
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show serverRepositoryProvider;
-import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart'
-    show subscriptionRepositoryProvider;
 
 void main() {
   group('DI providers', () {

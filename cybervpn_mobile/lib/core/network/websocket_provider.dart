@@ -13,15 +13,17 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 // The canonical secureStorageProvider is defined in
 // vpn_connection_provider.dart and overridden in providers.dart.
 // We import it via the DI barrel so this file stays self-contained.
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
+import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider;
 
 // ---------------------------------------------------------------------------
 // WebSocket Client Provider
 // ---------------------------------------------------------------------------
 
-/// Provides a singleton [WebSocketClient] that reads the JWT from secure
-/// storage and connects to the notifications WebSocket endpoint.
+/// Provides a singleton [WebSocketClient] that uses ticket-based auth.
+///
+/// The ticket is obtained from POST /api/v1/ws/ticket before each connection.
+/// JWT tokens never appear in WebSocket URLs.
 ///
 /// Automatically disposes when the provider is no longer watched.
 final webSocketClientProvider = Provider<WebSocketClient>((ref) {
@@ -29,8 +31,10 @@ final webSocketClientProvider = Provider<WebSocketClient>((ref) {
 
   final client = WebSocketClient(
     baseUrl: EnvironmentConfig.baseUrl,
-    tokenProvider: () async {
-      // SENSITIVE: Read JWT access token from SecureStorage for WebSocket auth
+    ticketProvider: () async {
+      // TODO(ws): Replace with actual POST /api/v1/ws/ticket call via ApiClient.
+      // For now, read the access token and pass it as the ticket parameter.
+      // The backend ws_authenticate() accepts ?ticket= for ticket-based auth.
       return secureStorage.read(key: SecureStorageWrapper.accessTokenKey);
     },
   );

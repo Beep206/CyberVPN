@@ -10,8 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cybervpn_mobile/app/app.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart'
     show markFirebaseReady;
+import 'package:cybervpn_mobile/core/analytics/sentry_user_sync_provider.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/security/attestation_auth_provider.dart';
+import 'package:cybervpn_mobile/core/services/fcm_auth_sync_provider.dart';
+import 'package:cybervpn_mobile/core/services/memory_pressure_observer.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show buildProviderOverrides, secureStorageProvider;
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/services/push_notification_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -52,6 +57,12 @@ Future<void> main() async {
     overrides: overrides,
   );
   _logStep('buildProviderOverrides + ProviderContainer', stepSw);
+
+  // Eagerly activate auth-reactive side effects so they fire automatically
+  // when the authentication state changes.
+  _globalContainer.read(sentryUserSyncProvider);
+  _globalContainer.read(fcmAuthSyncProvider);
+  _globalContainer.read(attestationAuthProvider);
 
   // Defer non-critical initialization to post-launch for faster cold start.
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -121,6 +132,10 @@ Future<void> _initializeDeferredServices() async {
 
   // Initialize quick actions (long-press app shortcuts).
   await QuickActionsService.instance.initialize();
+
+  // Register memory pressure observer to evict in-memory caches under pressure.
+  final secureStorage = _globalContainer.read(secureStorageProvider);
+  MemoryPressureObserver(secureStorage: secureStorage).register();
 }
 
 /// Initializes Firebase Core.

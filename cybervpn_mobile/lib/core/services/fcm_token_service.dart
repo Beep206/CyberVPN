@@ -5,16 +5,23 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider;
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show apiClientProvider, localStorageProvider;
 import 'package:cybervpn_mobile/core/network/api_client.dart';
+import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+
+/// SharedPreferences key for the pending FCM token.
+const _pendingFcmTokenKey = 'pending_fcm_token';
 
 /// Service for managing FCM device token registration with the backend.
 ///
 /// Handles:
 /// * Retrieving the FCM device token from Firebase.
+/// * Storing the token locally before auth so it survives app restarts.
 /// * Collecting device metadata (platform, OS version).
 /// * Sending token and device info to the backend API.
+/// * Clearing the pending token on successful registration.
 /// * Error handling for network failures and FCM issues.
 ///
 /// Usage:
@@ -24,17 +31,46 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 /// ```
 class FcmTokenService {
   final ApiClient _apiClient;
+  final LocalStorageWrapper _localStorage;
 
-  FcmTokenService({required ApiClient apiClient}) : _apiClient = apiClient;
+  FcmTokenService({
+    required ApiClient apiClient,
+    required LocalStorageWrapper localStorage,
+  })  : _apiClient = apiClient,
+        _localStorage = localStorage;
+
+  /// Stores the FCM token locally so it survives app restarts.
+  ///
+  /// Call this immediately when a token is received (e.g. from
+  /// [FirebaseMessaging.onTokenRefresh]), regardless of auth state.
+  /// The token will be registered with the backend on the next
+  /// [registerToken] call.
+  Future<void> storePendingToken(String token) async {
+    await _localStorage.setString(_pendingFcmTokenKey, token);
+    AppLogger.debug(
+      'Stored pending FCM token locally',
+      category: 'fcm_token_service',
+      data: {'token_length': token.length},
+    );
+  }
 
   /// Retrieves the FCM device token and registers it with the backend.
+  ///
+  /// Checks for a locally stored pending token first, then falls back to
+  /// requesting a fresh token from Firebase. On successful backend
+  /// registration, the pending token is cleared.
   ///
   /// Returns `true` if registration was successful, `false` otherwise.
   /// Errors are logged but not thrown to prevent blocking the auth flow.
   Future<bool> registerToken() async {
     try {
-      // Get FCM token from Firebase
-      final token = await FirebaseMessaging.instance.getToken();
+      // Prefer locally cached token (may have been stored before auth).
+      var token = await _localStorage.getString(_pendingFcmTokenKey);
+
+      // Fall back to requesting a fresh token from Firebase.
+      if (token == null || token.isEmpty) {
+        token = await FirebaseMessaging.instance.getToken();
+      }
 
       if (token == null || token.isEmpty) {
         AppLogger.warning(
@@ -59,6 +95,9 @@ class FcmTokenService {
         platform: deviceInfo['platform'] as String,
         osVersion: deviceInfo['os_version'] as String,
       );
+
+      // Clear pending token on success.
+      await _localStorage.remove(_pendingFcmTokenKey);
 
       AppLogger.info(
         'FCM token registered successfully',
@@ -138,8 +177,10 @@ class FcmTokenService {
 
 /// Provider for [FcmTokenService].
 ///
-/// Lazily resolved via [apiClientProvider]. Override in tests with a mock.
+/// Lazily resolved via [apiClientProvider] and [localStorageProvider].
+/// Override in tests with a mock.
 final fcmTokenServiceProvider = Provider<FcmTokenService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
-  return FcmTokenService(apiClient: apiClient);
+  final localStorage = ref.watch(localStorageProvider);
+  return FcmTokenService(apiClient: apiClient, localStorage: localStorage);
 });

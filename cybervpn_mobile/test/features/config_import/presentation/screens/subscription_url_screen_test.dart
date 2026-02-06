@@ -1,6 +1,8 @@
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show configImportRepositoryProvider;
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/subscription_url_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

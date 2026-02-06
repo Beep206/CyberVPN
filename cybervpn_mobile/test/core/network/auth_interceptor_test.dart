@@ -199,6 +199,35 @@ void main() {
         verify(() => mockStorage.delete(key: 'refresh_token')).called(1);
       });
 
+      test('refresh request 401 is passed through without recursive refresh', () async {
+        // When the refresh endpoint itself returns 401, the interceptor must
+        // NOT attempt another refresh (which would cause infinite recursion).
+        final refreshRequestOptions = RequestOptions(
+          path: '/mobile/auth/refresh',
+          extra: {'_isRefreshRequest': true},
+        );
+
+        final error = DioException(
+          requestOptions: refreshRequestOptions,
+          response: Response(
+            requestOptions: refreshRequestOptions,
+            statusCode: 401,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        final handler = _MockErrorHandler();
+        await interceptor.onError(error, handler);
+
+        // Should be passed through, not triggering a new refresh
+        expect(handler.nextCalled, true);
+        expect(handler.resolveCalled, false);
+        verifyNever(() => mockDio.post<Map<String, dynamic>>(
+              any(),
+              data: any(named: 'data'),
+            ));
+      });
+
       test('non-401 errors are passed through immediately', () async {
         final error = DioException(
           requestOptions: RequestOptions(path: '/api/test'),

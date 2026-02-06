@@ -2043,6 +2043,66 @@ abstract class AppLocalizations {
   /// **'Continue with Telegram'**
   String get loginContinueWithTelegram;
 
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CyberVPN'**
+  String get loginTitle;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure your connection'**
+  String get loginSubtitle;
+
+  /// No description provided for @loginOrUsePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'OR USE PASSWORD'**
+  String get loginOrUsePassword;
+
+  /// No description provided for @loginOrSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **'OR'**
+  String get loginOrSeparator;
+
+  /// No description provided for @loginNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? '**
+  String get loginNoAccount;
+
+  /// No description provided for @loginRegisterLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get loginRegisterLink;
+
+  /// No description provided for @loginBiometricFaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Face ID'**
+  String get loginBiometricFaceId;
+
+  /// No description provided for @loginBiometricFingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with fingerprint'**
+  String get loginBiometricFingerprint;
+
+  /// No description provided for @loginBiometricGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with biometrics'**
+  String get loginBiometricGeneric;
+
+  /// No description provided for @loginBiometricAuthenticating.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticating with biometrics, please wait'**
+  String get loginBiometricAuthenticating;
+
   /// No description provided for @registerTitle.
   ///
   /// In en, this message translates to:
@@ -2228,6 +2288,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock CyberVPN with your device PIN'**
   String get appLockLocalizedReason;
+
+  /// No description provided for @appLockBiometricFaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Face ID'**
+  String get appLockBiometricFaceId;
+
+  /// No description provided for @appLockBiometricFingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'fingerprint'**
+  String get appLockBiometricFingerprint;
+
+  /// No description provided for @appLockBiometricGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'biometrics'**
+  String get appLockBiometricGeneric;
+
+  /// No description provided for @appLockAuthenticating.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticating, please wait'**
+  String get appLockAuthenticating;
+
+  /// No description provided for @appLockUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to unlock the app'**
+  String get appLockUnlockHint;
+
+  /// No description provided for @appLockPinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock using your device PIN or passcode'**
+  String get appLockPinHint;
+
+  /// No description provided for @appLockFailedAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed attempts: {current}/{max}'**
+  String appLockFailedAttempts(int current, int max);
+
+  /// No description provided for @appLockFailedAttemptsA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed authentication attempts: {current} out of {max}'**
+  String appLockFailedAttemptsA11y(int current, int max);
 
   /// No description provided for @biometricSettingsTitle.
   ///
@@ -2970,7 +3078,7 @@ abstract class AppLocalizations {
   /// No description provided for @serverListNoResults.
   ///
   /// In en, this message translates to:
-  /// **'No servers found'**
+  /// **'No servers match your search'**
   String get serverListNoResults;
 
   /// No description provided for @serverListPing.
@@ -5774,6 +5882,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server not found'**
   String get serverNotFound;
+
+  /// No description provided for @serverListClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get serverListClearSearch;
+
+  /// No description provided for @serverSelectPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a server to view details'**
+  String get serverSelectPrompt;
 
   /// No description provided for @serverSingle.
   ///

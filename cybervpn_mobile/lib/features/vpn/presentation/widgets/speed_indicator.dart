@@ -72,8 +72,9 @@ class _SpeedGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isActive ? Colors.green.shade400 : Colors.grey.shade600;
-    final textColor = isActive ? Colors.white : Colors.grey.shade500;
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = isActive ? colorScheme.tertiary : colorScheme.outline;
+    final textColor = isActive ? colorScheme.onSurface : colorScheme.onSurfaceVariant;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -98,7 +99,7 @@ class _SpeedGauge extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey.shade500,
+            color: colorScheme.onSurfaceVariant,
             fontSize: 10,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.8,
@@ -128,7 +129,7 @@ class _SpeedGauge extends StatelessWidget {
         Text(
           total,
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: colorScheme.onSurfaceVariant,
             fontSize: 11,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),

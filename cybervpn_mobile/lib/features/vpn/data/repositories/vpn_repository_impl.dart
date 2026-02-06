@@ -63,7 +63,8 @@ class VpnRepositoryImpl implements VpnRepository {
       await _engine.connect(config.configData, remark: config.name);
       AppLogger.info('VPN connected to ${config.name}');
       return const Success(null);
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.warning('VPN connect failed', error: e, stackTrace: st);
       return Failure(VpnFailure(message: e.toString()));
     }
   }
@@ -73,7 +74,8 @@ class VpnRepositoryImpl implements VpnRepository {
     try {
       await _engine.disconnect();
       return const Success(null);
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.warning('VPN disconnect failed', error: e, stackTrace: st);
       return Failure(VpnFailure(message: e.toString()));
     }
   }
@@ -82,16 +84,22 @@ class VpnRepositoryImpl implements VpnRepository {
   Future<Result<bool>> get isConnected async {
     try {
       return Success(_engine.isConnected);
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.warning('VPN isConnected check failed', error: e, stackTrace: st);
       return Failure(VpnFailure(message: e.toString()));
     }
   }
 
   @override
   Stream<ConnectionStateEntity> get connectionStateStream {
-    return _engine.statusStream.map((status) => ConnectionStateEntity(
-      status: status.state == 'CONNECTED' ? VpnConnectionStatus.connected : VpnConnectionStatus.disconnected,
-    ));
+    return _engine.statusStream.map((status) {
+      final engineState = VlessEngineState.fromString(status.state);
+      return ConnectionStateEntity(
+        status: engineState == VlessEngineState.connected
+            ? VpnConnectionStatus.connected
+            : VpnConnectionStatus.disconnected,
+      );
+    });
   }
 
   @override
