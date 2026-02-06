@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart'
@@ -61,8 +62,8 @@ class _BiometricSettingsScreenState
       if (!authenticated) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Biometric verification required'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).biometricVerificationRequired),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -101,8 +102,8 @@ class _BiometricSettingsScreenState
         SnackBar(
           content: Text(
             value
-                ? 'Biometric login enabled'
-                : 'Biometric login disabled',
+                ? AppLocalizations.of(context).biometricLoginEnabled
+                : AppLocalizations.of(context).biometricLoginDisabled,
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -117,12 +118,12 @@ class _BiometricSettingsScreenState
     return showDialog<({String email, String password})>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Enter credentials'),
+        title: Text(AppLocalizations.of(context).biometricEnterCredentialsTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Enter your login credentials to enable quick sign-in with biometrics.',
+            Text(
+              AppLocalizations.of(context).biometricEnterCredentialsMessage,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -149,7 +150,7 @@ class _BiometricSettingsScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -159,7 +160,7 @@ class _BiometricSettingsScreenState
                 Navigator.of(context).pop((email: email, password: password));
               }
             },
-            child: const Text('Save'),
+            child: Text(AppLocalizations.of(context).biometricSave),
           ),
         ],
       ),
@@ -177,8 +178,8 @@ class _BiometricSettingsScreenState
       if (!authenticated) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Biometric verification required'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).biometricVerificationRequired),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -199,7 +200,7 @@ class _BiometricSettingsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            value ? 'App lock enabled' : 'App lock disabled',
+            value ? AppLocalizations.of(context).biometricAppLockEnabled : AppLocalizations.of(context).biometricAppLockDisabled,
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -215,7 +216,7 @@ class _BiometricSettingsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Security'),
+        title: Text(AppLocalizations.of(context).biometricSettingsTitle),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

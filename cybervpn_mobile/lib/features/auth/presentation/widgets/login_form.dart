@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
@@ -87,6 +88,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final authAsync = ref.watch(authProvider);
     final authState = authAsync.value;
     final isLoading = authState is AuthLoading;
@@ -181,7 +183,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               ),
               const SizedBox(width: 8),
               ExcludeSemantics(
-                child: Text('Remember me', style: theme.textTheme.bodyMedium),
+                child: Text(l10n.loginRememberMe, style: theme.textTheme.bodyMedium),
               ),
               const Spacer(),
               FocusTraversalOrder(
@@ -192,7 +194,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   child: TextButton(
                     onPressed: isLoading ? null : widget.onForgotPassword,
                     child: Text(
-                      'Forgot password?',
+                      l10n.forgotPassword,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                       ),
@@ -222,7 +224,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                           height: 24,
                           child: CircularProgressIndicator(strokeWidth: 2.5),
                         )
-                      : const ExcludeSemantics(child: Text('Login')),
+                      : ExcludeSemantics(child: Text(l10n.loginButton)),
                 ),
               ),
             ),

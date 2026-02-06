@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -70,16 +71,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _showTelegramNotInstalledDialog() {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final notifier = ref.read(telegramAuthProvider.notifier);
 
     unawaited(showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Telegram Not Installed'),
-        content: const Text(
-          'The Telegram app is not installed on your device. '
-          'You can install it from the app store or use the web version.',
-        ),
+        title: Text(l10n.telegramNotInstalledTitle),
+        content: Text(l10n.telegramNotInstalledMessage),
         actions: [
           TextButton(
             onPressed: () {
@@ -87,7 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               notifier.cancel();
             },
             child: Text(
-              'Cancel',
+              l10n.cancel,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
@@ -96,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               Navigator.of(dialogContext).pop();
               unawaited(notifier.useWebFallback());
             },
-            child: const Text('Use Web'),
+            child: Text(l10n.telegramUseWeb),
           ),
           FilledButton(
             onPressed: () {
@@ -104,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               unawaited(notifier.openAppStore());
               notifier.cancel();
             },
-            child: const Text('Install'),
+            child: Text(l10n.telegramInstall),
           ),
         ],
       ),
