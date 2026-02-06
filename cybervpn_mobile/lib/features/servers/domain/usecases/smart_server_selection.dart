@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
@@ -10,6 +12,7 @@ import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repo
 /// Each factor is normalized to the [0, 1] range.
 /// Servers with load >= 70 % are penalized.
 /// Returns the server with the **lowest** score.
+@immutable
 class SmartServerSelection {
   const SmartServerSelection(this._repository);
 

@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
@@ -6,6 +8,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Returns the authorization URL that should be opened in a browser.
 /// The actual linking completion happens via [CompleteSocialAccountLinkUseCase].
+@immutable
 class LinkSocialAccountUseCase {
   final ProfileRepository _repository;
 
@@ -28,6 +31,7 @@ class LinkSocialAccountUseCase {
 }
 
 /// Use case for completing the OAuth linking flow with the callback code
+@immutable
 class CompleteSocialAccountLinkUseCase {
   final ProfileRepository _repository;
 

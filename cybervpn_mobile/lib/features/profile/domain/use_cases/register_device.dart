@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
@@ -6,6 +8,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Registers the device with the backend so it appears in the user's device list.
 /// Should be called on first VPN connection or when device is not yet registered.
+@immutable
 class RegisterDeviceUseCase {
   final ProfileRepository _repository;
 

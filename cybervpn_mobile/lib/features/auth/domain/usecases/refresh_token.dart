@@ -1,6 +1,9 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 
+@immutable
 class RefreshTokenUseCase {
   final AuthRepository _repository;
 

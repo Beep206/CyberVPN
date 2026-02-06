@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// After the user configures their authenticator app, they must
 /// verify a code to confirm 2FA is working correctly.
+@immutable
 class Verify2FAUseCase {
   final ProfileRepository _repository;
 

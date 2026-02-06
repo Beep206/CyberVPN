@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/features/config_import/data/parsers/shadowsocks_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/data/parsers/trojan_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/data/parsers/vless_parser.dart';
@@ -24,6 +26,7 @@ import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_pa
 ///     // handle error
 /// }
 /// ```
+@immutable
 class ParseVpnUri {
   /// Creates a [ParseVpnUri] use case with optional custom parsers.
   ///

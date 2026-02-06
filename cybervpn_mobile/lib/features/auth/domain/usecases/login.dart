@@ -1,9 +1,12 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 
+@immutable
 class LoginUseCase {
   final AuthRepository _repository;
 

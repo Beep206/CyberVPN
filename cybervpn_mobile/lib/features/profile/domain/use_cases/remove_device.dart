@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Removes the specified device session, logging it out remotely.
 /// Prevents the user from removing their current device session.
+@immutable
 class RemoveDeviceUseCase {
   final ProfileRepository _repository;
 

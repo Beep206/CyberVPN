@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
@@ -6,6 +8,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Simple passthrough to the repository for consistency
 /// with the use case pattern used across the domain layer.
+@immutable
 class GetProfileUseCase {
   final ProfileRepository _repository;
 

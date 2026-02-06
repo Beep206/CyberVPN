@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_rep
 ///
 /// Requires a valid TOTP code to confirm the user has access
 /// to their authenticator before removing 2FA protection.
+@immutable
 class Disable2FAUseCase {
   final ProfileRepository _repository;
 
