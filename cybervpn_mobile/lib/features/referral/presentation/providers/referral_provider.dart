@@ -6,20 +6,9 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
-
-// ---------------------------------------------------------------------------
-// Repository provider (override in DI setup / tests)
-// ---------------------------------------------------------------------------
-
-/// Provides the [ReferralRepository] implementation.
-///
-/// Must be overridden in a [ProviderScope] with a configured instance.
-final referralRepositoryProvider = Provider<ReferralRepository>((ref) {
-  throw UnimplementedError(
-    'referralRepositoryProvider must be overridden with a concrete '
-    'ReferralRepository (e.g. via ProviderScope overrides).',
-  );
-});
+import 'package:cybervpn_mobile/core/di/providers.dart' show referralRepositoryProvider;
+// Re-export so dependents can import from this file.
+export 'package:cybervpn_mobile/core/di/providers.dart' show referralRepositoryProvider;
 
 // ---------------------------------------------------------------------------
 // Referral State

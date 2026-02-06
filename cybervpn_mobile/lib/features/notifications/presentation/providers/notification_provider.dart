@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider, localStorageProvider;
 import 'package:cybervpn_mobile/features/notifications/data/datasources/fcm_datasource.dart';
+import 'package:cybervpn_mobile/features/notifications/data/datasources/notification_local_datasource.dart';
 import 'package:cybervpn_mobile/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/repositories/notification_repository.dart';
@@ -15,37 +17,26 @@ import 'package:cybervpn_mobile/features/notifications/presentation/providers/no
 // Repository & datasource providers
 // ---------------------------------------------------------------------------
 
-/// Provides the [NotificationRepository] implementation.
-///
-/// Override this in tests or in the root [ProviderScope] to inject
-/// the concrete [NotificationRepositoryImpl].
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  throw UnimplementedError(
-    'notificationRepositoryProvider must be overridden with a concrete '
-    'NotificationRepository (e.g. via ProviderScope overrides).',
-  );
-});
-
-/// Provides the [NotificationRepositoryImpl] for access to the [incoming]
-/// stream of FCM-originated notifications.
-///
-/// Override in tests to inject a mock.
-final notificationRepositoryImplProvider =
-    Provider<NotificationRepositoryImpl>((ref) {
-  throw UnimplementedError(
-    'notificationRepositoryImplProvider must be overridden with a concrete '
-    'NotificationRepositoryImpl (e.g. via ProviderScope overrides).',
-  );
-});
-
-/// Provides the [FcmDatasource] singleton.
+/// Provides the [FcmDatasource] singleton (lazily created).
 ///
 /// Override in tests to inject a mock.
 final fcmDatasourceProvider = Provider<FcmDatasource>((ref) {
-  throw UnimplementedError(
-    'fcmDatasourceProvider must be overridden with a concrete '
-    'FcmDatasource (e.g. via ProviderScope overrides).',
+  return FcmDatasourceImpl();
+});
+
+/// Provides the [NotificationRepositoryImpl] lazily via ref.watch.
+final notificationRepositoryImplProvider =
+    Provider<NotificationRepositoryImpl>((ref) {
+  return NotificationRepositoryImpl(
+    fcmDatasource: ref.watch(fcmDatasourceProvider),
+    localDatasource: NotificationLocalDatasourceImpl(ref.watch(localStorageProvider)),
+    apiClient: ref.watch(apiClientProvider),
   );
+});
+
+/// Provides the [NotificationRepository] implementation via the impl provider.
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return ref.watch(notificationRepositoryImplProvider);
 });
 
 // ---------------------------------------------------------------------------

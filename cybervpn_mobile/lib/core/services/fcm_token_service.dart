@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider;
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
@@ -137,10 +138,8 @@ class FcmTokenService {
 
 /// Provider for [FcmTokenService].
 ///
-/// Requires an [ApiClient] instance. Override in tests with a mock.
+/// Lazily resolved via [apiClientProvider]. Override in tests with a mock.
 final fcmTokenServiceProvider = Provider<FcmTokenService>((ref) {
-  throw UnimplementedError(
-    'fcmTokenServiceProvider must be overridden with a concrete '
-    'FcmTokenService instance (e.g. via ProviderScope overrides).',
-  );
+  final apiClient = ref.watch(apiClientProvider);
+  return FcmTokenService(apiClient: apiClient);
 });
