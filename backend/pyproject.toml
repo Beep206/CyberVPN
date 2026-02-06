@@ -25,6 +25,8 @@ dependencies = [
     "structlog>=24.0.0",
     # SEC: CVE-2026-0994 - protobuf vulnerability fix
     "protobuf>=6.33.5",
+    # Metrics and monitoring
+    "prometheus-client>=0.20.0",
 ]
 
 [project.optional-dependencies]
