@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
@@ -30,16 +31,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   void initState() {
     super.initState();
-    enableProtection();
+    unawaited(enableProtection());
     // Check and auto-trigger biometric login after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndTriggerBiometric();
+      unawaited(_checkAndTriggerBiometric());
     });
   }
 
   @override
   void dispose() {
-    disableProtection();
+    unawaited(disableProtection());
     super.dispose();
   }
 
@@ -58,20 +59,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _handleBiometricLogin() {
-    ref.read(biometricLoginProvider.notifier).authenticate(
+    unawaited(ref.read(biometricLoginProvider.notifier).authenticate(
           reason: 'Sign in to CyberVPN',
-        );
+        ));
   }
 
   void _handleTelegramLogin() {
-    ref.read(telegramAuthProvider.notifier).startLogin();
+    unawaited(ref.read(telegramAuthProvider.notifier).startLogin());
   }
 
   void _showTelegramNotInstalledDialog() {
     final theme = Theme.of(context);
     final notifier = ref.read(telegramAuthProvider.notifier);
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Telegram Not Installed'),
@@ -93,21 +94,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              notifier.useWebFallback();
+              unawaited(notifier.useWebFallback());
             },
             child: const Text('Use Web'),
           ),
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              notifier.openAppStore();
+              unawaited(notifier.openAppStore());
               notifier.cancel();
             },
             child: const Text('Install'),
           ),
         ],
       ),
-    );
+    ));
   }
 
   @override

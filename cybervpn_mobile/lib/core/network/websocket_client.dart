@@ -362,7 +362,7 @@ class WebSocketClient {
         AppLogger.warning(
             'WebSocket: force disconnect received: ${event.reason}');
         _intentionalClose = true; // Do not reconnect after force disconnect.
-        _closeChannel();
+        unawaited(_closeChannel());
         _setConnectionState(WebSocketConnectionState.disconnected);
         return;
       }
@@ -409,7 +409,7 @@ class WebSocketClient {
 
     _reconnectTimer = Timer(delay, () {
       _reconnectAttempt++;
-      _doConnect();
+      unawaited(_doConnect());
     });
   }
 

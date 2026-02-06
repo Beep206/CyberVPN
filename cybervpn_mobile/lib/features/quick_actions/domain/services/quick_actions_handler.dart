@@ -60,9 +60,9 @@ class QuickActionsHandler {
   void _handleAction(String actionType) {
     switch (actionType) {
       case QuickActionsService.actionQuickConnect:
-        _handleQuickConnect();
+        unawaited(_handleQuickConnect());
       case QuickActionsService.actionDisconnect:
-        _handleDisconnect();
+        unawaited(_handleDisconnect());
       case QuickActionsService.actionScanQr:
         _handleScanQr();
       case QuickActionsService.actionServers:
@@ -218,7 +218,7 @@ class QuickActionsHandler {
       }
 
       // Navigate to QR scanner route
-      context.pushNamed('config-import-qr-scanner');
+      unawaited(context.pushNamed('config-import-qr-scanner'));
       AppLogger.info(
         'Quick action: navigated to QR scanner',
         category: 'quick_actions',
@@ -264,6 +264,6 @@ class QuickActionsHandler {
   }
 
   void dispose() {
-    _actionSubscription?.cancel();
+    unawaited(_actionSubscription?.cancel());
   }
 }

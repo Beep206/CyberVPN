@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -24,7 +25,7 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
     super.initState();
     // Auto-trigger biometric on first display
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _attemptUnlock();
+      unawaited(_attemptUnlock());
     });
   }
 

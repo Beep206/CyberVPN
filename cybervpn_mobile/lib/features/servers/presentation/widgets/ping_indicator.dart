@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Small chip displaying server latency with color-coded background.
@@ -124,7 +125,8 @@ class _ShimmerDotsState extends State<_ShimmerDots>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat();
+    );
+    unawaited(_controller.repeat());
   }
 
   @override

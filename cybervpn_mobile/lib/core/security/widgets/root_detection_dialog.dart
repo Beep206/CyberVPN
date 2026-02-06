@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
@@ -40,7 +41,7 @@ class RootDetectionDialog extends StatelessWidget {
   }) async {
     // Tag Sentry scope to track rooted device users
     await Sentry.configureScope((scope) {
-      scope.setTag('device_rooted', 'true');
+      unawaited(scope.setTag('device_rooted', 'true'));
     });
 
     AppLogger.warning(

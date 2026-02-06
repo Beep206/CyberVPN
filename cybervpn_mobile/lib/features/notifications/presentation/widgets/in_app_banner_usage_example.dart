@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -93,9 +94,9 @@ class _NotificationBannerListenerState
           // Navigate to notification details or relevant screen
           final route = notification.actionRoute;
           if (route != null) {
-            context.push(route);
+            unawaited(context.push(route));
           } else {
-            context.push('/notifications');
+            unawaited(context.push('/notifications'));
           }
         },
       ),
@@ -139,7 +140,7 @@ class _ExampleScreen extends StatelessWidget {
         message: 'Server will be under maintenance from 2 AM to 4 AM UTC',
         onTap: () {
           // Navigate to server status page
-          context.push('/servers');
+          unawaited(context.push('/servers'));
         },
       ),
     );

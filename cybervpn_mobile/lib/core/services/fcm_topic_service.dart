@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -220,9 +221,9 @@ final fcmTopicSyncProvider = Provider<void>((ref) {
 
   // Sync all subscriptions when settings change
   // Using addPostFrameCallback to avoid calling async during build
-  Future.microtask(() async {
+  unawaited(Future.microtask(() async {
     await service.syncAllTopicSubscriptions(settings);
-  });
+  }));
 });
 
 // ---------------------------------------------------------------------------

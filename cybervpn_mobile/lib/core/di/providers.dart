@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/network/auth_interceptor.dart';
+import 'package:cybervpn_mobile/core/network/retry_interceptor.dart';
 import 'package:cybervpn_mobile/core/security/device_integrity.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
@@ -173,6 +174,9 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   final apiClient = ApiClient(dio: dio, baseUrl: EnvironmentConfig.baseUrl);
   apiClient.addInterceptor(
     AuthInterceptor(secureStorage: secureStorage, dio: dio),
+  );
+  apiClient.addInterceptor(
+    RetryInterceptor(dio: dio, maxRetries: 3),
   );
 
   return [

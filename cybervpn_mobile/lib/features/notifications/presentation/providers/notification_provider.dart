@@ -69,7 +69,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
     final unreadCount = notifications.where((n) => !n.isRead).length;
 
     // Register FCM token (fire-and-forget; do not block init).
-    _registerFcmToken();
+    unawaited(_registerFcmToken());
 
     // Set up real-time listeners.
     _listenToIncomingFcm();
@@ -233,7 +233,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
             actionRoute: event.data['action_route'] as String?,
             data: event.data.isNotEmpty ? event.data : null,
           );
-          addNotification(notification);
+          unawaited(addNotification(notification));
         },
         onError: (Object e) {
           AppLogger.error('WebSocket notification stream error', error: e);
@@ -257,8 +257,8 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   }
 
   void _dispose() {
-    _incomingSub?.cancel();
-    _webSocketSub?.cancel();
+    unawaited(_incomingSub?.cancel());
+    unawaited(_webSocketSub?.cancel());
   }
 }
 

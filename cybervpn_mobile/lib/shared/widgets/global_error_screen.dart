@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -30,7 +31,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
   @override
   void initState() {
     super.initState();
-    _logErrorToSentry();
+    unawaited(_logErrorToSentry());
   }
 
   /// Logs the error to Sentry automatically on first build.
@@ -48,13 +49,13 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
   /// Sends the error with a breadcrumb indicating the user explicitly
   /// requested the report.
   Future<void> _onReport() async {
-    Sentry.addBreadcrumb(
+    unawaited(Sentry.addBreadcrumb(
       Breadcrumb(
         message: 'User tapped Report on GlobalErrorScreen',
         category: 'ui.action',
         level: SentryLevel.info,
       ),
-    );
+    ));
     await Sentry.captureException(
       widget.error.exception,
       stackTrace: widget.error.stack,

@@ -22,7 +22,7 @@ class VpnEngineDatasource {
     if (_initialized) return;
     _initialized = true;
 
-    v2ray.initializeVless(
+    await v2ray.initializeVless(
       notificationIconResourceType: notificationIconResourceType,
       notificationIconResourceName: notificationIconResourceName,
       providerBundleIdentifier: providerBundleIdentifier,
@@ -56,7 +56,8 @@ class VpnEngineDatasource {
     return _lastStatus?.state == 'CONNECTED';
   }
 
-  Stream<VlessStatus> get statusStream => v2ray.onStatusChanged;
+  Stream<VlessStatus> get statusStream =>
+      v2ray.onStatusChanged.distinct((a, b) => a.state == b.state);
 
   Future<int> getServerDelay(String config) async {
     return v2ray.getServerDelay(config: config);
@@ -75,7 +76,7 @@ class VpnEngineDatasource {
   }
 
   void dispose() {
-    _statusSubscription?.cancel();
+    unawaited(_statusSubscription?.cancel());
     _statusSubscription = null;
     _v2ray = null;
     _lastStatus = null;

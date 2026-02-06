@@ -69,7 +69,7 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
 
     // Subscribe to the repository stream for stats updates.
     final repository = ref.read(vpnRepositoryProvider);
-    _streamSub?.cancel();
+    unawaited(_streamSub?.cancel());
     _streamSub = repository.connectionStatsStream.listen(
       _onStatsReceived,
       onError: (Object e) {
@@ -87,7 +87,7 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
   void _stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    _streamSub?.cancel();
+    unawaited(_streamSub?.cancel());
     _streamSub = null;
     _previousSnapshot = null;
     _previousTimestamp = null;
@@ -96,13 +96,13 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
     state = null;
 
     // Notify the native widget that the VPN is disconnected.
-    _widgetBridge.updateWidgetState(
+    unawaited(_widgetBridge.updateWidgetState(
       vpnStatus: 'disconnected',
       serverName: '',
       uploadSpeed: 0,
       downloadSpeed: 0,
       sessionDuration: Duration.zero,
-    );
+    ));
   }
 
   // -- Stats processing -----------------------------------------------------
@@ -149,13 +149,13 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
     state = updated;
 
     // Push latest stats to the native home-screen widget.
-    _widgetBridge.updateWidgetState(
+    unawaited(_widgetBridge.updateWidgetState(
       vpnStatus: 'connected',
       serverName: updated.serverName ?? '',
       uploadSpeed: updated.uploadSpeed.toDouble(),
       downloadSpeed: updated.downloadSpeed.toDouble(),
       sessionDuration: updated.connectionDuration,
-    );
+    ));
   }
 
   /// Called every second by the poll timer to keep the duration ticking even
@@ -182,7 +182,7 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
 
   void _dispose() {
     _pollTimer?.cancel();
-    _streamSub?.cancel();
+    unawaited(_streamSub?.cancel());
   }
 }
 

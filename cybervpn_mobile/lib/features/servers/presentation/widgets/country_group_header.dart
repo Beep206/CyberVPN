@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
@@ -60,9 +61,9 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
     super.didUpdateWidget(oldWidget);
     if (widget.isExpanded != oldWidget.isExpanded) {
       if (widget.isExpanded) {
-        _arrowController.forward();
+        unawaited(_arrowController.forward());
       } else {
-        _arrowController.reverse();
+        unawaited(_arrowController.reverse());
       }
     }
   }

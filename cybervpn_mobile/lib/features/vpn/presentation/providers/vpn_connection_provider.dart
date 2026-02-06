@@ -237,7 +237,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     final isAuthenticated = authState is AuthAuthenticated;
 
     if (vpnSettings.autoConnectOnLaunch && isAuthenticated) {
-      _handleAutoConnect();
+      unawaited(_handleAutoConnect());
     }
 
     return const VpnDisconnected();
@@ -350,12 +350,12 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     _autoReconnect.start(config);
 
     // Auto-register device on first connection
-    _registerDeviceIfNeeded();
+    unawaited(_registerDeviceIfNeeded());
 
     state = AsyncData(VpnConnected(server: server, protocol: protocol));
 
     // Trigger review prompt after successful connection
-    _handleReviewPrompt();
+    unawaited(_handleReviewPrompt());
   }
 
   /// Gracefully disconnect from the VPN.
@@ -722,7 +722,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
       if (device != null) {
         AppLogger.info('Device auto-registered on VPN connection: ${device.name}');
         // Optionally refresh the profile to include the new device in the list
-        ref.read(profileProvider.notifier).refreshProfile();
+        unawaited(ref.read(profileProvider.notifier).refreshProfile());
       }
     } catch (e, st) {
       // Non-critical error - log but don't fail the connection
@@ -804,9 +804,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   }
 
   void _dispose() {
-    _stateSubscription?.cancel();
-    _networkSubscription?.cancel();
-    _webSocketSubscription?.cancel();
+    unawaited(_stateSubscription?.cancel());
+    unawaited(_networkSubscription?.cancel());
+    unawaited(_webSocketSubscription?.cancel());
     _autoReconnect.dispose();
   }
 }

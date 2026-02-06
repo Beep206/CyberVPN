@@ -305,7 +305,7 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
 
   /// Disposes resources when the provider is no longer used.
   void _dispose() {
-    _webSocketSubscription?.cancel();
+    unawaited(_webSocketSubscription?.cancel());
   }
 
   // ── App attestation (logging mode) ─────────────────────────────────
@@ -400,7 +400,7 @@ class SubscriptionLifecycleObserver {
   /// Call from [WidgetsBindingObserver.didChangeAppLifecycleState].
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
     if (lifecycleState == AppLifecycleState.resumed) {
-      _ref.read(subscriptionProvider.notifier).onAppResumed();
+      unawaited(_ref.read(subscriptionProvider.notifier).onAppResumed());
     }
   }
 }

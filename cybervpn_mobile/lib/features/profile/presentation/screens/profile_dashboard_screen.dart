@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -402,8 +403,8 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.rocket_launch_outlined,
           label: 'Upgrade Plan',
           onTap: () {
-            HapticFeedback.lightImpact();
-            context.push('/plans');
+            unawaited(HapticFeedback.lightImpact());
+            unawaited(context.push('/plans'));
           },
         ),
 
@@ -413,8 +414,8 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.people_outline,
           label: 'Invite Friends',
           onTap: () {
-            HapticFeedback.lightImpact();
-            context.push('/referral');
+            unawaited(HapticFeedback.lightImpact());
+            unawaited(context.push('/referral'));
           },
         ),
 
@@ -424,8 +425,8 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.security_outlined,
           label: 'Security Settings',
           onTap: () {
-            HapticFeedback.lightImpact();
-            context.push('/profile/security');
+            unawaited(HapticFeedback.lightImpact());
+            unawaited(context.push('/profile/security'));
           },
         ),
       ],

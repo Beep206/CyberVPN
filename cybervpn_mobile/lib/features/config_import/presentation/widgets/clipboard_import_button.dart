@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -111,7 +112,7 @@ class _ClipboardImportObserverState
 
     // Only check clipboard when app resumes from background
     if (state == AppLifecycleState.resumed) {
-      _checkClipboardOnResume();
+      unawaited(_checkClipboardOnResume());
     }
   }
 
@@ -259,7 +260,7 @@ class _ClipboardImportObserverState
 
   /// Show bottom sheet with detected configs and import options.
   void _showImportBottomSheet(List<DetectedConfig> configs) {
-    showModalBottomSheet<void>(
+    unawaited(showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -269,7 +270,7 @@ class _ClipboardImportObserverState
         onDismiss: _handleDismiss,
         onDontAskAgain: _handleDontAskAgain,
       ),
-    );
+    ));
   }
 
   /// Handle import action: import all detected configs.
@@ -319,13 +320,13 @@ class _ClipboardImportObserverState
     final haptics = ref.read(hapticServiceProvider);
     if (successCount > 0 && failureCount == 0) {
       // All succeeded - success haptic
-      haptics.success();
+      unawaited(haptics.success());
     } else if (successCount > 0 && failureCount > 0) {
       // Partial success - impact haptic
-      haptics.impact();
+      unawaited(haptics.impact());
     } else {
       // All failed - error haptic
-      haptics.error();
+      unawaited(haptics.error());
     }
 
     // Show result snackbar

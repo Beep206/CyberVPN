@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:async';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
@@ -253,20 +254,20 @@ mixin NetworkErrorHandler {
       stackTrace: e.stackTrace,
     );
 
-    Sentry.captureException(
+    unawaited(Sentry.captureException(
       e,
       stackTrace: e.stackTrace,
       withScope: (scope) {
-        scope.setTag('request.path', e.requestOptions.path);
-        scope.setTag('request.method', e.requestOptions.method);
+        unawaited(scope.setTag('request.path', e.requestOptions.path));
+        unawaited(scope.setTag('request.method', e.requestOptions.method));
         if (e.response?.statusCode != null) {
-          scope.setTag(
+          unawaited(scope.setTag(
             'response.status_code',
             e.response!.statusCode.toString(),
-          );
+          ));
         }
       },
-    );
+    ));
 
     return UnknownFailure(
       message: e.message ?? 'An unexpected error occurred',

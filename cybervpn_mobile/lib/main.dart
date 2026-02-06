@@ -53,7 +53,7 @@ Future<void> main() async {
 
   // Defer non-critical initialization to post-launch for faster cold start.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _initializeDeferredServices();
+    unawaited(_initializeDeferredServices());
   });
 
   final dsn = EnvironmentConfig.sentryDsn;
@@ -148,14 +148,14 @@ void _runApp(SharedPreferences prefs) {
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-      Sentry.captureException(details.exception, stackTrace: details.stack);
+      unawaited(Sentry.captureException(details.exception, stackTrace: details.stack));
     }
   };
 
   // Capture platform-level errors that escape the Flutter framework.
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-      Sentry.captureException(error, stackTrace: stack);
+      unawaited(Sentry.captureException(error, stackTrace: stack));
     }
     return true;
   };

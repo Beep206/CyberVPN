@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -146,14 +147,14 @@ class ThemeNotifier extends Notifier<ThemeState> {
   /// Updates the theme mode and persists the change.
   void setThemeMode(AppThemeMode mode) {
     final prefs = ref.read(themePrefsProvider);
-    _saveThemeMode(prefs, mode);
+    unawaited(_saveThemeMode(prefs, mode));
     state = state.copyWith(themeMode: mode);
   }
 
   /// Updates the brightness preference and persists the change.
   void setBrightness(ThemeBrightness brightness) {
     final prefs = ref.read(themePrefsProvider);
-    _saveBrightness(prefs, brightness);
+    unawaited(_saveBrightness(prefs, brightness));
     state = state.copyWith(brightness: brightness);
   }
 }

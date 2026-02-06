@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,7 +61,7 @@ class AnalyticsConsentNotifier extends Notifier<bool> {
 
     // Ensure the Firebase collection state matches the persisted preference
     // on first build (e.g. app cold start).
-    _syncAnalyticsCollection(consent);
+    unawaited(_syncAnalyticsCollection(consent));
 
     return consent;
   }

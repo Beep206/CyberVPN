@@ -146,7 +146,7 @@ class PingService {
   void startAutoRefresh() {
     stopAutoRefresh();
     _refreshTimer = Timer.periodic(refreshInterval, (_) {
-      testAll();
+      unawaited(testAll());
     });
   }
 

@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -237,7 +238,7 @@ class AppLogger {
     Map<String, dynamic>? data,
   }) {
     if (!_sentryEnabled) return;
-    Sentry.addBreadcrumb(
+    unawaited(Sentry.addBreadcrumb(
       Breadcrumb(
         message: message,
         level: level,
@@ -245,7 +246,7 @@ class AppLogger {
         timestamp: DateTime.now().toUtc(),
         data: data,
       ),
-    );
+    ));
   }
 }
 

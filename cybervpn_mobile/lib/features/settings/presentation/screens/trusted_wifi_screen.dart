@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
@@ -101,7 +102,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
   }
 
   void _showAddManualDialog() {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Trusted Network'),
@@ -126,7 +127,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Future<void> _addManualNetwork() async {
@@ -170,7 +171,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
   void _showPermissionDeniedDialog(WifiPermissionStatus status) {
     final isPermanent = status == WifiPermissionStatus.permanentlyDenied;
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Permission Required'),
@@ -191,7 +192,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
                 // Open app settings
-                ref.read(wifiMonitorServiceProvider).openAppSettings();
+                unawaited(ref.read(wifiMonitorServiceProvider).openAppSettings());
               },
               child: const Text('Open Settings'),
             )
@@ -199,13 +200,13 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
             FilledButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _addCurrentNetwork();
+                unawaited(_addCurrentNetwork());
               },
               child: const Text('Try Again'),
             ),
         ],
       ),
-    );
+    ));
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

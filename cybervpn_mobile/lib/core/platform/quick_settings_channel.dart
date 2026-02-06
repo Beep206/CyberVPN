@@ -130,9 +130,9 @@ class QuickSettingsChannel {
     AppLogger.debug('QuickSettingsChannel: Broadcasting state: $stateString');
 
     try {
-      _stateUpdateChannel.invokeMethod('updateTileState', {
+      unawaited(_stateUpdateChannel.invokeMethod('updateTileState', {
         'state': stateString,
-      });
+      }));
     } catch (e) {
       AppLogger.error('QuickSettingsChannel: Failed to broadcast state', error: e);
     }

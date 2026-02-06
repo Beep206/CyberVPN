@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
@@ -71,7 +72,7 @@ class ServerDetailScreen extends ConsumerWidget {
               color: server.isFavorite ? Colors.amber : null,
             ),
             onPressed: () {
-              ref.read(serverListProvider.notifier).toggleFavorite(server.id);
+              unawaited(ref.read(serverListProvider.notifier).toggleFavorite(server.id));
             },
           ),
         ],

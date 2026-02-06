@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -34,9 +35,9 @@ class FavoritesReorderableList extends ConsumerWidget {
       itemCount: favorites.length,
       proxyDecorator: _proxyDecorator,
       onReorder: (int oldIndex, int newIndex) {
-        ref
+        unawaited(ref
             .read(serverListProvider.notifier)
-            .reorderFavorites(oldIndex, newIndex);
+            .reorderFavorites(oldIndex, newIndex));
       },
       itemBuilder: (BuildContext context, int index) {
         final server = favorites[index];
@@ -173,10 +174,10 @@ class _FavoriteServerItemState extends ConsumerState<_FavoriteServerItem>
   }
 
   void _handleToggleFavorite() {
-    _starScaleController.forward(from: 0.0);
-    ref
+    unawaited(_starScaleController.forward(from: 0.0));
+    unawaited(ref
         .read(serverListProvider.notifier)
-        .toggleFavorite(widget.server.id);
+        .toggleFavorite(widget.server.id));
   }
 
   @override

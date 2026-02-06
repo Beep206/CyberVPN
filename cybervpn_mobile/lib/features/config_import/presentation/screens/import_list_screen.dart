@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -39,7 +40,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
   }
 
   void _onDeleteConfig(ImportedConfig config) {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Server'),
@@ -52,20 +53,20 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(configImportProvider.notifier).deleteConfig(config.id);
+              unawaited(ref.read(configImportProvider.notifier).deleteConfig(config.id));
               _showSnackbar('Server removed');
             },
             child: const Text('Delete'),
           ),
         ],
       ),
-    );
+    ));
   }
 
   void _onEditName(ImportedConfig config) {
     final controller = TextEditingController(text: config.name);
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Rename Server'),
@@ -80,9 +81,9 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
             final name = value.trim();
             if (name.isNotEmpty) {
               Navigator.of(ctx).pop();
-              ref
+              unawaited(ref
                   .read(configImportProvider.notifier)
-                  .updateConfigName(config.id, name);
+                  .updateConfigName(config.id, name));
               _showSnackbar('Server renamed');
             }
           },
@@ -97,9 +98,9 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
                 Navigator.of(ctx).pop();
-                ref
+                unawaited(ref
                     .read(configImportProvider.notifier)
-                    .updateConfigName(config.id, name);
+                    .updateConfigName(config.id, name));
                 _showSnackbar('Server renamed');
               }
             },
@@ -107,7 +108,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
           ),
         ],
       ),
-    ).whenComplete(controller.dispose);
+    ).whenComplete(controller.dispose));
   }
 
   Future<void> _onTestConnection(ImportedConfig config) async {
@@ -125,7 +126,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
   }
 
   void _onExportQr(ImportedConfig config) {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (ctx) {
         final theme = Theme.of(ctx);
@@ -163,11 +164,11 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
           ],
         );
       },
-    );
+    ));
   }
 
   void _onClearAll() {
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Clear All Servers'),
@@ -185,18 +186,18 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(configImportProvider.notifier).deleteAll();
+              unawaited(ref.read(configImportProvider.notifier).deleteAll());
               _showSnackbar('All custom servers removed');
             },
             child: const Text('Clear All'),
           ),
         ],
       ),
-    );
+    ));
   }
 
   void _onFabPressed() {
-    showModalBottomSheet<void>(
+    unawaited(showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -225,7 +226,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
               title: const Text('Scan QR Code'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                Navigator.of(context).pushNamed('/qr-scanner');
+                unawaited(Navigator.of(context).pushNamed('/qr-scanner'));
               },
             ),
             ListTile(
@@ -264,13 +265,13 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _showSubscriptionUrlDialog() {
     final controller = TextEditingController();
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Subscription URL'),
@@ -308,7 +309,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
           ),
         ],
       ),
-    ).whenComplete(controller.dispose);
+    ).whenComplete(controller.dispose));
   }
 
   void _showSnackbar(String message) {

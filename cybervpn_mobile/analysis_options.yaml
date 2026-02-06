@@ -46,3 +46,5 @@ linter:
     - prefer_collection_literals
     - avoid_function_literals_in_foreach_calls
     - use_string_buffers
+    - unawaited_futures
+    - discarded_futures

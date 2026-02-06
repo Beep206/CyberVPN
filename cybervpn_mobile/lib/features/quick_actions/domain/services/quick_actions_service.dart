@@ -118,16 +118,16 @@ class QuickActionsService {
     // Create a stream controller to convert the callback-based API to a stream
     _actionController ??= StreamController<String>.broadcast();
 
-    _quickActions.initialize((type) {
+    unawaited(_quickActions.initialize((type) {
       _actionController?.add(type);
-    });
+    }));
 
     return _actionController!.stream;
   }
 
   /// Dispose resources when no longer needed.
   void dispose() {
-    _actionController?.close();
+    unawaited(_actionController?.close());
     _actionController = null;
   }
 }

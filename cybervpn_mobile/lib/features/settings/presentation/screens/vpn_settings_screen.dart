@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
@@ -243,7 +244,7 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
               final confirmed = await _showKillSwitchWarning();
               if (!confirmed) return;
             }
-            notifier.toggleKillSwitch();
+            unawaited(notifier.toggleKillSwitch());
           },
         ),
       ],
@@ -352,10 +353,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
                 if (parsed != null &&
                     parsed >= VpnConstants.minMtu &&
                     parsed <= VpnConstants.maxMtu) {
-                  notifier.updateMtu(
+                  unawaited(notifier.updateMtu(
                     mode: MtuMode.manual,
                     mtuValue: parsed,
-                  );
+                  ));
                 }
               },
             ),

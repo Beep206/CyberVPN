@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -61,7 +62,7 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
     );
     _animation = Tween<double>(begin: 0.0, end: _clamp(widget.speed))
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
+    unawaited(_controller.forward());
   }
 
   @override
@@ -75,9 +76,8 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
       ).animate(
         CurvedAnimation(parent: _controller, curve: Curves.easeOut),
       );
-      _controller
-        ..reset()
-        ..forward();
+      _controller.reset();
+      unawaited(_controller.forward());
     }
   }
 

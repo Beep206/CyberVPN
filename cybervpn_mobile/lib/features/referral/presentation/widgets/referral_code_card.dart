@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
@@ -35,7 +36,7 @@ class ReferralCodeCard extends ConsumerWidget {
   Future<void> _onCopy(BuildContext context, WidgetRef ref) async {
     // Trigger impact haptic on successful copy to clipboard.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.impact();
+    unawaited(haptics.impact());
 
     await Clipboard.setData(ClipboardData(text: referralCode));
     if (context.mounted) {
@@ -51,7 +52,7 @@ class ReferralCodeCard extends ConsumerWidget {
 
   Future<void> _onShare(WidgetRef ref) async {
     final haptics = ref.read(hapticServiceProvider);
-    haptics.impact();
+    unawaited(haptics.impact());
 
     await share_plus.Share.share(
       'Join CyberVPN with my referral link: $referralLink',

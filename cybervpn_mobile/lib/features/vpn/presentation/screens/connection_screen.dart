@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
@@ -35,7 +36,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
     super.initState();
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTooltipIfNeeded();
+      unawaited(_showTooltipIfNeeded());
     });
   }
 

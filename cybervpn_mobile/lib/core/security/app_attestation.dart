@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -266,7 +267,7 @@ class AppAttestationService {
 
     // Log to Sentry for monitoring
     try {
-      Sentry.addBreadcrumb(
+      unawaited(Sentry.addBreadcrumb(
         Breadcrumb(
           category: 'security.attestation',
           message: 'Attestation ${result.status.name}',
@@ -275,7 +276,7 @@ class AppAttestationService {
               : SentryLevel.warning,
           data: result.toJson(),
         ),
-      );
+      ));
 
       // Report failures to Sentry for monitoring
       if (result.status == AttestationStatus.failed) {

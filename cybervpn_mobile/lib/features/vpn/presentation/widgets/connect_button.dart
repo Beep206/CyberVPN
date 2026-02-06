@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -172,7 +173,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
   void _onTap(VpnConnectionState vpnState) {
     // Trigger heavy haptic on button press for significant actions.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.heavy();
+    unawaited(haptics.heavy());
 
     final notifier = ref.read(vpnConnectionProvider.notifier);
 
@@ -181,15 +182,15 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
         // Attempt to connect to the last known or default server.
         final server = ref.read(currentServerProvider);
         if (server != null) {
-          notifier.connect(server);
+          unawaited(notifier.connect(server));
         }
       case VpnConnected():
-        notifier.disconnect();
+        unawaited(notifier.disconnect());
       case VpnError():
         // Retry: try connecting again.
         final server = ref.read(currentServerProvider);
         if (server != null) {
-          notifier.connect(server);
+          unawaited(notifier.connect(server));
         }
       case VpnConnecting():
       case VpnDisconnecting():
@@ -204,7 +205,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
         vpnState is VpnConnecting || vpnState is VpnReconnecting;
 
     if (shouldPulse && !_pulseController.isAnimating) {
-      _pulseController.repeat(reverse: true);
+      unawaited(_pulseController.repeat(reverse: true));
     } else if (!shouldPulse && _pulseController.isAnimating) {
       _pulseController.stop();
       _pulseController.reset();
@@ -224,12 +225,12 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
 
     // Success haptic when connection is established.
     if (currentState is VpnConnected && _previousState is! VpnConnected) {
-      haptics.success();
+      unawaited(haptics.success());
     }
 
     // Error haptic when connection fails.
     if (currentState is VpnError && _previousState is! VpnError) {
-      haptics.error();
+      unawaited(haptics.error());
     }
 
     _previousState = currentState;

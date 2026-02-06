@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -208,7 +209,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (parseResult.route case TelegramAuthRoute(:final authData)) {
           // Trigger Telegram auth callback asynchronously.
           // The auth state listener will handle navigation on success.
-          ref.read(telegramAuthProvider.notifier).handleCallback(authData);
+          unawaited(ref.read(telegramAuthProvider.notifier).handleCallback(authData));
 
           // Stay on current screen (login/register) - the listener will
           // navigate to /connection on success.

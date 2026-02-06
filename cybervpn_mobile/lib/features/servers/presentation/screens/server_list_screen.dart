@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -49,7 +50,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     super.initState();
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTooltipIfNeeded();
+      unawaited(_showTooltipIfNeeded());
     });
   }
 
@@ -92,16 +93,16 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   Future<void> _onRefresh() async {
     // Trigger haptic feedback when refresh is released/triggered.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.selection();
+    unawaited(haptics.selection());
 
     await ref.read(serverListProvider.notifier).refresh();
   }
 
   void _onServerTap(ServerEntity server) {
-    Navigator.of(context).pushNamed(
+    unawaited(Navigator.of(context).pushNamed(
       '/server-detail',
       arguments: server.id,
-    );
+    ));
   }
 
   void _onFastestTap() {
@@ -121,7 +122,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
     // Trigger haptic feedback on server selection.
     final haptics = ref.read(hapticServiceProvider);
-    haptics.selection();
+    unawaited(haptics.selection());
 
     // Connect to the custom server using VPN connection provider
     try {

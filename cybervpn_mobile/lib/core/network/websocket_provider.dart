@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
@@ -36,7 +37,7 @@ final webSocketClientProvider = Provider<WebSocketClient>((ref) {
 
   ref.onDispose(() {
     AppLogger.info('Disposing WebSocketClient');
-    client.dispose();
+    unawaited(client.dispose());
   });
 
   return client;
