@@ -202,20 +202,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     final authState = ref.read(authProvider).value;
 
-    if (authState is AuthError) {
-      _passwordController.clear();
-      _confirmPasswordController.clear();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authState.message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (authState is AuthAuthenticated) {
-      if (!mounted) return;
-      context.go('/connection');
+    switch (authState) {
+      case AuthError(:final message):
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      case AuthAuthenticated():
+        if (!mounted) return;
+        context.go('/connection');
+      default:
+        break;
     }
   }
 

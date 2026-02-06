@@ -350,11 +350,10 @@ final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(
 
 /// Derived provider that yields the current [UserEntity] or `null`.
 final currentUserProvider = Provider<UserEntity?>((ref) {
-  final authState = ref.watch(authProvider).value;
-  if (authState is AuthAuthenticated) {
-    return authState.user;
-  }
-  return null;
+  return switch (ref.watch(authProvider).value) {
+    AuthAuthenticated(:final user) => user,
+    _ => null,
+  };
 });
 
 /// Derived provider that yields `true` when the user is authenticated.
