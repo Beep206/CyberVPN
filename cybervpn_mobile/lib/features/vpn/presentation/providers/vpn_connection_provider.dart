@@ -27,7 +27,8 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart
 import 'package:cybervpn_mobile/features/vpn/data/repositories/vpn_repository_impl.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show vpnEngineDatasourceProvider, localStorageProvider;
+    show vpnEngineDatasourceProvider, localStorageProvider,
+         deviceIntegrityCheckerProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
@@ -250,6 +251,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     final current = state.value;
     if (current is VpnConnected || current is VpnConnecting) return;
 
+    // Block VPN connection on rooted devices when enforcement is enabled.
+    if (await _shouldBlockForRootedDevice()) return;
+
     state = AsyncData(VpnConnecting(server: server));
 
     try {
@@ -281,6 +285,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   Future<void> connectFromCustomServer(ImportedConfig customServer) async {
     final current = state.value;
     if (current is VpnConnected || current is VpnConnecting) return;
+
+    // Block VPN connection on rooted devices when enforcement is enabled.
+    if (await _shouldBlockForRootedDevice()) return;
 
     // Create a pseudo ServerEntity for state tracking
     final pseudoServer = ServerEntity(
@@ -460,6 +467,23 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   }
 
   // -- Private helpers ------------------------------------------------------
+
+  /// Returns `true` and sets an error state if VPN should be blocked due to
+  /// root/jailbreak enforcement. Returns `false` when connection may proceed.
+  Future<bool> _shouldBlockForRootedDevice() async {
+    final checker = ref.read(deviceIntegrityCheckerProvider);
+    if (await checker.shouldBlockVpn()) {
+      AppLogger.warning(
+        'VPN connection blocked: device is rooted/jailbroken (enforcement: blocking)',
+        category: 'security',
+      );
+      state = const AsyncData(
+        VpnError(message: 'VPN is unavailable on rooted/jailbroken devices'),
+      );
+      return true;
+    }
+    return false;
+  }
 
   void _onRepositoryStateChanged(ConnectionStateEntity repoState) {
     final current = state.value;

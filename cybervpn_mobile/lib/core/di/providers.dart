@@ -73,8 +73,35 @@ final referralRepositoryProvider = Provider<ReferralRepository>((ref) {
 // ---------------------------------------------------------------------------
 
 /// Provides the [DeviceIntegrityChecker] for root/jailbreak detection.
+///
+/// The enforcement policy is resolved from [EnvironmentConfig.rootEnforcement]:
+/// - `logging` (default): warn only, never block VPN
+/// - `blocking`: prevent VPN connections on rooted devices
 final deviceIntegrityCheckerProvider = Provider<DeviceIntegrityChecker>((ref) {
-  return DeviceIntegrityChecker(ref.watch(sharedPreferencesProvider));
+  final policy = EnvironmentConfig.rootEnforcement == 'blocking'
+      ? RootEnforcementPolicy.blocking
+      : RootEnforcementPolicy.logging;
+  return DeviceIntegrityChecker(
+    ref.watch(sharedPreferencesProvider),
+    enforcementPolicy: policy,
+  );
+});
+
+/// Whether the current device is rooted/jailbroken.
+///
+/// This is a cached async check. Used by the warning banner and enforcement
+/// logic. Returns `false` if the check fails.
+final isDeviceRootedProvider = FutureProvider<bool>((ref) async {
+  final checker = ref.watch(deviceIntegrityCheckerProvider);
+  return checker.isDeviceRooted();
+});
+
+/// Whether the user has dismissed the root/jailbreak warning banner.
+///
+/// Used by the persistent warning banner to avoid showing after dismissal.
+final rootWarningDismissedProvider = FutureProvider<bool>((ref) async {
+  final checker = ref.watch(deviceIntegrityCheckerProvider);
+  return checker.hasUserDismissedWarning();
 });
 
 /// Provides the [Dio] HTTP client instance.

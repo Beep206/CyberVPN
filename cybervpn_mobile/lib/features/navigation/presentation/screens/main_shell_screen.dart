@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/security/widgets/root_detection_dialog.dart';
+import 'package:cybervpn_mobile/core/security/widgets/root_warning_banner.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
@@ -121,7 +122,12 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     );
 
     return Scaffold(
-      body: widget.navigationShell,
+      body: Column(
+        children: [
+          const RootWarningBanner(),
+          Expanded(child: widget.navigationShell),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: _onTabSelected,

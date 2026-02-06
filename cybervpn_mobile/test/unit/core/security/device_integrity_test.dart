@@ -136,5 +136,40 @@ void main() {
     // the flutter_jailbreak_detection plugin. This should be tested via
     // integration tests on actual devices or emulators with root detection
     // capabilities.
+
+    group('enforcement policy', () {
+      test('isBlockingEnabled returns false for logging policy', () {
+        final checker = DeviceIntegrityChecker(
+          mockPrefs,
+          enforcementPolicy: RootEnforcementPolicy.logging,
+        );
+        expect(checker.isBlockingEnabled, false);
+      });
+
+      test('isBlockingEnabled returns true for blocking policy', () {
+        final checker = DeviceIntegrityChecker(
+          mockPrefs,
+          enforcementPolicy: RootEnforcementPolicy.blocking,
+        );
+        expect(checker.isBlockingEnabled, true);
+      });
+
+      test('defaults to logging policy', () {
+        final checker = DeviceIntegrityChecker(mockPrefs);
+        expect(checker.enforcementPolicy, RootEnforcementPolicy.logging);
+        expect(checker.isBlockingEnabled, false);
+      });
+
+      test('shouldBlockVpn returns false when policy is logging', () async {
+        final checker = DeviceIntegrityChecker(
+          mockPrefs,
+          enforcementPolicy: RootEnforcementPolicy.logging,
+        );
+        // shouldBlockVpn should return false regardless of root status
+        // when policy is logging
+        final result = await checker.shouldBlockVpn();
+        expect(result, false);
+      });
+    });
   });
 }

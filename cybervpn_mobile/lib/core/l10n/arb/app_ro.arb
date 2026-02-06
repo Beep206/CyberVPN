@@ -809,5 +809,7 @@
   "quickSetupSkip": "Skip for now",
   "quickSetupComplete": "You're all set!",
   "splashLoading": "Loading...",
-  "splashInitializing": "Initializing..."
+  "splashInitializing": "Initializing...",
+  "rootDetectionBannerWarning": "This device is rooted/jailbroken. Your connection may be less secure.",
+  "rootDetectionBannerBlocking": "VPN is unavailable on rooted/jailbroken devices."
 }
