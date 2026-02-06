@@ -258,15 +258,15 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   // ── Sentry user context ─────────────────────────────────────────────
 
   /// Associates the authenticated [user] with Sentry so crash reports
-  /// include the user's identity.
+  /// can be correlated to a user session.
+  ///
+  /// **Privacy**: Only the user UUID is sent. Email and username are
+  /// intentionally omitted to comply with GDPR / `sendDefaultPii = false`
+  /// and to minimize the PII surface in third-party error monitoring.
   Future<void> _setSentryUser(UserEntity user) async {
     if (EnvironmentConfig.sentryDsn.isEmpty) return;
     await Sentry.configureScope((scope) async {
-      await scope.setUser(SentryUser(
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      ));
+      await scope.setUser(SentryUser(id: user.id));
     });
   }
 

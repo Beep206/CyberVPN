@@ -37,6 +37,11 @@ class AuthInterceptor extends Interceptor {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
 
+  /// Extra key used to mark refresh requests so they bypass the 401 handler.
+  /// Without this, a 401 response from the refresh endpoint itself would
+  /// trigger another refresh attempt, creating an infinite loop.
+  static const String _isRefreshRequestKey = '_isRefreshRequest';
+
   AuthInterceptor({
     required SecureStorageWrapper secureStorage,
     required Dio dio,
@@ -62,6 +67,17 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Only handle 401 Unauthorized errors
     if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
+
+    // Skip 401 handling for the refresh request itself to prevent
+    // an infinite loop when the refresh token is also expired.
+    if (err.requestOptions.extra[_isRefreshRequestKey] == true) {
+      AppLogger.warning(
+        'Refresh request returned 401 -- refresh token is expired',
+        category: 'auth.interceptor',
+      );
       handler.next(err);
       return;
     }
@@ -95,10 +111,12 @@ class AuthInterceptor extends Interceptor {
         return;
       }
 
-      // Perform the token refresh
+      // Perform the token refresh. The extra flag prevents the interceptor
+      // from attempting to refresh again if this request itself returns 401.
       final response = await _dio.post<Map<String, dynamic>>(
         '/mobile/auth/refresh',
         data: {'refresh_token': refreshToken},
+        options: Options(extra: {_isRefreshRequestKey: true}),
       );
 
       final responseData = response.data!;

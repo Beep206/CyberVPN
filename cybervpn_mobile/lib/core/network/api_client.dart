@@ -19,11 +19,13 @@ class ApiClient {
     // Enforce HTTPS in production to prevent accidental cleartext traffic.
     // In non-production environments (dev/staging) http:// is allowed for
     // local development against emulators and localhost.
-    if (EnvironmentConfig.isProd) {
-      assert(
-        resolvedBaseUrl.startsWith('https://'),
-        'Production API base URL must use HTTPS. '
-        'Got: $resolvedBaseUrl',
+    //
+    // This is a runtime check (not an assert) to ensure it fires in release
+    // builds. A misconfigured production base URL must crash early rather
+    // than silently sending credentials over cleartext HTTP.
+    if (EnvironmentConfig.isProd && !resolvedBaseUrl.startsWith('https://')) {
+      throw StateError(
+        'Production API base URL must use HTTPS. Got: $resolvedBaseUrl',
       );
     }
 
@@ -88,33 +90,71 @@ class ApiClient {
     _dio.httpClientAdapter = adapter;
   }
 
-  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? queryParameters, Options? options}) async {
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      return await _dio.get<T>(path, queryParameters: queryParameters, options: options);
+      return await _dio.get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) async {
+  Future<Response<T>> post<T>(
+    String path, {
+    dynamic data,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      return await _dio.post<T>(path, data: data, options: options);
+      return await _dio.post<T>(
+        path,
+        data: data,
+        options: options,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  Future<Response<T>> patch<T>(String path, {dynamic data, Options? options}) async {
+  Future<Response<T>> patch<T>(
+    String path, {
+    dynamic data,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      return await _dio.patch<T>(path, data: data, options: options);
+      return await _dio.patch<T>(
+        path,
+        data: data,
+        options: options,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
 
-  Future<Response<T>> delete<T>(String path, {Options? options}) async {
+  Future<Response<T>> delete<T>(
+    String path, {
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
     try {
-      return await _dio.delete<T>(path, options: options);
+      return await _dio.delete<T>(
+        path,
+        options: options,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

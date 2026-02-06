@@ -409,7 +409,7 @@ class _QuickActionsSection extends StatelessWidget {
           label: l10n.upgradePlan,
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
-            unawaited(context.push('/plans'));
+            unawaited(context.push('/subscribe'));
           },
         ),
 
@@ -431,7 +431,7 @@ class _QuickActionsSection extends StatelessWidget {
           label: l10n.profileSecuritySettings,
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
-            unawaited(context.push('/profile/security'));
+            unawaited(context.push('/profile/2fa'));
           },
         ),
       ],
