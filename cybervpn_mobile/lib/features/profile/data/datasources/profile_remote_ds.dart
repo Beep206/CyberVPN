@@ -74,7 +74,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<Profile> getProfile() async {
-    final response = await _apiClient.get(ApiConstants.me);
+    final response = await _apiClient.get<Map<String, dynamic>>(ApiConstants.me);
     final data = response.data as Map<String, dynamic>;
     return _mapToProfile(data);
   }
@@ -83,7 +83,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<Setup2FAResult> setup2FA() async {
-    final response = await _apiClient.post(ApiConstants.setup2fa);
+    final response = await _apiClient.post<Map<String, dynamic>>(ApiConstants.setup2fa);
     final data = response.data as Map<String, dynamic>;
     return Setup2FAResult(
       secret: data['secret'] as String,
@@ -93,7 +93,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<bool> verify2FA(String code) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       ApiConstants.verify2fa,
       data: {'code': code},
     );
@@ -103,7 +103,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<bool> validate2FA(String code) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       ApiConstants.validate2fa,
       data: {'code': code},
     );
@@ -113,7 +113,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<void> disable2FA(String code) async {
-    await _apiClient.post(
+    await _apiClient.post<Map<String, dynamic>>(
       ApiConstants.disable2fa,
       data: {'code': code},
     );
@@ -124,7 +124,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<String> getOAuthAuthorizationUrl(OAuthProvider provider) async {
     final providerName = provider.name;
-    final authResponse = await _apiClient.get(
+    final authResponse = await _apiClient.get<Map<String, dynamic>>(
       '${ApiConstants.apiPrefix}/oauth/$providerName/authorize',
     );
     final authData = authResponse.data as Map<String, dynamic>;
@@ -134,7 +134,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<void> completeOAuthLink(OAuthProvider provider, String code) async {
     final providerName = provider.name;
-    await _apiClient.post(
+    await _apiClient.post<Map<String, dynamic>>(
       '${ApiConstants.apiPrefix}/oauth/$providerName/callback',
       data: {'code': code},
     );
@@ -142,7 +142,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<void> unlinkOAuth(OAuthProvider provider) async {
-    await _apiClient.delete(
+    await _apiClient.delete<Map<String, dynamic>>(
       '${ApiConstants.oauthUnlink}${provider.name}',
     );
   }
@@ -151,7 +151,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<List<Device>> getDevices() async {
-    final response = await _apiClient.get(
+    final response = await _apiClient.get<Map<String, dynamic>>(
       '${ApiConstants.me}/devices',
     );
     final data = response.data as List<dynamic>;
@@ -166,7 +166,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String platform,
     required String deviceId,
   }) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.post<Map<String, dynamic>>(
       '${ApiConstants.me}/devices',
       data: {
         'device_name': deviceName,
@@ -180,7 +180,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<void> removeDevice(String id) async {
-    await _apiClient.delete('${ApiConstants.me}/devices/$id');
+    await _apiClient.delete<Map<String, dynamic>>('${ApiConstants.me}/devices/$id');
   }
 
   // -- Account Deletion --
@@ -190,7 +190,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     // Use POST for account deletion since the ApiClient's delete method
     // does not support request bodies. The backend accepts this as a
     // confirmation-based deletion endpoint.
-    await _apiClient.post(
+    await _apiClient.post<Map<String, dynamic>>(
       '${ApiConstants.deleteAccount}/delete',
       data: {
         'password': password,

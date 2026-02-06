@@ -4,7 +4,7 @@ part 'parsed_config.freezed.dart';
 
 /// Represents a parsed VPN configuration from a URI
 @freezed
-abstract class ParsedConfig with _$ParsedConfig {
+sealed class ParsedConfig with _$ParsedConfig {
   const factory ParsedConfig({
     required String protocol,
     required String serverAddress,

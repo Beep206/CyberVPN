@@ -65,7 +65,7 @@ enum TextScale {
 /// Contains all user-configurable settings including theme, connection,
 /// notification, and privacy preferences.
 @freezed
-abstract class AppSettings with _$AppSettings {
+sealed class AppSettings with _$AppSettings {
   const factory AppSettings({
     // Appearance
     @Default(AppThemeMode.cyberpunk) AppThemeMode themeMode,

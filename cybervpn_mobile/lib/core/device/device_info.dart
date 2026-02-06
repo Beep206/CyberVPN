@@ -16,7 +16,7 @@ enum DevicePlatform {
 /// This model matches the backend Pydantic schema for DeviceInfo.
 /// Used in login/register requests to track devices and sessions.
 @freezed
-abstract class DeviceInfo with _$DeviceInfo {
+sealed class DeviceInfo with _$DeviceInfo {
   const factory DeviceInfo({
     /// Unique device identifier (UUID generated client-side).
     /// Persisted in SecureStorage across app launches.

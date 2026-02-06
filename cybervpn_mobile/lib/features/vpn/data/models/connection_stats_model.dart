@@ -5,7 +5,7 @@ part 'connection_stats_model.freezed.dart';
 part 'connection_stats_model.g.dart';
 
 @freezed
-abstract class ConnectionStatsModel with _$ConnectionStatsModel {
+sealed class ConnectionStatsModel with _$ConnectionStatsModel {
   const ConnectionStatsModel._();
 
   const factory ConnectionStatsModel({

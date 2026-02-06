@@ -13,7 +13,7 @@ enum ImportSource {
 
 /// Represents an imported VPN configuration
 @freezed
-abstract class ImportedConfig with _$ImportedConfig {
+sealed class ImportedConfig with _$ImportedConfig {
   const factory ImportedConfig({
     required String id,
     required String name,

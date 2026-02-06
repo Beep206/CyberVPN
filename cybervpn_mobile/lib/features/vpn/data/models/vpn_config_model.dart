@@ -5,7 +5,7 @@ part 'vpn_config_model.freezed.dart';
 part 'vpn_config_model.g.dart';
 
 @freezed
-abstract class VpnConfigModel with _$VpnConfigModel {
+sealed class VpnConfigModel with _$VpnConfigModel {
   const VpnConfigModel._();
 
   const factory VpnConfigModel({

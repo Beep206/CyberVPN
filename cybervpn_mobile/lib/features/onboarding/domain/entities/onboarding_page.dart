@@ -7,7 +7,7 @@ part 'onboarding_page.freezed.dart';
 /// Each page contains localisation keys for title and description, a path to
 /// a Lottie animation asset, and an optional call-to-action label.
 @freezed
-abstract class OnboardingPage with _$OnboardingPage {
+sealed class OnboardingPage with _$OnboardingPage {
   const factory OnboardingPage({
     /// Localisation key for the page title (e.g. 'onboarding.privacy.title').
     required String titleKey,

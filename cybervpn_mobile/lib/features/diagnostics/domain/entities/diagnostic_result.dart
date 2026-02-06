@@ -16,7 +16,7 @@ enum DiagnosticStepStatus {
 /// Tracks the step name, execution status, duration, and optional
 /// informational message or actionable suggestion on failure.
 @freezed
-abstract class DiagnosticStep with _$DiagnosticStep {
+sealed class DiagnosticStep with _$DiagnosticStep {
   const factory DiagnosticStep({
     required String name,
     required DiagnosticStepStatus status,
@@ -31,7 +31,7 @@ abstract class DiagnosticStep with _$DiagnosticStep {
 /// Contains the ordered list of diagnostic steps, the timestamp
 /// when the diagnostic was initiated, and the total wall-clock duration.
 @freezed
-abstract class DiagnosticResult with _$DiagnosticResult {
+sealed class DiagnosticResult with _$DiagnosticResult {
   const factory DiagnosticResult({
     required List<DiagnosticStep> steps,
     required DateTime ranAt,

@@ -5,7 +5,7 @@ part 'subscription_entity.freezed.dart';
 enum SubscriptionStatus { active, expired, cancelled, pending, trial }
 
 @freezed
-abstract class SubscriptionEntity with _$SubscriptionEntity {
+sealed class SubscriptionEntity with _$SubscriptionEntity {
   const factory SubscriptionEntity({
     required String id,
     required String planId,

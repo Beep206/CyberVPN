@@ -9,7 +9,7 @@ part 'profile.freezed.dart';
 /// Contains the user's profile information including authentication
 /// state, linked OAuth providers, and 2FA status.
 @freezed
-abstract class Profile with _$Profile {
+sealed class Profile with _$Profile {
   const factory Profile({
     required String id,
     required String email,

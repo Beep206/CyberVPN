@@ -13,14 +13,14 @@ class ServerRemoteDataSourceImpl implements ServerRemoteDataSource {
 
   @override
   Future<List<ServerEntity>> fetchServers() async {
-    final response = await _apiClient.get('/servers');
+    final response = await _apiClient.get<Map<String, dynamic>>('/servers');
     final data = response.data as List<dynamic>;
     return data.map((json) => _mapToEntity(json as Map<String, dynamic>)).toList();
   }
 
   @override
   Future<ServerEntity> fetchServerById(String id) async {
-    final response = await _apiClient.get('/servers/$id');
+    final response = await _apiClient.get<Map<String, dynamic>>('/servers/$id');
     return _mapToEntity(response.data as Map<String, dynamic>);
   }
 

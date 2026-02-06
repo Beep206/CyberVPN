@@ -108,7 +108,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     final user = userResult.dataOrNull;
 
     if (user != null) {
-      _setSentryUser(user);
+      unawaited(_setSentryUser(user));
 
       // Schedule proactive token refresh for existing session (non-blocking)
       _scheduleTokenRefresh();
@@ -139,7 +139,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       switch (result) {
         case Success(:final data):
           final (user, _) = data;
-          _setSentryUser(user);
+          unawaited(_setSentryUser(user));
           state = AsyncValue.data(AuthAuthenticated(user));
 
           // Schedule proactive token refresh (non-blocking)
@@ -174,7 +174,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       switch (result) {
         case Success(:final data):
           final (user, _) = data;
-          _setSentryUser(user);
+          unawaited(_setSentryUser(user));
           state = AsyncValue.data(AuthAuthenticated(user));
 
           // Schedule proactive token refresh (non-blocking)
@@ -214,13 +214,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           AppLogger.warning('Logout backend returned failure: ${logoutResult.failureOrNull?.message}');
         }
       }
-      _clearSentryUser();
+      unawaited(_clearSentryUser());
       // Invalidate the notifier so all dependent providers reset.
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
     } catch (e) {
       // Even if backend logout fails, clear local state
-      _clearSentryUser();
+      unawaited(_clearSentryUser());
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
       AppLogger.warning('Logout backend call failed, cleared local state', error: e);
@@ -259,11 +259,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Associates the authenticated [user] with Sentry so crash reports
   /// include the user's identity.
-  void _setSentryUser(UserEntity user) {
+  Future<void> _setSentryUser(UserEntity user) async {
     if (EnvironmentConfig.sentryDsn.isEmpty) return;
-    // ignore: discarded_futures
-    Sentry.configureScope((scope) {
-      scope.setUser(SentryUser(  // ignore: discarded_futures
+    await Sentry.configureScope((scope) async {
+      await scope.setUser(SentryUser(
         id: user.id,
         email: user.email,
         username: user.username,
@@ -272,11 +271,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   /// Removes the Sentry user context on logout.
-  void _clearSentryUser() {
+  Future<void> _clearSentryUser() async {
     if (EnvironmentConfig.sentryDsn.isEmpty) return;
-    // ignore: discarded_futures
-    Sentry.configureScope((scope) {
-      scope.setUser(null);  // ignore: discarded_futures
+    await Sentry.configureScope((scope) async {
+      await scope.setUser(null);
     });
   }
 

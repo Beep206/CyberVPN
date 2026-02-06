@@ -5,7 +5,7 @@ part 'vpn_config_entity.freezed.dart';
 enum VpnProtocol { vless, vmess, trojan, shadowsocks }
 
 @freezed
-abstract class VpnConfigEntity with _$VpnConfigEntity {
+sealed class VpnConfigEntity with _$VpnConfigEntity {
   const factory VpnConfigEntity({
     required String id,
     required String name,
