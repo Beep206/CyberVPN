@@ -21,6 +21,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocalStorageWrapper {
   SharedPreferences? _prefs;
 
+  LocalStorageWrapper({SharedPreferences? prefs}) : _prefs = prefs;
+
   Future<SharedPreferences> get prefs async {
     _prefs ??= await SharedPreferences.getInstance();
     return _prefs!;
@@ -53,9 +55,6 @@ class LocalStorageWrapper {
       (await prefs).getStringList(key);
 
   // ── Common Non-Sensitive Storage Keys ─────────────────────────────────────
-
-  // NON-SENSITIVE: UI theme preference - SharedPreferences is sufficient
-  static const String themeKey = 'theme_mode';
 
   // NON-SENSITIVE: Locale preference - SharedPreferences is sufficient
   static const String localeKey = 'locale';

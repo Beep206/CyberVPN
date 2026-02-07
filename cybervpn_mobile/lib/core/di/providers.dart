@@ -75,8 +75,6 @@ import 'package:cybervpn_mobile/core/device/device_provider.dart'
 export 'package:cybervpn_mobile/core/device/device_provider.dart'
     show secureStorageProvider;
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
-import 'package:cybervpn_mobile/app/theme/theme_provider.dart'
-    show themePrefsProvider;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Provider Scoping Audit (last updated: 2026-02-07)
@@ -539,7 +537,6 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   return [
     // Eager infrastructure (async-init or sync-critical)
     sharedPreferencesProvider.overrideWithValue(prefs),
-    themePrefsProvider.overrideWithValue(prefs),
     secureStorageProvider.overrideWithValue(secureStorage),
     dioProvider.overrideWithValue(dio),
     apiClientProvider.overrideWithValue(apiClient),

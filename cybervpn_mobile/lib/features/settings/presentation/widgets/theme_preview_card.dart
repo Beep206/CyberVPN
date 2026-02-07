@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 
 // ---------------------------------------------------------------------------

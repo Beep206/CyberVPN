@@ -40,12 +40,20 @@ class SettingsRepositoryImpl implements SettingsRepository {
   static const _kPreferMapView = 'settings.preferMapView';
   static const _kClipboardAutoDetect = 'settings.clipboardAutoDetect';
   static const _kLogLevel = 'settings.logLevel';
+  static const _kOledMode = 'settings.oledMode';
+  static const _kScanlineEffect = 'settings.scanlineEffect';
+  static const _kTextScale = 'settings.textScale';
+  static const _kHapticsEnabled = 'settings.hapticsEnabled';
+  static const _kTrustedWifiNetworks = 'settings.trustedWifiNetworks';
 
   /// All keys managed by this repository, used for [resetSettings].
   static const _allKeys = [
     _kThemeMode,
     _kBrightness,
     _kDynamicColor,
+    _kOledMode,
+    _kScanlineEffect,
+    _kTextScale,
     _kPreferredProtocol,
     _kAutoConnectOnLaunch,
     _kAutoConnectUntrustedWifi,
@@ -63,6 +71,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
     _kNotificationVpnSpeed,
     _kPreferMapView,
     _kClipboardAutoDetect,
+    _kHapticsEnabled,
+    _kTrustedWifiNetworks,
     _kLogLevel,
   ];
 
@@ -93,6 +103,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
   @override
   Future<Result<AppSettings>> getSettings() async {
     try {
+      // One-time migration from legacy theme keys (System A) to unified keys.
+      await _migrateLegacyThemeKeys();
+
       // Construct AppSettings by reading each key with a fallback to the
       // default value defined in the freezed factory constructor.
       const defaults = AppSettings();
@@ -109,6 +122,14 @@ class SettingsRepositoryImpl implements SettingsRepository {
           defaults.brightness,
         ),
         dynamicColor: _prefs.getBool(_kDynamicColor) ?? defaults.dynamicColor,
+        oledMode: _prefs.getBool(_kOledMode) ?? defaults.oledMode,
+        scanlineEffect:
+            _prefs.getBool(_kScanlineEffect) ?? defaults.scanlineEffect,
+        textScale: _readEnum(
+          _prefs.getString(_kTextScale),
+          TextScale.values,
+          defaults.textScale,
+        ),
         preferredProtocol: _readEnum(
           _prefs.getString(_kPreferredProtocol),
           PreferredProtocol.values,
@@ -148,6 +169,11 @@ class SettingsRepositoryImpl implements SettingsRepository {
             _prefs.getBool(_kPreferMapView) ?? defaults.preferMapView,
         clipboardAutoDetect:
             _prefs.getBool(_kClipboardAutoDetect) ?? defaults.clipboardAutoDetect,
+        hapticsEnabled:
+            _prefs.getBool(_kHapticsEnabled) ?? defaults.hapticsEnabled,
+        trustedWifiNetworks:
+            _prefs.getStringList(_kTrustedWifiNetworks) ??
+                defaults.trustedWifiNetworks,
         logLevel: _readEnum(
           _prefs.getString(_kLogLevel),
           LogLevel.values,
@@ -167,6 +193,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
       await _prefs.setString(_kThemeMode, settings.themeMode.name);
       await _prefs.setString(_kBrightness, settings.brightness.name);
       await _prefs.setBool(_kDynamicColor, settings.dynamicColor);
+      await _prefs.setBool(_kOledMode, settings.oledMode);
+      await _prefs.setBool(_kScanlineEffect, settings.scanlineEffect);
+      await _prefs.setString(_kTextScale, settings.textScale.name);
       await _prefs.setString(
           _kPreferredProtocol, settings.preferredProtocol.name);
       await _prefs.setBool(_kAutoConnectOnLaunch, settings.autoConnectOnLaunch);
@@ -192,6 +221,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
       await _prefs.setBool(_kNotificationVpnSpeed, settings.notificationVpnSpeed);
       await _prefs.setBool(_kPreferMapView, settings.preferMapView);
       await _prefs.setBool(_kClipboardAutoDetect, settings.clipboardAutoDetect);
+      await _prefs.setBool(_kHapticsEnabled, settings.hapticsEnabled);
+      await _prefs.setStringList(
+          _kTrustedWifiNetworks, settings.trustedWifiNetworks);
       await _prefs.setString(_kLogLevel, settings.logLevel.name);
       return const Success(null);
     } catch (e) {
@@ -209,5 +241,41 @@ class SettingsRepositoryImpl implements SettingsRepository {
     } catch (e) {
       return Failure(CacheFailure(message: e.toString()));
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Legacy key migration
+  // ---------------------------------------------------------------------------
+
+  /// Legacy SharedPreferences keys from the old ThemeNotifier system.
+  static const _kLegacyThemeMode = 'theme_mode';
+  static const _kLegacyBrightness = 'theme_brightness';
+  static const _kLegacyOledMode = 'theme_oled_mode';
+
+  /// One-time migration from legacy theme keys to the unified `settings.*` keys.
+  ///
+  /// If the new `settings.themeMode` key does not exist but the legacy
+  /// `theme_mode` key does, copies all legacy values to the new keys
+  /// and removes the legacy keys.
+  Future<void> _migrateLegacyThemeKeys() async {
+    if (_prefs.containsKey(_kThemeMode)) return; // Already migrated or fresh
+
+    final legacyMode = _prefs.getString(_kLegacyThemeMode);
+    if (legacyMode == null) return; // No legacy data
+
+    await _prefs.setString(_kThemeMode, legacyMode);
+    final legacyBrightness = _prefs.getString(_kLegacyBrightness);
+    if (legacyBrightness != null) {
+      await _prefs.setString(_kBrightness, legacyBrightness);
+    }
+    final legacyOled = _prefs.getBool(_kLegacyOledMode);
+    if (legacyOled != null) {
+      await _prefs.setBool(_kOledMode, legacyOled);
+    }
+
+    // Clean up legacy keys
+    await _prefs.remove(_kLegacyThemeMode);
+    await _prefs.remove(_kLegacyBrightness);
+    await _prefs.remove(_kLegacyOledMode);
   }
 }
