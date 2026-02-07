@@ -282,6 +282,9 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsTitle => 'הגדרות';
 
   @override
+  String get settingsSelectCategory => 'Select a category';
+
+  @override
   String get settingsGeneral => 'כללי';
 
   @override

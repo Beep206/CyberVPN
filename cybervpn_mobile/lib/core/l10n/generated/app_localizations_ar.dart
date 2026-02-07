@@ -285,6 +285,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsTitle => 'الإعدادات';
 
   @override
+  String get settingsSelectCategory => 'Select a category';
+
+  @override
   String get settingsGeneral => 'عام';
 
   @override

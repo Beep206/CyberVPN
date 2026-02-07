@@ -20,7 +20,8 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 /// All changes are persisted via [settingsProvider] and take effect on the
 /// next VPN connection.
 class VpnSettingsScreen extends ConsumerStatefulWidget {
-  const VpnSettingsScreen({super.key});
+  final bool embedded;
+  const VpnSettingsScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<VpnSettingsScreen> createState() => _VpnSettingsScreenState();
@@ -99,15 +100,17 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
     final asyncSettings = ref.watch(settingsProvider);
     final l10n = AppLocalizations.of(context);
 
+    final content = asyncSettings.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildError(error),
+      data: _buildBody,
+    );
+
+    if (widget.embedded) return content;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsVpn),
-      ),
-      body: asyncSettings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _buildError(error),
-        data: _buildBody,
-      ),
+      appBar: AppBar(title: Text(l10n.settingsVpn)),
+      body: content,
     );
   }
 

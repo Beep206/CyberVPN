@@ -17,7 +17,8 @@ import 'package:cybervpn_mobile/features/settings/presentation/providers/setting
 /// and English names. The currently selected language shows a checkmark.
 /// A search field at the top filters by native or English name.
 class LanguageScreen extends ConsumerStatefulWidget {
-  const LanguageScreen({super.key});
+  final bool embedded;
+  const LanguageScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<LanguageScreen> createState() => _LanguageScreenState();
@@ -60,11 +61,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     final filtered = _filteredLanguages();
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.language),
-      ),
-      body: Column(
+    final body = Column(
         children: [
           // Search field
           Padding(
@@ -115,7 +112,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   ),
           ),
         ],
-      ),
+      );
+
+    if (widget.embedded) return body;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.language)),
+      body: body,
     );
   }
 
