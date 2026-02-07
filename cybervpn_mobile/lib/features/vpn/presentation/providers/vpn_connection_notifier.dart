@@ -686,6 +686,21 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   /// "Connected" when the tunnel is dead. This check catches that mismatch
   /// and transitions the state accordingly.
   Future<void> _reconcileStateOnResume() async {
+    // Reconnect the WebSocket if it dropped while backgrounded.
+    try {
+      final wsClient = ref.read(webSocketClientProvider);
+      if (wsClient.connectionState != WebSocketConnectionState.connected &&
+          wsClient.connectionState != WebSocketConnectionState.connecting) {
+        AppLogger.info(
+          'Reconnecting WebSocket on app resume',
+          category: 'vpn.lifecycle',
+        );
+        unawaited(wsClient.connect());
+      }
+    } catch (e) {
+      AppLogger.warning('Failed to reconnect WebSocket on resume', error: e);
+    }
+
     final current = state.value;
     if (current is! VpnConnected) return; // only reconcile when UI says connected
 
@@ -701,10 +716,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
           'VPN state mismatch on resume: UI shows connected but engine is disconnected',
           category: 'vpn.lifecycle',
         );
-        // Attempt auto-reconnect if the setting is on, otherwise transition
-        // to disconnected.
-        final vpnSettings = ref.read(vpnSettingsProvider);
-        if (vpnSettings.autoConnectOnLaunch && current.server.isAvailable) {
+        // Always attempt auto-reconnect when returning from background
+        // if the user was previously connected and the server is available.
+        if (current.server.isAvailable) {
           state = AsyncData(
             VpnReconnecting(attempt: 1, server: current.server),
           );
