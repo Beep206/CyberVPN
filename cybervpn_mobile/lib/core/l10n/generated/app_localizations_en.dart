@@ -1125,6 +1125,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginButton => 'Login';
 
   @override
+  String get loginSigningIn => 'Signing in, please wait';
+
+  @override
+  String get loginHint => 'Sign in to your account';
+
+  @override
   String get loginContinueWithTelegram => 'Continue with Telegram';
 
   @override
@@ -1357,6 +1363,62 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get biometricPasswordChanged =>
       'Your password has changed. Please sign in with your password.';
+
+  @override
+  String get biometricSignInReason => 'Sign in to CyberVPN';
+
+  @override
+  String get biometricSignInHint => 'Use biometrics to sign in quickly';
+
+  @override
+  String get formEmailLabel => 'Email';
+
+  @override
+  String get formEmailHint => 'Enter your email';
+
+  @override
+  String get formPasswordLabel => 'Password';
+
+  @override
+  String get formPasswordHint => 'Enter your password';
+
+  @override
+  String get formShowPassword => 'Show password';
+
+  @override
+  String get formHidePassword => 'Hide password';
+
+  @override
+  String get registerPasswordStrengthWeak => 'Weak';
+
+  @override
+  String get registerPasswordStrengthMedium => 'Medium';
+
+  @override
+  String get registerPasswordStrengthStrong => 'Strong';
+
+  @override
+  String get registerAcceptTermsA11y =>
+      'Accept Terms and Conditions and Privacy Policy';
+
+  @override
+  String get registerAcceptTermsA11yHint => 'Required to create account';
+
+  @override
+  String get registerReferralValidA11y => 'Valid referral code';
+
+  @override
+  String get registerReferralAppliedA11y =>
+      'Referral code applied successfully';
+
+  @override
+  String get registerCreatingAccount => 'Creating account, please wait';
+
+  @override
+  String get registerHint => 'Create your account';
+
+  @override
+  String get registerLoginA11y => 'Go to login screen';
 
   @override
   String get settingsNotificationPrefsTitle => 'Notification Preferences';

@@ -55,13 +55,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     if (isAvailable && mounted) {
       // Auto-trigger biometric prompt for returning users
-      await notifier.authenticate(reason: 'Sign in to CyberVPN');
+      final l10n = AppLocalizations.of(context);
+      await notifier.authenticate(reason: l10n.biometricSignInReason);
     }
   }
 
   void _handleBiometricLogin() {
+    final l10n = AppLocalizations.of(context);
     unawaited(ref.read(biometricLoginProvider.notifier).authenticate(
-          reason: 'Sign in to CyberVPN',
+          reason: l10n.biometricSignInReason,
         ));
   }
 
@@ -139,10 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         // Biometric enrollment changed - show message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'Your biometric settings have changed. Please sign in with your '
-              'password and re-enable biometric login in settings.',
-            ),
+            content: Text(l10n.biometricSettingsChanged),
             backgroundColor: theme.colorScheme.error,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 6),
@@ -152,9 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         // Stored credentials were invalid - show message to re-enter password
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'Your password has changed. Please sign in with your password.',
-            ),
+            content: Text(l10n.biometricPasswordChanged),
             backgroundColor: theme.colorScheme.error,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 5),
@@ -262,7 +259,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   LoginForm(
                     onSuccess: () => context.go('/connection'),
                     onForgotPassword: () {
-                      // TODO: implement forgot-password flow
+                      context.push('/forgot-password');
                     },
                   ),
                   const SizedBox(height: 28),
@@ -379,7 +376,7 @@ class _BiometricLoginButton extends ConsumerWidget {
       button: true,
       enabled: onPressed != null,
       label: isLoading ? l10n.loginBiometricAuthenticating : label,
-      hint: 'Use biometrics to sign in quickly',
+      hint: AppLocalizations.of(context).biometricSignInHint,
       child: FilledButton.icon(
         onPressed: onPressed,
         icon: isLoading

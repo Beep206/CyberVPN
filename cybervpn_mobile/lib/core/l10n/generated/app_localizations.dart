@@ -2037,6 +2037,18 @@ abstract class AppLocalizations {
   /// **'Login'**
   String get loginButton;
 
+  /// No description provided for @loginSigningIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in, please wait'**
+  String get loginSigningIn;
+
+  /// No description provided for @loginHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your account'**
+  String get loginHint;
+
   /// No description provided for @loginContinueWithTelegram.
   ///
   /// In en, this message translates to:
@@ -2474,6 +2486,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your password has changed. Please sign in with your password.'**
   String get biometricPasswordChanged;
+
+  /// No description provided for @biometricSignInReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to CyberVPN'**
+  String get biometricSignInReason;
+
+  /// No description provided for @biometricSignInHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use biometrics to sign in quickly'**
+  String get biometricSignInHint;
+
+  /// No description provided for @formEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get formEmailLabel;
+
+  /// No description provided for @formEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email'**
+  String get formEmailHint;
+
+  /// No description provided for @formPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get formPasswordLabel;
+
+  /// No description provided for @formPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get formPasswordHint;
+
+  /// No description provided for @formShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get formShowPassword;
+
+  /// No description provided for @formHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get formHidePassword;
+
+  /// No description provided for @registerPasswordStrengthWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get registerPasswordStrengthWeak;
+
+  /// No description provided for @registerPasswordStrengthMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get registerPasswordStrengthMedium;
+
+  /// No description provided for @registerPasswordStrengthStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get registerPasswordStrengthStrong;
+
+  /// No description provided for @registerAcceptTermsA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept Terms and Conditions and Privacy Policy'**
+  String get registerAcceptTermsA11y;
+
+  /// No description provided for @registerAcceptTermsA11yHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Required to create account'**
+  String get registerAcceptTermsA11yHint;
+
+  /// No description provided for @registerReferralValidA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid referral code'**
+  String get registerReferralValidA11y;
+
+  /// No description provided for @registerReferralAppliedA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code applied successfully'**
+  String get registerReferralAppliedA11y;
+
+  /// No description provided for @registerCreatingAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating account, please wait'**
+  String get registerCreatingAccount;
+
+  /// No description provided for @registerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get registerHint;
+
+  /// No description provided for @registerLoginA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to login screen'**
+  String get registerLoginA11y;
 
   /// No description provided for @settingsNotificationPrefsTitle.
   ///

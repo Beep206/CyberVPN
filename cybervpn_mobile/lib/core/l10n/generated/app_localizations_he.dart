@@ -1114,38 +1114,44 @@ class AppLocalizationsHe extends AppLocalizations {
   String get loginButton => 'Login';
 
   @override
+  String get loginSigningIn => '[EN] Signing in, please wait';
+
+  @override
+  String get loginHint => '[EN] Sign in to your account';
+
+  @override
   String get loginContinueWithTelegram => 'Continue with Telegram';
 
   @override
-  String get loginTitle => 'CyberVPN';
+  String get loginTitle => '[EN] CyberVPN';
 
   @override
-  String get loginSubtitle => 'Secure your connection';
+  String get loginSubtitle => '[EN] Secure your connection';
 
   @override
-  String get loginOrUsePassword => 'OR USE PASSWORD';
+  String get loginOrUsePassword => '[EN] OR USE PASSWORD';
 
   @override
-  String get loginOrSeparator => 'OR';
+  String get loginOrSeparator => '[EN] OR';
 
   @override
-  String get loginNoAccount => 'Don\'t have an account? ';
+  String get loginNoAccount => '[EN] Don\'t have an account? ';
 
   @override
-  String get loginRegisterLink => 'Register';
+  String get loginRegisterLink => '[EN] Register';
 
   @override
-  String get loginBiometricFaceId => 'Sign in with Face ID';
+  String get loginBiometricFaceId => '[EN] Sign in with Face ID';
 
   @override
-  String get loginBiometricFingerprint => 'Sign in with fingerprint';
+  String get loginBiometricFingerprint => '[EN] Sign in with fingerprint';
 
   @override
-  String get loginBiometricGeneric => 'Sign in with biometrics';
+  String get loginBiometricGeneric => '[EN] Sign in with biometrics';
 
   @override
   String get loginBiometricAuthenticating =>
-      'Authenticating with biometrics, please wait';
+      '[EN] Authenticating with biometrics, please wait';
 
   @override
   String get registerTitle => 'Create Account';
@@ -1246,31 +1252,31 @@ class AppLocalizationsHe extends AppLocalizations {
   String get appLockLocalizedReason => 'Unlock CyberVPN with your device PIN';
 
   @override
-  String get appLockBiometricFaceId => 'Face ID';
+  String get appLockBiometricFaceId => '[EN] Face ID';
 
   @override
-  String get appLockBiometricFingerprint => 'fingerprint';
+  String get appLockBiometricFingerprint => '[EN] fingerprint';
 
   @override
-  String get appLockBiometricGeneric => 'biometrics';
+  String get appLockBiometricGeneric => '[EN] biometrics';
 
   @override
-  String get appLockAuthenticating => 'Authenticating, please wait';
+  String get appLockAuthenticating => '[EN] Authenticating, please wait';
 
   @override
-  String get appLockUnlockHint => 'Authenticate to unlock the app';
+  String get appLockUnlockHint => '[EN] Authenticate to unlock the app';
 
   @override
-  String get appLockPinHint => 'Unlock using your device PIN or passcode';
+  String get appLockPinHint => '[EN] Unlock using your device PIN or passcode';
 
   @override
   String appLockFailedAttempts(int current, int max) {
-    return 'Failed attempts: $current/$max';
+    return '[EN] Failed attempts: $current/$max';
   }
 
   @override
   String appLockFailedAttemptsA11y(int current, int max) {
-    return 'Failed authentication attempts: $current out of $max';
+    return '[EN] Failed authentication attempts: $current out of $max';
   }
 
   @override
@@ -1346,6 +1352,62 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get biometricPasswordChanged =>
       'Your password has changed. Please sign in with your password.';
+
+  @override
+  String get biometricSignInReason => '[EN] Sign in to CyberVPN';
+
+  @override
+  String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
+
+  @override
+  String get formEmailLabel => '[EN] Email';
+
+  @override
+  String get formEmailHint => '[EN] Enter your email';
+
+  @override
+  String get formPasswordLabel => '[EN] Password';
+
+  @override
+  String get formPasswordHint => '[EN] Enter your password';
+
+  @override
+  String get formShowPassword => '[EN] Show password';
+
+  @override
+  String get formHidePassword => '[EN] Hide password';
+
+  @override
+  String get registerPasswordStrengthWeak => '[EN] Weak';
+
+  @override
+  String get registerPasswordStrengthMedium => '[EN] Medium';
+
+  @override
+  String get registerPasswordStrengthStrong => '[EN] Strong';
+
+  @override
+  String get registerAcceptTermsA11y =>
+      '[EN] Accept Terms and Conditions and Privacy Policy';
+
+  @override
+  String get registerAcceptTermsA11yHint => '[EN] Required to create account';
+
+  @override
+  String get registerReferralValidA11y => '[EN] Valid referral code';
+
+  @override
+  String get registerReferralAppliedA11y =>
+      '[EN] Referral code applied successfully';
+
+  @override
+  String get registerCreatingAccount => '[EN] Creating account, please wait';
+
+  @override
+  String get registerHint => '[EN] Create your account';
+
+  @override
+  String get registerLoginA11y => '[EN] Go to login screen';
 
   @override
   String get settingsNotificationPrefsTitle => 'Notification Preferences';
@@ -3344,10 +3406,10 @@ class AppLocalizationsHe extends AppLocalizations {
   String get serverNotFound => 'Server not found';
 
   @override
-  String get serverListClearSearch => 'Clear search';
+  String get serverListClearSearch => '[EN] Clear search';
 
   @override
-  String get serverSelectPrompt => 'Select a server to view details';
+  String get serverSelectPrompt => '[EN] Select a server to view details';
 
   @override
   String get serverSingle => 'Server';
