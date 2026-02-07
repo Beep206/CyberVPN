@@ -50,6 +50,9 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   /// Tracks which country groups are expanded. All start expanded.
   final Map<String, bool> _expandedCountries = {};
 
+  /// Keys for country group headers, used for auto-scroll after expand.
+  final Map<String, GlobalKey> _countryHeaderKeys = {};
+
   /// Global key for the "Fastest" button to position the tooltip.
   final GlobalKey _fastestButtonKey = GlobalKey();
 
@@ -521,24 +524,24 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             SliverToBoxAdapter(
               child: _buildFavoritesHeader(favorites.length),
             ),
-            if (_favoritesExpanded)
-              _serverSliver(
-                childCount: favorites.length,
-                useTwoColumns: useTwoColumns,
-                itemBuilder: (context, index) {
-                  final server = favorites[index];
-                  if (!_matchesSearch(server)) {
-                    return const SizedBox.shrink();
-                  }
-                  return StaggeredListItem(
-                    index: index,
-                    child: ServerCard(
-                      server: server,
-                      onTap: () => _onServerTap(server),
-                    ),
-                  );
-                },
+            SliverToBoxAdapter(
+              child: _AnimatedExpandSection(
+                isExpanded: _favoritesExpanded,
+                child: Column(
+                  children: [
+                    for (int index = 0; index < favorites.length; index++)
+                      if (_matchesSearch(favorites[index]))
+                        StaggeredListItem(
+                          index: index,
+                          child: ServerCard(
+                            server: favorites[index],
+                            onTap: () => _onServerTap(favorites[index]),
+                          ),
+                        ),
+                  ],
+                ),
               ),
+            ),
             const SliverToBoxAdapter(
               child: Divider(indent: 16, endIndent: 16),
             ),
@@ -589,42 +592,69 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                   ? (serverData.first['server'] as ServerEntity).countryName
                   : countryCode;
 
+              final headerKey = _countryHeaderKeys.putIfAbsent(
+                countryCode,
+                () => GlobalKey(),
+              );
+
               return [
                 SliverToBoxAdapter(
                   child: CountryGroupHeader(
+                    key: headerKey,
                     countryCode: countryCode,
                     countryName: countryName,
                     serverCount: serverData.length,
                     isExpanded: isExpanded,
                     onToggle: () {
+                      final wasCollapsed = !isExpanded;
                       setState(() {
                         _expandedCountries[countryCode] = !isExpanded;
                       });
+                      // Auto-scroll to keep header visible after expanding.
+                      if (wasCollapsed) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final ctx = headerKey.currentContext;
+                          if (ctx != null) {
+                            Scrollable.ensureVisible(
+                              ctx,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              alignmentPolicy:
+                                  ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+                            );
+                          }
+                        });
+                      }
                     },
                   ),
                 ),
-                if (isExpanded)
-                  _serverSliver(
-                    childCount: serverData.length,
-                    useTwoColumns: useTwoColumns,
-                    itemBuilder: (context, index) {
-                      final data = serverData[index];
-                      final server = data['server'] as ServerEntity;
-                      final isCustom = data['isCustom'] as bool;
-                      final configId = data['configId'] as String?;
+                SliverToBoxAdapter(
+                  child: _AnimatedExpandSection(
+                    isExpanded: isExpanded,
+                    child: Column(
+                      children: [
+                        for (int index = 0; index < serverData.length; index++)
+                          Builder(builder: (context) {
+                            final data = serverData[index];
+                            final server = data['server'] as ServerEntity;
+                            final isCustom = data['isCustom'] as bool;
+                            final configId = data['configId'] as String?;
 
-                      return StaggeredListItem(
-                        index: index,
-                        child: ServerCard(
-                          server: server,
-                          onTap: isCustom && configId != null
-                              ? () => _onCustomServerTap(configId)
-                              : () => _onServerTap(server),
-                          isCustomServer: isCustom,
-                        ),
-                      );
-                    },
+                            return StaggeredListItem(
+                              index: index,
+                              child: ServerCard(
+                                server: server,
+                                onTap: isCustom && configId != null
+                                    ? () => _onCustomServerTap(configId)
+                                    : () => _onServerTap(server),
+                                isCustomServer: isCustom,
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
                   ),
+                ),
               ];
             }),
 
@@ -708,6 +738,70 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Smoothly animates the height of [child] between 0 and its intrinsic size.
+///
+/// Used inside [SliverToBoxAdapter] to animate expand/collapse of server
+/// groups without breaking the sliver layout.
+class _AnimatedExpandSection extends StatefulWidget {
+  const _AnimatedExpandSection({
+    required this.isExpanded,
+    required this.child,
+  });
+
+  final bool isExpanded;
+  final Widget child;
+
+  @override
+  State<_AnimatedExpandSection> createState() => _AnimatedExpandSectionState();
+}
+
+class _AnimatedExpandSectionState extends State<_AnimatedExpandSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _sizeFactor;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      value: widget.isExpanded ? 1.0 : 0.0,
+    );
+    _sizeFactor = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedExpandSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded) {
+      if (widget.isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizeTransition(
+      sizeFactor: _sizeFactor,
+      axisAlignment: -1.0,
+      child: widget.child,
     );
   }
 }
