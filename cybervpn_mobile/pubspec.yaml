@@ -14,7 +14,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   dynamic_color: ^1.7.0
   fl_chart: ^1.1.1
+  flutter_map: ^7.0.2
   google_fonts: ^8.0.1
+  latlong2: ^0.9.1
   lottie: ^3.3.1
   flutter_svg: ^2.0.17
   qr_flutter: ^4.1.0

@@ -69,6 +69,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     );
   }
 
+  /// Update the scanline effect preference (CRT scanline overlay).
+  Future<void> updateScanlineEffect(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(scanlineEffect: enabled),
+      'updateScanlineEffect',
+    );
+  }
+
   /// Update the text scale factor for accessibility.
   Future<void> updateTextScale(TextScale scale) async {
     await _updateSetting(
@@ -282,6 +290,16 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
         );
       }
     }));
+  }
+
+  // ── Server View ──────────────────────────────────────────────────────────
+
+  /// Toggle between server map view and list view.
+  Future<void> updatePreferMapView(bool prefer) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(preferMapView: prefer),
+      'updatePreferMapView',
+    );
   }
 
   // ── Privacy ──────────────────────────────────────────────────────────────

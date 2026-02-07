@@ -17,6 +17,8 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_car
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/screens/server_map_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_refresh_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
@@ -341,14 +343,27 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       );
     }
 
+    final preferMap = ref.watch(
+      settingsProvider.select((s) => s.value?.preferMapView ?? false),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: GlitchText(
           text: AppLocalizations.of(context).servers,
           style: Theme.of(context).appBarTheme.titleTextStyle,
         ),
+        actions: [
+          IconButton(
+            icon: Icon(preferMap ? Icons.list : Icons.map_outlined),
+            tooltip: preferMap ? 'List view' : 'Map view',
+            onPressed: () {
+              ref.read(settingsProvider.notifier).updatePreferMapView(!preferMap);
+            },
+          ),
+        ],
       ),
-      body: listContent,
+      body: preferMap ? const ServerMapScreen() : listContent,
     );
   }
 

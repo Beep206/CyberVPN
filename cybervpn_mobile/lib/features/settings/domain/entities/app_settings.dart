@@ -72,6 +72,7 @@ sealed class AppSettings with _$AppSettings {
     @Default(AppBrightness.system) AppBrightness brightness,
     @Default(false) bool dynamicColor,
     @Default(false) bool oledMode,
+    @Default(false) bool scanlineEffect,
     @Default(TextScale.system) TextScale textScale,
 
     // Connection
@@ -103,6 +104,9 @@ sealed class AppSettings with _$AppSettings {
     @Default(false) bool notificationPromotional,
     @Default(true) bool notificationReferral,
     @Default(true) bool notificationVpnSpeed,
+
+    // Server View
+    @Default(false) bool preferMapView,
 
     // Privacy
     @Default(false) bool clipboardAutoDetect,
