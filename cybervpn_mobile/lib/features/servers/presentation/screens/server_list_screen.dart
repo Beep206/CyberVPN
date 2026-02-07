@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
@@ -16,6 +17,7 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_car
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
 
 /// Main server list screen.
@@ -281,7 +283,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     if (isWide) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(AppLocalizations.of(context).servers),
+          title: GlitchText(
+          text: AppLocalizations.of(context).servers,
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
         ),
         body: Row(
           children: [
@@ -312,7 +317,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).servers),
+        title: GlitchText(
+          text: AppLocalizations.of(context).servers,
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
       ),
       body: listContent,
     );
@@ -454,7 +462,13 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    Lottie.asset(
+                      'assets/animations/empty_state.json',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                      animate: !MediaQuery.of(context).disableAnimations,
+                    ),
                     const SizedBox(height: Spacing.md),
                     Text(
                       AppLocalizations.of(context).serverListNoResults,

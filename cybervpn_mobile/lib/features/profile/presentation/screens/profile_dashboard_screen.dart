@@ -12,6 +12,7 @@ import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
+import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 
 // ---------------------------------------------------------------------------
 // ProfileDashboardScreen
@@ -47,7 +48,10 @@ class ProfileDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_greeting(l10n)),
+        title: GlitchText(
+          text: _greeting(l10n),
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
       ),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),

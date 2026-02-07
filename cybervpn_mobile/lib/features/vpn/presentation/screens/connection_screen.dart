@@ -12,6 +12,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/widgets/speed_indicato
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 
 /// Main VPN connection screen.
 ///
@@ -85,7 +86,10 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
     final usage = ref.watch(sessionUsageProvider);
 
     // Detect connecting→connected transition for one-shot success animation.
-    if (_prevVpnState is VpnConnecting && vpnState is VpnConnected) {
+    // Skip animation when the user has disabled animations in accessibility settings.
+    if (_prevVpnState is VpnConnecting &&
+        vpnState is VpnConnected &&
+        !MediaQuery.of(context).disableAnimations) {
       _showSuccessAnim = true;
       _successAnimController.reset();
       unawaited(_successAnimController.forward());
@@ -121,6 +125,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                             width: 120,
                             height: 120,
                             fit: BoxFit.contain,
+                            animate: !MediaQuery.of(context).disableAnimations,
                           ),
                         ),
 
@@ -214,15 +219,25 @@ class _TopBar extends StatelessWidget {
           Semantics(
             label: l10n.a11yConnectionStatus(label),
             readOnly: true,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: _statusColor(vpnState, colorScheme),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
+            child: vpnState is VpnConnected
+                ? GlitchText(
+                    text: label,
+                    style: TextStyle(
+                      color: _statusColor(vpnState, colorScheme),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: TextStyle(
+                      color: _statusColor(vpnState, colorScheme),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
           ),
           const Spacer(),
           // Subscription badge
@@ -255,28 +270,97 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _StatusDot extends StatelessWidget {
+class _StatusDot extends StatefulWidget {
   final VpnConnectionState vpnState;
 
   const _StatusDot({required this.vpnState});
 
   @override
+  State<_StatusDot> createState() => _StatusDotState();
+}
+
+class _StatusDotState extends State<_StatusDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: CyberEffects.pulseDuration,
+    );
+    // Pulse scale: 1.0 -> 1.1 -> 1.0 using a TweenSequence for smooth looping.
+    _pulseScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.1)
+            .chain(CurveTween(curve: CyberEffects.pulseCurve)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.1, end: 1.0)
+            .chain(CurveTween(curve: CyberEffects.pulseCurve)),
+        weight: 50,
+      ),
+    ]).animate(_pulseController);
+
+    _syncPulse();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StatusDot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncPulse();
+  }
+
+  /// Start pulse when connected, stop and reset immediately otherwise.
+  void _syncPulse() {
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+
+    if (widget.vpnState is VpnConnected && !disableAnimations) {
+      if (!_pulseController.isAnimating) {
+        unawaited(_pulseController.repeat());
+      }
+    } else {
+      // VPNBussiness-3f93: stop immediately on disconnect / state change.
+      if (_pulseController.isAnimating) {
+        _pulseController.stop();
+        _pulseController.reset();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = _TopBar._statusColor(vpnState, Theme.of(context).colorScheme);
-    return ExcludeSemantics(
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.6),
-              blurRadius: 6,
-              spreadRadius: 1,
+    final color =
+        _TopBar._statusColor(widget.vpnState, Theme.of(context).colorScheme);
+
+    return RepaintBoundary(
+      child: ExcludeSemantics(
+        child: ScaleTransition(
+          scale: _pulseScale,
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.6),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -307,6 +391,10 @@ class _SubscriptionBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.3),
+          ),
+          boxShadow: CyberEffects.neonGlow(
+            colorScheme.primary,
+            intensity: 0.35,
           ),
         ),
         child: Row(

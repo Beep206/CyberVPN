@@ -303,6 +303,7 @@ class _StartTestButton extends StatelessWidget {
                         width: 24,
                         height: 24,
                         fit: BoxFit.contain,
+                        animate: !MediaQuery.of(context).disableAnimations,
                       ),
                       const SizedBox(width: Spacing.sm),
                       Text(
