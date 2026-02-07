@@ -34,8 +34,10 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
          activeDnsServersProvider,
          deviceRegistrationServiceProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart'
+    show recentServerIdsProvider;
+import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
+    show recommendedServerProvider;
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_state.dart';
 

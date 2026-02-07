@@ -55,7 +55,7 @@ class _ServerCardState extends ConsumerState<ServerCard>
     super.initState();
     _starController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: AnimDurations.medium,
       lowerBound: 0.8,
       upperBound: 1.2,
       value: 1.0,

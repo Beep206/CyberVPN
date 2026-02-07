@@ -352,6 +352,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
                         ),
                         IconButton(
                           icon: const Icon(Icons.copy),
+                          tooltip: l10n.commonCopy,
                           onPressed: () => _copyToClipboard(setup.secret),
                         ),
                       ],

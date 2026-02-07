@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
+
 /// Position of the tooltip relative to the target widget.
 enum TooltipPosition {
   top,
@@ -101,7 +103,7 @@ class _FeatureTooltipOverlayState extends State<_FeatureTooltipOverlay>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AnimDurations.normal,
     );
 
     _fadeAnimation = CurvedAnimation(

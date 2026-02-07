@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 
 /// A badge widget that displays the unread notification count.
@@ -38,7 +39,7 @@ class NotificationBadge extends ConsumerWidget {
 
     return AnimatedScale(
       scale: count > 0 ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 250),
+      duration: AnimDurations.medium,
       curve: Curves.easeInOut,
       child: count > 0 ? _BadgeContent(count: count) : const SizedBox.shrink(),
     );

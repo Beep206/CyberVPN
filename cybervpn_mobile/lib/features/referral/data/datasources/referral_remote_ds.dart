@@ -1,4 +1,5 @@
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
+import 'package:cybervpn_mobile/core/constants/cache_constants.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -33,7 +34,8 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
   DateTime? _cachedAt;
 
   /// Duration to cache the availability result.
-  static const _cacheDuration = Duration(minutes: 5);
+  /// See [CacheConstants.referralCacheTtl] for the centralized value.
+  static const _cacheDuration = CacheConstants.referralCacheTtl;
 
   /// Base path for all referral endpoints.
   static const _basePath = '${ApiConstants.apiPrefix}/referral';

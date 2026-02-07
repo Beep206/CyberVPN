@@ -115,7 +115,7 @@ class _SpeedGauge extends StatelessWidget {
 
         // Current speed (animated text swap)
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
+          duration: AnimDurations.medium,
           child: Text(
             speed,
             key: ValueKey(speed),

@@ -59,6 +59,8 @@ class TelegramAuthNotInstalled extends TelegramAuthState {
 }
 
 /// Notifier for managing Telegram OAuth flow.
+/// Uses [autoDispose] because Telegram auth state is only needed on login/register
+/// screens. Resources are released when navigating away.
 class TelegramAuthNotifier extends AsyncNotifier<TelegramAuthState> {
   @override
   FutureOr<TelegramAuthState> build() {
@@ -204,7 +206,7 @@ class TelegramAuthNotifier extends AsyncNotifier<TelegramAuthState> {
 
 /// Provider for [TelegramAuthNotifier].
 final telegramAuthProvider =
-    AsyncNotifierProvider<TelegramAuthNotifier, TelegramAuthState>(
+    AsyncNotifierProvider.autoDispose<TelegramAuthNotifier, TelegramAuthState>(
   TelegramAuthNotifier.new,
 );
 
@@ -214,7 +216,7 @@ final isTelegramLoginAvailableProvider = Provider<bool>((ref) {
 });
 
 /// Convenience provider for checking if Telegram auth is in progress.
-final isTelegramAuthLoadingProvider = Provider<bool>((ref) {
+final isTelegramAuthLoadingProvider = Provider.autoDispose<bool>((ref) {
   final state = ref.watch(telegramAuthProvider).value;
   return state is TelegramAuthWaitingForCallback ||
       state is TelegramAuthProcessing;

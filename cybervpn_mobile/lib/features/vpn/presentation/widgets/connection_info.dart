@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
@@ -28,7 +29,7 @@ class ConnectionInfo extends ConsumerWidget {
     }
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: AnimDurations.normal,
       child: Column(
         key: ValueKey(server?.id ?? 'none'),
         mainAxisSize: MainAxisSize.min,

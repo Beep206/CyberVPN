@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
@@ -70,7 +71,7 @@ final _settingsNavigatorKey =
 // Animation constants
 // ---------------------------------------------------------------------------
 
-const _transitionDuration = Duration(milliseconds: 300);
+const _transitionDuration = AnimDurations.normal;
 const _transitionCurve = Curves.easeInOutCubic;
 
 // ---------------------------------------------------------------------------
@@ -183,14 +184,28 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 /// 4. If authenticated and on an auth route or `/onboarding` -> redirect to
 ///    `/connection`. Also, consume any pending deep link.
 /// 5. Otherwise -> no redirect.
+/// Maximum time (seconds) to stay on splash before forcing navigation.
+const _maxSplashSeconds = 10;
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Notifier that fires when auth/onboarding state changes, triggering
   // GoRouter redirect re-evaluation without recreating the router.
   final refreshNotifier = _RouterRefreshNotifier();
 
+  // Track when splash started so we can enforce a maximum display time.
+  final splashStartTime = DateTime.now();
+
+  // Schedule a forced refresh after the max splash time so the redirect
+  // re-evaluates even if no provider state changes.
+  final splashTimer = Timer(
+    const Duration(seconds: _maxSplashSeconds),
+    refreshNotifier.notify,
+  );
+  ref.onDispose(splashTimer.cancel);
+
   ref.listen(authProvider, (_, _) => refreshNotifier.notify());
   ref.listen(shouldShowOnboardingProvider, (_, _) => refreshNotifier.notify());
-  ref.listen(shouldShowQuickSetupProvider, (_, _) => refreshNotifier.notify());
+  ref.listen(quickSetupProvider, (_, _) => refreshNotifier.notify());
 
   // Initialize quick actions handler (keeps it alive)
   ref.watch(quickActionsHandlerProvider);
@@ -216,7 +231,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final onboardingAsync = ref.read(shouldShowOnboardingProvider);
       final isOnboardingLoading = onboardingAsync.isLoading;
       final shouldShowOnboarding = onboardingAsync.value ?? false;
-      final shouldShowQuickSetup = ref.read(shouldShowQuickSetupProvider);
+      final quickSetupAsync = ref.read(quickSetupProvider);
+      final isQuickSetupLoading = quickSetupAsync.isLoading;
+      final shouldShowQuickSetup = !(quickSetupAsync.value?.completed ?? false);
 
       final uri = state.uri;
       final path = uri.path;
@@ -228,7 +245,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // -- Splash handling --------------------------------------------------
       // While auth or onboarding state is loading, keep the user on splash.
       // Once both resolve, redirect from splash into the normal guard chain.
-      if (isSplashRoute && (isAuthLoading || isOnboardingLoading)) {
+      // Safety net: force navigation after _maxSplashSeconds to prevent
+      // indefinite splash on any provider hang.
+      if (isSplashRoute && (isAuthLoading || isOnboardingLoading || isQuickSetupLoading)) {
+        final elapsed = DateTime.now().difference(splashStartTime).inSeconds;
+        if (elapsed >= _maxSplashSeconds) {
+          AppLogger.warning(
+            'Splash timeout after ${elapsed}s — forcing navigation to /login',
+            category: 'router',
+          );
+          return '/login';
+        }
         return null; // stay on /splash
       }
       if (isSplashRoute && !isAuthLoading) {
@@ -313,7 +340,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
       } catch (e, st) {
         AppLogger.error('Router redirect failed', error: e, stackTrace: st, category: 'router');
-        return '/login';
+        // Preserve current location on transient errors instead of forcing logout.
+        return null;
       }
     },
     routes: [
@@ -521,6 +549,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
+      // -- Server detail (root navigator, full-screen modal) ----------------
+      // Moved out of the Servers branch so tapping the Servers tab always
+      // returns to the server list, not to a lingering detail page.
+      GoRoute(
+        path: '/servers/:id',
+        name: 'server-detail',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: FeatureErrorBoundary(
+            featureName: 'Server Detail',
+            child: ServerDetailScreen(
+              serverId: state.pathParameters['id']!,
+            ),
+          ),
+        ),
+      ),
+
       // -- Main shell with stateful bottom navigation -----------------------
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -553,18 +599,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   featureName: 'Servers',
                   child: ServerListScreen(),
                 ),
-                routes: [
-                  GoRoute(
-                    path: ':id',
-                    name: 'server-detail',
-                    builder: (context, state) => FeatureErrorBoundary(
-                      featureName: 'Server Detail',
-                      child: ServerDetailScreen(
-                        serverId: state.pathParameters['id']!,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

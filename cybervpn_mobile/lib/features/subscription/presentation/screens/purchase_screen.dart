@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
@@ -85,7 +86,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
             : const SizedBox.shrink(),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
+        duration: AnimDurations.normal,
         child: _buildStep(),
       ),
     );
@@ -116,7 +117,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
         ),
       _ => _ErrorStep(
           key: const ValueKey('error'),
-          message: ref.read(subscriptionProvider).value?.purchaseError ??
+          message: ref.watch(subscriptionProvider).value?.purchaseError ??
               l10n.errorOccurred,
           onRetry: () {
             ref.read(subscriptionProvider.notifier).clearPurchaseState();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
+
 /// A widget that animates its child with a staggered fade-slide animation.
 ///
 /// Use this to wrap list items for a staggered reveal effect when the list
@@ -24,7 +26,7 @@ class StaggeredListItem extends StatefulWidget {
     required this.index,
     required this.child,
     this.baseDelay = const Duration(milliseconds: 50),
-    this.duration = const Duration(milliseconds: 300),
+    this.duration = AnimDurations.normal,
     this.curve = Curves.easeOutCubic,
     this.slideOffset = const Offset(0, 0.1),
   });
