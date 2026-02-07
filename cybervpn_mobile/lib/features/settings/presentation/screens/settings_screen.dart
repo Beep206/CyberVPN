@@ -13,6 +13,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -147,7 +148,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.settingsTitle),
+        title: GlitchText(
+          text: l10n.settingsTitle,
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
       ),
       body: asyncSettings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
