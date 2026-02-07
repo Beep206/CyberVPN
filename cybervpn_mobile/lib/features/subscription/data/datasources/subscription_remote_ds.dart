@@ -3,11 +3,62 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entit
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
+/// A payment history entry returned from the API.
+class PaymentHistoryEntry {
+  final String id;
+  final String planName;
+  final double amount;
+  final String currency;
+  final String status;
+  final DateTime createdAt;
+
+  const PaymentHistoryEntry({
+    required this.id,
+    required this.planName,
+    required this.amount,
+    required this.currency,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory PaymentHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return PaymentHistoryEntry(
+      id: json['id'] as String,
+      planName: json['plan_name'] as String? ?? '',
+      amount: (json['amount'] as num).toDouble(),
+      currency: json['currency'] as String? ?? 'USD',
+      status: json['status'] as String? ?? 'unknown',
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+}
+
+/// Paginated response for payment history.
+class PaginatedPaymentHistory {
+  final List<PaymentHistoryEntry> items;
+  final int total;
+  final int offset;
+  final int limit;
+
+  const PaginatedPaymentHistory({
+    required this.items,
+    required this.total,
+    required this.offset,
+    required this.limit,
+  });
+
+  bool get hasMore => offset + items.length < total;
+}
+
 abstract class SubscriptionRemoteDataSource {
   Future<List<PlanEntity>> fetchPlans();
   Future<SubscriptionEntity?> fetchActiveSubscription();
   Future<SubscriptionEntity> createSubscription(String planId, {String? paymentMethod});
   Future<void> cancelSubscription(String subscriptionId);
+  Future<PaginatedPaymentHistory> fetchPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  });
 }
 
 class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
@@ -96,5 +147,28 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
     await _apiClient.post<Map<String, dynamic>>('/subscription/$subscriptionId/cancel');
+  }
+
+  @override
+  Future<PaginatedPaymentHistory> fetchPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/payments/history',
+      queryParameters: {'offset': offset, 'limit': limit},
+    );
+    final body = response.data!;
+    final data = (body['items'] as List<dynamic>?) ?? [];
+    final total = body['total'] as int? ?? data.length;
+
+    return PaginatedPaymentHistory(
+      items: data
+          .map((json) => PaymentHistoryEntry.fromJson(json as Map<String, dynamic>))
+          .toList(),
+      total: total,
+      offset: offset,
+      limit: limit,
+    );
   }
 }

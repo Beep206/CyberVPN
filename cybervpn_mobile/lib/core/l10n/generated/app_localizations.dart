@@ -3165,6 +3165,12 @@ abstract class AppLocalizations {
   /// **'No servers match your search'**
   String get serverListNoResults;
 
+  /// No description provided for @serverListCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total} servers'**
+  String serverListCount(int shown, int total);
+
   /// No description provided for @serverListPing.
   ///
   /// In en, this message translates to:
@@ -7010,6 +7016,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get dismiss;
+
+  /// No description provided for @settingsScanlineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanline Effect'**
+  String get settingsScanlineLabel;
+
+  /// No description provided for @settingsScanlineDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtle CRT scanline overlay for cyberpunk aesthetic'**
+  String get settingsScanlineDescription;
+
+  /// Title for the dialog shown when the server forces a VPN disconnection
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Terminated'**
+  String get forceDisconnectTitle;
+
+  /// Message body for the force disconnect dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Your VPN connection was terminated by the server. This may be due to a session limit or administrative action.'**
+  String get forceDisconnectMessage;
+
+  /// Quick action to connect to a server
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get serverQuickConnect;
+
+  /// Quick action to add server to favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Favorites'**
+  String get serverQuickFavorite;
+
+  /// Quick action to remove server from favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Favorites'**
+  String get serverQuickUnfavorite;
+
+  /// Quick action to copy server address to clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Address'**
+  String get serverQuickCopyAddress;
+
+  /// Quick action to view server details screen
+  ///
+  /// In en, this message translates to:
+  /// **'View Details'**
+  String get serverQuickViewDetails;
+
+  /// Quick action to report an issue with the server
+  ///
+  /// In en, this message translates to:
+  /// **'Report Issue'**
+  String get serverQuickReport;
+
+  /// Snackbar message after copying server address
+  ///
+  /// In en, this message translates to:
+  /// **'Server address copied'**
+  String get serverAddressCopied;
+
+  /// Snackbar message after reporting a server issue
+  ///
+  /// In en, this message translates to:
+  /// **'Issue reported. Thank you for your feedback.'**
+  String get serverReportSubmitted;
+
+  /// Title for the delete account dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountTitle;
+
+  /// Warning message shown on the first step of account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone. All your data will be permanently deleted.'**
+  String get deleteAccountWarning;
+
+  /// First consequence of deleting account
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription will be cancelled'**
+  String get deleteAccountConsequence1;
+
+  /// Second consequence of deleting account
+  ///
+  /// In en, this message translates to:
+  /// **'All VPN configurations will be removed'**
+  String get deleteAccountConsequence2;
+
+  /// Third consequence of deleting account
+  ///
+  /// In en, this message translates to:
+  /// **'Your account data will be permanently erased'**
+  String get deleteAccountConsequence3;
+
+  /// Confirmation button text after reading consequences
+  ///
+  /// In en, this message translates to:
+  /// **'I understand, delete my account'**
+  String get deleteAccountConfirm;
+
+  /// Prompt for re-authentication before deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Please verify your identity to continue'**
+  String get deleteAccountReauthenticate;
+
+  /// Delete button text with countdown timer
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account ({seconds}s)'**
+  String deleteAccountCountdown(int seconds);
+
+  /// Final delete account button text after countdown
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountFinalButton;
+
+  /// Success message after account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted'**
+  String get deleteAccountSuccess;
+
+  /// Label for the password field in re-authentication
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get deleteAccountPasswordLabel;
+
+  /// Hint text for the password field in re-authentication
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get deleteAccountPasswordHint;
+
+  /// Label for the biometric authentication option
+  ///
+  /// In en, this message translates to:
+  /// **'Or use biometric authentication'**
+  String get deleteAccountOrBiometric;
+
+  /// Reason shown in the biometric prompt for account deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your identity to delete your account'**
+  String get deleteAccountBiometricReason;
 }
 
 class _AppLocalizationsDelegate

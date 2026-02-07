@@ -479,13 +479,24 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             ),
           ),
 
-          // --- Fastest quick-select chip ---
+          // --- Server count + Fastest chip ---
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.xs),
               child: Wrap(
                 spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  if (state.totalServerCount > 0)
+                    Text(
+                      AppLocalizations.of(context).serverListCount(
+                        state.servers.length,
+                        state.totalServerCount,
+                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   Semantics(
                     label: AppLocalizations.of(context).a11ySelectFastestServer,
                     button: true,

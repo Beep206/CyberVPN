@@ -1741,6 +1741,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get serverListNoResults => 'No servers found';
 
   @override
+  String serverListCount(int shown, int total) {
+    return '$shown of $total servers';
+  }
+
+  @override
   String serverListPing(int ping) {
     return '$ping ms';
   }
@@ -3995,4 +4000,92 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get dismiss => 'Dismiss';
+
+  @override
+  String get settingsScanlineLabel => 'Scanline Effect';
+
+  @override
+  String get settingsScanlineDescription =>
+      'Subtle CRT scanline overlay for cyberpunk aesthetic';
+
+  @override
+  String get forceDisconnectTitle => 'Connection Terminated';
+
+  @override
+  String get forceDisconnectMessage =>
+      'Your VPN connection was terminated by the server. This may be due to a session limit or administrative action.';
+
+  @override
+  String get serverQuickConnect => 'Connect';
+
+  @override
+  String get serverQuickFavorite => 'Add to Favorites';
+
+  @override
+  String get serverQuickUnfavorite => 'Remove from Favorites';
+
+  @override
+  String get serverQuickCopyAddress => 'Copy Address';
+
+  @override
+  String get serverQuickViewDetails => 'View Details';
+
+  @override
+  String get serverQuickReport => 'Report Issue';
+
+  @override
+  String get serverAddressCopied => 'Server address copied';
+
+  @override
+  String get serverReportSubmitted =>
+      'Issue reported. Thank you for your feedback.';
+
+  @override
+  String get deleteAccountTitle => 'Delete Account';
+
+  @override
+  String get deleteAccountWarning =>
+      'This action cannot be undone. All your data will be permanently deleted.';
+
+  @override
+  String get deleteAccountConsequence1 => 'Your subscription will be cancelled';
+
+  @override
+  String get deleteAccountConsequence2 =>
+      'All VPN configurations will be removed';
+
+  @override
+  String get deleteAccountConsequence3 =>
+      'Your account data will be permanently erased';
+
+  @override
+  String get deleteAccountConfirm => 'I understand, delete my account';
+
+  @override
+  String get deleteAccountReauthenticate =>
+      'Please verify your identity to continue';
+
+  @override
+  String deleteAccountCountdown(int seconds) {
+    return 'Delete Account (${seconds}s)';
+  }
+
+  @override
+  String get deleteAccountFinalButton => 'Delete Account';
+
+  @override
+  String get deleteAccountSuccess => 'Your account has been deleted';
+
+  @override
+  String get deleteAccountPasswordLabel => 'Password';
+
+  @override
+  String get deleteAccountPasswordHint => 'Enter your password';
+
+  @override
+  String get deleteAccountOrBiometric => 'Or use biometric authentication';
+
+  @override
+  String get deleteAccountBiometricReason =>
+      'Verify your identity to delete your account';
 }

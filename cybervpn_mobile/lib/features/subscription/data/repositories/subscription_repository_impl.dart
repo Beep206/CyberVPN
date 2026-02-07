@@ -140,4 +140,22 @@ class SubscriptionRepositoryImpl with NetworkErrorHandler, CachedRepository impl
     // RevenueCat handles restore; this is a placeholder
     return const Success(null);
   }
+
+  @override
+  Future<Result<PaginatedPaymentHistory>> getPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final history = await _remoteDataSource.fetchPaymentHistory(
+        offset: offset,
+        limit: limit,
+      );
+      return Success(history);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
 }
