@@ -32,12 +32,56 @@ class EnvironmentConfig {
   /// SECURITY: Computed at runtime to avoid appearing as a plaintext string
   /// in the binary. In release builds, this should always be overridden by
   /// the `--dart-define=API_BASE_URL=...` flag.
-  static String get _defaultBaseUrl =>
-      String.fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 97, 112, 105, 46, 99, 121, 98, 101, 114, 118, 112, 110, 46, 99, 111, 109]); // https://api.cybervpn.com
+  static String get _defaultBaseUrl => String.fromCharCodes([
+    104,
+    116,
+    116,
+    112,
+    115,
+    58,
+    47,
+    47,
+    97,
+    112,
+    105,
+    46,
+    99,
+    121,
+    98,
+    101,
+    114,
+    118,
+    112,
+    110,
+    46,
+    99,
+    111,
+    109,
+  ]); // https://api.cybervpn.com
 
   /// Default web base URL for public pages (privacy policy, etc.)
-  static String get _defaultWebBaseUrl =>
-      String.fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 99, 121, 98, 101, 114, 118, 112, 110, 46, 97, 112, 112]); // https://cybervpn.app
+  static String get _defaultWebBaseUrl => String.fromCharCodes([
+    104,
+    116,
+    116,
+    112,
+    115,
+    58,
+    47,
+    47,
+    99,
+    121,
+    98,
+    101,
+    114,
+    118,
+    112,
+    110,
+    46,
+    97,
+    112,
+    112,
+  ]); // https://cybervpn.app
 
   /// Default environment name.
   static const String _defaultEnv = 'prod';
@@ -45,7 +89,7 @@ class EnvironmentConfig {
   /// Value injected at compile time via `--dart-define=API_BASE_URL=...`.
   static const String _dartDefineBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: _defaultBaseUrl,
+    defaultValue: 'https://api.cybervpn.com',
   );
 
   /// Value injected at compile time via `--dart-define=API_ENV=...`.
@@ -57,7 +101,7 @@ class EnvironmentConfig {
   /// Value injected at compile time via `--dart-define=WEB_BASE_URL=...`.
   static const String _dartDefineWebBaseUrl = String.fromEnvironment(
     'WEB_BASE_URL',
-    defaultValue: _defaultWebBaseUrl,
+    defaultValue: 'https://cybervpn.app',
   );
 
   /// Value injected at compile time via `--dart-define=SENTRY_DSN=...`.
@@ -86,13 +130,6 @@ class EnvironmentConfig {
     defaultValue: '',
   );
 
-  /// Value injected at compile time via `--dart-define=ROOT_ENFORCEMENT=...`.
-  ///
-  /// Controls root/jailbreak enforcement policy: `logging` (default) or `blocking`.
-  static const String _dartDefineRootEnforcement = String.fromEnvironment(
-    'ROOT_ENFORCEMENT',
-    defaultValue: 'logging',
-  );
 
   // ── Resolved values (dart-define > .env > default) ───────────────────
 
@@ -247,26 +284,6 @@ class EnvironmentConfig {
     }
 
     return '';
-  }
-
-  /// The resolved root/jailbreak enforcement policy.
-  ///
-  /// Priority: `--dart-define` > `.env` > `logging` (default).
-  ///
-  /// Valid values: `logging`, `blocking`.
-  static String get rootEnforcement {
-    if (_dartDefineRootEnforcement != 'logging') {
-      return _dartDefineRootEnforcement;
-    }
-
-    if (_dotenvLoaded) {
-      final envValue = dotenv.maybeGet('ROOT_ENFORCEMENT');
-      if (envValue != null && envValue.isNotEmpty) {
-        return envValue;
-      }
-    }
-
-    return 'logging';
   }
 
   // ── Convenience helpers ──────────────────────────────────────────────

@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/core/security/widgets/root_detection_dialog.dart';
-import 'package:cybervpn_mobile/core/security/widgets/root_warning_banner.dart';
-import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
 /// Main shell screen that wraps the bottom navigation for the app.
@@ -30,64 +25,6 @@ class MainShellScreen extends ConsumerStatefulWidget {
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   /// Track whether auto-connect notification was shown.
   bool _autoConnectNotificationShown = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Check device integrity on app startup (after user logs in/completes onboarding)
-    unawaited(_checkDeviceIntegrity());
-  }
-
-  /// Checks if the device is rooted/jailbroken and shows warning if needed.
-  ///
-  /// This check runs asynchronously without blocking app startup. If the device
-  /// is rooted/jailbroken AND the user hasn't dismissed the warning before,
-  /// a non-blocking informational dialog is shown.
-  Future<void> _checkDeviceIntegrity() async {
-    try {
-      final integrityChecker = ref.read(deviceIntegrityCheckerProvider);
-
-      // Check if device is rooted/jailbroken
-      final isRooted = await integrityChecker.isDeviceRooted();
-
-      if (!isRooted) {
-        AppLogger.info('Device integrity check passed', category: 'security');
-        return;
-      }
-
-      // Check if user has already dismissed the warning
-      final hasDismissed = await integrityChecker.hasUserDismissedWarning();
-
-      if (hasDismissed) {
-        AppLogger.info(
-          'Device is rooted/jailbroken but user has dismissed warning',
-          category: 'security',
-        );
-        return;
-      }
-
-      // Show the warning dialog
-      if (mounted) {
-        // Delay slightly to ensure the UI is fully rendered
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-
-        if (mounted) {
-          await RootDetectionDialog.show(
-            context: context,
-            integrityChecker: integrityChecker,
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      AppLogger.error(
-        'Failed to perform device integrity check',
-        error: e,
-        stackTrace: stackTrace,
-        category: 'security',
-      );
-      // Fail silently - don't block app usage
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,11 +70,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
         if (isWide) {
           return Scaffold(
-            body: Column(
-              children: [
-                const RootWarningBanner(),
-                Expanded(
-                  child: Row(
+            body: Row(
                     children: [
                       NavigationRail(
                         selectedIndex: widget.navigationShell.currentIndex,
@@ -183,20 +116,12 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                       const VerticalDivider(thickness: 1, width: 1),
                       Expanded(child: widget.navigationShell),
                     ],
-                  ),
-                ),
-              ],
             ),
           );
         }
 
         return Scaffold(
-          body: Column(
-            children: [
-              const RootWarningBanner(),
-              Expanded(child: widget.navigationShell),
-            ],
-          ),
+          body: widget.navigationShell,
           bottomNavigationBar: NavigationBar(
             selectedIndex: widget.navigationShell.currentIndex,
             onDestinationSelected: _onTabSelected,

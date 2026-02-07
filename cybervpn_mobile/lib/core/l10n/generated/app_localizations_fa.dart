@@ -252,13 +252,6 @@ class AppLocalizationsFa extends AppLocalizations {
       'CyberVPN creates a secure tunnel to protect your data';
 
   @override
-  String get permissionNotificationsTitle => 'Notifications';
-
-  @override
-  String get permissionNotificationsDescription =>
-      'Stay informed about connection status and security alerts';
-
-  @override
   String get permissionGrantButton => 'Grant Permissions';
 
   @override
@@ -537,6 +530,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get configImportScanQrButton => 'اسکن کد QR';
+
+  @override
+  String get configImportPasteLink => '[EN] Paste VPN config link';
 
   @override
   String get configImportFromClipboard => 'واردکردن از کلیپبورد';
@@ -1082,24 +1078,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get a11ySearchField => 'جستجو';
-
-  @override
-  String get rootDetectionDialogTitle => 'Rooted/Jailbroken Device Detected';
-
-  @override
-  String get rootDetectionDialogDescription =>
-      'Your device appears to be rooted (Android) or jailbroken (iOS). While CyberVPN will continue to work, please note that using a rooted/jailbroken device may expose you to security risks.\n\nWe understand that users in censored regions often rely on rooted devices for additional privacy tools. CyberVPN will not block your access, but we recommend being cautious about the apps you install and the permissions you grant.';
-
-  @override
-  String get rootDetectionDialogDismiss => 'I Understand';
-
-  @override
-  String get rootDetectionBannerWarning =>
-      'This device is rooted/jailbroken. Your connection may be less secure.';
-
-  @override
-  String get rootDetectionBannerBlocking =>
-      'VPN is unavailable on rooted/jailbroken devices.';
 
   @override
   String get loginEmailLabel => 'Email';

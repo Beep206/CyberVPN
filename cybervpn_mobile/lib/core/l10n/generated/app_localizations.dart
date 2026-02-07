@@ -576,7 +576,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionSetupSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'CyberVPN needs a few permissions to keep you secure'**
+  /// **'CyberVPN needs permission to create a VPN tunnel'**
   String get permissionSetupSubtitle;
 
   /// No description provided for @permissionVpnTitle.
@@ -591,22 +591,10 @@ abstract class AppLocalizations {
   /// **'CyberVPN creates a secure tunnel to protect your data'**
   String get permissionVpnDescription;
 
-  /// No description provided for @permissionNotificationsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get permissionNotificationsTitle;
-
-  /// No description provided for @permissionNotificationsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Stay informed about connection status and security alerts'**
-  String get permissionNotificationsDescription;
-
   /// No description provided for @permissionGrantButton.
   ///
   /// In en, this message translates to:
-  /// **'Grant Permissions'**
+  /// **'Grant Permission'**
   String get permissionGrantButton;
 
   /// No description provided for @permissionContinueAnyway.
@@ -1088,6 +1076,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan QR Code'**
   String get configImportScanQrButton;
+
+  /// No description provided for @configImportPasteLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste VPN config link'**
+  String get configImportPasteLink;
 
   /// No description provided for @configImportFromClipboard.
   ///
@@ -1958,36 +1952,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search'**
   String get a11ySearchField;
-
-  /// No description provided for @rootDetectionDialogTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Rooted/Jailbroken Device Detected'**
-  String get rootDetectionDialogTitle;
-
-  /// No description provided for @rootDetectionDialogDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Your device appears to be rooted (Android) or jailbroken (iOS). While CyberVPN will continue to work, please note that using a rooted/jailbroken device may expose you to security risks.\n\nWe understand that users in censored regions often rely on rooted devices for additional privacy tools. CyberVPN will not block your access, but we recommend being cautious about the apps you install and the permissions you grant.'**
-  String get rootDetectionDialogDescription;
-
-  /// No description provided for @rootDetectionDialogDismiss.
-  ///
-  /// In en, this message translates to:
-  /// **'I Understand'**
-  String get rootDetectionDialogDismiss;
-
-  /// No description provided for @rootDetectionBannerWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'This device is rooted/jailbroken. Your connection may be less secure.'**
-  String get rootDetectionBannerWarning;
-
-  /// No description provided for @rootDetectionBannerBlocking.
-  ///
-  /// In en, this message translates to:
-  /// **'VPN is unavailable on rooted/jailbroken devices.'**
-  String get rootDetectionBannerBlocking;
 
   /// No description provided for @loginEmailLabel.
   ///

@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
-import 'package:cybervpn_mobile/core/security/device_integrity.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
@@ -176,20 +175,6 @@ class _MockReviewService implements ReviewService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _MockDeviceIntegrityChecker implements DeviceIntegrityChecker {
-  @override
-  Future<bool> shouldBlockVpn() async => false;
-
-  @override
-  Future<bool> isDeviceRooted() async => false;
-
-  @override
-  bool get isBlockingEnabled => false;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -232,8 +217,6 @@ ProviderContainer _createContainer({
       deviceRegistrationServiceProvider.overrideWithValue(deviceRegistration),
       reviewServiceProvider.overrideWithValue(reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
-      deviceIntegrityCheckerProvider
-          .overrideWithValue(_MockDeviceIntegrityChecker()),
     ],
   );
 }

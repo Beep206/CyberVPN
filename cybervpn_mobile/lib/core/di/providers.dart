@@ -7,9 +7,9 @@ import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/network/auth_interceptor.dart';
 import 'package:cybervpn_mobile/core/network/retry_interceptor.dart';
-import 'package:cybervpn_mobile/core/security/device_integrity.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 
 // Data sources (lazy - created on first access via ref.watch)
 import 'package:cybervpn_mobile/features/auth/data/datasources/auth_remote_ds.dart';
@@ -164,8 +164,9 @@ final secureStorageWrapperProvider = Provider<SecureStorageWrapper>((ref) {
 });
 
 /// Provides the [DeviceRegistrationService].
-final deviceRegistrationServiceProvider =
-    Provider<DeviceRegistrationService>((ref) {
+final deviceRegistrationServiceProvider = Provider<DeviceRegistrationService>((
+  ref,
+) {
   return DeviceRegistrationService(
     registerDevice: ref.watch(registerDeviceUseCaseProvider),
     storage: ref.watch(secureStorageWrapperProvider),
@@ -173,22 +174,26 @@ final deviceRegistrationServiceProvider =
 });
 
 /// Provides the [LinkSocialAccountUseCase].
-final linkSocialAccountUseCaseProvider =
-    Provider<LinkSocialAccountUseCase>((ref) {
+final linkSocialAccountUseCaseProvider = Provider<LinkSocialAccountUseCase>((
+  ref,
+) {
   return LinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
 });
 
 /// Provides the [CompleteSocialAccountLinkUseCase].
 final completeSocialAccountLinkUseCaseProvider =
     Provider<CompleteSocialAccountLinkUseCase>((ref) {
-  return CompleteSocialAccountLinkUseCase(ref.watch(profileRepositoryProvider));
-});
+      return CompleteSocialAccountLinkUseCase(
+        ref.watch(profileRepositoryProvider),
+      );
+    });
 
 /// Provides the [UnlinkSocialAccountUseCase].
-final unlinkSocialAccountUseCaseProvider =
-    Provider<UnlinkSocialAccountUseCase>((ref) {
-  return UnlinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
-});
+final unlinkSocialAccountUseCaseProvider = Provider<UnlinkSocialAccountUseCase>(
+  (ref) {
+    return UnlinkSocialAccountUseCase(ref.watch(profileRepositoryProvider));
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Notification repository & datasource providers
@@ -202,14 +207,17 @@ final fcmDatasourceProvider = Provider<FcmDatasource>((ref) {
 });
 
 /// Provides the [NotificationRepositoryImpl] lazily via ref.watch.
-final notificationRepositoryImplProvider =
-    Provider<NotificationRepositoryImpl>((ref) {
-  return NotificationRepositoryImpl(
-    fcmDatasource: ref.watch(fcmDatasourceProvider),
-    localDatasource: NotificationLocalDatasourceImpl(ref.watch(localStorageProvider)),
-    apiClient: ref.watch(apiClientProvider),
-  );
-});
+final notificationRepositoryImplProvider = Provider<NotificationRepositoryImpl>(
+  (ref) {
+    return NotificationRepositoryImpl(
+      fcmDatasource: ref.watch(fcmDatasourceProvider),
+      localDatasource: NotificationLocalDatasourceImpl(
+        ref.watch(localStorageProvider),
+      ),
+      apiClient: ref.watch(apiClientProvider),
+    );
+  },
+);
 
 /// Provides the [NotificationRepository] implementation via the impl provider.
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
@@ -270,8 +278,8 @@ final killSwitchServiceProvider = Provider<KillSwitchService>((ref) {
 /// `null` means use platform / system DNS defaults.
 final activeDnsServersProvider =
     NotifierProvider<ActiveDnsServersNotifier, List<String>?>(
-  ActiveDnsServersNotifier.new,
-);
+      ActiveDnsServersNotifier.new,
+    );
 
 /// Notifier for active DNS servers state.
 class ActiveDnsServersNotifier extends Notifier<List<String>?> {
@@ -294,9 +302,10 @@ class ActiveDnsServersNotifier extends Notifier<List<String>?> {
 // ---------------------------------------------------------------------------
 
 /// Provides the [SubscriptionLocalDataSource] for persistent caching.
-final subscriptionLocalDataSourceProvider = Provider<SubscriptionLocalDataSource>((ref) {
-  return SubscriptionLocalDataSourceImpl(ref.watch(localStorageProvider));
-});
+final subscriptionLocalDataSourceProvider =
+    Provider<SubscriptionLocalDataSource>((ref) {
+      return SubscriptionLocalDataSourceImpl(ref.watch(localStorageProvider));
+    });
 
 /// Provides the [SubscriptionRepository] lazily via ref.watch.
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
@@ -349,11 +358,16 @@ final registerUseCaseProvider = Provider<RegisterUseCase>((ref) {
 ///
 /// Uses the `.family` modifier so each server ID gets its own cached provider
 /// instance, avoiding unnecessary rebuilds across the server list.
-final serverDetailProvider =
-    FutureProvider.family<ServerEntity?, String>((ref, serverId) async {
+final serverDetailProvider = FutureProvider.family<ServerEntity?, String>((
+  ref,
+  serverId,
+) async {
   final repo = ref.watch(serverRepositoryProvider);
   final result = await repo.getServerById(serverId);
-  return result.fold((_) => null, (server) => server);
+  return switch (result) {
+    Success(:final data) => data,
+    Failure() => null,
+  };
 });
 
 /// Provides the [ServerRepository] lazily via ref.watch.
@@ -375,8 +389,9 @@ final pingServiceProvider = Provider<PingService>((ref) {
 ///
 /// Requires [SharedPreferences] to be available. Use
 /// [sharedPreferencesProvider] to supply the instance.
-final favoritesLocalDatasourceProvider =
-    Provider<FavoritesLocalDatasource>((ref) {
+final favoritesLocalDatasourceProvider = Provider<FavoritesLocalDatasource>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return FavoritesLocalDatasource(prefs);
 });
@@ -388,38 +403,6 @@ final favoritesLocalDatasourceProvider =
 /// Provides [NetworkInfo] for connectivity checks.
 final networkInfoProvider = Provider<NetworkInfo>((ref) {
   return NetworkInfo();
-});
-
-/// Provides the [DeviceIntegrityChecker] for root/jailbreak detection.
-///
-/// The enforcement policy is resolved from [EnvironmentConfig.rootEnforcement]:
-/// - `logging` (default): warn only, never block VPN
-/// - `blocking`: prevent VPN connections on rooted devices
-final deviceIntegrityCheckerProvider = Provider<DeviceIntegrityChecker>((ref) {
-  final policy = EnvironmentConfig.rootEnforcement == 'blocking'
-      ? RootEnforcementPolicy.blocking
-      : RootEnforcementPolicy.logging;
-  return DeviceIntegrityChecker(
-    ref.watch(sharedPreferencesProvider),
-    enforcementPolicy: policy,
-  );
-});
-
-/// Whether the current device is rooted/jailbroken.
-///
-/// This is a cached async check. Used by the warning banner and enforcement
-/// logic. Returns `false` if the check fails.
-final isDeviceRootedProvider = FutureProvider<bool>((ref) async {
-  final checker = ref.watch(deviceIntegrityCheckerProvider);
-  return checker.isDeviceRooted();
-});
-
-/// Whether the user has dismissed the root/jailbreak warning banner.
-///
-/// Used by the persistent warning banner to avoid showing after dismissal.
-final rootWarningDismissedProvider = FutureProvider<bool>((ref) async {
-  final checker = ref.watch(deviceIntegrityCheckerProvider);
-  return checker.hasUserDismissedWarning();
 });
 
 /// Provides the [Dio] HTTP client instance.
@@ -520,9 +503,7 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   apiClient.addInterceptor(
     AuthInterceptor(secureStorage: secureStorage, dio: dio),
   );
-  apiClient.addInterceptor(
-    RetryInterceptor(dio: dio, maxRetries: 3),
-  );
+  apiClient.addInterceptor(RetryInterceptor(dio: dio, maxRetries: 3));
 
   return [
     // Eager infrastructure (async-init or sync-critical)

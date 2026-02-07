@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -31,6 +32,25 @@ class ImportListScreen extends ConsumerStatefulWidget {
 class _ImportListScreenState extends ConsumerState<ImportListScreen> {
   /// Set of config IDs currently being tested for connection.
   final Set<String> _testingIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-check clipboard for VPN configs when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_checkClipboardOnOpen());
+    });
+  }
+
+  /// Check clipboard for VPN config links when screen opens.
+  Future<void> _checkClipboardOnOpen() async {
+    final notifier = ref.read(configImportProvider.notifier);
+    final clipboardUri = await notifier.checkClipboard();
+    if (clipboardUri != null && mounted) {
+      final l10n = AppLocalizations.of(context);
+      _showSnackbar(l10n.configImportVpnConfigDetected);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -240,14 +260,6 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.qr_code_scanner),
-                title: Text(sheetL10n.configImportScanQrButton),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  unawaited(Navigator.of(context).pushNamed('/qr-scanner'));
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.content_paste),
                 title: Text(sheetL10n.configImportFromClipboard),
                 onTap: () async {
@@ -269,6 +281,14 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
                   } else if (mounted) {
                     _showSnackbar(l10n.configImportNoConfigInClipboard);
                   }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.qr_code_scanner),
+                title: Text(sheetL10n.configImportScanQrButton),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  unawaited(Navigator.of(context).pushNamed('/qr-scanner'));
                 },
               ),
               ListTile(
@@ -779,10 +799,55 @@ class _ProtocolBadge extends StatelessWidget {
 // Empty State View
 // ---------------------------------------------------------------------------
 
-class _EmptyStateView extends StatelessWidget {
+class _EmptyStateView extends ConsumerStatefulWidget {
   const _EmptyStateView({required this.onImport});
 
   final VoidCallback onImport;
+
+  @override
+  ConsumerState<_EmptyStateView> createState() => _EmptyStateViewState();
+}
+
+class _EmptyStateViewState extends ConsumerState<_EmptyStateView> {
+  final _uriController = TextEditingController();
+  bool _isImporting = false;
+
+  @override
+  void dispose() {
+    _uriController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pasteAndImport() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clipboardData?.text?.trim();
+    if (text != null && text.isNotEmpty) {
+      _uriController.text = text;
+      unawaited(_importUri(text));
+    }
+  }
+
+  Future<void> _importUri(String uri) async {
+    if (uri.isEmpty) return;
+    setState(() => _isImporting = true);
+    final notifier = ref.read(configImportProvider.notifier);
+    final imported = await notifier.importFromUri(uri, source: ImportSource.clipboard);
+    if (mounted) {
+      setState(() => _isImporting = false);
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            imported != null
+                ? l10n.configImportServerAdded(imported.name)
+                : l10n.configImportNoValidConfig,
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      if (imported != null) _uriController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -791,7 +856,7 @@ class _EmptyStateView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -816,9 +881,45 @@ class _EmptyStateView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
+
+            // Primary: paste / text input field
+            TextField(
+              controller: _uriController,
+              decoration: InputDecoration(
+                labelText: l10n.configImportPasteLink,
+                hintText: 'vless://... | vmess://... | ss://...',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.content_paste),
+                  tooltip: l10n.configImportFromClipboard,
+                  onPressed: _pasteAndImport,
+                ),
+              ),
+              keyboardType: TextInputType.url,
+              onSubmitted: _importUri,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _isImporting
+                    ? null
+                    : () => _importUri(_uriController.text.trim()),
+                child: _isImporting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.configImportImportButton),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Secondary: other import options
+            OutlinedButton.icon(
               key: const Key('empty_state_import_button'),
-              onPressed: onImport,
+              onPressed: widget.onImport,
               icon: const Icon(Icons.add),
               label: Text(l10n.configImportImportServerButton),
             ),
