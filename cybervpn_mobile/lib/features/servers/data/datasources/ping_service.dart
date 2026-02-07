@@ -7,12 +7,14 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 /// Service for performing parallel ping/latency tests against VPN servers.
 ///
 /// Uses TCP socket connection to measure round-trip latency. Results are
-/// cached in-memory and can be refreshed manually or via a periodic timer.
+/// cached in-memory with a configurable TTL and can be refreshed manually
+/// or via a periodic timer.
 class PingService {
   PingService({
     this.maxConcurrent = 10,
     this.timeoutDuration = const Duration(seconds: 5),
-    this.refreshInterval = const Duration(seconds: 60),
+    this.refreshInterval = const Duration(seconds: 30),
+    this.cacheTtl = const Duration(seconds: 30),
   });
 
   /// Maximum number of concurrent ping operations.
@@ -24,12 +26,19 @@ class PingService {
   /// Interval between automatic background refreshes.
   final Duration refreshInterval;
 
+  /// Time-to-live for cached ping results. Entries older than this are
+  /// considered stale and will be re-measured on the next sweep.
+  final Duration cacheTtl;
+
   /// Maximum number of entries in the ping cache to prevent unbounded growth.
   static const int _maxCacheSize = 500;
 
   /// In-memory cache: serverId -> latency in ms.
   /// Limited to [_maxCacheSize] entries with LRU eviction.
   final Map<String, int> _cache = {};
+
+  /// Timestamps for cache entries: serverId -> when the ping was recorded.
+  final Map<String, DateTime> _cacheTimestamps = {};
 
   /// Timer for periodic background refresh.
   Timer? _refreshTimer;
@@ -44,8 +53,19 @@ class PingService {
   // Public API
   // ---------------------------------------------------------------------------
 
-  /// Returns the currently cached latency results (serverId -> ms).
-  Map<String, int> get cachedResults => Map.unmodifiable(_cache);
+  /// Returns the currently cached latency results (serverId -> ms),
+  /// excluding entries that have exceeded [cacheTtl].
+  Map<String, int> get cachedResults {
+    _evictStale();
+    return Map.unmodifiable(_cache);
+  }
+
+  /// Whether the cached result for [serverId] is still fresh.
+  bool isFresh(String serverId) {
+    final ts = _cacheTimestamps[serverId];
+    if (ts == null) return false;
+    return DateTime.now().difference(ts) < cacheTtl;
+  }
 
   /// Ping a single server host/port via TCP socket connection.
   ///
@@ -96,7 +116,11 @@ class PingService {
         });
 
     // Merge results into cache with LRU eviction.
+    final now = DateTime.now();
     _cache.addAll(results);
+    for (final key in results.keys) {
+      _cacheTimestamps[key] = now;
+    }
     _evictIfNeeded();
     _isRunning = false;
     return Map.unmodifiable(results);
@@ -134,16 +158,35 @@ class PingService {
       }
     }
 
+    final now = DateTime.now();
     _cache.addAll(results);
+    for (final key in results.keys) {
+      _cacheTimestamps[key] = now;
+    }
     _evictIfNeeded();
     _isRunning = false;
     return Map.unmodifiable(results);
   }
 
+  /// Removes entries whose timestamp has exceeded [cacheTtl].
+  void _evictStale() {
+    final now = DateTime.now();
+    final staleKeys = _cacheTimestamps.entries
+        .where((e) => now.difference(e.value) >= cacheTtl)
+        .map((e) => e.key)
+        .toList();
+    for (final key in staleKeys) {
+      _cache.remove(key);
+      _cacheTimestamps.remove(key);
+    }
+  }
+
   /// Evicts oldest entries (first inserted) when cache exceeds max size.
   void _evictIfNeeded() {
     while (_cache.length > _maxCacheSize) {
-      _cache.remove(_cache.keys.first);
+      final key = _cache.keys.first;
+      _cache.remove(key);
+      _cacheTimestamps.remove(key);
     }
   }
 
@@ -177,12 +220,14 @@ class PingService {
   /// Clear cached results.
   void clearCache() {
     _cache.clear();
+    _cacheTimestamps.clear();
   }
 
   /// Dispose of resources (timer).
   void dispose() {
     stopAutoRefresh();
     _cache.clear();
+    _cacheTimestamps.clear();
     _lastServers = null;
   }
 }
