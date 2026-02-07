@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/widgets/ping_indicator.dart';
@@ -74,7 +75,7 @@ class ServerDetailScreen extends ConsumerWidget {
     final loadPercent = (load * 100).toInt();
 
     final body = SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -84,7 +85,7 @@ class ServerDetailScreen extends ConsumerWidget {
               size: FlagSize.extraLarge,
               heroTag: 'server_flag_${server.id}',
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             Text(
               server.name,
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -92,15 +93,19 @@ class ServerDetailScreen extends ConsumerWidget {
                 color: colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: Spacing.xs),
             Text(
               '${server.city}, ${server.countryName}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: Spacing.lg),
 
             // ----- Info Cards -----
             _InfoRow(
@@ -108,7 +113,7 @@ class ServerDetailScreen extends ConsumerWidget {
               label: l10n.serverDetailAddress,
               value: '${server.address}:${server.port}',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.sm),
 
             // Protocol badge
             _InfoRow(
@@ -116,7 +121,7 @@ class ServerDetailScreen extends ConsumerWidget {
               label: l10n.serverDetailProtocol,
               trailing: _ProtocolChip(protocol: server.protocol),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.sm),
 
             // Availability
             _InfoRow(
@@ -126,12 +131,12 @@ class ServerDetailScreen extends ConsumerWidget {
               label: l10n.serverDetailStatus,
               value: server.isAvailable ? l10n.serverDetailOnline : l10n.serverDetailOffline,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.sm),
 
             // Premium
             if (server.isPremium)
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.only(bottom: Spacing.sm),
                 child: _InfoRow(
                   icon: Icons.workspace_premium,
                   iconColor: Colors.amber.shade600,
@@ -144,12 +149,12 @@ class ServerDetailScreen extends ConsumerWidget {
 
             // ----- Latency -----
             _SectionTitle(title: l10n.serverDetailLatency),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 PingIndicator(latencyMs: server.ping),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.sm),
                 Text(
                   server.ping != null ? l10n.serverPingMs(server.ping!) : l10n.serverDetailNotTested,
                   style: theme.textTheme.headlineMedium?.copyWith(
@@ -159,11 +164,11 @@ class ServerDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: Spacing.lg),
 
             // ----- Load -----
             _SectionTitle(title: l10n.serverDetailServerLoad),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             Text(
               '$loadPercent%',
               style: theme.textTheme.headlineMedium?.copyWith(
@@ -171,9 +176,9 @@ class ServerDetailScreen extends ConsumerWidget {
                 color: _loadColor(load, colorScheme),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(Radii.xs),
               child: LinearProgressIndicator(
                 value: load,
                 minHeight: 10,
@@ -181,11 +186,11 @@ class ServerDetailScreen extends ConsumerWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(_loadColor(load, colorScheme)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: Spacing.lg),
 
             // ----- Uptime (estimated) -----
             _SectionTitle(title: l10n.serverDetailUptime),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             Text(
               server.isAvailable ? l10n.serverDetailUptimeValue : l10n.serverDetailUptimeNA,
               style: theme.textTheme.headlineMedium?.copyWith(
@@ -195,7 +200,7 @@ class ServerDetailScreen extends ConsumerWidget {
                     : colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: Spacing.xl + Spacing.sm),
 
             // ----- Connect Button -----
             SizedBox(
@@ -222,12 +227,12 @@ class ServerDetailScreen extends ConsumerWidget {
                   disabledBackgroundColor:
                       colorScheme.onSurface.withValues(alpha: 0.12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(Radii.lg),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: Spacing.xl),
           ],
         ),
       );
@@ -305,7 +310,7 @@ class _InfoRow extends StatelessWidget {
         Icon(icon,
             size: iconSize ?? 20,
             color: iconColor ?? colorScheme.onSurfaceVariant),
-        const SizedBox(width: 12),
+        const SizedBox(width: Spacing.sm),
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
@@ -315,11 +320,15 @@ class _InfoRow extends StatelessWidget {
         const Spacer(),
         if (trailing != null) trailing!,
         if (value != null)
-          Text(
-            value!,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurface,
+          Flexible(
+            child: Text(
+              value!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
       ],
@@ -336,10 +345,10 @@ class _ProtocolChip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm + 2, vertical: Spacing.xs),
       decoration: BoxDecoration(
         color: colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.sm),
       ),
       child: Text(
         protocol.toUpperCase(),

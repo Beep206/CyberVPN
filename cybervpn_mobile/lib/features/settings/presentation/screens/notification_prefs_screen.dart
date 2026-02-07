@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -151,7 +152,7 @@ class NotificationPrefsScreen extends ConsumerWidget {
           ),
 
         // Bottom padding so content is not obscured by navigation bar.
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

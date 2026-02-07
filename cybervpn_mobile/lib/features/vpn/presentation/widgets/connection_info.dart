@@ -101,26 +101,32 @@ class _ServerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                server.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (server.city.isNotEmpty)
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  '${server.city}, ${server.countryName}',
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 12,
+                  server.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-            ],
+                if (server.city.isNotEmpty)
+                  Text(
+                    '${server.city}, ${server.countryName}',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -238,12 +244,16 @@ class _IpAddressDisplay extends StatelessWidget {
             child: Icon(Icons.language, color: Colors.grey.shade500, size: 14),
           ),
           const SizedBox(width: 4),
-          Text(
-            ip,
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 12,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          Flexible(
+            child: Text(
+              ip,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

@@ -74,7 +74,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       if (mounted && _isReferralCodeValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).registerReferralFromLink),
+            content: Text(
+              AppLocalizations.of(context).registerReferralFromLink,
+            ),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -117,13 +119,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   static const _strongColor = Color(0xFF2E7D32); // Green 800: 5.1:1 on white
 
   Color _strengthColor(int strength) => switch (strength) {
-        1 => _weakColor,
-        2 => _mediumColor,
-        3 => _strongColor,
-        _ => Colors.transparent,
-      };
+    1 => _weakColor,
+    2 => _mediumColor,
+    3 => _strongColor,
+    _ => Colors.transparent,
+  };
 
-  String _strengthLabel(int strength, AppLocalizations l10n) => switch (strength) {
+  String _strengthLabel(int strength, AppLocalizations l10n) =>
+      switch (strength) {
         1 => l10n.registerPasswordStrengthWeak,
         2 => l10n.registerPasswordStrengthMedium,
         3 => l10n.registerPasswordStrengthStrong,
@@ -136,43 +139,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final theme = Theme.of(context);
     final notifier = ref.read(telegramAuthProvider.notifier);
 
-    unawaited(showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final l10n = AppLocalizations.of(dialogContext);
-        return AlertDialog(
-          title: Text(l10n.telegramNotInstalledTitle),
-          content: Text(l10n.telegramNotInstalledMessage),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                notifier.cancel();
-              },
-              child: Text(
-                l10n.cancel,
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          final l10n = AppLocalizations.of(dialogContext);
+          return AlertDialog(
+            title: Text(l10n.telegramNotInstalledTitle),
+            content: Text(l10n.telegramNotInstalledMessage),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  notifier.cancel();
+                },
+                child: Text(
+                  l10n.cancel,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                unawaited(notifier.useWebFallback());
-              },
-              child: Text(l10n.telegramUseWeb),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                unawaited(notifier.openAppStore());
-                notifier.cancel();
-              },
-              child: Text(l10n.telegramInstall),
-            ),
-          ],
-        );
-      },
-    ));
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  unawaited(notifier.useWebFallback());
+                },
+                child: Text(l10n.telegramUseWeb),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  unawaited(notifier.openAppStore());
+                  notifier.cancel();
+                },
+                child: Text(l10n.telegramInstall),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   // ── Submit ────────────────────────────────────────────────────────
@@ -193,7 +198,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     final referral = _referralCodeController.text.trim();
 
-    await ref.read(authProvider.notifier).register(
+    await ref
+        .read(authProvider.notifier)
+        .register(
           _emailController.text.trim(),
           _passwordController.text,
           referralCode: referral.isEmpty ? null : referral,
@@ -241,8 +248,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     });
 
     // Listen for Telegram auth state changes.
-    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider,
-        (previous, next) {
+    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider, (
+      previous,
+      next,
+    ) {
       final state = next.value;
       if (state is TelegramAuthSuccess) {
         context.go('/connection');
@@ -263,6 +272,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final strength = _passwordStrength(_passwordController.text);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -319,7 +329,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // ── Password ───────────────────────────────────
                       FocusTraversalOrder(
@@ -350,7 +360,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                               onPressed: isLoading
                                   ? null
                                   : () => setState(
-                                      () => _obscurePassword = !_obscurePassword),
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
                             ),
                           ),
                           validator: InputValidators.validatePassword,
@@ -359,43 +371,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         ),
                       ),
 
-                    // ── Password strength indicator ────────────────
-                    if (_passwordController.text.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Semantics(
-                        label: 'Password strength: ${_strengthLabel(strength, l10n)}',
-                        value: '${(strength * 100 / 3).round()} percent',
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: ExcludeSemantics(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: strength / 3,
-                                    minHeight: 4,
-                                    backgroundColor:
-                                        theme.colorScheme.surfaceContainerHighest,
-                                    color: _strengthColor(strength),
+                      // ── Password strength indicator ────────────────
+                      if (_passwordController.text.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Semantics(
+                          label:
+                              'Password strength: ${_strengthLabel(strength, l10n)}',
+                          value: '${(strength * 100 / 3).round()} percent',
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: ExcludeSemantics(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: strength / 3,
+                                      minHeight: 4,
+                                      backgroundColor: theme
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      color: _strengthColor(strength),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            ExcludeSemantics(
-                              child: Text(
-                                _strengthLabel(strength, l10n),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: _strengthColor(strength),
-                                  fontWeight: FontWeight.w600,
+                              const SizedBox(width: 12),
+                              ExcludeSemantics(
+                                child: Text(
+                                  _strengthLabel(strength, l10n),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: _strengthColor(strength),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
+                      ],
+                      const SizedBox(height: 16),
 
                       // ── Confirm password ───────────────────────────
                       FocusTraversalOrder(
@@ -424,9 +438,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   : l10n.formHidePassword,
                               onPressed: isLoading
                                   ? null
-                                  : () => setState(() =>
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword),
+                                  : () => setState(
+                                      () => _obscureConfirmPassword =
+                                          !_obscureConfirmPassword,
+                                    ),
                             ),
                           ),
                           validator: (value) {
@@ -441,7 +456,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                       // ── Referral code (optional) ───────────────────
                       // Only show if referral system is available
@@ -461,10 +476,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 semanticLabel: '', // Hide from screen reader
                               ),
                               suffixIcon: _isReferralCodeValid
-                                  ? const Icon(
+                                  ? Icon(
                                       Icons.check_circle,
                                       color: _strongColor, // WCAG AA compliant
-                                      semanticLabel: l10n.registerReferralValidA11y,
+                                      semanticLabel:
+                                          l10n.registerReferralValidA11y,
                                     )
                                   : null,
                             ),
@@ -476,52 +492,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   InputValidators.validateReferralCode(value);
                               return error;
                             },
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
                             onChanged: (value) {
                               // Update validation state for "Applied!" chip
                               setState(() {
-                                _isReferralCodeValid = value.isNotEmpty &&
-                                    InputValidators.validateReferralCode(value) ==
+                                _isReferralCodeValid =
+                                    value.isNotEmpty &&
+                                    InputValidators.validateReferralCode(
+                                          value,
+                                        ) ==
                                         null;
                               });
                             },
                           ),
                         ),
-                      // "Applied!" confirmation chip when valid code entered
-                      if (_isReferralCodeValid) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Semantics(
-                              label: l10n.registerReferralAppliedA11y,
-                              child: Chip(
-                                avatar: const Icon(
-                                  Icons.check_circle,
-                                  size: 16,
-                                  color: _strongColor, // WCAG AA compliant
-                                  semanticLabel: '', // Handled by parent
-                                ),
-                                label: ExcludeSemantics(
-                                  child: Text(
-                                    l10n.registerReferralApplied,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                        // "Applied!" confirmation chip when valid code entered
+                        if (_isReferralCodeValid) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Semantics(
+                                label: l10n.registerReferralAppliedA11y,
+                                child: Chip(
+                                  avatar: const Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color: _strongColor, // WCAG AA compliant
+                                    semanticLabel: '', // Handled by parent
+                                  ),
+                                  label: ExcludeSemantics(
+                                    child: Text(
+                                      l10n.registerReferralApplied,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                backgroundColor:
-                                    Color(0xFFE8F5E9), // Green 50: soft bg
-                                side: const BorderSide(
-                                  color: Color(0xFFA5D6A7), // Green 200: border
+                                  backgroundColor: Color(
+                                    0xFFE8F5E9,
+                                  ), // Green 50: soft bg
+                                  side: const BorderSide(
+                                    color: Color(
+                                      0xFFA5D6A7,
+                                    ), // Green 200: border
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 16),
                       ],
-                      const SizedBox(height: 16),
-                    ],
 
                       // ── Terms & Conditions ─────────────────────────
                       Row(
@@ -540,7 +563,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   onChanged: isLoading
                                       ? null
                                       : (v) => setState(
-                                          () => _acceptedTerms = v ?? false),
+                                          () => _acceptedTerms = v ?? false,
+                                        ),
                                 ),
                               ),
                             ),
@@ -607,78 +631,91 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       width: 24,
                                       height: 24,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2.5),
+                                        strokeWidth: 2.5,
+                                      ),
                                     )
-                                  : ExcludeSemantics(child: Text(AppLocalizations.of(context).registerButton)),
+                                  : ExcludeSemantics(
+                                      child: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        ).registerButton,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
                       ),
-                    const SizedBox(height: 28),
+                      const SizedBox(height: 28),
 
-                    // ── Divider ────────────────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
+                      // ── Divider ────────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
                             child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            l10n.registerOrSeparator,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                              color: theme.colorScheme.outlineVariant,
                             ),
                           ),
-                        ),
-                        Expanded(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              l10n.registerOrSeparator,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          Expanded(
                             child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Social ─────────────────────────────────────
-                    if (ref.watch(isTelegramLoginAvailableProvider))
-                      SocialLoginButton.telegram(
-                        onPressed: ref.watch(isTelegramAuthLoadingProvider)
-                            ? null
-                            : () {
-                                unawaited(ref
-                                    .read(telegramAuthProvider.notifier)
-                                    .startLogin());
-                              },
-                        isLoading: ref.watch(isTelegramAuthLoadingProvider),
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                        ],
                       ),
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
-                    // ── Login link ─────────────────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          l10n.registerAlreadyHaveAccount,
-                          style: theme.textTheme.bodyMedium,
+                      // ── Social ─────────────────────────────────────
+                      if (ref.watch(isTelegramLoginAvailableProvider))
+                        SocialLoginButton.telegram(
+                          onPressed: ref.watch(isTelegramAuthLoadingProvider)
+                              ? null
+                              : () {
+                                  unawaited(
+                                    ref
+                                        .read(telegramAuthProvider.notifier)
+                                        .startLogin(),
+                                  );
+                                },
+                          isLoading: ref.watch(isTelegramAuthLoadingProvider),
                         ),
-                        Semantics(
-                          button: true,
-                          label: l10n.registerLoginLink,
-                          hint: l10n.registerLoginA11y,
-                          child: GestureDetector(
-                            onTap: () => context.go('/login'),
-                            child: ExcludeSemantics(
-                              child: Text(
-                                l10n.registerLoginLink,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
+                      const SizedBox(height: 32),
+
+                      // ── Login link ─────────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            l10n.registerAlreadyHaveAccount,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          Semantics(
+                            button: true,
+                            label: l10n.registerLoginLink,
+                            hint: l10n.registerLoginA11y,
+                            child: GestureDetector(
+                              onTap: () => context.go('/login'),
+                              child: ExcludeSemantics(
+                                child: Text(
+                                  l10n.registerLoginLink,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

@@ -163,7 +163,7 @@ class AppearanceScreen extends ConsumerWidget {
         ),
 
         // Bottom padding so content is not obscured by navigation bar.
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

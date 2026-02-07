@@ -8,6 +8,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_pr
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connect_button.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connection_info.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/speed_indicator.dart';
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
 
@@ -76,21 +77,21 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(height: 24),
+                      const SizedBox(height: Spacing.lg),
 
                       // Connect button
                       const ConnectButton(),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: Spacing.lg + Spacing.xs),
 
                       // Connection info (server, protocol, timer, IP)
                       const ConnectionInfo(),
 
-                      const SizedBox(height: 36),
+                      const SizedBox(height: Spacing.xl + Spacing.xs),
 
                       // Error message banner
                       if (vpnState is VpnError)
@@ -131,12 +132,12 @@ class _TopBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 4),
       child: Row(
         children: [
           // Status indicator dot
           _StatusDot(vpnState: vpnState),
-          const SizedBox(width: 8),
+          const SizedBox(width: Spacing.sm),
           Semantics(
             label: l10n.a11yConnectionStatus(label),
             readOnly: true,
@@ -222,7 +223,7 @@ class _SubscriptionBadge extends StatelessWidget {
       label: l10n.a11yPremiumSubscriptionActive,
       readOnly: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm + 2, vertical: Spacing.xs),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -230,7 +231,7 @@ class _SubscriptionBadge extends StatelessWidget {
               colorScheme.primary.withValues(alpha: 0.3),
             ],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.3),
           ),
@@ -242,7 +243,7 @@ class _SubscriptionBadge extends StatelessWidget {
               child: Icon(Icons.star_rounded,
                   color: colorScheme.primary, size: 14),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: Spacing.xs),
             Text(
               l10n.connectionPremium,
               style: TextStyle(
@@ -272,16 +273,16 @@ class _ErrorBanner extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(Spacing.sm + 4),
       decoration: BoxDecoration(
         color: colorScheme.error.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.sm),
         border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Icon(Icons.error_outline, color: colorScheme.error, size: 18),
-          const SizedBox(width: 8),
+          const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
               message,
@@ -318,7 +319,7 @@ class _BottomStatsSection extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg - 4, Spacing.lg, Spacing.md),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -334,7 +335,7 @@ class _BottomStatsSection extends StatelessWidget {
           // Speed gauges
           const SpeedIndicator(),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.md),
 
           // Session summary row
           if (vpnState.isConnected || vpnState.isReconnecting)

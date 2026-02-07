@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
@@ -204,7 +205,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         if (_developerModeEnabled) _buildDeveloperPanel(context),
 
         // Bottom padding so content is not obscured by navigation bar.
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

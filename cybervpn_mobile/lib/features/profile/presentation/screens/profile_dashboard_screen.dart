@@ -93,7 +93,7 @@ class ProfileDashboardScreen extends ConsumerWidget {
                 ),
 
                 // Bottom padding for navigation bar clearance.
-                const SizedBox(height: 80),
+                SizedBox(height: Spacing.navBarClearance(context)),
               ],
             ),
           );
@@ -154,6 +154,8 @@ class _ProfileHeader extends StatelessWidget {
         Text(
           profile.username ?? profile.email.split('@').first,
           style: theme.textTheme.titleLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: Spacing.xs),
 
@@ -163,6 +165,8 @@ class _ProfileHeader extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
 
         // Member since
@@ -173,6 +177,8 @@ class _ProfileHeader extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ],
@@ -257,15 +263,20 @@ class _StatsCardsGrid extends StatelessWidget {
       ),
     ];
 
-    return Wrap(
-      spacing: Spacing.sm,
-      runSpacing: Spacing.sm,
-      children: cards.map((card) {
-        return SizedBox(
-          width: (MediaQuery.sizeOf(context).width - Spacing.md * 2 - Spacing.sm) / 2,
-          child: card,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - Spacing.sm) / 2;
+        return Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: cards.map((card) {
+            return SizedBox(
+              width: cardWidth,
+              child: card,
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -346,6 +357,8 @@ class _StatsCard extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: Spacing.xs),
 
@@ -355,6 +368,8 @@ class _StatsCard extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
 
             // Optional progress bar

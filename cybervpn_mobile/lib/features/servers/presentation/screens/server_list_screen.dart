@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
@@ -262,10 +263,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.sm),
             Text(AppLocalizations.of(context).serverFailedToLoad,
                 style: theme.textTheme.bodyLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             FilledButton.tonal(
               onPressed: () =>
                   ref.read(serverListProvider.notifier).fetchServers(),
@@ -329,7 +330,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           // --- Search bar + Sort dropdown ---
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.sm + 4, Spacing.md, Spacing.xs),
               child: Row(
                 children: [
                   // Search
@@ -358,25 +359,30 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                           setState(() => _searchQuery = value),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: Spacing.sm),
 
                   // Sort dropdown
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<SortMode>(
-                      value: state.sortMode,
-                      onChanged: _onSortChanged,
-                      borderRadius: BorderRadius.circular(12),
-                      items: SortMode.values
-                          .map(
-                            (mode) => DropdownMenuItem(
-                              value: mode,
-                              child: Text(
-                                _sortModeLabel(mode),
-                                style: theme.textTheme.bodyMedium,
+                  Flexible(
+                    flex: 0,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<SortMode>(
+                        value: state.sortMode,
+                        onChanged: _onSortChanged,
+                        borderRadius: BorderRadius.circular(Radii.md),
+                        items: SortMode.values
+                            .map(
+                              (mode) => DropdownMenuItem(
+                                value: mode,
+                                child: Text(
+                                  _sortModeLabel(mode),
+                                  style: theme.textTheme.bodyMedium,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(),
+                            )
+                            .toList(),
+                      ),
                     ),
                   ),
                 ],
@@ -387,7 +393,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           // --- Fastest quick-select chip ---
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.xs),
               child: Wrap(
                 spacing: 8,
                 children: [
@@ -449,14 +455,14 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.search_off, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: Spacing.md),
                     Text(
                       AppLocalizations.of(context).serverListNoResults,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Spacing.sm),
                     TextButton(
                       onPressed: () => setState(() => _searchQuery = ''),
                       child: Text(AppLocalizations.of(context).serverListClearSearch),
@@ -519,7 +525,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             }),
 
           // Bottom padding
-          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+          SliverPadding(padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context))),
         ],
       ),
     );
@@ -536,23 +542,23 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     return InkWell(
       onTap: () => setState(() => _favoritesExpanded = !_favoritesExpanded),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 2),
         child: Row(
           children: [
             const Icon(Icons.star, color: Colors.amber, size: 20),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             Text(
               AppLocalizations.of(context).serverFavoritesTitle,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.sm - 1, vertical: 2),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Radii.sm + 2),
               ),
               child: Text(
                 '$count',

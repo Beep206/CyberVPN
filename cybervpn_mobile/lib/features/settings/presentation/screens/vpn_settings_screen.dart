@@ -165,7 +165,7 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
         _buildConnectionNotice(),
 
         // Bottom padding
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

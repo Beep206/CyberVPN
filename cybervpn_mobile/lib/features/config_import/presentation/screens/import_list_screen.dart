@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
@@ -515,7 +516,7 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
             ],
 
           // Bottom padding for FAB
-          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+          SliverPadding(padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context))),
         ],
       ),
     );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
@@ -194,13 +195,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.xl),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use 90% of available width on phones, cap at 480 on tablets
+                final maxWidth = constraints.maxWidth > 600 ? 480.0 : constraints.maxWidth;
+                return ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // ── Logo / Branding ──────────────────────────────
@@ -209,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     size: 64,
                     color: theme.colorScheme.primary,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: Spacing.md),
                   Text(
                     l10n.loginTitle,
                     style: theme.textTheme.headlineMedium?.copyWith(
@@ -217,14 +223,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Spacing.sm),
                   Text(
                     l10n.loginSubtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: Spacing.xl + Spacing.sm),
 
                   // ── Biometric Login Button ────────────────────────
                   if (isBiometricAvailable) ...[
@@ -232,14 +238,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       onPressed: isBiometricLoading ? null : _handleBiometricLogin,
                       isLoading: isBiometricLoading,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: Spacing.lg),
                     Row(
                       children: [
                         Expanded(
                             child: Divider(
                                 color: theme.colorScheme.outlineVariant)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                           child: Text(
                             l10n.loginOrUsePassword,
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -252,7 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 color: theme.colorScheme.outlineVariant)),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: Spacing.lg),
                   ],
 
                   // ── Login Form ───────────────────────────────────
@@ -262,7 +268,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       context.push('/forgot-password');
                     },
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: Spacing.lg + Spacing.xs),
 
                   // ── Divider ──────────────────────────────────────
                   if (isTelegramAvailable) ...[
@@ -272,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             child: Divider(
                                 color: theme.colorScheme.outlineVariant)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                           child: Text(
                             l10n.loginOrSeparator,
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -285,16 +291,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 color: theme.colorScheme.outlineVariant)),
                       ],
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: Spacing.lg + Spacing.xs),
 
                     // ── Social Login ─────────────────────────────────
                     SocialLoginButton.telegram(
                       onPressed: isTelegramLoading ? null : _handleTelegramLogin,
                       isLoading: isTelegramLoading,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: Spacing.xl),
                   ] else
-                    const SizedBox(height: 32),
+                    const SizedBox(height: Spacing.xl),
 
                   // ── Register Link ────────────────────────────────
                   Row(
@@ -324,7 +330,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ],
                   ),
                 ],
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -393,7 +401,7 @@ class _BiometricLoginButton extends ConsumerWidget {
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Radii.md),
           ),
         ),
       ),

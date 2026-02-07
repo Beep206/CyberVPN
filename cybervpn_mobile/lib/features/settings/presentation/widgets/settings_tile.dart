@@ -186,9 +186,9 @@ class SettingsTile extends ConsumerWidget {
       hint: 'Tap to open $title settings',
       child: ListTile(
         leading: leading,
-        title: Text(title, style: titleStyle),
+        title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle:
-            subtitle != null ? Text(subtitle!, style: subtitleStyle) : null,
+            subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
         trailing: ExcludeSemantics(
           child: Icon(
             Icons.chevron_right,
@@ -227,9 +227,9 @@ class SettingsTile extends ConsumerWidget {
       hint: 'Tap to ${currentValue ? 'disable' : 'enable'} $title',
       child: ListTile(
         leading: leading,
-        title: Text(title, style: titleStyle),
+        title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle:
-            subtitle != null ? Text(subtitle!, style: subtitleStyle) : null,
+            subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
         trailing: Switch(
           value: currentValue,
           onChanged: handleToggle,
@@ -262,9 +262,9 @@ class SettingsTile extends ConsumerWidget {
         onChanged: (dynamic newValue) => onChanged?.call(newValue),
         child: ListTile(
           leading: leading,
-          title: Text(title, style: titleStyle),
+          title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle:
-              subtitle != null ? Text(subtitle!, style: subtitleStyle) : null,
+              subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
           trailing: Radio<dynamic>(
             value: value,
             toggleable: false,
@@ -286,8 +286,8 @@ class SettingsTile extends ConsumerWidget {
   }) {
     return ListTile(
       leading: leading,
-      title: Text(title, style: titleStyle),
-      subtitle: subtitle != null ? Text(subtitle!, style: subtitleStyle) : null,
+      title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
     );
   }
 }

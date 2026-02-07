@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
@@ -166,7 +167,7 @@ class NotificationCenterScreen extends ConsumerWidget {
 
     return ListView.builder(
       itemCount: notifications.length,
-      padding: const EdgeInsets.only(bottom: 80),
+      padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context)),
       itemBuilder: (context, index) {
         final notification = notifications[index];
         return _NotificationTile(
