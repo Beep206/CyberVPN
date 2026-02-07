@@ -6,6 +6,7 @@ import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/security/certificate_pinner.dart';
+import 'package:cybervpn_mobile/core/network/request_deduplicator.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 class ApiClient {
@@ -95,6 +96,11 @@ class ApiClient {
         );
       }
     }
+
+    // Deduplicate concurrent identical GET requests. This interceptor must be
+    // added before auth/retry interceptors so it short-circuits duplicates
+    // before they hit the network or trigger auth flows.
+    _dio.interceptors.add(RequestDeduplicator());
 
     if (kDebugMode) {
       _dio.interceptors.add(_RedactedLogInterceptor());

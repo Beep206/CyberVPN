@@ -218,6 +218,7 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Semantics(
             label: l10n.a11yConnectionStatus(label),
+            hint: 'Shows current VPN protection status',
             readOnly: true,
             child: vpnState is VpnConnected
                 ? GlitchText(
@@ -304,7 +305,11 @@ class _StatusDotState extends State<_StatusDot>
         weight: 50,
       ),
     ]).animate(_pulseController);
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _syncPulse();
   }
 
@@ -378,6 +383,7 @@ class _SubscriptionBadge extends StatelessWidget {
     // TODO: Wire to a real subscription provider when available.
     return Semantics(
       label: l10n.a11yPremiumSubscriptionActive,
+      hint: 'Shows your current subscription tier',
       readOnly: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: Spacing.sm + 2, vertical: Spacing.xs),
@@ -392,10 +398,9 @@ class _SubscriptionBadge extends StatelessWidget {
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.3),
           ),
-          boxShadow: CyberEffects.neonGlow(
-            colorScheme.primary,
-            intensity: 0.35,
-          ),
+          boxShadow: CyberColors.isCyberpunkTheme(context)
+              ? CyberEffects.neonGlow(colorScheme.primary, intensity: 0.35)
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -432,28 +437,36 @@ class _ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.sm + 4),
-      decoration: BoxDecoration(
-        color: colorScheme.error.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(Radii.sm),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: colorScheme.error, size: 18),
-          const SizedBox(width: Spacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: colorScheme.error.withValues(alpha: 0.8),
-                fontSize: 12,
+    return Semantics(
+      label: 'Connection error: $message',
+      hint: 'Describes the connection failure reason',
+      readOnly: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Spacing.sm + 4),
+        decoration: BoxDecoration(
+          color: colorScheme.error.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(Radii.sm),
+          border: Border.all(color: colorScheme.error.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            ExcludeSemantics(
+              child: Icon(Icons.error_outline, color: colorScheme.error, size: 18),
+            ),
+            const SizedBox(width: Spacing.sm),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: colorScheme.error.withValues(alpha: 0.8),
+                  fontSize: 12,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -562,6 +575,7 @@ class _SummaryItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       label: '$label: $value',
+      hint: 'Shows current $label',
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,

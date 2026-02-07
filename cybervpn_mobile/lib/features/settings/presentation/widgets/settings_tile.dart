@@ -284,10 +284,15 @@ class SettingsTile extends ConsumerWidget {
     required TextStyle? titleStyle,
     required TextStyle? subtitleStyle,
   }) {
-    return ListTile(
-      leading: leading,
-      title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+    return Semantics(
+      label: '$title${subtitle != null ? ', $subtitle' : ''}',
+      hint: 'Displays $title information',
+      readOnly: true,
+      child: ListTile(
+        leading: leading,
+        title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+      ),
     );
   }
 }

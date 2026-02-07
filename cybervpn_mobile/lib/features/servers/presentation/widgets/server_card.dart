@@ -8,6 +8,7 @@ import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.d
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/widgets/ping_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 
 /// ListTile-based card for a single VPN server.
 ///
@@ -310,6 +311,9 @@ class _ProtocolBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(6),
+        boxShadow: CyberColors.isCyberpunkTheme(context)
+            ? CyberEffects.neonGlow(colorScheme.tertiary, intensity: 0.3)
+            : null,
       ),
       child: Text(
         protocol.toUpperCase(),

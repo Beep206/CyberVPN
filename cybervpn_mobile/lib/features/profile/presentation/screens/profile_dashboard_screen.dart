@@ -138,54 +138,70 @@ class _ProfileHeader extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    return Column(
-      children: [
-        // Avatar
-        CircleAvatar(
-          radius: 40,
-          backgroundColor: colorScheme.primary.withAlpha(40),
-          child: Text(
-            _initials(),
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.bold,
+    final displayName = profile.username ?? profile.email.split('@').first;
+    final memberSinceText = profile.createdAt != null ? ', ${_memberSince(l10n)}' : '';
+
+    return Semantics(
+      label: '$displayName, ${profile.email}$memberSinceText',
+      hint: 'Your profile information',
+      readOnly: true,
+      child: Column(
+        children: [
+          // Avatar
+          ExcludeSemantics(
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: colorScheme.primary.withAlpha(40),
+              child: Text(
+                _initials(),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: Spacing.sm),
+          const SizedBox(height: Spacing.sm),
 
-        // Username
-        Text(
-          profile.username ?? profile.email.split('@').first,
-          style: theme.textTheme.titleLarge,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: Spacing.xs),
-
-        // Email
-        Text(
-          profile.email,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+          // Username
+          ExcludeSemantics(
+            child: Text(
+              displayName,
+              style: theme.textTheme.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-
-        // Member since
-        if (profile.createdAt != null) ...[
           const SizedBox(height: Spacing.xs),
-          Text(
-            _memberSince(l10n),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+
+          // Email
+          ExcludeSemantics(
+            child: Text(
+              profile.email,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
+
+          // Member since
+          if (profile.createdAt != null) ...[
+            const SizedBox(height: Spacing.xs),
+            ExcludeSemantics(
+              child: Text(
+                _memberSince(l10n),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -337,59 +353,78 @@ class _StatsCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final accent = accentColor ?? colorScheme.primary;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icon row
-            Container(
-              padding: const EdgeInsets.all(Spacing.sm),
-              decoration: BoxDecoration(
-                color: accent.withAlpha(25),
-                borderRadius: BorderRadius.circular(Radii.sm),
-              ),
-              child: Icon(icon, size: 20, color: accent),
-            ),
-            const SizedBox(height: Spacing.sm),
+    // Build combined semantic label: "Traffic: 2.5 / 10 GB"
+    final semanticLabel = '$label: $value';
+    final progressHint = progress != null
+        ? ', ${(progress! * 100).toInt()} percent used'
+        : '';
 
-            // Label
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: Spacing.xs),
-
-            // Value
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            // Optional progress bar
-            if (progress != null) ...[
-              const SizedBox(height: Spacing.sm),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(Radii.sm),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(accent),
+    return Semantics(
+      label: '$semanticLabel$progressHint',
+      hint: 'Displays your $label stat',
+      readOnly: true,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon row
+              ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.all(Spacing.sm),
+                  decoration: BoxDecoration(
+                    color: accent.withAlpha(25),
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                  ),
+                  child: Icon(icon, size: 20, color: accent),
                 ),
               ),
+              const SizedBox(height: Spacing.sm),
+
+              // Label
+              ExcludeSemantics(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: Spacing.xs),
+
+              // Value
+              ExcludeSemantics(
+                child: Text(
+                  value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Optional progress bar
+              if (progress != null) ...[
+                const SizedBox(height: Spacing.sm),
+                ExcludeSemantics(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation<Color>(accent),
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -481,39 +516,50 @@ class _QuickActionButton extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.sm),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(Radii.md),
-          child: Ink(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: colorScheme.primary.withAlpha(40),
+      child: Semantics(
+        label: label,
+        hint: 'Double tap to open $label',
+        button: true,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.md),
+            child: Ink(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: colorScheme.primary.withAlpha(40),
+                ),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
-              borderRadius: BorderRadius.circular(Radii.md),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.md,
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: colorScheme.primary),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md,
+                vertical: Spacing.md,
+              ),
+              child: Row(
+                children: [
+                  ExcludeSemantics(
+                    child: Icon(icon, color: colorScheme.primary),
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: ExcludeSemantics(
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ],
+                  ExcludeSemantics(
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

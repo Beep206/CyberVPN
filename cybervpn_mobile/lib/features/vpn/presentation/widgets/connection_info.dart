@@ -90,6 +90,7 @@ class _ServerRow extends StatelessWidget {
 
     return Semantics(
       label: semanticLabel,
+      hint: 'Shows the currently selected server',
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -155,6 +156,7 @@ class _ProtocolChip extends StatelessWidget {
 
     return Semantics(
       label: AppLocalizations.of(context).a11yUsingProtocol(label),
+      hint: 'Shows the active VPN protocol',
       readOnly: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -204,6 +206,7 @@ class _DurationDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: AppLocalizations.of(context).a11yConnectionDurationValue(duration),
+      hint: 'Shows how long you have been connected',
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -236,6 +239,7 @@ class _IpAddressDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: AppLocalizations.of(context).a11yIpAddress(ip),
+      hint: 'Shows your current public IP address',
       readOnly: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,

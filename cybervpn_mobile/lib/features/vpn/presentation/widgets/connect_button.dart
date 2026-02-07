@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
@@ -25,9 +26,14 @@ class ConnectButton extends ConsumerStatefulWidget {
 }
 
 class _ConnectButtonState extends ConsumerState<ConnectButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+
+  /// Controller for the connected-state glow blurRadius animation (18-30).
+  late final AnimationController _glowController;
+  late final Animation<double> _glowAnimation;
+
   VpnConnectionState? _previousState;
 
   @override
@@ -40,11 +46,20 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _glowAnimation = Tween<double>(begin: 18.0, end: 30.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -66,8 +81,8 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     );
 
     return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _pulseAnimation,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([_pulseAnimation, _glowAnimation]),
         builder: (context, child) {
           final scale =
               (vpnState is VpnConnecting || vpnState is VpnReconnecting)
@@ -81,11 +96,10 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
             child: AnimatedOpacity(
               opacity: opacity,
               duration: const Duration(milliseconds: 300),
-              child: child,
+              child: _buildButton(context, vpnState, config),
             ),
           );
         },
-        child: _buildButton(context, vpnState, config),
       ),
     );
   }
@@ -117,7 +131,9 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
               if (vpnState is VpnConnected)
                 BoxShadow(
                   color: config.color.withValues(alpha: 0.5),
-                  blurRadius: 24,
+                  blurRadius: _glowController.isAnimating
+                      ? _glowAnimation.value
+                      : 24,
                   spreadRadius: 6,
                 ),
               BoxShadow(
@@ -215,6 +231,20 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     } else if (!shouldPulse && _pulseController.isAnimating) {
       _pulseController.stop();
       _pulseController.reset();
+    }
+
+    // Drive glow blur animation when connected, respecting accessibility
+    // and theme (only in Cyberpunk theme).
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final isCyberpunk = CyberColors.isCyberpunkTheme(context);
+    final shouldGlow =
+        vpnState is VpnConnected && !disableAnimations && isCyberpunk;
+
+    if (shouldGlow && !_glowController.isAnimating) {
+      unawaited(_glowController.repeat(reverse: true));
+    } else if (!shouldGlow && _glowController.isAnimating) {
+      _glowController.stop();
+      _glowController.reset();
     }
   }
 

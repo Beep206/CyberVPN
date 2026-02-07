@@ -83,61 +83,75 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      child: InkWell(
-        onTap: widget.onToggle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              // Country flag
-              FlagWidget(
-                countryCode: widget.countryCode,
-                size: FlagSize.small,
-              ),
-              const SizedBox(width: 12),
-
-              // Country name
-              Expanded(
-                child: Text(
-                  widget.countryName,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
+    return Semantics(
+      label: '${widget.countryName}, ${widget.serverCount} servers',
+      hint: 'Double tap to ${widget.isExpanded ? 'collapse' : 'expand'} server list',
+      button: true,
+      expanded: widget.isExpanded,
+      child: Material(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        child: InkWell(
+          onTap: widget.onToggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                // Country flag
+                ExcludeSemantics(
+                  child: FlagWidget(
+                    countryCode: widget.countryCode,
+                    size: FlagSize.small,
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
 
-              // Server count badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${widget.serverCount}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
+                // Country name
+                Expanded(
+                  child: ExcludeSemantics(
+                    child: Text(
+                      widget.countryName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
 
-              // Expand / collapse arrow
-              RotationTransition(
-                turns: _arrowTurns,
-                child: Icon(
-                  Icons.expand_more,
-                  color: colorScheme.onSurfaceVariant,
+                // Server count badge
+                ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${widget.serverCount}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+
+                // Expand / collapse arrow
+                ExcludeSemantics(
+                  child: RotationTransition(
+                    turns: _arrowTurns,
+                    child: Icon(
+                      Icons.expand_more,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_provider.dart';
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 
 /// Two side-by-side speed indicators (upload + download) with session totals.
 ///
@@ -28,6 +29,7 @@ class SpeedIndicator extends ConsumerWidget {
       child: RepaintBoundary(
         child: Semantics(
           label: l10n.a11yDownloadUploadSpeed(speed.download, speed.upload),
+          hint: 'Shows current download and upload speeds',
           readOnly: true,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +81,7 @@ class _SpeedGauge extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Direction icon
+        // Direction icon with neon glow when active
         Container(
           width: 40,
           height: 40,
@@ -89,6 +91,9 @@ class _SpeedGauge extends StatelessWidget {
             border: Border.all(
               color: activeColor.withValues(alpha: 0.4),
             ),
+            boxShadow: isActive && CyberColors.isCyberpunkTheme(context)
+                ? CyberEffects.neonGlow(activeColor, intensity: 0.4)
+                : null,
           ),
           child: Icon(icon, color: activeColor, size: 20),
         ),
