@@ -53,8 +53,13 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   // Password visibility toggle
   bool _obscurePassword = true;
 
+  // Countdown timer for final delete button (5-second safety delay)
+  Timer? _countdownTimer;
+  int _countdownSeconds = 5;
+
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _passwordController.dispose();
     _totpController.dispose();
     _confirmationController.dispose();
@@ -527,7 +532,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
         ),
         const SizedBox(height: Spacing.lg),
 
-        // Action buttons
+        // Action buttons (with 5-second countdown safety delay)
         FilledButton(
           onPressed:
               _canConfirmDeletion && !_isLoading ? _handleDeleteAccount : null,
@@ -535,7 +540,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             backgroundColor: colorScheme.error,
             minimumSize: const Size.fromHeight(48),
           ),
-          child: Text(l10n.profileDeleteAccountButton),
+          child: Text(
+            _countdownSeconds > 0
+                ? l10n.deleteAccountCountdown(_countdownSeconds)
+                : l10n.deleteAccountFinalButton,
+          ),
         ),
         const SizedBox(height: Spacing.sm),
         OutlinedButton(
@@ -550,7 +559,8 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   }
 
   bool get _canConfirmDeletion {
-    return _confirmationController.text.toUpperCase() == 'DELETE';
+    return _confirmationController.text.toUpperCase() == 'DELETE' &&
+        _countdownSeconds == 0;
   }
 
   // ---- Actions -------------------------------------------------------------
@@ -594,13 +604,30 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     setState(() {
       _currentStep = _DeletionStep.finalConfirmation;
     });
+    _startCountdown();
+  }
+
+  /// Starts a 5-second countdown before the delete button becomes active.
+  void _startCountdown() {
+    _countdownTimer?.cancel();
+    setState(() => _countdownSeconds = 5);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdownSeconds <= 1) {
+        timer.cancel();
+        if (mounted) setState(() => _countdownSeconds = 0);
+      } else {
+        if (mounted) setState(() => _countdownSeconds--);
+      }
+    });
   }
 
   /// Handle back to re-authentication step
   void _handleBackToReAuth() {
+    _countdownTimer?.cancel();
     setState(() {
       _currentStep = _DeletionStep.reAuthentication;
       _confirmationController.clear();
+      _countdownSeconds = 5;
     });
   }
 

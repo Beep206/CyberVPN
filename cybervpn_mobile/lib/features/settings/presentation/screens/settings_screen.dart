@@ -378,9 +378,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               key: const Key('tile_about_delete_account'),
               title: l10n.profileDeleteAccount,
               leading: const Icon(Icons.delete_forever_outlined),
-              onTap: () => _launchUrl(
-                '${EnvironmentConfig.webBaseUrl}/delete-account',
-              ),
+              onTap: () => context.push('/profile/delete-account'),
             ),
           ],
         ),
