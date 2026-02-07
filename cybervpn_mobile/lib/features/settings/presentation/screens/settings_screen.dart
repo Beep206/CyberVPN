@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
@@ -312,7 +313,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
 
         // Bottom padding so content is not obscured by navigation bar.
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

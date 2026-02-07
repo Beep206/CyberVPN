@@ -80,6 +80,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(l10n.profileTwoFactorAuth),
       ),

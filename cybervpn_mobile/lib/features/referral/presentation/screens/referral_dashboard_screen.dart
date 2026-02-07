@@ -136,7 +136,7 @@ class _AvailableBody extends StatelessWidget {
           ),
 
         // Bottom padding for navigation bar clearance.
-        const SizedBox(height: 80),
+        SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }

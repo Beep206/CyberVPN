@@ -134,7 +134,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   }),
 
                 // Bottom padding for safe area
-                const SizedBox(height: 80),
+                SizedBox(height: Spacing.navBarClearance(context)),
               ],
             ),
           );

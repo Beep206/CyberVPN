@@ -43,12 +43,23 @@ class Spacing {
   static const double md = 16.0;
   static const double lg = 24.0;
   static const double xl = 32.0;
+
+  /// Returns the bottom padding needed to clear the system navigation bar
+  /// plus a comfortable margin above it.
+  ///
+  /// Use this instead of hardcoded `SizedBox(height: 80)` at the bottom
+  /// of scrollable content that sits behind a bottom navigation bar.
+  static double navBarClearance(BuildContext context) {
+    final viewPadding = MediaQuery.viewPaddingOf(context);
+    return viewPadding.bottom + 80;
+  }
 }
 
 /// Border radius tokens
 class Radii {
   Radii._();
 
+  static const double xs = 4.0;
   static const double sm = 8.0;
   static const double md = 12.0;
   static const double lg = 16.0;

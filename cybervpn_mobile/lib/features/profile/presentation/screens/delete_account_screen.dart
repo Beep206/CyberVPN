@@ -69,6 +69,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(l10n.profileDeleteAccount),
       ),
