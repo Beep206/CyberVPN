@@ -17,7 +17,9 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_car
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_map_screen.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_mini_card.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_refresh_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
@@ -534,6 +536,13 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             ),
           ),
 
+          // --- Recent servers carousel ---
+          _RecentServersCarousel(
+            onServerTap: _onServerTap,
+            onServerLongPress: (server) =>
+                unawaited(context.push('/servers/${server.id}')),
+          ),
+
           // --- Favorites section (collapsible) ---
           if (favorites.isNotEmpty) ...[
             SliverToBoxAdapter(
@@ -817,6 +826,86 @@ class _AnimatedExpandSectionState extends State<_AnimatedExpandSection>
       sizeFactor: _sizeFactor,
       axisAlignment: -1.0,
       child: widget.child,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recent servers carousel
+// ---------------------------------------------------------------------------
+
+/// Horizontal scrolling carousel of recently connected servers.
+///
+/// Renders as a [SliverToBoxAdapter] containing a horizontal [ListView].
+/// If no recent servers exist, shows a subtle empty-state text.
+class _RecentServersCarousel extends ConsumerWidget {
+  const _RecentServersCarousel({
+    required this.onServerTap,
+    required this.onServerLongPress,
+  });
+
+  final void Function(ServerEntity) onServerTap;
+  final void Function(ServerEntity) onServerLongPress;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recentServers = ref.watch(recentServersProvider);
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    if (recentServers.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.xs,
+          ),
+          child: Text(
+            l10n.serverNoRecentServers,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.md, Spacing.xs, Spacing.md, Spacing.xs,
+            ),
+            child: Text(
+              l10n.serverRecentServers,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+              itemCount: recentServers.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: Spacing.sm),
+              itemBuilder: (context, index) {
+                final server = recentServers[index];
+                return ServerMiniCard(
+                  server: server,
+                  onTap: () => onServerTap(server),
+                  onLongPress: () => onServerLongPress(server),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: Spacing.xs),
+        ],
+      ),
     );
   }
 }

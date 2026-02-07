@@ -5991,6 +5991,18 @@ abstract class AppLocalizations {
   /// **'Fastest'**
   String get serverFastest;
 
+  /// No description provided for @serverRecentServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Servers'**
+  String get serverRecentServers;
+
+  /// No description provided for @serverNoRecentServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to a server to see recent history'**
+  String get serverNoRecentServers;
+
   /// No description provided for @serverFailedToLoad.
   ///
   /// In en, this message translates to:
