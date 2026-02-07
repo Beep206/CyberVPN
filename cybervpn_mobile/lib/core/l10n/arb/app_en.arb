@@ -1567,6 +1567,8 @@
   "serverSortLatency": "Latency",
   "serverSortLoad": "Load",
   "serverFastest": "Fastest",
+  "serverRecentServers": "Recent Servers",
+  "serverNoRecentServers": "Connect to a server to see recent history",
   "serverFailedToLoad": "Failed to load servers",
   "serverNotFound": "Server not found",
   "serverListNoResults": "No servers match your search",

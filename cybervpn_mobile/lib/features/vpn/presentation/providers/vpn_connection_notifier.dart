@@ -34,6 +34,7 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
          activeDnsServersProvider,
          deviceRegistrationServiceProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_state.dart';
@@ -149,6 +150,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     if (current is VpnConnected || current is VpnConnecting) return;
 
     state = AsyncData(VpnConnecting(server: server));
+
+    // Track in recent servers list.
+    unawaited(ref.read(recentServerIdsProvider.notifier).addServer(server.id));
 
     try {
       final vpnSettings = ref.read(vpnSettingsProvider);

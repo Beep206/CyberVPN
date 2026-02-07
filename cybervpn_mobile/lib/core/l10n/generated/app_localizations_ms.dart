@@ -3411,6 +3411,13 @@ class AppLocalizationsMs extends AppLocalizations {
   String get serverFastest => 'Fastest';
 
   @override
+  String get serverRecentServers => 'Recent Servers';
+
+  @override
+  String get serverNoRecentServers =>
+      'Connect to a server to see recent history';
+
+  @override
   String get serverFailedToLoad => 'Failed to load servers';
 
   @override
