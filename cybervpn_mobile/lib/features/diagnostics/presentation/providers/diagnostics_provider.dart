@@ -111,7 +111,7 @@ final diagnosticServiceProvider = Provider<DiagnosticService>((ref) {
 // ---------------------------------------------------------------------------
 
 final diagnosticsProvider =
-    AsyncNotifierProvider<DiagnosticsNotifier, DiagnosticsState>(
+    AsyncNotifierProvider.autoDispose<DiagnosticsNotifier, DiagnosticsState>(
   DiagnosticsNotifier.new,
 );
 
@@ -119,6 +119,9 @@ final diagnosticsProvider =
 ///
 /// Provides methods to run speed tests and connection diagnostics,
 /// maintain history, and export logs.
+///
+/// Uses [autoDispose] because diagnostics state is only needed while the
+/// diagnostics screens are active. Resources are released when navigating away.
 class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
   late final SpeedTestService _speedTestService;
   late final DiagnosticService _diagnosticService;
@@ -296,7 +299,7 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
 // ---------------------------------------------------------------------------
 
 /// Whether a speed test is currently running.
-final speedTestProgressProvider = Provider<bool>((ref) {
+final speedTestProgressProvider = Provider.autoDispose<bool>((ref) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.isRunningSpeedTest ?? false;
 });
@@ -304,25 +307,25 @@ final speedTestProgressProvider = Provider<bool>((ref) {
 /// Current diagnostic steps from the most recent diagnostic run.
 ///
 /// Returns an empty list if no diagnostics have been run.
-final diagnosticStepsProvider = Provider<List<DiagnosticStep>>((ref) {
+final diagnosticStepsProvider = Provider.autoDispose<List<DiagnosticStep>>((ref) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.diagnosticResult?.steps ?? [];
 });
 
 /// The most recent speed test result, or null.
-final latestSpeedTestProvider = Provider<SpeedTestResult?>((ref) {
+final latestSpeedTestProvider = Provider.autoDispose<SpeedTestResult?>((ref) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.speedTestResult;
 });
 
 /// Speed test history list, most recent first.
-final speedHistoryProvider = Provider<List<SpeedTestResult>>((ref) {
+final speedHistoryProvider = Provider.autoDispose<List<SpeedTestResult>>((ref) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.speedHistory ?? [];
 });
 
 /// Whether diagnostics are currently running.
-final isRunningDiagnosticsProvider = Provider<bool>((ref) {
+final isRunningDiagnosticsProvider = Provider.autoDispose<bool>((ref) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.isRunningDiagnostics ?? false;
 });

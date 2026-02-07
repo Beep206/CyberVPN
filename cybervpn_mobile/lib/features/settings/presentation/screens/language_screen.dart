@@ -79,6 +79,8 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                     ? IconButton(
                         key: const Key('language_search_clear'),
                         icon: const Icon(Icons.clear),
+                        tooltip: MaterialLocalizations.of(context)
+                            .deleteButtonTooltip,
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');

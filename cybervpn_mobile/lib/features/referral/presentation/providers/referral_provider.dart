@@ -88,6 +88,8 @@ class ReferralState {
 /// it loads the referral code, stats, and recent referrals in parallel.
 /// When the backend is unavailable, the state reflects an empty/unavailable
 /// state for graceful UI degradation.
+/// Uses [autoDispose] because referral state is only needed while the
+/// referral screen is active. Resources are released when navigating away.
 class ReferralNotifier extends AsyncNotifier<ReferralState> {
   ReferralRepository get _repo => ref.read(referralRepositoryProvider);
 
@@ -240,7 +242,7 @@ class ReferralNotifier extends AsyncNotifier<ReferralState> {
 
 /// Primary referral state provider backed by [ReferralNotifier].
 final referralProvider =
-    AsyncNotifierProvider<ReferralNotifier, ReferralState>(
+    AsyncNotifierProvider.autoDispose<ReferralNotifier, ReferralState>(
   ReferralNotifier.new,
 );
 
@@ -252,25 +254,25 @@ final referralProvider =
 ///
 /// Use this provider for conditional UI rendering -- when `false`,
 /// referral features should be hidden entirely.
-final isReferralAvailableProvider = Provider<bool>((ref) {
+final isReferralAvailableProvider = Provider.autoDispose<bool>((ref) {
   final referralState = ref.watch(referralProvider).value;
   return referralState?.isAvailable ?? false;
 });
 
 /// The current user's referral code, or `null` if unavailable.
-final referralCodeProvider = Provider<String?>((ref) {
+final referralCodeProvider = Provider.autoDispose<String?>((ref) {
   final referralState = ref.watch(referralProvider).value;
   return referralState?.referralCode;
 });
 
 /// Aggregated referral statistics, or `null` if unavailable.
-final referralStatsProvider = Provider<ReferralStats?>((ref) {
+final referralStatsProvider = Provider.autoDispose<ReferralStats?>((ref) {
   final referralState = ref.watch(referralProvider).value;
   return referralState?.stats;
 });
 
 /// Recent referral entries (empty list when unavailable).
-final recentReferralsProvider = Provider<List<ReferralEntry>>((ref) {
+final recentReferralsProvider = Provider.autoDispose<List<ReferralEntry>>((ref) {
   final referralState = ref.watch(referralProvider).value;
   return referralState?.recentReferrals ?? [];
 });

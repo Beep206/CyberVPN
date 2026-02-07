@@ -1,8 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'vpn_config_entity.freezed.dart';
+import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
+export 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 
-enum VpnProtocol { vless, vmess, trojan, shadowsocks }
+part 'vpn_config_entity.freezed.dart';
 
 @freezed
 sealed class VpnConfigEntity with _$VpnConfigEntity {

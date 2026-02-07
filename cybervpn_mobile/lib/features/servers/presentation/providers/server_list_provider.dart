@@ -9,7 +9,7 @@ import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show serverRepositoryProvider, pingServiceProvider, favoritesLocalDatasourceProvider;
-import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
+import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';

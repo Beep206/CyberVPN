@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
+
 class AnimatedToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -28,7 +30,7 @@ class AnimatedToggle extends StatelessWidget {
     return GestureDetector(
       onTap: () => onChanged(!value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: AnimDurations.medium,
         curve: Curves.easeInOut,
         width: width,
         height: height,
@@ -37,7 +39,7 @@ class AnimatedToggle extends StatelessWidget {
           color: value ? active : inactive,
         ),
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 250),
+          duration: AnimDurations.medium,
           curve: Curves.easeInOut,
           alignment: value ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
           child: Container(

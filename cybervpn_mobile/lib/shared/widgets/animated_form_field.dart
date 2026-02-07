@@ -51,7 +51,7 @@ class ShakeWidget extends StatefulWidget {
     this.shake = false,
     this.amplitude = 5.0,
     this.cycles = 3,
-    this.duration = const Duration(milliseconds: 300),
+    this.duration = AnimDurations.normal,
   });
 
   final Widget child;

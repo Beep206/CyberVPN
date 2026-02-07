@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/core/utils/frame_rate_monitor.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
@@ -35,6 +36,8 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
   late final Animation<double> _glowAnimation;
 
   VpnConnectionState? _previousState;
+  final _pulseFrameMonitor = FrameRateMonitor('ConnectButton.pulse');
+  final _glowFrameMonitor = FrameRateMonitor('ConnectButton.glow');
 
   @override
   void initState() {
@@ -95,7 +98,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
             scale: scale,
             child: AnimatedOpacity(
               opacity: opacity,
-              duration: const Duration(milliseconds: 300),
+              duration: AnimDurations.normal,
               child: _buildButton(context, vpnState, config),
             ),
           );
@@ -228,8 +231,10 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
         vpnState is VpnConnecting || vpnState is VpnReconnecting;
 
     if (shouldPulse && !_pulseController.isAnimating) {
+      _pulseFrameMonitor.start();
       unawaited(_pulseController.repeat(reverse: true));
     } else if (!shouldPulse && _pulseController.isAnimating) {
+      _pulseFrameMonitor.stop();
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -242,8 +247,10 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
         vpnState is VpnConnected && !disableAnimations && isCyberpunk;
 
     if (shouldGlow && !_glowController.isAnimating) {
+      _glowFrameMonitor.start();
       unawaited(_glowController.repeat(reverse: true));
     } else if (!shouldGlow && _glowController.isAnimating) {
+      _glowFrameMonitor.stop();
       _glowController.stop();
       _glowController.reset();
     }

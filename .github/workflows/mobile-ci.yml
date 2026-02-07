@@ -118,6 +118,24 @@ jobs:
       - name: Run tests
         run: flutter test
 
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [analyze, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run integration tests (headless)
+        run: flutter test integration_test/ --no-pub
+
   build-android:
     name: Build Android (debug)
     runs-on: ubuntu-latest

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:cybervpn_mobile/core/constants/cache_constants.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -31,7 +32,8 @@ class SecureStorageWrapper {
   static const int _maxCacheSize = 100;
 
   /// TTL for cached token values (access_token, refresh_token).
-  static const Duration _tokenCacheTtl = Duration(minutes: 5);
+  /// See [CacheConstants.authTokenCacheTtl] for the centralized value.
+  static const Duration _tokenCacheTtl = CacheConstants.authTokenCacheTtl;
 
   /// In-memory cache for read values.
   /// Key: storage key, Value: cached value (null means key was checked and not found)
@@ -298,53 +300,6 @@ class SecureStorageWrapper {
   /// Call this on enrollment change, logout, or when revoking biometric auth.
   Future<void> clearDeviceToken() async {
     await delete(key: deviceTokenKey);
-  }
-
-  // ── Legacy Biometric Credentials (deprecated) ──────────────────────────────
-
-  /// Stores credentials for biometric re-authentication.
-  ///
-  /// @deprecated Use [setDeviceToken] instead. Plaintext credential storage
-  /// will be removed in a future release. See DEVICE_BOUND_TOKEN_AUTH.md.
-  @Deprecated('Use setDeviceToken() instead. Plaintext credentials are insecure.')
-  Future<void> setBiometricCredentials({
-    required String email,
-    required String password,
-  }) async {
-    final credentials = jsonEncode({'email': email, 'password': password});
-    await write(key: biometricCredentialsKey, value: credentials);
-  }
-
-  /// Retrieves stored biometric credentials.
-  ///
-  /// @deprecated Use [getDeviceToken] instead.
-  @Deprecated('Use getDeviceToken() instead. Plaintext credentials are insecure.')
-  Future<({String email, String password})?> getBiometricCredentials() async {
-    final stored = await read(key: biometricCredentialsKey);
-    if (stored == null || stored.isEmpty) {
-      return null;
-    }
-
-    try {
-      final json = jsonDecode(stored) as Map<String, dynamic>;
-      final email = json['email'] as String?;
-      final password = json['password'] as String?;
-      if (email == null || password == null) {
-        return null;
-      }
-      return (email: email, password: password);
-    } catch (e) {
-      AppLogger.warning('Failed to parse biometric credentials', error: e);
-      return null;
-    }
-  }
-
-  /// Clears stored biometric credentials.
-  ///
-  /// @deprecated Use [clearDeviceToken] instead.
-  @Deprecated('Use clearDeviceToken() instead.')
-  Future<void> clearBiometricCredentials() async {
-    await delete(key: biometricCredentialsKey);
   }
 
   // ── App Lock State (Phase 4) ────────────────────────────────────────────────

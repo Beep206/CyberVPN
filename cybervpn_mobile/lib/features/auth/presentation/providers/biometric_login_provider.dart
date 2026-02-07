@@ -68,6 +68,8 @@ class BiometricLoginEnrollmentChanged extends BiometricLoginState {
 }
 
 /// Notifier for biometric login flow.
+/// Uses [autoDispose] because biometric login state is only needed on the
+/// login screen. Resources are released when navigating away.
 class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
   @override
   BiometricLoginState build() => const BiometricLoginIdle();
@@ -257,14 +259,14 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
 
 /// Provider for [BiometricLoginNotifier].
 final biometricLoginProvider =
-    NotifierProvider<BiometricLoginNotifier, BiometricLoginState>(
+    NotifierProvider.autoDispose<BiometricLoginNotifier, BiometricLoginState>(
   BiometricLoginNotifier.new,
 );
 
 /// Provider that checks if biometric login should be shown on the login screen.
 ///
 /// Returns `true` if biometric login is available and configured.
-final shouldShowBiometricLoginProvider = FutureProvider<bool>((ref) async {
+final shouldShowBiometricLoginProvider = FutureProvider.autoDispose<bool>((ref) async {
   final notifier = ref.read(biometricLoginProvider.notifier);
   return notifier.checkAvailability();
 });

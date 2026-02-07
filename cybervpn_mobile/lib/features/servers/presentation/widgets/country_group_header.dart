@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
 
 /// Sticky header for a group of servers sharing the same country.
@@ -48,7 +49,7 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
     super.initState();
     _arrowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: AnimDurations.medium,
       value: widget.isExpanded ? 1.0 : 0.0,
     );
     _arrowTurns = Tween<double>(begin: 0.0, end: 0.5).animate(

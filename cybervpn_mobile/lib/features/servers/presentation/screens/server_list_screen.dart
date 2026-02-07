@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
@@ -49,6 +50,8 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   bool _favoritesExpanded = true;
 
   /// Selected server ID for master-detail layout on wide screens.
+  /// Persisted to SharedPreferences so tablet users keep context across restarts.
+  static const _selectedServerKey = 'tablet_selected_server_id';
   String? _selectedServerId;
 
   /// Tracks which country groups are expanded. All start expanded.
@@ -66,10 +69,20 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   @override
   void initState() {
     super.initState();
+    // Restore persisted selection for tablet master-detail layout.
+    _restoreSelectedServer();
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_showTooltipIfNeeded());
     });
+  }
+
+  void _restoreSelectedServer() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final saved = prefs.getString(_selectedServerKey);
+    if (saved != null && saved.isNotEmpty) {
+      setState(() => _selectedServerId = saved);
+    }
   }
 
   @override
@@ -117,6 +130,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   void _onServerTap(ServerEntity server) {
     if (_isWideLayout(context)) {
       setState(() => _selectedServerId = server.id);
+      unawaited(ref.read(sharedPreferencesProvider).setString(
+        _selectedServerKey,
+        server.id,
+      ));
     } else {
       unawaited(context.push('/servers/${server.id}'));
     }
@@ -641,7 +658,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                           if (ctx != null) {
                             Scrollable.ensureVisible(
                               ctx,
-                              duration: const Duration(milliseconds: 200),
+                              duration: AnimDurations.medium,
                               curve: Curves.easeInOut,
                               alignmentPolicy:
                                   ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
@@ -751,7 +768,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
               ExcludeSemantics(
                 child: AnimatedRotation(
                   turns: _favoritesExpanded ? 0.0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
+                  duration: AnimDurations.medium,
                   child: Icon(
                     Icons.expand_more,
                     color: colorScheme.onSurfaceVariant,
@@ -793,7 +810,7 @@ class _AnimatedExpandSectionState extends State<_AnimatedExpandSection>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: AnimDurations.medium,
       value: widget.isExpanded ? 1.0 : 0.0,
     );
     _sizeFactor = CurvedAnimation(

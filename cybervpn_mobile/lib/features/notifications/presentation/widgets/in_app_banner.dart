@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 
 /// Type of in-app banner notification.
@@ -115,7 +116,7 @@ class _InAppBannerState extends State<InAppBanner>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: AnimDurations.normal,
       vsync: this,
     );
     _slideAnimation = Tween<Offset>(
@@ -178,7 +179,7 @@ class _BannerOverlayState extends State<_BannerOverlay>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: AnimDurations.normal,
       vsync: this,
     );
     _slideAnimation = Tween<Offset>(

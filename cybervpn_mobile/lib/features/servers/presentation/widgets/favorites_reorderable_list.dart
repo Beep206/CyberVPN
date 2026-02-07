@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
@@ -153,7 +154,7 @@ class _FavoriteServerItemState extends ConsumerState<_FavoriteServerItem>
     super.initState();
     _starScaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AnimDurations.normal,
     );
     _starScaleAnimation = TweenSequence<double>([
       TweenSequenceItem(

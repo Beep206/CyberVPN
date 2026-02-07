@@ -376,6 +376,9 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               icon: Icon(
                 _obscurePassword ? Icons.visibility : Icons.visibility_off,
               ),
+              tooltip: _obscurePassword
+                  ? l10n.formShowPassword
+                  : l10n.formHidePassword,
               onPressed: () {
                 setState(() => _obscurePassword = !_obscurePassword);
               },

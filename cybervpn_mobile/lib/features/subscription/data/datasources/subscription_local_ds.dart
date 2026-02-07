@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cybervpn_mobile/core/constants/cache_constants.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
@@ -20,7 +21,8 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   static const String _plansCacheTimestampKey = 'plans_cache_timestamp';
   static const String _subscriptionKey = 'cached_subscription';
   static const String _subscriptionCacheTimestampKey = 'subscription_cache_timestamp';
-  static const int _cacheValidityMinutes = 5;
+  /// Cache validity in minutes, derived from [CacheConstants.subscriptionCacheTtl].
+  static final int _cacheValidityMinutes = CacheConstants.subscriptionCacheTtl.inMinutes;
 
   SubscriptionLocalDataSourceImpl(this._localStorage);
 

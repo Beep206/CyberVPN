@@ -332,7 +332,7 @@ class _AnimatedSuggestionBoxState extends State<_AnimatedSuggestionBox>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: AnimDurations.normal,
       vsync: this,
     );
 
@@ -354,7 +354,7 @@ class _AnimatedSuggestionBoxState extends State<_AnimatedSuggestionBox>
     );
 
     // Start animation after a brief delay to ensure message appears first.
-    Future.delayed(const Duration(milliseconds: 150), () {
+    Future.delayed(AnimDurations.fast, () {
       if (mounted) {
         unawaited(_controller.forward());
       }

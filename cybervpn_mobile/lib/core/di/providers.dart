@@ -78,6 +78,34 @@ import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart'
 import 'package:cybervpn_mobile/app/theme/theme_provider.dart'
     show themePrefsProvider;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Provider Scoping Audit (last updated: 2026-02-07)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// GLOBAL (app-lifetime, no autoDispose) — this file:
+//   All providers below are stateless infrastructure, repositories, and
+//   use cases. They are cheap to keep alive and used across many screens.
+//
+// APP-SCOPED notifiers (no autoDispose) — feature providers:
+//   authProvider           — session lifecycle, must survive navigation
+//   settingsProvider       — app preferences, always needed
+//   subscriptionProvider   — status checked by many screens
+//   serverListProvider     — server list reused across tabs
+//   profileProvider        — used by VPN connection + multiple screens
+//   configImportProvider   — clipboard observer is always active
+//   onboardingProvider     — checked by router guards
+//   quickSetupProvider     — checked by router guards
+//   notificationProvider   — background listener in app lifecycle
+//
+// SCREEN-SCOPED (autoDispose) — feature providers:
+//   diagnosticsProvider    — only on diagnostics screens
+//   referralProvider       — only on referral dashboard
+//   permissionRequestProvider — only during onboarding flow
+//   telegramAuthProvider   — only on login/register screens
+//   biometricLoginProvider — only on login screen
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
 // ---------------------------------------------------------------------------
 // Settings repository provider
 // ---------------------------------------------------------------------------
@@ -158,18 +186,13 @@ final registerDeviceUseCaseProvider = Provider<RegisterDeviceUseCase>((ref) {
   return RegisterDeviceUseCase(ref.watch(profileRepositoryProvider));
 });
 
-/// Provides [SecureStorageWrapper] for device registration.
-final secureStorageWrapperProvider = Provider<SecureStorageWrapper>((ref) {
-  return SecureStorageWrapper();
-});
-
 /// Provides the [DeviceRegistrationService].
 final deviceRegistrationServiceProvider = Provider<DeviceRegistrationService>((
   ref,
 ) {
   return DeviceRegistrationService(
     registerDevice: ref.watch(registerDeviceUseCaseProvider),
-    storage: ref.watch(secureStorageWrapperProvider),
+    storage: ref.watch(secureStorageProvider),
   );
 });
 
@@ -422,7 +445,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 /// which must be overridden with a pre-initialized instance in the root
 /// [ProviderScope].
 final localStorageProvider = Provider<LocalStorageWrapper>((ref) {
-  return LocalStorageWrapper();
+  return LocalStorageWrapper(prefs: ref.watch(sharedPreferencesProvider));
 });
 
 /// Provides the [VpnEngineDatasource] singleton.
@@ -498,8 +521,16 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   await secureStorage.prewarmCache();
 
   // --- Eager: requires pre-initialized SharedPreferences ---
-  final dio = Dio();
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 15),
+    sendTimeout: const Duration(seconds: 10),
+  ));
   final apiClient = ApiClient(dio: dio, baseUrl: EnvironmentConfig.baseUrl);
+  // Interceptor order is intentional:
+  // 1. Auth: attaches/refreshes JWT on every request.
+  // 2. Retry: retries on transient failures (after auth is attached).
+  // If retry triggers a new request, Auth re-evaluates the token.
   apiClient.addInterceptor(
     AuthInterceptor(secureStorage: secureStorage, dio: dio),
   );

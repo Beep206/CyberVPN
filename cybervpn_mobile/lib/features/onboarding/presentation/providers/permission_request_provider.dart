@@ -86,6 +86,8 @@ class PermissionRequestState {
 ///
 /// Handles requesting VPN permission, updating the UI state to reflect
 /// progress and results.
+/// Uses [autoDispose] because permission request state is only needed during
+/// the onboarding flow. Resources are released when navigating away.
 class PermissionRequestNotifier extends AsyncNotifier<PermissionRequestState> {
   late final FlutterV2ray _v2ray;
 
@@ -197,6 +199,6 @@ class PermissionRequestNotifier extends AsyncNotifier<PermissionRequestState> {
 
 /// Provides the [PermissionRequestNotifier] managing [PermissionRequestState].
 final permissionRequestProvider =
-    AsyncNotifierProvider<PermissionRequestNotifier, PermissionRequestState>(
+    AsyncNotifierProvider.autoDispose<PermissionRequestNotifier, PermissionRequestState>(
   PermissionRequestNotifier.new,
 );
