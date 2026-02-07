@@ -281,6 +281,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsSearchHint => 'Search settings...';
+
+  @override
   String get settingsSelectCategory => 'Select a category';
 
   @override

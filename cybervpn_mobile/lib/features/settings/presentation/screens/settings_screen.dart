@@ -19,6 +19,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_scr
 import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_search.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
@@ -203,6 +204,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       data: (settings) => _buildBody(context, settings),
     );
 
+    Widget searchAction() => IconButton(
+          icon: const Icon(Icons.search),
+          tooltip: l10n.settingsSearchHint,
+          onPressed: () => showSearch(
+            context: context,
+            delegate: SettingsSearchDelegate(l10n),
+          ),
+        );
+
     if (isWide) {
       return Scaffold(
         appBar: AppBar(
@@ -210,6 +220,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             text: l10n.settingsTitle,
             style: Theme.of(context).appBarTheme.titleTextStyle,
           ),
+          actions: [searchAction()],
         ),
         body: Row(
           children: [
@@ -227,6 +238,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           text: l10n.settingsTitle,
           style: Theme.of(context).appBarTheme.titleTextStyle,
         ),
+        actions: [searchAction()],
       ),
       body: body,
     );

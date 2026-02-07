@@ -281,6 +281,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get settingsTitle => 'تنظیمات';
 
   @override
+  String get settingsSearchHint => 'Search settings...';
+
+  @override
   String get settingsSelectCategory => 'Select a category';
 
   @override
