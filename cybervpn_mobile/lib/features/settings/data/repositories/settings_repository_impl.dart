@@ -37,6 +37,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   static const _kNotificationPromotional = 'settings.notificationPromotional';
   static const _kNotificationReferral = 'settings.notificationReferral';
   static const _kNotificationVpnSpeed = 'settings.notificationVpnSpeed';
+  static const _kPreferMapView = 'settings.preferMapView';
   static const _kClipboardAutoDetect = 'settings.clipboardAutoDetect';
   static const _kLogLevel = 'settings.logLevel';
 
@@ -60,6 +61,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
     _kNotificationPromotional,
     _kNotificationReferral,
     _kNotificationVpnSpeed,
+    _kPreferMapView,
     _kClipboardAutoDetect,
     _kLogLevel,
   ];
@@ -142,6 +144,8 @@ class SettingsRepositoryImpl implements SettingsRepository {
             _prefs.getBool(_kNotificationReferral) ?? defaults.notificationReferral,
         notificationVpnSpeed:
             _prefs.getBool(_kNotificationVpnSpeed) ?? defaults.notificationVpnSpeed,
+        preferMapView:
+            _prefs.getBool(_kPreferMapView) ?? defaults.preferMapView,
         clipboardAutoDetect:
             _prefs.getBool(_kClipboardAutoDetect) ?? defaults.clipboardAutoDetect,
         logLevel: _readEnum(
@@ -186,6 +190,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
           _kNotificationPromotional, settings.notificationPromotional);
       await _prefs.setBool(_kNotificationReferral, settings.notificationReferral);
       await _prefs.setBool(_kNotificationVpnSpeed, settings.notificationVpnSpeed);
+      await _prefs.setBool(_kPreferMapView, settings.preferMapView);
       await _prefs.setBool(_kClipboardAutoDetect, settings.clipboardAutoDetect);
       await _prefs.setString(_kLogLevel, settings.logLevel.name);
       return const Success(null);
