@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/subscription/presentation/providers/sub
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
+import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
 
 // ---------------------------------------------------------------------------
 // ProfileDashboardScreen
@@ -290,19 +291,26 @@ class _StatsCardsGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns =
-            ResponsiveLayout.adaptiveGridColumns(constraints.maxWidth);
+        final isLandscape = ResponsiveLayout.isLandscape(context);
+        final columns = ResponsiveLayout.adaptiveGridColumnsForOrientation(
+          constraints.maxWidth,
+          landscape: isLandscape,
+        );
         final totalGapWidth = Spacing.sm * (columns - 1);
         final cardWidth = (constraints.maxWidth - totalGapWidth) / columns;
         return Wrap(
           spacing: Spacing.sm,
           runSpacing: Spacing.sm,
-          children: cards.map((card) {
-            return SizedBox(
-              width: cardWidth,
-              child: card,
-            );
-          }).toList(),
+          children: [
+            for (int i = 0; i < cards.length; i++)
+              SizedBox(
+                width: cardWidth,
+                child: StaggeredListItem(
+                  index: i,
+                  child: cards[i],
+                ),
+              ),
+          ],
         );
       },
     );
