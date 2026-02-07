@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_ds.dart'
+    show PaginatedResponse;
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show serverRepositoryProvider, pingServiceProvider, favoritesLocalDatasourceProvider;
@@ -34,6 +36,12 @@ sealed class ServerListState with _$ServerListState {
     @Default(false) bool isRefreshing,
     /// Ordered list of favorite server IDs (persisted locally).
     @Default([]) List<String> favoriteServerIds,
+    /// Total server count from the API (for pagination).
+    @Default(0) int totalServerCount,
+    /// Whether more pages are available.
+    @Default(true) bool hasMore,
+    /// Whether a page is currently loading.
+    @Default(false) bool isLoadingMore,
   }) = _ServerListState;
 
   /// Per-instance cache for [filteredServers] using identity-based [Expando].
@@ -109,6 +117,8 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
   /// CancelToken for in-flight API requests. Cancelled when provider disposes.
   CancelToken _cancelToken = CancelToken();
 
+  static const _pageSize = 50;
+
   @override
   Future<ServerListState> build() async {
     // Create a fresh CancelToken for this build cycle.
@@ -119,11 +129,11 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     final favoritesDs = ref.read(favoritesLocalDatasourceProvider);
     final favoriteIds = await favoritesDs.getFavoriteIds();
 
-    // Fetch servers on initial build.
-    final servers = await _fetchServers();
+    // Fetch first page of servers.
+    final page = await _fetchServersPaginated(offset: 0, limit: _pageSize);
 
     // Mark servers that are in the favorites list.
-    final serversWithFavorites = _applyFavoriteFlags(servers, favoriteIds);
+    final serversWithFavorites = _applyFavoriteFlags(page.items, favoriteIds);
 
     // Trigger ping test for initial load (fire-and-forget).
     _triggerPingTest(serversWithFavorites);
@@ -137,6 +147,8 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     return ServerListState(
       servers: serversWithFavorites,
       favoriteServerIds: favoriteIds,
+      totalServerCount: page.total,
+      hasMore: page.hasMore,
     );
   }
 
@@ -243,7 +255,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
         current.copyWith(favoriteServerIds: ids));
   }
 
-  /// Pull-to-refresh handler.
+  /// Pull-to-refresh handler. Resets pagination to first page.
   Future<void> refresh() async {
     final current = state.value;
     if (current == null) return;
@@ -252,12 +264,14 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
         current.copyWith(isRefreshing: true));
 
     try {
-      final servers = await _fetchServers();
+      final page = await _fetchServersPaginated(offset: 0, limit: _pageSize);
       final serversWithFavorites =
-          _applyFavoriteFlags(servers, current.favoriteServerIds);
+          _applyFavoriteFlags(page.items, current.favoriteServerIds);
       final refreshed = current.copyWith(
         servers: serversWithFavorites,
         isRefreshing: false,
+        totalServerCount: page.total,
+        hasMore: page.hasMore,
       );
       state = AsyncData<ServerListState>(refreshed);
 
@@ -268,11 +282,57 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     }
   }
 
+  /// Load the next page of servers (infinite scroll).
+  Future<void> loadMore() async {
+    final current = state.value;
+    if (current == null || current.isLoadingMore || !current.hasMore) return;
+
+    state = AsyncData<ServerListState>(
+      current.copyWith(isLoadingMore: true),
+    );
+
+    try {
+      final page = await _fetchServersPaginated(
+        offset: current.servers.length,
+        limit: _pageSize,
+      );
+      final newServers = _applyFavoriteFlags(page.items, current.favoriteServerIds);
+      final allServers = [...current.servers, ...newServers];
+
+      state = AsyncData<ServerListState>(current.copyWith(
+        servers: allServers,
+        totalServerCount: page.total,
+        hasMore: page.hasMore,
+        isLoadingMore: false,
+      ));
+
+      // Ping new servers.
+      _triggerPingTest(newServers);
+    } catch (e, st) {
+      AppLogger.error('Failed to load more servers', error: e, stackTrace: st);
+      state = AsyncData<ServerListState>(
+        current.copyWith(isLoadingMore: false),
+      );
+    }
+  }
+
   // ---- Private helpers ----
 
   Future<List<ServerEntity>> _fetchServers() async {
     final repo = ref.read(serverRepositoryProvider);
     final result = await repo.getServers();
+    return switch (result) {
+      Success(:final data) => data,
+      Failure(:final failure) => throw failure,
+    };
+  }
+
+  Future<PaginatedResponse<ServerEntity>> _fetchServersPaginated({
+    required int offset,
+    required int limit,
+  }) async {
+    final repo = ref.read(serverRepositoryProvider);
+    final result = await repo.getServersPaginated(offset: offset, limit: limit);
     return switch (result) {
       Success(:final data) => data,
       Failure(:final failure) => throw failure,

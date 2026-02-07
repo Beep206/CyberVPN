@@ -41,6 +41,28 @@ class ServerRepositoryImpl with NetworkErrorHandler, CachedRepository implements
   }
 
   @override
+  Future<Result<PaginatedResponse<ServerEntity>>> getServersPaginated({
+    int offset = 0,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _remoteDataSource.fetchServersPaginated(
+        offset: offset,
+        limit: limit,
+      );
+      final itemsWithFavorites = await _applyFavorites(response.items);
+      return Success(PaginatedResponse(
+        items: itemsWithFavorites,
+        total: response.total,
+        offset: response.offset,
+        limit: response.limit,
+      ));
+    } on Exception catch (e) {
+      return Failure(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Result<ServerEntity>> getServerById(String id) async {
     try {
       final server = await _remoteDataSource.fetchServerById(id);

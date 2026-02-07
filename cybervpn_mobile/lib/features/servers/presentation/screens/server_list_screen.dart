@@ -17,7 +17,9 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_car
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/shared/widgets/cyber_refresh_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
 
 /// Main server list screen.
@@ -100,10 +102,8 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   }
 
   Future<void> _onRefresh() async {
-    // Trigger medium haptic on pull-to-refresh threshold.
-    final haptics = ref.read(hapticServiceProvider);
-    unawaited(haptics.impact());
-
+    // Haptic feedback at pull threshold is handled by CyberRefreshIndicator
+    // (fires mediumImpact when the user crosses the trigger distance).
     await ref.read(serverListProvider.notifier).refresh();
   }
 
@@ -297,29 +297,43 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           style: Theme.of(context).appBarTheme.titleTextStyle,
         ),
         ),
-        body: Row(
-          children: [
-            SizedBox(
-              width: 350,
-              child: listContent,
-            ),
-            const VerticalDivider(thickness: 1, width: 1),
-            Expanded(
-              child: _selectedServerId != null
-                  ? ServerDetailScreen(
-                      serverId: _selectedServerId!,
-                      embedded: true,
-                    )
-                  : Center(
-                      child: Text(
-                        AppLocalizations.of(context).serverSelectPrompt,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // Use ~28% of available width, clamped to [280, 400].
+            final sidebarWidth =
+                (constraints.maxWidth * 0.28).clamp(280.0, 400.0);
+
+            return Row(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: 280,
+                    maxWidth: 400,
+                  ),
+                  child: SizedBox(
+                    width: sidebarWidth,
+                    child: listContent,
+                  ),
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(
+                  child: _selectedServerId != null
+                      ? ServerDetailScreen(
+                          serverId: _selectedServerId!,
+                          embedded: true,
+                        )
+                      : Center(
+                          child: Text(
+                            AppLocalizations.of(context).serverSelectPrompt,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         ),
       );
     }
@@ -335,12 +349,55 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     );
   }
 
+  /// Builds either a [SliverList] or a 2-column [SliverGrid] depending on
+  /// whether the device is in landscape orientation. This keeps server cards
+  /// readable while filling the extra horizontal space in landscape.
+  Widget _serverSliver({
+    required int childCount,
+    required Widget Function(BuildContext, int) itemBuilder,
+    required bool useTwoColumns,
+  }) {
+    final delegate = SliverChildBuilderDelegate(
+      itemBuilder,
+      childCount: childCount,
+    );
+
+    if (useTwoColumns) {
+      return SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 0,
+          crossAxisSpacing: Spacing.sm,
+          // ServerCard is compact; use a fixed main-axis extent so cards
+          // don't stretch awkwardly. 88 matches the typical card height.
+          mainAxisExtent: 88,
+        ),
+        delegate: delegate,
+      );
+    }
+
+    return SliverList(delegate: delegate);
+  }
+
   Widget _buildBody(BuildContext context, ServerListState state) {
     final theme = Theme.of(context);
     final favorites = ref.watch(favoriteServersProvider);
     final grouped = ref.watch(groupedByCountryProvider);
+    // Use a 2-column grid in landscape on compact (phone) screens.
+    final isLandscape = ResponsiveLayout.isLandscape(context);
+    final useTwoColumns = isLandscape && !_isWideLayout(context);
 
-    return RefreshIndicator(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollEndNotification &&
+            notification.metrics.extentAfter < 200 &&
+            state.hasMore &&
+            !state.isLoadingMore) {
+          unawaited(ref.read(serverListProvider.notifier).loadMore());
+        }
+        return false;
+      },
+      child: CyberRefreshIndicator(
       onRefresh: _onRefresh,
       child: CustomScrollView(
         slivers: [
@@ -454,23 +511,22 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
               child: _buildFavoritesHeader(favorites.length),
             ),
             if (_favoritesExpanded)
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final server = favorites[index];
-                    if (!_matchesSearch(server)) {
-                      return const SizedBox.shrink();
-                    }
-                    return StaggeredListItem(
-                      index: index,
-                      child: ServerCard(
-                        server: server,
-                        onTap: () => _onServerTap(server),
-                      ),
-                    );
-                  },
-                  childCount: favorites.length,
-                ),
+              _serverSliver(
+                childCount: favorites.length,
+                useTwoColumns: useTwoColumns,
+                itemBuilder: (context, index) {
+                  final server = favorites[index];
+                  if (!_matchesSearch(server)) {
+                    return const SizedBox.shrink();
+                  }
+                  return StaggeredListItem(
+                    index: index,
+                    child: ServerCard(
+                      server: server,
+                      onTap: () => _onServerTap(server),
+                    ),
+                  );
+                },
               ),
             const SliverToBoxAdapter(
               child: Divider(indent: 16, endIndent: 16),
@@ -537,34 +593,43 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                   ),
                 ),
                 if (isExpanded)
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final data = serverData[index];
-                        final server = data['server'] as ServerEntity;
-                        final isCustom = data['isCustom'] as bool;
-                        final configId = data['configId'] as String?;
+                  _serverSliver(
+                    childCount: serverData.length,
+                    useTwoColumns: useTwoColumns,
+                    itemBuilder: (context, index) {
+                      final data = serverData[index];
+                      final server = data['server'] as ServerEntity;
+                      final isCustom = data['isCustom'] as bool;
+                      final configId = data['configId'] as String?;
 
-                        return StaggeredListItem(
-                          index: index,
-                          child: ServerCard(
-                            server: server,
-                            onTap: isCustom && configId != null
-                                ? () => _onCustomServerTap(configId)
-                                : () => _onServerTap(server),
-                            isCustomServer: isCustom,
-                          ),
-                        );
-                      },
-                      childCount: serverData.length,
-                    ),
+                      return StaggeredListItem(
+                        index: index,
+                        child: ServerCard(
+                          server: server,
+                          onTap: isCustom && configId != null
+                              ? () => _onCustomServerTap(configId)
+                              : () => _onServerTap(server),
+                          isCustomServer: isCustom,
+                        ),
+                      );
+                    },
                   ),
               ];
             }),
 
+          // Loading indicator for infinite scroll
+          if (state.isLoadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: Spacing.lg),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+
           // Bottom padding
           SliverPadding(padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context))),
         ],
+      ),
       ),
     );
   }
