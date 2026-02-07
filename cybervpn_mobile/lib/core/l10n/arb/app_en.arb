@@ -795,6 +795,13 @@
   "serverListFilterFavorites": "Favorites",
   "serverListFilterRecommended": "Recommended",
   "serverListNoResults": "No servers found",
+  "serverListCount": "{shown} of {total} servers",
+  "@serverListCount": {
+    "placeholders": {
+      "shown": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "serverListPing": "{ping} ms",
   "@serverListPing": {
     "placeholders": {
@@ -1964,5 +1971,112 @@
       "server": { "type": "String" }
     }
   },
-  "dismiss": "Dismiss"
+  "dismiss": "Dismiss",
+
+  "settingsScanlineLabel": "Scanline Effect",
+  "settingsScanlineDescription": "Subtle CRT scanline overlay for cyberpunk aesthetic",
+
+  "forceDisconnectTitle": "Connection Terminated",
+  "@forceDisconnectTitle": {
+    "description": "Title for the dialog shown when the server forces a VPN disconnection"
+  },
+  "forceDisconnectMessage": "Your VPN connection was terminated by the server. This may be due to a session limit or administrative action.",
+  "@forceDisconnectMessage": {
+    "description": "Message body for the force disconnect dialog"
+  },
+
+  "serverQuickConnect": "Connect",
+  "@serverQuickConnect": {
+    "description": "Quick action to connect to a server"
+  },
+  "serverQuickFavorite": "Add to Favorites",
+  "@serverQuickFavorite": {
+    "description": "Quick action to add server to favorites"
+  },
+  "serverQuickUnfavorite": "Remove from Favorites",
+  "@serverQuickUnfavorite": {
+    "description": "Quick action to remove server from favorites"
+  },
+  "serverQuickCopyAddress": "Copy Address",
+  "@serverQuickCopyAddress": {
+    "description": "Quick action to copy server address to clipboard"
+  },
+  "serverQuickViewDetails": "View Details",
+  "@serverQuickViewDetails": {
+    "description": "Quick action to view server details screen"
+  },
+  "serverQuickReport": "Report Issue",
+  "@serverQuickReport": {
+    "description": "Quick action to report an issue with the server"
+  },
+  "serverAddressCopied": "Server address copied",
+  "@serverAddressCopied": {
+    "description": "Snackbar message after copying server address"
+  },
+  "serverReportSubmitted": "Issue reported. Thank you for your feedback.",
+  "@serverReportSubmitted": {
+    "description": "Snackbar message after reporting a server issue"
+  },
+
+  "deleteAccountTitle": "Delete Account",
+  "@deleteAccountTitle": {
+    "description": "Title for the delete account dialog"
+  },
+  "deleteAccountWarning": "This action cannot be undone. All your data will be permanently deleted.",
+  "@deleteAccountWarning": {
+    "description": "Warning message shown on the first step of account deletion"
+  },
+  "deleteAccountConsequence1": "Your subscription will be cancelled",
+  "@deleteAccountConsequence1": {
+    "description": "First consequence of deleting account"
+  },
+  "deleteAccountConsequence2": "All VPN configurations will be removed",
+  "@deleteAccountConsequence2": {
+    "description": "Second consequence of deleting account"
+  },
+  "deleteAccountConsequence3": "Your account data will be permanently erased",
+  "@deleteAccountConsequence3": {
+    "description": "Third consequence of deleting account"
+  },
+  "deleteAccountConfirm": "I understand, delete my account",
+  "@deleteAccountConfirm": {
+    "description": "Confirmation button text after reading consequences"
+  },
+  "deleteAccountReauthenticate": "Please verify your identity to continue",
+  "@deleteAccountReauthenticate": {
+    "description": "Prompt for re-authentication before deletion"
+  },
+  "deleteAccountCountdown": "Delete Account ({seconds}s)",
+  "@deleteAccountCountdown": {
+    "description": "Delete button text with countdown timer",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccountFinalButton": "Delete Account",
+  "@deleteAccountFinalButton": {
+    "description": "Final delete account button text after countdown"
+  },
+  "deleteAccountSuccess": "Your account has been deleted",
+  "@deleteAccountSuccess": {
+    "description": "Success message after account deletion"
+  },
+  "deleteAccountPasswordLabel": "Password",
+  "@deleteAccountPasswordLabel": {
+    "description": "Label for the password field in re-authentication"
+  },
+  "deleteAccountPasswordHint": "Enter your password",
+  "@deleteAccountPasswordHint": {
+    "description": "Hint text for the password field in re-authentication"
+  },
+  "deleteAccountOrBiometric": "Or use biometric authentication",
+  "@deleteAccountOrBiometric": {
+    "description": "Label for the biometric authentication option"
+  },
+  "deleteAccountBiometricReason": "Verify your identity to delete your account",
+  "@deleteAccountBiometricReason": {
+    "description": "Reason shown in the biometric prompt for account deletion"
+  }
 }
