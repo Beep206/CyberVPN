@@ -139,6 +139,11 @@ class _ServerCardState extends ConsumerState<ServerCard>
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: InkWell(
             onTap: _handleServerTap,
+            onLongPress: () {
+              final haptics = ref.read(hapticServiceProvider);
+              unawaited(haptics.impact());
+              ServerQuickActionsSheet.show(context, widget.server);
+            },
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
