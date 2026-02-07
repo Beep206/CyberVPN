@@ -126,11 +126,20 @@ class LogoutNotifier extends AsyncNotifier<void> {
   /// so user preferences survive across sessions.
   Future<void> _clearAuthTokens() async {
     final storage = ref.read(secureStorageProvider);
+
+    // SECURITY: Invalidate in-memory cache first to prevent post-logout
+    // memory dumps from revealing the previous user's tokens.
+    storage.invalidateCache();
+
     await Future.wait<void>([
       storage.delete(key: SecureStorageWrapper.accessTokenKey),
       storage.delete(key: SecureStorageWrapper.refreshTokenKey),
+      storage.delete(key: SecureStorageWrapper.deviceTokenKey),
       storage.delete(key: 'cached_user'),
     ]);
+
+    // SECURITY: Clear AppLogger ring buffer to prevent log-based PII leakage.
+    AppLogger.clearLogs();
   }
 }
 

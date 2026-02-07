@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Local datasource for persisting favorite server IDs with ordering.
 ///
@@ -28,7 +29,8 @@ class FavoritesLocalDatasource {
         return decoded.cast<String>();
       }
       return [];
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to decode favorite IDs from storage', error: e, category: 'favorites');
       return [];
     }
   }

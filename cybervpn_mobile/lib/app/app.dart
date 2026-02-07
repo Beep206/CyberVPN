@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
@@ -102,17 +103,27 @@ class CyberVpnApp extends ConsumerWidget {
               final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
               final scaleFactor = _textScaleToDouble(textScale, systemTextScale);
 
+              Widget appChild = _AppLifecycleManager(
+                child: child ?? const SizedBox.shrink(),
+              );
+
+              // Add a prominent DEBUG banner in debug builds.
+              if (kDebugMode) {
+                appChild = Banner(
+                  message: 'DEBUG',
+                  location: BannerLocation.topStart,
+                  color: Colors.red,
+                  child: appChild,
+                );
+              }
+
               return Directionality(
                 textDirection: textDirection,
                 child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(scaleFactor),
                   ),
-                  child: RepaintBoundary(
-                    child: _AppLifecycleManager(
-                      child: child ?? const SizedBox.shrink(),
-                    ),
-                  ),
+                  child: RepaintBoundary(child: appChild),
                 ),
               );
             },

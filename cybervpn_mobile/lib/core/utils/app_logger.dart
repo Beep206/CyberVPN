@@ -200,9 +200,20 @@ class AppLogger {
   ///
   /// Each entry is rendered on its own line using [LogEntry.toString].
   /// Returns an empty string when the buffer is empty.
+  /// PII patterns (JWTs, emails, UUIDs) are sanitized before export.
   static String exportLogs() {
     if (_ringBuffer.isEmpty) return '';
-    return _ringBuffer.map((e) => e.toString()).join('\n');
+    return _ringBuffer.map((e) => _sanitizePii(e.toString())).join('\n');
+  }
+
+  /// Replaces PII patterns in a string with redaction markers.
+  static final _jwtPattern = RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}');
+  static final _emailPattern = RegExp(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+
+  static String _sanitizePii(String input) {
+    return input
+        .replaceAll(_jwtPattern, '***JWT***')
+        .replaceAll(_emailPattern, '***EMAIL***');
   }
 
   /// Removes all entries from the ring buffer.

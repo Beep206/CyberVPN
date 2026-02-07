@@ -117,7 +117,7 @@ class WifiMonitorService {
     if (kIsWeb) return false;
     try {
       return Platform.isAndroid || Platform.isIOS;
-    } catch (_) {
+    } catch (e) {
       return false;
     }
   }

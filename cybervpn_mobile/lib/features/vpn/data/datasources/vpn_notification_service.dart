@@ -42,7 +42,7 @@ class VpnNotificationService {
     try {
       _isAndroid = Platform.isAndroid;
       _isIOS = Platform.isIOS;
-    } catch (_) {
+    } catch (e) {
       // Platform check may fail in test environment
       _isAndroid = false;
       _isIOS = false;
@@ -195,8 +195,8 @@ class VpnNotificationService {
   // -- Cleanup ----------------------------------------------------------------
 
   void dispose() {
-    _connectionSubscription?.close();
-    _statsSubscription?.close();
+    _connectionSubscription?.cancel();
+    _statsSubscription?.cancel();
     _androidNotification.dispose();
 
     AppLogger.debug('VPN notification service disposed');

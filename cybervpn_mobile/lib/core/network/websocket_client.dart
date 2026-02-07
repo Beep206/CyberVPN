@@ -220,13 +220,15 @@ class WebSocketClient {
 
   // ── Constructor ──────────────────────────────────────────────────────
 
+  /// Completer used to deduplicate concurrent connect() calls.
+  /// When non-null, a connection attempt is already in progress.
+  Completer<void>? _connectCompleter;
+
   WebSocketClient({
     required this.baseUrl,
-    Future<String?> Function()? ticketProvider,
-    @Deprecated('Use ticketProvider instead. Token auth removed in v2.0.')
-    Future<String?> Function()? tokenProvider,
+    required this.ticketProvider,
     this.path = '/ws/notifications',
-  }) : ticketProvider = ticketProvider ?? tokenProvider ?? (() async => null);
+  });
 
   // ── Public API ───────────────────────────────────────────────────────
 
@@ -260,15 +262,30 @@ class WebSocketClient {
 
   /// Connect to the WebSocket server.
   ///
-  /// If already connected this is a no-op.
+  /// If already connected or a connection attempt is in progress, returns
+  /// the existing future to prevent duplicate connections.
   Future<void> connect() async {
-    if (_connectionState == WebSocketConnectionState.connected ||
-        _connectionState == WebSocketConnectionState.connecting) {
+    if (_connectionState == WebSocketConnectionState.connected) {
       return;
     }
 
+    // If a connect() call is already in flight, await it instead of
+    // starting a second connection.
+    if (_connectCompleter != null) {
+      return _connectCompleter!.future;
+    }
+
+    _connectCompleter = Completer<void>();
     _intentionalClose = false;
-    await _doConnect();
+
+    try {
+      await _doConnect();
+      _connectCompleter?.complete();
+    } catch (e) {
+      _connectCompleter?.completeError(e);
+    } finally {
+      _connectCompleter = null;
+    }
   }
 
   /// Gracefully disconnect and stop any reconnection attempts.
@@ -447,7 +464,7 @@ class WebSocketClient {
 
     try {
       await _channel?.sink.close(ws_status.goingAway);
-    } catch (_) {
+    } catch (e) {
       // Closing an already-closed channel can throw; ignore.
     }
     _channel = null;

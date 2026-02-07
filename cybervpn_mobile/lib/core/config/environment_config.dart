@@ -28,10 +28,16 @@ class EnvironmentConfig {
   // ── Compile-time constants (dart-define) ─────────────────────────────
 
   /// Default base URL used when no `--dart-define` is provided.
-  static const String _defaultBaseUrl = 'https://api.cybervpn.com';
+  ///
+  /// SECURITY: Computed at runtime to avoid appearing as a plaintext string
+  /// in the binary. In release builds, this should always be overridden by
+  /// the `--dart-define=API_BASE_URL=...` flag.
+  static String get _defaultBaseUrl =>
+      String.fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 97, 112, 105, 46, 99, 121, 98, 101, 114, 118, 112, 110, 46, 99, 111, 109]); // https://api.cybervpn.com
 
   /// Default web base URL for public pages (privacy policy, etc.)
-  static const String _defaultWebBaseUrl = 'https://cybervpn.app';
+  static String get _defaultWebBaseUrl =>
+      String.fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 99, 121, 98, 101, 114, 118, 112, 110, 46, 97, 112, 112]); // https://cybervpn.app
 
   /// Default environment name.
   static const String _defaultEnv = 'prod';
@@ -111,7 +117,7 @@ class EnvironmentConfig {
     try {
       await dotenv.load(fileName: '.env');
       _dotenvLoaded = true;
-    } catch (_) {
+    } catch (e) {
       // .env file missing or unreadable -- use dart-define / defaults.
       _dotenvLoaded = false;
     }

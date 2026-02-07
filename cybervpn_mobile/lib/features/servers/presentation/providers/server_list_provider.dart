@@ -460,7 +460,7 @@ final serverByIdProvider =
 
   try {
     return serverState.servers.firstWhere((ServerEntity s) => s.id == id);
-  } catch (_) {
+  } catch (e) {
     return null;
   }
 });

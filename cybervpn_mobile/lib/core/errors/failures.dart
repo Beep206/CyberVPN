@@ -22,6 +22,13 @@ sealed class Failure {
 
   @override
   String toString() => '$runtimeType(message: $message, code: $code)';
+
+  /// Serializes this failure to a JSON-compatible map for structured telemetry.
+  Map<String, dynamic> toJson() => {
+        'type': runtimeType.toString(),
+        'message': message,
+        if (code != null) 'code': code,
+      };
 }
 
 /// Failure originating from the remote server (e.g. 4xx/5xx responses).
@@ -74,6 +81,12 @@ class RateLimitFailure extends Failure {
   final Duration? retryAfter;
 
   const RateLimitFailure({required super.message, super.code, this.retryAfter});
+
+  @override
+  Map<String, dynamic> toJson() => {
+        ...super.toJson(),
+        if (retryAfter != null) 'retryAfterMs': retryAfter!.inMilliseconds,
+      };
 
   @override
   bool operator ==(Object other) =>

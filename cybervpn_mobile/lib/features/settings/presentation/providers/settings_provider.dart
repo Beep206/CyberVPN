@@ -343,7 +343,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     try {
       await operation();
       return true;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Retry operation failed', error: e, category: 'settings');
       return false;
     }
   }

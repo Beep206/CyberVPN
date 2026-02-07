@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
 // Progress model
@@ -368,8 +369,9 @@ class SpeedTestService {
       return jsonList
           .map((e) => _resultFromJson(e as Map<String, dynamic>))
           .toList();
-    } catch (_) {
+    } catch (e) {
       // Corrupt data -- wipe and return empty.
+      AppLogger.warning('Corrupt speed test history data, clearing', error: e, category: 'diagnostics');
       await _prefs.remove(_historyKey);
       return [];
     }

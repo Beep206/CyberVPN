@@ -27,12 +27,24 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureStorageWrapper {
   final FlutterSecureStorage _storage;
 
+  /// Maximum number of entries in the in-memory cache.
+  static const int _maxCacheSize = 100;
+
+  /// TTL for cached token values (access_token, refresh_token).
+  static const Duration _tokenCacheTtl = Duration(minutes: 5);
+
   /// In-memory cache for read values.
   /// Key: storage key, Value: cached value (null means key was checked and not found)
   final Map<String, String?> _cache = {};
 
+  /// Timestamps for when each cache entry was set, for TTL expiration.
+  final Map<String, DateTime> _cacheTimestamps = {};
+
   /// Tracks which keys have been checked to distinguish "not in cache" from "checked, not found"
   final Set<String> _checkedKeys = {};
+
+  /// Keys that are subject to TTL expiration (security-sensitive tokens).
+  static const _ttlKeys = {accessTokenKey, refreshTokenKey, deviceTokenKey};
 
   SecureStorageWrapper({FlutterSecureStorage? storage})
       : _storage = storage ??
@@ -47,30 +59,60 @@ class SecureStorageWrapper {
   Future<void> write({required String key, required String value}) async {
     await _storage.write(key: key, value: value);
     _cache[key] = value;
+    _cacheTimestamps[key] = DateTime.now();
     _checkedKeys.add(key);
+    _evictIfNeeded();
   }
 
   /// Reads a value, using cache if available.
   ///
   /// First read from storage populates the cache.
   /// Subsequent reads return cached value instantly.
+  /// Token keys are subject to TTL expiration.
   Future<String?> read({required String key}) async {
-    // Return from cache if key was already checked
+    // Return from cache if key was already checked and not TTL-expired
     if (_checkedKeys.contains(key)) {
-      return _cache[key];
+      if (_isCacheExpired(key)) {
+        // TTL expired — re-read from storage
+        _cache.remove(key);
+        _cacheTimestamps.remove(key);
+        _checkedKeys.remove(key);
+      } else {
+        return _cache[key];
+      }
     }
 
     // Read from storage and cache the result
     final value = await _storage.read(key: key);
     _cache[key] = value;
+    _cacheTimestamps[key] = DateTime.now();
     _checkedKeys.add(key);
     return value;
+  }
+
+  /// Returns true if a cached entry has exceeded its TTL.
+  bool _isCacheExpired(String key) {
+    if (!_ttlKeys.contains(key)) return false;
+    final timestamp = _cacheTimestamps[key];
+    if (timestamp == null) return true;
+    return DateTime.now().difference(timestamp) > _tokenCacheTtl;
+  }
+
+  /// Evicts oldest entries when cache exceeds max size.
+  void _evictIfNeeded() {
+    while (_cache.length > _maxCacheSize) {
+      final oldestKey = _cache.keys.first;
+      _cache.remove(oldestKey);
+      _cacheTimestamps.remove(oldestKey);
+      _checkedKeys.remove(oldestKey);
+    }
   }
 
   /// Deletes a key and invalidates the cache.
   Future<void> delete({required String key}) async {
     await _storage.delete(key: key);
     _cache.remove(key);
+    _cacheTimestamps.remove(key);
     _checkedKeys.remove(key);
   }
 
@@ -78,6 +120,7 @@ class SecureStorageWrapper {
   Future<void> deleteAll() async {
     await _storage.deleteAll();
     _cache.clear();
+    _cacheTimestamps.clear();
     _checkedKeys.clear();
   }
 
@@ -94,6 +137,7 @@ class SecureStorageWrapper {
   /// Use this when you need to force a fresh read from storage.
   void invalidateCache() {
     _cache.clear();
+    _cacheTimestamps.clear();
     _checkedKeys.clear();
   }
 
@@ -359,6 +403,10 @@ class SecureStorageWrapper {
   /// Use this on logout to clear sensitive data while maintaining device identity
   /// for analytics and device tracking purposes.
   Future<void> clearAll() async {
+    // SECURITY: Clear in-memory cache first to prevent post-logout memory dumps
+    // from exposing tokens that are still cached.
+    invalidateCache();
+
     // Preserve device ID before clearing
     final deviceId = await read(key: deviceIdKey);
 

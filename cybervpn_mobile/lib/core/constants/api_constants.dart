@@ -112,6 +112,24 @@ class ApiConstants {
   /// Response: 204 No Content
   static const String logout = '$apiPrefix/auth/logout';
 
+  /// **POST /api/v1/mobile/auth/biometric/enroll**
+  ///
+  /// Enrolls the current device for biometric re-authentication.
+  /// Auth: JWT (current authenticated user)
+  ///
+  /// Request: `{ "device_id": string }`
+  /// Response: `{ "device_token": string }`
+  static const String biometricEnroll = '$apiPrefix/mobile/auth/biometric/enroll';
+
+  /// **POST /api/v1/mobile/auth/biometric/login**
+  ///
+  /// Authenticates using a device-bound token (biometric re-auth).
+  /// Auth: None (device token replaces credentials)
+  ///
+  /// Request: `{ "device_token": string, "device_id": string }`
+  /// Response: `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int }`
+  static const String biometricLogin = '$apiPrefix/mobile/auth/biometric/login';
+
   // Future: forgot-password endpoint (backend task pending)
   // Future: reset-password endpoint (backend task pending)
   // TODO: Add /api/v1/auth/forgot-password when backend implements it

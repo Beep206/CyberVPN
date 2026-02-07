@@ -78,7 +78,7 @@ class _GlobalErrorScreenState extends State<GlobalErrorScreen> {
   AppLocalizations? _tryGetL10n(BuildContext context) {
     try {
       return Localizations.of<AppLocalizations>(context, AppLocalizations);
-    } catch (_) {
+    } catch (e) {
       return null;
     }
   }

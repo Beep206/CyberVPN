@@ -81,6 +81,12 @@ Future<void> main() async {
       // Sample all traces in dev/staging; 20% in production to control costs.
       options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
       options.sendDefaultPii = false;
+
+      // SECURITY: Sanitize breadcrumbs to prevent PII leakage (JWTs, emails, UUIDs).
+      options.beforeBreadcrumb = _sanitizeBreadcrumb;
+
+      // SECURITY: Sanitize exception messages before sending to Sentry.
+      options.beforeSend = _sanitizeSentryEvent;
     }, appRunner: () => _runApp(prefs));
     _logStep('SentryFlutter.init', stepSw);
   } else {
@@ -158,6 +164,70 @@ Future<void> _initializeFirebase() async {
       category: 'firebase',
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sentry PII sanitization
+// ---------------------------------------------------------------------------
+
+/// Regex patterns for PII that should never appear in Sentry data.
+final _jwtPattern = RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}');
+final _emailPattern = RegExp(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+final _uuidPattern = RegExp(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+
+/// Replaces PII patterns in a string with redaction markers.
+String _redactPii(String input) {
+  return input
+      .replaceAll(_jwtPattern, '***JWT_REDACTED***')
+      .replaceAll(_emailPattern, '***EMAIL_REDACTED***')
+      .replaceAll(_uuidPattern, '***UUID_REDACTED***');
+}
+
+/// Sanitizes a Sentry breadcrumb to remove PII from messages and data.
+Breadcrumb? _sanitizeBreadcrumb(Breadcrumb? breadcrumb, {Hint? hint}) {
+  if (breadcrumb == null) return null;
+
+  final sanitizedMessage = _redactPii(breadcrumb.message ?? '');
+
+  Map<String, dynamic>? sanitizedData;
+  if (breadcrumb.data != null) {
+    sanitizedData = <String, dynamic>{};
+    for (final entry in breadcrumb.data!.entries) {
+      final value = entry.value;
+      if (value is String) {
+        sanitizedData[entry.key] = _redactPii(value);
+      } else {
+        sanitizedData[entry.key] = value;
+      }
+    }
+  }
+
+  return Breadcrumb(
+    message: sanitizedMessage,
+    level: breadcrumb.level,
+    category: breadcrumb.category,
+    timestamp: breadcrumb.timestamp,
+    type: breadcrumb.type,
+    data: sanitizedData,
+  );
+}
+
+/// Sanitizes a Sentry event to remove PII from exception values.
+FutureOr<SentryEvent?> _sanitizeSentryEvent(SentryEvent event, Hint hint) {
+  if (event.exceptions == null) return event;
+
+  final sanitizedExceptions = event.exceptions!.map((ex) {
+    final sanitizedValue = ex.value != null ? _redactPii(ex.value!) : null;
+    return SentryException(
+      type: ex.type,
+      value: sanitizedValue,
+      mechanism: ex.mechanism,
+      stackTrace: ex.stackTrace,
+      threadId: ex.threadId,
+    );
+  }).toList();
+
+  return event.copyWith(exceptions: sanitizedExceptions);
 }
 
 /// Launches the application inside a [ProviderScope].

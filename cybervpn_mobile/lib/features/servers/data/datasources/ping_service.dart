@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Service for performing parallel ping/latency tests against VPN servers.
 ///
@@ -23,7 +24,11 @@ class PingService {
   /// Interval between automatic background refreshes.
   final Duration refreshInterval;
 
+  /// Maximum number of entries in the ping cache to prevent unbounded growth.
+  static const int _maxCacheSize = 500;
+
   /// In-memory cache: serverId -> latency in ms.
+  /// Limited to [_maxCacheSize] entries with LRU eviction.
   final Map<String, int> _cache = {};
 
   /// Timer for periodic background refresh.
@@ -58,7 +63,8 @@ class PingService {
       await socket.close();
       socket.destroy();
       return stopwatch.elapsedMilliseconds;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Ping failed for server', error: e, category: 'ping');
       return null;
     }
   }
@@ -89,8 +95,9 @@ class PingService {
           }
         });
 
-    // Merge results into cache.
+    // Merge results into cache with LRU eviction.
     _cache.addAll(results);
+    _evictIfNeeded();
     _isRunning = false;
     return Map.unmodifiable(results);
   }
@@ -128,8 +135,16 @@ class PingService {
     }
 
     _cache.addAll(results);
+    _evictIfNeeded();
     _isRunning = false;
     return Map.unmodifiable(results);
+  }
+
+  /// Evicts oldest entries (first inserted) when cache exceeds max size.
+  void _evictIfNeeded() {
+    while (_cache.length > _maxCacheSize) {
+      _cache.remove(_cache.keys.first);
+    }
   }
 
   /// Manually trigger a full ping test for all previously tested servers.

@@ -29,6 +29,18 @@ class ApiClient {
       );
     }
 
+    // In non-production, only allow HTTP for local development addresses.
+    if (!EnvironmentConfig.isProd && resolvedBaseUrl.startsWith('http://')) {
+      final uri = Uri.parse(resolvedBaseUrl);
+      const allowedHosts = {'localhost', '127.0.0.1', '10.0.2.2'};
+      if (!allowedHosts.contains(uri.host)) {
+        throw StateError(
+          'HTTP is only allowed for localhost, 127.0.0.1, or 10.0.2.2. '
+          'Got: $resolvedBaseUrl',
+        );
+      }
+    }
+
     _dio.options = BaseOptions(
       baseUrl: resolvedBaseUrl,
       connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeout),
@@ -57,10 +69,31 @@ class ApiClient {
         data: {'fingerprints_count': fingerprints.length},
       );
     } else {
-      AppLogger.debug(
-        'Certificate pinning disabled (no fingerprints configured)',
-        category: 'ApiClient',
+      // SECURITY: Fail loudly in production if cert pinning is not configured.
+      // A VPN app without certificate pinning is vulnerable to MITM attacks.
+      if (EnvironmentConfig.isProd) {
+        throw StateError(
+          'Certificate pinning is required for production builds. '
+          'Configure CERT_FINGERPRINTS via --dart-define or .env.',
+        );
+      }
+
+      // Allow debug/staging builds to run without pinning, with opt-in support.
+      final enableDebugPinning = const String.fromEnvironment(
+        'ENABLE_CERT_PINNING',
+        defaultValue: 'false',
       );
+      if (enableDebugPinning == 'true') {
+        AppLogger.warning(
+          'Certificate pinning requested in debug mode but no fingerprints configured',
+          category: 'ApiClient',
+        );
+      } else {
+        AppLogger.debug(
+          'Certificate pinning disabled (no fingerprints configured)',
+          category: 'ApiClient',
+        );
+      }
     }
 
     if (kDebugMode) {
@@ -207,12 +240,12 @@ class _RedactedLogInterceptor extends Interceptor {
 
   @override
   void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
-    final path = response.requestOptions.path;
-    final isSensitive = _sensitiveEndpoints.any(path.contains);
+    // SECURITY: Never log response bodies — they may contain tokens, emails,
+    // device IDs, or other PII that would be forwarded to Sentry breadcrumbs.
     AppLogger.debug(
       '← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}',
       category: 'http',
-      data: isSensitive ? {'body': '***REDACTED***'} : null,
+      data: {'status': response.statusCode},
     );
     handler.next(response);
   }

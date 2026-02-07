@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Datasource that handles Firebase Cloud Messaging events across all
 /// application lifecycle states: foreground, background tap, and
@@ -128,7 +129,8 @@ class FcmDatasourceImpl implements FcmDatasource {
         actionRoute: actionRoute,
         data: data.isNotEmpty ? Map<String, dynamic>.from(data) : null,
       );
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('FCM parseMessage failed', error: e, category: 'fcm');
       return null;
     }
   }

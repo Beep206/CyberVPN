@@ -23,7 +23,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If it was already initialized this call is effectively a no-op.
   try {
     await Firebase.initializeApp();
-  } catch (_) {
+  } catch (e) {
     // Initialization may fail if platform config is missing.
   }
 

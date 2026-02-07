@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// JWT payload with expiry information.
 class JwtPayload {
@@ -68,7 +69,8 @@ class JwtParser {
         sub: json['sub'] as String?,
         type: json['type'] as String?,
       );
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('JWT parse failed', error: e, category: 'auth');
       return null;
     }
   }
@@ -91,7 +93,8 @@ class JwtParser {
           return null;
       }
       return utf8.decode(base64.decode(normalized));
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Base64 decode failed', error: e, category: 'auth');
       return null;
     }
   }

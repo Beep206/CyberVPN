@@ -25,17 +25,41 @@ class InputValidators {
       return 'Please enter a valid email address';
     }
 
+    // IDN homograph attack detection: reject emails with mixed-script characters
+    // that could impersonate legitimate domains (e.g. using Cyrillic 'а' for Latin 'a').
+    if (_containsMixedScripts(trimmed.split('@').last)) {
+      return 'Email domain contains suspicious characters';
+    }
+
     return null;
   }
 
+  /// Detects mixed Unicode scripts (potential IDN homograph attack).
+  ///
+  /// Returns `true` if the string contains both Latin and Cyrillic characters,
+  /// which is a common homograph attack vector.
+  static bool _containsMixedScripts(String domain) {
+    final hasLatin = RegExp(r'[a-zA-Z]').hasMatch(domain);
+    // Cyrillic range: U+0400-U+04FF
+    final hasCyrillic = RegExp(r'[\u0400-\u04FF]').hasMatch(domain);
+    return hasLatin && hasCyrillic;
+  }
+
+  /// Maximum allowed password length to prevent ReDoS and memory issues.
+  static const int maxPasswordLength = 128;
+
   /// Validates a password with the following requirements:
-  /// - Minimum 8 characters
+  /// - Minimum 8 characters, maximum 128
   /// - At least one uppercase letter
   /// - At least one lowercase letter
   /// - At least one digit
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
+    }
+
+    if (value.length > maxPasswordLength) {
+      return 'Password must be at most $maxPasswordLength characters';
     }
 
     if (value.length < 8) {
