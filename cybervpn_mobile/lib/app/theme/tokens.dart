@@ -24,6 +24,15 @@ class CyberColors {
   // Background colors
   static const Color deepNavy = Color(0xFF0A0E1A);
   static const Color darkBg = Color(0xFF111827);
+
+  /// Returns `true` when the active theme is the cyberpunk neon theme.
+  ///
+  /// Detection heuristic: the cyberpunk dark theme sets the scaffold
+  /// background to [deepNavy], while Material You uses dynamic or
+  /// standard surface colors.
+  static bool isCyberpunkTheme(BuildContext context) {
+    return Theme.of(context).scaffoldBackgroundColor == deepNavy;
+  }
 }
 
 /// Material Design color configuration

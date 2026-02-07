@@ -103,6 +103,8 @@ class _GlitchTextState extends State<GlitchText> {
   /// Returns `true` when the animation should actually be running.
   bool get _shouldAnimate {
     if (!widget.isActive) return false;
+    // Only animate in the cyberpunk theme; render plain text in Material You.
+    if (!CyberColors.isCyberpunkTheme(context)) return false;
     // Respect the system "reduce motion" / "disable animations" setting.
     final mq = MediaQuery.maybeOf(context);
     if (mq != null && mq.disableAnimations) return false;

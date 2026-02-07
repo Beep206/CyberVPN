@@ -343,28 +343,38 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                 children: [
                   // Search
                   Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context).serverListSearchHint,
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                    child: Semantics(
+                      label: AppLocalizations.of(context).a11ySearchField,
+                      hint: 'Type to filter servers by name, city, or country',
+                      textField: true,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: AppLocalizations.of(context).serverListSearchHint,
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? Semantics(
+                                  label: 'Clear search',
+                                  hint: 'Double tap to clear search text',
+                                  button: true,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  ),
+                                )
+                              : null,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
                     ),
                   ),
                   const SizedBox(width: Spacing.sm),
@@ -372,24 +382,29 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                   // Sort dropdown
                   Flexible(
                     flex: 0,
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<SortMode>(
-                        value: state.sortMode,
-                        onChanged: _onSortChanged,
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        items: SortMode.values
-                            .map(
-                              (mode) => DropdownMenuItem(
-                                value: mode,
-                                child: Text(
-                                  _sortModeLabel(mode),
-                                  style: theme.textTheme.bodyMedium,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                    child: Semantics(
+                      label: 'Sort servers by ${_sortModeLabel(state.sortMode)}',
+                      hint: 'Double tap to change sort order',
+                      button: true,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<SortMode>(
+                          value: state.sortMode,
+                          onChanged: _onSortChanged,
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          items: SortMode.values
+                              .map(
+                                (mode) => DropdownMenuItem(
+                                  value: mode,
+                                  child: Text(
+                                    _sortModeLabel(mode),
+                                    style: theme.textTheme.bodyMedium,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                            )
-                            .toList(),
+                              )
+                              .toList(),
+                        ),
                       ),
                     ),
                   ),
@@ -553,45 +568,59 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return InkWell(
-      onTap: () => setState(() => _favoritesExpanded = !_favoritesExpanded),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 2),
-        child: Row(
-          children: [
-            const Icon(Icons.star, color: Colors.amber, size: 20),
-            const SizedBox(width: Spacing.sm),
-            Text(
-              AppLocalizations.of(context).serverFavoritesTitle,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+    return Semantics(
+      label: '${AppLocalizations.of(context).serverFavoritesTitle}, $count servers',
+      hint: 'Double tap to ${_favoritesExpanded ? 'collapse' : 'expand'} favorites',
+      button: true,
+      expanded: _favoritesExpanded,
+      child: InkWell(
+        onTap: () => setState(() => _favoritesExpanded = !_favoritesExpanded),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 2),
+          child: Row(
+            children: [
+              const ExcludeSemantics(
+                child: Icon(Icons.star, color: Colors.amber, size: 20),
               ),
-            ),
-            const SizedBox(width: Spacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.sm - 1, vertical: 2),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(Radii.sm + 2),
-              ),
-              child: Text(
-                '$count',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(width: Spacing.sm),
+              ExcludeSemantics(
+                child: Text(
+                  AppLocalizations.of(context).serverFavoritesTitle,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            const Spacer(),
-            AnimatedRotation(
-              turns: _favoritesExpanded ? 0.0 : -0.25,
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.expand_more,
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(width: Spacing.sm),
+              ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm - 1, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(Radii.sm + 2),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+              const Spacer(),
+              ExcludeSemantics(
+                child: AnimatedRotation(
+                  turns: _favoritesExpanded ? 0.0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.expand_more,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
