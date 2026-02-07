@@ -106,13 +106,12 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               child: TextFormField(
                 controller: _emailController,
                 enabled: !isLoading,
-                autofocus: true,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
+                decoration: InputDecoration(
+                  labelText: l10n.formEmailLabel,
+                  hintText: l10n.formEmailHint,
                   prefixIcon: Icon(
                     Icons.email_outlined,
                     semanticLabel: '', // Hide from screen reader (label is sufficient)
@@ -134,8 +133,8 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.password],
               decoration: InputDecoration(
-                labelText: 'Password',
-                hintText: 'Enter your password',
+                labelText: l10n.formPasswordLabel,
+                hintText: l10n.formPasswordHint,
                 prefixIcon: const Icon(
                   Icons.lock_outlined,
                   semanticLabel: '', // Hide from screen reader
@@ -147,7 +146,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                         : Icons.visibility_off_outlined,
                     semanticLabel: '', // Handled by tooltip
                   ),
-                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                  tooltip: _obscurePassword ? l10n.formShowPassword : l10n.formHidePassword,
                   onPressed: isLoading
                       ? null
                       : () =>
@@ -212,8 +211,8 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             child: Semantics(
               button: true,
               enabled: !isLoading,
-              label: isLoading ? 'Signing in, please wait' : 'Login',
-              hint: 'Sign in to your account',
+              label: isLoading ? l10n.loginSigningIn : l10n.loginButton,
+              hint: l10n.loginHint,
               child: SizedBox(
                 height: 52,
                 child: ElevatedButton(

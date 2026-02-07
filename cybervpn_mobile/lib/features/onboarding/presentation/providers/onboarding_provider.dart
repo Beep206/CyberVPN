@@ -128,6 +128,7 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingState> {
       if (current == null) return;
 
       state = AsyncData(current.copyWith(isComplete: true));
+      ref.invalidate(shouldShowOnboardingProvider);
       AppLogger.info('Onboarding: skipped');
     } catch (e, st) {
       AppLogger.error('Failed to skip onboarding', error: e, stackTrace: st);
@@ -145,6 +146,7 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingState> {
       if (current == null) return;
 
       state = AsyncData(current.copyWith(isComplete: true));
+      ref.invalidate(shouldShowOnboardingProvider);
       AppLogger.info('Onboarding: completed');
     } catch (e, st) {
       AppLogger.error(

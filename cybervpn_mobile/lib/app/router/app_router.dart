@@ -10,6 +10,7 @@ import 'package:cybervpn_mobile/core/security/screen_protection_observer.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
@@ -194,22 +195,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authProvider);
       final isAuthenticated = ref.read(isAuthenticatedProvider);
       final isAuthLoading = authState.isLoading;
-      final shouldShowOnboarding =
-          ref.read(shouldShowOnboardingProvider).value ?? false;
+      final onboardingAsync = ref.read(shouldShowOnboardingProvider);
+      final isOnboardingLoading = onboardingAsync.isLoading;
+      final shouldShowOnboarding = onboardingAsync.value ?? false;
       final shouldShowQuickSetup = ref.read(shouldShowQuickSetupProvider);
 
       final uri = state.uri;
       final path = uri.path;
-      final isAuthRoute = path == '/login' || path == '/register';
+      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password';
       final isOnboardingRoute = path == '/onboarding';
       final isQuickSetupRoute = path == '/quick-setup';
       final isSplashRoute = path == '/splash';
 
       // -- Splash handling --------------------------------------------------
-      // While the auth subsystem is loading (initial cached-auth check) keep
-      // the user on the splash screen.  Once auth resolves, redirect from
-      // splash into the normal guard chain by falling through below.
-      if (isSplashRoute && isAuthLoading) {
+      // While auth or onboarding state is loading, keep the user on splash.
+      // Once both resolve, redirect from splash into the normal guard chain.
+      if (isSplashRoute && (isAuthLoading || isOnboardingLoading)) {
         return null; // stay on /splash
       }
       if (isSplashRoute && !isAuthLoading) {
@@ -337,6 +338,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlideTransition(
           state: state,
           child: const RegisterScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state: state,
+          child: const ForgotPasswordScreen(),
         ),
       ),
 

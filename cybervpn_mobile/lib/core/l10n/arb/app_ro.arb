@@ -655,7 +655,9 @@
   "subscriptionDaysRemaining": "{count, plural, =1{1 zi rămasă} few{{count} zile rămase} other{{count} de zile rămase}}",
   "@subscriptionDaysRemaining": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionExpiringSoon": "Expiră curând",
@@ -1406,5 +1408,65 @@
   "autoConnectSuccess": "Connected to {server}",
   "dismiss": "Dismiss",
   "settingsDeveloperExperimentalEnabled": "Experimental features enabled",
-  "settingsDeveloperExperimentalDisabled": "Experimental features disabled"
+  "settingsDeveloperExperimentalDisabled": "Experimental features disabled",
+  "appLockAuthenticating": "[EN] Authenticating, please wait",
+  "appLockBiometricFaceId": "[EN] Face ID",
+  "appLockBiometricFingerprint": "[EN] fingerprint",
+  "appLockBiometricGeneric": "[EN] biometrics",
+  "appLockFailedAttempts": "[EN] Failed attempts: {current}/{max}",
+  "@appLockFailedAttempts": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "appLockFailedAttemptsA11y": "[EN] Failed authentication attempts: {current} out of {max}",
+  "@appLockFailedAttemptsA11y": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "appLockPinHint": "[EN] Unlock using your device PIN or passcode",
+  "appLockUnlockHint": "[EN] Authenticate to unlock the app",
+  "biometricSignInHint": "[EN] Use biometrics to sign in quickly",
+  "biometricSignInReason": "[EN] Sign in to CyberVPN",
+  "formEmailHint": "[EN] Enter your email",
+  "formEmailLabel": "[EN] Email",
+  "formHidePassword": "[EN] Hide password",
+  "formPasswordHint": "[EN] Enter your password",
+  "formPasswordLabel": "[EN] Password",
+  "formShowPassword": "[EN] Show password",
+  "loginBiometricAuthenticating": "[EN] Authenticating with biometrics, please wait",
+  "loginBiometricFaceId": "[EN] Sign in with Face ID",
+  "loginBiometricFingerprint": "[EN] Sign in with fingerprint",
+  "loginBiometricGeneric": "[EN] Sign in with biometrics",
+  "loginHint": "[EN] Sign in to your account",
+  "loginNoAccount": "[EN] Don't have an account? ",
+  "loginOrSeparator": "[EN] OR",
+  "loginOrUsePassword": "[EN] OR USE PASSWORD",
+  "loginRegisterLink": "[EN] Register",
+  "loginSigningIn": "[EN] Signing in, please wait",
+  "loginSubtitle": "[EN] Secure your connection",
+  "loginTitle": "[EN] CyberVPN",
+  "registerAcceptTermsA11y": "[EN] Accept Terms and Conditions and Privacy Policy",
+  "registerAcceptTermsA11yHint": "[EN] Required to create account",
+  "registerCreatingAccount": "[EN] Creating account, please wait",
+  "registerHint": "[EN] Create your account",
+  "registerLoginA11y": "[EN] Go to login screen",
+  "registerPasswordStrengthMedium": "[EN] Medium",
+  "registerPasswordStrengthStrong": "[EN] Strong",
+  "registerPasswordStrengthWeak": "[EN] Weak",
+  "registerReferralAppliedA11y": "[EN] Referral code applied successfully",
+  "registerReferralValidA11y": "[EN] Valid referral code",
+  "serverListClearSearch": "[EN] Clear search",
+  "serverSelectPrompt": "[EN] Select a server to view details"
 }

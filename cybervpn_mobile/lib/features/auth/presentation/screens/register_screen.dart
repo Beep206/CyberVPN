@@ -123,10 +123,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         _ => Colors.transparent,
       };
 
-  String _strengthLabel(int strength) => switch (strength) {
-        1 => 'Weak',
-        2 => 'Medium',
-        3 => 'Strong',
+  String _strengthLabel(int strength, AppLocalizations l10n) => switch (strength) {
+        1 => l10n.registerPasswordStrengthWeak,
+        2 => l10n.registerPasswordStrengthMedium,
+        3 => l10n.registerPasswordStrengthStrong,
         _ => '',
       };
 
@@ -228,6 +228,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final authAsync = ref.watch(authProvider);
     final authState = authAsync.value;
     final isLoading = authState is AuthLoading;
@@ -283,14 +284,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Create Account',
+                        l10n.registerTitle,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Join CyberVPN for a secure experience',
+                        l10n.registerSubtitle,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -303,13 +304,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         child: TextFormField(
                           controller: _emailController,
                           enabled: !isLoading,
-                          autofocus: true,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                           autofillHints: const [AutofillHints.email],
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'Enter your email',
+                          decoration: InputDecoration(
+                            labelText: l10n.formEmailLabel,
+                            hintText: l10n.formEmailHint,
                             prefixIcon: Icon(
                               Icons.email_outlined,
                               semanticLabel: '', // Hide from screen reader
@@ -331,8 +331,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           textInputAction: TextInputAction.next,
                           autofillHints: const [AutofillHints.newPassword],
                           decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText: 'Create a password',
+                            labelText: l10n.formPasswordLabel,
+                            hintText: l10n.registerPasswordHint,
                             prefixIcon: const Icon(
                               Icons.lock_outlined,
                               semanticLabel: '', // Hide from screen reader
@@ -345,8 +345,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 semanticLabel: '', // Handled by tooltip
                               ),
                               tooltip: _obscurePassword
-                                  ? 'Show password'
-                                  : 'Hide password',
+                                  ? l10n.formShowPassword
+                                  : l10n.formHidePassword,
                               onPressed: isLoading
                                   ? null
                                   : () => setState(
@@ -363,7 +363,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                     if (_passwordController.text.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Semantics(
-                        label: 'Password strength: ${_strengthLabel(strength)}',
+                        label: 'Password strength: ${_strengthLabel(strength, l10n)}',
                         value: '${(strength * 100 / 3).round()} percent',
                         child: Row(
                           children: [
@@ -384,7 +384,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                             const SizedBox(width: 12),
                             ExcludeSemantics(
                               child: Text(
-                                _strengthLabel(strength),
+                                _strengthLabel(strength, l10n),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: _strengthColor(strength),
                                   fontWeight: FontWeight.w600,
@@ -406,8 +406,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           obscureText: _obscureConfirmPassword,
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
-                            labelText: 'Confirm Password',
-                            hintText: 'Re-enter your password',
+                            labelText: l10n.registerConfirmPasswordLabel,
+                            hintText: l10n.registerConfirmPasswordHint,
                             prefixIcon: const Icon(
                               Icons.lock_outlined,
                               semanticLabel: '', // Hide from screen reader
@@ -420,8 +420,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 semanticLabel: '', // Handled by tooltip
                               ),
                               tooltip: _obscureConfirmPassword
-                                  ? 'Show password'
-                                  : 'Hide password',
+                                  ? l10n.formShowPassword
+                                  : l10n.formHidePassword,
                               onPressed: isLoading
                                   ? null
                                   : () => setState(() =>
@@ -431,10 +431,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
+                              return l10n.registerConfirmPasswordError;
                             }
                             if (value != _passwordController.text) {
-                              return 'Passwords do not match';
+                              return l10n.registerPasswordMismatch;
                             }
                             return null;
                           },
@@ -454,8 +454,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                             textInputAction: TextInputAction.done,
                             textCapitalization: TextCapitalization.characters,
                             decoration: InputDecoration(
-                              labelText: 'Referral Code (optional)',
-                              hintText: 'Enter referral code',
+                              labelText: l10n.registerReferralCodeLabel,
+                              hintText: l10n.registerReferralCodeHint,
                               prefixIcon: const Icon(
                                 Icons.card_giftcard_outlined,
                                 semanticLabel: '', // Hide from screen reader
@@ -464,7 +464,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   ? const Icon(
                                       Icons.check_circle,
                                       color: _strongColor, // WCAG AA compliant
-                                      semanticLabel: 'Valid referral code',
+                                      semanticLabel: l10n.registerReferralValidA11y,
                                     )
                                   : null,
                             ),
@@ -493,7 +493,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         Row(
                           children: [
                             Semantics(
-                              label: 'Referral code applied successfully',
+                              label: l10n.registerReferralAppliedA11y,
                               child: Chip(
                                 avatar: const Icon(
                                   Icons.check_circle,
@@ -501,10 +501,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                   color: _strongColor, // WCAG AA compliant
                                   semanticLabel: '', // Handled by parent
                                 ),
-                                label: const ExcludeSemantics(
+                                label: ExcludeSemantics(
                                   child: Text(
-                                    'Applied!',
-                                    style: TextStyle(
+                                    l10n.registerReferralApplied,
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -530,8 +530,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           FocusTraversalOrder(
                             order: const NumericFocusOrder(5),
                             child: Semantics(
-                              label: 'Accept Terms and Conditions and Privacy Policy',
-                              hint: 'Required to create account',
+                              label: l10n.registerAcceptTermsA11y,
+                              hint: l10n.registerAcceptTermsA11yHint,
                               child: SizedBox(
                                 height: 24,
                                 width: 24,
@@ -554,9 +554,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                   children: [
-                                    const TextSpan(text: 'I agree to the '),
+                                    TextSpan(text: l10n.registerAgreePrefix),
                                     TextSpan(
-                                      text: 'Terms & Conditions',
+                                      text: l10n.registerTermsAndConditions,
                                       style: TextStyle(
                                         color: theme.colorScheme.primary,
                                         fontWeight: FontWeight.w600,
@@ -566,9 +566,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                           // TODO: open T&C page / URL
                                         },
                                     ),
-                                    const TextSpan(text: ' and '),
+                                    TextSpan(text: l10n.registerAndSeparator),
                                     TextSpan(
-                                      text: 'Privacy Policy',
+                                      text: l10n.privacyPolicy,
                                       style: TextStyle(
                                         color: theme.colorScheme.primary,
                                         fontWeight: FontWeight.w600,
@@ -594,9 +594,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           button: true,
                           enabled: !isLoading,
                           label: isLoading
-                              ? 'Creating account, please wait'
-                              : 'Register',
-                          hint: 'Create your account',
+                              ? l10n.registerCreatingAccount
+                              : l10n.registerButton,
+                          hint: l10n.registerHint,
                           child: SizedBox(
                             width: double.infinity,
                             height: 52,
@@ -625,7 +625,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OR',
+                            l10n.registerOrSeparator,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -657,18 +657,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Already have an account? ',
+                          l10n.registerAlreadyHaveAccount,
                           style: theme.textTheme.bodyMedium,
                         ),
                         Semantics(
                           button: true,
-                          label: 'Login',
-                          hint: 'Go to login screen',
+                          label: l10n.registerLoginLink,
+                          hint: l10n.registerLoginA11y,
                           child: GestureDetector(
                             onTap: () => context.go('/login'),
                             child: ExcludeSemantics(
                               child: Text(
-                                'Login',
+                                l10n.registerLoginLink,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.primary,
                                   fontWeight: FontWeight.w600,

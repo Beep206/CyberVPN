@@ -22,6 +22,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   late final PageController _pageController;
+  int _currentPageIndex = 0;
 
   @override
   void initState() {
@@ -36,32 +37,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _onPageChanged(int index) {
-    final state = ref.read(onboardingProvider).value;
-    if (state == null) return;
-
-    // Sync the provider state with the PageView.
-    if (index > state.currentPage) {
-      for (var i = state.currentPage; i < index; i++) {
-        ref.read(onboardingProvider.notifier).nextPage();
-      }
-    } else if (index < state.currentPage) {
-      for (var i = state.currentPage; i > index; i--) {
-        ref.read(onboardingProvider.notifier).previousPage();
-      }
-    }
+    setState(() {
+      _currentPageIndex = index;
+    });
   }
 
   Future<void> _handleSkip() async {
-    await ref.read(onboardingProvider.notifier).skip();
-    if (mounted) {
-      context.go('/permissions');
+    try {
+      await ref.read(onboardingProvider.notifier).skip();
+      if (mounted) {
+        context.go('/permissions');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
     }
   }
 
   Future<void> _handleGetStarted() async {
-    await ref.read(onboardingProvider.notifier).complete();
-    if (mounted) {
-      context.go('/permissions');
+    try {
+      await ref.read(onboardingProvider.notifier).complete();
+      if (mounted) {
+        context.go('/permissions');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
     }
   }
 
@@ -100,10 +107,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               end: Spacing.md,
             ),
             child: AnimatedOpacity(
-              opacity: state.isLastPage ? 0.0 : 1.0,
+              opacity: _currentPageIndex >= pages.length - 1 ? 0.0 : 1.0,
               duration: AnimDurations.normal,
               child: IgnorePointer(
-                ignoring: state.isLastPage,
+                ignoring: _currentPageIndex >= pages.length - 1,
                 child: TextButton(
                   onPressed: _handleSkip,
                   child: Text(l10n.onboardingSkip),
@@ -141,14 +148,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               // Page indicator dots
               PageIndicator(
                 pageCount: pages.length,
-                currentPage: state.currentPage,
+                currentPage: _currentPageIndex,
               ),
               const SizedBox(height: Spacing.lg),
 
               // Get Started button (visible only on last page)
               AnimatedSwitcher(
                 duration: AnimDurations.normal,
-                child: state.isLastPage
+                child: _currentPageIndex >= pages.length - 1
                     ? SizedBox(
                         key: const ValueKey('get-started'),
                         width: double.infinity,
