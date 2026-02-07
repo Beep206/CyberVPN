@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
+import 'package:cybervpn_mobile/shared/widgets/animated_form_field.dart';
 
 /// Registration screen with email, password (with strength indicator),
 /// confirm-password, optional referral code, and T&C acceptance.
@@ -309,65 +310,69 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       const SizedBox(height: 32),
 
                       // ── Email ──────────────────────────────────────
-                      FocusTraversalOrder(
-                        order: const NumericFocusOrder(1),
-                        child: TextFormField(
-                          controller: _emailController,
-                          enabled: !isLoading,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.email],
-                          decoration: InputDecoration(
-                            labelText: l10n.formEmailLabel,
-                            hintText: l10n.formEmailHint,
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              semanticLabel: '', // Hide from screen reader
+                      AnimatedFormField(
+                        child: FocusTraversalOrder(
+                          order: const NumericFocusOrder(1),
+                          child: TextFormField(
+                            controller: _emailController,
+                            enabled: !isLoading,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: InputDecoration(
+                              labelText: l10n.formEmailLabel,
+                              hintText: l10n.formEmailHint,
+                              prefixIcon: Icon(
+                                Icons.email_outlined,
+                                semanticLabel: '', // Hide from screen reader
+                              ),
                             ),
+                            validator: InputValidators.validateEmail,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
-                          validator: InputValidators.validateEmail,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       // ── Password ───────────────────────────────────
-                      FocusTraversalOrder(
-                        order: const NumericFocusOrder(2),
-                        child: TextFormField(
-                          controller: _passwordController,
-                          enabled: !isLoading,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.newPassword],
-                          decoration: InputDecoration(
-                            labelText: l10n.formPasswordLabel,
-                            hintText: l10n.registerPasswordHint,
-                            prefixIcon: const Icon(
-                              Icons.lock_outlined,
-                              semanticLabel: '', // Hide from screen reader
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                semanticLabel: '', // Handled by tooltip
+                      AnimatedFormField(
+                        child: FocusTraversalOrder(
+                          order: const NumericFocusOrder(2),
+                          child: TextFormField(
+                            controller: _passwordController,
+                            enabled: !isLoading,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
+                            decoration: InputDecoration(
+                              labelText: l10n.formPasswordLabel,
+                              hintText: l10n.registerPasswordHint,
+                              prefixIcon: const Icon(
+                                Icons.lock_outlined,
+                                semanticLabel: '', // Hide from screen reader
                               ),
-                              tooltip: _obscurePassword
-                                  ? l10n.formShowPassword
-                                  : l10n.formHidePassword,
-                              onPressed: isLoading
-                                  ? null
-                                  : () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  semanticLabel: '', // Handled by tooltip
+                                ),
+                                tooltip: _obscurePassword
+                                    ? l10n.formShowPassword
+                                    : l10n.formHidePassword,
+                                onPressed: isLoading
+                                    ? null
+                                    : () => setState(
+                                        () =>
+                                            _obscurePassword = !_obscurePassword,
+                                      ),
+                              ),
                             ),
+                            validator: InputValidators.validatePassword,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            onChanged: (_) => setState(() {}),
                           ),
-                          validator: InputValidators.validatePassword,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          onChanged: (_) => setState(() {}),
                         ),
                       ),
 
