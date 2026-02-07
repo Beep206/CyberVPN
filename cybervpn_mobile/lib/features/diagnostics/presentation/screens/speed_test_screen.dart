@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
@@ -297,13 +298,11 @@ class _StartTestButton extends StatelessWidget {
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: CyberColors.neonCyan,
-                        ),
+                      Lottie.asset(
+                        'assets/animations/speed_test.json',
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.contain,
                       ),
                       const SizedBox(width: Spacing.sm),
                       Text(
