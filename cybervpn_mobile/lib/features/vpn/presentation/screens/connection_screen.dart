@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
@@ -26,20 +27,37 @@ class ConnectionScreen extends ConsumerStatefulWidget {
   ConsumerState<ConnectionScreen> createState() => _ConnectionScreenState();
 }
 
-class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
+class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
+    with SingleTickerProviderStateMixin {
   /// Global key for the speed indicator to position the tooltip.
   final GlobalKey _speedIndicatorKey = GlobalKey();
 
   /// Service to track shown tooltips.
   final TooltipPreferencesService _tooltipService = TooltipPreferencesService();
 
+  /// Controller for the one-shot connected success animation.
+  late final AnimationController _successAnimController;
+
+  /// Whether to show the success animation overlay.
+  bool _showSuccessAnim = false;
+
+  /// Track previous state to detect transitions.
+  VpnConnectionState? _prevVpnState;
+
   @override
   void initState() {
     super.initState();
+    _successAnimController = AnimationController(vsync: this);
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_showTooltipIfNeeded());
     });
+  }
+
+  @override
+  void dispose() {
+    _successAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _showTooltipIfNeeded() async {
@@ -66,6 +84,17 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
     final duration = ref.watch(sessionDurationProvider);
     final usage = ref.watch(sessionUsageProvider);
 
+    // Detect connecting→connected transition for one-shot success animation.
+    if (_prevVpnState is VpnConnecting && vpnState is VpnConnected) {
+      _showSuccessAnim = true;
+      _successAnimController.reset();
+      unawaited(_successAnimController.forward());
+    }
+    _prevVpnState = vpnState;
+
+    final isConnecting =
+        vpnState is VpnConnecting || vpnState is VpnReconnecting;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -83,8 +112,52 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
                     children: [
                       const SizedBox(height: Spacing.lg),
 
-                      // Connect button
-                      const ConnectButton(),
+                      // Lottie connecting animation (shown above button)
+                      if (isConnecting)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: Spacing.md),
+                          child: Lottie.asset(
+                            'assets/animations/connecting.json',
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                      // Connect button with success overlay
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const ConnectButton(),
+
+                          // One-shot connected success animation
+                          if (_showSuccessAnim)
+                            IgnorePointer(
+                              child: Lottie.asset(
+                                'assets/animations/connected_success.json',
+                                width: 180,
+                                height: 180,
+                                controller: _successAnimController,
+                                fit: BoxFit.contain,
+                                repeat: false,
+                                onLoaded: (composition) {
+                                  _successAnimController.duration =
+                                      composition.duration;
+                                  unawaited(
+                                    _successAnimController
+                                        .forward()
+                                        .whenComplete(() {
+                                      if (mounted) {
+                                        setState(
+                                            () => _showSuccessAnim = false);
+                                      }
+                                    }),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
 
                       const SizedBox(height: Spacing.lg + Spacing.xs),
 

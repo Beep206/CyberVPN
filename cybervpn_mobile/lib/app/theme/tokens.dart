@@ -85,6 +85,45 @@ class AnimDurations {
   static const Duration slow = Duration(milliseconds: 500);
 }
 
+/// Cyberpunk visual effect tokens for the Cyberpunk theme.
+///
+/// These define standard glow, pulse, and animation parameters
+/// used by CyberButton, CyberCard, GlitchText, and other cyber widgets.
+class CyberEffects {
+  CyberEffects._();
+
+  // Glow parameters
+  static const double glowBlurMin = 8.0;
+  static const double glowBlurMax = 20.0;
+  static const double glowSpreadMin = 0.0;
+  static const double glowSpreadMax = 4.0;
+  static const double glowOpacityMin = 0.3;
+  static const double glowOpacityMax = 0.7;
+
+  // Pulse animation
+  static const Duration pulseDuration = Duration(milliseconds: 2000);
+  static const Curve pulseCurve = Curves.easeInOut;
+
+  // Glitch animation
+  static const Duration glitchInterval = Duration(milliseconds: 100);
+  static const double glitchMaxOffset = 2.0;
+
+  // Neon border
+  static const double neonBorderWidth = 1.5;
+  static const double neonBorderWidthActive = 2.0;
+
+  // Standard neon glow BoxShadow factory
+  static List<BoxShadow> neonGlow(Color color, {double intensity = 0.5}) {
+    return [
+      BoxShadow(
+        color: color.withValues(alpha: 0.3 * intensity),
+        blurRadius: glowBlurMin + (glowBlurMax - glowBlurMin) * intensity,
+        spreadRadius: glowSpreadMax * intensity,
+      ),
+    ];
+  }
+}
+
 /// Typography token system with theme-aware TextStyle factories.
 ///
 /// Each factory accepts a [fontFamily] parameter so that the active theme
