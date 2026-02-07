@@ -25,13 +25,17 @@ class CyberColors {
   static const Color deepNavy = Color(0xFF0A0E1A);
   static const Color darkBg = Color(0xFF111827);
 
+  // Pure black for OLED mode
+  static const Color oledBlack = Color(0xFF000000);
+
   /// Returns `true` when the active theme is the cyberpunk neon theme.
   ///
   /// Detection heuristic: the cyberpunk dark theme sets the scaffold
-  /// background to [deepNavy], while Material You uses dynamic or
-  /// standard surface colors.
+  /// background to [deepNavy] (or pure black in OLED mode), while
+  /// Material You uses dynamic or standard surface colors.
   static bool isCyberpunkTheme(BuildContext context) {
-    return Theme.of(context).scaffoldBackgroundColor == deepNavy;
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    return bg == deepNavy || bg == oledBlack;
   }
 }
 

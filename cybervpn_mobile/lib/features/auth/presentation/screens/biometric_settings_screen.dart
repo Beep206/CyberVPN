@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
@@ -52,6 +54,10 @@ class _BiometricSettingsScreenState
   }
 
   Future<void> _toggleBiometricLogin(bool value) async {
+    // Trigger medium haptic on toggle switch change.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.impact());
+
     if (value) {
       // Enabling - verify biometric first
       final biometricService = ref.read(biometricServiceProvider);
@@ -61,6 +67,9 @@ class _BiometricSettingsScreenState
 
       if (!authenticated) {
         if (mounted) {
+          // Trigger error haptic on authentication failure.
+          unawaited(haptics.error());
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context).biometricVerificationRequired),
@@ -168,6 +177,10 @@ class _BiometricSettingsScreenState
   }
 
   Future<void> _toggleAppLock(bool value) async {
+    // Trigger medium haptic on toggle switch change.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.impact());
+
     if (value) {
       // Enabling - verify biometric first
       final biometricService = ref.read(biometricServiceProvider);
@@ -177,6 +190,9 @@ class _BiometricSettingsScreenState
 
       if (!authenticated) {
         if (mounted) {
+          // Trigger error haptic on authentication failure.
+          unawaited(haptics.error());
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context).biometricVerificationRequired),
@@ -519,7 +535,7 @@ class _SettingsTile extends StatelessWidget {
             ),
           ),
           trailing: ExcludeSemantics(
-            child: Switch(
+            child: AdaptiveSwitch(
               value: value,
               onChanged: disabled ? null : onChanged,
             ),

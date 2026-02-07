@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -94,6 +95,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
+        // Trigger error haptic when URL cannot be opened.
+        final haptics = ref.read(hapticServiceProvider);
+        unawaited(haptics.error());
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context).settingsCouldNotOpenUrl),

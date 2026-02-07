@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
+import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 
 /// A reusable settings tile with multiple variants: navigation, toggle, radio.
 ///
@@ -212,9 +213,9 @@ class SettingsTile extends ConsumerWidget {
     final bool currentValue = value as bool;
 
     void handleToggle(bool newValue) {
-      // Trigger haptic feedback on toggle.
+      // Trigger medium haptic feedback on toggle switch change.
       final haptics = ref.read(hapticServiceProvider);
-      unawaited(haptics.selection());
+      unawaited(haptics.impact());
 
       onChanged?.call(newValue);
     }
@@ -230,7 +231,7 @@ class SettingsTile extends ConsumerWidget {
         title: Text(title, style: titleStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle:
             subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
-        trailing: Switch(
+        trailing: AdaptiveSwitch(
           value: currentValue,
           onChanged: handleToggle,
         ),

@@ -13,6 +13,7 @@ import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 /// Main VPN connection screen.
 ///
@@ -99,95 +100,159 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
     final isConnecting =
         vpnState is VpnConnecting || vpnState is VpnReconnecting;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
+    // Build reusable content fragments used in both phone and tablet layouts.
+    final connectButtonArea = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Lottie connecting animation (shown above button)
+        if (isConnecting)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Spacing.md),
+            child: Lottie.asset(
+              'assets/animations/connecting.json',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
+              animate: !MediaQuery.of(context).disableAnimations,
+            ),
+          ),
+
+        // Connect button with success overlay
+        Stack(
+          alignment: Alignment.center,
           children: [
-            // ── Top bar with subscription badge ──────────────────────────
-            _TopBar(vpnState: vpnState),
+            const ConnectButton(),
 
-            // ── Main content (centered connect button + info) ────────────
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: Spacing.lg),
-
-                      // Lottie connecting animation (shown above button)
-                      if (isConnecting)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: Spacing.md),
-                          child: Lottie.asset(
-                            'assets/animations/connecting.json',
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.contain,
-                            animate: !MediaQuery.of(context).disableAnimations,
-                          ),
-                        ),
-
-                      // Connect button with success overlay
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const ConnectButton(),
-
-                          // One-shot connected success animation
-                          if (_showSuccessAnim)
-                            IgnorePointer(
-                              child: Lottie.asset(
-                                'assets/animations/connected_success.json',
-                                width: 180,
-                                height: 180,
-                                controller: _successAnimController,
-                                fit: BoxFit.contain,
-                                repeat: false,
-                                onLoaded: (composition) {
-                                  _successAnimController.duration =
-                                      composition.duration;
-                                  unawaited(
-                                    _successAnimController
-                                        .forward()
-                                        .whenComplete(() {
-                                      if (mounted) {
-                                        setState(
-                                            () => _showSuccessAnim = false);
-                                      }
-                                    }),
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-
-                      const SizedBox(height: Spacing.lg + Spacing.xs),
-
-                      // Connection info (server, protocol, timer, IP)
-                      const ConnectionInfo(),
-
-                      const SizedBox(height: Spacing.xl + Spacing.xs),
-
-                      // Error message banner
-                      if (vpnState is VpnError)
-                        _ErrorBanner(message: vpnState.message),
-                    ],
-                  ),
+            // One-shot connected success animation
+            if (_showSuccessAnim)
+              IgnorePointer(
+                child: Lottie.asset(
+                  'assets/animations/connected_success.json',
+                  width: 180,
+                  height: 180,
+                  controller: _successAnimController,
+                  fit: BoxFit.contain,
+                  repeat: false,
+                  onLoaded: (composition) {
+                    _successAnimController.duration =
+                        composition.duration;
+                    unawaited(
+                      _successAnimController
+                          .forward()
+                          .whenComplete(() {
+                        if (mounted) {
+                          setState(
+                              () => _showSuccessAnim = false);
+                        }
+                      }),
+                    );
+                  },
                 ),
               ),
-            ),
-
-            // ── Bottom section: speeds + session stats ───────────────────
-            _BottomStatsSection(
-              key: _speedIndicatorKey,
-              vpnState: vpnState,
-              duration: duration,
-              totalUsage: usage.total,
-            ),
           ],
+        ),
+      ],
+    );
+
+    final connectionInfoArea = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Connection info (server, protocol, timer, IP)
+        const ConnectionInfo(),
+
+        const SizedBox(height: Spacing.xl + Spacing.xs),
+
+        // Error message banner
+        if (vpnState is VpnError)
+          _ErrorBanner(message: vpnState.message),
+      ],
+    );
+
+    return Scaffold(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide =
+                ResponsiveLayout.isAtLeastMedium(constraints.maxWidth);
+
+            if (isWide) {
+              // ── Tablet layout: side-by-side ──────────────────────────
+              return Column(
+                children: [
+                  _TopBar(vpnState: vpnState),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Left side: connect button
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: Spacing.lg),
+                              child: connectButtonArea,
+                            ),
+                          ),
+                        ),
+                        // Right side: info + stats
+                        Expanded(
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: Spacing.lg),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  connectionInfoArea,
+                                  const SizedBox(height: Spacing.lg),
+                                  _BottomStatsSection(
+                                    key: _speedIndicatorKey,
+                                    vpnState: vpnState,
+                                    duration: duration,
+                                    totalUsage: usage.total,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // ── Phone layout: stacked Column ────────────────────────────
+            return Column(
+              children: [
+                _TopBar(vpnState: vpnState),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(height: Spacing.lg),
+                          connectButtonArea,
+                          const SizedBox(height: Spacing.lg + Spacing.xs),
+                          connectionInfoArea,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                _BottomStatsSection(
+                  key: _speedIndicatorKey,
+                  vpnState: vpnState,
+                  duration: duration,
+                  totalUsage: usage.total,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

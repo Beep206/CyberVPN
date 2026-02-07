@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
@@ -181,6 +183,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
   /// Navigate to the selected tab branch, preserving state.
   void _onTabSelected(int index) {
+    // Trigger selection haptic on tab change.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.selection());
+
     widget.navigationShell.goBranch(
       index,
       // Navigate to the initial location of the branch when tapping
@@ -238,6 +244,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   /// Shows an error SnackBar when auto-connect fails.
   void _showAutoConnectError(BuildContext context, String message) {
     if (!mounted) return;
+
+    // Trigger error haptic when showing error notification.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.error());
 
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);

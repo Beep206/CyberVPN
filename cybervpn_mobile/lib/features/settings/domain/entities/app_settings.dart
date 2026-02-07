@@ -71,6 +71,7 @@ sealed class AppSettings with _$AppSettings {
     @Default(AppThemeMode.cyberpunk) AppThemeMode themeMode,
     @Default(AppBrightness.system) AppBrightness brightness,
     @Default(false) bool dynamicColor,
+    @Default(false) bool oledMode,
     @Default(TextScale.system) TextScale textScale,
 
     // Connection

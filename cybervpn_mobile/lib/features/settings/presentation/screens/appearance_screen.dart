@@ -108,6 +108,23 @@ class AppearanceScreen extends ConsumerWidget {
           ],
         ),
 
+        // --- OLED Mode (only when brightness is dark or system) ---
+        if (settings.brightness != AppBrightness.light)
+          SettingsSection(
+            title: l10n.settingsOledModeLabel,
+            children: [
+              SettingsTile.toggle(
+                key: const Key('tile_oled_mode'),
+                title: l10n.settingsOledModeLabel,
+                subtitle: l10n.settingsOledModeDescription,
+                leading: const Icon(Icons.brightness_1_outlined),
+                value: settings.oledMode,
+                onChanged: (value) =>
+                    notifier.updateOledMode(value as bool),
+              ),
+            ],
+          ),
+
         // --- Text Size ---
         SettingsSection(
           title: l10n.settingsTextSizeSection,
@@ -135,6 +152,21 @@ class AppearanceScreen extends ConsumerWidget {
                 value: settings.dynamicColor,
                 onChanged: (value) =>
                     notifier.updateDynamicColor(value as bool),
+              ),
+            ],
+          ),
+
+        // --- High Contrast Mode ---
+        if (MediaQuery.of(context).highContrast)
+          SettingsSection(
+            title: l10n.settingsHighContrastLabel,
+            children: const [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.xs,
+                ),
+                child: _HighContrastNote(),
               ),
             ],
           ),
@@ -536,6 +568,46 @@ class _TextScalePicker extends StatelessWidget {
       TextScale.large => l10n.settingsTextScaleLargeDescription,
       TextScale.extraLarge => l10n.settingsTextScaleExtraLargeDescription,
     };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _SystemAnimationNote
+// ---------------------------------------------------------------------------
+
+/// Info card shown when system high contrast mode is detected.
+class _HighContrastNote extends StatelessWidget {
+  const _HighContrastNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(Spacing.sm),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(Radii.sm),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.contrast,
+            size: 20,
+            color: theme.colorScheme.onTertiaryContainer,
+          ),
+          const SizedBox(width: Spacing.sm),
+          Expanded(
+            child: Text(
+              AppLocalizations.of(context).settingsHighContrastDetected,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

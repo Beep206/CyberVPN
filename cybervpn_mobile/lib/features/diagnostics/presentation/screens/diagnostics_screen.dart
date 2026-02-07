@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/diagnostic_service.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
@@ -65,6 +66,10 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // Trigger medium haptic on pull-to-refresh threshold.
+          final haptics = ref.read(hapticServiceProvider);
+          unawaited(haptics.impact());
+
           // Trigger a fresh diagnostic run.
           await ref.read(diagnosticsProvider.notifier).runDiagnostics();
         },

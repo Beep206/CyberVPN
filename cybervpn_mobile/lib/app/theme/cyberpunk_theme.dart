@@ -161,8 +161,16 @@ TextTheme _buildCyberpunkTextTheme({required Brightness brightness}) {
 /// primary accent is [CyberColors.matrixGreen], secondary [CyberColors.neonCyan],
 /// tertiary [CyberColors.neonPink].  Components feature neon borders and subtle
 /// glow effects via [BoxShadow].
-ThemeData cyberpunkDarkTheme() {
-  const colorScheme = ColorScheme(
+///
+/// When [oled] is `true`, backgrounds are replaced with pure black (#000000)
+/// for maximum battery savings on OLED/AMOLED panels.
+ThemeData cyberpunkDarkTheme({bool oled = false}) {
+  final scaffoldBg = oled ? Colors.black : CyberColors.deepNavy;
+  final surfaceColor = oled ? const Color(0xFF050505) : CyberColors.darkBg;
+  final surfaceContainerColor =
+      oled ? const Color(0xFF0A0A0A) : const Color(0xFF1E2538);
+
+  final colorScheme = ColorScheme(
     brightness: Brightness.dark,
     primary: CyberColors.matrixGreen,
     onPrimary: CyberColors.deepNavy,
@@ -170,12 +178,14 @@ ThemeData cyberpunkDarkTheme() {
     onSecondary: CyberColors.deepNavy,
     tertiary: CyberColors.neonPink,
     onTertiary: CyberColors.deepNavy,
-    error: Color(0xFFFF5252),
+    error: const Color(0xFFFF5252),
     onError: Colors.white,
-    surface: CyberColors.darkBg,
+    surface: surfaceColor,
     onSurface: Colors.white,
-    surfaceContainerHighest: Color(0xFF1E2538),
-    onSurfaceVariant: Color(0xFFB0B8C8), // Already passes AA, keeping this
+    surfaceBright: oled ? const Color(0xFF1A1A1A) : const Color(0xFF2A3045),
+    surfaceDim: oled ? Colors.black : const Color(0xFF080C16),
+    surfaceContainerHighest: surfaceContainerColor,
+    onSurfaceVariant: const Color(0xFFB0B8C8),
   );
 
   final textTheme = _buildCyberpunkTextTheme(brightness: Brightness.dark);
@@ -184,14 +194,16 @@ ThemeData cyberpunkDarkTheme() {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: CyberColors.deepNavy,
+    scaffoldBackgroundColor: scaffoldBg,
+    focusColor: CyberColors.neonCyan.withAlpha(60),
+    hoverColor: CyberColors.neonCyan.withAlpha(30),
     textTheme: textTheme,
 
     // AppBar
     appBarTheme: AppBarTheme(
       centerTitle: true,
       elevation: 0,
-      backgroundColor: CyberColors.deepNavy,
+      backgroundColor: scaffoldBg,
       foregroundColor: CyberColors.matrixGreen,
       titleTextStyle: textTheme.headlineSmall?.copyWith(
         color: CyberColors.matrixGreen,
@@ -201,7 +213,7 @@ ThemeData cyberpunkDarkTheme() {
     // Card
     cardTheme: CardThemeData(
       elevation: Elevation.medium,
-      color: CyberColors.darkBg,
+      color: surfaceColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Radii.md),
         side: BorderSide(
@@ -253,7 +265,7 @@ ThemeData cyberpunkDarkTheme() {
     // Input
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1E2538),
+      fillColor: surfaceContainerColor,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: Spacing.md,
         vertical: Spacing.sm + 6,
@@ -273,7 +285,7 @@ ThemeData cyberpunkDarkTheme() {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
         borderSide: const BorderSide(
-          color: CyberColors.matrixGreen,
+          color: CyberColors.neonCyan,
           width: 2,
         ),
       ),
@@ -283,15 +295,15 @@ ThemeData cyberpunkDarkTheme() {
     ),
 
     // BottomNavigationBar
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: CyberColors.deepNavy,
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: scaffoldBg,
       selectedItemColor: CyberColors.matrixGreen,
-      unselectedItemColor: CyberColors.textGrayDark, // Improved from #6B7280
+      unselectedItemColor: CyberColors.textGrayDark,
     ),
 
     // NavigationBar (Material 3)
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: CyberColors.deepNavy,
+      backgroundColor: scaffoldBg,
       indicatorColor: CyberColors.matrixGreen.withAlpha(30),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -324,7 +336,7 @@ ThemeData cyberpunkDarkTheme() {
 
     // Chip
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFF1E2538),
+      backgroundColor: surfaceContainerColor,
       side: BorderSide(color: CyberColors.neonCyan.withAlpha(60)),
       labelStyle: textTheme.labelSmall?.copyWith(
         color: CyberColors.neonCyan,
@@ -343,14 +355,14 @@ ThemeData cyberpunkDarkTheme() {
         if (states.contains(WidgetState.selected)) {
           return CyberColors.matrixGreen.withAlpha(60);
         }
-        return const Color(0xFF1E2538);
+        return surfaceContainerColor;
       }),
     ),
 
     // ProgressIndicator
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: CyberColors.matrixGreen,
-      linearTrackColor: Color(0xFF1E2538),
+      linearTrackColor: surfaceContainerColor,
     ),
   );
 }
@@ -377,6 +389,8 @@ ThemeData cyberpunkLightTheme() {
     onError: Colors.white,
     surface: _CyberpunkLightColors.surface,
     onSurface: _CyberpunkLightColors.onSurface,
+    surfaceBright: Color(0xFFFFFFFF),
+    surfaceDim: Color(0xFFE8E9EB),
     surfaceContainerHighest: _CyberpunkLightColors.surfaceContainer,
     onSurfaceVariant: _CyberpunkLightColors.onSurfaceVariant,
   );
@@ -388,6 +402,8 @@ ThemeData cyberpunkLightTheme() {
     brightness: Brightness.light,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: _CyberpunkLightColors.background,
+    focusColor: CyberColors.neonCyanDark.withAlpha(60),
+    hoverColor: CyberColors.neonCyanDark.withAlpha(30),
     textTheme: textTheme,
 
     // AppBar
@@ -476,7 +492,7 @@ ThemeData cyberpunkLightTheme() {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
         borderSide: const BorderSide(
-          color: CyberColors.matrixGreenDark,
+          color: CyberColors.neonCyanDark,
           width: 2,
         ),
       ),

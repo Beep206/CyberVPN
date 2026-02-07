@@ -6,6 +6,7 @@ import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.d
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_provider.dart';
+import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
 
 /// Displays connection details below the connect button:
 /// server name, country flag emoji, city, active protocol chip,
@@ -96,9 +97,10 @@ class _ServerRow extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ExcludeSemantics(
-            child: Text(
-              _countryCodeToEmoji(server.countryCode),
-              style: const TextStyle(fontSize: 22),
+            child: FlagWidget(
+              countryCode: server.countryCode,
+              size: FlagSize.medium,
+              heroTag: 'server_flag_${server.id}',
             ),
           ),
           const SizedBox(width: 8),
@@ -134,14 +136,6 @@ class _ServerRow extends StatelessWidget {
     );
   }
 
-  /// Converts an ISO 3166-1 alpha-2 country code to a flag emoji.
-  static String _countryCodeToEmoji(String code) {
-    if (code.length != 2) return '\u{1F3F3}'; // white flag fallback
-    final upper = code.toUpperCase();
-    final first = upper.codeUnitAt(0) - 0x41 + 0x1F1E6;
-    final second = upper.codeUnitAt(1) - 0x41 + 0x1F1E6;
-    return String.fromCharCodes([first, second]);
-  }
 }
 
 class _ProtocolChip extends StatelessWidget {
