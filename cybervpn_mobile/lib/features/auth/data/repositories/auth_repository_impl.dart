@@ -117,12 +117,30 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
   @override
   Future<Result<UserEntity?>> getCurrentUser() async {
     try {
+      // When connected, validate session against the server first.
+      // The auth interceptor will attempt a token refresh on 401 responses;
+      // if that also fails, it clears the stored tokens.
+      if (await _networkInfo.isConnected) {
+        try {
+          final userModel = await _remoteDataSource.getCurrentUser();
+          await _localDataSource.cacheUser(userModel);
+          return Success(userModel.toEntity());
+        } catch (e) {
+          // Check whether the auth interceptor cleared tokens (permanent 401).
+          final token = await _localDataSource.getCachedToken();
+          if (token == null) {
+            // Tokens were invalidated — session is permanently dead.
+            return const Success(null);
+          }
+          // Tokens still present — transient error; fall through to cache.
+          AppLogger.warning('getCurrentUser remote failed, using cache', error: e);
+        }
+      }
+
+      // Offline or transient-error fallback: return cached user.
       final cached = await _localDataSource.getCachedUser();
       if (cached != null) return Success(cached.toEntity());
-      if (!await _networkInfo.isConnected) return const Success(null);
-      final userModel = await _remoteDataSource.getCurrentUser();
-      await _localDataSource.cacheUser(userModel);
-      return Success(userModel.toEntity());
+      return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,6 +58,31 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Fills test credentials and submits directly, bypassing form
+  /// validation (debug builds only).
+  Future<void> _fillDevCredentials() async {
+    _emailController.text = 'test';
+    _passwordController.text = 'test';
+    setState(() {});
+
+    // Bypass form validation — "test" is not a valid email.
+    await ref.read(authProvider.notifier).login('test', 'test');
+
+    if (!mounted) return;
+    final authState = ref.read(authProvider).value;
+    if (authState is AuthAuthenticated) {
+      widget.onSuccess?.call();
+    } else if (authState is AuthError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authState.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _onSubmit() async {
@@ -137,6 +163,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   child: TextFormField(
                     controller: _emailController,
                     enabled: !isLoading,
+                    autofocus: true,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.email],
@@ -271,6 +298,21 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                     ),
                   ),
           ),
+
+          // Debug-only quick login with test credentials
+          if (kDebugMode) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: isLoading ? null : () => unawaited(_fillDevCredentials()),
+              icon: const Icon(Icons.bug_report, size: 18),
+              label: const Text('Dev Login (test / test)'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 44),
+                foregroundColor: theme.colorScheme.tertiary,
+                side: BorderSide(color: theme.colorScheme.tertiary.withAlpha(80)),
+              ),
+            ),
+          ],
         ],
         ),
       ),
