@@ -582,14 +582,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     // Disconnect the VPN immediately.
     await disconnect();
 
-    // Update state to error with the disconnect reason so the UI can
-    // display it to the user.
+    // Transition to VpnForceDisconnected so the UI shows a dialog.
     state = AsyncData(
-      VpnError(
-        message: event.reason.isNotEmpty
-            ? 'Disconnected by server: ${event.reason}'
-            : 'Disconnected by server',
-      ),
+      VpnForceDisconnected(reason: event.reason),
     );
   }
 

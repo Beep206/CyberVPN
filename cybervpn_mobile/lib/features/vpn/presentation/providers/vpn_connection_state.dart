@@ -66,3 +66,10 @@ class VpnError extends VpnConnectionState {
   final String message;
   const VpnError({required this.message});
 }
+
+/// The server forced this client to disconnect (e.g. session limit,
+/// account suspended). The UI should show a prominent dialog.
+class VpnForceDisconnected extends VpnConnectionState {
+  final String reason;
+  const VpnForceDisconnected({required this.reason});
+}

@@ -172,7 +172,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
       VpnConnected() => l10n.a11yDisconnectFromVpn,
       VpnDisconnecting() => l10n.a11yDisconnectingFromVpn,
       VpnReconnecting() => l10n.a11yReconnectingToVpn,
-      VpnError() => l10n.a11yRetryVpnConnection,
+      VpnError() || VpnForceDisconnected() => l10n.a11yRetryVpnConnection,
     };
   }
 
@@ -180,7 +180,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
     return switch (vpnState) {
       VpnDisconnected() => l10n.a11yTapToConnect,
       VpnConnected() => l10n.a11yTapToDisconnect,
-      VpnError() => l10n.a11yTapToRetry,
+      VpnError() || VpnForceDisconnected() => l10n.a11yTapToRetry,
       VpnConnecting() || VpnDisconnecting() || VpnReconnecting() =>
         l10n.a11yPleaseWaitConnectionInProgress,
     };
@@ -209,6 +209,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
       case VpnConnected():
         unawaited(notifier.disconnect());
       case VpnError():
+      case VpnForceDisconnected():
         // Retry: try connecting again.
         final server = ref.read(currentServerProvider);
         if (server != null) {
@@ -264,8 +265,10 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
       unawaited(haptics.success());
     }
 
-    // Error haptic when connection fails.
-    if (currentState is VpnError && _previousState is! VpnError) {
+    // Error haptic when connection fails or is force-disconnected.
+    if ((currentState is VpnError || currentState is VpnForceDisconnected) &&
+        _previousState is! VpnError &&
+        _previousState is! VpnForceDisconnected) {
       unawaited(haptics.error());
     }
 
@@ -303,7 +306,7 @@ class _ConnectButtonState extends ConsumerState<ConnectButton>
           label: l10n.connectionStatusReconnecting,
           icon: Icons.sync_problem,
         ),
-      VpnError() => _ButtonConfig(
+      VpnError() || VpnForceDisconnected() => _ButtonConfig(
           color: colorScheme.error,
           label: l10n.retry,
           icon: Icons.refresh,

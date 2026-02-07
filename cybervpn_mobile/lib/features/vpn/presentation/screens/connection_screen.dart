@@ -62,6 +62,26 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
     super.dispose();
   }
 
+  void _showForceDisconnectDialog(BuildContext context, String reason) {
+    final l10n = AppLocalizations.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.forceDisconnectTitle),
+        content: Text(
+          reason.isNotEmpty ? reason : l10n.forceDisconnectMessage,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showTooltipIfNeeded() async {
     const tooltipId = 'connection_speed_monitor';
     final hasShown = await _tooltipService.hasShownTooltip(tooltipId);
@@ -81,6 +101,15 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Listen for force-disconnect events and show an alert dialog.
+    ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider,
+        (prev, next) {
+      final state = next.value;
+      if (state is VpnForceDisconnected) {
+        _showForceDisconnectDialog(context, state.reason);
+      }
+    });
+
     final asyncState = ref.watch(vpnConnectionProvider);
     final vpnState = asyncState.value ?? const VpnDisconnected();
     final duration = ref.watch(sessionDurationProvider);
@@ -164,7 +193,9 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
 
         // Error message banner
         if (vpnState is VpnError)
-          _ErrorBanner(message: vpnState.message),
+          _ErrorBanner(message: vpnState.message)
+        else if (vpnState is VpnForceDisconnected)
+          _ErrorBanner(message: vpnState.reason),
       ],
     );
 
@@ -172,8 +203,10 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isWide =
-                ResponsiveLayout.isAtLeastMedium(constraints.maxWidth);
+            final isWide = ResponsiveLayout.shouldUseWideLayout(
+              constraints.maxWidth,
+              context,
+            );
 
             if (isWide) {
               // ── Tablet layout: side-by-side ──────────────────────────
@@ -320,7 +353,7 @@ class _TopBar extends StatelessWidget {
       VpnConnected() => l10n.connectionStatusProtected,
       VpnDisconnecting() => l10n.disconnecting,
       VpnReconnecting() => l10n.connectionStatusReconnecting,
-      VpnError() => l10n.connectionStatusConnectionError,
+      VpnError() || VpnForceDisconnected() => l10n.connectionStatusConnectionError,
     };
   }
 
@@ -331,7 +364,7 @@ class _TopBar extends StatelessWidget {
       VpnConnected() => colorScheme.tertiary,
       VpnDisconnecting() => Colors.orange.shade400,
       VpnReconnecting() => Colors.orange.shade400,
-      VpnError() => colorScheme.error,
+      VpnError() || VpnForceDisconnected() => colorScheme.error,
     };
   }
 }
@@ -666,7 +699,7 @@ class _SummaryItem extends StatelessWidget {
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
