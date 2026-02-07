@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
+import 'package:cybervpn_mobile/core/network/websocket_client.dart';
+import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/device/device_service.dart';
@@ -34,6 +36,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
   TokenRefreshScheduler get _refreshScheduler =>
       ref.read(tokenRefreshSchedulerProvider);
+  WebSocketClient get _webSocketClient =>
+      ref.read(webSocketClientProvider);
 
   @override
   FutureOr<AuthState> build() async {
@@ -95,6 +99,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Schedule proactive token refresh for existing session (non-blocking)
       _scheduleTokenRefresh();
 
+      // Connect WebSocket for real-time updates (non-blocking)
+      _connectWebSocket();
+
       profiler.stop();
       return AuthAuthenticated(user);
     }
@@ -126,6 +133,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           // Schedule proactive token refresh (non-blocking)
           _scheduleTokenRefresh();
+
+          // Connect WebSocket for real-time updates (non-blocking)
+          _connectWebSocket();
         case Failure(:final failure):
           state = AsyncValue.data(AuthError(failure.message));
       }
@@ -155,6 +165,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
           // Schedule proactive token refresh (non-blocking)
           _scheduleTokenRefresh();
+
+          // Connect WebSocket for real-time updates (non-blocking)
+          _connectWebSocket();
         case Failure(:final failure):
           state = AsyncValue.data(AuthError(failure.message));
       }
@@ -169,6 +182,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
     // Cancel proactive token refresh before logout
     _refreshScheduler.cancel();
+
+    // Disconnect WebSocket before clearing auth state
+    await _disconnectWebSocket();
 
     try {
       // Get current tokens and device ID for logout request
@@ -221,6 +237,51 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         );
       }
     }));
+  }
+
+  // ── WebSocket connection management ──────────────────────────────
+
+  /// Connects the WebSocket client for real-time server events.
+  ///
+  /// Runs asynchronously without blocking the auth flow. Errors are logged
+  /// but do not affect the authentication state.
+  void _connectWebSocket() {
+    unawaited(Future(() async {
+      try {
+        await _webSocketClient.connect();
+        AppLogger.info(
+          'WebSocket connected after authentication',
+          category: 'auth.websocket',
+        );
+      } catch (e, st) {
+        AppLogger.warning(
+          'Failed to connect WebSocket after authentication',
+          error: e,
+          stackTrace: st,
+          category: 'auth.websocket',
+        );
+      }
+    }));
+  }
+
+  /// Disconnects the WebSocket client on logout.
+  ///
+  /// Awaited to ensure clean disconnection before auth state is cleared.
+  Future<void> _disconnectWebSocket() async {
+    try {
+      await _webSocketClient.disconnect();
+      AppLogger.info(
+        'WebSocket disconnected on logout',
+        category: 'auth.websocket',
+      );
+    } catch (e, st) {
+      AppLogger.warning(
+        'Failed to disconnect WebSocket on logout',
+        error: e,
+        stackTrace: st,
+        category: 'auth.websocket',
+      );
+    }
   }
 
 }

@@ -3,11 +3,11 @@ import 'dart:async';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
@@ -97,6 +97,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
           return RefreshIndicator(
             onRefresh: () async {
+              // Trigger medium haptic on pull-to-refresh threshold.
+              final haptics = ref.read(hapticServiceProvider);
+              unawaited(haptics.impact());
+
               await ref.read(profileProvider.notifier).refreshProfile();
             },
             child: ListView(
@@ -208,7 +212,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           );
 
       if (mounted) {
-        unawaited(HapticFeedback.lightImpact());
+        final haptics = ref.read(hapticServiceProvider);
+        unawaited(haptics.success());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.profileDeviceRemovedSuccess(device.name)),
@@ -219,6 +224,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     } catch (e, st) {
       AppLogger.error('Failed to remove device', error: e, stackTrace: st);
       if (mounted) {
+        // Trigger error haptic when showing error SnackBar.
+        final haptics = ref.read(hapticServiceProvider);
+        unawaited(haptics.error());
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.profileRemoveDeviceFailed(e.toString())),

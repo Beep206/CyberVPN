@@ -19,10 +19,14 @@ import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.d
 import 'package:cybervpn_mobile/features/widgets/presentation/widget_state_listener.dart';
 import 'package:cybervpn_mobile/features/widgets/data/widget_toggle_handler.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/untrusted_wifi_handler.dart';
+import 'package:cybervpn_mobile/core/network/websocket_client.dart';
+import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:cybervpn_mobile/features/notifications/presentation/widgets/in_app_banner.dart';
 
 /// Convert [TextScale] enum to a double scale factor.
 double _textScaleToDouble(TextScale scale, double systemScale) {
@@ -234,6 +238,53 @@ class _AppLifecycleManager extends ConsumerWidget {
     } catch (e, st) {
       AppLogger.error(
         'fcmTopicSyncProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Initialize notification provider so it listens for FCM and WebSocket
+    // notification events from app startup (not just when the notification
+    // center screen is visited).
+    try {
+      ref.watch(notificationProvider);
+    } catch (e, st) {
+      AppLogger.error(
+        'notificationProvider failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+
+    // Listen to WebSocket NotificationReceived events and show an in-app
+    // banner for each incoming notification. This provides immediate visual
+    // feedback to the user regardless of which screen they are on.
+    try {
+      ref.listen<AsyncValue<NotificationReceived>>(
+        notificationEventsProvider,
+        (_, next) {
+          if (!next.hasValue) return;
+          final event = next.value;
+          if (event == null) return;
+
+          final title = event.title.isNotEmpty ? event.title : 'Notification';
+          final body = event.body.isNotEmpty ? event.body : '';
+
+          InAppBanner.show(
+            context,
+            BannerConfig(
+              type: BannerNotificationType.info,
+              title: title,
+              message: body,
+            ),
+          );
+        },
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'WebSocket notification banner listener failed',
         category: 'lifecycle',
         error: e,
         stackTrace: st,

@@ -5,11 +5,13 @@ import 'package:lottie/lottie.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speed_test_results_card.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speedometer_gauge.dart';
+import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_app_bar.dart';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +58,10 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // Trigger medium haptic on pull-to-refresh threshold.
+          final haptics = ref.read(hapticServiceProvider);
+          unawaited(haptics.impact());
+
           // Trigger provider rebuild to reload history.
           ref.invalidate(diagnosticsProvider);
         },
@@ -96,12 +102,17 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                       ),
                     ),
                     const SizedBox(width: Spacing.sm),
-                    Switch.adaptive(
+                    AdaptiveSwitch(
                       value: _vpnToggle,
                       onChanged: isRunning
                           ? null
-                          : (v) => setState(() => _vpnToggle = v),
-                      activeTrackColor: CyberColors.matrixGreen,
+                          : (v) {
+                              // Trigger medium haptic on toggle switch change.
+                              final haptics = ref.read(hapticServiceProvider);
+                              unawaited(haptics.impact());
+                              setState(() => _vpnToggle = v);
+                            },
+                      activeColor: CyberColors.matrixGreen,
                     ),
                   ],
                 ),
@@ -225,6 +236,10 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
   }
 
   Future<void> _onStartTest() async {
+    // Trigger light haptic on button tap.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.selection());
+
     final notifier = ref.read(diagnosticsProvider.notifier);
     await notifier.runSpeedTest(vpnActive: _vpnToggle);
   }

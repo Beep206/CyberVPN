@@ -100,9 +100,9 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   }
 
   Future<void> _onRefresh() async {
-    // Trigger haptic feedback when refresh is released/triggered.
+    // Trigger medium haptic on pull-to-refresh threshold.
     final haptics = ref.read(hapticServiceProvider);
-    unawaited(haptics.selection());
+    unawaited(haptics.impact());
 
     await ref.read(serverListProvider.notifier).refresh();
   }
@@ -120,6 +120,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       MediaQuery.sizeOf(context).width >= 600;
 
   void _onFastestTap() {
+    // Trigger light haptic on button tap.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.selection());
+
     final recommended = ref.read(recommendedServerProvider);
     if (recommended != null) {
       _onServerTap(recommended);
@@ -152,8 +156,11 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
         );
       }
     } catch (e) {
-      // Show error snackbar
+      // Show error snackbar with error haptic feedback.
       if (mounted) {
+        final haptics = ref.read(hapticServiceProvider);
+        unawaited(haptics.error());
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context).serverDetailFailedToConnect(e.toString())),
@@ -270,8 +277,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                 style: theme.textTheme.bodyLarge),
             const SizedBox(height: Spacing.sm),
             FilledButton.tonal(
-              onPressed: () =>
-                  ref.read(serverListProvider.notifier).fetchServers(),
+              onPressed: () {
+                unawaited(ref.read(hapticServiceProvider).selection());
+                unawaited(ref.read(serverListProvider.notifier).fetchServers());
+              },
               child: Text(AppLocalizations.of(context).retry),
             ),
           ],

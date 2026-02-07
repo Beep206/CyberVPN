@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -57,6 +59,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Trigger light haptic on button tap.
+    unawaited(ref.read(hapticServiceProvider).selection());
+
     await ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
           _passwordController.text,
@@ -71,6 +76,11 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       case AuthError(:final message):
         _passwordController.clear();
         if (!mounted) return;
+
+        // Trigger error haptic when showing error SnackBar.
+        final haptics = ref.read(hapticServiceProvider);
+        unawaited(haptics.error());
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

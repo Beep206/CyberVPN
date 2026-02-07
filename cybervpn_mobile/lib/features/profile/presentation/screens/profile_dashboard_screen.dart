@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -13,6 +13,7 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/subscripti
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 // ---------------------------------------------------------------------------
 // ProfileDashboardScreen
@@ -69,6 +70,10 @@ class ProfileDashboardScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
+              // Trigger medium haptic on pull-to-refresh threshold.
+              final haptics = ref.read(hapticServiceProvider);
+              unawaited(haptics.impact());
+
               await Future.wait([
                 ref.read(profileProvider.notifier).refreshProfile(),
                 ref.read(subscriptionProvider.notifier).loadSubscription(),
@@ -285,7 +290,10 @@ class _StatsCardsGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = (constraints.maxWidth - Spacing.sm) / 2;
+        final columns =
+            ResponsiveLayout.adaptiveGridColumns(constraints.maxWidth);
+        final totalGapWidth = Spacing.sm * (columns - 1);
+        final cardWidth = (constraints.maxWidth - totalGapWidth) / columns;
         return Wrap(
           spacing: Spacing.sm,
           runSpacing: Spacing.sm,
@@ -435,15 +443,16 @@ class _StatsCard extends StatelessWidget {
 // Quick Actions Section
 // ---------------------------------------------------------------------------
 
-class _QuickActionsSection extends StatelessWidget {
+class _QuickActionsSection extends ConsumerWidget {
   const _QuickActionsSection({required this.hasSubscription});
 
   final bool hasSubscription;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final haptics = ref.read(hapticServiceProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +471,7 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.rocket_launch_outlined,
           label: l10n.upgradePlan,
           onTap: () {
-            unawaited(HapticFeedback.lightImpact());
+            unawaited(haptics.selection());
             unawaited(context.push('/subscribe'));
           },
         ),
@@ -473,7 +482,7 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.people_outline,
           label: l10n.profileInviteFriends,
           onTap: () {
-            unawaited(HapticFeedback.lightImpact());
+            unawaited(haptics.selection());
             unawaited(context.push('/referral'));
           },
         ),
@@ -484,7 +493,7 @@ class _QuickActionsSection extends StatelessWidget {
           icon: Icons.security_outlined,
           label: l10n.profileSecuritySettings,
           onTap: () {
-            unawaited(HapticFeedback.lightImpact());
+            unawaited(haptics.selection());
             unawaited(context.push('/profile/2fa'));
           },
         ),

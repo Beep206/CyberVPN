@@ -4893,6 +4893,30 @@ abstract class AppLocalizations {
   /// **'Use colors from your wallpaper'**
   String get settingsDynamicColorDescription;
 
+  /// No description provided for @settingsOledModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'OLED Dark Mode'**
+  String get settingsOledModeLabel;
+
+  /// No description provided for @settingsOledModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use pure black backgrounds for maximum battery savings on OLED displays'**
+  String get settingsOledModeDescription;
+
+  /// No description provided for @settingsHighContrastLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'High Contrast'**
+  String get settingsHighContrastLabel;
+
+  /// No description provided for @settingsHighContrastDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast mode is enabled at the system level. Colors are optimized for maximum readability.'**
+  String get settingsHighContrastDetected;
+
   /// No description provided for @settingsAnimationsSection.
   ///
   /// In en, this message translates to:

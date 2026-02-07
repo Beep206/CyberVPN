@@ -56,6 +56,7 @@ class ThemeState {
   const ThemeState({
     this.themeMode = AppThemeMode.materialYou,
     this.brightness = ThemeBrightness.system,
+    this.oledMode = false,
   });
 
   /// The selected theme style.
@@ -64,14 +65,19 @@ class ThemeState {
   /// The selected brightness preference.
   final ThemeBrightness brightness;
 
+  /// Whether to use pure black (#000000) backgrounds in dark mode.
+  final bool oledMode;
+
   /// Returns a copy of this state with the given fields replaced.
   ThemeState copyWith({
     AppThemeMode? themeMode,
     ThemeBrightness? brightness,
+    bool? oledMode,
   }) {
     return ThemeState(
       themeMode: themeMode ?? this.themeMode,
       brightness: brightness ?? this.brightness,
+      oledMode: oledMode ?? this.oledMode,
     );
   }
 
@@ -81,14 +87,15 @@ class ThemeState {
       other is ThemeState &&
           runtimeType == other.runtimeType &&
           themeMode == other.themeMode &&
-          brightness == other.brightness;
+          brightness == other.brightness &&
+          oledMode == other.oledMode;
 
   @override
-  int get hashCode => Object.hash(themeMode, brightness);
+  int get hashCode => Object.hash(themeMode, brightness, oledMode);
 
   @override
   String toString() =>
-      'ThemeState(themeMode: $themeMode, brightness: $brightness)';
+      'ThemeState(themeMode: $themeMode, brightness: $brightness, oledMode: $oledMode)';
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +104,7 @@ class ThemeState {
 
 const String _kThemeModeKey = 'theme_mode';
 const String _kBrightnessKey = 'theme_brightness';
+const String _kOledModeKey = 'theme_oled_mode';
 
 /// Reads the persisted [AppThemeMode] from [prefs].
 ///
@@ -126,6 +134,16 @@ Future<void> _saveBrightness(SharedPreferences prefs, ThemeBrightness brightness
   return prefs.setString(_kBrightnessKey, brightness.name);
 }
 
+/// Reads the persisted OLED mode from [prefs].
+bool _loadOledMode(SharedPreferences prefs) {
+  return prefs.getBool(_kOledModeKey) ?? false;
+}
+
+/// Persists [oled] to [prefs].
+Future<void> _saveOledMode(SharedPreferences prefs, bool oled) {
+  return prefs.setBool(_kOledModeKey, oled);
+}
+
 // ---------------------------------------------------------------------------
 // ThemeNotifier
 // ---------------------------------------------------------------------------
@@ -141,6 +159,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     return ThemeState(
       themeMode: _loadThemeMode(prefs),
       brightness: _loadBrightness(prefs),
+      oledMode: _loadOledMode(prefs),
     );
   }
 
@@ -156,6 +175,13 @@ class ThemeNotifier extends Notifier<ThemeState> {
     final prefs = ref.read(themePrefsProvider);
     unawaited(_saveBrightness(prefs, brightness));
     state = state.copyWith(brightness: brightness);
+  }
+
+  /// Updates the OLED mode preference and persists the change.
+  void setOledMode(bool oled) {
+    final prefs = ref.read(themePrefsProvider);
+    unawaited(_saveOledMode(prefs, oled));
+    state = state.copyWith(oledMode: oled);
   }
 }
 
@@ -213,7 +239,7 @@ final currentThemeDataProvider = Provider<ThemeDataPair>((ref) {
 
     case AppThemeMode.cyberpunk:
       lightTheme = cyberpunkLightTheme();
-      darkTheme = cyberpunkDarkTheme();
+      darkTheme = cyberpunkDarkTheme(oled: themeState.oledMode);
   }
 
   return ThemeDataPair(

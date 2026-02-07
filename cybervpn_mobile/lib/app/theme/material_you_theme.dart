@@ -63,6 +63,8 @@ ThemeData _buildMaterialYouTheme(ColorScheme colorScheme) {
     brightness: colorScheme.brightness,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colorScheme.surface,
+    focusColor: colorScheme.primary.withAlpha(60),
+    hoverColor: colorScheme.primary.withAlpha(30),
 
     // --- AppBar ---
     appBarTheme: AppBarTheme(

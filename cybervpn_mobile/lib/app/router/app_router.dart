@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -131,6 +132,23 @@ CustomTransitionPage<void> _buildFadeTransition({
       return FadeTransition(opacity: animation, child: child);
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Platform-adaptive transition builder
+// ---------------------------------------------------------------------------
+
+/// Builds a platform-adaptive page transition:
+/// - **iOS**: Cupertino-style slide from right to left.
+/// - **Android / other**: Material-style fade transition.
+CustomTransitionPage<void> _buildAdaptiveTransition({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  if (Platform.isIOS) {
+    return _buildSlideTransition(state: state, child: child);
+  }
+  return _buildFadeTransition(state: state, child: child);
 }
 
 // ---------------------------------------------------------------------------
@@ -335,7 +353,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         name: 'register',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const RegisterScreen(),
         ),
@@ -344,7 +362,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/forgot-password',
         name: 'forgot-password',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const ForgotPasswordScreen(),
         ),
@@ -366,7 +384,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/config-import',
         name: 'config-import',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const FeatureErrorBoundary(
             featureName: 'Config Import',
@@ -378,7 +396,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'qr-scanner',
             name: 'config-import-qr-scanner',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'QR Scanner',
@@ -390,7 +408,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'subscription-url',
             name: 'config-import-subscription-url',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'Subscription URL',
@@ -402,7 +420,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'custom-servers',
             name: 'config-import-custom-servers',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'Custom Servers',
@@ -416,7 +434,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/referral',
         name: 'referral',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const FeatureErrorBoundary(
             featureName: 'Referral',
@@ -428,7 +446,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/subscribe',
         name: 'subscribe',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const FeatureErrorBoundary(
             featureName: 'Subscription',
@@ -442,7 +460,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/notifications',
         name: 'notifications',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const FeatureErrorBoundary(
             featureName: 'Notifications',
@@ -456,7 +474,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/diagnostics',
         name: 'diagnostics',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => _buildSlideTransition(
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const FeatureErrorBoundary(
             featureName: 'Diagnostics',
@@ -468,7 +486,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'speed-test',
             name: 'diagnostics-speed-test',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'Speed Test',
@@ -480,7 +498,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'connection-diagnostics',
             name: 'diagnostics-connection-diagnostics',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'Connection Diagnostics',
@@ -492,7 +510,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'logs',
             name: 'diagnostics-logs',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildSlideTransition(
+            pageBuilder: (context, state) => _buildAdaptiveTransition(
               state: state,
               child: const FeatureErrorBoundary(
                 featureName: 'Log Viewer',
@@ -568,7 +586,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: '2fa',
                     name: 'profile-2fa',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Two-Factor Auth',
@@ -580,7 +598,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'social-accounts',
                     name: 'profile-social-accounts',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Social Accounts',
@@ -592,7 +610,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'devices',
                     name: 'profile-devices',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Devices',
@@ -604,7 +622,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'delete-account',
                     name: 'profile-delete-account',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Delete Account',
@@ -633,7 +651,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'vpn',
                     name: 'settings-vpn',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'VPN Settings',
@@ -645,7 +663,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'trusted-wifi',
                     name: 'settings-trusted-wifi',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Trusted WiFi',
@@ -657,7 +675,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'appearance',
                     name: 'settings-appearance',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Appearance',
@@ -669,7 +687,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'language',
                     name: 'settings-language',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Language',
@@ -681,7 +699,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'notifications',
                     name: 'settings-notifications',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Notification Preferences',
@@ -693,7 +711,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'debug',
                     name: 'settings-debug',
                     parentNavigatorKey: rootNavigatorKey,
-                    pageBuilder: (context, state) => _buildSlideTransition(
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
                       state: state,
                       child: const FeatureErrorBoundary(
                         featureName: 'Debug',

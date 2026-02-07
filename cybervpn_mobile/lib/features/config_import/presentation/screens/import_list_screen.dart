@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
@@ -58,6 +59,10 @@ class _ImportListScreenState extends ConsumerState<ImportListScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> _onRefresh() async {
+    // Trigger medium haptic on pull-to-refresh threshold.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.impact());
+
     await ref.read(configImportProvider.notifier).refreshSubscriptions();
   }
 

@@ -9,6 +9,7 @@ import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.d
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
+import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 
 // ---------------------------------------------------------------------------
 // NotificationPrefsScreen
@@ -205,7 +206,7 @@ class _SecurityAlertsTile extends StatelessWidget {
         l10n.settingsNotificationSecurityRequired,
         style: subtitleStyle,
       ),
-      trailing: const Switch(
+      trailing: const AdaptiveSwitch(
         value: true,
         onChanged: null,
       ),

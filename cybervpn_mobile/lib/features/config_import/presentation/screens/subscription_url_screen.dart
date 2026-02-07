@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
@@ -229,6 +232,10 @@ class _SubscriptionUrlList extends ConsumerWidget {
 
   /// Refresh all subscription URLs.
   Future<void> _refreshAllSubscriptions(WidgetRef ref) async {
+    // Trigger medium haptic on pull-to-refresh threshold.
+    final haptics = ref.read(hapticServiceProvider);
+    unawaited(haptics.impact());
+
     final notifier = ref.read(configImportProvider.notifier);
     try {
       await notifier.refreshSubscriptions();

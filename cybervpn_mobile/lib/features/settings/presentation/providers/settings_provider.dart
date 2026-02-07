@@ -61,6 +61,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     );
   }
 
+  /// Update the OLED mode preference (pure black backgrounds in dark mode).
+  Future<void> updateOledMode(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(oledMode: enabled),
+      'updateOledMode',
+    );
+  }
+
   /// Update the text scale factor for accessibility.
   Future<void> updateTextScale(TextScale scale) async {
     await _updateSetting(

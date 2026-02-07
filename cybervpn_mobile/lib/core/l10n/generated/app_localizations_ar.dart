@@ -2738,6 +2738,20 @@ class AppLocalizationsAr extends AppLocalizations {
       'Use colors from your wallpaper';
 
   @override
+  String get settingsOledModeLabel => 'OLED Dark Mode';
+
+  @override
+  String get settingsOledModeDescription =>
+      'Use pure black backgrounds for maximum battery savings on OLED displays';
+
+  @override
+  String get settingsHighContrastLabel => 'High Contrast';
+
+  @override
+  String get settingsHighContrastDetected =>
+      'High contrast mode is enabled at the system level. Colors are optimized for maximum readability.';
+
+  @override
   String get settingsAnimationsSection => 'Animations';
 
   @override
