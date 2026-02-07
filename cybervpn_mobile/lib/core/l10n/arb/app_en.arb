@@ -107,6 +107,7 @@
   "permissionOpenSettings": "Open Settings",
   "permissionEnableInSettings": "Please enable permissions in your device Settings",
   "settingsTitle": "Settings",
+  "settingsSearchHint": "Search settings...",
   "settingsSelectCategory": "Select a category",
   "settingsGeneral": "General",
   "settingsVpn": "VPN Settings",

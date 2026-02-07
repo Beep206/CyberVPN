@@ -645,6 +645,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings...'**
+  String get settingsSearchHint;
+
   /// No description provided for @settingsSelectCategory.
   ///
   /// In en, this message translates to:
