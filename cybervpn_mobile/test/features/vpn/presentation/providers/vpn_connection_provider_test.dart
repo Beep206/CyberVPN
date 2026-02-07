@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
-import 'package:cybervpn_mobile/core/security/device_integrity.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
@@ -213,22 +212,6 @@ class MockReviewService implements ReviewService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockDeviceIntegrityChecker implements DeviceIntegrityChecker {
-  bool shouldBlock = false;
-
-  @override
-  Future<bool> shouldBlockVpn() async => shouldBlock;
-
-  @override
-  Future<bool> isDeviceRooted() async => shouldBlock;
-
-  @override
-  bool get isBlockingEnabled => shouldBlock;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 // =============================================================================
 // Test Helpers
 // =============================================================================
@@ -281,7 +264,6 @@ class TestMocks {
   final MockWebSocketClient wsClient;
   final MockDeviceRegistration deviceRegistration;
   final MockReviewService reviewService;
-  final MockDeviceIntegrityChecker integrityChecker;
 
   TestMocks()
       : repo = MockVpnRepository(),
@@ -291,8 +273,7 @@ class TestMocks {
         killSwitch = MockKillSwitch(),
         wsClient = MockWebSocketClient(),
         deviceRegistration = MockDeviceRegistration(),
-        reviewService = MockReviewService(),
-        integrityChecker = MockDeviceIntegrityChecker();
+        reviewService = MockReviewService();
 
   void dispose() {
     repo.dispose();
@@ -329,8 +310,6 @@ ProviderContainer createContainer({
           .overrideWithValue(mocks.deviceRegistration),
       reviewServiceProvider.overrideWithValue(mocks.reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
-      deviceIntegrityCheckerProvider
-          .overrideWithValue(mocks.integrityChecker),
       if (isAuthenticated)
         authProvider.overrideWith(
           () => _FakeAuthNotifier(AuthAuthenticated(_testUser)),
@@ -616,22 +595,6 @@ void main() {
       container.dispose();
     });
 
-    test('blocks connection on rooted device when enforcement enabled', () async {
-      mocks.integrityChecker.shouldBlock = true;
-
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
-
-      await notifier.connect(testServer());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnError>());
-      expect(mocks.repo.connectCallCount, equals(0));
-      container.dispose();
-    });
-
     test('persists last server and protocol to secure storage', () async {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
@@ -844,20 +807,6 @@ void main() {
       container.dispose();
     });
 
-    test('blocks on rooted device', () async {
-      mocks.integrityChecker.shouldBlock = true;
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
-
-      await notifier.connectFromCustomServer(testImportedConfig());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnError>());
-      expect(mocks.repo.connectCallCount, equals(0));
-      container.dispose();
-    });
   });
 
   // ── disconnect() failure ─────────────────────────────────────────────────
@@ -885,8 +834,6 @@ void main() {
               .overrideWithValue(failMocks.deviceRegistration),
           reviewServiceProvider.overrideWithValue(failMocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
-          deviceIntegrityCheckerProvider
-              .overrideWithValue(failMocks.integrityChecker),
         ],
       );
 
@@ -1094,8 +1041,6 @@ void main() {
               .overrideWithValue(mocks.deviceRegistration),
           reviewServiceProvider.overrideWithValue(mocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
-          deviceIntegrityCheckerProvider
-              .overrideWithValue(mocks.integrityChecker),
           recommendedServerProvider.overrideWithValue(recommended),
         ],
       );
@@ -1128,8 +1073,6 @@ void main() {
               .overrideWithValue(mocks.deviceRegistration),
           reviewServiceProvider.overrideWithValue(mocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
-          deviceIntegrityCheckerProvider
-              .overrideWithValue(mocks.integrityChecker),
           recommendedServerProvider.overrideWithValue(null),
         ],
       );

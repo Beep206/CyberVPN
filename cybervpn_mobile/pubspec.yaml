@@ -78,7 +78,6 @@ dependencies:
   flutter_dotenv: ^6.0.0
 
   # Security
-  flutter_jailbreak_detection: ^1.10.0
   device_info_plus: ^12.3.0
   equatable: ^2.0.8
   flutter_local_notifications: ^20.0.0

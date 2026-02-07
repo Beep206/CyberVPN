@@ -10,9 +10,6 @@ export 'package:cybervpn_mobile/core/di/providers.dart'
         apiClientProvider,
         localStorageProvider,
         networkInfoProvider,
-        deviceIntegrityCheckerProvider,
-        isDeviceRootedProvider,
-        rootWarningDismissedProvider,
         buildProviderOverrides;
 
 export 'package:cybervpn_mobile/core/device/device_provider.dart'

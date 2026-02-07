@@ -14,7 +14,6 @@ object ManualPluginRegistrant {
         "io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin",
         "io.flutter.plugins.firebase.core.FlutterFirebaseCorePlugin",
         "io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingPlugin",
-        "appmire.be.flutterjailbreakdetection.FlutterJailbreakDetectionPlugin",
         "io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin",
         "com.it_nomads.fluttersecurestorage.FlutterSecureStoragePlugin",
         "com.wisecodex.flutter_v2ray.FlutterV2rayPlugin",
