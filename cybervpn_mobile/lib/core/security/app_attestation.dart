@@ -136,7 +136,7 @@ class AppAttestationService {
         return true;
       }
       return false;
-    } catch (_) {
+    } catch (e) {
       return false;
     }
   }
@@ -309,7 +309,7 @@ class AppAttestationService {
       if (Platform.isWindows) return 'windows';
       if (Platform.isLinux) return 'linux';
       return 'unknown';
-    } catch (_) {
+    } catch (e) {
       return 'unknown';
     }
   }

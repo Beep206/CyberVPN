@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Local datasource that persists [AppNotification]s in SharedPreferences.
 ///
@@ -83,7 +84,8 @@ class NotificationLocalDatasourceImpl implements NotificationLocalDatasource {
       if (ts == null) return false;
       try {
         return DateTime.parse(ts).isAfter(cutoff);
-      } catch (_) {
+      } catch (e) {
+        AppLogger.warning('Date parse failed during notification cleanup', error: e, category: 'notifications');
         return false;
       }
     }).toList();
@@ -148,7 +150,8 @@ class NotificationLocalDatasourceImpl implements NotificationLocalDatasource {
           .whereType<Map<String, dynamic>>()
           .map(Map<String, dynamic>.from)
           .toList();
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to read notification storage', error: e, category: 'notifications');
       return [];
     }
   }
@@ -182,7 +185,8 @@ class NotificationLocalDatasourceImpl implements NotificationLocalDatasource {
             ? Map<String, dynamic>.from(m['data'] as Map)
             : null,
       );
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to parse stored notification', error: e, category: 'notifications');
       return null;
     }
   }

@@ -701,7 +701,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
             'error': e.toString(),
           },
         );
-      } catch (_) {
+      } catch (e) {
         // Ignore analytics logging errors
       }
     }

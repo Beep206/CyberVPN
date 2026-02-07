@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Remote data source for profile-related API calls.
 ///
@@ -229,7 +230,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   OAuthProvider? _parseOAuthProvider(String name) {
     try {
       return OAuthProvider.values.byName(name);
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Unknown OAuth provider name', error: e, category: 'profile');
       return null;
     }
   }

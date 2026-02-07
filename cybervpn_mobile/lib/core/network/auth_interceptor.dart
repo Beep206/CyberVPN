@@ -28,8 +28,17 @@ class AuthInterceptor extends Interceptor {
   final SecureStorageWrapper _secureStorage;
   final Dio _dio;
 
-  /// Whether a token refresh is currently in progress.
-  bool _isRefreshing = false;
+  /// Completer-based mutex for token refresh. When non-null, a refresh is
+  /// in progress and new 401s should await the completer instead of starting
+  /// another refresh. This replaces the previous bool flag to prevent
+  /// concurrent refresh attempts from racing.
+  Completer<String?>? _refreshCompleter;
+
+  /// Consecutive refresh failure count for circuit breaker logic.
+  int _consecutiveRefreshFailures = 0;
+
+  /// Maximum consecutive failures before the circuit breaker trips.
+  static const int _circuitBreakerThreshold = 3;
 
   /// Queue of requests waiting for token refresh to complete.
   final List<_QueuedRequest> _requestQueue = [];
@@ -85,8 +94,19 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    // If refresh is already in progress, queue this request
-    if (_isRefreshing) {
+    // Circuit breaker: stop retrying after too many consecutive failures.
+    if (_consecutiveRefreshFailures >= _circuitBreakerThreshold) {
+      AppLogger.warning(
+        'Circuit breaker tripped: $_consecutiveRefreshFailures consecutive refresh failures, skipping refresh',
+        category: 'auth.interceptor',
+      );
+      handler.next(err);
+      return;
+    }
+
+    // If refresh is already in progress, wait for it via the Completer
+    // instead of starting a second refresh.
+    if (_refreshCompleter != null) {
       AppLogger.debug(
         'Token refresh in progress, queuing request: ${err.requestOptions.path}',
         category: 'auth.interceptor',
@@ -95,8 +115,8 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    // Start the refresh process
-    _isRefreshing = true;
+    // Start the refresh process with a Completer-based mutex.
+    _refreshCompleter = Completer<String?>();
     AppLogger.info(
       'Starting token refresh for 401 on: ${err.requestOptions.path}',
       category: 'auth.interceptor',
@@ -117,17 +137,26 @@ class AuthInterceptor extends Interceptor {
       final (newAccessToken, newRefreshToken) =
           await _performRefreshWithRetry(refreshToken);
 
-      // Store new tokens atomically
+      // Store new tokens atomically.
+      // SECURITY: If the server returns a new refresh token (rotation), we MUST
+      // persist it. Using the old refresh token after rotation triggers
+      // concurrent-usage detection on the server.
       await Future.wait([
         _secureStorage.write(key: _accessTokenKey, value: newAccessToken),
-        if (newRefreshToken != null)
+        if (newRefreshToken != null && newRefreshToken.isNotEmpty)
           _secureStorage.write(key: _refreshTokenKey, value: newRefreshToken),
       ]);
+
+      // Reset circuit breaker on success.
+      _consecutiveRefreshFailures = 0;
 
       AppLogger.info(
         'Token refresh successful, retrying original request and ${_requestQueue.length} queued requests',
         category: 'auth.interceptor',
       );
+
+      // Signal waiting requests that refresh succeeded.
+      _refreshCompleter?.complete(newAccessToken);
 
       // Retry the original request that triggered the refresh
       final retryResponse = await _retryRequest(err.requestOptions, newAccessToken);
@@ -136,13 +165,18 @@ class AuthInterceptor extends Interceptor {
       // Retry all queued requests with the new token
       await _retryAllQueuedRequests(newAccessToken);
     } catch (e, st) {
+      _consecutiveRefreshFailures++;
+
       final isPermanent = _isPermanentRefreshError(e);
       AppLogger.error(
-        'Token refresh failed (permanent=$isPermanent)',
+        'Token refresh failed (permanent=$isPermanent, consecutiveFailures=$_consecutiveRefreshFailures)',
         error: e,
         stackTrace: st,
         category: 'auth.interceptor',
       );
+
+      // Signal waiting requests that refresh failed.
+      _refreshCompleter?.complete(null);
 
       if (isPermanent) {
         // Only clear tokens on permanent auth failures (401, invalid_grant)
@@ -156,7 +190,7 @@ class AuthInterceptor extends Interceptor {
       // Fail the original request
       handler.next(err);
     } finally {
-      _isRefreshing = false;
+      _refreshCompleter = null;
     }
   }
 

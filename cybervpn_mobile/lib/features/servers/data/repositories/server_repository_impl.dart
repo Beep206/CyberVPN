@@ -8,6 +8,7 @@ import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_ds.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 class ServerRepositoryImpl with NetworkErrorHandler, CachedRepository implements ServerRepository {
   final ServerRemoteDataSource _remoteDataSource;
@@ -90,7 +91,8 @@ class ServerRepositoryImpl with NetworkErrorHandler, CachedRepository implements
       stopwatch.stop();
       if (result.isNotEmpty) return Success(stopwatch.elapsedMilliseconds);
       return const Success(-1);
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('DNS lookup failed during ping', error: e, category: 'servers');
       return const Success(-1);
     }
   }

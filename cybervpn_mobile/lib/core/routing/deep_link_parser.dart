@@ -225,7 +225,7 @@ class DeepLinkParser {
     final Uri uri;
     try {
       uri = Uri.parse(uriString);
-    } catch (_) {
+    } catch (e) {
       return (
         route: null,
         error: const DeepLinkParseError(
@@ -292,7 +292,7 @@ class DeepLinkParser {
         return true;
       }
       return false;
-    } catch (_) {
+    } catch (e) {
       return false;
     }
   }
@@ -388,7 +388,7 @@ class DeepLinkParser {
     // Verify it actually decodes.
     try {
       base64Decode(config.replaceAll('-', '+').replaceAll('_', '/'));
-    } catch (_) {
+    } catch (e) {
       return (
         route: null,
         error: DeepLinkParseError(
@@ -518,7 +518,7 @@ class DeepLinkParser {
     // Verify it actually decodes.
     try {
       base64Decode(authData.replaceAll('-', '+').replaceAll('_', '/'));
-    } catch (_) {
+    } catch (e) {
       return (
         route: null,
         error: DeepLinkParseError(

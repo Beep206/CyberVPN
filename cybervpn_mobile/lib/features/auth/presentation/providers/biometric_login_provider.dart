@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
+import 'package:cybervpn_mobile/features/auth/domain/services/device_bound_token_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
-import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show secureStorageProvider;
 
@@ -75,6 +75,8 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
   BiometricService get _biometricService =>
       ref.read(biometricServiceProvider);
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
+  DeviceBoundTokenService get _deviceTokenService =>
+      ref.read(deviceBoundTokenServiceProvider);
   AuthNotifier get _authNotifier => ref.read(authProvider.notifier);
 
   /// Checks if biometric login should be available for the user.
@@ -111,22 +113,22 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
       final enrollmentChanged = await _biometricService.hasEnrollmentChanged();
       if (enrollmentChanged) {
         AppLogger.warning(
-          'Biometric enrollment changed - invalidating credentials',
+          'Biometric enrollment changed - invalidating device token',
           category: 'auth.biometric',
         );
-        // Clear stored credentials
-        await _storage.clearBiometricCredentials();
+        // Clear stored device token
+        await _deviceTokenService.revoke();
         // Disable biometric login (user needs to re-enable)
         await _biometricService.setBiometricEnabled(false);
         state = const BiometricLoginEnrollmentChanged();
         return false;
       }
 
-      // Check if credentials are stored
-      final credentials = await _storage.getBiometricCredentials();
-      if (credentials == null) {
+      // Check if device token is enrolled
+      final isEnrolled = await _deviceTokenService.isEnrolled();
+      if (!isEnrolled) {
         AppLogger.info(
-          'Biometric login unavailable: no stored credentials',
+          'Biometric login unavailable: no device token enrolled',
           category: 'auth.biometric',
         );
         state = const BiometricLoginUnavailable();
@@ -179,48 +181,46 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
         return;
       }
 
-      // Biometric succeeded - retrieve credentials and log in
+      // Biometric succeeded - authenticate via device-bound token
       state = const BiometricLoginLoggingIn();
 
-      final credentials = await _storage.getBiometricCredentials();
-      if (credentials == null) {
+      final isEnrolled = await _deviceTokenService.isEnrolled();
+      if (!isEnrolled) {
         AppLogger.warning(
-          'Biometric succeeded but no credentials found',
+          'Biometric succeeded but no device token enrolled',
           category: 'auth.biometric',
         );
-        state = const BiometricLoginFailed('No stored credentials');
+        state = const BiometricLoginFailed('No device token enrolled');
         return;
       }
 
-      // Perform login with stored credentials
-      await _authNotifier.login(
-        credentials.email,
-        credentials.password,
-        rememberMe: true, // Biometric users want to stay logged in
-      );
+      // Perform login with device-bound token
+      final success = await _deviceTokenService.login();
 
-      // Check if login was successful by reading the auth state
-      final authState = ref.read(authProvider).value;
-      if (authState is AuthError) {
-        // Login failed - credentials are likely invalid (password changed)
+      if (!success) {
         AppLogger.warning(
-          'Biometric login failed: ${authState.message}',
+          'Biometric login failed: device token rejected',
           category: 'auth.biometric',
         );
 
-        // Clear invalid credentials
-        await _storage.clearBiometricCredentials();
+        // Clear invalid device token
+        await _deviceTokenService.revoke();
         AppLogger.info(
-          'Cleared invalid biometric credentials',
+          'Revoked invalid device token',
           category: 'auth.biometric',
         );
 
-        state = BiometricLoginCredentialsInvalid(authState.message);
+        state = const BiometricLoginCredentialsInvalid(
+          'Device token expired or revoked. Please re-enable biometric login.',
+        );
         return;
       }
+
+      // Force auth provider to re-check tokens
+      ref.invalidate(authProvider);
 
       AppLogger.info(
-        'Biometric login successful',
+        'Biometric login successful via device token',
         category: 'auth.biometric',
       );
       state = const BiometricLoginSuccess();
@@ -232,12 +232,12 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
         category: 'auth.biometric',
       );
 
-      // If it's an auth-related error, clear credentials
+      // If it's an auth-related error, revoke device token
       final errorMsg = e.toString().toLowerCase();
       if (errorMsg.contains('unauthorized') ||
           errorMsg.contains('invalid') ||
           errorMsg.contains('401')) {
-        await _storage.clearBiometricCredentials();
+        await _deviceTokenService.revoke();
         state = BiometricLoginCredentialsInvalid(e.toString());
       } else {
         state = BiometricLoginFailed(e.toString());

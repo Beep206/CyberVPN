@@ -16,6 +16,25 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 /// In debug mode ([kDebugMode]), certificate validation is bypassed to
 /// allow development against local servers or self-signed certificates.
 ///
+/// ## Certificate Transparency (CT) Enforcement
+///
+/// This app relies on **platform-level CT enforcement** rather than
+/// implementing custom CT checks:
+///
+/// - **Android**: CT is enforced by the platform since Android 10 (API 29+).
+///   The system TLS stack rejects certificates without valid SCTs.
+/// - **iOS**: CT is enforced by Apple's App Transport Security (ATS) since
+///   iOS 12.1.1. All publicly-trusted certificates must have CT compliance.
+///
+/// **Decision**: App-level CT checking is not implemented because:
+/// 1. Both platforms enforce CT at the TLS layer before our code runs.
+/// 2. Adding app-level CT would duplicate platform checks with marginal benefit.
+/// 3. Certificate pinning (this class) provides stronger assurance than CT alone.
+///
+/// **Monitoring**: CT logs for api.cybervpn.com should be monitored via
+/// https://crt.sh/?q=api.cybervpn.com to detect unauthorized certificate
+/// issuance. Set up alerts for new certificates issued for this domain.
+///
 /// ### Usage
 ///
 /// ```dart

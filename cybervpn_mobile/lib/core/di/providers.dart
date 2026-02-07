@@ -54,6 +54,7 @@ import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_r
 import 'package:cybervpn_mobile/features/referral/data/repositories/referral_repository_impl.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/repositories/server_repository_impl.dart';
+import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/favorites_local_datasource.dart';
@@ -284,6 +285,12 @@ class ActiveDnsServersNotifier extends Notifier<List<String>?> {
 
 // ---------------------------------------------------------------------------
 // Subscription repository & related providers
+//
+// Scoping: Subscription providers are global because subscription state
+// affects multiple features (VPN connection eligibility, server list filtering
+// for premium servers, profile display). If subscription state were scoped
+// to the subscription feature only, other features would need to duplicate
+// the data source or introduce cross-feature dependencies.
 // ---------------------------------------------------------------------------
 
 /// Provides the [SubscriptionLocalDataSource] for persistent caching.
@@ -331,7 +338,23 @@ final registerUseCaseProvider = Provider<RegisterUseCase>((ref) {
 
 // ---------------------------------------------------------------------------
 // Server repository & related providers
+//
+// Scoping: Server providers are global because server data (list, favorites,
+// ping results) is shared across multiple features (connection, settings,
+// quick-connect). The serverDetailProvider uses .family to allow parameterized
+// access by server ID without global state pollution.
 // ---------------------------------------------------------------------------
+
+/// Provides details for a specific server by ID.
+///
+/// Uses the `.family` modifier so each server ID gets its own cached provider
+/// instance, avoiding unnecessary rebuilds across the server list.
+final serverDetailProvider =
+    FutureProvider.family<ServerEntity?, String>((ref, serverId) async {
+  final repo = ref.watch(serverRepositoryProvider);
+  final result = await repo.getServerById(serverId);
+  return result.fold((_) => null, (server) => server);
+});
 
 /// Provides the [ServerRepository] lazily via ref.watch.
 final serverRepositoryProvider = Provider<ServerRepository>((ref) {

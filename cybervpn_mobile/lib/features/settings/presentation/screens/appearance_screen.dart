@@ -179,7 +179,7 @@ class AppearanceScreen extends ConsumerWidget {
 
     try {
       return Platform.isAndroid;
-    } catch (_) {
+    } catch (e) {
       // Platform not available (e.g. in tests without platform override).
       return false;
     }

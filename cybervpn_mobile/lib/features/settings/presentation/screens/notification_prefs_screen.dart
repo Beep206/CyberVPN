@@ -165,7 +165,7 @@ class NotificationPrefsScreen extends ConsumerWidget {
   bool get _isAndroid {
     try {
       return Platform.isAndroid;
-    } catch (_) {
+    } catch (e) {
       return false;
     }
   }

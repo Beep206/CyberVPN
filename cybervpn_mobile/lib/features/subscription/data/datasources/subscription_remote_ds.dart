@@ -1,6 +1,7 @@
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 abstract class SubscriptionRemoteDataSource {
   Future<List<PlanEntity>> fetchPlans();
@@ -67,7 +68,8 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
         trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt() ?? 0,
         maxDevices: (data['max_devices'] as num?)?.toInt() ?? 1,
       );
-    } catch (_) {
+    } catch (e) {
+      AppLogger.warning('Failed to parse subscription data', error: e, category: 'subscription');
       return null;
     }
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection_observer.dart';
@@ -187,6 +188,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ScreenProtectionObserver(),
     ],
     redirect: (context, state) {
+      try {
       // Read current state inside redirect (not captured in provider body)
       // so values are always fresh when redirect is re-evaluated.
       final authState = ref.read(authProvider);
@@ -290,6 +292,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       return null;
+      } catch (e, st) {
+        AppLogger.error('Router redirect failed', error: e, stackTrace: st, category: 'router');
+        return '/login';
+      }
     },
     routes: [
       // -- Onboarding route (no bottom nav, before auth) --------------------
