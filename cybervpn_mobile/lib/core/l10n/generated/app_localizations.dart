@@ -645,6 +645,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsSelectCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a category'**
+  String get settingsSelectCategory;
+
   /// No description provided for @settingsGeneral.
   ///
   /// In en, this message translates to:

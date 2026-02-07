@@ -283,6 +283,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsTitle => 'Настройки';
 
   @override
+  String get settingsSelectCategory => 'Select a category';
+
+  @override
   String get settingsGeneral => 'Основные';
 
   @override

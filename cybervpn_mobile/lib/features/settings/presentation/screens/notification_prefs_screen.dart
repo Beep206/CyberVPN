@@ -27,22 +27,25 @@ import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 ///
 /// All changes are persisted via [settingsProvider].
 class NotificationPrefsScreen extends ConsumerWidget {
-  const NotificationPrefsScreen({super.key});
+  final bool embedded;
+  const NotificationPrefsScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSettings = ref.watch(settingsProvider);
     final l10n = AppLocalizations.of(context);
 
+    final content = asyncSettings.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildError(context, ref, error),
+      data: (settings) => _buildBody(context, ref, settings),
+    );
+
+    if (embedded) return content;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsNotificationPrefsTitle),
-      ),
-      body: asyncSettings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _buildError(context, ref, error),
-        data: (settings) => _buildBody(context, ref, settings),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsNotificationPrefsTitle)),
+      body: content,
     );
   }
 

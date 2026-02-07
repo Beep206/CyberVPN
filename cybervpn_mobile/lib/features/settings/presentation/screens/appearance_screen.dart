@@ -9,6 +9,7 @@ import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.d
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 // ---------------------------------------------------------------------------
 // AppearanceScreen
@@ -21,22 +22,25 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 /// - Brightness (System / Light / Dark) via segmented button
 /// - Dynamic color toggle (Android 12+ with Material You only)
 class AppearanceScreen extends ConsumerWidget {
-  const AppearanceScreen({super.key});
+  final bool embedded;
+  const AppearanceScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSettings = ref.watch(settingsProvider);
     final l10n = AppLocalizations.of(context);
 
+    final content = asyncSettings.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildError(context, ref, error),
+      data: (settings) => _buildBody(context, ref, settings),
+    );
+
+    if (embedded) return content;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsAppearance),
-      ),
-      body: asyncSettings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _buildError(context, ref, error),
-        data: (settings) => _buildBody(context, ref, settings),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsAppearance)),
+      body: content,
     );
   }
 
@@ -121,6 +125,23 @@ class AppearanceScreen extends ConsumerWidget {
                 value: settings.oledMode,
                 onChanged: (value) =>
                     notifier.updateOledMode(value as bool),
+              ),
+            ],
+          ),
+
+        // --- Scanline Effect (only when cyberpunk theme is active) ---
+        if (settings.themeMode == AppThemeMode.cyberpunk)
+          SettingsSection(
+            title: l10n.settingsScanlineLabel,
+            children: [
+              SettingsTile.toggle(
+                key: const Key('tile_scanline_effect'),
+                title: l10n.settingsScanlineLabel,
+                subtitle: l10n.settingsScanlineDescription,
+                leading: const Icon(Icons.monitor_outlined),
+                value: settings.scanlineEffect,
+                onChanged: (value) =>
+                    notifier.updateScanlineEffect(value as bool),
               ),
             ],
           ),
@@ -235,38 +256,55 @@ class _ThemeModePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final isTablet = ResponsiveLayout.isAtLeastMediumOf(context);
+
+    final materialYouCard = _ThemePreviewCard(
+      key: const Key('theme_card_material_you'),
+      label: l10n.settingsThemeMaterialYou,
+      icon: Icons.auto_awesome_outlined,
+      isSelected: selected == AppThemeMode.materialYou,
+      thumbnailHeight: isTablet ? 140.0 : 96.0,
+      previewColors: const _PreviewColors(
+        background: Color(0xFFF5F5F5),
+        primary: Color(0xFF6750A4),
+        surface: Colors.white,
+      ),
+      onTap: () => onChanged(AppThemeMode.materialYou),
+    );
+
+    final cyberpunkCard = _ThemePreviewCard(
+      key: const Key('theme_card_cyberpunk'),
+      label: l10n.settingsThemeCyberpunk,
+      icon: Icons.electric_bolt_outlined,
+      isSelected: selected == AppThemeMode.cyberpunk,
+      thumbnailHeight: isTablet ? 140.0 : 96.0,
+      previewColors: const _PreviewColors(
+        background: CyberColors.deepNavy,
+        primary: CyberColors.matrixGreen,
+        surface: CyberColors.darkBg,
+      ),
+      onTap: () => onChanged(AppThemeMode.cyberpunk),
+    );
+
+    // On tablets (>=600dp), display in a 2-column grid with larger cards.
+    if (isTablet) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Row(
+          children: [
+            Expanded(child: materialYouCard),
+            const SizedBox(width: Spacing.lg),
+            Expanded(child: cyberpunkCard),
+          ],
+        ),
+      );
+    }
 
     return Row(
       children: [
-        Expanded(
-          child: _ThemePreviewCard(
-            key: const Key('theme_card_material_you'),
-            label: l10n.settingsThemeMaterialYou,
-            icon: Icons.auto_awesome_outlined,
-            isSelected: selected == AppThemeMode.materialYou,
-            previewColors: const _PreviewColors(
-              background: Color(0xFFF5F5F5),
-              primary: Color(0xFF6750A4),
-              surface: Colors.white,
-            ),
-            onTap: () => onChanged(AppThemeMode.materialYou),
-          ),
-        ),
+        Expanded(child: materialYouCard),
         const SizedBox(width: Spacing.md),
-        Expanded(
-          child: _ThemePreviewCard(
-            key: const Key('theme_card_cyberpunk'),
-            label: l10n.settingsThemeCyberpunk,
-            icon: Icons.electric_bolt_outlined,
-            isSelected: selected == AppThemeMode.cyberpunk,
-            previewColors: const _PreviewColors(
-              background: CyberColors.deepNavy,
-              primary: CyberColors.matrixGreen,
-              surface: CyberColors.darkBg,
-            ),
-            onTap: () => onChanged(AppThemeMode.cyberpunk),
-          ),
-        ),
+        Expanded(child: cyberpunkCard),
       ],
     );
   }
@@ -302,6 +340,7 @@ class _ThemePreviewCard extends StatelessWidget {
     required this.isSelected,
     required this.previewColors,
     required this.onTap,
+    this.thumbnailHeight = 96,
   });
 
   final String label;
@@ -309,6 +348,7 @@ class _ThemePreviewCard extends StatelessWidget {
   final bool isSelected;
   final _PreviewColors previewColors;
   final VoidCallback onTap;
+  final double thumbnailHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +371,7 @@ class _ThemePreviewCard extends StatelessWidget {
           children: [
             // Preview thumbnail
             Container(
-              height: 96,
+              height: thumbnailHeight,
               width: double.infinity,
               color: previewColors.background,
               child: _buildThumbnail(),

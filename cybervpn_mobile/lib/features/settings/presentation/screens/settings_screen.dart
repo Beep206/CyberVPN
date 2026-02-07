@@ -14,7 +14,13 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
 import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/appearance_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -53,9 +59,15 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
+/// Represents a settings detail page for the master-detail layout.
+enum _SettingsDetail { vpn, appearance, language, notifications, account, debug }
+
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Global key for the appearance tile to position the tooltip.
   final GlobalKey _appearanceTileKey = GlobalKey();
+
+  /// Currently selected detail page for tablet layout.
+  _SettingsDetail? _selectedDetail;
 
   /// Service to track shown tooltips.
   final TooltipPreferencesService _tooltipService = TooltipPreferencesService();
@@ -146,10 +158,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ── Build ────────────────────────────────────────────────────────────────
 
+  /// Whether we should use the wide layout (tablet / landscape).
+  bool _isWide(BuildContext context) =>
+      ResponsiveLayout.isAtLeastMediumOf(context);
+
+  /// Navigate to a detail page: push on phone, select pane on tablet.
+  void _navigateToDetail(BuildContext context, _SettingsDetail detail, String route) {
+    if (_isWide(context)) {
+      setState(() => _selectedDetail = detail);
+    } else {
+      context.push(route);
+    }
+  }
+
+  /// Builds the right-hand detail pane content for tablet layout.
+  Widget _buildDetailPane(BuildContext context) {
+    return switch (_selectedDetail) {
+      _SettingsDetail.vpn => const VpnSettingsScreen(embedded: true),
+      _SettingsDetail.appearance => const AppearanceScreen(embedded: true),
+      _SettingsDetail.language => const LanguageScreen(embedded: true),
+      _SettingsDetail.notifications => const NotificationPrefsScreen(embedded: true),
+      _SettingsDetail.account => const _DetailPlaceholder(icon: Icons.security_outlined),
+      _SettingsDetail.debug => const DebugScreen(embedded: true),
+      null => Center(
+          child: Text(
+            AppLocalizations.of(context).settingsSelectCategory,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncSettings = ref.watch(settingsProvider);
     final l10n = AppLocalizations.of(context);
+    final isWide = _isWide(context);
+
+    final body = asyncSettings.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildError(context, error),
+      data: (settings) => _buildBody(context, settings),
+    );
+
+    if (isWide) {
+      return Scaffold(
+        appBar: AppBar(
+          title: GlitchText(
+            text: l10n.settingsTitle,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
+          ),
+        ),
+        body: Row(
+          children: [
+            SizedBox(width: 320, child: body),
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(child: _buildDetailPane(context)),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -158,11 +228,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           style: Theme.of(context).appBarTheme.titleTextStyle,
         ),
       ),
-      body: asyncSettings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _buildError(context, error),
-        data: (settings) => _buildBody(context, settings),
-      ),
+      body: body,
     );
   }
 
@@ -205,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.settingsVpn,
               subtitle: _protocolLabel(settings.preferredProtocol),
               leading: const Icon(Icons.vpn_key_outlined),
-              onTap: () => context.push('/settings/vpn'),
+              onTap: () => _navigateToDetail(context, _SettingsDetail.vpn, '/settings/vpn'),
             ),
           ],
         ),
@@ -220,7 +286,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle:
                   '${_themeModeLabel(settings.themeMode)} / ${_brightnessLabel(settings.brightness)}',
               leading: const Icon(Icons.palette_outlined),
-              onTap: () => context.push('/settings/appearance'),
+              onTap: () => _navigateToDetail(context, _SettingsDetail.appearance, '/settings/appearance'),
             ),
           ],
         ),
@@ -234,7 +300,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.language,
               subtitle: _localeName(settings.locale),
               leading: const Icon(Icons.language_outlined),
-              onTap: () => context.push('/settings/language'),
+              onTap: () => _navigateToDetail(context, _SettingsDetail.language, '/settings/language'),
             ),
           ],
         ),
@@ -249,7 +315,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: l10n.settingsNotificationCountEnabled(
                   _enabledNotificationCount(settings)),
               leading: const Icon(Icons.notifications_outlined),
-              onTap: () => context.push('/settings/notifications'),
+              onTap: () => _navigateToDetail(context, _SettingsDetail.notifications, '/settings/notifications'),
             ),
           ],
         ),
@@ -316,7 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.settingsDebugAbout,
               subtitle: l10n.settingsDebugAboutSubtitle,
               leading: const Icon(Icons.bug_report_outlined),
-              onTap: () => context.push('/settings/debug'),
+              onTap: () => _navigateToDetail(context, _SettingsDetail.debug, '/settings/debug'),
             ),
           ],
         ),
@@ -337,5 +403,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       PreferredProtocol.vlessXhttp => 'VLESS XHTTP',
       PreferredProtocol.vlessWsTls => 'VLESS WS+TLS',
     };
+  }
+}
+
+/// Placeholder widget shown in the detail pane when a full-screen navigation
+/// target does not have an embeddable variant.
+class _DetailPlaceholder extends StatelessWidget {
+  final IconData icon;
+  const _DetailPlaceholder({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Icon(icon, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
+    );
   }
 }

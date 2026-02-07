@@ -28,7 +28,8 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 /// - Hidden developer mode (7-tap activation on version)
 /// - Developer panel with raw config viewer, force crash, experimental features
 class DebugScreen extends ConsumerStatefulWidget {
-  const DebugScreen({super.key});
+  final bool embedded;
+  const DebugScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<DebugScreen> createState() => _DebugScreenState();
@@ -99,15 +100,17 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
     final l10n = AppLocalizations.of(context);
 
+    final content = asyncSettings.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildError(context, ref, error),
+      data: (settings) => _buildBody(context, settings),
+    );
+
+    if (widget.embedded) return content;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsDebugAbout),
-      ),
-      body: asyncSettings.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _buildError(context, ref, error),
-        data: (settings) => _buildBody(context, settings),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsDebugAbout)),
+      body: content,
     );
   }
 
