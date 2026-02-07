@@ -64,7 +64,6 @@ class AppConstants {
   static const String userIdKey = 'user_id';
   static const String onboardingCompleteKey = 'onboarding_complete';
   static const String selectedLocaleKey = 'selected_locale';
-  static const String themeKey = 'theme_mode';
 
   // ── Feature Flags ─────────────────────────────────────────────────────
 

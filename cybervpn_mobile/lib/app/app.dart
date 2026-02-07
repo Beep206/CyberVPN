@@ -42,7 +42,7 @@ double _textScaleToDouble(TextScale scale, double systemScale) {
 /// Root application widget.
 ///
 /// Uses [ConsumerWidget] to access Riverpod providers and configures
-/// [MaterialApp.router] with go_router, theming (via [ThemeNotifier] with
+/// [MaterialApp.router] with go_router, theming (via [settingsProvider] with
 /// persistence), and localization delegates.
 ///
 /// Wraps the [MaterialApp] with [DynamicColorBuilder] so that on Android 12+
@@ -164,103 +164,227 @@ class CyberVpnApp extends ConsumerWidget {
 /// Placed inside the [MaterialApp.router] builder so that it participates in
 /// the widget tree beneath the router, receiving proper [BuildContext] with
 /// localization, theme, and directionality already configured.
-class _AppLifecycleManager extends ConsumerWidget {
+///
+/// Uses [ConsumerStatefulWidget] with [WidgetsBindingObserver] so it can
+/// observe app lifecycle events (foreground/background) and reconnect the
+/// WebSocket when the app resumes.
+class _AppLifecycleManager extends ConsumerStatefulWidget {
   const _AppLifecycleManager({required this.child});
 
   final Widget child;
 
   @override
+  ConsumerState<_AppLifecycleManager> createState() =>
+      _AppLifecycleManagerState();
+}
+
+class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
+    with WidgetsBindingObserver {
+  /// Minimum interval between WebSocket reconnect attempts triggered by
+  /// foreground transitions. Prevents rapid reconnects when the OS delivers
+  /// multiple resumed events in quick succession.
+  static const _reconnectDebounce = Duration(seconds: 5);
+
+  /// Tracks the last time a foreground-triggered WebSocket reconnect was
+  /// initiated so we can enforce [_reconnectDebounce].
+  DateTime? _lastWsReconnectAttempt;
+
+  /// Whether a force-disconnect dialog is currently being shown.
+  /// Prevents stacking multiple dialogs if several events arrive in sequence.
+  bool _isForceDisconnectDialogShowing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _onAppResumed();
+    }
+  }
+
+  /// Called when the app transitions from background to foreground.
+  ///
+  /// Attempts to reconnect the WebSocket if:
+  /// 1. The user is authenticated.
+  /// 2. The WebSocket is not already connected.
+  /// 3. Enough time has elapsed since the last reconnect attempt (debounce).
+  void _onAppResumed() {
+    try {
+      final isAuthenticated = ref.read(isAuthenticatedProvider);
+      if (!isAuthenticated) {
+        AppLogger.debug(
+          'WebSocket foreground reconnect: user not authenticated, skipping',
+          category: 'lifecycle.websocket',
+        );
+        return;
+      }
+
+      final client = ref.read(webSocketClientProvider);
+      if (client.connectionState == WebSocketConnectionState.connected) {
+        AppLogger.debug(
+          'WebSocket foreground reconnect: already connected, skipping',
+          category: 'lifecycle.websocket',
+        );
+        return;
+      }
+
+      // Debounce: skip if a reconnect was attempted very recently.
+      final now = DateTime.now();
+      if (_lastWsReconnectAttempt != null &&
+          now.difference(_lastWsReconnectAttempt!) < _reconnectDebounce) {
+        AppLogger.debug(
+          'WebSocket foreground reconnect: debounced, skipping',
+          category: 'lifecycle.websocket',
+        );
+        return;
+      }
+
+      _lastWsReconnectAttempt = now;
+      AppLogger.info(
+        'App resumed from background, reconnecting WebSocket',
+        category: 'lifecycle.websocket',
+      );
+      unawaited(client.connect().catchError((Object e, StackTrace st) {
+        AppLogger.warning(
+          'WebSocket reconnect on foreground failed',
+          error: e,
+          stackTrace: st,
+          category: 'lifecycle.websocket',
+        );
+      }));
+    } catch (e, st) {
+      AppLogger.error(
+        'WebSocket foreground reconnect handler failed',
+        error: e,
+        stackTrace: st,
+        category: 'lifecycle.websocket',
+      );
+    }
+  }
+
+  /// Shows an [AlertDialog] explaining that the VPN was force-disconnected.
+  ///
+  /// Uses l10n keys [forceDisconnectTitle] and [forceDisconnectMessage] for
+  /// the dialog content, with [commonOk] for the dismiss button.
+  void _showForceDisconnectDialog(ForceDisconnect event) {
+    if (_isForceDisconnectDialogShowing) return;
+    _isForceDisconnectDialogShowing = true;
+
+    final l10n = AppLocalizations.of(context);
+
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.forceDisconnectTitle),
+          content: Text(
+            event.reason.isNotEmpty
+                ? '${l10n.forceDisconnectMessage}\n\n${event.reason}'
+                : l10n.forceDisconnectMessage,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
+        ),
+      ).then((_) {
+        _isForceDisconnectDialogShowing = false;
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Each _LifecycleWatcher is a separate Consumer that watches a single
+    // provider. This prevents one provider change from rebuilding all others.
+    return _LifecycleWatcher(
+      name: 'quickActionsListener',
+      watch: (ref) => ref.watch(quickActionsListenerProvider),
+      child: _LifecycleWatcher(
+        name: 'widgetStateListener',
+        watch: (ref) => ref.watch(widgetStateListenerProvider),
+        child: _LifecycleWatcher(
+          name: 'widgetToggleHandler',
+          watch: (ref) => ref.watch(widgetToggleHandlerProvider),
+          child: _LifecycleWatcher(
+            name: 'quickSettingsChannel',
+            watch: (ref) => ref.watch(quickSettingsChannelProvider),
+            child: _LifecycleWatcher(
+              name: 'untrustedWifiHandler',
+              watch: (ref) => ref.watch(untrustedWifiHandlerProvider),
+              child: _LifecycleWatcher(
+                name: 'fcmTopicSync',
+                watch: (ref) => ref.watch(fcmTopicSyncProvider),
+                child: _LifecycleWatcher(
+                  name: 'notification',
+                  watch: (ref) => ref.watch(notificationProvider),
+                  child: _NotificationBannerListener(
+                    child: _ForceDisconnectListener(
+                      onForceDisconnect: _showForceDisconnectDialog,
+                      child: _BiometricEnrollmentListener(
+                        child: widget.child,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Watches a single provider in isolation to prevent rebuild cascading.
+class _LifecycleWatcher extends ConsumerWidget {
+  const _LifecycleWatcher({
+    required this.name,
+    required this.watch,
+    required this.child,
+  });
+
+  final String name;
+  final void Function(WidgetRef ref) watch;
+  final Widget child;
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Initialize quick actions listener to watch VPN state changes.
     try {
-      ref.watch(quickActionsListenerProvider);
+      watch(ref);
     } catch (e, st) {
       AppLogger.error(
-        'quickActionsListenerProvider failed',
+        '${name}Provider failed',
         category: 'lifecycle',
         error: e,
         stackTrace: st,
       );
     }
+    return child;
+  }
+}
 
-    // Initialize widget state listener to sync VPN state to home screen widgets.
-    try {
-      ref.watch(widgetStateListenerProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'widgetStateListenerProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
+/// Listens to WebSocket NotificationReceived events and shows in-app banners.
+class _NotificationBannerListener extends ConsumerWidget {
+  const _NotificationBannerListener({required this.child});
 
-    // Initialize widget toggle handler to respond to widget button taps.
-    try {
-      ref.watch(widgetToggleHandlerProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'widgetToggleHandlerProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
+  final Widget child;
 
-    // Initialize Quick Settings channel for Android Quick Settings tile.
-    try {
-      ref.watch(quickSettingsChannelProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'quickSettingsChannelProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
-
-    // Initialize untrusted WiFi handler to auto-connect VPN when joining
-    // untrusted networks (starts/stops based on user preference).
-    try {
-      ref.watch(untrustedWifiHandlerProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'untrustedWifiHandlerProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
-
-    // Sync FCM topic subscriptions when settings change.
-    try {
-      ref.watch(fcmTopicSyncProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'fcmTopicSyncProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
-
-    // Initialize notification provider so it listens for FCM and WebSocket
-    // notification events from app startup (not just when the notification
-    // center screen is visited).
-    try {
-      ref.watch(notificationProvider);
-    } catch (e, st) {
-      AppLogger.error(
-        'notificationProvider failed',
-        category: 'lifecycle',
-        error: e,
-        stackTrace: st,
-      );
-    }
-
-    // Listen to WebSocket NotificationReceived events and show an in-app
-    // banner for each incoming notification. This provides immediate visual
-    // feedback to the user regardless of which screen they are on.
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     try {
       ref.listen<AsyncValue<NotificationReceived>>(
         notificationEventsProvider,
@@ -269,7 +393,7 @@ class _AppLifecycleManager extends ConsumerWidget {
           final event = next.value;
           if (event == null) return;
 
-          final title = event.title.isNotEmpty ? event.title : 'Notification';
+          final title = event.title.isNotEmpty ? event.title : AppLocalizations.of(context).notificationFallbackTitle;
           final body = event.body.isNotEmpty ? event.body : '';
 
           InAppBanner.show(
@@ -290,10 +414,57 @@ class _AppLifecycleManager extends ConsumerWidget {
         stackTrace: st,
       );
     }
+    return child;
+  }
+}
 
-    // Watch for biometric enrollment changes.
-    // When enrollment changes (user added/removed fingerprint or face),
-    // force logout and show a message explaining re-auth is needed.
+/// Listens to WebSocket ForceDisconnect events and shows alert dialog.
+class _ForceDisconnectListener extends ConsumerWidget {
+  const _ForceDisconnectListener({
+    required this.onForceDisconnect,
+    required this.child,
+  });
+
+  final void Function(ForceDisconnect event) onForceDisconnect;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    try {
+      ref.listen<AsyncValue<ForceDisconnect>>(
+        forceDisconnectEventsProvider,
+        (_, next) {
+          if (!next.hasValue) return;
+          final event = next.value;
+          if (event == null) return;
+
+          AppLogger.warning(
+            'ForceDisconnect event received: ${event.reason}',
+            category: 'lifecycle.websocket',
+          );
+          onForceDisconnect(event);
+        },
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'ForceDisconnect listener failed',
+        category: 'lifecycle',
+        error: e,
+        stackTrace: st,
+      );
+    }
+    return child;
+  }
+}
+
+/// Listens to biometric enrollment changes and forces logout.
+class _BiometricEnrollmentListener extends ConsumerWidget {
+  const _BiometricEnrollmentListener({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     try {
       ref.listen(enrollmentChangeProvider, (_, next) {
         if (next.hasValue) {
@@ -303,15 +474,12 @@ class _AppLifecycleManager extends ConsumerWidget {
           );
           unawaited(ref.read(authProvider.notifier).logout());
 
-          // Show a snackbar explaining why re-auth is needed
           final messenger = ScaffoldMessenger.maybeOf(context);
+          final l10n = AppLocalizations.of(context);
           messenger?.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Your biometric data has changed. '
-                'Please sign in again for security.',
-              ),
-              duration: Duration(seconds: 5),
+            SnackBar(
+              content: Text(l10n.biometricDataChanged),
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -324,7 +492,6 @@ class _AppLifecycleManager extends ConsumerWidget {
         stackTrace: st,
       );
     }
-
     return child;
   }
 }
