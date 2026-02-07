@@ -113,7 +113,7 @@ class WidgetStateListener {
       VpnReconnecting() => 'connecting',
       VpnDisconnected() => 'disconnected',
       VpnDisconnecting() => 'disconnected',
-      VpnError() => 'disconnected',
+      VpnError() || VpnForceDisconnected() => 'disconnected',
     };
   }
 }
