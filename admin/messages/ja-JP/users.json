@@ -1,6 +1,0 @@
-{
-  "title": "ユーザー管理",
-  "subtitle": "アクセス制御とサブスクリプション監視。",
-  "totalUsers": "総ユーザー数: {count}",
-  "newToday": "本日の新規: {count}"
-}

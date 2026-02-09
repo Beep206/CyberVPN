@@ -1357,6 +1357,22 @@ class AppLocalizationsCs extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4104,4 +4120,163 @@ class AppLocalizationsCs extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'právě teď';
+
+  @override
+  String get relativeYesterday => 'včera';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count minutami',
+      many: 'před $count minuty',
+      few: 'před $count minutami',
+      one: 'před 1 minutou',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count hodinami',
+      many: 'před $count hodiny',
+      few: 'před $count hodinami',
+      one: 'před 1 hodinou',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count dny',
+      many: 'před $count dne',
+      few: 'před $count dny',
+      one: 'před 1 dnem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count týdny',
+      many: 'před $count týdne',
+      few: 'před $count týdny',
+      one: 'před 1 týdnem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count měsíci',
+      many: 'před $count měsíce',
+      few: 'před $count měsíci',
+      one: 'před 1 měsícem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'před $count lety',
+      many: 'před $count roku',
+      few: 'před $count lety',
+      one: 'před 1 rokem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'za několik sekund';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'za $count minut',
+      many: 'za $count minuty',
+      few: 'za $count minuty',
+      one: 'za 1 minutu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'za $count hodin',
+      many: 'za $count hodiny',
+      few: 'za $count hodiny',
+      one: 'za 1 hodinu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Oznámení';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Export záznamů selhal: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Vyčištění mezipaměti selhalo: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Obnovení nastavení selhalo: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Přidání sítě selhalo: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Připojování $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Připojení OAuth selhalo: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Připojení $provider selhalo: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Odpojení $provider selhalo: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'SMAZAT';
 }

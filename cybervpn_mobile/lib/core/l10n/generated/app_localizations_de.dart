@@ -1355,6 +1355,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'gerade eben';
+
+  @override
+  String get relativeYesterday => 'gestern';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Minuten',
+      one: 'vor 1 Minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Stunden',
+      one: 'vor 1 Stunde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Tagen',
+      one: 'vor 1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Wochen',
+      one: 'vor 1 Woche',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Monaten',
+      one: 'vor 1 Monat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vor $count Jahren',
+      one: 'vor 1 Jahr',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'in wenigen Sekunden';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $count Minuten',
+      one: 'in 1 Minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'in $count Stunden',
+      one: 'in 1 Stunde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Benachrichtigung';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Protokollexport fehlgeschlagen: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Cache löschen fehlgeschlagen: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Einstellungen zurücksetzen fehlgeschlagen: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Netzwerk hinzufügen fehlgeschlagen: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return '$provider wird verknüpft...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'OAuth-Verknüpfung fehlgeschlagen: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return '$provider verknüpfen fehlgeschlagen: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return '$provider Verknüpfung lösen fehlgeschlagen: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'LÖSCHEN';
 }

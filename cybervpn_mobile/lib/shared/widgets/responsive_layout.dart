@@ -97,6 +97,55 @@ class ResponsiveLayout extends StatelessWidget {
   static bool isAtLeastMedium(double width) =>
       width >= Breakpoints.compact;
 
+  /// Whether the current screen is at least medium (>= 600dp).
+  ///
+  /// Convenience wrapper around [isAtLeastMedium] that reads the width
+  /// from [MediaQuery].
+  static bool isAtLeastMediumOf(BuildContext context) =>
+      isAtLeastMedium(MediaQuery.sizeOf(context).width);
+
+  /// Whether the given [width] is expanded (>= 840dp).
+  static bool isExpanded(double width) =>
+      width >= Breakpoints.medium;
+
+  /// Whether the current screen width is expanded (>= 840dp).
+  static bool isExpandedOf(BuildContext context) =>
+      isExpanded(MediaQuery.sizeOf(context).width);
+
+  /// Returns the number of grid columns for the current screen width
+  /// using the Material 3 window size class thresholds.
+  ///
+  /// Compact: 2, Medium: 3, Expanded: 4.
+  static int adaptiveGridColumnsOf(BuildContext context) =>
+      adaptiveGridColumns(MediaQuery.sizeOf(context).width);
+
+  /// Returns `true` when the device is in landscape orientation.
+  static bool isLandscape(BuildContext context) =>
+      MediaQuery.orientationOf(context) == Orientation.landscape;
+
+  /// Returns the number of grid columns for the given [width], boosted
+  /// when the device is in [landscape] orientation.
+  ///
+  /// In landscape the column count is raised by one tier (compact -> medium,
+  /// medium -> expanded) so that the extra horizontal space is used.
+  static int adaptiveGridColumnsForOrientation(
+    double width, {
+    required bool landscape,
+  }) {
+    final base = adaptiveGridColumns(width);
+    if (!landscape) return base;
+    // In landscape, bump up by one tier, capped at 4.
+    return (base + 1).clamp(2, 4);
+  }
+
+  /// Whether the layout should use a wide / side-by-side arrangement.
+  ///
+  /// Returns `true` when either the width is at least medium **or** the device
+  /// is in landscape orientation (giving phones the same treatment as tablets
+  /// when turned sideways).
+  static bool shouldUseWideLayout(double width, BuildContext context) =>
+      isAtLeastMedium(width) || isLandscape(context);
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;

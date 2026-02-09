@@ -1370,6 +1370,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4116,4 +4132,174 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'الآن';
+
+  @override
+  String get relativeYesterday => 'أمس';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count دقيقة',
+      many: 'منذ $count دقيقة',
+      few: 'منذ $count دقائق',
+      two: 'منذ دقيقتين',
+      one: 'منذ دقيقة',
+      zero: 'الآن',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count ساعة',
+      many: 'منذ $count ساعة',
+      few: 'منذ $count ساعات',
+      two: 'منذ ساعتين',
+      one: 'منذ ساعة',
+      zero: 'الآن',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count يوم',
+      many: 'منذ $count يومًا',
+      few: 'منذ $count أيام',
+      two: 'منذ يومين',
+      one: 'منذ يوم',
+      zero: 'اليوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count أسبوع',
+      many: 'منذ $count أسبوعًا',
+      few: 'منذ $count أسابيع',
+      two: 'منذ أسبوعين',
+      one: 'منذ أسبوع',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count شهر',
+      many: 'منذ $count شهرًا',
+      few: 'منذ $count أشهر',
+      two: 'منذ شهرين',
+      one: 'منذ شهر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'منذ $count سنة',
+      many: 'منذ $count سنة',
+      few: 'منذ $count سنوات',
+      two: 'منذ سنتين',
+      one: 'منذ سنة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'خلال ثوانٍ';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'خلال $count دقيقة',
+      many: 'خلال $count دقيقة',
+      few: 'خلال $count دقائق',
+      two: 'خلال دقيقتين',
+      one: 'خلال دقيقة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'خلال $count ساعة',
+      many: 'خلال $count ساعة',
+      few: 'خلال $count ساعات',
+      two: 'خلال ساعتين',
+      one: 'خلال ساعة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'إشعار';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'فشل تصدير السجلات: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'فشل مسح التخزين المؤقت: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'فشل إعادة تعيين الإعدادات: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'فشل إضافة الشبكة: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'جارٍ ربط $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'فشل إكمال ربط OAuth: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'فشل ربط $provider: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'فشل إلغاء ربط $provider: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'حذف';
 }

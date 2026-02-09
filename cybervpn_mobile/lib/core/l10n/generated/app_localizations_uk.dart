@@ -1369,6 +1369,22 @@ class AppLocalizationsUk extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4117,4 +4133,163 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'щойно';
+
+  @override
+  String get relativeYesterday => 'вчора';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count хвилин тому',
+      many: '$count хвилин тому',
+      few: '$count хвилини тому',
+      one: '1 хвилину тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count годин тому',
+      many: '$count годин тому',
+      few: '$count години тому',
+      one: '1 годину тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count днів тому',
+      many: '$count днів тому',
+      few: '$count дні тому',
+      one: '1 день тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count тижнів тому',
+      many: '$count тижнів тому',
+      few: '$count тижні тому',
+      one: '1 тиждень тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count місяців тому',
+      many: '$count місяців тому',
+      few: '$count місяці тому',
+      one: '1 місяць тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count років тому',
+      many: '$count років тому',
+      few: '$count роки тому',
+      one: '1 рік тому',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'за кілька секунд';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'за $count хвилин',
+      many: 'за $count хвилин',
+      few: 'за $count хвилини',
+      one: 'за 1 хвилину',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'за $count годин',
+      many: 'за $count годин',
+      few: 'за $count години',
+      one: 'за 1 годину',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Сповіщення';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Не вдалося експортувати логи: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Не вдалося очистити кеш: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Не вдалося скинути налаштування: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Не вдалося додати мережу: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Підключення $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Не вдалося завершити OAuth: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Не вдалося прив\'язати $provider: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Не вдалося від\'язати $provider: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'ВИДАЛИТИ';
 }

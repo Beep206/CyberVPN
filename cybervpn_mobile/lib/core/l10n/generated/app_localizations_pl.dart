@@ -1369,6 +1369,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4117,4 +4133,163 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'właśnie teraz';
+
+  @override
+  String get relativeYesterday => 'wczoraj';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minut temu',
+      many: '$count minut temu',
+      few: '$count minuty temu',
+      one: '1 minutę temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count godzin temu',
+      many: '$count godzin temu',
+      few: '$count godziny temu',
+      one: '1 godzinę temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dni temu',
+      many: '$count dni temu',
+      few: '$count dni temu',
+      one: '1 dzień temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tygodni temu',
+      many: '$count tygodni temu',
+      few: '$count tygodnie temu',
+      one: '1 tydzień temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count miesięcy temu',
+      many: '$count miesięcy temu',
+      few: '$count miesiące temu',
+      one: '1 miesiąc temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lat temu',
+      many: '$count lat temu',
+      few: '$count lata temu',
+      one: '1 rok temu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'za kilka sekund';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'za $count minut',
+      many: 'za $count minut',
+      few: 'za $count minuty',
+      one: 'za 1 minutę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'za $count godzin',
+      many: 'za $count godzin',
+      few: 'za $count godziny',
+      one: 'za 1 godzinę',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Powiadomienie';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Eksport logów nie powiódł się: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Czyszczenie pamięci podręcznej nie powiodło się: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Resetowanie ustawień nie powiodło się: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Dodanie sieci nie powiodło się: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Łączenie z $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Połączenie OAuth nie powiodło się: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Połączenie z $provider nie powiodło się: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Odłączenie $provider nie powiodło się: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'USUŃ';
 }

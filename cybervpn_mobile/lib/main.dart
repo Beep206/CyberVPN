@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,6 +35,9 @@ Future<void> main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Use bundled fonts only. Prevent runtime HTTP requests to fonts.gstatic.com.
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   // Load .env file for local development fallback values.
   stepSw.start();
   await EnvironmentConfig.init();
@@ -53,9 +58,7 @@ Future<void> main() async {
     ..reset()
     ..start();
   final overrides = await buildProviderOverrides(prefs);
-  _globalContainer = ProviderContainer(
-    overrides: overrides,
-  );
+  _globalContainer = ProviderContainer(overrides: overrides);
   _logStep('buildProviderOverrides + ProviderContainer', stepSw);
 
   // Eagerly activate auth-reactive side effects so they fire automatically
@@ -95,7 +98,11 @@ Future<void> main() async {
   }
 
   totalSw.stop();
-  final isDebug = () { bool d = false; assert(d = true); return d; }();
+  final isDebug = () {
+    bool d = false;
+    assert(d = true);
+    return d;
+  }();
   AppLogger.info(
     'Startup complete in ${totalSw.elapsedMilliseconds}ms '
     '(${isDebug ? "debug" : "release"})',
@@ -171,9 +178,13 @@ Future<void> _initializeFirebase() async {
 // ---------------------------------------------------------------------------
 
 /// Regex patterns for PII that should never appear in Sentry data.
-final _jwtPattern = RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}');
+final _jwtPattern = RegExp(
+  r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}',
+);
 final _emailPattern = RegExp(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
-final _uuidPattern = RegExp(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+final _uuidPattern = RegExp(
+  r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+);
 
 /// Replaces PII patterns in a string with redaction markers.
 String _redactPii(String input) {
@@ -184,7 +195,7 @@ String _redactPii(String input) {
 }
 
 /// Sanitizes a Sentry breadcrumb to remove PII from messages and data.
-Breadcrumb? _sanitizeBreadcrumb(Breadcrumb? breadcrumb, {Hint? hint}) {
+Breadcrumb? _sanitizeBreadcrumb(Breadcrumb? breadcrumb, Hint hint) {
   if (breadcrumb == null) return null;
 
   final sanitizedMessage = _redactPii(breadcrumb.message ?? '');
@@ -239,7 +250,9 @@ void _runApp(SharedPreferences prefs) {
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     if (EnvironmentConfig.sentryDsn.isNotEmpty) {
-      unawaited(Sentry.captureException(details.exception, stackTrace: details.stack));
+      unawaited(
+        Sentry.captureException(details.exception, stackTrace: details.stack),
+      );
     }
   };
 

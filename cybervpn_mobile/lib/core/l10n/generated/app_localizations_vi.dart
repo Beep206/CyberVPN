@@ -1355,6 +1355,22 @@ class AppLocalizationsVi extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,139 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'vừa xong';
+
+  @override
+  String get relativeYesterday => 'hôm qua';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count phút trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count giờ trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ngày trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tuần trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tháng trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count năm trước',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'trong vài giây';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'trong $count phút',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'trong $count giờ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Thông báo';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Xuất nhật ký thất bại: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Xóa bộ nhớ đệm thất bại: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Đặt lại cài đặt thất bại: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Thêm mạng thất bại: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Đang liên kết $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Liên kết OAuth thất bại: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Liên kết $provider thất bại: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Hủy liên kết $provider thất bại: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'XÓA';
 }

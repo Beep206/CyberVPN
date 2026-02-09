@@ -231,7 +231,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         elevation: 0,
         leading: IconButton(
           key: const Key('qr_back_button'),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Directionality.of(context) == TextDirection.rtl
+                ? Icons.arrow_forward
+                : Icons.arrow_back,
+            color: Colors.white,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

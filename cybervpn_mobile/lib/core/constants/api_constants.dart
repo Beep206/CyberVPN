@@ -501,6 +501,17 @@ class ApiConstants {
   /// TODO: Verify WebSocket implementation and authentication mechanism
   static const String wsMonitoring = '/ws/monitoring';
 
+  /// **POST /api/v1/ws/ticket**
+  ///
+  /// Backend: Issues a short-lived, single-use ticket for WebSocket auth.
+  /// Auth: JWT (current authenticated user)
+  /// Status: 🔄 TBD
+  ///
+  /// The ticket is valid for ~30 seconds and can only be used once.
+  /// This avoids passing JWT tokens in WebSocket URLs (which appear in logs).
+  /// Response: `{ "ticket": string }`
+  static const String wsTicket = '$apiPrefix/ws/ticket';
+
   /// **WebSocket /ws/notifications**
   ///
   /// Backend: `backend/src/presentation/api/v1/ws/` - WebSocket endpoint

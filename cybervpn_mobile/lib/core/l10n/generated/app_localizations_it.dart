@@ -1355,6 +1355,22 @@ class AppLocalizationsIt extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'proprio ora';
+
+  @override
+  String get relativeYesterday => 'ieri';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minuti fa',
+      one: '1 minuto fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ore fa',
+      one: '1 ora fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count giorni fa',
+      one: '1 giorno fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count settimane fa',
+      one: '1 settimana fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mesi fa',
+      one: '1 mese fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count anni fa',
+      one: '1 anno fa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'tra pochi secondi';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'tra $count minuti',
+      one: 'tra 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'tra $count ore',
+      one: 'tra 1 ora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Notifica';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Esportazione log fallita: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Pulizia cache fallita: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Ripristino impostazioni fallito: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Aggiunta rete fallita: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Collegamento $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Collegamento OAuth fallito: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Collegamento $provider fallito: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Scollegamento $provider fallito: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'ELIMINA';
 }

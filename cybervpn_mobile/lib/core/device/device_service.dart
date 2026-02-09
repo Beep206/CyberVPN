@@ -37,12 +37,18 @@ class DeviceService {
       // Get or create persistent device ID
       final deviceId = await _storage.getOrCreateDeviceId();
 
-      // Get platform-specific info
+      // Get platform-specific info in parallel for faster startup.
       final platform = _getPlatform();
-      final platformId = await _getPlatformId();
-      final osVersion = await _getOsVersion();
-      final deviceModel = await _getDeviceModel();
-      final appVersion = await _getAppVersion();
+      final results = await Future.wait([
+        _getPlatformId(),
+        _getOsVersion(),
+        _getDeviceModel(),
+        _getAppVersion(),
+      ]);
+      final platformId = results[0];
+      final osVersion = results[1];
+      final deviceModel = results[2];
+      final appVersion = results[3];
 
       _cachedDeviceInfo = DeviceInfo(
         deviceId: deviceId,

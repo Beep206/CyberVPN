@@ -1,7 +1,0 @@
-{
-  "title": "SERVERBEHEER",
-  "subtitle": "Beheer VPN-nodes, protocollen en implementatieregio's.",
-  "globalStatus": "GLOBALE STATUS: {status}",
-  "globalStatusValue": "INGERICHT",
-  "lastSync": "LAATSTE SYNC: {time} GELEDEN"
-}

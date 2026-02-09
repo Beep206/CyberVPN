@@ -151,6 +151,7 @@ class SettingsTile extends ConsumerWidget {
 
     return switch (_variant) {
       _SettingsTileVariant.navigation => _buildNavigation(
+          context: context,
           titleStyle: titleStyle,
           subtitleStyle: subtitleStyle,
           colorScheme: colorScheme,
@@ -177,6 +178,7 @@ class SettingsTile extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildNavigation({
+    required BuildContext context,
     required TextStyle? titleStyle,
     required TextStyle? subtitleStyle,
     required ColorScheme colorScheme,
@@ -192,7 +194,9 @@ class SettingsTile extends ConsumerWidget {
             subtitle != null ? Text(subtitle!, style: subtitleStyle, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
         trailing: ExcludeSemantics(
           child: Icon(
-            Icons.chevron_right,
+            Directionality.of(context) == TextDirection.rtl
+                ? Icons.chevron_left
+                : Icons.chevron_right,
             color: colorScheme.onSurfaceVariant,
           ),
         ),

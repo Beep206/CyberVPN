@@ -1355,6 +1355,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'az önce';
+
+  @override
+  String get relativeYesterday => 'dün';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dakika önce',
+      one: '1 dakika önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count saat önce',
+      one: '1 saat önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gün önce',
+      one: '1 gün önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hafta önce',
+      one: '1 hafta önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ay önce',
+      one: '1 ay önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yıl önce',
+      one: '1 yıl önce',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'birkaç saniye içinde';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dakika içinde',
+      one: '1 dakika içinde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count saat içinde',
+      one: '1 saat içinde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Bildirim';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Günlükler dışa aktarılamadı: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Önbellek temizlenemedi: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Ayarlar sıfırlanamadı: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Ağ eklenemedi: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return '$provider bağlanıyor...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'OAuth bağlantısı tamamlanamadı: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return '$provider bağlanamadı: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return '$provider bağlantısı kaldırılamadı: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'SİL';
 }

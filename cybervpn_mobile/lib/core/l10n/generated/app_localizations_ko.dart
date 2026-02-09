@@ -1348,6 +1348,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4094,4 +4110,139 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => '방금';
+
+  @override
+  String get relativeYesterday => '어제';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count분 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count주 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개월 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count년 전',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => '몇 초 후';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count분 후',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간 후',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => '알림';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return '로그 내보내기 실패: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return '캐시 지우기 실패: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return '설정 초기화 실패: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return '네트워크 추가 실패: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return '$provider 연결 중...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'OAuth 연결 실패: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return '$provider 연결 실패: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return '$provider 연결 해제 실패: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => '삭제';
 }

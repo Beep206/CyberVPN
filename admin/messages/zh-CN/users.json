@@ -1,6 +1,0 @@
-{
-  "title": "用户管理",
-  "subtitle": "访问控制与订阅监控。",
-  "totalUsers": "用户总数：{count}",
-  "newToday": "今日新增：{count}"
-}

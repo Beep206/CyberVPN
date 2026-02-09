@@ -1,7 +1,0 @@
-{
-  "title": "SUNUCU YÖNETİMİ",
-  "subtitle": "VPN düğümlerini, protokolleri ve dağıtım bölgelerini yönetin.",
-  "globalStatus": "GLOBAL DURUM: {status}",
-  "globalStatusValue": "HAZIR",
-  "lastSync": "SON SENKRONİZASYON: {time} ÖNCE"
-}

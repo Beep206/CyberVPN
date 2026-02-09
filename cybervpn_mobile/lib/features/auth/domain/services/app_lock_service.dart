@@ -162,11 +162,12 @@ class AppLockService with WidgetsBindingObserver {
 
   /// Attempts to unlock the app using biometric authentication.
   ///
+  /// [reason] is the localized string shown in the system biometric prompt.
   /// Returns `true` if unlock was successful, `false` otherwise.
-  Future<bool> attemptBiometricUnlock() async {
+  Future<bool> attemptBiometricUnlock({String? reason}) async {
     try {
       final authenticated = await _biometricService.authenticate(
-        reason: 'Unlock CyberVPN',
+        reason: reason ?? 'Unlock CyberVPN',
       );
 
       if (authenticated) {

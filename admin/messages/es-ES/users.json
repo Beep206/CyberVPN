@@ -1,6 +1,0 @@
-{
-  "title": "GESTIÓN DE USUARIOS",
-  "subtitle": "Control de acceso y monitoreo de suscripciones.",
-  "totalUsers": "USUARIOS TOTALES: {count}",
-  "newToday": "NUEVOS HOY: {count}"
-}

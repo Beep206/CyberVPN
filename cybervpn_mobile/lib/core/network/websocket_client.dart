@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 
@@ -41,13 +43,23 @@ sealed class WebSocketEvent {
     final type = json['type'] as String?;
     if (type == null) return null;
 
-    return switch (type) {
-      'server_status_changed' => ServerStatusChanged.fromJson(json),
-      'subscription_updated' => SubscriptionUpdated.fromJson(json),
-      'notification_received' => NotificationReceived.fromJson(json),
-      'force_disconnect' => ForceDisconnect.fromJson(json),
-      _ => null,
-    };
+    try {
+      return switch (type) {
+        'server_status_changed' => ServerStatusChanged.fromJson(json),
+        'subscription_updated' => SubscriptionUpdated.fromJson(json),
+        'notification_received' => NotificationReceived.fromJson(json),
+        'force_disconnect' => ForceDisconnect.fromJson(json),
+        _ => null,
+      };
+    } catch (e, st) {
+      AppLogger.warning(
+        'Failed to parse WebSocket event of type "$type"',
+        error: e,
+        stackTrace: st,
+        category: 'websocket',
+      );
+      return null;
+    }
   }
 }
 
@@ -209,6 +221,9 @@ class WebSocketClient {
   int _reconnectAttempt = 0;
   bool _intentionalClose = false;
 
+  /// Optional [HttpClient] for certificate pinning on WebSocket TLS.
+  final HttpClient? _httpClient;
+
   final StreamController<WebSocketEvent> _eventController =
       StreamController<WebSocketEvent>.broadcast();
 
@@ -228,7 +243,8 @@ class WebSocketClient {
     required this.baseUrl,
     required this.ticketProvider,
     this.path = '/ws/notifications',
-  });
+    HttpClient? httpClient,
+  }) : _httpClient = httpClient;
 
   // ── Public API ───────────────────────────────────────────────────────
 
@@ -324,7 +340,14 @@ class WebSocketClient {
     AppLogger.debug('WebSocket connecting to: $wsUrl');
 
     try {
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      if (_httpClient != null) {
+        _channel = IOWebSocketChannel.connect(
+          wsUrl,
+          customClient: _httpClient,
+        );
+      } else {
+        _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      }
       await _channel!.ready;
 
       _reconnectAttempt = 0;

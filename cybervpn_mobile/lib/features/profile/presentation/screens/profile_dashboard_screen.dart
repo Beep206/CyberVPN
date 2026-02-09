@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
@@ -571,7 +571,9 @@ class _QuickActionButton extends StatelessWidget {
                   ),
                   ExcludeSemantics(
                     child: Icon(
-                      Icons.chevron_right,
+                      Directionality.of(context) == TextDirection.rtl
+                          ? Icons.chevron_left
+                          : Icons.chevron_right,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),

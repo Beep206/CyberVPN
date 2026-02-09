@@ -1355,6 +1355,22 @@ class AppLocalizationsSv extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'just nu';
+
+  @override
+  String get relativeYesterday => 'igår';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minuter sedan',
+      one: '1 minut sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count timmar sedan',
+      one: '1 timme sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagar sedan',
+      one: '1 dag sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count veckor sedan',
+      one: '1 vecka sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count månader sedan',
+      one: '1 månad sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count år sedan',
+      one: '1 år sedan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'om några sekunder';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'om $count minuter',
+      one: 'om 1 minut',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'om $count timmar',
+      one: 'om 1 timme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Avisering';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Misslyckades att exportera loggar: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Misslyckades att rensa cache: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Misslyckades att återställa inställningar: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Misslyckades att lägga till nätverk: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Ansluter $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'OAuth-länkning misslyckades: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Länkning av $provider misslyckades: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Avlänkning av $provider misslyckades: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'RADERA';
 }

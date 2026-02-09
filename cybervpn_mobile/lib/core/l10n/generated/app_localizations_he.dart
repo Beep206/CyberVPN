@@ -1344,6 +1344,22 @@ class AppLocalizationsHe extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4090,4 +4106,147 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'עכשיו';
+
+  @override
+  String get relativeYesterday => 'אתמול';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count דקות',
+      one: 'לפני דקה',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count שעות',
+      one: 'לפני שעה',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count ימים',
+      one: 'לפני יום',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count שבועות',
+      one: 'לפני שבוע',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count חודשים',
+      one: 'לפני חודש',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לפני $count שנים',
+      one: 'לפני שנה',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'בעוד מספר שניות';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'בעוד $count דקות',
+      one: 'בעוד דקה',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'בעוד $count שעות',
+      one: 'בעוד שעה',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'התראה';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'נכשל ייצוא יומנים: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'נכשל ניקוי מטמון: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'נכשל איפוס הגדרות: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'נכשל הוספת רשת: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'מקשר $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'נכשל השלמת קישור OAuth: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'נכשל קישור $provider: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'נכשל ניתוק $provider: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'מחק';
 }

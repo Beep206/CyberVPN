@@ -1,6 +1,0 @@
-{
-  "title": "사용자 관리",
-  "subtitle": "접근 제어 및 구독 모니터링.",
-  "totalUsers": "총 사용자: {count}",
-  "newToday": "오늘 신규: {count}"
-}

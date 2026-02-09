@@ -1,7 +1,0 @@
-{
-  "title": "GESTIÓN DE SERVIDORES",
-  "subtitle": "Administrar nodos VPN, protocolos y regiones de despliegue.",
-  "globalStatus": "ESTADO GLOBAL: {status}",
-  "globalStatusValue": "APROVISIONADO",
-  "lastSync": "ÚLTIMA SYNC: HACE {time}"
-}

@@ -91,7 +91,7 @@ class _TrustedWifiScreenState extends ConsumerState<TrustedWifiScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to add network: $e'),
+          content: Text(AppLocalizations.of(context).settingsTrustedWifiAddFailed(e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

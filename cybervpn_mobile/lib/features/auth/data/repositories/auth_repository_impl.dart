@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
@@ -117,35 +119,51 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
   @override
   Future<Result<UserEntity?>> getCurrentUser() async {
     try {
-      // When connected, validate session against the server first.
-      // The auth interceptor will attempt a token refresh on 401 responses;
-      // if that also fails, it clears the stored tokens.
+      // Return cached user immediately for fast startup, then validate
+      // the session against the server in the background.
+      final cached = await _localDataSource.getCachedUser();
+      if (cached != null) {
+        // Fire-and-forget background validation so splash doesn't block.
+        unawaited(_validateSessionInBackground());
+        return Success(cached.toEntity());
+      }
+
+      // No cached user — must go remote.
       if (await _networkInfo.isConnected) {
         try {
           final userModel = await _remoteDataSource.getCurrentUser();
           await _localDataSource.cacheUser(userModel);
           return Success(userModel.toEntity());
         } catch (e) {
-          // Check whether the auth interceptor cleared tokens (permanent 401).
           final token = await _localDataSource.getCachedToken();
-          if (token == null) {
-            // Tokens were invalidated — session is permanently dead.
-            return const Success(null);
-          }
-          // Tokens still present — transient error; fall through to cache.
-          AppLogger.warning('getCurrentUser remote failed, using cache', error: e);
+          if (token == null) return const Success(null);
+          AppLogger.warning('getCurrentUser remote failed, no cache', error: e);
         }
       }
 
-      // Offline or transient-error fallback: return cached user.
-      final cached = await _localDataSource.getCachedUser();
-      if (cached != null) return Success(cached.toEntity());
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
       AppLogger.warning('getCurrentUser unexpected error', error: e, stackTrace: st);
       return const Success(null);
+    }
+  }
+
+  /// Validates the current session in the background.
+  /// If the server returns 401 and token refresh fails, clears auth state.
+  Future<void> _validateSessionInBackground() async {
+    try {
+      if (!await _networkInfo.isConnected) return;
+      final userModel = await _remoteDataSource.getCurrentUser();
+      await _localDataSource.cacheUser(userModel);
+    } catch (e) {
+      final token = await _localDataSource.getCachedToken();
+      if (token == null) {
+        AppLogger.info('Background session validation: tokens invalidated', category: 'auth');
+      } else {
+        AppLogger.warning('Background session validation failed (transient)', error: e, category: 'auth');
+      }
     }
   }
 

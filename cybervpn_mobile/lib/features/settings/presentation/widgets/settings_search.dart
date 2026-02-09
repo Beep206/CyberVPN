@@ -36,21 +36,28 @@ class SettingsSearchDelegate extends SearchDelegate<String?> {
     return [
       // -- Appearance --
       _SearchableSettingItem(
-        title: l10n.settingsTheme,
+        title: l10n.settingsThemeModeLabel,
         subtitle: l10n.settingsAppearance,
         icon: Icons.palette_outlined,
         route: '/settings/appearance',
-        keywords: ['theme', 'dark', 'light', 'cyberpunk', 'material you', 'appearance'],
+        keywords: [
+          'theme',
+          'dark',
+          'light',
+          'cyberpunk',
+          'material you',
+          'appearance',
+        ],
       ),
       _SearchableSettingItem(
-        title: 'OLED Mode',
+        title: l10n.settingsOledModeLabel,
         subtitle: l10n.settingsAppearance,
         icon: Icons.brightness_2_outlined,
         route: '/settings/appearance',
         keywords: ['oled', 'amoled', 'black', 'dark mode', 'pure black'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsScanlines,
+        title: l10n.settingsScanlineLabel,
         subtitle: l10n.settingsAppearance,
         icon: Icons.blur_linear_outlined,
         route: '/settings/appearance',
@@ -68,50 +75,50 @@ class SettingsSearchDelegate extends SearchDelegate<String?> {
 
       // -- VPN --
       _SearchableSettingItem(
-        title: l10n.settingsProtocol,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsVpnProtocolLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.security_outlined,
         route: '/settings/vpn',
         keywords: ['protocol', 'vless', 'wireguard', 'ikev2', 'vpn'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsAutoConnect,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsAutoConnectLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.flash_on_outlined,
         route: '/settings/vpn',
         keywords: ['auto connect', 'startup', 'launch', 'automatic'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsKillSwitch,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsKillSwitchLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.block_outlined,
         route: '/settings/vpn',
         keywords: ['kill switch', 'leak', 'protection', 'disconnect'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsSplitTunneling,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsSplitTunnelingLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.call_split_outlined,
         route: '/settings/vpn',
         keywords: ['split tunnel', 'bypass', 'apps', 'exclude'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsDns,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsDnsLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.dns_outlined,
         route: '/settings/vpn',
         keywords: ['dns', 'domain', 'nameserver', 'cloudflare', 'google'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsMtu,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsMtuValueLabel,
+        subtitle: l10n.settingsVpn,
         icon: Icons.tune_outlined,
         route: '/settings/vpn',
         keywords: ['mtu', 'packet', 'size', 'network'],
       ),
       _SearchableSettingItem(
-        title: l10n.settingsTrustedWifi,
-        subtitle: l10n.settingsVpnTitle,
+        title: l10n.settingsTrustedNetworksTitle,
+        subtitle: l10n.settingsVpn,
         icon: Icons.wifi_lock_outlined,
         route: '/settings/trusted-wifi',
         keywords: ['trusted', 'wifi', 'network', 'ssid', 'safe'],
@@ -128,7 +135,7 @@ class SettingsSearchDelegate extends SearchDelegate<String?> {
 
       // -- Debug --
       _SearchableSettingItem(
-        title: l10n.settingsDebugTitle,
+        title: l10n.settingsDebug,
         subtitle: l10n.settingsTitle,
         icon: Icons.bug_report_outlined,
         route: '/settings/debug',
@@ -154,17 +161,18 @@ class SettingsSearchDelegate extends SearchDelegate<String?> {
   List<Widget> buildActions(BuildContext context) {
     return [
       if (query.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () => query = '',
-        ),
+        IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
     ];
   }
 
   @override
   Widget? buildLeading(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.arrow_back),
+      icon: Icon(
+        Directionality.of(context) == TextDirection.rtl
+            ? Icons.arrow_forward
+            : Icons.arrow_back,
+      ),
       onPressed: () => close(context, null),
     );
   }

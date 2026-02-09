@@ -34,6 +34,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Verify gen-l10n (no drift)
+        run: |
+          flutter gen-l10n
+          git diff --exit-code lib/core/l10n/generated/ || {
+            echo "::error::Generated l10n files are out of date. Run 'flutter gen-l10n' and commit."
+            exit 1
+          }
+
+      - name: Validate ARB coverage
+        run: python3 scripts/check_i18n_coverage.py
+
       - name: Check formatting
         run: dart format --set-exit-if-changed .
 

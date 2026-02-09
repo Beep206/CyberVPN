@@ -117,23 +117,23 @@ flutter:
     - assets/images/flags/
     - assets/animations/
     - assets/icons/
+    - assets/fonts/
 
-  # Optional: Bundle fonts offline for guaranteed availability without network.
-  # By default, google_fonts package downloads and caches fonts automatically.
-  # See assets/fonts/README.md for instructions on offline font bundling.
-  # fonts:
-  #   - family: Orbitron
-  #     fonts:
-  #       - asset: assets/fonts/Orbitron-Regular.ttf
-  #         weight: 400
-  #       - asset: assets/fonts/Orbitron-Bold.ttf
-  #         weight: 700
-  #   - family: JetBrainsMono
-  #     fonts:
-  #       - asset: assets/fonts/JetBrainsMono-Regular.ttf
-  #         weight: 400
-  #       - asset: assets/fonts/JetBrainsMono-Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron-wght.ttf
+          weight: 400
+        - asset: assets/fonts/Orbitron-wght.ttf
+          weight: 600
+        - asset: assets/fonts/Orbitron-wght.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-wght.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-wght.ttf
+          weight: 700
 
 # App Icon Configuration
 flutter_launcher_icons:

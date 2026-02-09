@@ -132,7 +132,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Completing $providerDisplayName link...'),
+            content: Text(AppLocalizations.of(context).profileSocialCompletingLink(providerDisplayName)),
           ),
         );
 
@@ -155,7 +155,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final colorScheme = Theme.of(context).colorScheme;
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Failed to complete OAuth link: $e'),
+          content: Text(AppLocalizations.of(context).profileSocialOAuthFailed(e.toString())),
           backgroundColor: colorScheme.error,
         ),
       );
@@ -222,7 +222,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final providerDisplayName = _providerName(provider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to link $providerDisplayName: $e'),
+          content: Text(AppLocalizations.of(context).profileSocialLinkFailed(providerDisplayName, e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -287,7 +287,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final providerDisplayName = _providerName(provider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to unlink $providerDisplayName: $e'),
+          content: Text(AppLocalizations.of(context).profileSocialUnlinkFailed(providerDisplayName, e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

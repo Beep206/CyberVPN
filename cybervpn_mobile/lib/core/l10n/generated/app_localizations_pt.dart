@@ -1355,6 +1355,22 @@ class AppLocalizationsPt extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'agora mesmo';
+
+  @override
+  String get relativeYesterday => 'ontem';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count minutos',
+      one: 'há 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count horas',
+      one: 'há 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count dias',
+      one: 'há 1 dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count semanas',
+      one: 'há 1 semana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count meses',
+      one: 'há 1 mês',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'há $count anos',
+      one: 'há 1 ano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'em alguns segundos';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'em $count minutos',
+      one: 'em 1 minuto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'em $count horas',
+      one: 'em 1 hora',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Notificação';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Falha ao exportar logs: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Falha ao limpar cache: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Falha ao redefinir configurações: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Falha ao adicionar rede: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Vinculando $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Falha ao completar link OAuth: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Falha ao vincular $provider: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Falha ao desvincular $provider: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'EXCLUIR';
 }

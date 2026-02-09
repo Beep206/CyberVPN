@@ -1355,6 +1355,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'à l\'instant';
+
+  @override
+  String get relativeYesterday => 'hier';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count minutes',
+      one: 'il y a 1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count heures',
+      one: 'il y a 1 heure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count jours',
+      one: 'il y a 1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count semaines',
+      one: 'il y a 1 semaine',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count mois',
+      one: 'il y a 1 mois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il y a $count ans',
+      one: 'il y a 1 an',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'dans quelques secondes';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dans $count minutes',
+      one: 'dans 1 minute',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dans $count heures',
+      one: 'dans 1 heure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Notification';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Échec de l\'exportation des journaux : $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Échec du vidage du cache : $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Échec de la réinitialisation : $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Échec de l\'ajout du réseau : $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Connexion de $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Échec de la liaison OAuth : $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Échec de la liaison $provider : $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Échec de la déconnexion $provider : $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'SUPPRIMER';
 }
