@@ -4370,4 +4370,65 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get cantUnlinkOnlyMethod =>
       'Cannot unlink — this is your only login method';
+
+  @override
+  String get forgotPasswordSubtitle =>
+      'Enter your email and we\'ll send you a code to reset your password';
+
+  @override
+  String get forgotPasswordSendButton => 'Send Reset Code';
+
+  @override
+  String get forgotPasswordCheckEmail => 'Check Your Email';
+
+  @override
+  String forgotPasswordCodeSent(String email) {
+    return 'We sent a 6-digit code to $email';
+  }
+
+  @override
+  String get forgotPasswordOpenReset => 'Enter Code';
+
+  @override
+  String get resetPasswordTitle => 'Reset Password';
+
+  @override
+  String get resetPasswordSubtitle =>
+      'Enter the 6-digit code and your new password';
+
+  @override
+  String get resetPasswordCodeLabel => '6-Digit Code';
+
+  @override
+  String get resetPasswordCodeHint => '000000';
+
+  @override
+  String get resetPasswordNewPassword => 'New Password';
+
+  @override
+  String get resetPasswordConfirmPassword => 'Confirm Password';
+
+  @override
+  String get resetPasswordSubmit => 'Reset Password';
+
+  @override
+  String get resetPasswordSuccess => 'Password Reset!';
+
+  @override
+  String get resetPasswordSuccessMessage =>
+      'Your password has been reset successfully. Please login with your new password.';
+
+  @override
+  String get resetPasswordGoToLogin => 'Go to Login';
+
+  @override
+  String get resetPasswordInvalidCode =>
+      'Invalid or expired code. Please try again.';
+
+  @override
+  String get resetPasswordPasswordMismatch => 'Passwords do not match';
+
+  @override
+  String get resetPasswordPasswordTooShort =>
+      'Password must be at least 12 characters';
 }

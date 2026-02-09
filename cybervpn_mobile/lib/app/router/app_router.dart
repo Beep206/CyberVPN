@@ -13,6 +13,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provid
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/magic_link_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
@@ -238,7 +239,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final uri = state.uri;
       final path = uri.path;
-      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password' || path == '/magic-link';
+      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password' || path == '/reset-password' || path == '/magic-link';
       final isOnboardingRoute = path == '/onboarding';
       final isQuickSetupRoute = path == '/quick-setup';
       final isSplashRoute = path == '/splash';
@@ -406,6 +407,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const ForgotPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: ResetPasswordScreen(
+            email: state.uri.queryParameters['email'],
+          ),
         ),
       ),
       GoRoute(

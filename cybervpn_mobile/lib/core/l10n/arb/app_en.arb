@@ -2454,5 +2454,82 @@
   },
   "@cantUnlinkOnlyMethod": {
     "description": "Error when trying to unlink the only login method"
+  },
+  "forgotPasswordSubtitle": "Enter your email and we'll send you a code to reset your password",
+  "@forgotPasswordSubtitle": {
+    "description": "Subtitle text explaining the forgot password flow"
+  },
+  "forgotPasswordSendButton": "Send Reset Code",
+  "@forgotPasswordSendButton": {
+    "description": "Button text to send the password reset code"
+  },
+  "forgotPasswordCheckEmail": "Check Your Email",
+  "@forgotPasswordCheckEmail": {
+    "description": "Heading after reset code is sent successfully"
+  },
+  "forgotPasswordCodeSent": "We sent a 6-digit code to {email}",
+  "@forgotPasswordCodeSent": {
+    "description": "Message showing which email received the reset code",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "forgotPasswordOpenReset": "Enter Code",
+  "@forgotPasswordOpenReset": {
+    "description": "Button text to navigate to the reset password screen"
+  },
+  "resetPasswordTitle": "Reset Password",
+  "@resetPasswordTitle": {
+    "description": "Title for the reset password screen"
+  },
+  "resetPasswordSubtitle": "Enter the 6-digit code and your new password",
+  "@resetPasswordSubtitle": {
+    "description": "Subtitle explaining the reset password flow"
+  },
+  "resetPasswordCodeLabel": "6-Digit Code",
+  "@resetPasswordCodeLabel": {
+    "description": "Label for the OTP code input field"
+  },
+  "resetPasswordCodeHint": "000000",
+  "@resetPasswordCodeHint": {
+    "description": "Hint text for the OTP code input field"
+  },
+  "resetPasswordNewPassword": "New Password",
+  "@resetPasswordNewPassword": {
+    "description": "Label for the new password input field"
+  },
+  "resetPasswordConfirmPassword": "Confirm Password",
+  "@resetPasswordConfirmPassword": {
+    "description": "Label for the confirm password input field"
+  },
+  "resetPasswordSubmit": "Reset Password",
+  "@resetPasswordSubmit": {
+    "description": "Button text to submit the password reset"
+  },
+  "resetPasswordSuccess": "Password Reset!",
+  "@resetPasswordSuccess": {
+    "description": "Heading after password is successfully reset"
+  },
+  "resetPasswordSuccessMessage": "Your password has been reset successfully. Please login with your new password.",
+  "@resetPasswordSuccessMessage": {
+    "description": "Success message after password reset"
+  },
+  "resetPasswordGoToLogin": "Go to Login",
+  "@resetPasswordGoToLogin": {
+    "description": "Button text to navigate back to login after successful reset"
+  },
+  "resetPasswordInvalidCode": "Invalid or expired code. Please try again.",
+  "@resetPasswordInvalidCode": {
+    "description": "Error message for invalid or expired OTP code"
+  },
+  "resetPasswordPasswordMismatch": "Passwords do not match",
+  "@resetPasswordPasswordMismatch": {
+    "description": "Validation error when password and confirmation do not match"
+  },
+  "resetPasswordPasswordTooShort": "Password must be at least 12 characters",
+  "@resetPasswordPasswordTooShort": {
+    "description": "Validation error when password is too short"
   }
 }

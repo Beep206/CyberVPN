@@ -7573,6 +7573,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cannot unlink — this is your only login method'**
   String get cantUnlinkOnlyMethod;
+
+  /// Subtitle text explaining the forgot password flow
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we\'ll send you a code to reset your password'**
+  String get forgotPasswordSubtitle;
+
+  /// Button text to send the password reset code
+  ///
+  /// In en, this message translates to:
+  /// **'Send Reset Code'**
+  String get forgotPasswordSendButton;
+
+  /// Heading after reset code is sent successfully
+  ///
+  /// In en, this message translates to:
+  /// **'Check Your Email'**
+  String get forgotPasswordCheckEmail;
+
+  /// Message showing which email received the reset code
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}'**
+  String forgotPasswordCodeSent(String email);
+
+  /// Button text to navigate to the reset password screen
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Code'**
+  String get forgotPasswordOpenReset;
+
+  /// Title for the reset password screen
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordTitle;
+
+  /// Subtitle explaining the reset password flow
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code and your new password'**
+  String get resetPasswordSubtitle;
+
+  /// Label for the OTP code input field
+  ///
+  /// In en, this message translates to:
+  /// **'6-Digit Code'**
+  String get resetPasswordCodeLabel;
+
+  /// Hint text for the OTP code input field
+  ///
+  /// In en, this message translates to:
+  /// **'000000'**
+  String get resetPasswordCodeHint;
+
+  /// Label for the new password input field
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get resetPasswordNewPassword;
+
+  /// Label for the confirm password input field
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get resetPasswordConfirmPassword;
+
+  /// Button text to submit the password reset
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordSubmit;
+
+  /// Heading after password is successfully reset
+  ///
+  /// In en, this message translates to:
+  /// **'Password Reset!'**
+  String get resetPasswordSuccess;
+
+  /// Success message after password reset
+  ///
+  /// In en, this message translates to:
+  /// **'Your password has been reset successfully. Please login with your new password.'**
+  String get resetPasswordSuccessMessage;
+
+  /// Button text to navigate back to login after successful reset
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Login'**
+  String get resetPasswordGoToLogin;
+
+  /// Error message for invalid or expired OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code. Please try again.'**
+  String get resetPasswordInvalidCode;
+
+  /// Validation error when password and confirmation do not match
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get resetPasswordPasswordMismatch;
+
+  /// Validation error when password is too short
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 12 characters'**
+  String get resetPasswordPasswordTooShort;
 }
 
 class _AppLocalizationsDelegate

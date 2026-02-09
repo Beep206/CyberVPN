@@ -53,8 +53,8 @@
 /// - 🔄 TBD: WebSocket endpoints (implementation status to be determined)
 ///
 /// **Future Endpoints (Pending Backend Implementation):**
-/// - /api/v1/auth/forgot-password
-/// - /api/v1/auth/reset-password
+/// - /api/v1/auth/forgot-password ✅ Aligned
+/// - /api/v1/auth/reset-password ✅ Aligned
 /// - /api/v1/users/usage-stats
 /// - /api/v1/payments/methods
 /// - /api/v1/trial/*
@@ -130,10 +130,27 @@ class ApiConstants {
   /// Response: `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int }`
   static const String biometricLogin = '$apiPrefix/mobile/auth/biometric/login';
 
-  // Future: forgot-password endpoint (backend task pending)
-  // Future: reset-password endpoint (backend task pending)
-  // TODO: Add /api/v1/auth/forgot-password when backend implements it
-  // TODO: Add /api/v1/auth/reset-password when backend implements it
+  /// **POST /api/v1/auth/forgot-password**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/forgot-password`
+  /// Auth: None (public endpoint, rate-limited)
+  /// Status: ✅ Aligned
+  ///
+  /// Initiates password reset by sending a 6-digit OTP code to the user's email.
+  /// Request: `{ "email": string }`
+  /// Response: 200 OK `{ "message": "If the email exists, a reset code has been sent." }`
+  static const String forgotPassword = '$apiPrefix/auth/forgot-password';
+
+  /// **POST /api/v1/auth/reset-password**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/reset-password`
+  /// Auth: None (public endpoint, rate-limited)
+  /// Status: ✅ Aligned
+  ///
+  /// Completes the password reset using the OTP code and new password.
+  /// Request: `{ "email": string, "code": string, "new_password": string }`
+  /// Response: 200 OK `{ "message": "Password reset successfully." }`
+  static const String resetPassword = '$apiPrefix/auth/reset-password';
 
   // ── Server Endpoints ──────────────────────────────────────────────────
 
@@ -604,8 +621,6 @@ class ApiConstants {
   //
   // **Planned Backend Endpoints (Not yet implemented):**
   //
-  // - /api/v1/auth/forgot-password - Password reset initiation
-  // - /api/v1/auth/reset-password - Password reset completion
   // - /api/v1/users/usage-stats - User traffic and usage statistics
   // - /api/v1/payments/methods - Payment method management
   // - /api/v1/trial/* - Trial subscription endpoints

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,49 +11,74 @@ import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider;
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
-/// Screen for requesting a password reset code.
+/// Screen for completing password reset with an OTP code.
 ///
-/// Allows the user to enter their email and request a 6-digit OTP code
-/// to reset their password. On success, navigates to the reset-password
-/// screen with the email pre-filled.
-class ForgotPasswordScreen extends ConsumerStatefulWidget {
-  const ForgotPasswordScreen({super.key});
+/// Accepts an optional pre-filled [email] from the forgot-password flow.
+/// The user enters the 6-digit OTP code and a new password to complete
+/// the password reset.
+class ResetPasswordScreen extends ConsumerStatefulWidget {
+  const ResetPasswordScreen({super.key, this.email});
+
+  /// Pre-filled email from the forgot-password screen.
+  final String? email;
 
   @override
-  ConsumerState<ForgotPasswordScreen> createState() =>
-      _ForgotPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
-enum _ScreenState { initial, sending, success, error, rateLimited }
+enum _ScreenState { initial, submitting, success, error, rateLimited }
 
-class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   _ScreenState _state = _ScreenState.initial;
   String? _errorMessage;
   int _rateLimitSeconds = 0;
   Timer? _rateLimitTimer;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  static const int _minPasswordLength = 12;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.email != null && widget.email!.isNotEmpty) {
+      _emailController.text = widget.email!;
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _codeController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _rateLimitTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _requestResetCode() async {
+  Future<void> _submitResetPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _state = _ScreenState.sending;
+      _state = _ScreenState.submitting;
       _errorMessage = null;
     });
 
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.post<Map<String, dynamic>>(
-        ApiConstants.forgotPassword,
-        data: {'email': _emailController.text.trim()},
+        ApiConstants.resetPassword,
+        data: {
+          'email': _emailController.text.trim(),
+          'code': _codeController.text.trim(),
+          'new_password': _passwordController.text,
+        },
       );
 
       if (!mounted) return;
@@ -60,8 +86,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         _state = _ScreenState.success;
       });
     } on ServerException catch (e) {
-      AppLogger.error('Forgot password request failed',
-          error: e, category: 'auth');
+      AppLogger.error('Reset password failed', error: e, category: 'auth');
       if (!mounted) return;
 
       // Check for rate limiting (429)
@@ -72,10 +97,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
       setState(() {
         _state = _ScreenState.error;
-        _errorMessage = e.message;
+        // Provide a more specific message for invalid/expired codes
+        if (e.code == 400 || e.code == 422) {
+          _errorMessage =
+              AppLocalizations.of(context).resetPasswordInvalidCode;
+        } else {
+          _errorMessage = e.message;
+        }
       });
     } on NetworkException catch (e) {
-      AppLogger.error('Forgot password request failed (network)',
+      AppLogger.error('Reset password failed (network)',
           error: e, category: 'auth');
       if (!mounted) return;
       setState(() {
@@ -83,7 +114,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         _errorMessage = e.message;
       });
     } catch (e) {
-      AppLogger.error('Forgot password request failed (unknown)',
+      AppLogger.error('Reset password failed (unknown)',
           error: e, category: 'auth');
       if (!mounted) return;
       setState(() {
@@ -121,11 +152,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
   }
 
-  void _navigateToResetPassword() {
-    final email = Uri.encodeComponent(_emailController.text.trim());
-    unawaited(context.push('/reset-password?email=$email'));
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -133,7 +159,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.forgotPassword),
+        title: Text(l10n.resetPasswordTitle),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -157,7 +183,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Widget _buildFormState(ThemeData theme, AppLocalizations l10n) {
-    final isSending = _state == _ScreenState.sending;
+    final isSubmitting = _state == _ScreenState.submitting;
 
     return Form(
       key: _formKey,
@@ -171,26 +197,27 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ),
           const SizedBox(height: Spacing.lg),
           Text(
-            l10n.forgotPassword,
+            l10n.resetPasswordTitle,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: Spacing.sm),
           Text(
-            l10n.forgotPasswordSubtitle,
+            l10n.resetPasswordSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Spacing.xl),
+
+          // Email field
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             autofillHints: const [AutofillHints.email],
-            autofocus: true,
-            enabled: !isSending,
+            enabled: !isSubmitting,
             decoration: InputDecoration(
               labelText: l10n.email,
               hintText: 'user@example.com',
@@ -206,12 +233,115 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               return null;
             },
           ),
+          const SizedBox(height: Spacing.md),
+
+          // OTP code field
+          TextFormField(
+            controller: _codeController,
+            keyboardType: TextInputType.number,
+            enabled: !isSubmitting,
+            maxLength: 6,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            decoration: InputDecoration(
+              labelText: l10n.resetPasswordCodeLabel,
+              hintText: l10n.resetPasswordCodeHint,
+              prefixIcon: const Icon(Icons.pin_outlined),
+              counterText: '',
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return l10n.errorFieldRequired;
+              }
+              if (value.trim().length != 6) {
+                return l10n.resetPasswordInvalidCode;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: Spacing.md),
+
+          // New password field
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            enabled: !isSubmitting,
+            autofillHints: const [AutofillHints.newPassword],
+            decoration: InputDecoration(
+              labelText: l10n.resetPasswordNewPassword,
+              prefixIcon: const Icon(Icons.lock_outlined),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                tooltip: _obscurePassword
+                    ? l10n.a11yShowPassword
+                    : l10n.a11yHidePassword,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return l10n.errorFieldRequired;
+              }
+              if (value.length < _minPasswordLength) {
+                return l10n.resetPasswordPasswordTooShort;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: Spacing.md),
+
+          // Confirm password field
+          TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: _obscureConfirmPassword,
+            enabled: !isSubmitting,
+            decoration: InputDecoration(
+              labelText: l10n.resetPasswordConfirmPassword,
+              prefixIcon: const Icon(Icons.lock_outlined),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  });
+                },
+                tooltip: _obscureConfirmPassword
+                    ? l10n.a11yShowPassword
+                    : l10n.a11yHidePassword,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return l10n.errorFieldRequired;
+              }
+              if (value != _passwordController.text) {
+                return l10n.resetPasswordPasswordMismatch;
+              }
+              return null;
+            },
+          ),
           const SizedBox(height: Spacing.lg),
+
+          // Submit button
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: isSending ? null : _requestResetCode,
-              child: isSending
+              onPressed: isSubmitting ? null : _submitResetPassword,
+              child: isSubmitting
                   ? const SizedBox(
                       width: 20,
                       height: 20,
@@ -220,7 +350,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         value: null,
                       ),
                     )
-                  : Text(l10n.forgotPasswordSendButton),
+                  : Text(l10n.resetPasswordSubmit),
             ),
           ),
           const SizedBox(height: Spacing.md),
@@ -238,20 +368,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(
-          Icons.mark_email_read_outlined,
+          Icons.check_circle_outline,
           size: 64,
           color: CyberColors.matrixGreen,
         ),
         const SizedBox(height: Spacing.lg),
         Text(
-          l10n.forgotPasswordCheckEmail,
+          l10n.resetPasswordSuccess,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: Spacing.sm),
         Text(
-          l10n.forgotPasswordCodeSent(_emailController.text.trim()),
+          l10n.resetPasswordSuccessMessage,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -261,19 +391,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _navigateToResetPassword,
-            child: Text(l10n.forgotPasswordOpenReset),
+            onPressed: () => context.go('/login'),
+            child: Text(l10n.resetPasswordGoToLogin),
           ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        OutlinedButton(
-          onPressed: _resetState,
-          child: Text(l10n.retry),
-        ),
-        const SizedBox(height: Spacing.md),
-        TextButton(
-          onPressed: () => context.go('/login'),
-          child: Text(l10n.backToLogin),
         ),
       ],
     );
