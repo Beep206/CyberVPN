@@ -84,7 +84,7 @@ export default function MagicLinkPage() {
                             {t('sentTo')}{' '}
                             <span className="text-neon-cyan">{email}</span>
                         </p>
-                        <p className="text-xs text-muted-foreground/60 font-mono">
+                        <p className="text-xs text-muted-foreground-low font-mono">
                             {t('expiresIn')}
                         </p>
                     </div>

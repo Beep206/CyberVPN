@@ -133,6 +133,7 @@ tags_metadata = [
     {"name": "oauth", "description": "OAuth social account linking"},
     {"name": "users", "description": "User CRUD operations"},
     {"name": "servers", "description": "VPN server management"},
+    {"name": "status", "description": "Public API status (unauthenticated)"},
     {"name": "monitoring", "description": "System health, stats, bandwidth"},
     {"name": "payments", "description": "Crypto payments and invoices"},
     {"name": "billing", "description": "Billing proxy (Remnawave)"},

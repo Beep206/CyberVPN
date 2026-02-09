@@ -180,7 +180,7 @@ export function Footer() {
                         <div className="relative group">
                             <div className="absolute -inset-0.5 bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-cyan rounded-lg opacity-30 group-hover:opacity-100 transition duration-500 blur group-hover:blur-md animate-gradient-x" />
                             <div className="relative flex gap-2 p-1 bg-terminal-bg rounded-lg border border-grid-line/50">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 font-mono text-xs z-10 select-none">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground-low font-mono text-xs z-10 select-none">
                                     root@user:~$
                                 </span>
                                 <Input
@@ -194,7 +194,7 @@ export function Footer() {
                             </div>
                         </div>
 
-                        <div className="pt-6 flex flex-wrap gap-4 text-xs font-mono text-muted-foreground/60">
+                        <div className="pt-6 flex flex-wrap gap-4 text-xs font-mono text-muted-foreground-low">
                             {footerLinks.legal.map((link) => (
                                 <MagneticButton key={link.label} className="inline-block" strength={5}>
                                     <Link
@@ -213,7 +213,7 @@ export function Footer() {
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-grid-line/20 flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Cypher Text Status (Moved from Header) */}
-                    <div className="flex items-center text-xs font-cyber text-muted-foreground/50">
+                    <div className="flex items-center text-xs font-cyber text-muted-foreground-low">
                         <span className="mr-1">{tHeader('systemLabel')}:</span>
                         <CypherText text={tHeader('integrity')} className="text-neon-cyan" loop loopDelay={2000} />
                         <span className="mx-2">|</span>
@@ -221,7 +221,7 @@ export function Footer() {
                         <CypherText text={tHeader('encryptionValue')} className="text-neon-purple" loop loopDelay={2500} />
                     </div>
 
-                    <p className="text-xs font-mono text-muted-foreground/40 text-center md:text-right">
+                    <p className="text-xs font-mono text-muted-foreground-low text-center md:text-right">
                         © <span>{year}</span> CyberVPN Inc. All systems operational.
                     </p>
                 </div>

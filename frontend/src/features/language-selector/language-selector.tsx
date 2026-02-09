@@ -40,7 +40,9 @@ export function LanguageSelector() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setIsOpen(true)}
-                    className="flex h-10 items-center justify-center gap-2 px-3 rounded-lg bg-terminal-surface/30 border border-grid-line/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 group"
+                    aria-label={`Select language: ${currentLanguage.name}`}
+                    aria-haspopup="dialog"
+                    className="flex h-10 items-center justify-center gap-2 px-3 rounded-lg bg-terminal-surface/30 border border-grid-line/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                 >
                     <div className="flex items-center justify-center filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">
                         <CountryFlag
@@ -68,7 +70,8 @@ export function LanguageSelector() {
                             placeholder="SEARCH_LANGUAGE..."
                             value={searchQuery}
                             onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
-                            className="w-full bg-terminal-bg/50 border border-grid-line/30 rounded-md py-2 pl-10 pr-4 text-foreground font-mono focus:outline-none focus:border-neon-cyan focus:shadow-[0_0_10px_rgba(0,255,255,0.2)] transition-all duration-300 placeholder:text-muted-foreground"
+                            aria-label="Search languages"
+                            className="w-full bg-terminal-bg/50 border border-grid-line/30 rounded-md py-2 pl-10 pr-4 text-foreground font-mono focus-visible:outline-hidden focus-visible:border-neon-cyan focus-visible:shadow-[0_0_10px_rgba(0,255,255,0.2)] focus-visible:ring-2 focus-visible:ring-neon-cyan transition-all duration-300 placeholder:text-muted-foreground"
                             autoFocus
                         />
                     </div>
@@ -81,10 +84,13 @@ export function LanguageSelector() {
                                 <motion.button
                                     key={lang.code}
                                     onClick={() => handleLanguageChange(lang.code)}
+                                    aria-label={`${lang.name} (${lang.nativeName})`}
+                                    aria-pressed={isActive}
                                     layout
                                     className={`
                                         flex items-center gap-3 p-3 rounded border text-left relative overflow-hidden group
                                         transition-all duration-200
+                                        focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]
                                         ${isActive
                                             ? 'bg-neon-cyan/10 border-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.15)]'
                                             : 'bg-terminal-surface/30 border-grid-line/10 hover:border-neon-pink/50 hover:bg-terminal-surface/60'

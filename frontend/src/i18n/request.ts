@@ -68,7 +68,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         languageSelector,
         privacyPolicy,
         deleteAccount,
-        auth
+        auth,
+        a11y
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
@@ -84,7 +85,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         import(`../../messages/${locale}/language-selector.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/privacy-policy.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/delete-account.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/auth.json`).catch(() => ({ default: {} }))
+        import(`../../messages/${locale}/auth.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/a11y.json`).catch(() => ({ default: {} }))
     ]);
 
     return {
@@ -102,6 +104,7 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         LanguageSelector: languageSelector.default,
         PrivacyPolicy: privacyPolicy.default,
         DeleteAccount: deleteAccount.default,
-        Auth: auth.default
+        Auth: auth.default,
+        A11y: a11y.default
     };
 });

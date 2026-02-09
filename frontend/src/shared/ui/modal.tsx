@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Stable noop for useSyncExternalStore subscribe — client mount detection */
+const SUBSCRIBE_NOOP = () => () => {};
 
 interface ModalProps {
     isOpen: boolean;
@@ -13,8 +19,41 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, children, title }: ModalProps) {
+    const t = useTranslations('A11y');
     // Ref for the scrollable content container
     const contentRef = useRef<HTMLDivElement>(null);
+    // Ref for the modal dialog container (used for focus trap)
+    const dialogRef = useRef<HTMLDivElement>(null);
+    // Ref to store the element that had focus before modal opened
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    // Capture the previously focused element when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+        }
+    }, [isOpen]);
+
+    // Focus the first focusable element (close button) when modal opens
+    useEffect(() => {
+        if (!isOpen || !dialogRef.current) return;
+
+        // Small delay to let animation start and DOM settle
+        const timerId = setTimeout(() => {
+            const closeBtn = dialogRef.current?.querySelector<HTMLElement>('[data-modal-close]');
+            closeBtn?.focus();
+        }, 50);
+
+        return () => clearTimeout(timerId);
+    }, [isOpen]);
+
+    // Return focus to the trigger element when modal closes
+    useEffect(() => {
+        if (!isOpen && previousFocusRef.current) {
+            previousFocusRef.current.focus();
+            previousFocusRef.current = null;
+        }
+    }, [isOpen]);
 
     // Global scroll capture
     useEffect(() => {
@@ -50,20 +89,49 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
         };
     }, [isOpen]);
 
-    // Handle Escape key
+    // Handle Escape key and focus trap
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
+        if (!isOpen) return;
 
-    // SSR Safe
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+
+            // Focus trap: keep Tab cycling within the modal
+            if (e.key === 'Tab' && dialogRef.current) {
+                const focusable = dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+                if (focusable.length === 0) return;
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
+    // SSR Safe: useSyncExternalStore is the React-recommended pattern
+    // for subscribing to an external "is client mounted" signal
+    const mounted = React.useSyncExternalStore(
+        SUBSCRIBE_NOOP,
+        () => true,   // client snapshot
+        () => false   // server snapshot
+    );
 
     if (!mounted) return null;
+
+    const modalTitleId = 'modal-title';
 
     return createPortal(
         <AnimatePresence>
@@ -76,11 +144,16 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                         exit={{ opacity: 0 }}
                         onClick={onClose}
                         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+                        aria-hidden="true"
                     />
 
                     {/* Modal Container */}
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
                         <motion.div
+                            ref={dialogRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby={modalTitleId}
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -93,13 +166,18 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
 
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-4 border-b border-grid-line/30 bg-terminal-surface/50">
-                                    <h2 className="text-xl font-display text-neon-cyan tracking-wider flex items-center gap-2">
-                                        <span className="text-neon-pink">►</span>
+                                    <h2
+                                        id={modalTitleId}
+                                        className="text-xl font-display text-neon-cyan tracking-wider flex items-center gap-2"
+                                    >
+                                        <span className="text-neon-pink" aria-hidden="true">&#9658;</span>
                                         {title || 'SYSTEM_MODAL'}
                                     </h2>
                                     <button
+                                        data-modal-close
                                         onClick={onClose}
-                                        className="p-2 text-grid-line hover:text-neon-pink transition-colors duration-200"
+                                        aria-label={t('closeModal')}
+                                        className="p-2 text-grid-line hover:text-neon-pink transition-colors duration-200 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
                                     >
                                         <X size={24} />
                                     </button>
@@ -114,10 +192,10 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                                 </div>
 
                                 {/* Decor Elements */}
-                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neon-cyan" />
-                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neon-cyan" />
-                                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neon-cyan" />
-                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neon-cyan" />
+                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neon-cyan" aria-hidden="true" />
                             </div>
                         </motion.div>
                     </div>

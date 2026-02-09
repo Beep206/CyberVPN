@@ -18,7 +18,7 @@ export default function DashboardLayout({
                 <MobileSidebar />
                 <div className="relative flex flex-1 flex-col overflow-hidden md:pl-64">
                     <TerminalHeader />
-                    <main className="flex-1 overflow-y-auto overflow-x-hidden relative p-4 md:p-6 pb-20 z-10">
+                    <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto overflow-x-hidden relative p-4 md:p-6 pb-20 z-10 focus:outline-hidden">
                         {children}
                     </main>
 

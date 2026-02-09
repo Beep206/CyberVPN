@@ -124,7 +124,7 @@ export function SocialAuthButtons({
                     <div className="w-full border-t border-grid-line/20" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-terminal-surface dark:bg-transparent text-muted-foreground/50 font-mono uppercase tracking-wider text-[10px]">
+                    <span className="px-3 bg-terminal-surface dark:bg-transparent text-muted-foreground-low font-mono uppercase tracking-wider text-[10px]">
                         or
                     </span>
                 </div>

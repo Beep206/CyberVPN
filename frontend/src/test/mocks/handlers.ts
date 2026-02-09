@@ -350,6 +350,219 @@ export const authHandlers = [
 
     return HttpResponse.json(MOCK_TOKENS);
   }),
+
+  /**
+   * POST /auth/oauth2/telegram/callback
+   * Telegram Login Widget authentication.
+   */
+  http.post(`${API_BASE}/auth/oauth2/telegram/callback`, async ({ request }) => {
+    const body = (await request.json()) as { id?: number; hash?: string };
+
+    if (!body.id || !body.hash) {
+      return HttpResponse.json(
+        { detail: 'Missing required Telegram fields' },
+        { status: 422 },
+      );
+    }
+
+    if (body.hash === 'invalid_hash') {
+      return HttpResponse.json(
+        { detail: 'Invalid Telegram auth data' },
+        { status: 401 },
+      );
+    }
+
+    return HttpResponse.json({
+      user: MOCK_USER,
+      is_new_user: false,
+    });
+  }),
+
+  /**
+   * POST /auth/telegram/miniapp
+   * Telegram Mini App initData authentication.
+   */
+  http.post(`${API_BASE}/auth/telegram/miniapp`, async ({ request }) => {
+    const body = (await request.json()) as { init_data?: string };
+
+    if (!body.init_data) {
+      return HttpResponse.json(
+        { detail: 'Missing init_data' },
+        { status: 422 },
+      );
+    }
+
+    if (body.init_data === 'invalid_init_data') {
+      return HttpResponse.json(
+        { detail: 'Invalid Telegram Mini App data' },
+        { status: 401 },
+      );
+    }
+
+    return HttpResponse.json({
+      ...MOCK_TOKENS,
+      user: {
+        id: MOCK_USER.id,
+        login: MOCK_USER.login,
+        email: MOCK_USER.email,
+        is_active: true,
+        is_email_verified: true,
+        created_at: MOCK_USER.created_at,
+      },
+      is_new_user: false,
+    });
+  }),
+
+  /**
+   * POST /auth/telegram/bot-link
+   * Telegram bot deep-link token authentication.
+   */
+  http.post(`${API_BASE}/auth/telegram/bot-link`, async ({ request }) => {
+    const body = (await request.json()) as { token?: string };
+
+    if (!body.token) {
+      return HttpResponse.json(
+        { detail: 'Missing token' },
+        { status: 422 },
+      );
+    }
+
+    if (body.token === 'expired_bot_token') {
+      return HttpResponse.json(
+        { detail: 'Bot link token expired' },
+        { status: 400 },
+      );
+    }
+
+    return HttpResponse.json({
+      ...MOCK_TOKENS,
+      user: {
+        id: MOCK_USER.id,
+        login: MOCK_USER.login,
+        email: MOCK_USER.email,
+        is_active: true,
+        is_email_verified: true,
+        created_at: MOCK_USER.created_at,
+      },
+    });
+  }),
+
+  /**
+   * GET /oauth/:provider/login
+   * Get OAuth authorization URL for a provider.
+   */
+  http.get(`${API_BASE}/oauth/:provider/login`, ({ params, request }) => {
+    const provider = params.provider as string;
+    const validProviders = ['google', 'github', 'discord', 'apple', 'microsoft', 'twitter', 'telegram'];
+
+    if (!validProviders.includes(provider)) {
+      return HttpResponse.json(
+        { detail: 'Unsupported OAuth provider' },
+        { status: 400 },
+      );
+    }
+
+    const url = new URL(request.url);
+    const redirectUri = url.searchParams.get('redirect_uri');
+
+    return HttpResponse.json({
+      authorize_url: `https://${provider}.example.com/oauth/authorize?redirect_uri=${redirectUri}`,
+      state: 'mock_csrf_state_token',
+    });
+  }),
+
+  /**
+   * POST /oauth/:provider/login/callback
+   * Complete OAuth login callback.
+   */
+  http.post(`${API_BASE}/oauth/:provider/login/callback`, async ({ request }) => {
+    const body = (await request.json()) as { code?: string; state?: string };
+
+    if (!body.code || !body.state) {
+      return HttpResponse.json(
+        { detail: 'Missing code or state' },
+        { status: 422 },
+      );
+    }
+
+    if (body.code === 'invalid_code') {
+      return HttpResponse.json(
+        { detail: 'Invalid authorization code' },
+        { status: 400 },
+      );
+    }
+
+    return HttpResponse.json({
+      ...MOCK_TOKENS,
+      user: {
+        id: MOCK_USER.id,
+        login: MOCK_USER.login,
+        email: MOCK_USER.email,
+        is_active: true,
+        is_email_verified: true,
+        created_at: MOCK_USER.created_at,
+      },
+      is_new_user: false,
+      requires_2fa: false,
+      tfa_token: null,
+    });
+  }),
+
+  /**
+   * GET /oauth/telegram/authorize
+   * Get Telegram OAuth authorize URL for account linking (authenticated).
+   */
+  http.get(`${API_BASE}/oauth/telegram/authorize`, ({ request }) => {
+    const url = new URL(request.url);
+    const redirectUri = url.searchParams.get('redirect_uri');
+
+    return HttpResponse.json({
+      authorize_url: `https://telegram.example.com/oauth/authorize?redirect_uri=${redirectUri}`,
+      state: 'mock_link_state_token',
+    });
+  }),
+
+  /**
+   * POST /oauth/telegram/callback
+   * Link Telegram account via OAuth callback (authenticated).
+   */
+  http.post(`${API_BASE}/oauth/telegram/callback`, async ({ request }) => {
+    const body = (await request.json()) as { hash?: string; state?: string };
+
+    if (!body.hash || !body.state) {
+      return HttpResponse.json(
+        { detail: 'Missing required fields' },
+        { status: 422 },
+      );
+    }
+
+    return HttpResponse.json({
+      status: 'linked',
+      provider: 'telegram',
+      provider_user_id: '987654321',
+    });
+  }),
+
+  /**
+   * DELETE /oauth/:provider
+   * Unlink an OAuth provider from the current user (authenticated).
+   */
+  http.delete(`${API_BASE}/oauth/:provider`, ({ params }) => {
+    const provider = params.provider as string;
+    const validProviders = ['google', 'github', 'discord', 'apple', 'microsoft', 'twitter', 'telegram'];
+
+    if (!validProviders.includes(provider)) {
+      return HttpResponse.json(
+        { detail: 'Unsupported OAuth provider' },
+        { status: 400 },
+      );
+    }
+
+    return HttpResponse.json({
+      status: 'unlinked',
+      provider,
+    });
+  }),
 ];
 
 // ---------------------------------------------------------------------------

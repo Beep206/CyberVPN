@@ -43,6 +43,7 @@ import { ThemeProvider } from "@/app/providers/theme-provider";
 import { AuthProvider } from "@/app/providers/auth-provider";
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
+import { SkipNavLink } from "@/shared/ui/atoms/skip-nav-link";
 
 export default async function RootLayout({
     children,
@@ -74,6 +75,7 @@ export default async function RootLayout({
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <AuthProvider>
                             <SmoothScrollProvider>
+                                <SkipNavLink />
                                 <div className="relative z-10 h-full w-full">
                                     {children}
                                 </div>

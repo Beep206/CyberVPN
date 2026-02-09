@@ -68,7 +68,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                         )}
                     >
                         {/* Terminal prefix */}
-                        <span className="pl-4 pr-2 py-3 text-xs font-mono text-muted-foreground/50 select-none whitespace-nowrap">
+                        <span className="pl-4 pr-2 py-3 text-xs font-mono text-muted-foreground-low select-none whitespace-nowrap">
                             root@{prefix}:~$
                         </span>
 

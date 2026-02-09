@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
                             {t('successMessage')}{' '}
                             <span className="text-neon-cyan">{email}</span>
                         </p>
-                        <p className="text-xs text-muted-foreground/60 font-mono">
+                        <p className="text-xs text-muted-foreground-low font-mono">
                             {t('successExpiry')}
                         </p>
                     </div>

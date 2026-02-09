@@ -24,6 +24,7 @@ from src.presentation.api.v1.snippets.routes import router as snippets_router
 from src.presentation.api.v1.keygen.routes import router as keygen_router
 from src.presentation.api.v1.xray.routes import router as xray_router
 from src.presentation.api.v1.settings.routes import router as settings_router
+from src.presentation.api.v1.status.routes import router as status_router
 from src.presentation.api.v1.ws.monitoring import router as ws_monitoring_router
 from src.presentation.api.v1.ws.notifications import router as ws_notifications_router
 from src.presentation.api.v1.ws.tickets import router as ws_tickets_router
@@ -48,6 +49,7 @@ api_router.include_router(payments_router)
 api_router.include_router(billing_router)
 
 # Monitoring & admin
+api_router.include_router(status_router)
 api_router.include_router(monitoring_router)
 api_router.include_router(admin_router)
 api_router.include_router(invites_router)

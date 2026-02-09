@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +49,20 @@ export function NotificationDropdown() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Close on Escape key
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
@@ -56,18 +70,29 @@ export function NotificationDropdown() {
             <Button
                 variant="ghost"
                 size="icon"
+                magnetic={false}
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10"
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+                aria-expanded={isOpen}
+                aria-haspopup="true"
+                aria-controls="notification-panel"
+                className="relative text-muted-foreground hover:text-neon-cyan hover:bg-neon-cyan/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
             >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_#ff00ff]" />
+                    <span
+                        className="absolute top-2 right-2 h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_#ff00ff]"
+                        aria-hidden="true"
+                    />
                 )}
             </Button>
 
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
+                        id="notification-panel"
+                        role="region"
+                        aria-label="Notifications"
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -79,7 +104,7 @@ export function NotificationDropdown() {
                             <span className="text-xs font-mono text-muted-foreground">{unreadCount} UNREAD</span>
                         </div>
 
-                        <div className="max-h-[60vh] overflow-y-auto">
+                        <div className="max-h-[60vh] overflow-y-auto" role="list" aria-label="Notification list">
                             {notifications.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground font-mono text-sm">
                                     NO NEW ALERTS
@@ -89,13 +114,16 @@ export function NotificationDropdown() {
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
+                                            role="listitem"
+                                            tabIndex={0}
+                                            aria-label={`${notification.type}: ${notification.title} - ${notification.message}`}
                                             className={cn(
-                                                "p-4 hover:bg-white/5 transition-colors cursor-pointer group [content-visibility:auto] [contain-intrinsic-size:auto_76px]",
+                                                "p-4 hover:bg-white/5 transition-colors cursor-pointer group [content-visibility:auto] [contain-intrinsic-size:auto_76px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neon-cyan focus-visible:bg-neon-cyan/10",
                                                 !notification.read && "bg-neon-cyan/5"
                                             )}
                                         >
                                             <div className="flex gap-3">
-                                                <div className="mt-1">
+                                                <div className="mt-1" aria-hidden="true">
                                                     {notification.type === 'warning' && <AlertTriangle className="h-4 w-4 text-neon-yellow" />}
                                                     {notification.type === 'success' && <CheckCircle className="h-4 w-4 text-neon-green" />}
                                                     {notification.type === 'info' && <Info className="h-4 w-4 text-neon-blue" />}
@@ -119,7 +147,11 @@ export function NotificationDropdown() {
                         </div>
 
                         <div className="p-2 border-t border-grid-line/30 bg-black/40">
-                            <Button variant="ghost" className="w-full text-xs font-mono hover:text-neon-cyan h-8">
+                            <Button
+                                variant="ghost"
+                                aria-label="View all notification logs"
+                                className="w-full text-xs font-mono hover:text-neon-cyan h-8 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan"
+                            >
                                 VIEW ALL LOGS
                             </Button>
                         </div>

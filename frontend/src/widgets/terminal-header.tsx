@@ -75,19 +75,22 @@ export function TerminalHeader() {
         <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 bg-terminal-surface/95 backdrop-blur-xl border-b border-grid-line/50 shadow-sm dark:shadow-none px-6 pl-20 md:pl-6 transition-all">
             <div className="flex flex-1 items-center gap-4">
                 <MagneticButton strength={15}>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+                    <div
+                        aria-hidden="true"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-grid-line/30 bg-muted/50 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    >
                         <Menu className="h-4 w-4" />
                     </div>
                 </MagneticButton>
 
                 <div className="hidden md:flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
                     <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground/60">{t('fps')}</span>
+                        <span className="text-muted-foreground-low">{t('fps')}</span>
                         <span ref={fpsRef} className="text-neon-cyan">--</span>
                     </div>
-                    <span className="text-muted-foreground/30">|</span>
+                    <span className="text-muted-foreground-low">|</span>
                     <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground/60">{t('ping')}</span>
+                        <span className="text-muted-foreground-low">{t('ping')}</span>
                         <span ref={pingRef} className="text-matrix-green">--</span>
                     </div>
                 </div>

@@ -88,10 +88,11 @@ export function CypherText({
 
     return (
         <span
+            aria-label={text}
             className={cn("font-mono inline-block", className)}
             onMouseEnter={animate} // Replay on hover
         >
-            {displayText}
+            <span aria-hidden="true">{displayText}</span>
         </span>
     );
 }

@@ -29,14 +29,15 @@ export default function AuthLayout({
                     {/* Back to home */}
                     <Link
                         href="/"
-                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-mono text-sm group"
+                        aria-label="Back to home"
+                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-mono text-sm group rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                     >
                         <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                         <span className="hidden sm:inline">back_to_home</span>
                     </Link>
 
                     {/* Logo */}
-                    <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group">
+                    <Link href="/" aria-label="CyberVPN home" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]">
                         <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
                             <Shield className="h-4 w-4 text-neon-cyan" />
                         </div>
@@ -54,7 +55,7 @@ export default function AuthLayout({
             </MiniAppNavGuard>
 
             {/* Main content */}
-            <main className="relative z-10 w-full max-w-lg px-4 py-20">
+            <main id="main-content" tabIndex={-1} className="relative z-10 w-full max-w-lg px-4 py-20 focus:outline-hidden">
                 <TelegramMiniAppAuthProvider>
                     {children}
                 </TelegramMiniAppAuthProvider>

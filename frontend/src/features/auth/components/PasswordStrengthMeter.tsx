@@ -89,7 +89,7 @@ export function PasswordStrengthMeter({ password, className }: PasswordStrengthM
             </div>
 
             {/* Requirements hints */}
-            <div className="grid grid-cols-2 gap-1 text-[10px] font-mono text-muted-foreground/60">
+            <div className="grid grid-cols-2 gap-1 text-[10px] font-mono text-muted-foreground-low">
                 <RequirementItem met={password.length >= 8} text="8+ chars" />
                 <RequirementItem met={/[A-Z]/.test(password)} text="uppercase" />
                 <RequirementItem met={/[0-9]/.test(password)} text="number" />
@@ -103,7 +103,7 @@ function RequirementItem({ met, text }: { met: boolean; text: string }) {
     return (
         <span className={cn(
             "flex items-center gap-1 transition-colors",
-            met ? "text-matrix-green" : "text-muted-foreground/40"
+            met ? "text-matrix-green" : "text-muted-foreground-low"
         )}>
             <span className={cn(
                 "w-1.5 h-1.5 rounded-full transition-colors",

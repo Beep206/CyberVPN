@@ -22,7 +22,10 @@ export function CyberSidebar() {
     const t = useTranslations('Navigation');
 
     return (
-        <aside className="hidden h-screen w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex z-40 fixed left-0 top-0">
+        <aside
+            aria-label={t('sidebar')}
+            className="hidden h-screen w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex z-40 fixed left-0 top-0"
+        >
             <div className="flex h-16 items-center border-b border-grid-line/30 px-6">
                 <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
                     <Shield className="h-6 w-6" />
@@ -31,7 +34,7 @@ export function CyberSidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto py-6 px-4">
-                <nav className="grid gap-2">
+                <nav aria-label={t('mainNavigation')} className="grid gap-2">
                     {menuItems.map((item) => {
                         const isActive = pathname?.includes(item.href);
                         const Icon = item.icon;
@@ -41,7 +44,9 @@ export function CyberSidebar() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="group relative block overflow-hidden"
+                                aria-label={label}
+                                aria-current={isActive ? 'page' : undefined}
+                                className="group relative block overflow-hidden rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                             >
                                 {isActive && (
                                     <motion.div
@@ -71,10 +76,10 @@ export function CyberSidebar() {
                                             speed={30}
                                         />
                                         {/* Glitch Overlay Text (Visible on Hover) */}
-                                        <span className="absolute top-0 left-0 -translate-x-[2px] opacity-0 text-neon-pink mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse">
+                                        <span aria-hidden="true" className="absolute top-0 left-0 -translate-x-[2px] opacity-0 text-neon-pink mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse">
                                             {label}
                                         </span>
-                                        <span className="absolute top-0 left-0 translate-x-[2px] opacity-0 text-neon-cyan mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse animation-delay-75">
+                                        <span aria-hidden="true" className="absolute top-0 left-0 translate-x-[2px] opacity-0 text-neon-cyan mix-blend-screen group-hover:opacity-100 group-hover:animate-pulse animation-delay-75">
                                             {label}
                                         </span>
                                     </span>
@@ -82,6 +87,7 @@ export function CyberSidebar() {
                                     {/* Active Indicator Dot */}
                                     {isActive && (
                                         <motion.span
+                                            aria-hidden="true"
                                             layoutId="active-dot"
                                             className="absolute right-3 h-1.5 w-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_#00ffff]"
                                         />

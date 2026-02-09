@@ -5,5 +5,9 @@
     "billing": "BILLING",
     "analytics": "NET OP",
     "security": "SECURITY",
-    "settings": "CONFIG"
+    "settings": "CONFIG",
+    "mainNavigation": "Main navigation",
+    "sidebar": "Sidebar",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
 }
