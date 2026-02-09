@@ -136,6 +136,24 @@ export interface BotLinkResponse {
   user: OAuthLoginUser;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  new_password: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
 export interface MagicLinkRequest {
   email: string;
 }
@@ -250,6 +268,21 @@ export const authApi = {
    */
   oauthLoginCallback: (provider: OAuthProvider, data: OAuthCallbackRequest) =>
     apiClient.post<OAuthLoginResponse>(`/oauth/${provider}/login/callback`, data),
+
+  /**
+   * Request password reset (forgot password)
+   * POST /api/v1/auth/forgot-password
+   * Always returns success to prevent email enumeration
+   */
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', data),
+
+  /**
+   * Reset password with OTP code
+   * POST /api/v1/auth/reset-password
+   */
+  resetPassword: (data: ResetPasswordRequest) =>
+    apiClient.post<ResetPasswordResponse>('/auth/reset-password', data),
 
   /**
    * Request magic link for passwordless login
