@@ -67,10 +67,13 @@ String resolveDeepLinkPath(DeepLinkRoute route) {
     SubscribeRoute(:final planId) => '/subscribe?plan=$planId',
     SettingsRoute() => '/settings',
     WidgetActionRoute() => '/connection',
-    OAuthCallbackRoute(:final provider, :final code) =>
-      '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
+    OAuthCallbackRoute(:final provider, :final code, :final state) =>
+      state != null
+          ? '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code&oauth_state=$state'
+          : '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
     TelegramAuthRoute(:final authData) =>
       '/telegram-auth?auth_data=$authData',
+    MagicLinkVerifyRoute(:final token) => '/magic-link/verify?token=$token',
   };
 }
 

@@ -24,7 +24,7 @@ export default function LoginPage() {
     const searchParams = useSearchParams();
     const redirectPath = searchParams.get('redirect') || '/dashboard';
 
-    const { login, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+    const { login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
     const [email, setEmail] = useState('');
@@ -53,6 +53,10 @@ export default function LoginPage() {
         }
     }, [error, isRateLimited]);
 
+    const handleOAuthLogin = (provider: string) => {
+        oauthLogin(provider as Parameters<typeof oauthLogin>[0]);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -69,7 +73,10 @@ export default function LoginPage() {
             subtitle={t('subtitle')}
         >
             {/* Social auth */}
-            <SocialAuthButtons disabled={isLoading || isRateLimited} />
+            <SocialAuthButtons
+                onProviderClick={handleOAuthLogin}
+                disabled={isLoading || isRateLimited}
+            />
 
             <AuthDivider text={t('divider')} />
 
@@ -167,8 +174,18 @@ export default function LoginPage() {
                 </motion.div>
             </form>
 
+            {/* Magic link alternative */}
+            <p className="mt-4 text-center text-sm text-muted-foreground font-mono">
+                <Link
+                    href="/magic-link"
+                    className="text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
+                >
+                    {t('magicLinkAlt') ?? 'Sign in with magic link'}
+                </Link>
+            </p>
+
             {/* Register link */}
-            <p className="mt-6 text-center text-sm text-muted-foreground font-mono">
+            <p className="mt-4 text-center text-sm text-muted-foreground font-mono">
                 {t('noAccount')}{' '}
                 <Link
                     href="/register"

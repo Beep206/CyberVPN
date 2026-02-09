@@ -2237,24 +2237,24 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Sociala konton';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Koppla dina sociala konton för enklare inloggning och kontoåterställning.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Kopplat';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Inte kopplat';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Koppla';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Slutför auktoriseringen i din webbläsare och återvänd sedan till appen.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4260,4 +4260,74 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'RADERA';
+
+  @override
+  String get magicLinkTitle => 'Magic Link-inloggning';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Ange din e-post så skickar vi en engångslänk för inloggning. Inget lösenord behövs.';
+
+  @override
+  String get magicLinkSendButton => 'Skicka Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Kolla din inkorg';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Vi skickade en inloggningslänk till $email. Tryck på länken i e-postmeddelandet för att logga in.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Länken gäller i 15 minuter.';
+
+  @override
+  String get magicLinkSendAgain => 'Skicka igen';
+
+  @override
+  String get backToLogin => 'Tillbaka till inloggning';
+
+  @override
+  String get rateLimitTitle => 'Vänta';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'För många förfrågningar. Försök igen om $seconds sekunder.';
+  }
+
+  @override
+  String get unknownError => 'Ett okänt fel uppstod. Försök igen.';
+
+  @override
+  String get registerModeEmail => 'E-post';
+
+  @override
+  String get registerModeUsernameOnly => 'Endast användarnamn';
+
+  @override
+  String get registerUsernameLabel => 'Användarnamn';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Utan e-post kan du inte återställa ditt lösenord eller ta emot säkerhetsaviseringar.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Användarnamn: 3-32 tecken — bokstäver, siffror, understreck';
+
+  @override
+  String get loginMagicLinkOption => 'Logga in med magic link';
+
+  @override
+  String get continueWithGoogle => 'Fortsätt med Google';
+
+  @override
+  String get continueWithApple => 'Fortsätt med Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Kommer snart';
 }

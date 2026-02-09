@@ -176,24 +176,148 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
+    // OAuth callback route
+    // -----------------------------------------------------------------------
+    group('OAuth callback', () {
+      test('parses custom scheme OAuth callback with provider and code', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://oauth/callback?provider=github&code=abc123',
+        );
+        expect(result.route, isA<OAuthCallbackRoute>());
+        expect(result.error, isNull);
+        final route = result.route as OAuthCallbackRoute;
+        expect(route.provider, 'github');
+        expect(route.code, 'abc123');
+        expect(route.state, isNull);
+      });
+
+      test('parses OAuth callback with provider, code, and state', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://oauth/callback?provider=google&code=xyz&state=pkce_state',
+        );
+        expect(result.route, isA<OAuthCallbackRoute>());
+        expect(result.error, isNull);
+        final route = result.route as OAuthCallbackRoute;
+        expect(route.provider, 'google');
+        expect(route.code, 'xyz');
+        expect(route.state, 'pkce_state');
+      });
+
+      test('parses universal link OAuth callback', () {
+        final result = DeepLinkParser.parse(
+          'https://cybervpn.app/oauth/callback?provider=discord&code=test',
+        );
+        expect(result.route, isA<OAuthCallbackRoute>());
+        expect(result.error, isNull);
+        final route = result.route as OAuthCallbackRoute;
+        expect(route.provider, 'discord');
+        expect(route.code, 'test');
+      });
+
+      test('returns error when provider is missing', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://oauth/callback?code=abc123',
+        );
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('provider'));
+      });
+
+      test('returns error when code is missing', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://oauth/callback?provider=github',
+        );
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('code'));
+      });
+
+      test('returns error for invalid provider format with numbers/uppercase',
+          () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://oauth/callback?provider=GitHub2&code=abc',
+        );
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('Invalid provider format'));
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // Magic link verify route
+    // -----------------------------------------------------------------------
+    group('magic link verify', () {
+      test('parses custom scheme magic link with token', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://magic-link/verify?token=abc123def',
+        );
+        expect(result.route, isA<MagicLinkVerifyRoute>());
+        expect(result.error, isNull);
+        final route = result.route as MagicLinkVerifyRoute;
+        expect(route.token, 'abc123def');
+      });
+
+      test('parses universal link magic link with token', () {
+        final result = DeepLinkParser.parse(
+          'https://cybervpn.app/magic-link/verify?token=xyz789',
+        );
+        expect(result.route, isA<MagicLinkVerifyRoute>());
+        expect(result.error, isNull);
+        final route = result.route as MagicLinkVerifyRoute;
+        expect(route.token, 'xyz789');
+      });
+
+      test('returns error when token is missing', () {
+        final result = DeepLinkParser.parse(
+          'cybervpn://magic-link/verify',
+        );
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('token'));
+      });
+    });
+
+    // -----------------------------------------------------------------------
     // Error cases
     // -----------------------------------------------------------------------
     group('error cases', () {
+      test('returns error for empty string', () {
+        final result = DeepLinkParser.parse('');
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+      });
+
+      test('returns error for wrong host in universal link', () {
+        final result = DeepLinkParser.parse(
+          'https://example.com/connect',
+        );
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('Unsupported host'));
+      });
+
+      test('returns error for unsupported scheme', () {
+        final result = DeepLinkParser.parse('unknown://connect');
+        expect(result.route, isNull);
+        expect(result.error, isNotNull);
+        expect(result.error!.message, contains('Unsupported scheme'));
+      });
+
       test('returns error for unknown route', () {
-        final result = DeepLinkParser.parse('cybervpn://unknown');
+        final result = DeepLinkParser.parse('cybervpn://nonexistent');
         expect(result.route, isNull);
         expect(result.error, isNotNull);
         expect(result.error!.message, contains('Unknown route'));
       });
 
-      test('returns error for unsupported scheme', () {
+      test('returns error for ftp scheme', () {
         final result = DeepLinkParser.parse('ftp://connect?server=1');
         expect(result.route, isNull);
         expect(result.error, isNotNull);
         expect(result.error!.message, contains('Unsupported scheme'));
       });
 
-      test('returns error for wrong universal link host', () {
+      test('returns error for wrong universal link host evil.com', () {
         final result = DeepLinkParser.parse(
           'https://evil.com/connect?server=1',
         );

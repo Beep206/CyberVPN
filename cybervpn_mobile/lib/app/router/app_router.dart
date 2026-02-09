@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_au
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/magic_link_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/qr_scanner_screen.dart';
@@ -237,7 +238,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final uri = state.uri;
       final path = uri.path;
-      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password';
+      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password' || path == '/magic-link';
       final isOnboardingRoute = path == '/onboarding';
       final isQuickSetupRoute = path == '/quick-setup';
       final isSplashRoute = path == '/splash';
@@ -393,6 +394,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const ForgotPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/magic-link',
+        name: 'magic-link',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: const MagicLinkScreen(),
         ),
       ),
 

@@ -1,7 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -85,10 +87,7 @@ class FcmTopicService {
   Future<void> subscribe(String topic) async {
     try {
       await _messaging.subscribeToTopic(topic);
-      AppLogger.info(
-        'Subscribed to FCM topic: $topic',
-        category: 'fcm.topics',
-      );
+      AppLogger.info('Subscribed to FCM topic: $topic', category: 'fcm.topics');
     } catch (e, st) {
       AppLogger.error(
         'Failed to subscribe to FCM topic: $topic',
@@ -124,10 +123,7 @@ class FcmTopicService {
   /// If [enabled] is true, subscribes to the topic.
   /// If [enabled] is false, unsubscribes from the topic.
   /// Returns silently if the notification type has no associated FCM topic.
-  Future<void> setTopicSubscription(
-    NotificationType type,
-    bool enabled,
-  ) async {
+  Future<void> setTopicSubscription(NotificationType type, bool enabled) async {
     final topic = notificationTypeToTopic(type);
     if (topic == null) {
       // No FCM topic for this notification type (e.g., local-only notifications)
@@ -148,10 +144,7 @@ class FcmTopicService {
   ///
   /// Security alerts are always subscribed - cannot be disabled.
   Future<void> syncAllTopicSubscriptions(AppSettings settings) async {
-    AppLogger.info(
-      'Syncing FCM topic subscriptions',
-      category: 'fcm.topics',
-    );
+    AppLogger.info('Syncing FCM topic subscriptions', category: 'fcm.topics');
 
     try {
       // Connection status
@@ -214,6 +207,10 @@ final fcmTopicServiceProvider = Provider<FcmTopicService>((ref) {
 /// Watch this provider in the app to keep topics in sync with preferences.
 /// It listens to settings changes and updates subscriptions accordingly.
 final fcmTopicSyncProvider = Provider<void>((ref) {
+  if (kDebugMode && EnvironmentConfig.isDev) {
+    return;
+  }
+
   final settings = ref.watch(settingsProvider).value;
   if (settings == null) return;
 
@@ -221,9 +218,11 @@ final fcmTopicSyncProvider = Provider<void>((ref) {
 
   // Sync all subscriptions when settings change
   // Using addPostFrameCallback to avoid calling async during build
-  unawaited(Future.microtask(() async {
-    await service.syncAllTopicSubscriptions(settings);
-  }));
+  unawaited(
+    Future.microtask(() async {
+      await service.syncAllTopicSubscriptions(settings);
+    }),
+  );
 });
 
 // ---------------------------------------------------------------------------

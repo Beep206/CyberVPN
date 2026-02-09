@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { UserPlus, Loader2, Check, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
     AuthFormCard,
@@ -22,16 +23,20 @@ export default function RegisterPage() {
     const t = useTranslations('Auth.register');
     const router = useRouter();
 
-    const { register, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+    const { register, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
+    const [usernameOnly, setUsernameOnly] = useState(false);
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [acceptTerms, setAcceptTerms] = useState(false);
 
     const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
-    const canSubmit = email && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
+    const canSubmit = usernameOnly
+        ? username && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited
+        : email && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
     const errorRef = useRef<HTMLDivElement>(null);
 
     // Redirect if already authenticated (auto-login after registration)
@@ -53,14 +58,23 @@ export default function RegisterPage() {
         }
     }, [error, isRateLimited]);
 
+    const handleOAuthLogin = (provider: string) => {
+        oauthLogin(provider as Parameters<typeof oauthLogin>[0]);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!canSubmit) return;
 
         try {
-            await register(email, password);
-            // Redirect to OTP verification page with email
-            router.push(`/verify?email=${encodeURIComponent(email)}`);
+            if (usernameOnly) {
+                await register(username, password);
+                // Username-only: immediately active, redirect to dashboard
+                router.push('/dashboard');
+            } else {
+                await register(email, password);
+                router.push(`/verify?email=${encodeURIComponent(email)}`);
+            }
         } catch {
             // Error is already set in the store
         }
@@ -72,9 +86,42 @@ export default function RegisterPage() {
             subtitle={t('subtitle')}
         >
             {/* Social auth */}
-            <SocialAuthButtons disabled={isLoading || isRateLimited} />
+            <SocialAuthButtons
+                onProviderClick={handleOAuthLogin}
+                disabled={isLoading || isRateLimited}
+            />
 
             <AuthDivider text={t('divider')} />
+
+            {/* Registration mode toggle */}
+            <div className="flex gap-2 font-mono text-xs">
+                <button
+                    type="button"
+                    onClick={() => setUsernameOnly(false)}
+                    className={cn(
+                        "flex-1 py-2 px-3 rounded-lg border transition-all cursor-pointer",
+                        !usernameOnly
+                            ? "border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan"
+                            : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
+                    )}
+                    aria-label="Register with email"
+                >
+                    Email
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setUsernameOnly(true)}
+                    className={cn(
+                        "flex-1 py-2 px-3 rounded-lg border transition-all cursor-pointer",
+                        usernameOnly
+                            ? "border-neon-purple/50 bg-neon-purple/10 text-neon-purple"
+                            : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
+                    )}
+                    aria-label="Register with username only"
+                >
+                    Username Only
+                </button>
+            </div>
 
             {/* Rate limit countdown */}
             <RateLimitCountdown />
@@ -96,17 +143,31 @@ export default function RegisterPage() {
 
             {/* Register form */}
             <form onSubmit={handleSubmit} className="space-y-5">
-                <CyberInput
-                    label={t('emailLabel')}
-                    type="email"
-                    prefix="email"
-                    placeholder="user@cybervpn.io"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                    disabled={isLoading || isRateLimited}
-                />
+                {usernameOnly ? (
+                    <CyberInput
+                        label="Username"
+                        type="text"
+                        prefix="user"
+                        placeholder="cyberpunk_hacker"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                        autoComplete="username"
+                        disabled={isLoading || isRateLimited}
+                    />
+                ) : (
+                    <CyberInput
+                        label={t('emailLabel')}
+                        type="email"
+                        prefix="email"
+                        placeholder="user@cybervpn.io"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                        disabled={isLoading || isRateLimited}
+                    />
+                )}
 
                 <div className="space-y-2">
                     <CyberInput

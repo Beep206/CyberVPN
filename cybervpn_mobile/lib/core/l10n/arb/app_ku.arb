@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "ئەکاونتە کۆمەڵایەتییەکان",
+  "profileSocialAccountsDescription": "ئەکاونتە کۆمەڵایەتییەکانت ببەستە بۆ چوونەژوورەوەی ئاسانتر و گەڕانەوەی ئەکاونت.",
+  "profileSocialLinked": "بەسترا",
+  "profileSocialNotLinked": "نەبەسترا",
+  "profileSocialLink": "بەستن",
+  "profileSocialCompleteAuth": "ڕێپێدان لە وێبگەڕ تەواو بکە، پاشان بگەڕێوە بۆ ئەپەکە.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "فشل ربط {provider}: {error}",
+  "profileSocialLinkFailed": "بەستنی {provider} سەرنەکەوت: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "حذف",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "ئینبۆکسەکەت بپشکنە",
+  "magicLinkSubtitle": "ئیمەیڵەکەت بنووسە و ئێمە بەستەرێکی چوونەژوورەوەی یەک جاری بۆت دەنێرین. پێویستی بە وشەی نهێنی نییە.",
+  "magicLinkSentTo": "بەستەرێکی چوونەژوورەوەمان بۆ {email} نارد. لە ئیمەیڵەکەدا بەستەرەکە بکە بۆ چوونەژوورەوە.",
+  "continueWithGoogle": "بەردەوامبوون لەگەڵ Google",
+  "backToLogin": "گەڕانەوە بۆ چوونەژوورەوە",
+  "rateLimitMessage": "داواکاری زۆر. تکایە دوای {seconds} چرکە دووبارە هەوڵ بدەرەوە.",
+  "registerModeUsernameOnly": "تەنها ناوی بەکارهێنەر",
+  "rateLimitTitle": "تکایە چاوەڕوان بە",
+  "magicLinkSendAgain": "دووبارە بنێرە",
+  "socialLoginComingSoon": "بەم زووانە",
+  "magicLinkExpiresIn": "بەستەرەکە ١٥ خولەک کاردەکات.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "ناوی بەکارهێنەر: ٣-٣٢ پیت — پیت، ژمارە، هێڵی خوارەوە",
+  "unknownError": "هەڵەیەکی نەناسراو ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.",
+  "registerModeEmail": "ئیمەیڵ",
+  "magicLinkTitle": "چوونەژوورەوە بە Magic Link",
+  "loginMagicLinkOption": "چوونەژوورەوە بە magic link",
+  "continueWithApple": "بەردەوامبوون لەگەڵ Apple",
+  "magicLinkSendButton": "ناردنی Magic Link",
+  "registerUsernameOnlyWarning": "بێ ئیمەیڵ ناتوانیت وشەی نهێنی بگەڕێنیتەوە یان ئاگادارکردنەوەی ئاسایشت پێ بگات.",
+  "registerUsernameLabel": "ناوی بەکارهێنەر"
 }

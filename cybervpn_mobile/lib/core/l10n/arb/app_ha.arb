@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Asusun zamantakewa",
+  "profileSocialAccountsDescription": "Haɗa asusun zamantakewar ku don sauƙin shiga da dawo da asusu.",
+  "profileSocialLinked": "An haɗa",
+  "profileSocialNotLinked": "Ba a haɗa ba",
+  "profileSocialLink": "Haɗa",
+  "profileSocialCompleteAuth": "Kammala izinin a cikin mashigin yanar gizo, sannan koma zuwa aikace-aikacen.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "An kasa haɗa {provider}: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Duba akwatin saƙonka",
+  "magicLinkSubtitle": "Shigar da imel ɗinka kuma za mu aiko maka hanyar shiga ta sau ɗaya. Ba a buƙatar kalmar sirri.",
+  "magicLinkSentTo": "Mun aika hanyar shiga zuwa {email}. Taɓa hanyar haɗin a cikin imel ɗin don shiga.",
+  "continueWithGoogle": "Ci gaba da Google",
+  "backToLogin": "Komawa zuwa shiga",
+  "rateLimitMessage": "Buƙatun da yawa. Da fatan za a sake gwadawa bayan daƙiƙa {seconds}.",
+  "registerModeUsernameOnly": "Sunan mai amfani kawai",
+  "rateLimitTitle": "Da fatan za a jira",
+  "magicLinkSendAgain": "Sake aikawa",
+  "socialLoginComingSoon": "Yana zuwa nan ba da jimawa ba",
+  "magicLinkExpiresIn": "Hanyar haɗin za ta ƙare a cikin minti 15.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Sunan mai amfani: haruffa 3-32 — haruffa, lambobi, layin ƙasa",
+  "unknownError": "Kuskure da ba a sani ba ya faru. Da fatan za a sake gwadawa.",
+  "registerModeEmail": "Imel",
+  "magicLinkTitle": "Shiga ta Magic Link",
+  "loginMagicLinkOption": "Shiga ta magic link",
+  "continueWithApple": "Ci gaba da Apple",
+  "magicLinkSendButton": "Aika Magic Link",
+  "registerUsernameOnlyWarning": "Ba tare da imel ba, ba za ku iya dawo da kalmar sirri ko karɓar sanarwar tsaro ba.",
+  "registerUsernameLabel": "Sunan mai amfani"
 }

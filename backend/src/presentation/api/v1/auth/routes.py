@@ -7,6 +7,7 @@ import asyncio
 import logging
 import secrets
 import time
+from datetime import UTC, datetime
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -14,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
+from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.login import LoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
@@ -24,6 +26,7 @@ from src.application.use_cases.auth.logout import LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.remnawave.adapters import (
@@ -40,6 +43,9 @@ from src.presentation.api.v1.auth.schemas import (
     LoginRequest,
     LogoutAllResponse,
     LogoutRequest,
+    MagicLinkRequest,
+    MagicLinkResponse,
+    MagicLinkVerifyRequest,
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
@@ -52,6 +58,14 @@ from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract client IP from request, respecting X-Forwarded-For."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 @router.post(
@@ -276,7 +290,9 @@ async def verify_otp(
     result = await use_case.execute(email=request.email, code=request.code)
 
     if not result.success:
-        status_code = status.HTTP_429_TOO_MANY_REQUESTS if result.error_code == "OTP_EXHAUSTED" else status.HTTP_400_BAD_REQUEST
+        status_code = (
+            status.HTTP_429_TOO_MANY_REQUESTS if result.error_code == "OTP_EXHAUSTED" else status.HTTP_400_BAD_REQUEST
+        )
         raise HTTPException(
             status_code=status_code,
             detail={
@@ -289,7 +305,9 @@ async def verify_otp(
     # Get user for response
     user = await user_repo.get_by_email(request.email)
     if not user:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification"
+        )
 
     return VerifyOtpResponse(
         access_token=result.access_token or "",
@@ -336,7 +354,9 @@ async def resend_otp(
             detail={
                 "detail": result.message,
                 "code": result.error_code,
-                "next_resend_available_at": result.next_resend_available_at.isoformat() if result.next_resend_available_at else None,
+                "next_resend_available_at": result.next_resend_available_at.isoformat()
+                if result.next_resend_available_at
+                else None,
             },
         )
 
@@ -353,4 +373,105 @@ async def resend_otp(
         message=result.message or "Verification code sent.",
         resends_remaining=result.resends_remaining,
         next_resend_available_at=result.next_resend_available_at,
+    )
+
+
+@router.post(
+    "/magic-link",
+    response_model=MagicLinkResponse,
+    responses={429: {"description": "Rate limit exceeded"}},
+)
+async def request_magic_link(
+    request: MagicLinkRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
+) -> MagicLinkResponse:
+    """Request a magic link for passwordless login.
+
+    Always returns success to prevent email enumeration.
+    """
+    service = MagicLinkService(redis_client)
+    user_repo = AdminUserRepository(db)
+
+    try:
+        # Check if email is registered (but always return same response)
+        user = await user_repo.get_by_email(request.email)
+        if user:
+            token = await service.generate(
+                email=request.email,
+                ip_address=_get_client_ip(http_request),
+            )
+            # Dispatch magic link email
+            try:
+                await email_dispatcher.dispatch_magic_link_email(
+                    email=request.email,
+                    token=token,
+                )
+            except Exception:
+                logger.exception("Failed to dispatch magic link email")
+    except RateLimitExceededError:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please try again later.",
+        )
+
+    return MagicLinkResponse()
+
+
+@router.post(
+    "/magic-link/verify",
+    response_model=TokenResponse,
+    responses={400: {"description": "Invalid or expired token"}},
+)
+async def verify_magic_link(
+    request: MagicLinkVerifyRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> TokenResponse:
+    """Verify magic link token and return JWT tokens.
+
+    If user doesn't exist, creates a new account with verified email.
+    """
+    service = MagicLinkService(redis_client)
+    payload = await service.validate_and_consume(request.token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired magic link token.",
+        )
+
+    email = payload["email"]
+    user_repo = AdminUserRepository(db)
+    user = await user_repo.get_by_email(email)
+
+    if not user:
+        # Auto-register: create user with verified email
+        password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
+        user = AdminUserModel(
+            login=email.split("@")[0],
+            email=email,
+            password_hash=password_hash,
+            role="viewer",
+            is_active=True,
+            is_email_verified=True,
+        )
+        user = await user_repo.create(user)
+
+    # Issue JWT tokens
+    access_token, _, access_exp = auth_service.create_access_token(
+        subject=str(user.id),
+        role=user.role if isinstance(user.role, str) else user.role.value,
+    )
+    refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
+    expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=expires_in,
     )

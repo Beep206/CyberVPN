@@ -34,11 +34,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _referralCodeController = TextEditingController();
+  final _usernameController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptedTerms = false;
   bool _isReferralCodeValid = false;
+  bool _isUsernameOnlyMode = false;
 
   @override
   void initState() {
@@ -93,6 +95,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _referralCodeController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -199,10 +202,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     final referral = _referralCodeController.text.trim();
 
+    // In username-only mode, pass the username as the first argument.
+    // The backend register endpoint accepts both email and username
+    // in the same field (login_or_email concept).
+    final identifier = _isUsernameOnlyMode
+        ? _usernameController.text.trim()
+        : _emailController.text.trim();
+
     await ref
         .read(authProvider.notifier)
         .register(
-          _emailController.text.trim(),
+          identifier,
           _passwordController.text,
           referralCode: referral.isEmpty ? null : referral,
         );
@@ -307,32 +317,132 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-                      // ── Email ──────────────────────────────────────
-                      AnimatedFormField(
-                        child: FocusTraversalOrder(
-                          order: const NumericFocusOrder(1),
-                          child: TextFormField(
-                            controller: _emailController,
-                            enabled: !isLoading,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            autofillHints: const [AutofillHints.email],
-                            decoration: InputDecoration(
-                              labelText: l10n.formEmailLabel,
-                              hintText: l10n.formEmailHint,
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                semanticLabel: '', // Hide from screen reader
-                              ),
-                            ),
-                            validator: InputValidators.validateEmail,
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                      // ── Registration mode toggle ─────────────────
+                      SegmentedButton<bool>(
+                        segments: [
+                          ButtonSegment<bool>(
+                            value: false,
+                            label: Text(l10n.registerModeEmail),
+                            icon: const Icon(Icons.email_outlined),
                           ),
-                        ),
+                          ButtonSegment<bool>(
+                            value: true,
+                            label: Text(l10n.registerModeUsernameOnly),
+                            icon: const Icon(Icons.person_outlined),
+                          ),
+                        ],
+                        selected: {_isUsernameOnlyMode},
+                        onSelectionChanged: isLoading
+                            ? null
+                            : (Set<bool> selection) {
+                                setState(() {
+                                  _isUsernameOnlyMode = selection.first;
+                                });
+                              },
                       ),
                       const SizedBox(height: 16),
+
+                      // ── Username-only warning banner ─────────────
+                      if (_isUsernameOnlyMode) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: theme.colorScheme.error.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: theme.colorScheme.onErrorContainer,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  l10n.registerUsernameOnlyWarning,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onErrorContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── Username field (username-only mode) ──────
+                      if (_isUsernameOnlyMode) ...[
+                        AnimatedFormField(
+                          child: FocusTraversalOrder(
+                            order: const NumericFocusOrder(1),
+                            child: TextFormField(
+                              controller: _usernameController,
+                              enabled: !isLoading,
+                              keyboardType: TextInputType.text,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.username],
+                              decoration: InputDecoration(
+                                labelText: l10n.registerUsernameLabel,
+                                hintText: l10n.registerUsernameHint,
+                                prefixIcon: const Icon(
+                                  Icons.person_outlined,
+                                  semanticLabel: '',
+                                ),
+                              ),
+                              validator: (value) {
+                                final error =
+                                    InputValidators.validateUsername(value);
+                                if (error != null) {
+                                  return l10n.registerUsernameValidationError;
+                                }
+                                return null;
+                              },
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── Email (email mode only) ──────────────────
+                      if (!_isUsernameOnlyMode) ...[
+                        AnimatedFormField(
+                          child: FocusTraversalOrder(
+                            order: const NumericFocusOrder(1),
+                            child: TextFormField(
+                              controller: _emailController,
+                              enabled: !isLoading,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.email],
+                              decoration: InputDecoration(
+                                labelText: l10n.formEmailLabel,
+                                hintText: l10n.formEmailHint,
+                                prefixIcon: Icon(
+                                  Icons.email_outlined,
+                                  semanticLabel: '', // Hide from screen reader
+                                ),
+                              ),
+                              validator: InputValidators.validateEmail,
+                              autovalidateMode:
+                                  AutovalidateMode.onUserInteraction,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── Password ───────────────────────────────────
                       AnimatedFormField(

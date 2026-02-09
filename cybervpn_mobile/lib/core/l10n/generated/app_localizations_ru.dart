@@ -2262,24 +2262,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Социальные аккаунты';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Привяжите социальные аккаунты для быстрого входа и восстановления доступа.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Привязан';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Не привязан';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Привязать';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Завершите авторизацию в браузере, затем вернитесь в приложение.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4301,4 +4301,75 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'УДАЛИТЬ';
+
+  @override
+  String get magicLinkTitle => 'Вход по ссылке';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Введите email, и мы отправим вам одноразовую ссылку для входа. Пароль не нужен.';
+
+  @override
+  String get magicLinkSendButton => 'Отправить ссылку';
+
+  @override
+  String get magicLinkCheckInbox => 'Проверьте почту';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Мы отправили ссылку для входа на $email. Нажмите на ссылку в письме, чтобы войти.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Ссылка действительна 15 минут.';
+
+  @override
+  String get magicLinkSendAgain => 'Отправить снова';
+
+  @override
+  String get backToLogin => 'Назад к входу';
+
+  @override
+  String get rateLimitTitle => 'Подождите';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Слишком много запросов. Повторите через $seconds секунд.';
+  }
+
+  @override
+  String get unknownError =>
+      'Произошла неизвестная ошибка. Попробуйте ещё раз.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Только имя пользователя';
+
+  @override
+  String get registerUsernameLabel => 'Имя пользователя';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Без email вы не сможете восстановить пароль и получать уведомления безопасности.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Имя пользователя: 3-32 символа — буквы, цифры, подчёркивания';
+
+  @override
+  String get loginMagicLinkOption => 'Войти по ссылке';
+
+  @override
+  String get continueWithGoogle => 'Продолжить с Google';
+
+  @override
+  String get continueWithApple => 'Продолжить с Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Скоро';
 }

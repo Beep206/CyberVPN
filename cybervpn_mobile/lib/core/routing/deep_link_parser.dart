@@ -132,28 +132,34 @@ class WidgetActionRoute extends DeepLinkRoute {
   String toString() => 'WidgetActionRoute()';
 }
 
-/// OAuth callback route for social account linking.
+/// OAuth callback route for social account linking and OAuth login.
 ///
 /// Triggered by:
 /// - `cybervpn://oauth/callback?provider={provider}&code={code}`
+/// - `cybervpn://oauth/callback?provider={provider}&code={code}&state={state}`
 /// - `https://cybervpn.app/oauth/callback?provider={provider}&code={code}`
+///
+/// The optional [state] parameter is used for OAuth login flows (PKCE) to
+/// distinguish them from account-linking flows.
 class OAuthCallbackRoute extends DeepLinkRoute {
   final String provider;
   final String code;
-  const OAuthCallbackRoute({required this.provider, required this.code});
+  final String? state;
+  const OAuthCallbackRoute({required this.provider, required this.code, this.state});
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is OAuthCallbackRoute &&
           other.provider == provider &&
-          other.code == code;
+          other.code == code &&
+          other.state == state;
 
   @override
-  int get hashCode => Object.hash(provider, code);
+  int get hashCode => Object.hash(provider, code, state);
 
   @override
-  String toString() => 'OAuthCallbackRoute(provider: $provider, code: $code)';
+  String toString() => 'OAuthCallbackRoute(provider: $provider, code: $code, state: $state)';
 }
 
 /// Telegram OAuth callback route for authentication.
@@ -180,6 +186,27 @@ class TelegramAuthRoute extends DeepLinkRoute {
 
   @override
   String toString() => 'TelegramAuthRoute(authData: $authData)';
+}
+
+/// Magic link verification route.
+///
+/// Triggered by:
+/// - `cybervpn://magic-link/verify?token={token}`
+/// - `https://cybervpn.app/magic-link/verify?token={token}`
+class MagicLinkVerifyRoute extends DeepLinkRoute {
+  final String token;
+  const MagicLinkVerifyRoute({required this.token});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MagicLinkVerifyRoute && other.token == token;
+
+  @override
+  int get hashCode => token.hashCode;
+
+  @override
+  String toString() => 'MagicLinkVerifyRoute(token: $token)';
 }
 
 // ---------------------------------------------------------------------------
@@ -323,6 +350,8 @@ class DeepLinkParser {
         return _parseOAuthCallback(queryParams, uri);
       case 'telegram/callback':
         return _parseTelegramCallback(queryParams, uri);
+      case 'magic-link/verify':
+        return _parseMagicLinkVerify(queryParams, uri);
       default:
         return (
           route: null,
@@ -488,7 +517,9 @@ class DeepLinkParser {
         ),
       );
     }
-    return (route: OAuthCallbackRoute(provider: provider, code: code), error: null);
+    // state is optional since some flows (account linking) don't use it.
+    final state = queryParams['state'];
+    return (route: OAuthCallbackRoute(provider: provider, code: code, state: state), error: null);
   }
 
   static ({DeepLinkRoute? route, DeepLinkParseError? error}) _parseTelegramCallback(
@@ -528,5 +559,22 @@ class DeepLinkParser {
       );
     }
     return (route: TelegramAuthRoute(authData: authData), error: null);
+  }
+
+  static ({DeepLinkRoute? route, DeepLinkParseError? error}) _parseMagicLinkVerify(
+    Map<String, String> queryParams,
+    Uri uri,
+  ) {
+    final token = queryParams['token'];
+    if (token == null || token.isEmpty) {
+      return (
+        route: null,
+        error: DeepLinkParseError(
+          message: 'Missing required parameter: token',
+          uri: uri,
+        ),
+      );
+    }
+    return (route: MagicLinkVerifyRoute(token: token), error: null);
   }
 }

@@ -4260,4 +4260,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Magic Link Login';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Enter your email and we will send you a single-use login link. No password needed.';
+
+  @override
+  String get magicLinkSendButton => 'Send Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Check Your Inbox';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'We sent a login link to $email. Tap the link in the email to sign in.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'The link expires in 15 minutes.';
+
+  @override
+  String get magicLinkSendAgain => 'Send Again';
+
+  @override
+  String get backToLogin => 'Back to Login';
+
+  @override
+  String get rateLimitTitle => 'Too Many Requests';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Please wait $seconds seconds before trying again.';
+  }
+
+  @override
+  String get unknownError => 'An unknown error occurred. Please try again.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Username Only';
+
+  @override
+  String get registerUsernameLabel => 'Username';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Without an email, you won\'t be able to recover your password or receive security notifications.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Username must be 3-32 characters: letters, numbers, underscores';
+
+  @override
+  String get loginMagicLinkOption => 'Sign in with magic link';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get continueWithApple => 'Continue with Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Coming soon';
 }

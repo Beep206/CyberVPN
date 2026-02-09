@@ -2238,24 +2238,24 @@ class AppLocalizationsFa extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'حساب‌های اجتماعی';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'حساب‌های اجتماعی خود را متصل کنید تا ورود و بازیابی حساب آسان‌تر شود.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'متصل';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'متصل نیست';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'اتصال';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'تأیید هویت را در مرورگر تکمیل کنید، سپس به برنامه بازگردید.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4261,4 +4261,74 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'حذف';
+
+  @override
+  String get magicLinkTitle => 'ورود با Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'ایمیل خود را وارد کنید و ما یک لینک ورود یکبار مصرف برایتان ارسال می‌کنیم. نیازی به رمز عبور نیست.';
+
+  @override
+  String get magicLinkSendButton => 'ارسال Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'صندوق ورودی را بررسی کنید';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'لینک ورود به $email ارسال شد. برای ورود، روی لینک در ایمیل بزنید.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'لینک تا ۱۵ دقیقه معتبر است.';
+
+  @override
+  String get magicLinkSendAgain => 'ارسال مجدد';
+
+  @override
+  String get backToLogin => 'بازگشت به ورود';
+
+  @override
+  String get rateLimitTitle => 'لطفاً صبر کنید';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'درخواست‌های زیادی ارسال شده. لطفاً $seconds ثانیه دیگر تلاش کنید.';
+  }
+
+  @override
+  String get unknownError => 'خطای ناشناخته‌ای رخ داد. لطفاً دوباره تلاش کنید.';
+
+  @override
+  String get registerModeEmail => 'ایمیل';
+
+  @override
+  String get registerModeUsernameOnly => 'فقط نام کاربری';
+
+  @override
+  String get registerUsernameLabel => 'نام کاربری';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'بدون ایمیل نمی‌توانید رمز عبور را بازیابی کنید یا اعلان‌های امنیتی دریافت کنید.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'نام کاربری: ۳ تا ۳۲ کاراکتر — حروف، اعداد، زیرخط';
+
+  @override
+  String get loginMagicLinkOption => 'ورود با magic link';
+
+  @override
+  String get continueWithGoogle => 'ادامه با Google';
+
+  @override
+  String get continueWithApple => 'ادامه با Apple';
+
+  @override
+  String get socialLoginComingSoon => 'به‌زودی';
 }

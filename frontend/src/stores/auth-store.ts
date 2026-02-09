@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { authApi, User, TelegramWidgetData } from '@/lib/api/auth';
+import { authApi, type User, type TelegramWidgetData, type OAuthProvider, type OAuthLoginResponse } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { authAnalytics } from '@/lib/analytics';
 
@@ -19,6 +19,10 @@ interface AuthState {
   fetchUser: () => Promise<void>;
   telegramAuth: (data: TelegramWidgetData) => Promise<void>;
   telegramMiniAppAuth: () => Promise<void>;
+  oauthLogin: (provider: OAuthProvider) => Promise<void>;
+  oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
+  requestMagicLink: (email: string) => Promise<void>;
+  verifyMagicLink: (token: string) => Promise<void>;
   clearError: () => void;
   clearRateLimit: () => void;
 }
@@ -201,6 +205,118 @@ export const useAuthStore = create<AuthState>()(
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Telegram Mini App auth failed';
           authAnalytics.telegramError(message);
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      oauthLogin: async (provider) => {
+        set({ isLoading: true, error: null });
+        try {
+          const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+          const { data } = await authApi.oauthLoginAuthorize(provider, redirectUri);
+          // Store state in sessionStorage for CSRF validation on callback
+          sessionStorage.setItem('oauth_state', data.state);
+          sessionStorage.setItem('oauth_provider', provider);
+          // Redirect to provider
+          window.location.href = data.authorize_url;
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || `${provider} login failed`;
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      oauthCallback: async (provider, code, state) => {
+        set({ isLoading: true, error: null });
+        try {
+          // Verify state matches stored value
+          const storedState = sessionStorage.getItem('oauth_state');
+          if (state !== storedState) {
+            throw new Error('OAuth state mismatch - possible CSRF attack');
+          }
+
+          const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+          const { data } = await authApi.oauthLoginCallback(provider, {
+            code,
+            state,
+            redirect_uri: redirectUri,
+          });
+
+          // Clean up sessionStorage
+          sessionStorage.removeItem('oauth_state');
+          sessionStorage.removeItem('oauth_provider');
+
+          // If 2FA required, return the response for the caller to handle
+          if (data.requires_2fa) {
+            set({ isLoading: false });
+            return data;
+          }
+
+          // Store tokens
+          tokenStorage.setTokens(data.access_token, data.refresh_token);
+
+          // Set user
+          set({
+            user: {
+              id: data.user.id,
+              email: data.user.email || '',
+              login: data.user.login,
+              is_active: data.user.is_active,
+              is_email_verified: data.user.is_email_verified,
+              role: 'viewer',
+              created_at: data.user.created_at,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authAnalytics.loginSuccess(data.user.id, provider);
+          return data;
+        } catch (error: unknown) {
+          sessionStorage.removeItem('oauth_state');
+          sessionStorage.removeItem('oauth_provider');
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'OAuth callback failed';
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      requestMagicLink: async (email) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authApi.requestMagicLink({ email });
+          set({ isLoading: false });
+        } catch (error: unknown) {
+          if (error instanceof RateLimitError) {
+            set({
+              error: error.message,
+              isLoading: false,
+              rateLimitUntil: Date.now() + error.retryAfter * 1000,
+            });
+            throw error;
+          }
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'Failed to send magic link';
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      verifyMagicLink: async (token) => {
+        set({ isLoading: true, error: null });
+        try {
+          const { data } = await authApi.verifyMagicLink({ token });
+          tokenStorage.setTokens(data.access_token, data.refresh_token);
+
+          // Fetch full user info
+          const { data: user } = await authApi.me();
+          set({ user, isAuthenticated: true, isLoading: false });
+          authAnalytics.loginSuccess(user.id, 'magic_link');
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'Magic link verification failed';
           set({ error: message, isLoading: false });
           throw error;
         }

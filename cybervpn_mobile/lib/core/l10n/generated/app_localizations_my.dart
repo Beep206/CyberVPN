@@ -2224,24 +2224,24 @@ class AppLocalizationsMy extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'လူမှုကွန်ရက် အကောင့်များ';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'လွယ်ကူသော အကောင့်ဝင်ခြင်းနှင့် အကောင့်ပြန်လည်ရယူခြင်းအတွက် သင့်လူမှုကွန်ရက် အကောင့်များကို ချိတ်ဆက်ပါ။';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'ချိတ်ဆက်ပြီး';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'ချိတ်ဆက်မထားပါ';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'ချိတ်ဆက်ရန်';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'ဘရောက်ဆာတွင် ခွင့်ပြုချက်ပြီးပါစေ၊ ထို့နောက် အက်ပ်သို့ ပြန်လာပါ။';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4217,7 +4217,7 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return '$provider ချိတ်ဆက်ခြင်း မအောင်မြင်ပါ: $error';
   }
 
   @override
@@ -4227,4 +4227,76 @@ class AppLocalizationsMy extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Magic Link ဖြင့် ဝင်ရောက်ခြင်း';
+
+  @override
+  String get magicLinkSubtitle =>
+      'သင့် email ကို ထည့်ပါ၊ တစ်ကြိမ်သုံး ဝင်ရောက်မှု လင့်ခ် ပို့ပေးပါမည်။ စကားဝှက် မလိုပါ။';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link ပို့ပါ';
+
+  @override
+  String get magicLinkCheckInbox => 'သင့် inbox ကို စစ်ဆေးပါ';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return '$email သို့ ဝင်ရောက်မှု လင့်ခ် ပို့လိုက်ပါပြီ။ ဝင်ရောက်ရန် email ထဲရှိ လင့်ခ်ကို နှိပ်ပါ။';
+  }
+
+  @override
+  String get magicLinkExpiresIn =>
+      'လင့်ခ်သည် မိနစ် ၁၅ အတွင်း သက်တမ်းကုန်ပါမည်။';
+
+  @override
+  String get magicLinkSendAgain => 'ထပ်ပို့ပါ';
+
+  @override
+  String get backToLogin => 'ဝင်ရောက်ခြင်းသို့ ပြန်သွားရန်';
+
+  @override
+  String get rateLimitTitle => 'ခဏစောင့်ပါ';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'တောင်းဆိုမှုများ များလွန်းပါသည်။ $seconds စက္ကန့်အကြာတွင် ထပ်စမ်းကြည့်ပါ။';
+  }
+
+  @override
+  String get unknownError =>
+      'အမည်မသိ အမှားတစ်ခု ဖြစ်ပွားခဲ့ပါသည်။ ထပ်စမ်းကြည့်ပါ။';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'အသုံးပြုသူအမည် သာ';
+
+  @override
+  String get registerUsernameLabel => 'အသုံးပြုသူအမည်';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Email မပါဘဲ စကားဝှက် ပြန်လည်ရယူခြင်း သို့မဟုတ် လုံခြုံရေး အသိပေးချက်များ ရရှိခြင်း မပြုလုပ်နိုင်ပါ။';
+
+  @override
+  String get registerUsernameValidationError =>
+      'အသုံးပြုသူအမည်: ၃-၃၂ စာလုံး — အက္ခရာ၊ ဂဏန်း၊ အောက်မျဉ်း';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link ဖြင့် ဝင်ရောက်ပါ';
+
+  @override
+  String get continueWithGoogle => 'Google ဖြင့် ဆက်လက်ပါ';
+
+  @override
+  String get continueWithApple => 'Apple ဖြင့် ဆက်လက်ပါ';
+
+  @override
+  String get socialLoginComingSoon => 'မကြာမီ';
 }

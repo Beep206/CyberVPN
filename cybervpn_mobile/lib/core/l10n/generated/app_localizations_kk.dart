@@ -2265,24 +2265,24 @@ class AppLocalizationsKk extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Әлеуметтік аккаунттар';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Жылдам кіру және қатынасты қалпына келтіру үшін әлеуметтік аккаунттарды байланыстырыңыз.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Байланыстырылған';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Байланыстырылмаған';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Байланыстыру';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Браузерде авторизацияны аяқтаңыз, содан кейін қосымшаға оралыңыз.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4295,7 +4295,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Не удалось привязать $provider: $error';
+    return '$provider байланыстыру сәтсіз: $error';
   }
 
   @override
@@ -4305,4 +4305,74 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'УДАЛИТЬ';
+
+  @override
+  String get magicLinkTitle => 'Сілтеме арқылы кіру';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Email енгізіңіз, біз сізге бір реттік кіру сілтемесін жібереміз. Құпия сөз қажет емес.';
+
+  @override
+  String get magicLinkSendButton => 'Сілтеме жіберу';
+
+  @override
+  String get magicLinkCheckInbox => 'Поштаны тексеріңіз';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Біз $email мекенжайына кіру сілтемесін жібердік. Кіру үшін хаттағы сілтемені басыңыз.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Сілтеме 15 минут жарамды.';
+
+  @override
+  String get magicLinkSendAgain => 'Қайта жіберу';
+
+  @override
+  String get backToLogin => 'Кіруге оралу';
+
+  @override
+  String get rateLimitTitle => 'Күте тұрыңыз';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Сұраулар тым көп. $seconds секундтан кейін қайталаңыз.';
+  }
+
+  @override
+  String get unknownError => 'Белгісіз қате орын алды. Қайталап көріңіз.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Тек пайдаланушы аты';
+
+  @override
+  String get registerUsernameLabel => 'Пайдаланушы аты';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Email-сіз құпия сөзді қалпына келтіру және қауіпсіздік хабарламаларын алу мүмкін болмайды.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Пайдаланушы аты: 3-32 таңба — әріптер, сандар, астын сызулар';
+
+  @override
+  String get loginMagicLinkOption => 'Сілтеме арқылы кіру';
+
+  @override
+  String get continueWithGoogle => 'Google арқылы жалғастыру';
+
+  @override
+  String get continueWithApple => 'Apple арқылы жалғастыру';
+
+  @override
+  String get socialLoginComingSoon => 'Жақында';
 }

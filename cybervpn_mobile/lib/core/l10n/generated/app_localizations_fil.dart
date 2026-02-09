@@ -2240,24 +2240,24 @@ class AppLocalizationsFil extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Mga Social Account';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'I-link ang iyong mga social account para sa mas madaling pag-sign in at account recovery.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Naka-link';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Hindi naka-link';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'I-link';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Kumpletuhin ang awtorisasyon sa browser, pagkatapos bumalik sa app.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4255,7 +4255,7 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return 'Nabigong i-link ang $provider: $error';
   }
 
   @override
@@ -4265,4 +4265,76 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Magic Link Login';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Ilagay ang iyong email at magpapadala kami ng isang beses lang na login link. Hindi kailangan ng password.';
+
+  @override
+  String get magicLinkSendButton => 'Ipadala ang Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Tingnan ang iyong inbox';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Nagpadala kami ng login link sa $email. I-tap ang link sa email para mag-sign in.';
+  }
+
+  @override
+  String get magicLinkExpiresIn =>
+      'Mawawalan ng bisa ang link sa loob ng 15 minuto.';
+
+  @override
+  String get magicLinkSendAgain => 'Ipadala muli';
+
+  @override
+  String get backToLogin => 'Bumalik sa login';
+
+  @override
+  String get rateLimitTitle => 'Mangyaring maghintay';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Masyadong maraming kahilingan. Subukan muli pagkatapos ng $seconds segundo.';
+  }
+
+  @override
+  String get unknownError =>
+      'May naganap na hindi kilalang error. Pakisubukan muli.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Username lang';
+
+  @override
+  String get registerUsernameLabel => 'Username';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Kung walang email, hindi mo mare-recover ang password o makakatanggap ng mga security notification.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Username: 3-32 character — mga letra, numero, underscore';
+
+  @override
+  String get loginMagicLinkOption => 'Mag-sign in gamit ang magic link';
+
+  @override
+  String get continueWithGoogle => 'Magpatuloy sa Google';
+
+  @override
+  String get continueWithApple => 'Magpatuloy sa Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Paparating na';
 }

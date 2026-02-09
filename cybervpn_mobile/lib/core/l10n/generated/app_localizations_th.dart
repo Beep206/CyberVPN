@@ -2237,24 +2237,24 @@ class AppLocalizationsTh extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'บัญชีโซเชียล';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'เชื่อมต่อบัญชีโซเชียลเพื่อเข้าสู่ระบบง่ายขึ้นและกู้คืนบัญชี';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'เชื่อมต่อแล้ว';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'ยังไม่เชื่อมต่อ';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'เชื่อมต่อ';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'ยืนยันตัวตนในเบราว์เซอร์ให้เสร็จ แล้วกลับมาที่แอป';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,4 +4252,74 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'ลบ';
+
+  @override
+  String get magicLinkTitle => 'เข้าสู่ระบบด้วย Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์เข้าสู่ระบบแบบใช้ครั้งเดียว ไม่ต้องใช้รหัสผ่าน';
+
+  @override
+  String get magicLinkSendButton => 'ส่ง Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'ตรวจสอบกล่องจดหมาย';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'เราส่งลิงก์เข้าสู่ระบบไปที่ $email แล้ว แตะลิงก์ในอีเมลเพื่อเข้าสู่ระบบ';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'ลิงก์ใช้ได้ภายใน 15 นาที';
+
+  @override
+  String get magicLinkSendAgain => 'ส่งอีกครั้ง';
+
+  @override
+  String get backToLogin => 'กลับไปหน้าเข้าสู่ระบบ';
+
+  @override
+  String get rateLimitTitle => 'กรุณารอสักครู่';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'คำขอมากเกินไป กรุณาลองอีกครั้งใน $seconds วินาที';
+  }
+
+  @override
+  String get unknownError => 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ กรุณาลองอีกครั้ง';
+
+  @override
+  String get registerModeEmail => 'อีเมล';
+
+  @override
+  String get registerModeUsernameOnly => 'ชื่อผู้ใช้เท่านั้น';
+
+  @override
+  String get registerUsernameLabel => 'ชื่อผู้ใช้';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'หากไม่มีอีเมล คุณจะไม่สามารถกู้คืนรหัสผ่านหรือรับการแจ้งเตือนด้านความปลอดภัย';
+
+  @override
+  String get registerUsernameValidationError =>
+      'ชื่อผู้ใช้ต้องมี 3-32 ตัวอักษร: ตัวอักษร ตัวเลข ขีดล่าง';
+
+  @override
+  String get loginMagicLinkOption => 'เข้าสู่ระบบด้วย magic link';
+
+  @override
+  String get continueWithGoogle => 'ดำเนินการต่อด้วย Google';
+
+  @override
+  String get continueWithApple => 'ดำเนินการต่อด้วย Apple';
+
+  @override
+  String get socialLoginComingSoon => 'เร็วๆ นี้';
 }

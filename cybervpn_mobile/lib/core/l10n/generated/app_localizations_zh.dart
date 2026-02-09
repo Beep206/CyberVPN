@@ -2230,24 +2230,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => '社交账号';
 
   @override
-  String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+  String get profileSocialAccountsDescription => '关联社交账号以便更快登录和账号恢复。';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => '已关联';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => '未关联';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => '关联';
 
   @override
-  String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+  String get profileSocialCompleteAuth => '请在浏览器中完成授权，然后返回应用。';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4245,4 +4243,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => '删除';
+
+  @override
+  String get magicLinkTitle => 'Magic Link 登录';
+
+  @override
+  String get magicLinkSubtitle => '输入您的邮箱，我们将发送一次性登录链接。无需密码。';
+
+  @override
+  String get magicLinkSendButton => '发送 Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => '请查收邮件';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return '我们已向 $email 发送了登录链接。点击邮件中的链接即可登录。';
+  }
+
+  @override
+  String get magicLinkExpiresIn => '链接有效期为 15 分钟。';
+
+  @override
+  String get magicLinkSendAgain => '重新发送';
+
+  @override
+  String get backToLogin => '返回登录';
+
+  @override
+  String get rateLimitTitle => '请稍候';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return '请求过于频繁，请在 $seconds 秒后重试。';
+  }
+
+  @override
+  String get unknownError => '发生未知错误，请重试。';
+
+  @override
+  String get registerModeEmail => '邮箱';
+
+  @override
+  String get registerModeUsernameOnly => '仅用户名';
+
+  @override
+  String get registerUsernameLabel => '用户名';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning => '没有邮箱将无法找回密码或接收安全通知。';
+
+  @override
+  String get registerUsernameValidationError => '用户名须为 3-32 个字符：字母、数字、下划线';
+
+  @override
+  String get loginMagicLinkOption => '使用 magic link 登录';
+
+  @override
+  String get continueWithGoogle => '使用 Google 继续';
+
+  @override
+  String get continueWithApple => '使用 Apple 继续';
+
+  @override
+  String get socialLoginComingSoon => '即将推出';
 }

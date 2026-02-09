@@ -2255,24 +2255,24 @@ class AppLocalizationsKu extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'ئەکاونتە کۆمەڵایەتییەکان';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'ئەکاونتە کۆمەڵایەتییەکانت ببەستە بۆ چوونەژوورەوەی ئاسانتر و گەڕانەوەی ئەکاونت.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'بەسترا';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'نەبەسترا';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'بەستن';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'ڕێپێدان لە وێبگەڕ تەواو بکە، پاشان بگەڕێوە بۆ ئەپەکە.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4293,7 +4293,7 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'فشل ربط $provider: $error';
+    return 'بەستنی $provider سەرنەکەوت: $error';
   }
 
   @override
@@ -4303,4 +4303,75 @@ class AppLocalizationsKu extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'حذف';
+
+  @override
+  String get magicLinkTitle => 'چوونەژوورەوە بە Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'ئیمەیڵەکەت بنووسە و ئێمە بەستەرێکی چوونەژوورەوەی یەک جاری بۆت دەنێرین. پێویستی بە وشەی نهێنی نییە.';
+
+  @override
+  String get magicLinkSendButton => 'ناردنی Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'ئینبۆکسەکەت بپشکنە';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'بەستەرێکی چوونەژوورەوەمان بۆ $email نارد. لە ئیمەیڵەکەدا بەستەرەکە بکە بۆ چوونەژوورەوە.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'بەستەرەکە ١٥ خولەک کاردەکات.';
+
+  @override
+  String get magicLinkSendAgain => 'دووبارە بنێرە';
+
+  @override
+  String get backToLogin => 'گەڕانەوە بۆ چوونەژوورەوە';
+
+  @override
+  String get rateLimitTitle => 'تکایە چاوەڕوان بە';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'داواکاری زۆر. تکایە دوای $seconds چرکە دووبارە هەوڵ بدەرەوە.';
+  }
+
+  @override
+  String get unknownError =>
+      'هەڵەیەکی نەناسراو ڕوویدا. تکایە دووبارە هەوڵ بدەرەوە.';
+
+  @override
+  String get registerModeEmail => 'ئیمەیڵ';
+
+  @override
+  String get registerModeUsernameOnly => 'تەنها ناوی بەکارهێنەر';
+
+  @override
+  String get registerUsernameLabel => 'ناوی بەکارهێنەر';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'بێ ئیمەیڵ ناتوانیت وشەی نهێنی بگەڕێنیتەوە یان ئاگادارکردنەوەی ئاسایشت پێ بگات.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'ناوی بەکارهێنەر: ٣-٣٢ پیت — پیت، ژمارە، هێڵی خوارەوە';
+
+  @override
+  String get loginMagicLinkOption => 'چوونەژوورەوە بە magic link';
+
+  @override
+  String get continueWithGoogle => 'بەردەوامبوون لەگەڵ Google';
+
+  @override
+  String get continueWithApple => 'بەردەوامبوون لەگەڵ Apple';
+
+  @override
+  String get socialLoginComingSoon => 'بەم زووانە';
 }

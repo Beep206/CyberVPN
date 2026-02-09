@@ -13,24 +13,48 @@ import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.auth_service import AuthService
 from src.application.services.oauth_state_service import OAuthStateService
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
+from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
+from src.infrastructure.oauth.apple import AppleOAuthProvider
+from src.infrastructure.oauth.discord import DiscordOAuthProvider
 from src.infrastructure.oauth.github import GitHubOAuthProvider
+from src.infrastructure.oauth.google import GoogleOAuthProvider
+from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
+from src.infrastructure.oauth.twitter import TwitterOAuthProvider
 from src.presentation.api.v1.oauth.schemas import (
     GitHubCallbackRequest,
     OAuthAuthorizeResponse,
     OAuthLinkResponse,
+    OAuthLoginCallbackRequest,
+    OAuthLoginResponse,
+    OAuthLoginUserResponse,
     OAuthProvider,
     TelegramCallbackRequest,
 )
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.services import get_auth_service
+from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth", tags=["oauth"])
+
+# Provider class map: provider_name -> (ProviderClass, requires_pkce)
+_OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
+    "google": (GoogleOAuthProvider, True),
+    "discord": (DiscordOAuthProvider, False),
+    "apple": (AppleOAuthProvider, True),
+    "microsoft": (MicrosoftOAuthProvider, True),
+    "twitter": (TwitterOAuthProvider, True),
+    "github": (GitHubOAuthProvider, False),
+}
 
 
 def _get_client_ip(request: Request) -> str:
@@ -53,7 +77,7 @@ async def telegram_authorize(
     The state token must be included in the callback request.
     """
     state_service = OAuthStateService(redis_client)
-    state = await state_service.generate(
+    state, _ = await state_service.generate(
         provider="telegram",
         user_id=str(user.id),
         ip_address=_get_client_ip(request) if request else None,
@@ -83,7 +107,7 @@ async def github_authorize(
     The state token must be included in the callback request.
     """
     state_service = OAuthStateService(redis_client)
-    state = await state_service.generate(
+    state, _ = await state_service.generate(
         provider="github",
         user_id=str(user.id),
         ip_address=_get_client_ip(request) if request else None,
@@ -264,3 +288,139 @@ async def unlink_provider(
     )
 
     return OAuthLinkResponse(status="unlinked", provider=provider.value)
+
+
+@router.get("/{provider}/login", response_model=OAuthAuthorizeResponse)
+async def oauth_login_authorize(
+    provider: OAuthProvider,
+    redirect_uri: str = Query(..., description="Redirect URI after authentication"),
+    request: Request = None,
+    redis_client: redis.Redis = Depends(get_redis),
+) -> OAuthAuthorizeResponse:
+    """Get OAuth authorization URL for login (no authentication required).
+
+    Generates state token and PKCE challenge (when supported).
+    """
+    if provider.value not in _OAUTH_PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Provider '{provider.value}' does not support login flow.",
+        )
+
+    provider_class, requires_pkce = _OAUTH_PROVIDERS[provider.value]
+    state_service = OAuthStateService(redis_client)
+    state, code_challenge = await state_service.generate(
+        provider=provider.value,
+        ip_address=_get_client_ip(request) if request else None,
+        pkce=requires_pkce,
+    )
+
+    oauth_provider = provider_class()
+    if requires_pkce:
+        authorize_url = oauth_provider.authorize_url(
+            redirect_uri,
+            state=state,
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+    else:
+        authorize_url = oauth_provider.authorize_url(redirect_uri, state=state)
+
+    return OAuthAuthorizeResponse(authorize_url=authorize_url, state=state)
+
+
+@router.post("/{provider}/login/callback", response_model=OAuthLoginResponse)
+async def oauth_login_callback(
+    provider: OAuthProvider,
+    callback_data: OAuthLoginCallbackRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> OAuthLoginResponse:
+    """Process OAuth login callback and return JWT tokens (no authentication required).
+
+    Validates state, exchanges code with provider, finds or creates user.
+    """
+    if provider.value not in _OAUTH_PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Provider '{provider.value}' does not support login flow.",
+        )
+
+    # Validate and consume state token
+    state_service = OAuthStateService(redis_client)
+    state_data = await state_service.validate_and_consume(
+        state=callback_data.state,
+        provider=provider.value,
+        ip_address=_get_client_ip(request),
+    )
+
+    if not state_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired OAuth state.",
+        )
+
+    # Exchange code with provider
+    provider_class, _ = _OAUTH_PROVIDERS[provider.value]
+    oauth_provider = provider_class()
+
+    # Include code_verifier if PKCE was used
+    code_verifier = state_data.get("code_verifier") if isinstance(state_data, dict) else None
+    exchange_kwargs: dict[str, str] = {
+        "code": callback_data.code,
+        "redirect_uri": callback_data.redirect_uri,
+    }
+    if code_verifier:
+        exchange_kwargs["code_verifier"] = code_verifier
+
+    user_info = await oauth_provider.exchange_code(**exchange_kwargs)
+
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OAuth authentication failed.",
+        )
+
+    # Find or create user via OAuthLoginUseCase
+    user_repo = AdminUserRepository(db)
+    oauth_repo = OAuthAccountRepository(db)
+    use_case = OAuthLoginUseCase(
+        user_repo=user_repo,
+        oauth_repo=oauth_repo,
+        auth_service=auth_service,
+        session=db,
+    )
+
+    try:
+        result = await use_case.execute(
+            provider=provider.value,
+            user_info=user_info,
+            client_fingerprint=generate_client_fingerprint(request),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+
+    logger.info(
+        "OAuth login completed",
+        extra={
+            "provider": provider.value,
+            "user_id": str(result.user.id) if hasattr(result, "user") else "unknown",
+            "is_new_user": result.is_new_user,
+        },
+    )
+
+    return OAuthLoginResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+        expires_in=result.expires_in,
+        user=OAuthLoginUserResponse.model_validate(result.user),
+        is_new_user=result.is_new_user,
+        requires_2fa=result.requires_2fa,
+        tfa_token=result.tfa_token,
+    )

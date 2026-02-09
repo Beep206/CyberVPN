@@ -7375,6 +7375,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'DELETE'**
   String get deleteAccountConfirmHint;
+
+  /// Title for the magic link request screen
+  ///
+  /// In en, this message translates to:
+  /// **'Magic Link Login'**
+  String get magicLinkTitle;
+
+  /// Subtitle explaining the magic link flow
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we will send you a single-use login link. No password needed.'**
+  String get magicLinkSubtitle;
+
+  /// Button text to send the magic link email
+  ///
+  /// In en, this message translates to:
+  /// **'Send Magic Link'**
+  String get magicLinkSendButton;
+
+  /// Heading after magic link is sent successfully
+  ///
+  /// In en, this message translates to:
+  /// **'Check Your Inbox'**
+  String get magicLinkCheckInbox;
+
+  /// Message showing which email received the magic link
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a login link to {email}. Tap the link in the email to sign in.'**
+  String magicLinkSentTo(String email);
+
+  /// Information about magic link expiration
+  ///
+  /// In en, this message translates to:
+  /// **'The link expires in 15 minutes.'**
+  String get magicLinkExpiresIn;
+
+  /// Button text to resend the magic link
+  ///
+  /// In en, this message translates to:
+  /// **'Send Again'**
+  String get magicLinkSendAgain;
+
+  /// Link text to navigate back to the login screen
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Login'**
+  String get backToLogin;
+
+  /// Title shown when the user hits a rate limit
+  ///
+  /// In en, this message translates to:
+  /// **'Too Many Requests'**
+  String get rateLimitTitle;
+
+  /// Message with countdown for rate-limited requests
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait {seconds} seconds before trying again.'**
+  String rateLimitMessage(String seconds);
+
+  /// Generic fallback error message
+  ///
+  /// In en, this message translates to:
+  /// **'An unknown error occurred. Please try again.'**
+  String get unknownError;
+
+  /// Label for the email registration mode toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get registerModeEmail;
+
+  /// Label for the username-only registration mode toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Username Only'**
+  String get registerModeUsernameOnly;
+
+  /// Label for the username input field in username-only registration
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get registerUsernameLabel;
+
+  /// Hint text for the username input field
+  ///
+  /// In en, this message translates to:
+  /// **'cyberpunk_hacker'**
+  String get registerUsernameHint;
+
+  /// Warning banner shown when user selects username-only registration mode
+  ///
+  /// In en, this message translates to:
+  /// **'Without an email, you won\'t be able to recover your password or receive security notifications.'**
+  String get registerUsernameOnlyWarning;
+
+  /// Validation error for invalid username format
+  ///
+  /// In en, this message translates to:
+  /// **'Username must be 3-32 characters: letters, numbers, underscores'**
+  String get registerUsernameValidationError;
+
+  /// Text link on login screen to navigate to magic link sign-in
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with magic link'**
+  String get loginMagicLinkOption;
+
+  /// Label for Google social login button
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// Label for Apple social login button
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get continueWithApple;
+
+  /// Snackbar message shown when a social login provider is not yet available
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get socialLoginComingSoon;
 }
 
 class _AppLocalizationsDelegate

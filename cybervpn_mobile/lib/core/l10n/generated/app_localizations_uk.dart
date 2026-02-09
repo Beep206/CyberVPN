@@ -2253,24 +2253,24 @@ class AppLocalizationsUk extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Соціальні акаунти';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Прив\'яжіть соціальні акаунти для швидкого входу та відновлення доступу.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Прив\'язано';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Не прив\'язано';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Прив\'язати';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Завершіть авторизацію у браузері, потім поверніться до застосунку.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4292,4 +4292,74 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'ВИДАЛИТИ';
+
+  @override
+  String get magicLinkTitle => 'Вхід за посиланням';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Введіть email, і ми надішлемо вам одноразове посилання для входу. Пароль не потрібен.';
+
+  @override
+  String get magicLinkSendButton => 'Надіслати посилання';
+
+  @override
+  String get magicLinkCheckInbox => 'Перевірте пошту';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Ми надіслали посилання для входу на $email. Натисніть на посилання в листі, щоб увійти.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Посилання дійсне 15 хвилин.';
+
+  @override
+  String get magicLinkSendAgain => 'Надіслати знову';
+
+  @override
+  String get backToLogin => 'Назад до входу';
+
+  @override
+  String get rateLimitTitle => 'Зачекайте';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Забагато запитів. Спробуйте знову через $seconds секунд.';
+  }
+
+  @override
+  String get unknownError => 'Сталася невідома помилка. Спробуйте ще раз.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Лише ім\'я користувача';
+
+  @override
+  String get registerUsernameLabel => 'Ім\'я користувача';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Без email ви не зможете відновити пароль та отримувати сповіщення безпеки.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Ім\'я користувача: 3-32 символи — літери, цифри, підкреслення';
+
+  @override
+  String get loginMagicLinkOption => 'Увійти за посиланням';
+
+  @override
+  String get continueWithGoogle => 'Продовжити з Google';
+
+  @override
+  String get continueWithApple => 'Продовжити з Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Незабаром';
 }

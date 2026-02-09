@@ -2223,5 +2223,99 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
+  },
+  "magicLinkTitle": "Magic Link Login",
+  "@magicLinkTitle": {
+    "description": "Title for the magic link request screen"
+  },
+  "magicLinkSubtitle": "Enter your email and we will send you a single-use login link. No password needed.",
+  "@magicLinkSubtitle": {
+    "description": "Subtitle explaining the magic link flow"
+  },
+  "magicLinkSendButton": "Send Magic Link",
+  "@magicLinkSendButton": {
+    "description": "Button text to send the magic link email"
+  },
+  "magicLinkCheckInbox": "Check Your Inbox",
+  "@magicLinkCheckInbox": {
+    "description": "Heading after magic link is sent successfully"
+  },
+  "magicLinkSentTo": "We sent a login link to {email}. Tap the link in the email to sign in.",
+  "@magicLinkSentTo": {
+    "description": "Message showing which email received the magic link",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "magicLinkExpiresIn": "The link expires in 15 minutes.",
+  "@magicLinkExpiresIn": {
+    "description": "Information about magic link expiration"
+  },
+  "magicLinkSendAgain": "Send Again",
+  "@magicLinkSendAgain": {
+    "description": "Button text to resend the magic link"
+  },
+  "backToLogin": "Back to Login",
+  "@backToLogin": {
+    "description": "Link text to navigate back to the login screen"
+  },
+  "rateLimitTitle": "Too Many Requests",
+  "@rateLimitTitle": {
+    "description": "Title shown when the user hits a rate limit"
+  },
+  "rateLimitMessage": "Please wait {seconds} seconds before trying again.",
+  "@rateLimitMessage": {
+    "description": "Message with countdown for rate-limited requests",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownError": "An unknown error occurred. Please try again.",
+  "@unknownError": {
+    "description": "Generic fallback error message"
+  },
+  "registerModeEmail": "Email",
+  "@registerModeEmail": {
+    "description": "Label for the email registration mode toggle"
+  },
+  "registerModeUsernameOnly": "Username Only",
+  "@registerModeUsernameOnly": {
+    "description": "Label for the username-only registration mode toggle"
+  },
+  "registerUsernameLabel": "Username",
+  "@registerUsernameLabel": {
+    "description": "Label for the username input field in username-only registration"
+  },
+  "registerUsernameHint": "cyberpunk_hacker",
+  "@registerUsernameHint": {
+    "description": "Hint text for the username input field"
+  },
+  "registerUsernameOnlyWarning": "Without an email, you won't be able to recover your password or receive security notifications.",
+  "@registerUsernameOnlyWarning": {
+    "description": "Warning banner shown when user selects username-only registration mode"
+  },
+  "registerUsernameValidationError": "Username must be 3-32 characters: letters, numbers, underscores",
+  "@registerUsernameValidationError": {
+    "description": "Validation error for invalid username format"
+  },
+  "loginMagicLinkOption": "Sign in with magic link",
+  "@loginMagicLinkOption": {
+    "description": "Text link on login screen to navigate to magic link sign-in"
+  },
+  "continueWithGoogle": "Continue with Google",
+  "@continueWithGoogle": {
+    "description": "Label for Google social login button"
+  },
+  "continueWithApple": "Continue with Apple",
+  "@continueWithApple": {
+    "description": "Label for Apple social login button"
+  },
+  "socialLoginComingSoon": "Coming soon",
+  "@socialLoginComingSoon": {
+    "description": "Snackbar message shown when a social login provider is not yet available"
   }
 }

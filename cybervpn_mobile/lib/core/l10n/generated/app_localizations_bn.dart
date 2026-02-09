@@ -2239,24 +2239,24 @@ class AppLocalizationsBn extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'সোশ্যাল অ্যাকাউন্ট';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'সহজ লগইন এবং অ্যাকাউন্ট পুনরুদ্ধারের জন্য আপনার সোশ্যাল অ্যাকাউন্ট লিংক করুন।';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'লিংক করা';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'লিংক নেই';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'লিংক';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'ব্রাউজারে অনুমোদন সম্পন্ন করুন, তারপর অ্যাপে ফিরে আসুন।';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,7 +4252,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return '$provider लिंक विफल: $error';
+    return '$provider লিংক করা ব্যর্থ: $error';
   }
 
   @override
@@ -4262,4 +4262,74 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'हटाएं';
+
+  @override
+  String get magicLinkTitle => 'Magic Link লগইন';
+
+  @override
+  String get magicLinkSubtitle =>
+      'আপনার ইমেইল দিন এবং আমরা একবার ব্যবহারযোগ্য লগইন লিংক পাঠাব। পাসওয়ার্ডের প্রয়োজন নেই।';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link পাঠান';
+
+  @override
+  String get magicLinkCheckInbox => 'আপনার ইনবক্স দেখুন';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'আমরা $email-এ লগইন লিংক পাঠিয়েছি। সাইন ইন করতে ইমেইলের লিংকে ট্যাপ করুন।';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'লিংকটি ১৫ মিনিটে মেয়াদ শেষ হবে।';
+
+  @override
+  String get magicLinkSendAgain => 'আবার পাঠান';
+
+  @override
+  String get backToLogin => 'লগইনে ফিরে যান';
+
+  @override
+  String get rateLimitTitle => 'অনুগ্রহ করে অপেক্ষা করুন';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'অনেক বেশি অনুরোধ। $seconds সেকেন্ড পরে আবার চেষ্টা করুন।';
+  }
+
+  @override
+  String get unknownError => 'একটি অজানা ত্রুটি ঘটেছে। আবার চেষ্টা করুন।';
+
+  @override
+  String get registerModeEmail => 'ইমেইল';
+
+  @override
+  String get registerModeUsernameOnly => 'শুধু ইউজারনেম';
+
+  @override
+  String get registerUsernameLabel => 'ইউজারনেম';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'ইমেইল ছাড়া আপনি পাসওয়ার্ড পুনরুদ্ধার করতে বা নিরাপত্তা বিজ্ঞপ্তি পেতে পারবেন না।';
+
+  @override
+  String get registerUsernameValidationError =>
+      'ইউজারনেম: ৩-৩২ অক্ষর — অক্ষর, সংখ্যা, আন্ডারস্কোর';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link দিয়ে সাইন ইন';
+
+  @override
+  String get continueWithGoogle => 'Google দিয়ে চালিয়ে যান';
+
+  @override
+  String get continueWithApple => 'Apple দিয়ে চালিয়ে যান';
+
+  @override
+  String get socialLoginComingSoon => 'শীঘ্রই আসছে';
 }

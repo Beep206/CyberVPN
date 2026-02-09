@@ -2265,24 +2265,24 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Сацыяльныя акаўнты';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Прывяжыце сацыяльныя акаўнты для хуткага ўваходу і аднаўлення доступу.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Прывязаны';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Не прывязаны';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Прывязаць';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Завяршыце аўтарызацыю ў браўзеры, потым вярніцеся ў праграму.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4294,7 +4294,7 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Не удалось привязать $provider: $error';
+    return 'Не атрымалася прывязаць $provider: $error';
   }
 
   @override
@@ -4304,4 +4304,75 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'УДАЛИТЬ';
+
+  @override
+  String get magicLinkTitle => 'Уваход па спасылцы';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Увядзіце email, і мы дашлём вам аднаразовую спасылку для ўваходу. Пароль не патрэбен.';
+
+  @override
+  String get magicLinkSendButton => 'Даслаць спасылку';
+
+  @override
+  String get magicLinkCheckInbox => 'Праверце пошту';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Мы даслалі спасылку для ўваходу на $email. Націсніце на спасылку ў лісце, каб увайсці.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Спасылка дзейнічае 15 хвілін.';
+
+  @override
+  String get magicLinkSendAgain => 'Даслаць зноў';
+
+  @override
+  String get backToLogin => 'Назад да ўваходу';
+
+  @override
+  String get rateLimitTitle => 'Пачакайце';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Занадта шмат запытаў. Паспрабуйце зноў праз $seconds секунд.';
+  }
+
+  @override
+  String get unknownError =>
+      'Адбылася невядомая памылка. Паспрабуйце яшчэ раз.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Толькі імя карыстальніка';
+
+  @override
+  String get registerUsernameLabel => 'Імя карыстальніка';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Без email вы не зможаце аднавіць пароль і атрымліваць апавяшчэнні бяспекі.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Імя карыстальніка: 3-32 сімвалы — літары, лічбы, падкрэсліванні';
+
+  @override
+  String get loginMagicLinkOption => 'Увайсці па спасылцы';
+
+  @override
+  String get continueWithGoogle => 'Працягнуць з Google';
+
+  @override
+  String get continueWithApple => 'Працягнуць з Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Хутка';
 }

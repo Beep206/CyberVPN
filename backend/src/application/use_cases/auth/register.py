@@ -58,18 +58,22 @@ class RegisterUseCase:
     async def execute(
         self,
         login: str,
-        email: str,
         password: str,
+        email: str | None = None,
         role: AdminRole = AdminRole.VIEWER,
         locale: str = "en-EN",
     ) -> RegisterResult:
         """
-        Register new admin user with email verification.
+        Register new admin user, optionally with email verification.
+
+        Supports two flows:
+        - With email: user created as inactive, OTP sent for verification.
+        - Without email (username-only): user created as immediately active.
 
         Args:
             login: Unique username
-            email: Unique email address
             password: Plain text password (will be hashed)
+            email: Optional unique email address
             role: User role (default: "viewer")
             locale: User's locale for email template
 
@@ -84,36 +88,35 @@ class RegisterUseCase:
         if existing_user:
             raise DuplicateUsernameError(username=login)
 
-        # Check email uniqueness
-        existing_user = await self._user_repo.get_by_email(email)
-        if existing_user:
-            raise DuplicateUsernameError(username=email)
+        # Check email uniqueness (only if email provided)
+        if email:
+            existing_user = await self._user_repo.get_by_email(email)
+            if existing_user:
+                raise DuplicateUsernameError(username=email)
 
         # Hash password
         password_hash = await self._auth_service.hash_password(password)
 
-        # Create user as INACTIVE until email is verified
+        # Create user — active immediately if no email, inactive if email (needs OTP verification)
         user = AdminUserModel(
             login=login,
             email=email,
             password_hash=password_hash,
             role=role.value,
-            is_active=False,  # Inactive until email verified
+            is_active=email is None,  # Active immediately for username-only registration
             is_email_verified=False,
         )
 
         # Persist to database
         created_user = await self._user_repo.create(user)
 
-        # Generate OTP code
-        otp = await self._otp_service.generate_otp(
-            user_id=created_user.id,
-            purpose="email_verification",
-        )
-
-        # Dispatch email task
+        # Generate OTP and dispatch email only when email is provided
         otp_sent = False
-        if self._email_dispatcher:
+        if email and self._email_dispatcher:
+            otp = await self._otp_service.generate_otp(
+                user_id=created_user.id,
+                purpose="email_verification",
+            )
             try:
                 await self._email_dispatcher.dispatch_otp_email(
                     email=email,

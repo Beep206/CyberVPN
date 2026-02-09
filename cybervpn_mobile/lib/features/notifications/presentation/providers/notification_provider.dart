@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -11,8 +13,10 @@ import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notif
 import 'package:cybervpn_mobile/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show fcmDatasourceProvider, notificationRepositoryImplProvider,
-         notificationRepositoryProvider;
+    show
+        fcmDatasourceProvider,
+        notificationRepositoryImplProvider,
+        notificationRepositoryProvider;
 
 // ---------------------------------------------------------------------------
 // Notification notifier
@@ -29,8 +33,7 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
 /// - FCM foreground messages via [NotificationRepositoryImpl.incoming]
 /// - WebSocket [NotificationReceived] events via [notificationEventsProvider]
 class NotificationNotifier extends AsyncNotifier<NotificationState> {
-  NotificationRepository get _repo =>
-      ref.read(notificationRepositoryProvider);
+  NotificationRepository get _repo => ref.read(notificationRepositoryProvider);
 
   StreamSubscription<AppNotification>? _incomingSub;
   StreamSubscription<NotificationReceived>? _webSocketSub;
@@ -72,8 +75,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
     if (current.notifications.any((n) => n.id == notification.id)) return;
 
     final updated = [notification, ...current.notifications];
-    final unread =
-        current.unreadCount + (notification.isRead ? 0 : 1);
+    final unread = current.unreadCount + (notification.isRead ? 0 : 1);
 
     state = AsyncValue.data(
       current.copyWith(notifications: updated, unreadCount: unread),
@@ -96,10 +98,8 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
       return n;
     }).toList();
 
-    final wasUnread =
-        current.notifications.any((n) => n.id == id && !n.isRead);
-    final unread =
-        wasUnread ? current.unreadCount - 1 : current.unreadCount;
+    final wasUnread = current.notifications.any((n) => n.id == id && !n.isRead);
+    final unread = wasUnread ? current.unreadCount - 1 : current.unreadCount;
 
     state = AsyncValue.data(
       current.copyWith(
@@ -116,8 +116,9 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
 
     await _repo.markAllAsRead();
 
-    final updated =
-        current.notifications.map((n) => n.copyWith(isRead: true)).toList();
+    final updated = current.notifications
+        .map((n) => n.copyWith(isRead: true))
+        .toList();
 
     state = AsyncValue.data(
       current.copyWith(notifications: updated, unreadCount: 0),
@@ -133,11 +134,9 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
 
     await _repo.deleteNotification(id);
 
-    final wasUnread =
-        current.notifications.any((n) => n.id == id && !n.isRead);
+    final wasUnread = current.notifications.any((n) => n.id == id && !n.isRead);
     final updated = current.notifications.where((n) => n.id != id).toList();
-    final unread =
-        wasUnread ? current.unreadCount - 1 : current.unreadCount;
+    final unread = wasUnread ? current.unreadCount - 1 : current.unreadCount;
 
     state = AsyncValue.data(
       current.copyWith(
@@ -151,6 +150,10 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
 
   /// Registers the FCM device token with the backend.
   Future<void> _registerFcmToken() async {
+    if (kDebugMode && EnvironmentConfig.isDev) {
+      return;
+    }
+
     try {
       final fcm = ref.read(fcmDatasourceProvider);
       final token = await fcm.getToken();
@@ -165,10 +168,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
           await _repo.registerFcmToken(newToken);
           AppLogger.info('Refreshed FCM token registered with backend');
         } catch (e) {
-          AppLogger.error(
-            'Failed to register refreshed FCM token',
-            error: e,
-          );
+          AppLogger.error('Failed to register refreshed FCM token', error: e);
         }
       });
     } catch (e) {
@@ -244,8 +244,8 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
 /// Primary notification state provider backed by [NotificationNotifier].
 final notificationProvider =
     AsyncNotifierProvider<NotificationNotifier, NotificationState>(
-  NotificationNotifier.new,
-);
+      NotificationNotifier.new,
+    );
 
 /// The current unread notification count (0 when state is not yet loaded).
 final unreadCountProvider = Provider<int>((ref) {

@@ -2239,24 +2239,24 @@ class AppLocalizationsHa extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Asusun zamantakewa';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Haɗa asusun zamantakewar ku don sauƙin shiga da dawo da asusu.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'An haɗa';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Ba a haɗa ba';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Haɗa';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Kammala izinin a cikin mashigin yanar gizo, sannan koma zuwa aikace-aikacen.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4251,7 +4251,7 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return 'An kasa haɗa $provider: $error';
   }
 
   @override
@@ -4261,4 +4261,75 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Shiga ta Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Shigar da imel ɗinka kuma za mu aiko maka hanyar shiga ta sau ɗaya. Ba a buƙatar kalmar sirri.';
+
+  @override
+  String get magicLinkSendButton => 'Aika Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Duba akwatin saƙonka';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Mun aika hanyar shiga zuwa $email. Taɓa hanyar haɗin a cikin imel ɗin don shiga.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Hanyar haɗin za ta ƙare a cikin minti 15.';
+
+  @override
+  String get magicLinkSendAgain => 'Sake aikawa';
+
+  @override
+  String get backToLogin => 'Komawa zuwa shiga';
+
+  @override
+  String get rateLimitTitle => 'Da fatan za a jira';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Buƙatun da yawa. Da fatan za a sake gwadawa bayan daƙiƙa $seconds.';
+  }
+
+  @override
+  String get unknownError =>
+      'Kuskure da ba a sani ba ya faru. Da fatan za a sake gwadawa.';
+
+  @override
+  String get registerModeEmail => 'Imel';
+
+  @override
+  String get registerModeUsernameOnly => 'Sunan mai amfani kawai';
+
+  @override
+  String get registerUsernameLabel => 'Sunan mai amfani';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Ba tare da imel ba, ba za ku iya dawo da kalmar sirri ko karɓar sanarwar tsaro ba.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Sunan mai amfani: haruffa 3-32 — haruffa, lambobi, layin ƙasa';
+
+  @override
+  String get loginMagicLinkOption => 'Shiga ta magic link';
+
+  @override
+  String get continueWithGoogle => 'Ci gaba da Google';
+
+  @override
+  String get continueWithApple => 'Ci gaba da Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Yana zuwa nan ba da jimawa ba';
 }

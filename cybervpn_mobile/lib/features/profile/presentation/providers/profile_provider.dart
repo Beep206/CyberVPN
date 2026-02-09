@@ -266,6 +266,12 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     return _getAuthUrl(OAuthProvider.github);
   }
 
+  /// Gets the OAuth authorization URL for the given [provider].
+  /// The caller must open this URL in a browser.
+  Future<String> getAuthUrl(OAuthProvider provider) async {
+    return _getAuthUrl(provider);
+  }
+
   /// Completes the OAuth linking flow with the authorization code.
   Future<void> completeOAuthLink(OAuthProvider provider, String code) async {
     try {

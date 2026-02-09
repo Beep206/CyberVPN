@@ -2236,24 +2236,24 @@ class AppLocalizationsAm extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'ማህበራዊ መለያዎች';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'ለቀላል መግቢያ እና መለያ ማግኘት ማህበራዊ መለያዎችዎን ያገናኙ።';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'ተገናኝቷል';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'አልተገናኘም';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'ማገናኘት';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'በአሳሹ ውስጥ ፈቃዱን ያጠናቅቁ፣ ከዚያ ወደ መተግበሪያው ይመለሱ።';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4242,7 +4242,7 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return '$provider ማገናኘት አልተሳካም: $error';
   }
 
   @override
@@ -4252,4 +4252,74 @@ class AppLocalizationsAm extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'በ Magic Link መግባት';
+
+  @override
+  String get magicLinkSubtitle =>
+      'ኢሜይልዎን ያስገቡ እና የአንድ ጊዜ የመግቢያ ማገናኛ እንልክልዎታለን። የይለፍ ቃል አያስፈልግም።';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link ላክ';
+
+  @override
+  String get magicLinkCheckInbox => 'የገቢ ሳጥንዎን ያረጋግጡ';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'ወደ $email የመግቢያ ማገናኛ ልከናል። ለመግባት በኢሜይሉ ውስጥ ያለውን ማገናኛ ይንኩ።';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'ማገናኛው በ15 ደቂቃ ውስጥ ያልቃል።';
+
+  @override
+  String get magicLinkSendAgain => 'እንደገና ላክ';
+
+  @override
+  String get backToLogin => 'ወደ መግቢያ ተመለስ';
+
+  @override
+  String get rateLimitTitle => 'እባክዎ ይጠብቁ';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'ብዙ ጥያቄዎች። ከ$seconds ሰከንዶች በኋላ እንደገና ይሞክሩ።';
+  }
+
+  @override
+  String get unknownError => 'ያልታወቀ ስህተት ተፈጠረ። እባክዎ እንደገና ይሞክሩ።';
+
+  @override
+  String get registerModeEmail => 'ኢሜይል';
+
+  @override
+  String get registerModeUsernameOnly => 'የተጠቃሚ ስም ብቻ';
+
+  @override
+  String get registerUsernameLabel => 'የተጠቃሚ ስም';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'ያለ ኢሜይል የይለፍ ቃልዎን ማግኘት ወይም የደህንነት ማሳወቂያዎችን መቀበል አይችሉም።';
+
+  @override
+  String get registerUsernameValidationError =>
+      'የተጠቃሚ ስም: 3-32 ቁምፊዎች — ፊደላት፣ ቁጥሮች፣ የታች ሰረዝ';
+
+  @override
+  String get loginMagicLinkOption => 'በ magic link ይግቡ';
+
+  @override
+  String get continueWithGoogle => 'በ Google ቀጥል';
+
+  @override
+  String get continueWithApple => 'በ Apple ቀጥል';
+
+  @override
+  String get socialLoginComingSoon => 'በቅርቡ';
 }

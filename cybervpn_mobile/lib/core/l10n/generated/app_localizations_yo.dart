@@ -2225,24 +2225,24 @@ class AppLocalizationsYo extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Awon akaunti awujo';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'So awon akaunti awujo re po fun wiwọle irọrun ati ipadabọ akaunti.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Ti sopọ';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Ko ti sopọ';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Sopọ';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Pari aṣẹ ninu ẹrọ aṣawakiri, lẹhinna pada si ohun elo naa.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4214,7 +4214,7 @@ class AppLocalizationsYo extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return 'Asopo $provider ko ṣe aṣeyọri: $error';
   }
 
   @override
@@ -4224,4 +4224,74 @@ class AppLocalizationsYo extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Wọle pẹlu Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Tẹ imeeli rẹ sii, a o fi ọna asopọ wiwọle ẹẹkan ranṣẹ si ọ. Ko nilo ọrọ igbaniwọle.';
+
+  @override
+  String get magicLinkSendButton => 'Fi Magic Link ranṣẹ';
+
+  @override
+  String get magicLinkCheckInbox => 'Ṣayẹwo apoti gbigba rẹ';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'A ti fi ọna asopọ wiwọle ranṣẹ si $email. Tẹ ọna asopọ ninu imeeli lati wọle.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Ọna asopọ naa yoo pari ni iṣẹju 15.';
+
+  @override
+  String get magicLinkSendAgain => 'Tun fi ranṣẹ';
+
+  @override
+  String get backToLogin => 'Pada si wiwọle';
+
+  @override
+  String get rateLimitTitle => 'Jọwọ duro';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Awọn ibeere pupọ ju. Jọwọ gbiyanju lẹhin iṣẹju-aaya $seconds.';
+  }
+
+  @override
+  String get unknownError => 'Aṣiṣe aimọ kan waye. Jọwọ gbiyanju lẹẹkansi.';
+
+  @override
+  String get registerModeEmail => 'Imeeli';
+
+  @override
+  String get registerModeUsernameOnly => 'Orukọ olumulo nikan';
+
+  @override
+  String get registerUsernameLabel => 'Orukọ olumulo';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Laisi imeeli, iwọ kii yoo le gba ọrọ igbaniwọle pada tabi gba awọn iwifunni aabo.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Orukọ olumulo: awọn ohun kikọ 3-32 — lẹta, nọmba, ila isalẹ';
+
+  @override
+  String get loginMagicLinkOption => 'Wọle pẹlu magic link';
+
+  @override
+  String get continueWithGoogle => 'Tẹsiwaju pẹlu Google';
+
+  @override
+  String get continueWithApple => 'Tẹsiwaju pẹlu Apple';
+
+  @override
+  String get socialLoginComingSoon => 'N bọ laipẹ';
 }

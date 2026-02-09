@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "سوشل اکاؤنٹس",
+  "profileSocialAccountsDescription": "آسان لاگ ان اور اکاؤنٹ کی بحالی کے لیے اپنے سوشل اکاؤنٹس لنک کریں۔",
+  "profileSocialLinked": "لنک شدہ",
+  "profileSocialNotLinked": "لنک نہیں",
+  "profileSocialLink": "لنک کریں",
+  "profileSocialCompleteAuth": "براؤزر میں اجازت مکمل کریں، پھر ایپ پر واپس آئیں۔",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "فشل ربط {provider}: {error}",
+  "profileSocialLinkFailed": "{provider} لنک کرنے میں ناکامی: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "حذف",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "اپنا ان باکس چیک کریں",
+  "magicLinkSubtitle": "اپنا ای میل درج کریں اور ہم آپ کو ایک بار استعمال ہونے والا لاگ ان لنک بھیجیں گے۔ پاس ورڈ کی ضرورت نہیں۔",
+  "magicLinkSentTo": "ہم نے {email} پر لاگ ان لنک بھیجا ہے۔ سائن ان کرنے کے لیے ای میل میں لنک پر ٹیپ کریں۔",
+  "continueWithGoogle": "Google کے ساتھ جاری رکھیں",
+  "backToLogin": "لاگ ان پر واپس",
+  "rateLimitMessage": "بہت زیادہ درخواستیں۔ {seconds} سیکنڈ بعد دوبارہ کوشش کریں۔",
+  "registerModeUsernameOnly": "صرف صارف نام",
+  "rateLimitTitle": "براہ کرم انتظار کریں",
+  "magicLinkSendAgain": "دوبارہ بھیجیں",
+  "socialLoginComingSoon": "جلد آ رہا ہے",
+  "magicLinkExpiresIn": "لنک 15 منٹ میں ختم ہو جائے گا۔",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "صارف نام: 3-32 حروف — حروف، نمبرز، انڈرسکور",
+  "unknownError": "ایک نامعلوم خرابی ہوئی۔ براہ کرم دوبارہ کوشش کریں۔",
+  "registerModeEmail": "ای میل",
+  "magicLinkTitle": "Magic Link سے لاگ ان",
+  "loginMagicLinkOption": "Magic link سے سائن ان",
+  "continueWithApple": "Apple کے ساتھ جاری رکھیں",
+  "magicLinkSendButton": "Magic Link بھیجیں",
+  "registerUsernameOnlyWarning": "ای میل کے بغیر آپ اپنا پاس ورڈ بحال نہیں کر سکیں گے اور سیکیورٹی نوٹیفیکیشنز نہیں ملیں گی۔",
+  "registerUsernameLabel": "صارف نام"
 }

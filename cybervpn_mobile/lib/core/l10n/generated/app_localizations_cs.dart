@@ -2240,24 +2240,24 @@ class AppLocalizationsCs extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Sociální účty';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Propojte své sociální účty pro snadnější přihlášení a obnovu účtu.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Propojeno';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Nepropojeno';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Propojit';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Dokončete autorizaci v prohlížeči a poté se vraťte do aplikace.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4279,4 +4279,74 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'SMAZAT';
+
+  @override
+  String get magicLinkTitle => 'Přihlášení pomocí Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Zadejte svůj email a pošleme vám jednorázový přihlašovací odkaz. Heslo není potřeba.';
+
+  @override
+  String get magicLinkSendButton => 'Odeslat Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Zkontrolujte poštu';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Odeslali jsme přihlašovací odkaz na $email. Klepněte na odkaz v emailu pro přihlášení.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Odkaz je platný 15 minut.';
+
+  @override
+  String get magicLinkSendAgain => 'Odeslat znovu';
+
+  @override
+  String get backToLogin => 'Zpět na přihlášení';
+
+  @override
+  String get rateLimitTitle => 'Počkejte prosím';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Příliš mnoho požadavků. Zkuste to znovu za $seconds sekund.';
+  }
+
+  @override
+  String get unknownError => 'Došlo k neznámé chybě. Zkuste to prosím znovu.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Pouze uživatelské jméno';
+
+  @override
+  String get registerUsernameLabel => 'Uživatelské jméno';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Bez emailu nebudete moci obnovit heslo ani dostávat bezpečnostní oznámení.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Uživatelské jméno: 3-32 znaků — písmena, čísla, podtržítka';
+
+  @override
+  String get loginMagicLinkOption => 'Přihlásit se pomocí magic link';
+
+  @override
+  String get continueWithGoogle => 'Pokračovat s Google';
+
+  @override
+  String get continueWithApple => 'Pokračovat s Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Již brzy';
 }

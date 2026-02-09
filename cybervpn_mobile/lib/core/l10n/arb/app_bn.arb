@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "সোশ্যাল অ্যাকাউন্ট",
+  "profileSocialAccountsDescription": "সহজ লগইন এবং অ্যাকাউন্ট পুনরুদ্ধারের জন্য আপনার সোশ্যাল অ্যাকাউন্ট লিংক করুন।",
+  "profileSocialLinked": "লিংক করা",
+  "profileSocialNotLinked": "লিংক নেই",
+  "profileSocialLink": "লিংক",
+  "profileSocialCompleteAuth": "ব্রাউজারে অনুমোদন সম্পন্ন করুন, তারপর অ্যাপে ফিরে আসুন।",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "{provider} लिंक विफल: {error}",
+  "profileSocialLinkFailed": "{provider} লিংক করা ব্যর্থ: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "हटाएं",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "আপনার ইনবক্স দেখুন",
+  "magicLinkSubtitle": "আপনার ইমেইল দিন এবং আমরা একবার ব্যবহারযোগ্য লগইন লিংক পাঠাব। পাসওয়ার্ডের প্রয়োজন নেই।",
+  "magicLinkSentTo": "আমরা {email}-এ লগইন লিংক পাঠিয়েছি। সাইন ইন করতে ইমেইলের লিংকে ট্যাপ করুন।",
+  "continueWithGoogle": "Google দিয়ে চালিয়ে যান",
+  "backToLogin": "লগইনে ফিরে যান",
+  "rateLimitMessage": "অনেক বেশি অনুরোধ। {seconds} সেকেন্ড পরে আবার চেষ্টা করুন।",
+  "registerModeUsernameOnly": "শুধু ইউজারনেম",
+  "rateLimitTitle": "অনুগ্রহ করে অপেক্ষা করুন",
+  "magicLinkSendAgain": "আবার পাঠান",
+  "socialLoginComingSoon": "শীঘ্রই আসছে",
+  "magicLinkExpiresIn": "লিংকটি ১৫ মিনিটে মেয়াদ শেষ হবে।",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "ইউজারনেম: ৩-৩২ অক্ষর — অক্ষর, সংখ্যা, আন্ডারস্কোর",
+  "unknownError": "একটি অজানা ত্রুটি ঘটেছে। আবার চেষ্টা করুন।",
+  "registerModeEmail": "ইমেইল",
+  "magicLinkTitle": "Magic Link লগইন",
+  "loginMagicLinkOption": "Magic link দিয়ে সাইন ইন",
+  "continueWithApple": "Apple দিয়ে চালিয়ে যান",
+  "magicLinkSendButton": "Magic Link পাঠান",
+  "registerUsernameOnlyWarning": "ইমেইল ছাড়া আপনি পাসওয়ার্ড পুনরুদ্ধার করতে বা নিরাপত্তা বিজ্ঞপ্তি পেতে পারবেন না।",
+  "registerUsernameLabel": "ইউজারনেম"
 }

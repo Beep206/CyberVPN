@@ -81,6 +81,51 @@ export interface OtpErrorResponse {
   next_resend_available_at?: string;
 }
 
+export type OAuthProvider = 'google' | 'github' | 'discord' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
+
+export interface OAuthAuthorizeResponse {
+  authorize_url: string;
+  state: string;
+}
+
+export interface OAuthLoginUser {
+  id: string;
+  login: string;
+  email: string | null;
+  is_active: boolean;
+  is_email_verified: boolean;
+  created_at: string;
+}
+
+export interface OAuthLoginResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  user: OAuthLoginUser;
+  is_new_user: boolean;
+  requires_2fa: boolean;
+  tfa_token: string | null;
+}
+
+export interface OAuthCallbackRequest {
+  code: string;
+  state: string;
+  redirect_uri: string;
+}
+
+export interface MagicLinkRequest {
+  email: string;
+}
+
+export interface MagicLinkResponse {
+  message: string;
+}
+
+export interface MagicLinkVerifyRequest {
+  token: string;
+}
+
 // Auth API functions
 export const authApi = {
   /**
@@ -148,4 +193,34 @@ export const authApi = {
    */
   telegramMiniApp: (initData: string) =>
     apiClient.post<AuthResponse>('/auth/telegram/miniapp', { init_data: initData }),
+
+  /**
+   * Get OAuth authorization URL for a provider
+   * GET /api/v1/oauth/{provider}/login
+   */
+  oauthLoginAuthorize: (provider: OAuthProvider, redirectUri: string) =>
+    apiClient.get<OAuthAuthorizeResponse>(`/oauth/${provider}/login`, {
+      params: { redirect_uri: redirectUri },
+    }),
+
+  /**
+   * Complete OAuth login callback
+   * POST /api/v1/oauth/{provider}/login/callback
+   */
+  oauthLoginCallback: (provider: OAuthProvider, data: OAuthCallbackRequest) =>
+    apiClient.post<OAuthLoginResponse>(`/oauth/${provider}/login/callback`, data),
+
+  /**
+   * Request magic link for passwordless login
+   * POST /api/v1/auth/magic-link
+   */
+  requestMagicLink: (data: MagicLinkRequest) =>
+    apiClient.post<MagicLinkResponse>('/auth/magic-link', data),
+
+  /**
+   * Verify magic link token and get JWT tokens
+   * POST /api/v1/auth/magic-link/verify
+   */
+  verifyMagicLink: (data: MagicLinkVerifyRequest) =>
+    apiClient.post<TokenResponse>('/auth/magic-link/verify', data),
 };
