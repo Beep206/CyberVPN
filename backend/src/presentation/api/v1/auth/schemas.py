@@ -183,3 +183,35 @@ class GenerateLoginLinkResponse(BaseModel):
     token: str
     url: str
     expires_at: datetime
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request for password reset OTP."""
+
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Response for forgot-password (always same to prevent email enumeration)."""
+
+    message: str = "If this email is registered, a password reset code has been sent."
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request to reset password using OTP code."""
+
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    new_password: str = Field(..., min_length=12, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        """Validate new password using shared validator (MED-001)."""
+        return validate_password_strength(v)
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response for successful password reset."""
+
+    message: str = "Password has been reset successfully. Please login with your new password."

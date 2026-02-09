@@ -17,6 +17,7 @@ from src.application.services.auth_service import AuthService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
+from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -24,6 +25,7 @@ from src.shared.security.fingerprint import generate_client_fingerprint
 logger = logging.getLogger(__name__)
 from src.application.use_cases.auth.logout import LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
 from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
@@ -43,6 +45,10 @@ from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    GenerateLoginLinkRequest,
+    GenerateLoginLinkResponse,
     LoginRequest,
     LogoutAllResponse,
     LogoutRequest,
@@ -52,8 +58,8 @@ from src.presentation.api.v1.auth.schemas import (
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
-    GenerateLoginLinkRequest,
-    GenerateLoginLinkResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TelegramBotLinkRequest,
     TelegramBotLinkResponse,
     TelegramMiniAppRequest,
@@ -622,3 +628,79 @@ async def generate_login_link(
         url=url,
         expires_at=expires_at,
     )
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
+) -> ForgotPasswordResponse:
+    """Request password reset OTP code.
+
+    Always returns success to prevent email enumeration.
+    """
+    user_repo = AdminUserRepository(db)
+    otp_repo = OtpCodeRepository(db)
+    otp_service = OtpService(otp_repo)
+
+    use_case = ForgotPasswordUseCase(
+        user_repo=user_repo,
+        otp_service=otp_service,
+        email_dispatcher=email_dispatcher,
+        session=db,
+    )
+
+    await use_case.execute(email=request.email)
+
+    return ForgotPasswordResponse()
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    responses={
+        400: {"description": "Invalid or expired OTP code"},
+        429: {"description": "Too many attempts"},
+    },
+)
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> ResetPasswordResponse:
+    """Reset password using OTP code from forgot-password email."""
+    user_repo = AdminUserRepository(db)
+    otp_repo = OtpCodeRepository(db)
+    otp_service = OtpService(otp_repo)
+
+    use_case = ResetPasswordUseCase(
+        user_repo=user_repo,
+        auth_service=auth_service,
+        otp_service=otp_service,
+        session=db,
+    )
+
+    result = await use_case.execute(
+        email=request.email,
+        code=request.code,
+        new_password=request.new_password,
+    )
+
+    if not result.success:
+        status_code = (
+            status.HTTP_429_TOO_MANY_REQUESTS if result.error_code == "OTP_EXHAUSTED" else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "detail": result.message,
+                "code": result.error_code,
+                "attempts_remaining": result.attempts_remaining,
+            },
+        )
+
+    return ResetPasswordResponse()

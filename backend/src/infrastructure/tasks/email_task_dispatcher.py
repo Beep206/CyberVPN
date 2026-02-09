@@ -171,6 +171,62 @@ class EmailTaskDispatcher:
 
         return task_id
 
+    async def dispatch_password_reset_email(
+        self,
+        email: str,
+        otp_code: str,
+        locale: str = "en-EN",
+    ) -> str:
+        """Dispatch password reset email task to task-worker.
+
+        Args:
+            email: Recipient email address
+            otp_code: 6-digit OTP code for password reset
+            locale: User's locale for email template
+
+        Returns:
+            Task ID for tracking
+        """
+        await self._get_broker()
+
+        task_id = str(uuid.uuid4())
+
+        logger.info(
+            "dispatching_password_reset_email_task",
+            task_id=task_id,
+            email=email,
+            locale=locale,
+        )
+
+        full_message = {
+            "task_id": task_id,
+            "task_name": "send_password_reset_email",
+            "labels": {"queue": "email", "retry_policy": "email_delivery"},
+            "args": [],
+            "kwargs": {
+                "email": email,
+                "otp_code": otp_code,
+                "locale": locale,
+            },
+        }
+        message_bytes = self._serializer.dumpb(full_message)
+
+        import redis.asyncio as redis
+
+        redis_client = redis.from_url(self._redis_url)
+        try:
+            await redis_client.xadd("taskiq", {"data": message_bytes})
+        finally:
+            await redis_client.aclose()
+
+        logger.info(
+            "password_reset_email_task_dispatched",
+            task_id=task_id,
+            email=email,
+        )
+
+        return task_id
+
     async def close(self) -> None:
         """Close broker connection."""
         if self._broker is not None:
