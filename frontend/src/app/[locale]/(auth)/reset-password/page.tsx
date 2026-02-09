@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
         }
     }, [newPassword, confirmPassword]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
         setValidationError(null);

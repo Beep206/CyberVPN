@@ -40,8 +40,8 @@
     }
   },
   "form": {
-    "title": "Delete account request",
-    "description": "To proceed with account deletion, please confirm your identity and reason.",
+    "title": "Confirm account deletion",
+    "description": "To proceed with account deletion, type DELETE below and confirm.",
     "fields": {
       "email": {
         "label": "Email address",
@@ -69,26 +69,34 @@
         "label": "Additional feedback (optional)",
         "placeholder": "Any additional comments..."
       },
+      "confirmInput": {
+        "label": "Type DELETE to confirm",
+        "placeholder": "DELETE",
+        "error": "You must type DELETE to proceed",
+        "keyword": "DELETE"
+      },
       "confirmation": {
         "label": "I understand this action is permanent and cannot be undone",
         "error": "You must confirm to proceed"
       }
     },
     "submit": "Delete My Account",
-    "submitting": "Processing...",
+    "submitting": "Deleting...",
     "cancel": "Cancel"
   },
   "success": {
-    "title": "Account deletion requested",
-    "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
-    "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized."
+    "title": "Account deleted",
+    "message": "Your account has been permanently deleted.",
+    "details": "All your data has been removed. You will be redirected to the home page.",
+    "returnHome": "Return to Home"
   },
   "error": {
     "title": "Deletion failed",
     "message": "We couldn't process your deletion request. Please try again or contact support.",
     "invalidCredentials": "Invalid email or password",
     "networkError": "Network error. Please check your connection.",
-    "serverError": "Server error. Please try again later."
+    "serverError": "Server error. Please try again later.",
+    "unauthenticated": "You must be logged in to delete your account."
   },
   "contact": {
     "title": "Need help?",

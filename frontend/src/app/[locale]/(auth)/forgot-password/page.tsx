@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         }
     }, [error, isRateLimited]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
         setIsLoading(true);

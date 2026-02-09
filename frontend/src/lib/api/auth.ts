@@ -154,6 +154,10 @@ export interface ResetPasswordResponse {
   message: string;
 }
 
+export interface DeleteAccountResponse {
+  message: string;
+}
+
 export interface MagicLinkRequest {
   email: string;
 }
@@ -320,4 +324,12 @@ export const authApi = {
    */
   unlinkProvider: (provider: OAuthProvider) =>
     apiClient.delete<OAuthLinkResponse>(`/oauth/${provider}`),
+
+  /**
+   * Delete the current user's account permanently
+   * DELETE /api/v1/auth/me
+   * Requires JWT auth. Returns { message: "Account has been deleted" }
+   */
+  deleteAccount: () =>
+    apiClient.delete<DeleteAccountResponse>('/auth/me'),
 };

@@ -26,6 +26,7 @@ interface AuthState {
   oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
   requestMagicLink: (email: string) => Promise<void>;
   verifyMagicLink: (token: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
   clearRateLimit: () => void;
 }
@@ -378,6 +379,22 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Magic link verification failed';
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      deleteAccount: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          await authApi.deleteAccount();
+          // Clear tokens and reset auth state
+          tokenStorage.clearTokens();
+          set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
+          authAnalytics.logout();
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'Account deletion failed';
           set({ error: message, isLoading: false });
           throw error;
         }
