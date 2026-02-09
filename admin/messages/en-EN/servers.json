@@ -1,7 +1,0 @@
-{
-    "title": "SERVER MANAGEMENT",
-    "subtitle": "Manage VPN nodes, protocols, and deployment regions.",
-    "globalStatus": "GLOBAL STATUS: {status}",
-    "globalStatusValue": "PROVISIONED",
-    "lastSync": "LAST SYNC: {time} AGO"
-}

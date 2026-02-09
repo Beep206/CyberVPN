@@ -1,7 +1,0 @@
-{
-  "title": "サーバー管理",
-  "subtitle": "VPNノード、プロトコル、デプロイリージョンの管理。",
-  "globalStatus": "グローバルステータス: {status}",
-  "globalStatusValue": "プロビジョニング済",
-  "lastSync": "最終同期: {time} 前"
-}

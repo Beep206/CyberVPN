@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 /// Utility class providing locale-aware formatting methods for dates, times,
@@ -37,6 +38,7 @@ class L10nFormatters {
   /// - [date]: The DateTime to format
   /// - [locale]: Locale code (e.g., 'en', 'de', 'ar-SA')
   /// - [format]: Format type (defaults to [DateFormatType.short])
+  /// - [l10n]: Required for [DateFormatType.relative] to provide localized strings
   ///
   /// Returns a formatted date string.
   ///
@@ -50,6 +52,7 @@ class L10nFormatters {
     DateTime date,
     String locale, {
     DateFormatType format = DateFormatType.short,
+    AppLocalizations? l10n,
   }) {
     final normalizedLocale = _normalizeLocale(locale);
 
@@ -59,7 +62,7 @@ class L10nFormatters {
       case DateFormatType.long:
         return _formatLongDate(date, normalizedLocale);
       case DateFormatType.relative:
-        return _formatRelativeDate(date, locale);
+        return _formatRelativeDate(date, l10n);
     }
   }
 
@@ -155,8 +158,9 @@ class L10nFormatters {
 
   /// Formats a relative date like "2 hours ago", "yesterday", "last week".
   ///
-  /// Supports multiple locales with appropriate translations.
-  static String _formatRelativeDate(DateTime date, String locale) {
+  /// Uses [AppLocalizations] for proper localized strings when provided,
+  /// otherwise falls back to English.
+  static String _formatRelativeDate(DateTime date, AppLocalizations? l10n) {
     final now = DateTime.now();
     final difference = now.difference(date);
 
@@ -164,113 +168,63 @@ class L10nFormatters {
     if (difference.isNegative) {
       final futureDiff = date.difference(now);
       if (futureDiff.inSeconds < 60) {
-        return _getLocaleString(locale, 'inAFewSeconds', 'in a few seconds');
+        return l10n?.relativeInSeconds ?? 'in a few seconds';
       }
       if (futureDiff.inMinutes < 60) {
         final minutes = futureDiff.inMinutes;
-        return _getLocaleString(
-          locale,
-          'inMinutes',
-          'in $minutes ${minutes == 1 ? 'minute' : 'minutes'}',
-          {'count': minutes},
-        );
+        return l10n?.relativeInMinutes(minutes) ??
+            'in $minutes ${minutes == 1 ? 'minute' : 'minutes'}';
       }
       if (futureDiff.inHours < 24) {
         final hours = futureDiff.inHours;
-        return _getLocaleString(
-          locale,
-          'inHours',
-          'in $hours ${hours == 1 ? 'hour' : 'hours'}',
-          {'count': hours},
-        );
+        return l10n?.relativeInHours(hours) ??
+            'in $hours ${hours == 1 ? 'hour' : 'hours'}';
       }
-      return _formatShortDate(date, _normalizeLocale(locale));
+      return _formatShortDate(date, _defaultLocale);
     }
 
     // Past dates
     if (difference.inSeconds < 60) {
-      return _getLocaleString(locale, 'justNow', 'just now');
+      return l10n?.relativeJustNow ?? 'just now';
     }
 
     if (difference.inMinutes < 60) {
       final minutes = difference.inMinutes;
-      return _getLocaleString(
-        locale,
-        'minutesAgo',
-        '$minutes ${minutes == 1 ? 'minute' : 'minutes'} ago',
-        {'count': minutes},
-      );
+      return l10n?.relativeMinutesAgo(minutes) ??
+          '$minutes ${minutes == 1 ? 'minute' : 'minutes'} ago';
     }
 
     if (difference.inHours < 24) {
       final hours = difference.inHours;
-      return _getLocaleString(
-        locale,
-        'hoursAgo',
-        '$hours ${hours == 1 ? 'hour' : 'hours'} ago',
-        {'count': hours},
-      );
+      return l10n?.relativeHoursAgo(hours) ??
+          '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
     }
 
     if (difference.inDays == 1) {
-      return _getLocaleString(locale, 'yesterday', 'yesterday');
+      return l10n?.relativeYesterday ?? 'yesterday';
     }
 
     if (difference.inDays < 7) {
       final days = difference.inDays;
-      return _getLocaleString(
-        locale,
-        'daysAgo',
-        '$days ${days == 1 ? 'day' : 'days'} ago',
-        {'count': days},
-      );
+      return l10n?.relativeDaysAgo(days) ??
+          '$days ${days == 1 ? 'day' : 'days'} ago';
     }
 
     if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return _getLocaleString(
-        locale,
-        'weeksAgo',
-        '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago',
-        {'count': weeks},
-      );
+      return l10n?.relativeWeeksAgo(weeks) ??
+          '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
     }
 
     if (difference.inDays < 365) {
       final months = (difference.inDays / 30).floor();
-      return _getLocaleString(
-        locale,
-        'monthsAgo',
-        '$months ${months == 1 ? 'month' : 'months'} ago',
-        {'count': months},
-      );
+      return l10n?.relativeMonthsAgo(months) ??
+          '$months ${months == 1 ? 'month' : 'months'} ago';
     }
 
     final years = (difference.inDays / 365).floor();
-    return _getLocaleString(
-      locale,
-      'yearsAgo',
-      '$years ${years == 1 ? 'year' : 'years'} ago',
-      {'count': years},
-    );
-  }
-
-  /// Gets a localized string for relative dates.
-  ///
-  /// This is a simplified version. In a real app, you'd use the actual
-  /// localization system (app_localizations) to get proper translations.
-  /// For now, it returns the fallback English string.
-  static String _getLocaleString(
-    String locale,
-    String key,
-    String fallback, [
-    Map<String, dynamic>? params,
-  ]) {
-    // TODO: Integrate with AppLocalizations when available
-    // For now, return English fallback
-    // In production, this would be:
-    // return AppLocalizations.of(context).getRelativeDateString(key, params);
-    return fallback;
+    return l10n?.relativeYearsAgo(years) ??
+        '$years ${years == 1 ? 'year' : 'years'} ago';
   }
 
   /// Formats a number with locale-specific decimal and thousand separators.
@@ -510,33 +464,49 @@ class L10nFormatters {
 
     // Handle special cases and add country codes for common locales
     final localeMap = {
+      // High priority
       'en': 'en_US',
-      'de': 'de_DE',
-      'fr': 'fr_FR',
+      'hi': 'hi_IN',
+      'id': 'id_ID',
+      'ru': 'ru_RU',
+      'zh': 'zh_CN',
+      // Medium priority
+      'ar': 'ar_SA',
+      'fa': 'fa_IR',
+      'tr': 'tr_TR',
+      'vi': 'vi_VN',
+      'ur': 'ur_PK',
+      // Low priority
+      'th': 'th_TH',
+      'bn': 'bn_BD',
+      'ms': 'ms_MY',
       'es': 'es_ES',
-      'it': 'it_IT',
+      'kk': 'kk_KZ',
+      'be': 'be_BY',
+      'my': 'my_MM',
+      'uz': 'uz_UZ',
+      // Non-viable
+      'ha': 'ha_NG',
+      'yo': 'yo_NG',
+      'ku': 'ku_IQ',
+      'am': 'am_ET',
+      'fr': 'fr_FR',
+      'tk': 'tk_TM',
+      // Additional
       'ja': 'ja_JP',
       'ko': 'ko_KR',
-      'zh': 'zh_CN',
-      'zh_Hant': 'zh_TW',
-      'ar': 'ar_SA',
       'he': 'he_IL',
-      'fa': 'fa_IR',
-      'ru': 'ru_RU',
-      'pt': 'pt_BR',
+      'de': 'de_DE',
+      'pt': 'pt_PT',
+      'it': 'it_IT',
       'nl': 'nl_NL',
       'pl': 'pl_PL',
-      'tr': 'tr_TR',
-      'hi': 'hi_IN',
-      'th': 'th_TH',
-      'vi': 'vi_VN',
-      'id': 'id_ID',
-      'ms': 'ms_MY',
-      'ro': 'ro_RO',
-      'cs': 'cs_CZ',
-      'sv': 'sv_SE',
-      'da': 'da_DK',
+      'fil': 'fil_PH',
       'uk': 'uk_UA',
+      'cs': 'cs_CZ',
+      'ro': 'ro_RO',
+      'hu': 'hu_HU',
+      'sv': 'sv_SE',
     };
 
     // Check if we have a mapping for this locale

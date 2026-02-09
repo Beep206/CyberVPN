@@ -1,15 +1,14 @@
 import 'dart:ui' show Locale;
 
-/// All 27 supported locales for the application.
+/// All 38 supported locales for the application.
 ///
 /// Maps locale code strings (used in settings storage) to [Locale] objects.
 /// The string codes follow the pattern used by the admin dashboard, mapped
 /// to Flutter's [Locale] system:
 ///
 /// - Simple language codes: `en`, `ru`, `de`, etc.
-/// - Script-based codes: `zh` (Simplified), `zh_Hant` (Traditional).
 ///
-/// RTL locales: `ar`, `he`, `fa`.
+/// RTL locales: `ar`, `he`, `fa`, `ur`, `ku`.
 class LocaleConfig {
   LocaleConfig._();
 
@@ -17,39 +16,55 @@ class LocaleConfig {
   static const String defaultLocaleCode = 'en';
 
   /// RTL (right-to-left) locale codes.
-  static const Set<String> rtlLocaleCodes = {'ar', 'he', 'fa'};
+  static const Set<String> rtlLocaleCodes = {'ar', 'he', 'fa', 'ur', 'ku'};
 
   /// All supported locale codes in order.
   ///
   /// These codes are used as the storage key in [AppSettings.locale].
   static const List<String> supportedLocaleCodes = [
+    // High priority
     'en', // English (en-EN)
+    'hi', // Hindi (hi-IN)
+    'id', // Indonesian (id-ID)
     'ru', // Russian (ru-RU)
-    'de', // German (de-DE)
-    'fr', // French (fr-FR)
+    'zh', // Chinese Simplified (zh-CN)
+    // Medium priority
+    'ar', // Arabic (ar-SA)
+    'fa', // Farsi / Persian (fa-IR)
+    'tr', // Turkish (tr-TR)
+    'vi', // Vietnamese (vi-VN)
+    'ur', // Urdu (ur-PK)
+    // Low priority
+    'th', // Thai (th-TH)
+    'bn', // Bengali (bn-BD)
+    'ms', // Malay (ms-MY)
     'es', // Spanish (es-ES)
-    'pt', // Portuguese (pt-BR)
+    'kk', // Kazakh (kk-KZ)
+    'be', // Belarusian (be-BY)
+    'my', // Burmese (my-MM)
+    'uz', // Uzbek (uz-UZ)
+    // Non-viable
+    'ha', // Hausa (ha-NG)
+    'yo', // Yoruba (yo-NG)
+    'ku', // Kurdish Sorani (ku-IQ)
+    'am', // Amharic (am-ET)
+    'fr', // French (fr-FR)
+    'tk', // Turkmen (tk-TM)
+    // Additional
+    'ja', // Japanese (ja-JP)
+    'ko', // Korean (ko-KR)
+    'he', // Hebrew (he-IL)
+    'de', // German (de-DE)
+    'pt', // Portuguese (pt-PT)
     'it', // Italian (it-IT)
     'nl', // Dutch (nl-NL)
     'pl', // Polish (pl-PL)
+    'fil', // Filipino (fil-PH)
     'uk', // Ukrainian (uk-UA)
-    'tr', // Turkish (tr-TR)
-    'ja', // Japanese (ja-JP)
-    'ko', // Korean (ko-KR)
-    'zh', // Chinese Simplified (zh-CN)
-    'zh_Hant', // Chinese Traditional (zh-TW)
-    'ar', // Arabic (ar-SA)
-    'he', // Hebrew (he-IL)
-    'fa', // Farsi / Persian (fa-IR)
-    'hi', // Hindi (hi-IN)
-    'th', // Thai (th-TH)
-    'vi', // Vietnamese (vi-VN)
-    'id', // Indonesian (id-ID)
-    'ms', // Malay (ms-MY)
-    'ro', // Romanian (ro-RO)
     'cs', // Czech (cs-CZ)
+    'ro', // Romanian (ro-RO)
+    'hu', // Hungarian (hu-HU)
     'sv', // Swedish (sv-SE)
-    'da', // Danish (da-DK)
   ];
 
   /// Converts a locale code string to a Flutter [Locale] object.

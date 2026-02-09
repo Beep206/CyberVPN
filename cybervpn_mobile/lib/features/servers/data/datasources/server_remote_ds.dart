@@ -35,8 +35,14 @@ class ServerRemoteDataSourceImpl implements ServerRemoteDataSource {
   @override
   Future<List<ServerEntity>> fetchServers() async {
     final response = await _apiClient.get<Map<String, dynamic>>('/servers');
-    final data = response.data as List<dynamic>;
-    return data.map((json) => _mapToEntity(json as Map<String, dynamic>)).toList();
+    final body = response.data;
+    final items =
+        (body?['items'] as List<dynamic>?) ??
+        (body?['data'] as List<dynamic>?) ??
+        <dynamic>[];
+    return items
+        .map((json) => _mapToEntity(json as Map<String, dynamic>))
+        .toList();
   }
 
   @override
@@ -49,11 +55,16 @@ class ServerRemoteDataSourceImpl implements ServerRemoteDataSource {
       queryParameters: {'offset': offset, 'limit': limit},
     );
     final body = response.data!;
-    final data = (body['items'] as List<dynamic>?) ?? (body['data'] as List<dynamic>?) ?? [];
+    final data =
+        (body['items'] as List<dynamic>?) ??
+        (body['data'] as List<dynamic>?) ??
+        [];
     final total = body['total'] as int? ?? data.length;
 
     return PaginatedResponse(
-      items: data.map((json) => _mapToEntity(json as Map<String, dynamic>)).toList(),
+      items: data
+          .map((json) => _mapToEntity(json as Map<String, dynamic>))
+          .toList(),
       total: total,
       offset: offset,
       limit: limit,
@@ -63,7 +74,11 @@ class ServerRemoteDataSourceImpl implements ServerRemoteDataSource {
   @override
   Future<ServerEntity> fetchServerById(String id) async {
     final response = await _apiClient.get<Map<String, dynamic>>('/servers/$id');
-    return _mapToEntity(response.data as Map<String, dynamic>);
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
+    return _mapToEntity(data);
   }
 
   ServerEntity _mapToEntity(Map<String, dynamic> json) {

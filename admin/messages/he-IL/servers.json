@@ -1,7 +1,0 @@
-{
-  "title": "ניהול שרתים",
-  "subtitle": "ניהול צמתי VPN, פרוטוקולים ואזורי פריסה.",
-  "globalStatus": "סטטוס גלובלי: {status}",
-  "globalStatusValue": "מוקצה",
-  "lastSync": "סנכרון אחרון: לפני {time}"
-}

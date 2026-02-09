@@ -5,21 +5,29 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_am.dart';
 import 'app_localizations_ar.dart';
+import 'app_localizations_be.dart';
+import 'app_localizations_bn.dart';
 import 'app_localizations_cs.dart';
-import 'app_localizations_da.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fa.dart';
+import 'app_localizations_fil.dart';
 import 'app_localizations_fr.dart';
+import 'app_localizations_ha.dart';
 import 'app_localizations_he.dart';
 import 'app_localizations_hi.dart';
+import 'app_localizations_hu.dart';
 import 'app_localizations_id.dart';
 import 'app_localizations_it.dart';
 import 'app_localizations_ja.dart';
+import 'app_localizations_kk.dart';
 import 'app_localizations_ko.dart';
+import 'app_localizations_ku.dart';
 import 'app_localizations_ms.dart';
+import 'app_localizations_my.dart';
 import 'app_localizations_nl.dart';
 import 'app_localizations_pl.dart';
 import 'app_localizations_pt.dart';
@@ -27,9 +35,13 @@ import 'app_localizations_ro.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_sv.dart';
 import 'app_localizations_th.dart';
+import 'app_localizations_tk.dart';
 import 'app_localizations_tr.dart';
 import 'app_localizations_uk.dart';
+import 'app_localizations_ur.dart';
+import 'app_localizations_uz.dart';
 import 'app_localizations_vi.dart';
+import 'app_localizations_yo.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -118,21 +130,29 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('am'),
     Locale('ar'),
+    Locale('be'),
+    Locale('bn'),
     Locale('cs'),
-    Locale('da'),
     Locale('de'),
     Locale('en'),
     Locale('es'),
     Locale('fa'),
+    Locale('fil'),
     Locale('fr'),
+    Locale('ha'),
     Locale('he'),
     Locale('hi'),
+    Locale('hu'),
     Locale('id'),
     Locale('it'),
     Locale('ja'),
+    Locale('kk'),
     Locale('ko'),
+    Locale('ku'),
     Locale('ms'),
+    Locale('my'),
     Locale('nl'),
     Locale('pl'),
     Locale('pt'),
@@ -140,11 +160,14 @@ abstract class AppLocalizations {
     Locale('ru'),
     Locale('sv'),
     Locale('th'),
+    Locale('tk'),
     Locale('tr'),
     Locale('uk'),
+    Locale('ur'),
+    Locale('uz'),
     Locale('vi'),
+    Locale('yo'),
     Locale('zh'),
-    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// No description provided for @appName.
@@ -2474,6 +2497,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use biometrics to sign in quickly'**
   String get biometricSignInHint;
+
+  /// No description provided for @biometricDataChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Your biometric data has changed. Please sign in again for security.'**
+  String get biometricDataChanged;
+
+  /// No description provided for @biometricAuthenticateToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to continue'**
+  String get biometricAuthenticateToContinue;
+
+  /// No description provided for @biometricVerifyToEnableLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify to enable biometric login'**
+  String get biometricVerifyToEnableLogin;
+
+  /// No description provided for @biometricVerifyToEnableAppLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify to enable app lock'**
+  String get biometricVerifyToEnableAppLock;
+
+  /// No description provided for @biometricUnlockApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock CyberVPN'**
+  String get biometricUnlockApp;
 
   /// No description provided for @formEmailLabel.
   ///
@@ -7196,6 +7249,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verify your identity to delete your account'**
   String get deleteAccountBiometricReason;
+
+  /// Relative time label for events that happened seconds ago
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get relativeJustNow;
+
+  /// Relative time label for yesterday
+  ///
+  /// In en, this message translates to:
+  /// **'yesterday'**
+  String get relativeYesterday;
+
+  /// Relative time label for minutes ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 minute ago} other{{count} minutes ago}}'**
+  String relativeMinutesAgo(int count);
+
+  /// Relative time label for hours ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hour ago} other{{count} hours ago}}'**
+  String relativeHoursAgo(int count);
+
+  /// Relative time label for days ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String relativeDaysAgo(int count);
+
+  /// Relative time label for weeks ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 week ago} other{{count} weeks ago}}'**
+  String relativeWeeksAgo(int count);
+
+  /// Relative time label for months ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month ago} other{{count} months ago}}'**
+  String relativeMonthsAgo(int count);
+
+  /// Relative time label for years ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 year ago} other{{count} years ago}}'**
+  String relativeYearsAgo(int count);
+
+  /// Relative time label for a few seconds in the future
+  ///
+  /// In en, this message translates to:
+  /// **'in a few seconds'**
+  String get relativeInSeconds;
+
+  /// Relative time label for minutes in the future
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{in 1 minute} other{in {count} minutes}}'**
+  String relativeInMinutes(int count);
+
+  /// Relative time label for hours in the future
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{in 1 hour} other{in {count} hours}}'**
+  String relativeInHours(int count);
+
+  /// Fallback title when notification has no title
+  ///
+  /// In en, this message translates to:
+  /// **'Notification'**
+  String get notificationFallbackTitle;
+
+  /// Error message when log export fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export logs: {error}'**
+  String debugExportLogsFailed(String error);
+
+  /// Error message when cache clearing fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear cache: {error}'**
+  String debugClearCacheFailed(String error);
+
+  /// Error message when settings reset fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to reset settings: {error}'**
+  String debugResetSettingsFailed(String error);
+
+  /// Error message when adding trusted WiFi network fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add network: {error}'**
+  String settingsTrustedWifiAddFailed(String error);
+
+  /// Progress message when completing social account linking
+  ///
+  /// In en, this message translates to:
+  /// **'Completing {provider} link...'**
+  String profileSocialCompletingLink(String provider);
+
+  /// Error message when OAuth linking fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to complete OAuth link: {error}'**
+  String profileSocialOAuthFailed(String error);
+
+  /// Error message when social account linking fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to link {provider}: {error}'**
+  String profileSocialLinkFailed(String provider, String error);
+
+  /// Error message when social account unlinking fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to unlink {provider}: {error}'**
+  String profileSocialUnlinkFailed(String provider, String error);
+
+  /// Hint text for the delete account confirmation input field
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE'**
+  String get deleteAccountConfirmHint;
 }
 
 class _AppLocalizationsDelegate
@@ -7209,21 +7388,29 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
+    'am',
     'ar',
+    'be',
+    'bn',
     'cs',
-    'da',
     'de',
     'en',
     'es',
     'fa',
+    'fil',
     'fr',
+    'ha',
     'he',
     'hi',
+    'hu',
     'id',
     'it',
     'ja',
+    'kk',
     'ko',
+    'ku',
     'ms',
+    'my',
     'nl',
     'pl',
     'pt',
@@ -7231,9 +7418,13 @@ class _AppLocalizationsDelegate
     'ru',
     'sv',
     'th',
+    'tk',
     'tr',
     'uk',
+    'ur',
+    'uz',
     'vi',
+    'yo',
     'zh',
   ].contains(locale.languageCode);
 
@@ -7242,26 +7433,18 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-  // Lookup logic when language+script codes are specified.
-  switch (locale.languageCode) {
-    case 'zh':
-      {
-        switch (locale.scriptCode) {
-          case 'Hant':
-            return AppLocalizationsZhHant();
-        }
-        break;
-      }
-  }
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'am':
+      return AppLocalizationsAm();
     case 'ar':
       return AppLocalizationsAr();
+    case 'be':
+      return AppLocalizationsBe();
+    case 'bn':
+      return AppLocalizationsBn();
     case 'cs':
       return AppLocalizationsCs();
-    case 'da':
-      return AppLocalizationsDa();
     case 'de':
       return AppLocalizationsDe();
     case 'en':
@@ -7270,22 +7453,34 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEs();
     case 'fa':
       return AppLocalizationsFa();
+    case 'fil':
+      return AppLocalizationsFil();
     case 'fr':
       return AppLocalizationsFr();
+    case 'ha':
+      return AppLocalizationsHa();
     case 'he':
       return AppLocalizationsHe();
     case 'hi':
       return AppLocalizationsHi();
+    case 'hu':
+      return AppLocalizationsHu();
     case 'id':
       return AppLocalizationsId();
     case 'it':
       return AppLocalizationsIt();
     case 'ja':
       return AppLocalizationsJa();
+    case 'kk':
+      return AppLocalizationsKk();
     case 'ko':
       return AppLocalizationsKo();
+    case 'ku':
+      return AppLocalizationsKu();
     case 'ms':
       return AppLocalizationsMs();
+    case 'my':
+      return AppLocalizationsMy();
     case 'nl':
       return AppLocalizationsNl();
     case 'pl':
@@ -7300,12 +7495,20 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsSv();
     case 'th':
       return AppLocalizationsTh();
+    case 'tk':
+      return AppLocalizationsTk();
     case 'tr':
       return AppLocalizationsTr();
     case 'uk':
       return AppLocalizationsUk();
+    case 'ur':
+      return AppLocalizationsUr();
+    case 'uz':
+      return AppLocalizationsUz();
     case 'vi':
       return AppLocalizationsVi();
+    case 'yo':
+      return AppLocalizationsYo();
     case 'zh':
       return AppLocalizationsZh();
   }

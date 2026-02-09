@@ -1,7 +1,0 @@
-{
-  "title": "GESTION SERVEURS",
-  "subtitle": "Gérer les nœuds VPN, protocoles et régions de déploiement.",
-  "globalStatus": "ÉTAT GLOBAL: {status}",
-  "globalStatusValue": "PROVISIONNÉ",
-  "lastSync": "DERNIÈRE SYNC: IL Y A {time}"
-}

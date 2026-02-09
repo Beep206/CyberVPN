@@ -1355,6 +1355,22 @@ class AppLocalizationsRo extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4102,4 +4118,147 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'chiar acum';
+
+  @override
+  String get relativeYesterday => 'ieri';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count minute',
+      one: 'acum 1 minut',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count ore',
+      one: 'acum 1 oră',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count zile',
+      one: 'acum 1 zi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count săptămâni',
+      one: 'acum 1 săptămână',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count luni',
+      one: 'acum 1 lună',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'acum $count ani',
+      one: 'acum 1 an',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'în câteva secunde';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'în $count minute',
+      one: 'în 1 minut',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'în $count ore',
+      one: 'în 1 oră',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Notificare';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Exportul jurnalelor a eșuat: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Ștergerea cache-ului a eșuat: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Resetarea setărilor a eșuat: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Adăugarea rețelei a eșuat: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'Se conectează $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'Legătura OAuth a eșuat: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'Conectarea $provider a eșuat: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'Deconectarea $provider a eșuat: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'ȘTERGE';
 }

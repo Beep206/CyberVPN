@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/biometric_l
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/login_form.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
+import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 /// Full-screen login page with email/password form, social login options,
 /// and a link to the registration screen.

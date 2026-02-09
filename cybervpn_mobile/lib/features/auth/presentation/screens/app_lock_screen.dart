@@ -26,7 +26,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
     if (_isAuthenticating) return;
     setState(() => _isAuthenticating = true);
     try {
-      final success = await widget.biometricService.authenticate(reason: 'Unlock CyberVPN');
+      final success = await widget.biometricService.authenticate(reason: AppLocalizations.of(context).biometricUnlockApp);
       if (success && mounted) {
         widget.onUnlocked();
       }

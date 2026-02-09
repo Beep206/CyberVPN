@@ -6,8 +6,15 @@ class NetworkInfo {
   NetworkInfo({Connectivity? connectivity}) : _connectivity = connectivity ?? Connectivity();
 
   Future<bool> get isConnected async {
-    final result = await _connectivity.checkConnectivity();
-    return !result.contains(ConnectivityResult.none);
+    try {
+      final result = await _connectivity
+          .checkConnectivity()
+          .timeout(const Duration(seconds: 2));
+      return !result.contains(ConnectivityResult.none);
+    } catch (_) {
+      // Assume connected on timeout; let HTTP calls determine reality.
+      return true;
+    }
   }
 
   Stream<bool> get onConnectivityChanged {

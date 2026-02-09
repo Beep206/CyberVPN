@@ -602,6 +602,11 @@
   "biometricPasswordChanged": "Your password has changed. Please sign in with your password.",
   "biometricSignInReason": "Sign in to CyberVPN",
   "biometricSignInHint": "Use biometrics to sign in quickly",
+  "biometricDataChanged": "Your biometric data has changed. Please sign in again for security.",
+  "biometricAuthenticateToContinue": "Authenticate to continue",
+  "biometricVerifyToEnableLogin": "Verify to enable biometric login",
+  "biometricVerifyToEnableAppLock": "Verify to enable app lock",
+  "biometricUnlockApp": "Unlock CyberVPN",
   "formEmailLabel": "Email",
   "formEmailHint": "Enter your email",
   "formPasswordLabel": "Password",
@@ -2082,5 +2087,141 @@
   "deleteAccountBiometricReason": "Verify your identity to delete your account",
   "@deleteAccountBiometricReason": {
     "description": "Reason shown in the biometric prompt for account deletion"
+  },
+
+  "relativeJustNow": "just now",
+  "@relativeJustNow": {
+    "description": "Relative time label for events that happened seconds ago"
+  },
+  "relativeYesterday": "yesterday",
+  "@relativeYesterday": {
+    "description": "Relative time label for yesterday"
+  },
+  "relativeMinutesAgo": "{count, plural, =1{1 minute ago} other{{count} minutes ago}}",
+  "@relativeMinutesAgo": {
+    "description": "Relative time label for minutes ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeHoursAgo": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
+  "@relativeHoursAgo": {
+    "description": "Relative time label for hours ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@relativeDaysAgo": {
+    "description": "Relative time label for days ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
+  "@relativeWeeksAgo": {
+    "description": "Relative time label for weeks ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeMonthsAgo": "{count, plural, =1{1 month ago} other{{count} months ago}}",
+  "@relativeMonthsAgo": {
+    "description": "Relative time label for months ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeYearsAgo": "{count, plural, =1{1 year ago} other{{count} years ago}}",
+  "@relativeYearsAgo": {
+    "description": "Relative time label for years ago",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeInSeconds": "in a few seconds",
+  "@relativeInSeconds": {
+    "description": "Relative time label for a few seconds in the future"
+  },
+  "relativeInMinutes": "{count, plural, =1{in 1 minute} other{in {count} minutes}}",
+  "@relativeInMinutes": {
+    "description": "Relative time label for minutes in the future",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "relativeInHours": "{count, plural, =1{in 1 hour} other{in {count} hours}}",
+  "@relativeInHours": {
+    "description": "Relative time label for hours in the future",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "notificationFallbackTitle": "Notification",
+  "@notificationFallbackTitle": {
+    "description": "Fallback title when notification has no title"
+  },
+  "debugExportLogsFailed": "Failed to export logs: {error}",
+  "@debugExportLogsFailed": {
+    "description": "Error message when log export fails",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "debugClearCacheFailed": "Failed to clear cache: {error}",
+  "@debugClearCacheFailed": {
+    "description": "Error message when cache clearing fails",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "debugResetSettingsFailed": "Failed to reset settings: {error}",
+  "@debugResetSettingsFailed": {
+    "description": "Error message when settings reset fails",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "settingsTrustedWifiAddFailed": "Failed to add network: {error}",
+  "@settingsTrustedWifiAddFailed": {
+    "description": "Error message when adding trusted WiFi network fails",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "profileSocialCompletingLink": "Completing {provider} link...",
+  "@profileSocialCompletingLink": {
+    "description": "Progress message when completing social account linking",
+    "placeholders": {
+      "provider": { "type": "String" }
+    }
+  },
+  "profileSocialOAuthFailed": "Failed to complete OAuth link: {error}",
+  "@profileSocialOAuthFailed": {
+    "description": "Error message when OAuth linking fails",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "@profileSocialLinkFailed": {
+    "description": "Error message when social account linking fails",
+    "placeholders": {
+      "provider": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "profileSocialUnlinkFailed": "Failed to unlink {provider}: {error}",
+  "@profileSocialUnlinkFailed": {
+    "description": "Error message when social account unlinking fails",
+    "placeholders": {
+      "provider": { "type": "String" },
+      "error": { "type": "String" }
+    }
+  },
+  "deleteAccountConfirmHint": "DELETE",
+  "@deleteAccountConfirmHint": {
+    "description": "Hint text for the delete account confirmation input field"
   }
 }

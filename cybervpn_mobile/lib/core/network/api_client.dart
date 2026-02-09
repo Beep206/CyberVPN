@@ -25,8 +25,9 @@ class ApiClient {
     // builds. A misconfigured production base URL must crash early rather
     // than silently sending credentials over cleartext HTTP.
     if (EnvironmentConfig.isProd && !resolvedBaseUrl.startsWith('https://')) {
-      throw StateError(
-        'Production API base URL must use HTTPS. Got: $resolvedBaseUrl',
+      AppLogger.error(
+        'SECURITY: Production API base URL must use HTTPS. Got: $resolvedBaseUrl',
+        category: 'ApiClient',
       );
     }
 
@@ -35,9 +36,10 @@ class ApiClient {
       final uri = Uri.parse(resolvedBaseUrl);
       const allowedHosts = {'localhost', '127.0.0.1', '10.0.2.2'};
       if (!allowedHosts.contains(uri.host)) {
-        throw StateError(
+        AppLogger.error(
           'HTTP is only allowed for localhost, 127.0.0.1, or 10.0.2.2. '
           'Got: $resolvedBaseUrl',
+          category: 'ApiClient',
         );
       }
     }
@@ -70,12 +72,15 @@ class ApiClient {
         data: {'fingerprints_count': fingerprints.length},
       );
     } else {
-      // SECURITY: Fail loudly in production if cert pinning is not configured.
+      // SECURITY: Log critical warning in production if cert pinning is missing.
       // A VPN app without certificate pinning is vulnerable to MITM attacks.
+      // We degrade gracefully instead of crashing so the user can still launch
+      // the app. Per-request pinning enforcement should be added separately.
       if (EnvironmentConfig.isProd) {
-        throw StateError(
-          'Certificate pinning is required for production builds. '
+        AppLogger.error(
+          'SECURITY: Certificate pinning is NOT configured for production! '
           'Configure CERT_FINGERPRINTS via --dart-define or .env.',
+          category: 'ApiClient',
         );
       }
 

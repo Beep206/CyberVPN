@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/features/auth/data/models/user_model.dart';
@@ -30,9 +31,6 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final ApiClient _apiClient;
 
-  /// Base path for mobile auth endpoints.
-  static const String _basePath = '/mobile/auth';
-
   AuthRemoteDataSourceImpl(this._apiClient);
 
   @override
@@ -43,7 +41,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     bool rememberMe = false,
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
-      '$_basePath/login',
+      ApiConstants.login,
       data: {
         'email': email,
         'password': password,
@@ -51,7 +49,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'remember_me': rememberMe,
       },
     );
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
     return (
       UserModel.fromJson(data['user'] as Map<String, dynamic>),
       TokenModel.fromJson(data['tokens'] as Map<String, dynamic>),
@@ -66,7 +67,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? referralCode,
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
-      '$_basePath/register',
+      ApiConstants.register,
       data: {
         'email': email,
         'password': password,
@@ -74,7 +75,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         if (referralCode != null) 'referral_code': referralCode,
       },
     );
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
     return (
       UserModel.fromJson(data['user'] as Map<String, dynamic>),
       TokenModel.fromJson(data['tokens'] as Map<String, dynamic>),
@@ -87,13 +91,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String deviceId,
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
-      '$_basePath/refresh',
+      ApiConstants.refresh,
       data: {
         'refresh_token': refreshToken,
         'device_id': deviceId,
       },
     );
-    return TokenModel.fromJson(response.data as Map<String, dynamic>);
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
+    return TokenModel.fromJson(data);
   }
 
   @override
@@ -102,7 +110,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String deviceId,
   }) async {
     await _apiClient.post<Map<String, dynamic>>(
-      '$_basePath/logout',
+      ApiConstants.logout,
       data: {
         'refresh_token': refreshToken,
         'device_id': deviceId,
@@ -112,7 +120,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> getCurrentUser() async {
-    final response = await _apiClient.get<Map<String, dynamic>>('$_basePath/me');
-    return UserModel.fromJson(response.data as Map<String, dynamic>);
+    final response = await _apiClient.get<Map<String, dynamic>>(ApiConstants.me);
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
+    return UserModel.fromJson(data);
   }
 }

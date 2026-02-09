@@ -224,7 +224,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       title: Text(l10n.settingsLogLevelLabel),
       subtitle: Text(_logLevelLabel(settings.logLevel)),
       trailing: Icon(
-        Icons.chevron_right,
+        Directionality.of(context) == TextDirection.rtl
+            ? Icons.chevron_left
+            : Icons.chevron_right,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onTap: () => _showLogLevelDialog(context, settings.logLevel),
@@ -320,7 +322,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Failed to export logs: $e')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).debugExportLogsFailed(e.toString()))),
       );
     }
   }
@@ -389,7 +391,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Failed to clear cache: $e')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).debugClearCacheFailed(e.toString()))),
       );
     }
   }
@@ -439,7 +441,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('Failed to reset settings: $e')),
+        SnackBar(content: Text(AppLocalizations.of(ctx).debugResetSettingsFailed(e.toString()))),
       );
     }
   }

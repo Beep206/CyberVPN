@@ -1,6 +1,0 @@
-{
-  "title": "GESTION UTILISATEURS",
-  "subtitle": "Contrôle d'accès et surveillance des abonnements.",
-  "totalUsers": "UTILISATEURS TOTAUX: {count}",
-  "newToday": "NOUVEAUX AUJOURD'HUI: {count}"
-}

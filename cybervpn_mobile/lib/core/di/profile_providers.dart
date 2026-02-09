@@ -13,7 +13,6 @@ export 'package:cybervpn_mobile/core/di/providers.dart'
         getDevicesUseCaseProvider,
         removeDeviceUseCaseProvider,
         registerDeviceUseCaseProvider,
-        secureStorageWrapperProvider,
         deviceRegistrationServiceProvider,
         linkSocialAccountUseCaseProvider,
         completeSocialAccountLinkUseCaseProvider,

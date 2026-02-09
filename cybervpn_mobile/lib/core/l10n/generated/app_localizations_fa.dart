@@ -1356,6 +1356,22 @@ class AppLocalizationsFa extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4102,4 +4118,147 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'همین الان';
+
+  @override
+  String get relativeYesterday => 'دیروز';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دقیقه پیش',
+      one: '1 دقیقه پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ساعت پیش',
+      one: '1 ساعت پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count روز پیش',
+      one: '1 روز پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count هفته پیش',
+      one: '1 هفته پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ماه پیش',
+      one: '1 ماه پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سال پیش',
+      one: '1 سال پیش',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'تا چند ثانیه';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تا $count دقیقه',
+      one: 'تا 1 دقیقه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تا $count ساعت',
+      one: 'تا 1 ساعت',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'اعلان';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'خطا در صادرات گزارش‌ها: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'خطا در پاک‌سازی حافظه: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'خطا در بازنشانی تنظیمات: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'خطا در افزودن شبکه: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return 'در حال اتصال $provider...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'خطا در اتصال OAuth: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return 'خطا در اتصال $provider: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return 'خطا در قطع اتصال $provider: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'حذف';
 }

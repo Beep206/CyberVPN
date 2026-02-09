@@ -526,9 +526,9 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
         const SizedBox(height: Spacing.sm),
         TextField(
           controller: _confirmationController,
-          decoration: const InputDecoration(
-            hintText: 'DELETE',
-            prefixIcon: Icon(Icons.keyboard),
+          decoration: InputDecoration(
+            hintText: l10n.deleteAccountConfirmHint,
+            prefixIcon: const Icon(Icons.keyboard),
           ),
           textCapitalization: TextCapitalization.characters,
           onChanged: (_) => setState(() {}),

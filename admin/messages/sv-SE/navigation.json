@@ -1,9 +1,0 @@
-{
-  "dashboard": "KONTROLLPANEL",
-  "servers": "SERVRAR",
-  "users": "KLIENTER",
-  "billing": "FAKTURERING",
-  "analytics": "NÄTANALYS",
-  "security": "SÄKERHET",
-  "settings": "KONFIG"
-}

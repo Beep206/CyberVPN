@@ -30,13 +30,17 @@ final quickActionsHandlerProvider = Provider<QuickActionsHandler>((ref) {
 /// Set in app_router.dart and used by QuickActionsHandler for navigation.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-class QuickActionsHandler {
+class QuickActionsHandler with WidgetsBindingObserver {
   QuickActionsHandler(this._ref) {
     _initialize();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   final Ref _ref;
   StreamSubscription<String>? _actionSubscription;
+
+  /// Queued action type to execute when navigator context becomes available.
+  String? _pendingAction;
 
   void _initialize() {
     // Listen to quick action taps
@@ -207,57 +211,58 @@ class QuickActionsHandler {
 
   /// Handle Scan QR Code action.
   ///
-  /// Navigates to the QR scanner screen.
+  /// Navigates to the QR scanner screen. If the navigator context is
+  /// unavailable (app in background), the action is queued and retried
+  /// when the app resumes.
   void _handleScanQr() {
-    try {
-      final context = rootNavigatorKey.currentContext;
-      if (context == null) {
-        AppLogger.warning(
-          'Quick action: cannot navigate to QR scanner, no context',
+    _navigateOrQueue(
+      QuickActionsService.actionScanQr,
+      () {
+        final context = rootNavigatorKey.currentContext!;
+        unawaited(context.pushNamed('config-import-qr-scanner'));
+        AppLogger.info(
+          'Quick action: navigated to QR scanner',
           category: 'quick_actions',
         );
-        return;
-      }
-
-      // Navigate to QR scanner route
-      unawaited(context.pushNamed('config-import-qr-scanner'));
-      AppLogger.info(
-        'Quick action: navigated to QR scanner',
-        category: 'quick_actions',
-      );
-    } catch (e, st) {
-      AppLogger.error(
-        'Failed to navigate to QR scanner',
-        error: e,
-        stackTrace: st,
-        category: 'quick_actions',
-      );
-    }
+      },
+    );
   }
 
   /// Handle Servers action.
   ///
-  /// Navigates to the servers list screen.
+  /// Navigates to the servers list screen. If the navigator context is
+  /// unavailable, the action is queued and retried on foreground.
   void _handleServers() {
+    _navigateOrQueue(
+      QuickActionsService.actionServers,
+      () {
+        final context = rootNavigatorKey.currentContext!;
+        context.goNamed('servers');
+        AppLogger.info(
+          'Quick action: navigated to servers',
+          category: 'quick_actions',
+        );
+      },
+    );
+  }
+
+  /// Executes [navigate] if the root navigator context is available,
+  /// otherwise queues [actionType] for retry on app resume.
+  void _navigateOrQueue(String actionType, VoidCallback navigate) {
     try {
       final context = rootNavigatorKey.currentContext;
       if (context == null) {
-        AppLogger.warning(
-          'Quick action: cannot navigate to servers, no context',
+        _pendingAction = actionType;
+        AppLogger.info(
+          'Quick action queued (no context): $actionType',
           category: 'quick_actions',
         );
         return;
       }
-
-      // Navigate to servers route
-      context.goNamed('servers');
-      AppLogger.info(
-        'Quick action: navigated to servers',
-        category: 'quick_actions',
-      );
+      navigate();
     } catch (e, st) {
       AppLogger.error(
-        'Failed to navigate to servers',
+        'Quick action navigation failed: $actionType',
         error: e,
         stackTrace: st,
         category: 'quick_actions',
@@ -265,7 +270,21 @@ class QuickActionsHandler {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _pendingAction != null) {
+      final action = _pendingAction!;
+      _pendingAction = null;
+      AppLogger.info(
+        'Replaying queued quick action: $action',
+        category: 'quick_actions',
+      );
+      _handleAction(action);
+    }
+  }
+
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_actionSubscription?.cancel());
   }
 }

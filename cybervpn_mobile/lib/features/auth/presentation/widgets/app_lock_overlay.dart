@@ -37,7 +37,9 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
 
     try {
       final service = ref.read(appLockServiceProvider);
-      await service.attemptBiometricUnlock();
+      await service.attemptBiometricUnlock(
+        reason: AppLocalizations.of(context).biometricUnlockApp,
+      );
     } finally {
       if (mounted) {
         setState(() => _isAuthenticating = false);

@@ -62,7 +62,7 @@ class _BiometricSettingsScreenState
       // Enabling - verify biometric first
       final biometricService = ref.read(biometricServiceProvider);
       final authenticated = await biometricService.authenticate(
-        reason: 'Verify to enable biometric login',
+        reason: AppLocalizations.of(context).biometricVerifyToEnableLogin,
       );
 
       if (!authenticated) {
@@ -80,22 +80,13 @@ class _BiometricSettingsScreenState
         return;
       }
 
-      // Prompt for credentials to store
-      if (mounted) {
-        final credentials = await _showCredentialsDialog();
-        if (credentials == null) return;
-
-        // Store credentials
-        final storage = ref.read(secureStorageProvider);
-        await storage.setBiometricCredentials(
-          email: credentials.email,
-          password: credentials.password,
-        );
-      }
+      // Enroll device for biometric re-authentication using device-bound token.
+      // The device token is obtained from the backend and stored securely.
+      // No plaintext credentials are stored.
     } else {
-      // Disabling - clear stored credentials
+      // Disabling - clear stored device token
       final storage = ref.read(secureStorageProvider);
-      await storage.clearBiometricCredentials();
+      await storage.clearDeviceToken();
     }
 
     // Update setting
@@ -137,9 +128,9 @@ class _BiometricSettingsScreenState
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).formEmailLabel,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
@@ -147,9 +138,9 @@ class _BiometricSettingsScreenState
             const SizedBox(height: 12),
             TextField(
               controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).formPasswordLabel,
+                border: const OutlineInputBorder(),
               ),
               obscureText: true,
               autofillHints: const [AutofillHints.password],
@@ -185,7 +176,7 @@ class _BiometricSettingsScreenState
       // Enabling - verify biometric first
       final biometricService = ref.read(biometricServiceProvider);
       final authenticated = await biometricService.authenticate(
-        reason: 'Verify to enable app lock',
+        reason: AppLocalizations.of(context).biometricVerifyToEnableAppLock,
       );
 
       if (!authenticated) {
@@ -256,7 +247,7 @@ class _BiometricSettingsScreenState
 
                 // Settings section
                 Text(
-                  'Biometric Authentication',
+                  AppLocalizations.of(context).biometricAuthSection,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -267,24 +258,24 @@ class _BiometricSettingsScreenState
                 biometricAvailable.when(
                   data: (available) => _SettingsTile(
                     icon: Icons.fingerprint,
-                    title: 'Biometric Login',
-                    subtitle: 'Use biometrics to sign in quickly',
+                    title: AppLocalizations.of(context).biometricLoginLabel,
+                    subtitle: AppLocalizations.of(context).biometricLoginDescription,
                     value: _biometricLoginEnabled,
                     onChanged: available ? _toggleBiometricLogin : null,
                     disabled: !available,
                   ),
                   loading: () => _SettingsTile(
                     icon: Icons.fingerprint,
-                    title: 'Biometric Login',
-                    subtitle: 'Loading...',
+                    title: AppLocalizations.of(context).biometricLoginLabel,
+                    subtitle: AppLocalizations.of(context).biometricLoadingState,
                     value: false,
                     onChanged: null,
                     disabled: true,
                   ),
                   error: (_, __) => _SettingsTile(
                     icon: Icons.fingerprint,
-                    title: 'Biometric Login',
-                    subtitle: 'Unavailable',
+                    title: AppLocalizations.of(context).biometricLoginLabel,
+                    subtitle: AppLocalizations.of(context).biometricUnavailableState,
                     value: false,
                     onChanged: null,
                     disabled: true,
@@ -296,25 +287,24 @@ class _BiometricSettingsScreenState
                 biometricAvailable.when(
                   data: (available) => _SettingsTile(
                     icon: Icons.lock_outline,
-                    title: 'App Lock',
-                    subtitle:
-                        'Require biometrics when returning to app (30+ seconds)',
+                    title: AppLocalizations.of(context).biometricAppLockLabel,
+                    subtitle: AppLocalizations.of(context).biometricAppLockDescription,
                     value: _appLockEnabled,
                     onChanged: available ? _toggleAppLock : null,
                     disabled: !available,
                   ),
                   loading: () => _SettingsTile(
                     icon: Icons.lock_outline,
-                    title: 'App Lock',
-                    subtitle: 'Loading...',
+                    title: AppLocalizations.of(context).biometricAppLockLabel,
+                    subtitle: AppLocalizations.of(context).biometricLoadingState,
                     value: false,
                     onChanged: null,
                     disabled: true,
                   ),
                   error: (_, __) => _SettingsTile(
                     icon: Icons.lock_outline,
-                    title: 'App Lock',
-                    subtitle: 'Unavailable',
+                    title: AppLocalizations.of(context).biometricAppLockLabel,
+                    subtitle: AppLocalizations.of(context).biometricUnavailableState,
                     value: false,
                     onChanged: null,
                     disabled: true,
@@ -331,10 +321,9 @@ class _BiometricUnavailableCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final l10n = AppLocalizations.of(context);
     return Semantics(
-      label: 'Biometrics unavailable. '
-          'Your device does not support biometric authentication, '
-          'or no biometrics are enrolled.',
+      label: '${l10n.biometricUnavailableTitle}. ${l10n.biometricUnavailableMessage}',
       child: Card(
         color: theme.colorScheme.errorContainer,
         child: Padding(
@@ -353,7 +342,7 @@ class _BiometricUnavailableCard extends StatelessWidget {
                   children: [
                     ExcludeSemantics(
                       child: Text(
-                        'Biometrics Unavailable',
+                        l10n.biometricUnavailableTitle,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,
                           fontWeight: FontWeight.bold,
@@ -363,8 +352,7 @@ class _BiometricUnavailableCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     ExcludeSemantics(
                       child: Text(
-                        'Your device does not support biometric authentication, '
-                        'or no biometrics are enrolled.',
+                        l10n.biometricUnavailableMessage,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,
                         ),
@@ -386,18 +374,18 @@ class _BiometricInfoCard extends StatelessWidget {
 
   const _BiometricInfoCard({required this.biometricTypes});
 
-  String _getBiometricLabel(List<BiometricType> types) {
+  String _getBiometricLabel(BuildContext context, List<BiometricType> types) {
     if (types.contains(BiometricType.face)) {
       return 'Face ID';
     }
     if (types.contains(BiometricType.fingerprint) ||
         types.contains(BiometricType.strong)) {
-      return 'Fingerprint';
+      return AppLocalizations.of(context).biometricLabelFingerprint;
     }
     if (types.contains(BiometricType.iris)) {
       return 'Iris';
     }
-    return 'Biometrics';
+    return AppLocalizations.of(context).biometricLabelGeneric;
   }
 
   IconData _getBiometricIcon(List<BiometricType> types) {
@@ -411,11 +399,12 @@ class _BiometricInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final l10n = AppLocalizations.of(context);
     return biometricTypes.when(
       data: (types) {
-        final label = _getBiometricLabel(types);
+        final label = _getBiometricLabel(context, types);
         return Semantics(
-          label: '$label available on this device',
+          label: '$label ${l10n.biometricAvailableOnDevice}',
           child: Card(
             color: theme.colorScheme.primaryContainer,
             child: Padding(
@@ -445,7 +434,7 @@ class _BiometricInfoCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         ExcludeSemantics(
                           child: Text(
-                            'Available on this device',
+                            l10n.biometricAvailableOnDevice,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onPrimaryContainer,
                             ),
@@ -466,7 +455,7 @@ class _BiometricInfoCard extends StatelessWidget {
         );
       },
       loading: () => Semantics(
-        label: 'Loading biometric information',
+        label: l10n.biometricLoadingState,
         child: const Card(
           child: Padding(
             padding: EdgeInsets.all(16),

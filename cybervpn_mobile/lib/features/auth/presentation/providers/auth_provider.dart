@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
@@ -36,8 +37,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
   TokenRefreshScheduler get _refreshScheduler =>
       ref.read(tokenRefreshSchedulerProvider);
-  WebSocketClient get _webSocketClient =>
-      ref.read(webSocketClientProvider);
+  WebSocketClient get _webSocketClient => ref.read(webSocketClientProvider);
 
   @override
   FutureOr<AuthState> build() async {
@@ -55,8 +55,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     profiler.start();
 
     try {
-      final result = await _performCachedAuthCheck(profiler)
-          .timeout(
+      final result = await _performCachedAuthCheck(profiler).timeout(
         const Duration(seconds: 3),
         onTimeout: () {
           AppLogger.warning(
@@ -76,7 +75,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Inner implementation extracted so [_checkCachedAuth] can apply a
   /// [Future.timeout] wrapper around the entire operation.
-  Future<AuthState> _performCachedAuthCheck(PerformanceProfiler profiler) async {
+  Future<AuthState> _performCachedAuthCheck(
+    PerformanceProfiler profiler,
+  ) async {
     final authResult = await _repo.isAuthenticated();
     profiler.checkpoint('token_check');
 
@@ -113,7 +114,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Authenticate with [email] and [password].
   ///
   /// If [rememberMe] is true, the refresh token TTL is extended to 30 days.
-  Future<void> login(String email, String password, {bool rememberMe = false}) async {
+  Future<void> login(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     state = const AsyncValue.data(AuthLoading());
     try {
       // Get device info for the login request
@@ -144,8 +149,45 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// Debug-only login that bypasses local input validation.
+  ///
+  /// Useful for test credentials like `test/test` that intentionally do not
+  /// match production password/email validation rules.
+  Future<void> debugLoginBypassValidation(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
+    if (!kDebugMode) {
+      throw StateError(
+        'debugLoginBypassValidation is only available in debug mode',
+      );
+    }
+
+    state = const AsyncValue.data(AuthLoading());
+
+    // Intentionally offline: do not call backend in debug quick-login.
+    final now = DateTime.now();
+    final user = UserEntity(
+      id: 'debug-user',
+      email: email,
+      username: 'debug_tester',
+      isEmailVerified: true,
+      isPremium: true,
+      referralCode: 'DEBUG',
+      createdAt: now,
+      lastLoginAt: now,
+    );
+
+    state = AsyncValue.data(AuthAuthenticated(user));
+  }
+
   /// Register a new account with [email], [password], and optional [referralCode].
-  Future<void> register(String email, String password, {String? referralCode}) async {
+  Future<void> register(
+    String email,
+    String password, {
+    String? referralCode,
+  }) async {
     state = const AsyncValue.data(AuthLoading());
     try {
       // Get device info for the register request
@@ -197,7 +239,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           deviceId: deviceId,
         );
         if (logoutResult is Failure) {
-          AppLogger.warning('Logout backend returned failure: ${logoutResult.failureOrNull?.message}');
+          AppLogger.warning(
+            'Logout backend returned failure: ${logoutResult.failureOrNull?.message}',
+          );
         }
       }
       // Invalidate the notifier so all dependent providers reset.
@@ -207,7 +251,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Even if backend logout fails, clear local state
       ref.invalidateSelf();
       state = const AsyncValue.data(AuthUnauthenticated());
-      AppLogger.warning('Logout backend call failed, cleared local state', error: e);
+      AppLogger.warning(
+        'Logout backend call failed, cleared local state',
+        error: e,
+      );
     }
   }
 
@@ -225,18 +272,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Runs asynchronously without blocking the auth flow. Errors are logged
   /// but do not affect the authentication state.
   void _scheduleTokenRefresh() {
-    unawaited(Future(() async {
-      try {
-        await _refreshScheduler.scheduleRefresh();
-      } catch (e, st) {
-        AppLogger.warning(
-          'Failed to schedule proactive token refresh',
-          error: e,
-          stackTrace: st,
-          category: 'auth.refresh',
-        );
-      }
-    }));
+    unawaited(
+      Future(() async {
+        try {
+          await _refreshScheduler.scheduleRefresh();
+        } catch (e, st) {
+          AppLogger.warning(
+            'Failed to schedule proactive token refresh',
+            error: e,
+            stackTrace: st,
+            category: 'auth.refresh',
+          );
+        }
+      }),
+    );
   }
 
   // ── WebSocket connection management ──────────────────────────────
@@ -246,22 +295,24 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Runs asynchronously without blocking the auth flow. Errors are logged
   /// but do not affect the authentication state.
   void _connectWebSocket() {
-    unawaited(Future(() async {
-      try {
-        await _webSocketClient.connect();
-        AppLogger.info(
-          'WebSocket connected after authentication',
-          category: 'auth.websocket',
-        );
-      } catch (e, st) {
-        AppLogger.warning(
-          'Failed to connect WebSocket after authentication',
-          error: e,
-          stackTrace: st,
-          category: 'auth.websocket',
-        );
-      }
-    }));
+    unawaited(
+      Future(() async {
+        try {
+          await _webSocketClient.connect();
+          AppLogger.info(
+            'WebSocket connected after authentication',
+            category: 'auth.websocket',
+          );
+        } catch (e, st) {
+          AppLogger.warning(
+            'Failed to connect WebSocket after authentication',
+            error: e,
+            stackTrace: st,
+            category: 'auth.websocket',
+          );
+        }
+      }),
+    );
   }
 
   /// Disconnects the WebSocket client on logout.
@@ -283,7 +334,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       );
     }
   }
-
 }
 
 // ---------------------------------------------------------------------------
@@ -296,15 +346,23 @@ final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(
 );
 
 /// Derived provider that yields the current [UserEntity] or `null`.
+///
+/// Uses `.select()` to only rebuild when the user entity actually changes,
+/// not on every auth state transition (e.g. loading phases).
 final currentUserProvider = Provider<UserEntity?>((ref) {
-  return switch (ref.watch(authProvider).value) {
-    AuthAuthenticated(:final user) => user,
-    _ => null,
-  };
+  return ref.watch(
+    authProvider.select((s) {
+      final value = s.value;
+      return value is AuthAuthenticated ? value.user : null;
+    }),
+  );
 });
 
 /// Derived provider that yields `true` when the user is authenticated.
+///
+/// Uses `.select()` to only rebuild when the authenticated status actually
+/// changes, preventing cascade through derived providers on unrelated auth
+/// state updates (e.g. loading → authenticated with same user).
 final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authState = ref.watch(authProvider).value;
-  return authState is AuthAuthenticated;
+  return ref.watch(authProvider.select((s) => s.value is AuthAuthenticated));
 });

@@ -1,9 +1,0 @@
-{
-  "dashboard": "PANEL",
-  "servers": "SERVIDORES",
-  "users": "CLIENTES",
-  "billing": "FACTURACIÓN",
-  "analytics": "OPS RED",
-  "security": "SEGURIDAD",
-  "settings": "CONFIG"
-}

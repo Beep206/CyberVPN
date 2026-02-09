@@ -1355,6 +1355,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
+  String get biometricDataChanged =>
+      'Your biometric data has changed. Please sign in again for security.';
+
+  @override
+  String get biometricAuthenticateToContinue => 'Authenticate to continue';
+
+  @override
+  String get biometricVerifyToEnableLogin => 'Verify to enable biometric login';
+
+  @override
+  String get biometricVerifyToEnableAppLock => 'Verify to enable app lock';
+
+  @override
+  String get biometricUnlockApp => 'Unlock CyberVPN';
+
+  @override
   String get formEmailLabel => '[EN] Email';
 
   @override
@@ -4101,4 +4117,147 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get deleteAccountBiometricReason =>
       'Verify your identity to delete your account';
+
+  @override
+  String get relativeJustNow => 'zojuist';
+
+  @override
+  String get relativeYesterday => 'gisteren';
+
+  @override
+  String relativeMinutesAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minuten geleden',
+      one: '1 minuut geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeHoursAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uur geleden',
+      one: '1 uur geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeDaysAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagen geleden',
+      one: '1 dag geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeWeeksAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weken geleden',
+      one: '1 week geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maanden geleden',
+      one: '1 maand geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jaar geleden',
+      one: '1 jaar geleden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get relativeInSeconds => 'over enkele seconden';
+
+  @override
+  String relativeInMinutes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'over $count minuten',
+      one: 'over 1 minuut',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String relativeInHours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'over $count uur',
+      one: 'over 1 uur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationFallbackTitle => 'Melding';
+
+  @override
+  String debugExportLogsFailed(String error) {
+    return 'Logs exporteren mislukt: $error';
+  }
+
+  @override
+  String debugClearCacheFailed(String error) {
+    return 'Cache wissen mislukt: $error';
+  }
+
+  @override
+  String debugResetSettingsFailed(String error) {
+    return 'Instellingen herstellen mislukt: $error';
+  }
+
+  @override
+  String settingsTrustedWifiAddFailed(String error) {
+    return 'Netwerk toevoegen mislukt: $error';
+  }
+
+  @override
+  String profileSocialCompletingLink(String provider) {
+    return '$provider verbinden...';
+  }
+
+  @override
+  String profileSocialOAuthFailed(String error) {
+    return 'OAuth-koppeling mislukt: $error';
+  }
+
+  @override
+  String profileSocialLinkFailed(String provider, String error) {
+    return '$provider koppelen mislukt: $error';
+  }
+
+  @override
+  String profileSocialUnlinkFailed(String provider, String error) {
+    return '$provider ontkoppelen mislukt: $error';
+  }
+
+  @override
+  String get deleteAccountConfirmHint => 'VERWIJDER';
 }
