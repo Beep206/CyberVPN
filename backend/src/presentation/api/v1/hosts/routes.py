@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
+from src.presentation.schemas.remnawave_responses import StatusMessageResponse
 
 from .schemas import CreateHostRequest, HostResponse, UpdateHostRequest
 
@@ -61,12 +62,12 @@ async def update_host(
     )
 
 
-@router.delete("/{uuid}")
+@router.delete("/{uuid}", response_model=StatusMessageResponse)
 async def delete_host(
     uuid: str,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> dict[str, str]:
+) -> StatusMessageResponse:
     """Delete a host (admin only)"""
     await client.delete(f"/hosts/{uuid}")
-    return {"status": "deleted"}
+    return StatusMessageResponse(status="deleted", message="Host deleted successfully")

@@ -3,13 +3,14 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
+from src.presentation.schemas.remnawave_responses import RemnawaveXrayConfigResponse
 
-from .schemas import UpdateXrayConfigRequest, XrayConfigResponse
+from .schemas import UpdateXrayConfigRequest
 
 router = APIRouter(prefix="/xray", tags=["xray"])
 
 
-@router.get("/config", response_model=XrayConfigResponse)
+@router.get("/config", response_model=RemnawaveXrayConfigResponse)
 async def get_xray_config(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
@@ -17,7 +18,7 @@ async def get_xray_config(
     return await client.get("/xray/config")
 
 
-@router.post("/update-config", response_model=XrayConfigResponse)
+@router.post("/update-config", response_model=RemnawaveXrayConfigResponse)
 async def update_xray_config(
     config_data: UpdateXrayConfigRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),

@@ -3,13 +3,14 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
+from src.presentation.schemas.remnawave_responses import RemnawaveSettingResponse
 
-from .schemas import CreateSettingRequest, UpdateSettingRequest, SettingResponse
+from .schemas import CreateSettingRequest, UpdateSettingRequest
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
-@router.get("/", response_model=list[SettingResponse])
+@router.get("/", response_model=list[RemnawaveSettingResponse])
 async def get_settings(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
@@ -17,7 +18,7 @@ async def get_settings(
     return await client.get("/settings")
 
 
-@router.post("/", response_model=SettingResponse)
+@router.post("/", response_model=RemnawaveSettingResponse)
 async def create_setting(
     setting_data: CreateSettingRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
@@ -27,7 +28,7 @@ async def create_setting(
     return await client.post("/settings", json=setting_data.model_dump())
 
 
-@router.put("/{id}", response_model=SettingResponse)
+@router.put("/{id}", response_model=RemnawaveSettingResponse)
 async def update_setting(
     id: int,
     setting_data: UpdateSettingRequest,

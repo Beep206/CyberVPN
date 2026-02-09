@@ -76,3 +76,15 @@ OTP_FAILED = Counter(
     "Total failed OTP attempts",
     ["reason"],  # reason=invalid_code|expired|exhausted
 )
+
+# GDPR purge metrics
+GDPR_PURGE_TOTAL = Counter(
+    "cybervpn_gdpr_purge_total",
+    "Total accounts purged by GDPR cleanup",
+)
+
+GDPR_PURGE_RELATED_RECORDS = Counter(
+    "cybervpn_gdpr_purge_related_records_total",
+    "Related records deleted during GDPR purge",
+    ["record_type"],  # record_type=otp_codes|refresh_tokens
+)

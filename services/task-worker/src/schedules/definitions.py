@@ -19,6 +19,7 @@ from src.utils.constants import (
     SCHEDULE_CLEANUP_CACHE,
     SCHEDULE_CLEANUP_NOTIFICATIONS,
     SCHEDULE_CLEANUP_WEBHOOK_WEEKLY,
+    SCHEDULE_GDPR_PURGE,
     SCHEDULE_CLEANUP_WEEKLY,
     SCHEDULE_DAILY_STATS,
     SCHEDULE_DISABLE_EXPIRED,
@@ -156,6 +157,10 @@ from src.tasks.cleanup.cache import cleanup_cache  # noqa: E402
 
 cleanup_cache = _schedule_task(cleanup_cache, [{"cron": SCHEDULE_CLEANUP_CACHE}])
 
+from src.tasks.cleanup.purge_deleted_accounts import purge_deleted_accounts  # noqa: E402
+
+purge_deleted_accounts = _schedule_task(purge_deleted_accounts, [{"cron": SCHEDULE_GDPR_PURGE}])
+
 # =============================================================================
 # Sync Tasks
 # =============================================================================
@@ -193,7 +198,7 @@ def register_schedules() -> None:
     """Log schedule registration. Tasks are auto-discovered via labels."""
     logger.info(
         "schedules_registered",
-        total=26,
+        total=27,
         categories=[
             "notifications",
             "monitoring",

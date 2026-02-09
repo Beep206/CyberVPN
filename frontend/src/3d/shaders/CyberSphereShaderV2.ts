@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { extend } from '@react-three/fiber';
+import { extend, type ThreeElement } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
 
 console.log("CyberSphereShader V2 LOADED - DARK NEON VERSION");
@@ -180,7 +180,7 @@ extend({ CyberSphereShaderV2 });
 declare global {
     namespace JSX {
         interface IntrinsicElements {
-            cyberSphereShaderV2: any;
+            cyberSphereShaderV2: ThreeElement<typeof CyberSphereShaderV2>;
         }
     }
 }

@@ -3,13 +3,12 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
-
-from .schemas import InboundResponse
+from src.presentation.schemas.remnawave_responses import RemnawaveInboundResponse
 
 router = APIRouter(prefix="/inbounds", tags=["inbounds"])
 
 
-@router.get("/", response_model=list[InboundResponse])
+@router.get("/", response_model=list[RemnawaveInboundResponse])
 async def list_inbounds(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
@@ -17,7 +16,7 @@ async def list_inbounds(
     return await client.get("/inbounds")
 
 
-@router.get("/{uuid}", response_model=InboundResponse)
+@router.get("/{uuid}", response_model=RemnawaveInboundResponse)
 async def get_inbound(
     uuid: str,
     current_user=Depends(require_role(AdminRole.ADMIN)),
