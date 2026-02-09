@@ -27,26 +27,14 @@ interface AnalyticsProvider {
   reset: () => void;
 }
 
-// Default provider logs to console in development
-const consoleProvider: AnalyticsProvider = {
-  track: (event, properties) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics]', event, properties);
-    }
-  },
-  identify: (userId, traits) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics] Identify:', userId, traits);
-    }
-  },
-  reset: () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics] Reset');
-    }
-  },
+// Default no-op provider (replaced at runtime via configureAnalytics)
+const noopProvider: AnalyticsProvider = {
+  track: () => {},
+  identify: () => {},
+  reset: () => {},
 };
 
-let provider: AnalyticsProvider = consoleProvider;
+let provider: AnalyticsProvider = noopProvider;
 
 /**
  * Configure the analytics provider

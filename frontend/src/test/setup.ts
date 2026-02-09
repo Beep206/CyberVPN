@@ -1,10 +1,29 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { server } from './mocks/server';
 
-// Cleanup after each test
+// ---------------------------------------------------------------------------
+// MSW Server Lifecycle
+// ---------------------------------------------------------------------------
+
+// Start the MSW server before all tests in a file.
+// onUnhandledRequest: 'bypass' lets real network requests (e.g. jsdom scripts)
+// pass through without failing, while still intercepting API calls that match
+// the registered handlers.
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'bypass' });
+});
+
+// Reset any per-test handler overrides so tests stay isolated.
 afterEach(() => {
+  server.resetHandlers();
   cleanup();
+});
+
+// Shut down the server after all tests complete.
+afterAll(() => {
+  server.close();
 });
 
 // Mock next-intl

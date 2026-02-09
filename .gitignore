@@ -111,6 +111,11 @@ env/
 # Temp artifacts
 _modified_server_config.json
 report/
+test_perm*.txt
+*_tmp.py
+opencode.json.backup-*
+_*.sh
+_*.jq
 
 # bv (beads viewer) local config and caches
 .bv/

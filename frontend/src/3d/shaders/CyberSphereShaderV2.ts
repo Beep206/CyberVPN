@@ -2,8 +2,6 @@ import * as THREE from 'three';
 import { extend, type ThreeElement } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
 
-console.log("CyberSphereShader V2 LOADED - DARK NEON VERSION");
-
 // DARK NEON CYBER SPHERE V2
 // Design Goal: Deepest black void with sharp, electric cyan grid lines.
 // No washing out. High contrast.
