@@ -50,6 +50,7 @@ from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
+from src.version import __version__
 
 logger = logging.getLogger("cybervpn")
 
@@ -65,7 +66,7 @@ async def lifespan(app: FastAPI):
         if not totp_key:
             raise RuntimeError(
                 "TOTP_ENCRYPTION_KEY is required in production. "
-                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
         logger.info("TOTP encryption key: configured")
 
@@ -161,7 +162,7 @@ if not settings.swagger_enabled:
 
 app = FastAPI(
     title="CyberVPN Backend API",
-    version="0.1.0",
+    version=__version__,
     description="Backend API for CyberVPN admin dashboard",
     lifespan=lifespan,
     openapi_tags=tags_metadata,
@@ -278,7 +279,7 @@ async def health_check_detailed(
     return {
         "status": "ok" if (db_ok and redis_ok) else "degraded",
         "service": "cybervpn-backend",
-        "version": "0.1.0",
+        "version": __version__,
         "environment": settings.environment,
         "dependencies": {
             "database": "ok" if db_ok else "error",
