@@ -121,11 +121,12 @@ class TestOAuthStateService:
         mock_redis = AsyncMock()
         service = OAuthStateService(mock_redis)
 
-        state = await service.generate(
+        state, code_challenge = await service.generate(
             provider="github",
             user_id="user-123",
             ip_address="1.2.3.4",
         )
 
         assert len(state) > 20  # Should be a secure random token
+        assert code_challenge is None  # No PKCE by default
         mock_redis.setex.assert_called_once()

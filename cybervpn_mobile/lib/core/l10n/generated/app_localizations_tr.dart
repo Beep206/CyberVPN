@@ -2237,24 +2237,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Sosyal hesaplar';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Daha kolay giriş ve hesap kurtarma için sosyal hesaplarınızı bağlayın.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Bağlı';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Bağlı değil';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Bağla';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Tarayıcıda yetkilendirmeyi tamamlayın, ardından uygulamaya geri dönün.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4260,4 +4260,75 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'SİL';
+
+  @override
+  String get magicLinkTitle => 'Magic Link ile Giriş';
+
+  @override
+  String get magicLinkSubtitle =>
+      'E-postanızı girin, size tek kullanımlık bir giriş bağlantısı gönderelim. Şifre gerekmez.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link Gönder';
+
+  @override
+  String get magicLinkCheckInbox => 'Gelen kutunuzu kontrol edin';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return '$email adresine giriş bağlantısı gönderdik. Giriş yapmak için e-postadaki bağlantıya dokunun.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Bağlantı 15 dakika geçerlidir.';
+
+  @override
+  String get magicLinkSendAgain => 'Tekrar gönder';
+
+  @override
+  String get backToLogin => 'Girişe dön';
+
+  @override
+  String get rateLimitTitle => 'Lütfen bekleyin';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Çok fazla istek. Lütfen $seconds saniye sonra tekrar deneyin.';
+  }
+
+  @override
+  String get unknownError =>
+      'Bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.';
+
+  @override
+  String get registerModeEmail => 'E-posta';
+
+  @override
+  String get registerModeUsernameOnly => 'Yalnızca kullanıcı adı';
+
+  @override
+  String get registerUsernameLabel => 'Kullanıcı adı';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'E-posta olmadan şifrenizi kurtaramaz ve güvenlik bildirimlerini alamazsınız.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Kullanıcı adı: 3-32 karakter — harfler, rakamlar, alt çizgiler';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link ile giriş yap';
+
+  @override
+  String get continueWithGoogle => 'Google ile devam et';
+
+  @override
+  String get continueWithApple => 'Apple ile devam et';
+
+  @override
+  String get socialLoginComingSoon => 'Yakında';
 }

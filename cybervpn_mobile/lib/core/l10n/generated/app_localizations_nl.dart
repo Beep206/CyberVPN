@@ -2237,24 +2237,24 @@ class AppLocalizationsNl extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Sociale accounts';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Koppel je sociale accounts voor eenvoudiger inloggen en accountherstel.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Gekoppeld';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Niet gekoppeld';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Koppelen';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Voltooi de autorisatie in je browser en keer dan terug naar de app.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4260,4 +4260,75 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'VERWIJDER';
+
+  @override
+  String get magicLinkTitle => 'Magic Link Login';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Voer je e-mail in en we sturen je een eenmalige inloglink. Geen wachtwoord nodig.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link versturen';
+
+  @override
+  String get magicLinkCheckInbox => 'Controleer je inbox';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'We hebben een inloglink naar $email gestuurd. Tik op de link in de e-mail om in te loggen.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'De link verloopt na 15 minuten.';
+
+  @override
+  String get magicLinkSendAgain => 'Opnieuw versturen';
+
+  @override
+  String get backToLogin => 'Terug naar inloggen';
+
+  @override
+  String get rateLimitTitle => 'Even geduld';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Te veel verzoeken. Probeer het over $seconds seconden opnieuw.';
+  }
+
+  @override
+  String get unknownError =>
+      'Er is een onbekende fout opgetreden. Probeer het opnieuw.';
+
+  @override
+  String get registerModeEmail => 'E-mail';
+
+  @override
+  String get registerModeUsernameOnly => 'Alleen gebruikersnaam';
+
+  @override
+  String get registerUsernameLabel => 'Gebruikersnaam';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Zonder e-mail kun je je wachtwoord niet herstellen en ontvang je geen beveiligingsmeldingen.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Gebruikersnaam: 3-32 tekens — letters, cijfers, underscores';
+
+  @override
+  String get loginMagicLinkOption => 'Inloggen met magic link';
+
+  @override
+  String get continueWithGoogle => 'Doorgaan met Google';
+
+  @override
+  String get continueWithApple => 'Doorgaan met Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Binnenkort';
 }

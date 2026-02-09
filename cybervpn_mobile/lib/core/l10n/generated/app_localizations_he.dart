@@ -2226,24 +2226,24 @@ class AppLocalizationsHe extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'חשבונות חברתיים';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'קשר את החשבונות החברתיים שלך לכניסה קלה יותר ושחזור חשבון.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'מקושר';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'לא מקושר';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'קישור';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'השלם את ההרשאה בדפדפן ואז חזור לאפליקציה.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4249,4 +4249,74 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'מחק';
+
+  @override
+  String get magicLinkTitle => 'כניסה עם Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'הזן את כתובת האימייל שלך ונשלח לך קישור כניסה חד-פעמי. אין צורך בסיסמה.';
+
+  @override
+  String get magicLinkSendButton => 'שלח Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'בדוק את תיבת הדואר';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'שלחנו קישור כניסה אל $email. הקש על הקישור באימייל כדי להיכנס.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'הקישור תקף ל-15 דקות.';
+
+  @override
+  String get magicLinkSendAgain => 'שלח שוב';
+
+  @override
+  String get backToLogin => 'חזרה לכניסה';
+
+  @override
+  String get rateLimitTitle => 'נא להמתין';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'יותר מדי בקשות. נסה שוב בעוד $seconds שניות.';
+  }
+
+  @override
+  String get unknownError => 'אירעה שגיאה לא ידועה. נסה שוב.';
+
+  @override
+  String get registerModeEmail => 'אימייל';
+
+  @override
+  String get registerModeUsernameOnly => 'שם משתמש בלבד';
+
+  @override
+  String get registerUsernameLabel => 'שם משתמש';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'ללא אימייל לא תוכל לשחזר את הסיסמה או לקבל התראות אבטחה.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'שם משתמש: 3-32 תווים — אותיות, מספרים, קווים תחתונים';
+
+  @override
+  String get loginMagicLinkOption => 'כניסה עם magic link';
+
+  @override
+  String get continueWithGoogle => 'המשך עם Google';
+
+  @override
+  String get continueWithApple => 'המשך עם Apple';
+
+  @override
+  String get socialLoginComingSoon => 'בקרוב';
 }

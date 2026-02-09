@@ -2238,24 +2238,24 @@ class AppLocalizationsRo extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Conturi sociale';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Asociați conturile sociale pentru autentificare mai ușoară și recuperarea contului.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Asociat';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Neasociat';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Asociază';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Finalizați autorizarea în browser, apoi reveniți la aplicație.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4261,4 +4261,75 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'ȘTERGE';
+
+  @override
+  String get magicLinkTitle => 'Autentificare cu Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Introduceți emailul și vă vom trimite un link de autentificare de unică folosință. Fără parolă.';
+
+  @override
+  String get magicLinkSendButton => 'Trimite Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Verificați inbox-ul';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Am trimis un link de autentificare la $email. Apăsați pe link din email pentru a vă conecta.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Linkul expiră în 15 minute.';
+
+  @override
+  String get magicLinkSendAgain => 'Trimite din nou';
+
+  @override
+  String get backToLogin => 'Înapoi la autentificare';
+
+  @override
+  String get rateLimitTitle => 'Vă rugăm așteptați';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Prea multe solicitări. Încercați din nou peste $seconds secunde.';
+  }
+
+  @override
+  String get unknownError =>
+      'A apărut o eroare necunoscută. Încercați din nou.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Doar nume de utilizator';
+
+  @override
+  String get registerUsernameLabel => 'Nume de utilizator';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Fără email nu veți putea recupera parola și nu veți primi notificări de securitate.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Numele de utilizator trebuie să aibă 3-32 caractere: litere, cifre, underscore';
+
+  @override
+  String get loginMagicLinkOption => 'Autentificare cu magic link';
+
+  @override
+  String get continueWithGoogle => 'Continuă cu Google';
+
+  @override
+  String get continueWithApple => 'Continuă cu Apple';
+
+  @override
+  String get socialLoginComingSoon => 'În curând';
 }

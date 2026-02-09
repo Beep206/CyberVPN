@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Mga Social Account",
+  "profileSocialAccountsDescription": "I-link ang iyong mga social account para sa mas madaling pag-sign in at account recovery.",
+  "profileSocialLinked": "Naka-link",
+  "profileSocialNotLinked": "Hindi naka-link",
+  "profileSocialLink": "I-link",
+  "profileSocialCompleteAuth": "Kumpletuhin ang awtorisasyon sa browser, pagkatapos bumalik sa app.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "Nabigong i-link ang {provider}: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Tingnan ang iyong inbox",
+  "magicLinkSubtitle": "Ilagay ang iyong email at magpapadala kami ng isang beses lang na login link. Hindi kailangan ng password.",
+  "magicLinkSentTo": "Nagpadala kami ng login link sa {email}. I-tap ang link sa email para mag-sign in.",
+  "continueWithGoogle": "Magpatuloy sa Google",
+  "backToLogin": "Bumalik sa login",
+  "rateLimitMessage": "Masyadong maraming kahilingan. Subukan muli pagkatapos ng {seconds} segundo.",
+  "registerModeUsernameOnly": "Username lang",
+  "rateLimitTitle": "Mangyaring maghintay",
+  "magicLinkSendAgain": "Ipadala muli",
+  "socialLoginComingSoon": "Paparating na",
+  "magicLinkExpiresIn": "Mawawalan ng bisa ang link sa loob ng 15 minuto.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Username: 3-32 character — mga letra, numero, underscore",
+  "unknownError": "May naganap na hindi kilalang error. Pakisubukan muli.",
+  "registerModeEmail": "Email",
+  "magicLinkTitle": "Magic Link Login",
+  "loginMagicLinkOption": "Mag-sign in gamit ang magic link",
+  "continueWithApple": "Magpatuloy sa Apple",
+  "magicLinkSendButton": "Ipadala ang Magic Link",
+  "registerUsernameOnlyWarning": "Kung walang email, hindi mo mare-recover ang password o makakatanggap ng mga security notification.",
+  "registerUsernameLabel": "Username"
 }

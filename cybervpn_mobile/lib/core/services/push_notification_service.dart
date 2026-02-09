@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart'
@@ -98,6 +100,11 @@ class PushNotificationService {
   /// is not configured (e.g. missing `google-services.json`).
   Future<void> initialize() async {
     try {
+      if (kDebugMode && EnvironmentConfig.isDev) {
+        AppLogger.info('FCM disabled for dev debug build', category: 'fcm');
+        return;
+      }
+
       // Check whether Firebase has been initialized before attempting
       // to use Firebase Messaging.
       if (Firebase.apps.isEmpty) {
@@ -203,27 +210,29 @@ class PushNotificationService {
     final notification = message.notification;
     if (notification == null) return;
 
-    unawaited(_localNotifications.show(
-      id: notification.hashCode,
-      title: notification.title,
-      body: notification.body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          _vpnChannel.id,
-          _vpnChannel.name,
-          channelDescription: _vpnChannel.description,
-          importance: _vpnChannel.importance,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    unawaited(
+      _localNotifications.show(
+        id: notification.hashCode,
+        title: notification.title,
+        body: notification.body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _vpnChannel.id,
+            _vpnChannel.name,
+            channelDescription: _vpnChannel.description,
+            importance: _vpnChannel.importance,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
+        payload: message.data['route'] as String?,
       ),
-      payload: message.data['route'] as String?,
-    ));
+    );
   }
 
   /// Handles a notification tap that opened the app from the background or
@@ -244,8 +253,9 @@ class PushNotificationService {
   /// Initializes the local notifications plugin and creates the Android
   /// notification channel.
   Future<void> _initLocalNotifications() async {
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -271,7 +281,8 @@ class PushNotificationService {
     if (Platform.isAndroid) {
       await _localNotifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(_vpnChannel);
     }
   }
@@ -292,23 +303,28 @@ class PushNotificationService {
 
     // Delay navigation slightly to ensure the app is fully initialized
     // (important when launching from terminated state via notification tap).
-    unawaited(Future<void>.delayed(const Duration(milliseconds: 300), () {
-      final context = rootNavigatorKey.currentContext;
-      if (context == null) {
-        AppLogger.warning(
-          'Cannot navigate to $route: no navigator context',
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        final context = rootNavigatorKey.currentContext;
+        if (context == null) {
+          AppLogger.warning(
+            'Cannot navigate to $route: no navigator context',
+            category: 'fcm',
+          );
+          return;
+        }
+
+        AppLogger.info(
+          'Navigating from notification tap: $route',
           category: 'fcm',
         );
-        return;
-      }
-
-      AppLogger.info('Navigating from notification tap: $route', category: 'fcm');
-      // The context here is from rootNavigatorKey.currentContext which is
-      // always valid if non-null — the `mounted` lint is a false positive
-      // for GlobalKey contexts.
-      // ignore: use_build_context_synchronously
-      unawaited(GoRouter.of(context).push(route));
-    }));
+        // The context here is from rootNavigatorKey.currentContext which is
+        // always valid if non-null — the `mounted` lint is a false positive
+        // for GlobalKey contexts.
+        // ignore: use_build_context_synchronously
+        unawaited(GoRouter.of(context).push(route));
+      }),
+    );
   }
 
   /// Handles FCM token refresh by re-registering with the backend.
@@ -316,43 +332,45 @@ class PushNotificationService {
   /// Runs asynchronously without blocking. Errors are logged but not thrown.
   void _handleTokenRefresh(String newToken) {
     // Run in fire-and-forget manner
-    unawaited(Future(() async {
-      if (_fcmTokenService == null) {
-        AppLogger.warning(
-          'FCM token service not set - skipping token refresh registration',
-          category: 'fcm',
-        );
-        return;
-      }
-
-      try {
-        AppLogger.info(
-          'Re-registering FCM token with backend after refresh',
-          category: 'fcm',
-        );
-
-        final success = await _fcmTokenService!.registerToken();
-
-        if (success) {
-          AppLogger.info(
-            'FCM token re-registered successfully after refresh',
+    unawaited(
+      Future(() async {
+        if (_fcmTokenService == null) {
+          AppLogger.warning(
+            'FCM token service not set - skipping token refresh registration',
             category: 'fcm',
           );
-        } else {
-          AppLogger.warning(
-            'FCM token re-registration failed after refresh',
+          return;
+        }
+
+        try {
+          AppLogger.info(
+            'Re-registering FCM token with backend after refresh',
+            category: 'fcm',
+          );
+
+          final success = await _fcmTokenService!.registerToken();
+
+          if (success) {
+            AppLogger.info(
+              'FCM token re-registered successfully after refresh',
+              category: 'fcm',
+            );
+          } else {
+            AppLogger.warning(
+              'FCM token re-registration failed after refresh',
+              category: 'fcm',
+            );
+          }
+        } catch (e, st) {
+          AppLogger.error(
+            'Error re-registering FCM token after refresh',
+            error: e,
+            stackTrace: st,
             category: 'fcm',
           );
         }
-      } catch (e, st) {
-        AppLogger.error(
-          'Error re-registering FCM token after refresh',
-          error: e,
-          stackTrace: st,
-          category: 'fcm',
-        );
-      }
-    }));
+      }),
+    );
   }
 
   /// Releases resources held by this service.

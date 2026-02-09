@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Awon akaunti awujo",
+  "profileSocialAccountsDescription": "So awon akaunti awujo re po fun wiwọle irọrun ati ipadabọ akaunti.",
+  "profileSocialLinked": "Ti sopọ",
+  "profileSocialNotLinked": "Ko ti sopọ",
+  "profileSocialLink": "Sopọ",
+  "profileSocialCompleteAuth": "Pari aṣẹ ninu ẹrọ aṣawakiri, lẹhinna pada si ohun elo naa.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "Asopo {provider} ko ṣe aṣeyọri: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Ṣayẹwo apoti gbigba rẹ",
+  "magicLinkSubtitle": "Tẹ imeeli rẹ sii, a o fi ọna asopọ wiwọle ẹẹkan ranṣẹ si ọ. Ko nilo ọrọ igbaniwọle.",
+  "magicLinkSentTo": "A ti fi ọna asopọ wiwọle ranṣẹ si {email}. Tẹ ọna asopọ ninu imeeli lati wọle.",
+  "continueWithGoogle": "Tẹsiwaju pẹlu Google",
+  "backToLogin": "Pada si wiwọle",
+  "rateLimitMessage": "Awọn ibeere pupọ ju. Jọwọ gbiyanju lẹhin iṣẹju-aaya {seconds}.",
+  "registerModeUsernameOnly": "Orukọ olumulo nikan",
+  "rateLimitTitle": "Jọwọ duro",
+  "magicLinkSendAgain": "Tun fi ranṣẹ",
+  "socialLoginComingSoon": "N bọ laipẹ",
+  "magicLinkExpiresIn": "Ọna asopọ naa yoo pari ni iṣẹju 15.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Orukọ olumulo: awọn ohun kikọ 3-32 — lẹta, nọmba, ila isalẹ",
+  "unknownError": "Aṣiṣe aimọ kan waye. Jọwọ gbiyanju lẹẹkansi.",
+  "registerModeEmail": "Imeeli",
+  "magicLinkTitle": "Wọle pẹlu Magic Link",
+  "loginMagicLinkOption": "Wọle pẹlu magic link",
+  "continueWithApple": "Tẹsiwaju pẹlu Apple",
+  "magicLinkSendButton": "Fi Magic Link ranṣẹ",
+  "registerUsernameOnlyWarning": "Laisi imeeli, iwọ kii yoo le gba ọrọ igbaniwọle pada tabi gba awọn iwifunni aabo.",
+  "registerUsernameLabel": "Orukọ olumulo"
 }

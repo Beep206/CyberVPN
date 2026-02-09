@@ -8,17 +8,20 @@ import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
+import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 
 // ---------------------------------------------------------------------------
 // SocialAccountsScreen
 // ---------------------------------------------------------------------------
 
-/// Screen for managing linked social OAuth accounts (Telegram, GitHub).
+/// Screen for managing linked social OAuth accounts.
 ///
-/// Displays connection status for each provider and allows the user to
-/// link or unlink accounts. Linking initiates an OAuth flow in the system
-/// browser. Unlinking requires confirmation and removes the provider association.
+/// Displays connection status for all supported OAuth providers
+/// (Telegram, GitHub, Google, Apple, Discord, Microsoft, X) and allows the
+/// user to link or unlink accounts. Linking initiates an OAuth flow in the
+/// system browser. Unlinking requires confirmation and removes the provider
+/// association.
 class SocialAccountsScreen extends ConsumerStatefulWidget {
   const SocialAccountsScreen({super.key});
 
@@ -68,38 +71,24 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
               ),
               const SizedBox(height: Spacing.lg),
 
-              // Telegram provider
-              _ProviderCard(
-                key: const Key('provider_telegram'),
-                provider: OAuthProvider.telegram,
-                isLinked: linkedProviders.contains(OAuthProvider.telegram),
-                linkedUsername: _getTelegramUsername(profile?.telegramId),
-                onLinkTap: () => _handleLinkProvider(
-                  context,
-                  OAuthProvider.telegram,
+              // Provider cards for all supported OAuth providers
+              ...OAuthProvider.values.map((provider) => Padding(
+                padding: const EdgeInsets.only(bottom: Spacing.md),
+                child: _ProviderCard(
+                  key: Key('provider_${provider.name}'),
+                  provider: provider,
+                  isLinked: linkedProviders.contains(provider),
+                  linkedUsername: _getLinkedUsername(profile, provider),
+                  onLinkTap: () => _handleLinkProvider(
+                    context,
+                    provider,
+                  ),
+                  onUnlinkTap: () => _showUnlinkDialog(
+                    context,
+                    provider,
+                  ),
                 ),
-                onUnlinkTap: () => _showUnlinkDialog(
-                  context,
-                  OAuthProvider.telegram,
-                ),
-              ),
-              const SizedBox(height: Spacing.md),
-
-              // GitHub provider
-              _ProviderCard(
-                key: const Key('provider_github'),
-                provider: OAuthProvider.github,
-                isLinked: linkedProviders.contains(OAuthProvider.github),
-                linkedUsername: null, // Backend doesn't expose GitHub username yet
-                onLinkTap: () => _handleLinkProvider(
-                  context,
-                  OAuthProvider.github,
-                ),
-                onUnlinkTap: () => _showUnlinkDialog(
-                  context,
-                  OAuthProvider.github,
-                ),
-              ),
+              )),
             ],
           );
         },
@@ -162,14 +151,26 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     }
   }
 
-  /// Extract a displayable Telegram username from the telegramId field.
-  /// Returns null if no Telegram ID is available.
-  String? _getTelegramUsername(String? telegramId) {
-    if (telegramId == null || telegramId.isEmpty) return null;
-    return '@$telegramId';
+  /// Extract a displayable username for a given provider from the profile.
+  ///
+  /// Currently only Telegram exposes a user-facing identifier via the
+  /// profile entity. Other providers return null until the backend surfaces
+  /// additional provider usernames.
+  String? _getLinkedUsername(Profile? profile, OAuthProvider provider) {
+    if (profile == null) return null;
+    return switch (provider) {
+      OAuthProvider.telegram => profile.telegramId != null &&
+              profile.telegramId!.isNotEmpty
+          ? '@${profile.telegramId}'
+          : null,
+      _ => null, // Backend doesn't expose other provider usernames yet
+    };
   }
 
-  /// Initiates the OAuth linking flow by launching the authorization URL in browser
+  /// Initiates the OAuth linking flow by launching the authorization URL in browser.
+  ///
+  /// For all providers, the generic [ProfileNotifier.getAuthUrl] method is used
+  /// which delegates to the backend to obtain the provider-specific authorization URL.
   Future<void> _handleLinkProvider(
     BuildContext ctx,
     OAuthProvider provider,
@@ -179,14 +180,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
       // Get the authorization URL from the backend
       final notifier = ref.read(profileProvider.notifier);
-      final String authUrl;
-      if (provider == OAuthProvider.telegram) {
-        authUrl = await notifier.getTelegramAuthUrl();
-      } else if (provider == OAuthProvider.github) {
-        authUrl = await notifier.getGithubAuthUrl();
-      } else {
-        throw UnsupportedError('Provider ${provider.name} not supported');
-      }
+      final authUrl = await notifier.getAuthUrl(provider);
 
       AppLogger.info(
         'Launching OAuth URL for ${provider.name}',
@@ -300,6 +294,9 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       OAuthProvider.github => 'GitHub',
       OAuthProvider.google => 'Google',
       OAuthProvider.apple => 'Apple',
+      OAuthProvider.discord => 'Discord',
+      OAuthProvider.microsoft => 'Microsoft',
+      OAuthProvider.twitter => 'X',
     };
   }
 }
@@ -429,6 +426,9 @@ class _ProviderCard extends StatelessWidget {
       OAuthProvider.github => Icons.code,
       OAuthProvider.google => Icons.g_mobiledata,
       OAuthProvider.apple => Icons.apple,
+      OAuthProvider.discord => Icons.discord,
+      OAuthProvider.microsoft => Icons.window,
+      OAuthProvider.twitter => Icons.close, // X icon
     };
   }
 
@@ -438,6 +438,9 @@ class _ProviderCard extends StatelessWidget {
       OAuthProvider.github => 'GitHub',
       OAuthProvider.google => 'Google',
       OAuthProvider.apple => 'Apple',
+      OAuthProvider.discord => 'Discord',
+      OAuthProvider.microsoft => 'Microsoft',
+      OAuthProvider.twitter => 'X',
     };
   }
 }

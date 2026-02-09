@@ -2230,24 +2230,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => '소셜 계정';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      '소셜 계정을 연결하여 더 쉽게 로그인하고 계정을 복구하세요.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => '연결됨';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => '연결 안 됨';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => '연결';
 
   @override
-  String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+  String get profileSocialCompleteAuth => '브라우저에서 인증을 완료한 후 앱으로 돌아오세요.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4245,4 +4244,73 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => '삭제';
+
+  @override
+  String get magicLinkTitle => 'Magic Link 로그인';
+
+  @override
+  String get magicLinkSubtitle =>
+      '이메일을 입력하면 일회용 로그인 링크를 보내드립니다. 비밀번호가 필요 없습니다.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link 보내기';
+
+  @override
+  String get magicLinkCheckInbox => '받은편지함을 확인하세요';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return '$email로 로그인 링크를 보냈습니다. 이메일의 링크를 탭하여 로그인하세요.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => '링크는 15분 동안 유효합니다.';
+
+  @override
+  String get magicLinkSendAgain => '다시 보내기';
+
+  @override
+  String get backToLogin => '로그인으로 돌아가기';
+
+  @override
+  String get rateLimitTitle => '잠시 기다려 주세요';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return '요청이 너무 많습니다. $seconds초 후에 다시 시도해 주세요.';
+  }
+
+  @override
+  String get unknownError => '알 수 없는 오류가 발생했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get registerModeEmail => '이메일';
+
+  @override
+  String get registerModeUsernameOnly => '사용자 이름만';
+
+  @override
+  String get registerUsernameLabel => '사용자 이름';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      '이메일 없이는 비밀번호를 복구하거나 보안 알림을 받을 수 없습니다.';
+
+  @override
+  String get registerUsernameValidationError => '사용자 이름은 3-32자: 문자, 숫자, 밑줄';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link로 로그인';
+
+  @override
+  String get continueWithGoogle => 'Google로 계속';
+
+  @override
+  String get continueWithApple => 'Apple로 계속';
+
+  @override
+  String get socialLoginComingSoon => '곧 출시';
 }

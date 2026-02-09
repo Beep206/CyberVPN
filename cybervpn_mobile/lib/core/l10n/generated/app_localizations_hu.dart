@@ -2239,24 +2239,24 @@ class AppLocalizationsHu extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Közösségi fiókok';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Kösse össze közösségi fiókjait a könnyebb bejelentkezéshez és fiók-visszaállításhoz.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Összekapcsolva';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Nincs összekapcsolva';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Összekapcsolás';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Fejezze be az engedélyezést a böngészőben, majd térjen vissza az alkalmazásba.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,7 +4252,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return 'Failed to link $provider: $error';
+    return 'Nem sikerült összekapcsolni: $provider: $error';
   }
 
   @override
@@ -4262,4 +4262,74 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'DELETE';
+
+  @override
+  String get magicLinkTitle => 'Magic Link bejelentkezés';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Adja meg az email címét, és küldünk egy egyszer használatos bejelentkezési linket. Jelszó nem szükséges.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link küldése';
+
+  @override
+  String get magicLinkCheckInbox => 'Ellenőrizze postaládáját';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Bejelentkezési linket küldtünk a(z) $email címre. Koppintson az emailben lévő linkre a bejelentkezéshez.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'A link 15 percig érvényes.';
+
+  @override
+  String get magicLinkSendAgain => 'Újraküldés';
+
+  @override
+  String get backToLogin => 'Vissza a bejelentkezéshez';
+
+  @override
+  String get rateLimitTitle => 'Kérem várjon';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Túl sok kérés. Próbálja újra $seconds másodperc múlva.';
+  }
+
+  @override
+  String get unknownError => 'Ismeretlen hiba történt. Kérem próbálja újra.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Csak felhasználónév';
+
+  @override
+  String get registerUsernameLabel => 'Felhasználónév';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Email nélkül nem tudja visszaállítani jelszavát és nem kap biztonsági értesítéseket.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Felhasználónév: 3-32 karakter — betűk, számok, aláhúzás';
+
+  @override
+  String get loginMagicLinkOption => 'Bejelentkezés magic linkkel';
+
+  @override
+  String get continueWithGoogle => 'Folytatás Google-lel';
+
+  @override
+  String get continueWithApple => 'Folytatás Apple-lel';
+
+  @override
+  String get socialLoginComingSoon => 'Hamarosan';
 }

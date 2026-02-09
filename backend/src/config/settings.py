@@ -43,6 +43,34 @@ class Settings(BaseSettings):
     telegram_bot_username: str = ""  # Bot username without @
     telegram_auth_max_age_seconds: int = 86400  # 24 hours
 
+    # Google OAuth (optional)
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
+
+    # Discord OAuth (optional)
+    discord_client_id: str = ""
+    discord_client_secret: SecretStr = SecretStr("")
+
+    # Apple Sign In (optional)
+    apple_client_id: str = ""
+    apple_team_id: str = ""
+    apple_key_id: str = ""
+    apple_private_key: SecretStr = SecretStr("")
+
+    # Microsoft OAuth (optional)
+    microsoft_client_id: str = ""
+    microsoft_client_secret: SecretStr = SecretStr("")
+    microsoft_tenant_id: str = "common"
+
+    # X/Twitter OAuth (optional)
+    twitter_client_id: str = ""
+    twitter_client_secret: SecretStr = SecretStr("")
+
+    # Magic Link
+    magic_link_ttl_seconds: int = 900  # 15 minutes
+    magic_link_rate_limit: int = 5  # Max requests per hour per email
+    magic_link_base_url: str = ""  # Base URL for magic link emails
+
     # Payment gateway
     cryptobot_token: SecretStr
 
@@ -102,19 +130,21 @@ class Settings(BaseSettings):
         return stripped or None
 
     # SEC-004 + MED-005: Known weak/test secrets to reject in production
-    WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset({
-        "test_token",
-        "test_secret",
-        "dev_secret",
-        "local_secret",
-        "dummy_secret",
-        "changeme",
-        "password",
-        "secret",
-        "development",
-        "example",
-        "placeholder",
-    })
+    WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "test_token",
+            "test_secret",
+            "dev_secret",
+            "local_secret",
+            "dummy_secret",
+            "changeme",
+            "password",
+            "secret",
+            "development",
+            "example",
+            "placeholder",
+        }
+    )
 
     @field_validator("jwt_secret", mode="after")
     @classmethod
@@ -131,7 +161,7 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"JWT_SECRET must be at least {min_length} characters for security. "
                 f"Current length: {len(secret)}. "
-                f"Generate with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                f'Generate with: python -c "import secrets; print(secrets.token_urlsafe(48))"'
             )
 
         # SEC-004: Reject weak secrets in production
@@ -142,7 +172,7 @@ class Settings(BaseSettings):
                 if weak in secret_lower:
                     raise ValueError(
                         f"JWT_SECRET appears to be a weak/test secret (contains '{weak}'). "
-                        f"Generate a strong secret: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                        f'Generate a strong secret: python -c "import secrets; print(secrets.token_urlsafe(64))"'
                     )
 
         return v
@@ -155,7 +185,7 @@ class Settings(BaseSettings):
             _logger.warning(
                 "TOTP_ENCRYPTION_KEY not set - TOTP secrets will be unencrypted. "
                 "This is acceptable for development only. "
-                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
         return v
 

@@ -2237,24 +2237,24 @@ class AppLocalizationsVi extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Tài khoản mạng xã hội';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Liên kết tài khoản mạng xã hội để đăng nhập dễ dàng hơn và khôi phục tài khoản.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Đã liên kết';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Chưa liên kết';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Liên kết';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Hoàn tất xác thực trên trình duyệt, sau đó quay lại ứng dụng.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,4 +4252,74 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'XÓA';
+
+  @override
+  String get magicLinkTitle => 'Đăng nhập bằng Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Nhập email và chúng tôi sẽ gửi cho bạn liên kết đăng nhập dùng một lần. Không cần mật khẩu.';
+
+  @override
+  String get magicLinkSendButton => 'Gửi Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Kiểm tra hộp thư';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Chúng tôi đã gửi liên kết đăng nhập tới $email. Nhấn vào liên kết trong email để đăng nhập.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Liên kết hết hạn sau 15 phút.';
+
+  @override
+  String get magicLinkSendAgain => 'Gửi lại';
+
+  @override
+  String get backToLogin => 'Quay lại đăng nhập';
+
+  @override
+  String get rateLimitTitle => 'Vui lòng chờ';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Quá nhiều yêu cầu. Vui lòng thử lại sau $seconds giây.';
+  }
+
+  @override
+  String get unknownError => 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Chỉ tên người dùng';
+
+  @override
+  String get registerUsernameLabel => 'Tên người dùng';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Không có email, bạn sẽ không thể khôi phục mật khẩu hoặc nhận thông báo bảo mật.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Tên người dùng: 3-32 ký tự — chữ cái, số, gạch dưới';
+
+  @override
+  String get loginMagicLinkOption => 'Đăng nhập bằng magic link';
+
+  @override
+  String get continueWithGoogle => 'Tiếp tục với Google';
+
+  @override
+  String get continueWithApple => 'Tiếp tục với Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Sắp ra mắt';
 }

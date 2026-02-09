@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "ማህበራዊ መለያዎች",
+  "profileSocialAccountsDescription": "ለቀላል መግቢያ እና መለያ ማግኘት ማህበራዊ መለያዎችዎን ያገናኙ።",
+  "profileSocialLinked": "ተገናኝቷል",
+  "profileSocialNotLinked": "አልተገናኘም",
+  "profileSocialLink": "ማገናኘት",
+  "profileSocialCompleteAuth": "በአሳሹ ውስጥ ፈቃዱን ያጠናቅቁ፣ ከዚያ ወደ መተግበሪያው ይመለሱ።",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "{provider} ማገናኘት አልተሳካም: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "የገቢ ሳጥንዎን ያረጋግጡ",
+  "magicLinkSubtitle": "ኢሜይልዎን ያስገቡ እና የአንድ ጊዜ የመግቢያ ማገናኛ እንልክልዎታለን። የይለፍ ቃል አያስፈልግም።",
+  "magicLinkSentTo": "ወደ {email} የመግቢያ ማገናኛ ልከናል። ለመግባት በኢሜይሉ ውስጥ ያለውን ማገናኛ ይንኩ።",
+  "continueWithGoogle": "በ Google ቀጥል",
+  "backToLogin": "ወደ መግቢያ ተመለስ",
+  "rateLimitMessage": "ብዙ ጥያቄዎች። ከ{seconds} ሰከንዶች በኋላ እንደገና ይሞክሩ።",
+  "registerModeUsernameOnly": "የተጠቃሚ ስም ብቻ",
+  "rateLimitTitle": "እባክዎ ይጠብቁ",
+  "magicLinkSendAgain": "እንደገና ላክ",
+  "socialLoginComingSoon": "በቅርቡ",
+  "magicLinkExpiresIn": "ማገናኛው በ15 ደቂቃ ውስጥ ያልቃል።",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "የተጠቃሚ ስም: 3-32 ቁምፊዎች — ፊደላት፣ ቁጥሮች፣ የታች ሰረዝ",
+  "unknownError": "ያልታወቀ ስህተት ተፈጠረ። እባክዎ እንደገና ይሞክሩ።",
+  "registerModeEmail": "ኢሜይል",
+  "magicLinkTitle": "በ Magic Link መግባት",
+  "loginMagicLinkOption": "በ magic link ይግቡ",
+  "continueWithApple": "በ Apple ቀጥል",
+  "magicLinkSendButton": "Magic Link ላክ",
+  "registerUsernameOnlyWarning": "ያለ ኢሜይል የይለፍ ቃልዎን ማግኘት ወይም የደህንነት ማሳወቂያዎችን መቀበል አይችሉም።",
+  "registerUsernameLabel": "የተጠቃሚ ስም"
 }

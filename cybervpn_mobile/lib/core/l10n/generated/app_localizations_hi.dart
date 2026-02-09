@@ -2237,24 +2237,24 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'सोशल अकाउंट';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'आसान लॉगिन और अकाउंट रिकवरी के लिए अपने सोशल अकाउंट लिंक करें।';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'लिंक्ड';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'लिंक नहीं';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'लिंक करें';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'ब्राउज़र में प्राधिकरण पूरा करें, फिर ऐप पर वापस आएँ।';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4260,4 +4260,74 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'हटाएं';
+
+  @override
+  String get magicLinkTitle => 'Magic Link लॉगिन';
+
+  @override
+  String get magicLinkSubtitle =>
+      'अपना ईमेल दर्ज करें और हम आपको एक बार उपयोग होने वाला लॉगिन लिंक भेजेंगे। पासवर्ड की ज़रूरत नहीं।';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link भेजें';
+
+  @override
+  String get magicLinkCheckInbox => 'अपना इनबॉक्स देखें';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'हमने $email पर लॉगिन लिंक भेजा है। साइन इन करने के लिए ईमेल में लिंक पर टैप करें।';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'लिंक 15 मिनट में समाप्त होगा।';
+
+  @override
+  String get magicLinkSendAgain => 'फिर से भेजें';
+
+  @override
+  String get backToLogin => 'लॉगिन पर वापस जाएँ';
+
+  @override
+  String get rateLimitTitle => 'कृपया प्रतीक्षा करें';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'बहुत सारे अनुरोध। कृपया $seconds सेकंड बाद पुनः प्रयास करें।';
+  }
+
+  @override
+  String get unknownError => 'एक अज्ञात त्रुटि हुई। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get registerModeEmail => 'ईमेल';
+
+  @override
+  String get registerModeUsernameOnly => 'केवल यूज़रनेम';
+
+  @override
+  String get registerUsernameLabel => 'यूज़रनेम';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'बिना ईमेल के आप पासवर्ड रिकवर नहीं कर पाएँगे और सुरक्षा सूचनाएँ नहीं मिलेंगी।';
+
+  @override
+  String get registerUsernameValidationError =>
+      'यूज़रनेम: 3-32 अक्षर — अक्षर, अंक, अंडरस्कोर';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link से साइन इन करें';
+
+  @override
+  String get continueWithGoogle => 'Google से जारी रखें';
+
+  @override
+  String get continueWithApple => 'Apple से जारी रखें';
+
+  @override
+  String get socialLoginComingSoon => 'जल्द आ रहा है';
 }

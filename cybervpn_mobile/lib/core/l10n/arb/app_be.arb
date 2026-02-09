@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Сацыяльныя акаўнты",
+  "profileSocialAccountsDescription": "Прывяжыце сацыяльныя акаўнты для хуткага ўваходу і аднаўлення доступу.",
+  "profileSocialLinked": "Прывязаны",
+  "profileSocialNotLinked": "Не прывязаны",
+  "profileSocialLink": "Прывязаць",
+  "profileSocialCompleteAuth": "Завяршыце аўтарызацыю ў браўзеры, потым вярніцеся ў праграму.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Не удалось привязать {provider}: {error}",
+  "profileSocialLinkFailed": "Не атрымалася прывязаць {provider}: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "УДАЛИТЬ",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Праверце пошту",
+  "magicLinkSubtitle": "Увядзіце email, і мы дашлём вам аднаразовую спасылку для ўваходу. Пароль не патрэбен.",
+  "magicLinkSentTo": "Мы даслалі спасылку для ўваходу на {email}. Націсніце на спасылку ў лісце, каб увайсці.",
+  "continueWithGoogle": "Працягнуць з Google",
+  "backToLogin": "Назад да ўваходу",
+  "rateLimitMessage": "Занадта шмат запытаў. Паспрабуйце зноў праз {seconds} секунд.",
+  "registerModeUsernameOnly": "Толькі імя карыстальніка",
+  "rateLimitTitle": "Пачакайце",
+  "magicLinkSendAgain": "Даслаць зноў",
+  "socialLoginComingSoon": "Хутка",
+  "magicLinkExpiresIn": "Спасылка дзейнічае 15 хвілін.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Імя карыстальніка: 3-32 сімвалы — літары, лічбы, падкрэсліванні",
+  "unknownError": "Адбылася невядомая памылка. Паспрабуйце яшчэ раз.",
+  "registerModeEmail": "Email",
+  "magicLinkTitle": "Уваход па спасылцы",
+  "loginMagicLinkOption": "Увайсці па спасылцы",
+  "continueWithApple": "Працягнуць з Apple",
+  "magicLinkSendButton": "Даслаць спасылку",
+  "registerUsernameOnlyWarning": "Без email вы не зможаце аднавіць пароль і атрымліваць апавяшчэнні бяспекі.",
+  "registerUsernameLabel": "Імя карыстальніка"
 }

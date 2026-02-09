@@ -2240,24 +2240,24 @@ class AppLocalizationsTk extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Jemgyýetçilik hasaplary';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Aňsat girmek we hasaby dikeltmek üçin jemgyýetçilik hasaplaryňyzy birikdiriň.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Birikdirilen';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Birikdirilmedik';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Birikdir';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Brauzerde ygtyýarnamany tamamlaň, soňra programma gaýdyp geliň.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,7 +4252,7 @@ class AppLocalizationsTk extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return '$provider bağlanamadı: $error';
+    return '$provider birikdirmek başartmady: $error';
   }
 
   @override
@@ -4262,4 +4262,74 @@ class AppLocalizationsTk extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'SİL';
+
+  @override
+  String get magicLinkTitle => 'Magic Link bilen giriş';
+
+  @override
+  String get magicLinkSubtitle =>
+      'E-poçtaňyzy giriziň, biz size bir gezeklik giriş baglanyşygyny ibereris. Parol gerek däl.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link iber';
+
+  @override
+  String get magicLinkCheckInbox => 'Gelen gutusyny barlaň';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Giriş baglanyşygyny $email salgysa iberdik. Girmek üçin e-poçtadaky baglanyşyga basyň.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Baglanyşyk 15 minut hereket edýär.';
+
+  @override
+  String get magicLinkSendAgain => 'Täzeden iber';
+
+  @override
+  String get backToLogin => 'Girişe gaýdyp gel';
+
+  @override
+  String get rateLimitTitle => 'Haýyş, garaşyň';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Haýyşlar juda köp. $seconds sekuntdan soň täzeden synanyşyň.';
+  }
+
+  @override
+  String get unknownError => 'Näbelli ýalňyşlyk ýüze çykdy. Täzeden synanyşyň.';
+
+  @override
+  String get registerModeEmail => 'E-poçta';
+
+  @override
+  String get registerModeUsernameOnly => 'Diňe ulanyjy ady';
+
+  @override
+  String get registerUsernameLabel => 'Ulanyjy ady';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'E-poçta bolmasa, parolyňyzy dikeldip we howpsuzlyk habarnamalaryny alyp bilmersiňiz.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Ulanyjy ady: 3-32 simwol — harplar, sanlar, aşaky çyzyk';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link bilen giriş';
+
+  @override
+  String get continueWithGoogle => 'Google bilen dowam et';
+
+  @override
+  String get continueWithApple => 'Apple bilen dowam et';
+
+  @override
+  String get socialLoginComingSoon => 'Ýakynda';
 }

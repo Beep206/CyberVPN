@@ -1,7 +1,9 @@
 """OAuth social account linking API schemas (CRIT-2)."""
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +13,11 @@ class OAuthProvider(StrEnum):
 
     TELEGRAM = "telegram"
     GITHUB = "github"
+    GOOGLE = "google"
+    DISCORD = "discord"
+    APPLE = "apple"
+    MICROSOFT = "microsoft"
+    TWITTER = "twitter"
 
 
 class OAuthAuthorizeResponse(BaseModel):
@@ -18,12 +25,8 @@ class OAuthAuthorizeResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    authorize_url: str = Field(
-        ..., max_length=2000, description="OAuth provider authorization URL"
-    )
-    state: str = Field(
-        ..., description="CSRF protection state token (include in callback)"
-    )
+    authorize_url: str = Field(..., max_length=2000, description="OAuth provider authorization URL")
+    state: str = Field(..., description="CSRF protection state token (include in callback)")
 
 
 class TelegramCallbackRequest(BaseModel):
@@ -56,12 +59,40 @@ class OAuthLinkResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    status: Literal["linked", "unlinked"] = Field(
-        ..., description="Link operation result"
-    )
-    provider: str = Field(
-        ..., description="OAuth provider name"
-    )
-    provider_user_id: str | None = Field(
-        default=None, description="User ID from the OAuth provider"
-    )
+    status: Literal["linked", "unlinked"] = Field(..., description="Link operation result")
+    provider: str = Field(..., description="OAuth provider name")
+    provider_user_id: str | None = Field(default=None, description="User ID from the OAuth provider")
+
+
+class OAuthLoginCallbackRequest(BaseModel):
+    """OAuth login callback request (unauthenticated)."""
+
+    code: str = Field(..., description="Authorization code from provider")
+    state: str = Field(..., description="CSRF state token")
+    redirect_uri: str = Field(..., description="Redirect URI used in authorization")
+
+
+class OAuthLoginUserResponse(BaseModel):
+    """User info in OAuth login response."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    login: str
+    email: str | None = None
+    is_active: bool
+    is_email_verified: bool = False
+    created_at: datetime
+
+
+class OAuthLoginResponse(BaseModel):
+    """Response for OAuth login (unauthenticated)."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 0
+    user: OAuthLoginUserResponse
+    is_new_user: bool = False
+    requires_2fa: bool = False
+    tfa_token: str | None = None

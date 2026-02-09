@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Ijtimoiy hisoblar",
+  "profileSocialAccountsDescription": "Oson kirish va hisobni tiklash uchun ijtimoiy hisoblaringizni ulang.",
+  "profileSocialLinked": "Ulangan",
+  "profileSocialNotLinked": "Ulanmagan",
+  "profileSocialLink": "Ulash",
+  "profileSocialCompleteAuth": "Brauzerda avtorizatsiyani yakunlang, so'ng ilovaga qayting.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "{provider} bağlanamadı: {error}",
+  "profileSocialLinkFailed": "{provider} ulash muvaffaqiyatsiz: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "SİL",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Pochta qutingizni tekshiring",
+  "magicLinkSubtitle": "Emailingizni kiriting, biz sizga bir martalik kirish havolasini yuboramiz. Parol kerak emas.",
+  "magicLinkSentTo": "Biz {email} manziliga kirish havolasini yubordik. Kirish uchun emaildagi havolani bosing.",
+  "continueWithGoogle": "Google bilan davom etish",
+  "backToLogin": "Kirishga qaytish",
+  "rateLimitMessage": "Juda ko'p so'rov. {seconds} sekunddan keyin qayta urinib ko'ring.",
+  "registerModeUsernameOnly": "Faqat foydalanuvchi nomi",
+  "rateLimitTitle": "Iltimos, kuting",
+  "magicLinkSendAgain": "Qayta yuborish",
+  "socialLoginComingSoon": "Tez kunda",
+  "magicLinkExpiresIn": "Havola 15 daqiqa amal qiladi.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Foydalanuvchi nomi: 3-32 belgi — harflar, raqamlar, pastki chiziq",
+  "unknownError": "Noma'lum xato yuz berdi. Qayta urinib ko'ring.",
+  "registerModeEmail": "Email",
+  "magicLinkTitle": "Magic Link orqali kirish",
+  "loginMagicLinkOption": "Magic link orqali kirish",
+  "continueWithApple": "Apple bilan davom etish",
+  "magicLinkSendButton": "Magic Link yuborish",
+  "registerUsernameOnlyWarning": "Emailsiz parolni tiklab bo'lmaydi va xavfsizlik bildirishnomalari kelmaydi.",
+  "registerUsernameLabel": "Foydalanuvchi nomi"
 }

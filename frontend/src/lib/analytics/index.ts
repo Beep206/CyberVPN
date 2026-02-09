@@ -84,7 +84,7 @@ export function resetAnalytics(): void {
 export const authAnalytics = {
   loginStarted: () => trackAuthEvent('auth.login.started'),
   
-  loginSuccess: (userId: string, method: 'email' | 'telegram' = 'email') => {
+  loginSuccess: (userId: string, method: 'email' | 'telegram' | 'magic_link' | 'google' | 'github' | 'discord' | 'apple' | 'microsoft' | 'twitter' = 'email') => {
     trackAuthEvent('auth.login.success', { method });
     identifyUser(userId);
   },

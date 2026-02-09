@@ -36,42 +36,61 @@ const providers = {
         ),
         colors: 'hover:bg-[#5865F2]/20 hover:border-[#5865F2]',
     },
+    apple: {
+        name: 'Apple',
+        icon: (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+            </svg>
+        ),
+        colors: 'hover:bg-white/10 hover:border-white/30',
+    },
+    microsoft: {
+        name: 'Microsoft',
+        icon: (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z" fill="#00A4EF" />
+            </svg>
+        ),
+        colors: 'hover:bg-[#00A4EF]/20 hover:border-[#00A4EF]',
+    },
+    twitter: {
+        name: 'X',
+        icon: (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+        ),
+        colors: 'hover:bg-white/10 hover:border-white/30',
+    },
 };
 
 interface SocialAuthButtonsProps {
-    onGoogleClick?: () => void;
-    onGithubClick?: () => void;
-    onDiscordClick?: () => void;
+    onProviderClick?: (provider: string) => void;
     disabled?: boolean;
     className?: string;
 }
 
 export function SocialAuthButtons({
-    onGoogleClick,
-    onGithubClick,
-    onDiscordClick,
+    onProviderClick,
     disabled = false,
     className,
 }: SocialAuthButtonsProps) {
-    const buttons = [
-        { provider: 'google' as const, onClick: onGoogleClick },
-        { provider: 'github' as const, onClick: onGithubClick },
-        { provider: 'discord' as const, onClick: onDiscordClick },
-    ];
+    const providerKeys = Object.keys(providers) as Array<keyof typeof providers>;
 
     return (
-        <div className={cn("flex gap-3", className)}>
-            {buttons.map(({ provider, onClick }, index) => {
+        <div className={cn("flex flex-wrap gap-3", className)}>
+            {providerKeys.map((provider, index) => {
                 const { name, icon, colors } = providers[provider];
 
                 return (
-                    <MagneticButton key={provider} className="flex-1">
+                    <MagneticButton key={provider} className="flex-1 min-w-[calc(33%-0.75rem)]">
                         <motion.button
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 * index, duration: 0.3 }}
+                            transition={{ delay: 0.05 * index, duration: 0.3 }}
                             type="button"
-                            onClick={onClick}
+                            onClick={() => onProviderClick?.(provider)}
                             disabled={disabled}
                             className={cn(
                                 "w-full flex items-center justify-center gap-2",
@@ -84,7 +103,6 @@ export function SocialAuthButtons({
                                 "cursor-pointer",
                                 colors,
                                 disabled && "opacity-50 cursor-not-allowed",
-                                // Focus state for keyboard nav
                                 "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
                             )}
                             aria-label={`Sign in with ${name}`}

@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "လူမှုကွန်ရက် အကောင့်များ",
+  "profileSocialAccountsDescription": "လွယ်ကူသော အကောင့်ဝင်ခြင်းနှင့် အကောင့်ပြန်လည်ရယူခြင်းအတွက် သင့်လူမှုကွန်ရက် အကောင့်များကို ချိတ်ဆက်ပါ။",
+  "profileSocialLinked": "ချိတ်ဆက်ပြီး",
+  "profileSocialNotLinked": "ချိတ်ဆက်မထားပါ",
+  "profileSocialLink": "ချိတ်ဆက်ရန်",
+  "profileSocialCompleteAuth": "ဘရောက်ဆာတွင် ခွင့်ပြုချက်ပြီးပါစေ၊ ထို့နောက် အက်ပ်သို့ ပြန်လာပါ။",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "{provider} ချိတ်ဆက်ခြင်း မအောင်မြင်ပါ: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "သင့် inbox ကို စစ်ဆေးပါ",
+  "magicLinkSubtitle": "သင့် email ကို ထည့်ပါ၊ တစ်ကြိမ်သုံး ဝင်ရောက်မှု လင့်ခ် ပို့ပေးပါမည်။ စကားဝှက် မလိုပါ။",
+  "magicLinkSentTo": "{email} သို့ ဝင်ရောက်မှု လင့်ခ် ပို့လိုက်ပါပြီ။ ဝင်ရောက်ရန် email ထဲရှိ လင့်ခ်ကို နှိပ်ပါ။",
+  "continueWithGoogle": "Google ဖြင့် ဆက်လက်ပါ",
+  "backToLogin": "ဝင်ရောက်ခြင်းသို့ ပြန်သွားရန်",
+  "rateLimitMessage": "တောင်းဆိုမှုများ များလွန်းပါသည်။ {seconds} စက္ကန့်အကြာတွင် ထပ်စမ်းကြည့်ပါ။",
+  "registerModeUsernameOnly": "အသုံးပြုသူအမည် သာ",
+  "rateLimitTitle": "ခဏစောင့်ပါ",
+  "magicLinkSendAgain": "ထပ်ပို့ပါ",
+  "socialLoginComingSoon": "မကြာမီ",
+  "magicLinkExpiresIn": "လင့်ခ်သည် မိနစ် ၁၅ အတွင်း သက်တမ်းကုန်ပါမည်။",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "အသုံးပြုသူအမည်: ၃-၃၂ စာလုံး — အက္ခရာ၊ ဂဏန်း၊ အောက်မျဉ်း",
+  "unknownError": "အမည်မသိ အမှားတစ်ခု ဖြစ်ပွားခဲ့ပါသည်။ ထပ်စမ်းကြည့်ပါ။",
+  "registerModeEmail": "Email",
+  "magicLinkTitle": "Magic Link ဖြင့် ဝင်ရောက်ခြင်း",
+  "loginMagicLinkOption": "Magic link ဖြင့် ဝင်ရောက်ပါ",
+  "continueWithApple": "Apple ဖြင့် ဆက်လက်ပါ",
+  "magicLinkSendButton": "Magic Link ပို့ပါ",
+  "registerUsernameOnlyWarning": "Email မပါဘဲ စကားဝှက် ပြန်လည်ရယူခြင်း သို့မဟုတ် လုံခြုံရေး အသိပေးချက်များ ရရှိခြင်း မပြုလုပ်နိုင်ပါ။",
+  "registerUsernameLabel": "အသုံးပြုသူအမည်"
 }

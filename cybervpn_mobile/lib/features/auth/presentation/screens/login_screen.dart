@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,6 +75,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     unawaited(ref.read(telegramAuthProvider.notifier).startLogin());
   }
 
+  void _showComingSoon() {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.socialLoginComingSoon),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showTelegramNotInstalledDialog() {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
@@ -125,6 +138,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         biometricState is BiometricLoginCancelled;
     final isBiometricLoading = biometricState is BiometricLoginAuthenticating ||
         biometricState is BiometricLoginLoggingIn;
+    final authState = ref.watch(authProvider);
+    final isAuthLoading = authState.value is AuthLoading;
+    final isLoading = isTelegramLoading || isBiometricLoading || isAuthLoading;
 
     // Listen for auth state changes to navigate on success.
     ref.listen<AsyncValue<AuthState>>(authProvider, (previous, next) {
@@ -272,36 +288,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   const SizedBox(height: Spacing.lg + Spacing.xs),
 
                   // ── Divider ──────────────────────────────────────
-                  if (isTelegramAvailable) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                          child: Text(
-                            l10n.loginOrSeparator,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Divider(
+                              color: theme.colorScheme.outlineVariant)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                        child: Text(
+                          l10n.loginOrSeparator,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        Expanded(
-                            child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.lg + Spacing.xs),
+                      ),
+                      Expanded(
+                          child: Divider(
+                              color: theme.colorScheme.outlineVariant)),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.lg + Spacing.xs),
 
-                    // ── Social Login ─────────────────────────────────
+                  // ── Social Login — Google (full-width) ─────────
+                  _SocialOutlinedButton(
+                    icon: Icons.g_mobiledata,
+                    label: l10n.continueWithGoogle,
+                    onPressed: isLoading ? null : _showComingSoon,
+                  ),
+                  const SizedBox(height: Spacing.sm),
+
+                  // ── Social Login — Apple (full-width, iOS only) ─
+                  if (Platform.isIOS) ...[
+                    _SocialOutlinedButton(
+                      icon: Icons.apple,
+                      label: l10n.continueWithApple,
+                      onPressed: isLoading ? null : _showComingSoon,
+                    ),
+                    const SizedBox(height: Spacing.sm),
+                  ],
+
+                  // ── Social Login — Compact icon row ────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _CompactSocialIcon(
+                        icon: Icons.code,
+                        tooltip: 'GitHub',
+                        onPressed: isLoading ? null : _showComingSoon,
+                      ),
+                      const SizedBox(width: Spacing.md),
+                      _CompactSocialIcon(
+                        icon: Icons.discord,
+                        tooltip: 'Discord',
+                        onPressed: isLoading ? null : _showComingSoon,
+                      ),
+                      const SizedBox(width: Spacing.md),
+                      _CompactSocialIcon(
+                        icon: Icons.window,
+                        tooltip: 'Microsoft',
+                        onPressed: isLoading ? null : _showComingSoon,
+                      ),
+                      const SizedBox(width: Spacing.md),
+                      _CompactSocialIcon(
+                        iconWidget: const Text(
+                          'X',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        tooltip: 'X',
+                        onPressed: isLoading ? null : _showComingSoon,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.sm),
+
+                  // ── Social Login — Telegram (full-width) ───────
+                  if (isTelegramAvailable) ...[
                     SocialLoginButton.telegram(
-                      onPressed: isTelegramLoading ? null : _handleTelegramLogin,
+                      onPressed: isLoading ? null : _handleTelegramLogin,
                       isLoading: isTelegramLoading,
                     ),
-                    const SizedBox(height: Spacing.xl),
-                  ] else
-                    const SizedBox(height: Spacing.xl),
+                    const SizedBox(height: Spacing.sm),
+                  ],
+
+                  // ── Magic Link ─────────────────────────────────
+                  TextButton(
+                    onPressed: isLoading ? null : () => context.push('/magic-link'),
+                    child: Text(
+                      l10n.loginMagicLinkOption,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.lg),
 
                   // ── Register Link ────────────────────────────────
                   Row(
@@ -403,6 +485,98 @@ class _BiometricLoginButton extends ConsumerWidget {
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Radii.md),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A full-width outlined button for social login providers (Google, Apple, etc.).
+class _SocialOutlinedButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  const _SocialOutlinedButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 24),
+        label: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: theme.colorScheme.outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.md),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact circular icon button for secondary social login providers.
+class _CompactSocialIcon extends StatelessWidget {
+  final IconData? icon;
+  final Widget? iconWidget;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const _CompactSocialIcon({
+    this.icon,
+    this.iconWidget,
+    required this.tooltip,
+    required this.onPressed,
+  }) : assert(icon != null || iconWidget != null);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: onPressed != null
+                    ? theme.colorScheme.outline
+                    : theme.colorScheme.outline.withValues(alpha: 0.38),
+              ),
+            ),
+            child: Center(
+              child: iconWidget ??
+                  Icon(
+                    icon,
+                    size: 22,
+                    color: onPressed != null
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.38),
+                  ),
+            ),
           ),
         ),
       ),

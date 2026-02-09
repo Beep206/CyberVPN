@@ -2237,24 +2237,24 @@ class AppLocalizationsId extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Akun sosial';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Hubungkan akun sosial Anda untuk login lebih mudah dan pemulihan akun.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Terhubung';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Belum terhubung';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Hubungkan';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Selesaikan otorisasi di browser, lalu kembali ke aplikasi.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4252,4 +4252,75 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'HAPUS';
+
+  @override
+  String get magicLinkTitle => 'Login dengan Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Masukkan email Anda dan kami akan mengirim tautan login sekali pakai. Tidak perlu kata sandi.';
+
+  @override
+  String get magicLinkSendButton => 'Kirim Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Periksa kotak masuk';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Kami mengirim tautan login ke $email. Ketuk tautan di email untuk masuk.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Tautan berlaku selama 15 menit.';
+
+  @override
+  String get magicLinkSendAgain => 'Kirim ulang';
+
+  @override
+  String get backToLogin => 'Kembali ke login';
+
+  @override
+  String get rateLimitTitle => 'Harap tunggu';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Terlalu banyak permintaan. Coba lagi dalam $seconds detik.';
+  }
+
+  @override
+  String get unknownError =>
+      'Terjadi kesalahan tidak dikenal. Silakan coba lagi.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Hanya nama pengguna';
+
+  @override
+  String get registerUsernameLabel => 'Nama pengguna';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Tanpa email, Anda tidak dapat memulihkan kata sandi atau menerima notifikasi keamanan.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Nama pengguna: 3-32 karakter — huruf, angka, garis bawah';
+
+  @override
+  String get loginMagicLinkOption => 'Masuk dengan magic link';
+
+  @override
+  String get continueWithGoogle => 'Lanjutkan dengan Google';
+
+  @override
+  String get continueWithApple => 'Lanjutkan dengan Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Segera hadir';
 }

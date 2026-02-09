@@ -16,10 +16,11 @@ class RegisterRequest(BaseModel):
     """Registration request with strong password policy (MED-001).
 
     Uses shared password validator for consistency with mobile auth.
+    Supports email+password or login+password (username-only) registration.
     """
 
     login: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
-    email: EmailStr
+    email: EmailStr | None = None
     password: str = Field(..., min_length=12, max_length=128)
     locale: str = Field(default="en-EN", max_length=10)
 
@@ -106,10 +107,10 @@ class RegisterResponse(BaseModel):
 
     id: UUID
     login: str
-    email: str
+    email: str | None = None
     is_active: bool = False
     is_email_verified: bool = False
-    message: str = "Verification email sent. Check your inbox."
+    message: str = "Registration successful."
 
 
 class LogoutAllResponse(BaseModel):
@@ -117,3 +118,21 @@ class LogoutAllResponse(BaseModel):
 
     message: str = "All sessions terminated"
     sessions_revoked: int = 0
+
+
+class MagicLinkRequest(BaseModel):
+    """Request for magic link email."""
+
+    email: EmailStr
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    """Request to verify magic link token."""
+
+    token: str = Field(..., min_length=1, max_length=200)
+
+
+class MagicLinkResponse(BaseModel):
+    """Response for magic link request (always same to prevent email enumeration)."""
+
+    message: str = "If this email is registered, a login link has been sent."

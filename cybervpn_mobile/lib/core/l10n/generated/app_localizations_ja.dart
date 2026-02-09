@@ -2230,24 +2230,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'ソーシャルアカウント';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'ソーシャルアカウントを連携して、簡単なログインとアカウント復旧を可能にします。';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => '連携済み';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => '未連携';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => '連携する';
 
   @override
-  String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+  String get profileSocialCompleteAuth => 'ブラウザで認証を完了してからアプリに戻ってください。';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4245,4 +4244,73 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => '削除';
+
+  @override
+  String get magicLinkTitle => 'Magic Link ログイン';
+
+  @override
+  String get magicLinkSubtitle =>
+      'メールアドレスを入力すると、使い捨てのログインリンクを送信します。パスワードは不要です。';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link を送信';
+
+  @override
+  String get magicLinkCheckInbox => 'メールを確認してください';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return '$email にログインリンクを送信しました。メール内のリンクをタップしてログインしてください。';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'リンクの有効期限は 15 分です。';
+
+  @override
+  String get magicLinkSendAgain => '再送信';
+
+  @override
+  String get backToLogin => 'ログインに戻る';
+
+  @override
+  String get rateLimitTitle => 'お待ちください';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'リクエストが多すぎます。$seconds 秒後に再試行してください。';
+  }
+
+  @override
+  String get unknownError => '不明なエラーが発生しました。もう一度お試しください。';
+
+  @override
+  String get registerModeEmail => 'メール';
+
+  @override
+  String get registerModeUsernameOnly => 'ユーザー名のみ';
+
+  @override
+  String get registerUsernameLabel => 'ユーザー名';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'メールなしではパスワードの回復やセキュリティ通知の受信ができません。';
+
+  @override
+  String get registerUsernameValidationError => 'ユーザー名は3〜32文字：英数字、アンダースコア';
+
+  @override
+  String get loginMagicLinkOption => 'Magic Link でログイン';
+
+  @override
+  String get continueWithGoogle => 'Google で続ける';
+
+  @override
+  String get continueWithApple => 'Apple で続ける';
+
+  @override
+  String get socialLoginComingSoon => '近日公開';
 }

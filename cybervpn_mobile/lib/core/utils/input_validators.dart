@@ -127,6 +127,25 @@ class InputValidators {
     return null;
   }
 
+  /// Validates a username for username-only registration.
+  ///
+  /// Must be 3-32 characters, containing only alphanumeric characters
+  /// and underscores.
+  static String? validateUsername(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Username is required';
+    }
+
+    final trimmed = value.trim();
+
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,32}$');
+    if (!usernameRegex.hasMatch(trimmed)) {
+      return 'Username must be 3-32 characters: letters, numbers, underscores';
+    }
+
+    return null;
+  }
+
   /// Validates a promotional code.
   ///
   /// Must be non-empty and consist of 4-30 alphanumeric characters,

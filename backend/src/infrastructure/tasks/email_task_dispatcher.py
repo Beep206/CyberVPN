@@ -7,7 +7,6 @@ Implements fire-and-forget pattern for non-blocking email delivery.
 import uuid
 
 import structlog
-from taskiq.message import BrokerMessage
 from taskiq.serializers.json_serializer import JSONSerializer
 from taskiq_redis import RedisStreamBroker
 
@@ -69,7 +68,7 @@ class EmailTaskDispatcher:
         Raises:
             Exception: If task dispatch fails
         """
-        broker = await self._get_broker()
+        await self._get_broker()
 
         task_id = str(uuid.uuid4())
 
@@ -112,6 +111,62 @@ class EmailTaskDispatcher:
             task_id=task_id,
             email=email,
             is_resend=is_resend,
+        )
+
+        return task_id
+
+    async def dispatch_magic_link_email(
+        self,
+        email: str,
+        token: str,
+        locale: str = "en-EN",
+    ) -> str:
+        """Dispatch magic link email task to task-worker.
+
+        Args:
+            email: Recipient email address
+            token: Magic link token
+            locale: User's locale for email template
+
+        Returns:
+            Task ID for tracking
+        """
+        await self._get_broker()
+
+        task_id = str(uuid.uuid4())
+
+        logger.info(
+            "dispatching_magic_link_email_task",
+            task_id=task_id,
+            email=email,
+            locale=locale,
+        )
+
+        full_message = {
+            "task_id": task_id,
+            "task_name": "send_magic_link_email",
+            "labels": {"queue": "email", "retry_policy": "email_delivery"},
+            "args": [],
+            "kwargs": {
+                "email": email,
+                "token": token,
+                "locale": locale,
+            },
+        }
+        message_bytes = self._serializer.dumpb(full_message)
+
+        import redis.asyncio as redis
+
+        redis_client = redis.from_url(self._redis_url)
+        try:
+            await redis_client.xadd("taskiq", {"data": message_bytes})
+        finally:
+            await redis_client.aclose()
+
+        logger.info(
+            "magic_link_email_task_dispatched",
+            task_id=task_id,
+            email=email,
         )
 
         return task_id

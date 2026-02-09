@@ -54,6 +54,28 @@
                     android:pathPrefix="/callback"/>
             </intent-filter>
 
+            <!-- Deep link: cybervpn://oauth/callback for OAuth login callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="cybervpn"
+                    android:host="oauth"
+                    android:pathPrefix="/callback"/>
+            </intent-filter>
+
+            <!-- Deep link: cybervpn://magic-link/verify for magic link verification -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="cybervpn"
+                    android:host="magic-link"
+                    android:pathPrefix="/verify"/>
+            </intent-filter>
+
             <!-- Universal link: https://cybervpn.app -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>

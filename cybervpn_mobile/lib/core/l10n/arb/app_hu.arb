@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Közösségi fiókok",
+  "profileSocialAccountsDescription": "Kösse össze közösségi fiókjait a könnyebb bejelentkezéshez és fiók-visszaállításhoz.",
+  "profileSocialLinked": "Összekapcsolva",
+  "profileSocialNotLinked": "Nincs összekapcsolva",
+  "profileSocialLink": "Összekapcsolás",
+  "profileSocialCompleteAuth": "Fejezze be az engedélyezést a böngészőben, majd térjen vissza az alkalmazásba.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "Failed to link {provider}: {error}",
+  "profileSocialLinkFailed": "Nem sikerült összekapcsolni: {provider}: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "DELETE",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Ellenőrizze postaládáját",
+  "magicLinkSubtitle": "Adja meg az email címét, és küldünk egy egyszer használatos bejelentkezési linket. Jelszó nem szükséges.",
+  "magicLinkSentTo": "Bejelentkezési linket küldtünk a(z) {email} címre. Koppintson az emailben lévő linkre a bejelentkezéshez.",
+  "continueWithGoogle": "Folytatás Google-lel",
+  "backToLogin": "Vissza a bejelentkezéshez",
+  "rateLimitMessage": "Túl sok kérés. Próbálja újra {seconds} másodperc múlva.",
+  "registerModeUsernameOnly": "Csak felhasználónév",
+  "rateLimitTitle": "Kérem várjon",
+  "magicLinkSendAgain": "Újraküldés",
+  "socialLoginComingSoon": "Hamarosan",
+  "magicLinkExpiresIn": "A link 15 percig érvényes.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Felhasználónév: 3-32 karakter — betűk, számok, aláhúzás",
+  "unknownError": "Ismeretlen hiba történt. Kérem próbálja újra.",
+  "registerModeEmail": "Email",
+  "magicLinkTitle": "Magic Link bejelentkezés",
+  "loginMagicLinkOption": "Bejelentkezés magic linkkel",
+  "continueWithApple": "Folytatás Apple-lel",
+  "magicLinkSendButton": "Magic Link küldése",
+  "registerUsernameOnlyWarning": "Email nélkül nem tudja visszaállítani jelszavát és nem kap biztonsági értesítéseket.",
+  "registerUsernameLabel": "Felhasználónév"
 }

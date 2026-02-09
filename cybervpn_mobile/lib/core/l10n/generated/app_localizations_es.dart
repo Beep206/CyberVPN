@@ -2237,24 +2237,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Cuentas sociales';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Vincula tus cuentas sociales para un inicio de sesión más fácil y recuperación de cuenta.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Vinculada';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'No vinculada';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Vincular';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Completa la autorización en tu navegador y luego regresa a la app.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4260,4 +4260,75 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'ELIMINAR';
+
+  @override
+  String get magicLinkTitle => 'Inicio con Magic Link';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Ingresa tu correo y te enviaremos un enlace de inicio de sesión de un solo uso. Sin contraseña.';
+
+  @override
+  String get magicLinkSendButton => 'Enviar Magic Link';
+
+  @override
+  String get magicLinkCheckInbox => 'Revisa tu bandeja';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Enviamos un enlace de inicio de sesión a $email. Toca el enlace en el correo para iniciar sesión.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'El enlace expira en 15 minutos.';
+
+  @override
+  String get magicLinkSendAgain => 'Enviar de nuevo';
+
+  @override
+  String get backToLogin => 'Volver al inicio de sesión';
+
+  @override
+  String get rateLimitTitle => 'Por favor espera';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Demasiadas solicitudes. Inténtalo de nuevo en $seconds segundos.';
+  }
+
+  @override
+  String get unknownError =>
+      'Ocurrió un error desconocido. Inténtalo de nuevo.';
+
+  @override
+  String get registerModeEmail => 'Correo electrónico';
+
+  @override
+  String get registerModeUsernameOnly => 'Solo nombre de usuario';
+
+  @override
+  String get registerUsernameLabel => 'Nombre de usuario';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Sin correo electrónico no podrás recuperar tu contraseña ni recibir notificaciones de seguridad.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'El nombre de usuario debe tener 3-32 caracteres: letras, números, guiones bajos';
+
+  @override
+  String get loginMagicLinkOption => 'Iniciar sesión con magic link';
+
+  @override
+  String get continueWithGoogle => 'Continuar con Google';
+
+  @override
+  String get continueWithApple => 'Continuar con Apple';
+
+  @override
+  String get socialLoginComingSoon => 'Próximamente';
 }

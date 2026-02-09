@@ -1078,12 +1078,12 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-  "profileSocialAccounts": "Social Accounts",
-  "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
-  "profileSocialLinked": "Linked",
-  "profileSocialNotLinked": "Not Linked",
-  "profileSocialLink": "Link",
-  "profileSocialCompleteAuth": "Complete authorization in your browser, then return to the app.",
+  "profileSocialAccounts": "Jemgyýetçilik hasaplary",
+  "profileSocialAccountsDescription": "Aňsat girmek we hasaby dikeltmek üçin jemgyýetçilik hasaplaryňyzy birikdiriň.",
+  "profileSocialLinked": "Birikdirilen",
+  "profileSocialNotLinked": "Birikdirilmedik",
+  "profileSocialLink": "Birikdir",
+  "profileSocialCompleteAuth": "Brauzerde ygtyýarnamany tamamlaň, soňra programma gaýdyp geliň.",
   "profileSocialUnlinkConfirm": "Unlink {provider}?",
   "@profileSocialUnlinkConfirm": {
     "placeholders": {
@@ -2286,7 +2286,7 @@
       }
     }
   },
-  "profileSocialLinkFailed": "{provider} bağlanamadı: {error}",
+  "profileSocialLinkFailed": "{provider} birikdirmek başartmady: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
@@ -2313,5 +2313,26 @@
   "deleteAccountConfirmHint": "SİL",
   "@deleteAccountConfirmHint": {
     "description": "Hint text for the delete account confirmation input field"
-  }
+  },
+  "magicLinkCheckInbox": "Gelen gutusyny barlaň",
+  "magicLinkSubtitle": "E-poçtaňyzy giriziň, biz size bir gezeklik giriş baglanyşygyny ibereris. Parol gerek däl.",
+  "magicLinkSentTo": "Giriş baglanyşygyny {email} salgysa iberdik. Girmek üçin e-poçtadaky baglanyşyga basyň.",
+  "continueWithGoogle": "Google bilen dowam et",
+  "backToLogin": "Girişe gaýdyp gel",
+  "rateLimitMessage": "Haýyşlar juda köp. {seconds} sekuntdan soň täzeden synanyşyň.",
+  "registerModeUsernameOnly": "Diňe ulanyjy ady",
+  "rateLimitTitle": "Haýyş, garaşyň",
+  "magicLinkSendAgain": "Täzeden iber",
+  "socialLoginComingSoon": "Ýakynda",
+  "magicLinkExpiresIn": "Baglanyşyk 15 minut hereket edýär.",
+  "registerUsernameHint": "cyberpunk_hacker",
+  "registerUsernameValidationError": "Ulanyjy ady: 3-32 simwol — harplar, sanlar, aşaky çyzyk",
+  "unknownError": "Näbelli ýalňyşlyk ýüze çykdy. Täzeden synanyşyň.",
+  "registerModeEmail": "E-poçta",
+  "magicLinkTitle": "Magic Link bilen giriş",
+  "loginMagicLinkOption": "Magic link bilen giriş",
+  "continueWithApple": "Apple bilen dowam et",
+  "magicLinkSendButton": "Magic Link iber",
+  "registerUsernameOnlyWarning": "E-poçta bolmasa, parolyňyzy dikeldip we howpsuzlyk habarnamalaryny alyp bilmersiňiz.",
+  "registerUsernameLabel": "Ulanyjy ady"
 }

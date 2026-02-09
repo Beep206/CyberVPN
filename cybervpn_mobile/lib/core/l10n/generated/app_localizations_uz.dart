@@ -2240,24 +2240,24 @@ class AppLocalizationsUz extends AppLocalizations {
   String get profileTwoFactorFailedSetupData => 'Failed to load setup data';
 
   @override
-  String get profileSocialAccounts => 'Social Accounts';
+  String get profileSocialAccounts => 'Ijtimoiy hisoblar';
 
   @override
   String get profileSocialAccountsDescription =>
-      'Link your social accounts for easier sign-in and account recovery.';
+      'Oson kirish va hisobni tiklash uchun ijtimoiy hisoblaringizni ulang.';
 
   @override
-  String get profileSocialLinked => 'Linked';
+  String get profileSocialLinked => 'Ulangan';
 
   @override
-  String get profileSocialNotLinked => 'Not Linked';
+  String get profileSocialNotLinked => 'Ulanmagan';
 
   @override
-  String get profileSocialLink => 'Link';
+  String get profileSocialLink => 'Ulash';
 
   @override
   String get profileSocialCompleteAuth =>
-      'Complete authorization in your browser, then return to the app.';
+      'Brauzerda avtorizatsiyani yakunlang, so\'ng ilovaga qayting.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -4254,7 +4254,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String profileSocialLinkFailed(String provider, String error) {
-    return '$provider bağlanamadı: $error';
+    return '$provider ulash muvaffaqiyatsiz: $error';
   }
 
   @override
@@ -4264,4 +4264,74 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmHint => 'SİL';
+
+  @override
+  String get magicLinkTitle => 'Magic Link orqali kirish';
+
+  @override
+  String get magicLinkSubtitle =>
+      'Emailingizni kiriting, biz sizga bir martalik kirish havolasini yuboramiz. Parol kerak emas.';
+
+  @override
+  String get magicLinkSendButton => 'Magic Link yuborish';
+
+  @override
+  String get magicLinkCheckInbox => 'Pochta qutingizni tekshiring';
+
+  @override
+  String magicLinkSentTo(String email) {
+    return 'Biz $email manziliga kirish havolasini yubordik. Kirish uchun emaildagi havolani bosing.';
+  }
+
+  @override
+  String get magicLinkExpiresIn => 'Havola 15 daqiqa amal qiladi.';
+
+  @override
+  String get magicLinkSendAgain => 'Qayta yuborish';
+
+  @override
+  String get backToLogin => 'Kirishga qaytish';
+
+  @override
+  String get rateLimitTitle => 'Iltimos, kuting';
+
+  @override
+  String rateLimitMessage(String seconds) {
+    return 'Juda ko\'p so\'rov. $seconds sekunddan keyin qayta urinib ko\'ring.';
+  }
+
+  @override
+  String get unknownError => 'Noma\'lum xato yuz berdi. Qayta urinib ko\'ring.';
+
+  @override
+  String get registerModeEmail => 'Email';
+
+  @override
+  String get registerModeUsernameOnly => 'Faqat foydalanuvchi nomi';
+
+  @override
+  String get registerUsernameLabel => 'Foydalanuvchi nomi';
+
+  @override
+  String get registerUsernameHint => 'cyberpunk_hacker';
+
+  @override
+  String get registerUsernameOnlyWarning =>
+      'Emailsiz parolni tiklab bo\'lmaydi va xavfsizlik bildirishnomalari kelmaydi.';
+
+  @override
+  String get registerUsernameValidationError =>
+      'Foydalanuvchi nomi: 3-32 belgi — harflar, raqamlar, pastki chiziq';
+
+  @override
+  String get loginMagicLinkOption => 'Magic link orqali kirish';
+
+  @override
+  String get continueWithGoogle => 'Google bilan davom etish';
+
+  @override
+  String get continueWithApple => 'Apple bilan davom etish';
+
+  @override
+  String get socialLoginComingSoon => 'Tez kunda';
 }
