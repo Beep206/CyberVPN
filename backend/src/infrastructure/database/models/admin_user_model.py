@@ -59,6 +59,9 @@ class AdminUserModel(Base):
     # Email verification flag
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Soft-delete timestamp (FEAT-03)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Relationship to OTP codes
     otp_codes = relationship("OtpCodeModel", back_populates="user", lazy="raise")
 

@@ -17,19 +17,20 @@ from src.application.services.auth_service import AuthService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
+from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
+from src.application.use_cases.auth.logout import LogoutUseCase
+from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
+from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
+from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
+from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
+from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
-from src.application.use_cases.auth.logout import LogoutUseCase
-from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
-from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
-from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
-from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
-from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
-from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
@@ -45,6 +46,7 @@ from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
+    DeleteAccountResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     GenerateLoginLinkRequest,
@@ -272,6 +274,42 @@ async def get_me(
         is_email_verified=current_user.is_email_verified,
         created_at=current_user.created_at,
     )
+
+
+@router.delete(
+    "/me",
+    response_model=DeleteAccountResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        404: {"description": "User not found"},
+    },
+)
+async def delete_account(
+    current_user=Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> DeleteAccountResponse:
+    """Soft-delete the current user's account (FEAT-03).
+
+    Sets is_active=False and deleted_at, then revokes all refresh tokens
+    and JWT access tokens. The user will be immediately logged out of all
+    devices.
+    """
+    user_repo = AdminUserRepository(db)
+    use_case = DeleteAccountUseCase(
+        user_repo=user_repo,
+        session=db,
+        redis_client=redis_client,
+    )
+
+    await use_case.execute(current_user.id)
+
+    logger.info(
+        "Account deleted by user",
+        extra={"user_id": str(current_user.id)},
+    )
+
+    return DeleteAccountResponse()
 
 
 @router.post(

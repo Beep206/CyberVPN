@@ -215,3 +215,9 @@ class ResetPasswordResponse(BaseModel):
     """Response for successful password reset."""
 
     message: str = "Password has been reset successfully. Please login with your new password."
+
+
+class DeleteAccountResponse(BaseModel):
+    """Response for successful account deletion (FEAT-03)."""
+
+    message: str = "Account has been deleted"
