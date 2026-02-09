@@ -46,6 +46,7 @@ export interface User {
 
 export interface AuthResponse {
   user: User;
+  is_new_user?: boolean;
 }
 
 export interface TokenResponse {
@@ -114,6 +115,27 @@ export interface OAuthCallbackRequest {
   redirect_uri: string;
 }
 
+export interface TelegramMiniAppResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  user: OAuthLoginUser;
+  is_new_user: boolean;
+}
+
+export interface BotLinkRequest {
+  token: string;
+}
+
+export interface BotLinkResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  user: OAuthLoginUser;
+}
+
 export interface MagicLinkRequest {
   email: string;
 }
@@ -124,6 +146,18 @@ export interface MagicLinkResponse {
 
 export interface MagicLinkVerifyRequest {
   token: string;
+}
+
+// Account linking types
+export interface LinkedAccount {
+  provider: string;
+  provider_user_id: string;
+}
+
+export interface OAuthLinkResponse {
+  status: 'linked' | 'unlinked';
+  provider: string;
+  provider_user_id?: string;
 }
 
 // Auth API functions
@@ -192,7 +226,14 @@ export const authApi = {
    * POST /api/v1/auth/telegram/miniapp
    */
   telegramMiniApp: (initData: string) =>
-    apiClient.post<AuthResponse>('/auth/telegram/miniapp', { init_data: initData }),
+    apiClient.post<TelegramMiniAppResponse>('/auth/telegram/miniapp', { init_data: initData }),
+
+  /**
+   * Authenticate via Telegram bot deep-link token
+   * POST /api/v1/auth/telegram/bot-link
+   */
+  telegramBotLink: (data: BotLinkRequest) =>
+    apiClient.post<BotLinkResponse>('/auth/telegram/bot-link', data),
 
   /**
    * Get OAuth authorization URL for a provider
@@ -223,4 +264,27 @@ export const authApi = {
    */
   verifyMagicLink: (data: MagicLinkVerifyRequest) =>
     apiClient.post<TokenResponse>('/auth/magic-link/verify', data),
+
+  /**
+   * Get Telegram OAuth authorize URL for account linking (authenticated)
+   * GET /api/v1/oauth/telegram/authorize
+   */
+  telegramLinkAuthorize: (redirectUri: string) =>
+    apiClient.get<OAuthAuthorizeResponse>('/oauth/telegram/authorize', {
+      params: { redirect_uri: redirectUri },
+    }),
+
+  /**
+   * Link Telegram account via OAuth callback (authenticated)
+   * POST /api/v1/oauth/telegram/callback
+   */
+  telegramLinkCallback: (data: TelegramWidgetData & { state: string }) =>
+    apiClient.post<OAuthLinkResponse>('/oauth/telegram/callback', data),
+
+  /**
+   * Unlink an OAuth provider from the current user (authenticated)
+   * DELETE /api/v1/oauth/{provider}
+   */
+  unlinkProvider: (provider: OAuthProvider) =>
+    apiClient.delete<OAuthLinkResponse>(`/oauth/${provider}`),
 };

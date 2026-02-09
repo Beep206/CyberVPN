@@ -4372,4 +4372,45 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => 'Скоро';
+
+  @override
+  String get registerWithTelegram => 'Регистрация через Telegram';
+
+  @override
+  String get registerWithTelegramHint =>
+      'Быстрая регистрация через ваш аккаунт Telegram';
+
+  @override
+  String get loginWelcomeNewUser => 'Добро пожаловать в CyberVPN!';
+
+  @override
+  String get telegramBotLinkVerifying => 'Проверка ссылки для входа...';
+
+  @override
+  String get telegramBotLinkExpired => 'Ссылка для входа истекла';
+
+  @override
+  String get telegramBotLinkInvalid => 'Недействительная ссылка для входа';
+
+  @override
+  String get linkedAccounts => 'Привязанные аккаунты';
+
+  @override
+  String get linkTelegram => 'Привязать Telegram';
+
+  @override
+  String get unlinkTelegram => 'Отвязать Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram привязан: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      'Вы уверены, что хотите отвязать Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'Невозможно отвязать — это ваш единственный способ входа';
 }

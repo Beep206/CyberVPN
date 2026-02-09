@@ -7,7 +7,7 @@ import asyncio
 import logging
 import secrets
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 from src.application.use_cases.auth.logout import LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
+from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
+from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -38,6 +40,7 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     get_email_dispatcher,
 )
 from src.application.services.jwt_revocation_service import JWTRevocationService
+from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
     LoginRequest,
@@ -49,13 +52,25 @@ from src.presentation.api.v1.auth.schemas import (
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
+    GenerateLoginLinkRequest,
+    GenerateLoginLinkResponse,
+    TelegramBotLinkRequest,
+    TelegramBotLinkResponse,
+    TelegramMiniAppRequest,
+    TelegramMiniAppResponse,
     TokenResponse,
     VerifyOtpRequest,
     VerifyOtpResponse,
 )
+from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
+from src.presentation.dependencies.telegram_rate_limit import (
+    GenerateLinkRateLimit,
+    TelegramBotLinkRateLimit,
+    TelegramMiniAppRateLimit,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -474,4 +489,136 @@ async def verify_magic_link(
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=expires_in,
+    )
+
+
+@router.post(
+    "/telegram/miniapp",
+    response_model=TelegramMiniAppResponse,
+    responses={
+        401: {"description": "Invalid or expired initData"},
+    },
+)
+async def telegram_miniapp_auth(
+    request: TelegramMiniAppRequest,
+    _rate_limit: TelegramMiniAppRateLimit,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
+) -> TelegramMiniAppResponse:
+    """Authenticate via Telegram Mini App initData.
+
+    Validates HMAC-SHA256 signature, checks auth_date freshness,
+    auto-registers or auto-logs-in the Telegram user.
+    """
+    user_repo = AdminUserRepository(db)
+    telegram_provider = TelegramOAuthProvider()
+
+    use_case = TelegramMiniAppUseCase(
+        user_repo=user_repo,
+        auth_service=auth_service,
+        session=db,
+        telegram_provider=telegram_provider,
+        remnawave_gateway=remnawave_adapter,
+    )
+
+    try:
+        result = await use_case.execute(init_data=request.init_data)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+    return TelegramMiniAppResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+        expires_in=result.expires_in,
+        user=AdminUserResponse.model_validate(result.user),
+        is_new_user=result.is_new_user,
+    )
+
+
+@router.post(
+    "/telegram/bot-link",
+    response_model=TelegramBotLinkResponse,
+    responses={
+        401: {"description": "Invalid or expired login token"},
+    },
+)
+async def telegram_bot_link_auth(
+    request: TelegramBotLinkRequest,
+    _rate_limit: TelegramBotLinkRateLimit,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> TelegramBotLinkResponse:
+    """Authenticate via one-time Telegram bot login link token.
+
+    The bot generates a /login link containing a one-time token.
+    This endpoint consumes the token and issues JWT tokens.
+    """
+    user_repo = AdminUserRepository(db)
+
+    use_case = TelegramBotLinkUseCase(
+        user_repo=user_repo,
+        auth_service=auth_service,
+        redis_client=redis_client,
+    )
+
+    try:
+        result = await use_case.execute(token=request.token)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+    return TelegramBotLinkResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+        expires_in=result.expires_in,
+        user=AdminUserResponse.model_validate(result.user),
+    )
+
+
+@router.post(
+    "/telegram/generate-login-link",
+    response_model=GenerateLoginLinkResponse,
+    responses={
+        403: {"description": "Insufficient permissions"},
+    },
+)
+async def generate_login_link(
+    request: GenerateLoginLinkRequest,
+    _rate_limit: GenerateLinkRateLimit,
+    current_user=Depends(get_current_active_user),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> GenerateLoginLinkResponse:
+    """Generate a one-time Telegram bot login link (admin/bot-only).
+
+    Creates a token in Redis with 5-minute TTL, returns a deep link URL.
+    """
+    from src.config.settings import settings as app_settings
+
+    token = await generate_bot_link_token(
+        redis_client,
+        telegram_id=request.telegram_id,
+    )
+
+    bot_username = app_settings.telegram_bot_username
+    url = f"https://t.me/{bot_username}?start=login_{token}"
+    expires_at = datetime.now(UTC) + timedelta(seconds=300)
+
+    logger.info(
+        "Generated login link",
+        extra={"telegram_id": request.telegram_id, "admin_user": str(current_user.id)},
+    )
+
+    return GenerateLoginLinkResponse(
+        token=token,
+        url=url,
+        expires_at=expires_at,
     )

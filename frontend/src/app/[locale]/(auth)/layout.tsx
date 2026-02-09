@@ -1,4 +1,6 @@
 import { AuthSceneLoader } from '@/features/auth/components/AuthSceneLoader';
+import { MiniAppNavGuard } from '@/features/auth/components/MiniAppNavGuard';
+import { TelegramMiniAppAuthProvider } from '@/features/auth/components/TelegramMiniAppAuthProvider';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { LanguageSelector } from '@/features/language-selector';
 import Link from 'next/link';
@@ -21,37 +23,41 @@ export default function AuthLayout({
             <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-neon-cyan/10 dark:bg-neon-cyan/20 rounded-full blur-[120px] z-[1] pointer-events-none" />
             <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-neon-purple/10 dark:bg-neon-purple/20 rounded-full blur-[120px] z-[1] pointer-events-none" />
 
-            {/* Top navigation bar */}
-            <nav className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between p-4 md:p-6">
-                {/* Back to home */}
-                <Link
-                    href="/"
-                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-mono text-sm group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                    <span className="hidden sm:inline">back_to_home</span>
-                </Link>
+            {/* Top navigation bar — hidden in Telegram Mini App mode */}
+            <MiniAppNavGuard>
+                <nav className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between p-4 md:p-6">
+                    {/* Back to home */}
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-mono text-sm group"
+                    >
+                        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                        <span className="hidden sm:inline">back_to_home</span>
+                    </Link>
 
-                {/* Logo */}
-                <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group">
-                    <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
-                        <Shield className="h-4 w-4 text-neon-cyan" />
+                    {/* Logo */}
+                    <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group">
+                        <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
+                            <Shield className="h-4 w-4 text-neon-cyan" />
+                        </div>
+                        <span className="font-display text-lg font-bold tracking-tight text-foreground hidden sm:inline">
+                            Cyber<span className="text-neon-cyan">VPN</span>
+                        </span>
+                    </Link>
+
+                    {/* Controls */}
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <LanguageSelector />
                     </div>
-                    <span className="font-display text-lg font-bold tracking-tight text-foreground hidden sm:inline">
-                        Cyber<span className="text-neon-cyan">VPN</span>
-                    </span>
-                </Link>
-
-                {/* Controls */}
-                <div className="flex items-center gap-3">
-                    <ThemeToggle />
-                    <LanguageSelector />
-                </div>
-            </nav>
+                </nav>
+            </MiniAppNavGuard>
 
             {/* Main content */}
             <main className="relative z-10 w-full max-w-lg px-4 py-20">
-                {children}
+                <TelegramMiniAppAuthProvider>
+                    {children}
+                </TelegramMiniAppAuthProvider>
             </main>
 
             {/* Bottom decorative line */}

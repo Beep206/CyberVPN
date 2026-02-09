@@ -4313,4 +4313,42 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => '近日公開';
+
+  @override
+  String get registerWithTelegram => 'Telegramで登録';
+
+  @override
+  String get registerWithTelegramHint => 'Telegramアカウントで簡単登録';
+
+  @override
+  String get loginWelcomeNewUser => 'CyberVPNへようこそ！';
+
+  @override
+  String get telegramBotLinkVerifying => 'ログインリンクを確認中...';
+
+  @override
+  String get telegramBotLinkExpired => 'ログインリンクの有効期限切れ';
+
+  @override
+  String get telegramBotLinkInvalid => '無効なログインリンク';
+
+  @override
+  String get linkedAccounts => 'リンク済みアカウント';
+
+  @override
+  String get linkTelegram => 'Telegramをリンク';
+
+  @override
+  String get unlinkTelegram => 'Telegramのリンクを解除';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegramリンク済み: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage => 'Telegramのリンクを解除しますか？';
+
+  @override
+  String get cantUnlinkOnlyMethod => 'リンク解除できません — これが唯一のログイン方法です';
 }

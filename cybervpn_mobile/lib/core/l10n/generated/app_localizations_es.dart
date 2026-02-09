@@ -4331,4 +4331,46 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => 'Próximamente';
+
+  @override
+  String get registerWithTelegram => 'Registrarse con Telegram';
+
+  @override
+  String get registerWithTelegramHint =>
+      'Registro rápido usando tu cuenta de Telegram';
+
+  @override
+  String get loginWelcomeNewUser => '¡Bienvenido a CyberVPN!';
+
+  @override
+  String get telegramBotLinkVerifying =>
+      'Verificando enlace de inicio de sesión...';
+
+  @override
+  String get telegramBotLinkExpired => 'Enlace de inicio de sesión expirado';
+
+  @override
+  String get telegramBotLinkInvalid => 'Enlace de inicio de sesión inválido';
+
+  @override
+  String get linkedAccounts => 'Cuentas vinculadas';
+
+  @override
+  String get linkTelegram => 'Vincular Telegram';
+
+  @override
+  String get unlinkTelegram => 'Desvincular Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram vinculado: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      '¿Está seguro de que desea desvincular Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'No se puede desvincular — este es su único método de inicio de sesión';
 }

@@ -20,9 +20,10 @@ vi.mock('@/lib/utils', () => ({
       .trim(),
 }));
 
-const EXPECTED_PROVIDERS = ['google', 'github', 'discord', 'apple', 'microsoft', 'twitter'] as const;
+const EXPECTED_PROVIDERS = ['telegram', 'google', 'github', 'discord', 'apple', 'microsoft', 'twitter'] as const;
 
 const EXPECTED_ARIA_LABELS: Record<string, string> = {
+  telegram: 'Sign in with Telegram',
   google: 'Sign in with Google',
   github: 'Sign in with GitHub',
   discord: 'Sign in with Discord',
@@ -36,11 +37,18 @@ describe('SocialAuthButtons', () => {
     vi.clearAllMocks();
   });
 
-  it('renders all 6 provider buttons', () => {
+  it('renders all 7 provider buttons', () => {
     render(<SocialAuthButtons />);
 
     const buttons = screen.getAllByRole('button');
     expect(buttons).toHaveLength(EXPECTED_PROVIDERS.length);
+  });
+
+  it('renders Telegram as the first button', () => {
+    render(<SocialAuthButtons />);
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toHaveAttribute('aria-label', 'Sign in with Telegram');
   });
 
   it('renders correct aria-label for each provider button', () => {
@@ -58,6 +66,13 @@ describe('SocialAuthButtons', () => {
     const handleClick = vi.fn();
 
     render(<SocialAuthButtons onProviderClick={handleClick} />);
+
+    // Click Telegram button
+    const telegramButton = screen.getByLabelText('Sign in with Telegram');
+    await user.click(telegramButton);
+    expect(handleClick).toHaveBeenCalledWith('telegram');
+
+    handleClick.mockClear();
 
     // Click Google button
     const googleButton = screen.getByLabelText('Sign in with Google');

@@ -25,4 +25,5 @@ abstract class AuthRepository {
   });
   Future<Result<UserEntity?>> getCurrentUser();
   Future<Result<bool>> isAuthenticated();
+  Future<Result<(UserEntity, String)>> loginWithBotLink({required String token});
 }

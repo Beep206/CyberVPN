@@ -4332,4 +4332,45 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => 'Yana zuwa nan ba da jimawa ba';
+
+  @override
+  String get registerWithTelegram => 'Yi rajista da Telegram';
+
+  @override
+  String get registerWithTelegramHint =>
+      'Rajista cikin sauri ta amfani da asusun Telegram ɗinku';
+
+  @override
+  String get loginWelcomeNewUser => 'Welcome to CyberVPN!';
+
+  @override
+  String get telegramBotLinkVerifying => 'Verifying login link...';
+
+  @override
+  String get telegramBotLinkExpired => 'Login link expired';
+
+  @override
+  String get telegramBotLinkInvalid => 'Invalid login link';
+
+  @override
+  String get linkedAccounts => 'Linked Accounts';
+
+  @override
+  String get linkTelegram => 'Link Telegram';
+
+  @override
+  String get unlinkTelegram => 'Unlink Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram linked: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      'Are you sure you want to unlink Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'Cannot unlink — this is your only login method';
 }

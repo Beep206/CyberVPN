@@ -4,8 +4,15 @@ import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 
+// Telegram icon SVG
+const TELEGRAM_ICON = (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+        <path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" fill="#0088CC" />
+    </svg>
+);
+
 // Social provider icons (inline SVGs for best performance)
-const providers = {
+const PROVIDERS = {
     google: {
         name: 'Google',
         icon: (
@@ -65,6 +72,10 @@ const providers = {
     },
 };
 
+// Row groupings for compact layout below Telegram
+const COMPACT_ROW_1: Array<keyof typeof PROVIDERS> = ['google', 'github', 'discord'];
+const COMPACT_ROW_2: Array<keyof typeof PROVIDERS> = ['apple', 'microsoft', 'twitter'];
+
 interface SocialAuthButtonsProps {
     onProviderClick?: (provider: string) => void;
     disabled?: boolean;
@@ -76,43 +87,120 @@ export function SocialAuthButtons({
     disabled = false,
     className,
 }: SocialAuthButtonsProps) {
-    const providerKeys = Object.keys(providers) as Array<keyof typeof providers>;
-
     return (
-        <div className={cn("flex flex-wrap gap-3", className)}>
-            {providerKeys.map((provider, index) => {
-                const { name, icon, colors } = providers[provider];
+        <div className={cn("flex flex-col gap-3", className)}>
+            {/* Telegram — primary position, full-width */}
+            <MagneticButton className="w-full">
+                <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    type="button"
+                    onClick={() => onProviderClick?.('telegram')}
+                    disabled={disabled}
+                    className={cn(
+                        "w-full flex items-center justify-center gap-2",
+                        "py-3.5 px-4 rounded-lg",
+                        "bg-[#0088CC]/15",
+                        "border border-[#0088CC]/40",
+                        "text-[#0088CC]",
+                        "font-mono text-sm font-semibold",
+                        "transition-all duration-200",
+                        "cursor-pointer",
+                        "hover:bg-[#0088CC]/25 hover:border-[#0088CC]/60",
+                        disabled && "opacity-50 cursor-not-allowed",
+                        "focus:outline-none focus:ring-2 focus:ring-[#0088CC]/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
+                    )}
+                    aria-label="Sign in with Telegram"
+                >
+                    {TELEGRAM_ICON}
+                    <span>Telegram</span>
+                </motion.button>
+            </MagneticButton>
 
-                return (
-                    <MagneticButton key={provider} className="flex-1 min-w-[calc(33%-0.75rem)]">
-                        <motion.button
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.05 * index, duration: 0.3 }}
-                            type="button"
-                            onClick={() => onProviderClick?.(provider)}
-                            disabled={disabled}
-                            className={cn(
-                                "w-full flex items-center justify-center gap-2",
-                                "py-3 px-4 rounded-lg",
-                                "bg-terminal-bg/50 dark:bg-black/40",
-                                "border border-grid-line/30",
-                                "text-muted-foreground",
-                                "font-mono text-sm",
-                                "transition-all duration-200",
-                                "cursor-pointer",
-                                colors,
-                                disabled && "opacity-50 cursor-not-allowed",
-                                "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
-                            )}
-                            aria-label={`Sign in with ${name}`}
-                        >
-                            {icon}
-                            <span className="hidden sm:inline">{name}</span>
-                        </motion.button>
-                    </MagneticButton>
-                );
-            })}
+            {/* Separator between Telegram and other providers */}
+            <div className="relative my-1">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-grid-line/20" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                    <span className="px-3 bg-terminal-surface dark:bg-transparent text-muted-foreground/50 font-mono uppercase tracking-wider text-[10px]">
+                        or
+                    </span>
+                </div>
+            </div>
+
+            {/* Row 1: Google, GitHub, Discord */}
+            <div className="flex gap-3">
+                {COMPACT_ROW_1.map((provider, index) => {
+                    const { name, icon, colors } = PROVIDERS[provider];
+                    return (
+                        <MagneticButton key={provider} className="flex-1">
+                            <motion.button
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.05 * (index + 1), duration: 0.3 }}
+                                type="button"
+                                onClick={() => onProviderClick?.(provider)}
+                                disabled={disabled}
+                                className={cn(
+                                    "w-full flex items-center justify-center gap-2",
+                                    "py-3 px-4 rounded-lg",
+                                    "bg-terminal-bg/50 dark:bg-black/40",
+                                    "border border-grid-line/30",
+                                    "text-muted-foreground",
+                                    "font-mono text-sm",
+                                    "transition-all duration-200",
+                                    "cursor-pointer",
+                                    colors,
+                                    disabled && "opacity-50 cursor-not-allowed",
+                                    "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
+                                )}
+                                aria-label={`Sign in with ${name}`}
+                            >
+                                {icon}
+                                <span className="hidden sm:inline">{name}</span>
+                            </motion.button>
+                        </MagneticButton>
+                    );
+                })}
+            </div>
+
+            {/* Row 2: Apple, Microsoft, X */}
+            <div className="flex gap-3">
+                {COMPACT_ROW_2.map((provider, index) => {
+                    const { name, icon, colors } = PROVIDERS[provider];
+                    return (
+                        <MagneticButton key={provider} className="flex-1">
+                            <motion.button
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.05 * (index + 4), duration: 0.3 }}
+                                type="button"
+                                onClick={() => onProviderClick?.(provider)}
+                                disabled={disabled}
+                                className={cn(
+                                    "w-full flex items-center justify-center gap-2",
+                                    "py-3 px-4 rounded-lg",
+                                    "bg-terminal-bg/50 dark:bg-black/40",
+                                    "border border-grid-line/30",
+                                    "text-muted-foreground",
+                                    "font-mono text-sm",
+                                    "transition-all duration-200",
+                                    "cursor-pointer",
+                                    colors,
+                                    disabled && "opacity-50 cursor-not-allowed",
+                                    "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
+                                )}
+                                aria-label={`Sign in with ${name}`}
+                            >
+                                {icon}
+                                <span className="hidden sm:inline">{name}</span>
+                            </motion.button>
+                        </MagneticButton>
+                    );
+                })}
+            </div>
         </div>
     );
 }

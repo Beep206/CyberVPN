@@ -392,6 +392,17 @@ class ApiConstants {
   /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - POST `/oauth/telegram/callback`
   static const String oauthTelegramCallback = '$apiPrefix/oauth/telegram/callback';
 
+  /// **POST /api/v1/auth/telegram/bot-link**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - POST `/auth/telegram/bot-link`
+  /// Auth: None (public endpoint, rate-limited)
+  /// Status: ✅ Aligned
+  ///
+  /// Exchanges a one-time bot login token for JWT tokens.
+  /// Request: `{ "token": string }`
+  /// Response: `{ "access_token": string, "refresh_token": string, "token_type": string, "expires_in": int, "user": { ... } }`
+  static const String telegramBotLink = '$apiPrefix/auth/telegram/bot-link';
+
   /// **GET /api/v1/oauth/github/authorize**
   ///
   /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - `/oauth/github/authorize`

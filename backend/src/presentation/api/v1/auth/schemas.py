@@ -136,3 +136,50 @@ class MagicLinkResponse(BaseModel):
     """Response for magic link request (always same to prevent email enumeration)."""
 
     message: str = "If this email is registered, a login link has been sent."
+
+
+class TelegramMiniAppRequest(BaseModel):
+    """Request for Telegram Mini App authentication."""
+
+    init_data: str = Field(..., min_length=1, max_length=4096)
+
+
+class TelegramMiniAppResponse(BaseModel):
+    """Response for Telegram Mini App authentication."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 0
+    user: AdminUserResponse
+    is_new_user: bool = False
+
+
+class TelegramBotLinkRequest(BaseModel):
+    """Request for Telegram bot deep-link authentication."""
+
+    token: str = Field(..., min_length=1, max_length=200)
+
+
+class TelegramBotLinkResponse(BaseModel):
+    """Response for Telegram bot deep-link authentication."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 0
+    user: AdminUserResponse
+
+
+class GenerateLoginLinkRequest(BaseModel):
+    """Request to generate a Telegram bot login link (admin/bot-only)."""
+
+    telegram_id: int = Field(..., gt=0)
+
+
+class GenerateLoginLinkResponse(BaseModel):
+    """Response with the generated Telegram bot login link."""
+
+    token: str
+    url: str
+    expires_at: datetime

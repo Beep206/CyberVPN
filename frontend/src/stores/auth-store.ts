@@ -8,6 +8,8 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isNewTelegramUser: boolean;
+  isMiniApp: boolean;
   error: string | null;
   rateLimitUntil: number | null; // Timestamp when rate limit expires
 
@@ -19,6 +21,7 @@ interface AuthState {
   fetchUser: () => Promise<void>;
   telegramAuth: (data: TelegramWidgetData) => Promise<void>;
   telegramMiniAppAuth: () => Promise<void>;
+  loginWithBotLink: (token: string) => Promise<void>;
   oauthLogin: (provider: OAuthProvider) => Promise<void>;
   oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
   requestMagicLink: (email: string) => Promise<void>;
@@ -33,6 +36,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: false,
       isAuthenticated: false,
+      isNewTelegramUser: false,
+      isMiniApp: typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData,
       error: null,
       rateLimitUntil: null,
 
@@ -157,7 +162,7 @@ export const useAuthStore = create<AuthState>()(
         } finally {
           // Clear tokens from localStorage
           tokenStorage.clearTokens();
-          set({ user: null, isAuthenticated: false, isLoading: false, error: null });
+          set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
           authAnalytics.logout();
         }
       },
@@ -175,10 +180,11 @@ export const useAuthStore = create<AuthState>()(
 
       telegramAuth: async (widgetData) => {
         authAnalytics.telegramStarted();
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, isNewTelegramUser: false });
         try {
           const { data } = await authApi.telegramWidget(widgetData);
-          set({ user: data.user, isAuthenticated: true, isLoading: false });
+          const isNewUser = data.is_new_user ?? false;
+          set({ user: data.user, isAuthenticated: true, isLoading: false, isNewTelegramUser: isNewUser });
           authAnalytics.telegramSuccess(data.user.id);
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
@@ -196,15 +202,70 @@ export const useAuthStore = create<AuthState>()(
 
         authAnalytics.telegramStarted();
         set({ isLoading: true, error: null });
+
+        const initData = window.Telegram.WebApp.initData;
+        let lastError: unknown;
+
+        // 1 retry on failure
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const { data } = await authApi.telegramMiniApp(initData);
+            tokenStorage.setTokens(data.access_token, data.refresh_token);
+            const isNewUser = data.is_new_user ?? false;
+            set({
+              user: {
+                id: data.user.id,
+                email: data.user.email || '',
+                login: data.user.login,
+                is_active: data.user.is_active,
+                is_email_verified: data.user.is_email_verified,
+                role: 'viewer',
+                created_at: data.user.created_at,
+              },
+              isAuthenticated: true,
+              isLoading: false,
+              isNewTelegramUser: isNewUser,
+            });
+            authAnalytics.telegramSuccess(data.user.id);
+            return;
+          } catch (error: unknown) {
+            lastError = error;
+            if (attempt === 0) {
+              // Wait briefly before retry
+              await new Promise((r) => setTimeout(r, 500));
+            }
+          }
+        }
+
+        const axiosError = lastError as { response?: { data?: { detail?: string } } };
+        const message = axiosError?.response?.data?.detail || 'Telegram Mini App auth failed';
+        authAnalytics.telegramError(message);
+        set({ error: message, isLoading: false });
+        throw lastError;
+      },
+
+      loginWithBotLink: async (token) => {
+        set({ isLoading: true, error: null });
         try {
-          const initData = window.Telegram.WebApp.initData;
-          const { data } = await authApi.telegramMiniApp(initData);
-          set({ user: data.user, isAuthenticated: true, isLoading: false });
-          authAnalytics.telegramSuccess(data.user.id);
+          const { data } = await authApi.telegramBotLink({ token });
+          tokenStorage.setTokens(data.access_token, data.refresh_token);
+          set({
+            user: {
+              id: data.user.id,
+              email: data.user.email || '',
+              login: data.user.login,
+              is_active: data.user.is_active,
+              is_email_verified: data.user.is_email_verified,
+              role: 'viewer',
+              created_at: data.user.created_at,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authAnalytics.loginSuccess(data.user.id, 'telegram');
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
-          const message = axiosError.response?.data?.detail || 'Telegram Mini App auth failed';
-          authAnalytics.telegramError(message);
+          const message = axiosError.response?.data?.detail || 'Bot link login failed';
           set({ error: message, isLoading: false });
           throw error;
         }
@@ -339,3 +400,5 @@ export const useIsAuthenticated = () => useAuthStore((s) => s.isAuthenticated);
 export const useAuthLoading = () => useAuthStore((s) => s.isLoading);
 export const useAuthError = () => useAuthStore((s) => s.error);
 export const useRateLimitUntil = () => useAuthStore((s) => s.rateLimitUntil);
+export const useIsNewTelegramUser = () => useAuthStore((s) => s.isNewTelegramUser);
+export const useIsMiniApp = () => useAuthStore((s) => s.isMiniApp);

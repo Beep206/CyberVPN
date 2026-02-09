@@ -7501,6 +7501,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get socialLoginComingSoon;
+
+  /// No description provided for @registerWithTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Register with Telegram'**
+  String get registerWithTelegram;
+
+  /// No description provided for @registerWithTelegramHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick registration using your Telegram account'**
+  String get registerWithTelegramHint;
+
+  /// Welcome message for new Telegram users
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to CyberVPN!'**
+  String get loginWelcomeNewUser;
+
+  /// Loading text when verifying a Telegram bot login link
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying login link...'**
+  String get telegramBotLinkVerifying;
+
+  /// Error when bot login link has expired
+  ///
+  /// In en, this message translates to:
+  /// **'Login link expired'**
+  String get telegramBotLinkExpired;
+
+  /// Error when bot login link is invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid login link'**
+  String get telegramBotLinkInvalid;
+
+  /// Section title for linked accounts
+  ///
+  /// In en, this message translates to:
+  /// **'Linked Accounts'**
+  String get linkedAccounts;
+
+  /// Button to link Telegram account
+  ///
+  /// In en, this message translates to:
+  /// **'Link Telegram'**
+  String get linkTelegram;
+
+  /// Button to unlink Telegram account
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink Telegram'**
+  String get unlinkTelegram;
+
+  /// Text showing linked Telegram username
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram linked: @{username}'**
+  String telegramLinked(String username);
+
+  /// Confirmation dialog for unlinking Telegram
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to unlink Telegram?'**
+  String get unlinkConfirmMessage;
+
+  /// Error when trying to unlink the only login method
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot unlink — this is your only login method'**
+  String get cantUnlinkOnlyMethod;
 }
 
 class _AppLocalizationsDelegate

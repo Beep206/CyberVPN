@@ -72,23 +72,41 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
               const SizedBox(height: Spacing.lg),
 
               // Provider cards for all supported OAuth providers
-              ...OAuthProvider.values.map((provider) => Padding(
-                padding: const EdgeInsets.only(bottom: Spacing.md),
-                child: _ProviderCard(
-                  key: Key('provider_${provider.name}'),
-                  provider: provider,
-                  isLinked: linkedProviders.contains(provider),
-                  linkedUsername: _getLinkedUsername(profile, provider),
-                  onLinkTap: () => _handleLinkProvider(
-                    context,
-                    provider,
+              // Telegram is first (already first in enum) and highlighted
+              ...OAuthProvider.values.map((provider) {
+                final isLinked = linkedProviders.contains(provider);
+                // Check if this is the only login method
+                final hasEmail = profile != null &&
+                    profile.email.isNotEmpty &&
+                    profile.isEmailVerified;
+                final otherLinked = linkedProviders
+                    .where((p) => p != provider)
+                    .toList();
+                final canUnlink =
+                    isLinked && (hasEmail || otherLinked.isNotEmpty);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.md),
+                  child: _ProviderCard(
+                    key: Key('provider_${provider.name}'),
+                    provider: provider,
+                    isLinked: isLinked,
+                    isHighlighted: provider == OAuthProvider.telegram,
+                    canUnlink: canUnlink,
+                    cantUnlinkReason: (!canUnlink && isLinked)
+                        ? l10n.cantUnlinkOnlyMethod
+                        : null,
+                    linkedUsername: _getLinkedUsername(profile, provider),
+                    onLinkTap: () => _handleLinkProvider(
+                      context,
+                      provider,
+                    ),
+                    onUnlinkTap: canUnlink
+                        ? () => _showUnlinkDialog(context, provider)
+                        : null,
                   ),
-                  onUnlinkTap: () => _showUnlinkDialog(
-                    context,
-                    provider,
-                  ),
-                ),
-              )),
+                );
+              }),
             ],
           );
         },
@@ -311,15 +329,21 @@ class _ProviderCard extends StatelessWidget {
     required this.provider,
     required this.isLinked,
     required this.onLinkTap,
-    required this.onUnlinkTap,
+    this.onUnlinkTap,
     this.linkedUsername,
+    this.isHighlighted = false,
+    this.canUnlink = true,
+    this.cantUnlinkReason,
   });
 
   final OAuthProvider provider;
   final bool isLinked;
   final String? linkedUsername;
   final VoidCallback onLinkTap;
-  final VoidCallback onUnlinkTap;
+  final VoidCallback? onUnlinkTap;
+  final bool isHighlighted;
+  final bool canUnlink;
+  final String? cantUnlinkReason;
 
   @override
   Widget build(BuildContext context) {
@@ -328,92 +352,125 @@ class _ProviderCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Card(
+      shape: isHighlighted
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Radii.md),
+              side: const BorderSide(color: CyberColors.neonCyan, width: 1.5),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.md),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Provider icon
-            Container(
-              padding: const EdgeInsets.all(Spacing.sm),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(Radii.sm),
-              ),
-              child: Icon(
-                _getProviderIcon(),
-                size: 28,
-                color: colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(width: Spacing.md),
-
-            // Provider name and status
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _getProviderName(),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+            Row(
+              children: [
+                // Provider icon
+                Container(
+                  padding: const EdgeInsets.all(Spacing.sm),
+                  decoration: BoxDecoration(
+                    color: isHighlighted
+                        ? CyberColors.neonCyan.withValues(alpha: 0.15)
+                        : colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(Radii.sm),
                   ),
-                  const SizedBox(height: Spacing.xs),
-                  Row(
+                  child: Icon(
+                    _getProviderIcon(),
+                    size: 28,
+                    color: isHighlighted
+                        ? CyberColors.neonCyan
+                        : colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: Spacing.md),
+
+                // Provider name and status
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Status indicator
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: isLinked
-                              ? CyberColors.matrixGreen
-                              : colorScheme.onSurfaceVariant,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: Spacing.xs),
-                      // Status text
                       Text(
-                        isLinked ? l10n.profileSocialLinked : l10n.profileSocialNotLinked,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                        _getProviderName(),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: Spacing.xs),
+                      Row(
+                        children: [
+                          // Status indicator
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isLinked
+                                  ? CyberColors.matrixGreen
+                                  : colorScheme.onSurfaceVariant,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          // Status text
+                          Text(
+                            isLinked ? l10n.profileSocialLinked : l10n.profileSocialNotLinked,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Show username if linked
+                      if (isLinked && linkedUsername != null) ...[
+                        const SizedBox(height: Spacing.xs),
+                        Text(
+                          linkedUsername!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  // Show username if linked
-                  if (isLinked && linkedUsername != null) ...[
-                    const SizedBox(height: Spacing.xs),
-                    Text(
-                      linkedUsername!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w500,
+                ),
+
+                // Action button
+                if (isLinked)
+                  OutlinedButton(
+                    key: Key('unlink_${provider.name}'),
+                    onPressed: canUnlink ? onUnlinkTap : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: canUnlink
+                          ? colorScheme.error
+                          : colorScheme.onSurfaceVariant,
+                      side: BorderSide(
+                        color: canUnlink
+                            ? colorScheme.error
+                            : colorScheme.outlineVariant,
                       ),
                     ),
-                  ],
-                ],
-              ),
+                    child: Text(l10n.profileOauthUnlink),
+                  )
+                else
+                  FilledButton(
+                    key: Key('link_${provider.name}'),
+                    onPressed: onLinkTap,
+                    child: Text(l10n.profileSocialLink),
+                  ),
+              ],
             ),
 
-            // Action button
-            if (isLinked)
-              OutlinedButton(
-                key: Key('unlink_${provider.name}'),
-                onPressed: onUnlinkTap,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme.error,
-                  side: BorderSide(color: colorScheme.error),
+            // Show reason why unlinking is disabled
+            if (cantUnlinkReason != null) ...[
+              const SizedBox(height: Spacing.sm),
+              Text(
+                cantUnlinkReason!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.amber,
+                  fontStyle: FontStyle.italic,
                 ),
-                child: Text(l10n.profileOauthUnlink),
-              )
-            else
-              FilledButton(
-                key: Key('link_${provider.name}'),
-                onPressed: onLinkTap,
-                child: Text(l10n.profileSocialLink),
               ),
+            ],
           ],
         ),
       ),

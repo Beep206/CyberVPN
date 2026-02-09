@@ -63,3 +63,53 @@ class TestOAuthLoginRoutes:
     async def test_rate_limiting_on_callback(self):
         """Rapid callback requests trigger rate limiting."""
         pass
+
+
+class TestTelegramOAuthRegistrationFlow:
+    """Integration tests for Telegram OAuth registration flow.
+
+    Tests the full flow: Telegram callback -> new user created ->
+    is_email_verified=True -> JWT issued -> no OTP dispatch.
+    """
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_new_user_created_with_verified_email(self):
+        """Telegram callback for new user creates user with is_email_verified=True, is_active=True."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_new_user_gets_jwt_tokens(self):
+        """Telegram new user registration returns valid JWT access and refresh tokens."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_existing_user_login_returns_tokens(self):
+        """Telegram callback for existing linked user returns JWT tokens."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_email_match_auto_links_account(self):
+        """Telegram user with matching email auto-links to existing user."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_remnawave_user_created_on_registration(self):
+        """Telegram registration triggers Remnawave user creation."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_new_user_returns_is_new_user_true(self):
+        """Telegram callback for new registration returns is_new_user=true in response."""
+        pass
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="Integration test infrastructure not yet available")
+    async def test_telegram_existing_user_returns_is_new_user_false(self):
+        """Telegram callback for existing user returns is_new_user=false."""
+        pass

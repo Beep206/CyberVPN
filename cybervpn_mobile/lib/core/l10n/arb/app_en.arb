@@ -378,7 +378,7 @@
   "logViewerClearButton": "Clear Logs",
   "logViewerClearConfirm": "Are you sure you want to clear all logs?",
   "logViewerFilterLabel": "Filter",
-  "logViewerFilterAll": "All",
+  "logViewerFilterAll": "ALL",
   "logViewerFilterError": "Errors",
   "logViewerFilterWarning": "Warnings",
   "logViewerFilterInfo": "Info",
@@ -566,15 +566,23 @@
   "appLockFailedAttempts": "Failed attempts: {current}/{max}",
   "@appLockFailedAttempts": {
     "placeholders": {
-      "current": { "type": "int" },
-      "max": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "appLockFailedAttemptsA11y": "Failed authentication attempts: {current} out of {max}",
   "@appLockFailedAttemptsA11y": {
     "placeholders": {
-      "current": { "type": "int" },
-      "max": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "biometricSettingsTitle": "Security",
@@ -764,7 +772,9 @@
   "subscriptionDaysRemaining": "{count, plural, =1{1 day remaining} other{{count} days remaining}}",
   "@subscriptionDaysRemaining": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionExpiringSoon": "Expiring soon",
@@ -801,12 +811,16 @@
   "serverListFilterAll": "All",
   "serverListFilterFavorites": "Favorites",
   "serverListFilterRecommended": "Recommended",
-  "serverListNoResults": "No servers found",
+  "serverListNoResults": "No servers match your search",
   "serverListCount": "{shown} of {total} servers",
   "@serverListCount": {
     "placeholders": {
-      "shown": { "type": "int" },
-      "total": { "type": "int" }
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "serverListPing": "{ping} ms",
@@ -960,7 +974,6 @@
   "quickSetupChooseServer": "Choose Server",
   "splashLoading": "Loading...",
   "splashInitializing": "Initializing...",
-
   "profileDeviceManagement": "Device Management",
   "profileDevicesConnected": "{count, plural, =1{1 device connected} other{{count} devices connected}}",
   "@profileDevicesConnected": {
@@ -1036,7 +1049,6 @@
     }
   },
   "profileRemoveButton": "Remove",
-
   "profileTwoFactorEnabled": "2FA Enabled",
   "profileTwoFactorDisabledStatus": "2FA Disabled",
   "profileTwoFactorProtected": "Your account is protected with two-factor authentication",
@@ -1066,7 +1078,6 @@
   "profileTwoFactorDisableButton": "Disable",
   "profileTwoFactorEnterVerificationCode": "Enter Verification Code",
   "profileTwoFactorFailedSetupData": "Failed to load setup data",
-
   "profileSocialAccounts": "Social Accounts",
   "profileSocialAccountsDescription": "Link your social accounts for easier sign-in and account recovery.",
   "profileSocialLinked": "Linked",
@@ -1089,7 +1100,6 @@
       }
     }
   },
-
   "profileGreetingMorning": "Good morning",
   "profileGreetingAfternoon": "Good afternoon",
   "profileGreetingEvening": "Good evening",
@@ -1107,7 +1117,6 @@
   "profileSubExpired": "Expired",
   "profileSubCancelled": "Cancelled",
   "profileSubPending": "Pending",
-
   "profileDeleteDangerZoneDesc": "This action cannot be undone",
   "profileDeleteWhatWillBeDeleted": "What will be deleted?",
   "profileDeletePermanentlyDeleted": "The following data will be permanently deleted:",
@@ -1131,9 +1140,8 @@
   "profileDeleteFinalConfirmation": "Final Confirmation",
   "profileDeleteFinalConfirmationDesc": "This is your last chance to cancel. Once confirmed, your account will be scheduled for permanent deletion.",
   "profileDeleteIrreversible": "This action is irreversible",
-  "profileDeleteIrreversibleList": "\u2022 All data will be permanently deleted after 30 days\n\u2022 Active subscriptions will be cancelled\n\u2022 You will be immediately logged out\n\u2022 This cannot be undone",
+  "profileDeleteIrreversibleList": "• All data will be permanently deleted after 30 days\n• Active subscriptions will be cancelled\n• You will be immediately logged out\n• This cannot be undone",
   "profileDeleteScheduledSuccess": "Account deletion scheduled successfully",
-
   "settingsVpnProtocolPreference": "Protocol Preference",
   "settingsAutoConnectOnLaunchLabel": "Auto-connect on launch",
   "settingsAutoConnectOnLaunchDescription": "Connect to VPN when the app starts",
@@ -1167,7 +1175,6 @@
   "settingsMtuValueHint": "1280-1500",
   "settingsChangesApplyOnNextConnection": "Changes apply on next connection",
   "settingsLoadError": "Failed to load settings",
-
   "settingsNotificationCountEnabled": "{count} of 4 enabled",
   "@settingsNotificationCountEnabled": {
     "placeholders": {
@@ -1184,7 +1191,6 @@
   "settingsDebugAbout": "Debug & About",
   "settingsDebugAboutSubtitle": "App version, logs, developer options",
   "settingsCouldNotOpenUrl": "Could not open URL",
-
   "settingsDiagnosticsSection": "Diagnostics",
   "settingsLogEntryCount": "{count} entries",
   "@settingsLogEntryCount": {
@@ -1230,9 +1236,7 @@
   "settingsDeveloperForceCrashDialogTitle": "Force Crash",
   "settingsDeveloperForceCrashDialogContent": "This will intentionally crash the app to test error reporting via Sentry. Only use this for debugging purposes.\n\nAre you sure you want to continue?",
   "settingsDeveloperCrashNow": "Crash Now",
-
   "settingsNoLanguagesFound": "No languages found",
-
   "settingsTrustedNetworksTitle": "Trusted Networks",
   "settingsTrustedAddManually": "Add network manually",
   "settingsTrustedAddCurrentWifi": "Add Current WiFi Network",
@@ -1270,7 +1274,6 @@
   "settingsTrustedPermissionRequired": "Location permission is required to detect WiFi network names. This is a platform requirement for privacy reasons.",
   "settingsTrustedOpenSettings": "Open Settings",
   "settingsTrustedTryAgain": "Try Again",
-
   "settingsAppearanceLoadError": "Failed to load appearance settings",
   "settingsBrightnessSection": "Brightness",
   "settingsTextSizeSection": "Text Size",
@@ -1298,7 +1301,6 @@
   "settingsTextScaleLargeDescription": "Larger text for improved readability",
   "settingsTextScaleExtraLargeDescription": "Maximum text size for accessibility",
   "settingsTextSizePreview": "Preview: The quick brown fox jumps over the lazy dog.",
-
   "settingsNotificationLoadError": "Failed to load notification settings",
   "settingsNotificationGeneralSection": "General",
   "settingsNotificationExpiryLabel": "Subscription expiry",
@@ -1311,16 +1313,16 @@
   "settingsNotificationVpnSection": "VPN Notification",
   "settingsNotificationVpnSpeedLabel": "Show speed in VPN notification",
   "settingsNotificationVpnSpeedDescription": "Display connection speed in persistent notification",
-
   "settingsDeveloperExperimentalEnabled": "Experimental features enabled",
   "settingsDeveloperExperimentalDisabled": "Experimental features disabled",
-
   "configImportSubscriptionUrlTitle": "Subscription URL Import",
   "configImportPasteFailed": "Failed to paste from clipboard",
   "configImportServersImported": "{count, plural, =1{Imported 1 server} other{Imported {count} servers}}",
   "@configImportServersImported": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportSubscriptionFailed": "Failed to import subscription URL",
@@ -1337,7 +1339,9 @@
   "configImportDeleteSubscriptionContent": "Delete all {count} servers from this subscription?",
   "@configImportDeleteSubscriptionContent": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportSubscriptionDeleted": "Subscription deleted",
@@ -1347,39 +1351,51 @@
   "configImportServerCount": "{count, plural, =1{1 server} other{{count} servers}}",
   "@configImportServerCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportLastUpdated": "Last updated: {timeAgo}",
   "@configImportLastUpdated": {
     "placeholders": {
-      "timeAgo": { "type": "String" }
+      "timeAgo": {
+        "type": "String"
+      }
     }
   },
   "configImportTimeJustNow": "Just now",
   "configImportTimeMinutesAgo": "{count, plural, =1{1 minute ago} other{{count} minutes ago}}",
   "@configImportTimeMinutesAgo": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportTimeHoursAgo": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
   "@configImportTimeHoursAgo": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportTimeDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
   "@configImportTimeDaysAgo": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportDeleteServerTitle": "Delete Server",
   "configImportRemoveServerContent": "Remove \"{name}\" from your custom servers?",
   "@configImportRemoveServerContent": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "configImportServerRemoved": "Server removed",
@@ -1414,7 +1430,9 @@
   "configImportServerAdded": "Server added: {name}",
   "@configImportServerAdded": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "configImportNoValidConfig": "No valid VPN config in clipboard",
@@ -1440,14 +1458,18 @@
   "configImportFoundConfigs": "{count, plural, =1{Found 1 VPN configuration in your clipboard} other{Found {count} VPN configurations in your clipboard}}",
   "@configImportFoundConfigs": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportImportConfig": "Import Config",
   "configImportImportAll": "Import All ({count})",
   "@configImportImportAll": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportDismiss": "Dismiss",
@@ -1455,23 +1477,30 @@
   "configImportSuccessCount": "{count, plural, =1{Successfully imported 1 config} other{Successfully imported {count} configs}}",
   "@configImportSuccessCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "configImportPartialSuccess": "Imported {success} config(s), {failure} failed",
   "@configImportPartialSuccess": {
     "placeholders": {
-      "success": { "type": "int" },
-      "failure": { "type": "int" }
+      "success": {
+        "type": "int"
+      },
+      "failure": {
+        "type": "int"
+      }
     }
   },
   "configImportFailureCount": "{count, plural, =1{Failed to import config} other{Failed to import {count} configs}}",
   "@configImportFailureCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "subscriptionChooseYourPlan": "Choose Your Plan",
   "subscriptionDuration1Month": "1 Month",
   "subscriptionDuration3Months": "3 Months",
@@ -1487,14 +1516,18 @@
   "subscriptionTrafficGb": "{count} GB",
   "@subscriptionTrafficGb": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionUnlimited": "Unlimited",
   "subscriptionDurationDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@subscriptionDurationDays": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionCompletePurchase": "Complete Purchase",
@@ -1508,13 +1541,17 @@
   "subscriptionActivatedMessage": "You are now subscribed to {planName}.",
   "@subscriptionActivatedMessage": {
     "placeholders": {
-      "planName": { "type": "String" }
+      "planName": {
+        "type": "String"
+      }
     }
   },
   "subscriptionSecureVpnAccess": "{count, plural, =1{1 day of secure VPN access} other{{count} days of secure VPN access}}",
   "@subscriptionSecureVpnAccess": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionStartUsingVpn": "Start Using VPN",
@@ -1524,7 +1561,9 @@
   "subscriptionPurchaseFlowFor": "Purchase flow for: {planName}",
   "@subscriptionPurchaseFlowFor": {
     "placeholders": {
-      "planName": { "type": "String" }
+      "planName": {
+        "type": "String"
+      }
     }
   },
   "subscriptionSelectPaymentMethodSnack": "Please select a payment method",
@@ -1534,14 +1573,18 @@
   "subscriptionTrafficGbFeature": "{count} GB traffic",
   "@subscriptionTrafficGbFeature": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionUnlimitedTraffic": "Unlimited traffic",
   "subscriptionUpToDevices": "{count, plural, =1{Up to 1 device} other{Up to {count} devices}}",
   "@subscriptionUpToDevices": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "subscriptionPerMonth": "/ month",
@@ -1553,7 +1596,9 @@
   "subscriptionPercentUsed": "{percent} used",
   "@subscriptionPercentUsed": {
     "placeholders": {
-      "percent": { "type": "String" }
+      "percent": {
+        "type": "String"
+      }
     }
   },
   "subscriptionNoPaymentMethods": "No payment methods available.",
@@ -1566,7 +1611,6 @@
   "subscriptionYooKassa": "YooKassa",
   "subscriptionPayWithCard": "Pay with Card (RU)",
   "subscriptionQuarterly": "Quarterly",
-
   "serverTooltipFastest": "Tap Fastest to auto-select best server",
   "serverSortRecommended": "Recommended",
   "serverSortCountry": "Country",
@@ -1577,7 +1621,6 @@
   "serverNoRecentServers": "Connect to a server to see recent history",
   "serverFailedToLoad": "Failed to load servers",
   "serverNotFound": "Server not found",
-  "serverListNoResults": "No servers match your search",
   "serverListClearSearch": "Clear search",
   "serverSelectPrompt": "Select a server to view details",
   "serverSingle": "Server",
@@ -1672,7 +1715,6 @@
   "a11yPremiumServer": "premium server",
   "a11yCustomServer": "custom server",
   "serverCustomCountry": "Custom",
-
   "referralTitle": "Referrals",
   "referralYourStats": "Your Stats",
   "referralRecentReferrals": "Recent Referrals",
@@ -1706,7 +1748,6 @@
   "referralStatsPaidUsers": "Paid Users",
   "referralStatsPoints": "Points",
   "referralStatsBalance": "Balance",
-
   "diagnosticConnectionTitle": "Connection Diagnostics",
   "diagnosticSteps": "Diagnostic Steps",
   "diagnosticRunningTests": "Running connection tests...",
@@ -1772,7 +1813,6 @@
   "diagnosticStatusSuccess": "SUCCESS",
   "diagnosticStatusFailed": "FAILED",
   "diagnosticStatusWarning": "WARNING",
-
   "speedTestWithVpn": "Test with VPN",
   "speedTestNoResults": "No speed tests yet",
   "speedTestTapToStart": "Tap Start to measure your connection",
@@ -1826,7 +1866,6 @@
   "speedTestJitter": "Jitter",
   "speedTestCompare": "Compare",
   "speedTestHideCompare": "Hide Compare",
-
   "logViewerAutoScroll": "Auto-scroll",
   "logViewerTotalEntries": "{count} total entries",
   "@logViewerTotalEntries": {
@@ -1851,12 +1890,10 @@
   "logViewerClearedSuccess": "Logs cleared successfully",
   "logViewerNoLogsAvailable": "No logs available",
   "logViewerNoLogsMatchFilters": "No logs match filters",
-  "logViewerFilterAll": "ALL",
   "logViewerFilterDebug": "DEBUG",
   "logViewerFilterInfo2": "INFO",
   "logViewerFilterWarning2": "WARNING",
   "logViewerFilterError2": "ERROR",
-
   "connectionStatusNotProtected": "Not Protected",
   "connectionStatusProtected": "Protected",
   "connectionStatusReconnecting": "Reconnecting...",
@@ -1865,7 +1902,6 @@
   "connectionPremium": "Premium",
   "connectionDuration": "Duration",
   "connectionMonitorSpeedTooltip": "Monitor your real-time speed here",
-
   "a11yConnectToVpn": "Connect to VPN",
   "a11yConnectingToVpn": "Connecting to VPN",
   "a11yDisconnectFromVpn": "Disconnect from VPN",
@@ -1880,49 +1916,65 @@
   "a11yUsingProtocol": "Using {protocol} protocol",
   "@a11yUsingProtocol": {
     "placeholders": {
-      "protocol": { "type": "String" }
+      "protocol": {
+        "type": "String"
+      }
     }
   },
   "a11yConnectionDurationValue": "Connection duration: {duration}",
   "@a11yConnectionDurationValue": {
     "placeholders": {
-      "duration": { "type": "String" }
+      "duration": {
+        "type": "String"
+      }
     }
   },
   "a11yIpAddress": "IP address: {ip}",
   "@a11yIpAddress": {
     "placeholders": {
-      "ip": { "type": "String" }
+      "ip": {
+        "type": "String"
+      }
     }
   },
   "a11yDownloadUploadSpeed": "Download speed: {download}, Upload speed: {upload}",
   "@a11yDownloadUploadSpeed": {
     "placeholders": {
-      "download": { "type": "String" },
-      "upload": { "type": "String" }
+      "download": {
+        "type": "String"
+      },
+      "upload": {
+        "type": "String"
+      }
     }
   },
   "a11yConnectedToServer": "Connected to {name} server in {city}, {country}",
   "@a11yConnectedToServer": {
     "placeholders": {
-      "name": { "type": "String" },
-      "city": { "type": "String" },
-      "country": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "city": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
     }
   },
-
   "errorSomethingWentWrong": "Something went wrong",
   "errorUnexpectedDescription": "An unexpected error occurred. You can report this issue or restart the app.",
   "errorFeatureCrashed": "The {feature} feature encountered an error.",
   "@errorFeatureCrashed": {
     "placeholders": {
-      "feature": { "type": "String" }
+      "feature": {
+        "type": "String"
+      }
     }
   },
   "errorReport": "Report",
   "errorReported": "Reported",
   "errorRestart": "Restart",
-
   "offlineLabel": "Offline",
   "offlineYouAreOffline": "You are offline",
   "offlineSomeFeaturesUnavailable": "Some features unavailable",
@@ -1931,22 +1983,27 @@
   "offlineLastSyncMinutes": "Last sync: {count}m ago",
   "@offlineLastSyncMinutes": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "offlineLastSyncHours": "Last sync: {count}h ago",
   "@offlineLastSyncHours": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "offlineLastSyncDays": "Last sync: {count}d ago",
   "@offlineLastSyncDays": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "updateRequired": "Update Required",
   "updateAvailable": "Update Available",
   "updateMandatoryDescription": "A mandatory update is required to continue using CyberVPN.",
@@ -1956,35 +2013,36 @@
   "updateRemindLater": "Remind me in 3 days",
   "updateNow": "Update Now",
   "updateLater": "Later",
-
   "splashTagline": "Secure. Private. Fast.",
-
   "navConnection": "Connection",
-
   "autoConnectingToServer": "Auto-connecting to {server}...",
   "@autoConnectingToServer": {
     "placeholders": {
-      "server": { "type": "String" }
+      "server": {
+        "type": "String"
+      }
     }
   },
   "autoConnectingToVpn": "Auto-connecting to VPN...",
   "autoConnectFailed": "Auto-connect failed: {message}",
   "@autoConnectFailed": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "autoConnectSuccess": "Connected to {server}",
   "@autoConnectSuccess": {
     "placeholders": {
-      "server": { "type": "String" }
+      "server": {
+        "type": "String"
+      }
     }
   },
   "dismiss": "Dismiss",
-
   "settingsScanlineLabel": "Scanline Effect",
   "settingsScanlineDescription": "Subtle CRT scanline overlay for cyberpunk aesthetic",
-
   "forceDisconnectTitle": "Connection Terminated",
   "@forceDisconnectTitle": {
     "description": "Title for the dialog shown when the server forces a VPN disconnection"
@@ -1993,7 +2051,6 @@
   "@forceDisconnectMessage": {
     "description": "Message body for the force disconnect dialog"
   },
-
   "serverQuickConnect": "Connect",
   "@serverQuickConnect": {
     "description": "Quick action to connect to a server"
@@ -2026,7 +2083,6 @@
   "@serverReportSubmitted": {
     "description": "Snackbar message after reporting a server issue"
   },
-
   "deleteAccountTitle": "Delete Account",
   "@deleteAccountTitle": {
     "description": "Title for the delete account dialog"
@@ -2088,7 +2144,6 @@
   "@deleteAccountBiometricReason": {
     "description": "Reason shown in the biometric prompt for account deletion"
   },
-
   "relativeJustNow": "just now",
   "@relativeJustNow": {
     "description": "Relative time label for events that happened seconds ago"
@@ -2101,42 +2156,54 @@
   "@relativeMinutesAgo": {
     "description": "Relative time label for minutes ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeHoursAgo": "{count, plural, =1{1 hour ago} other{{count} hours ago}}",
   "@relativeHoursAgo": {
     "description": "Relative time label for hours ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
   "@relativeDaysAgo": {
     "description": "Relative time label for days ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
   "@relativeWeeksAgo": {
     "description": "Relative time label for weeks ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeMonthsAgo": "{count, plural, =1{1 month ago} other{{count} months ago}}",
   "@relativeMonthsAgo": {
     "description": "Relative time label for months ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeYearsAgo": "{count, plural, =1{1 year ago} other{{count} years ago}}",
   "@relativeYearsAgo": {
     "description": "Relative time label for years ago",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeInSeconds": "in a few seconds",
@@ -2147,17 +2214,20 @@
   "@relativeInMinutes": {
     "description": "Relative time label for minutes in the future",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "relativeInHours": "{count, plural, =1{in 1 hour} other{in {count} hours}}",
   "@relativeInHours": {
     "description": "Relative time label for hours in the future",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "notificationFallbackTitle": "Notification",
   "@notificationFallbackTitle": {
     "description": "Fallback title when notification has no title"
@@ -2166,58 +2236,78 @@
   "@debugExportLogsFailed": {
     "description": "Error message when log export fails",
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "debugClearCacheFailed": "Failed to clear cache: {error}",
   "@debugClearCacheFailed": {
     "description": "Error message when cache clearing fails",
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "debugResetSettingsFailed": "Failed to reset settings: {error}",
   "@debugResetSettingsFailed": {
     "description": "Error message when settings reset fails",
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "settingsTrustedWifiAddFailed": "Failed to add network: {error}",
   "@settingsTrustedWifiAddFailed": {
     "description": "Error message when adding trusted WiFi network fails",
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "profileSocialCompletingLink": "Completing {provider} link...",
   "@profileSocialCompletingLink": {
     "description": "Progress message when completing social account linking",
     "placeholders": {
-      "provider": { "type": "String" }
+      "provider": {
+        "type": "String"
+      }
     }
   },
   "profileSocialOAuthFailed": "Failed to complete OAuth link: {error}",
   "@profileSocialOAuthFailed": {
     "description": "Error message when OAuth linking fails",
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "profileSocialLinkFailed": "Failed to link {provider}: {error}",
   "@profileSocialLinkFailed": {
     "description": "Error message when social account linking fails",
     "placeholders": {
-      "provider": { "type": "String" },
-      "error": { "type": "String" }
+      "provider": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
     }
   },
   "profileSocialUnlinkFailed": "Failed to unlink {provider}: {error}",
   "@profileSocialUnlinkFailed": {
     "description": "Error message when social account unlinking fails",
     "placeholders": {
-      "provider": { "type": "String" },
-      "error": { "type": "String" }
+      "provider": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
     }
   },
   "deleteAccountConfirmHint": "DELETE",
@@ -2317,5 +2407,52 @@
   "socialLoginComingSoon": "Coming soon",
   "@socialLoginComingSoon": {
     "description": "Snackbar message shown when a social login provider is not yet available"
+  },
+  "registerWithTelegram": "Register with Telegram",
+  "registerWithTelegramHint": "Quick registration using your Telegram account",
+  "loginWelcomeNewUser": "Welcome to CyberVPN!",
+  "@loginWelcomeNewUser": {
+    "description": "Welcome message for new Telegram users"
+  },
+  "telegramBotLinkVerifying": "Verifying login link...",
+  "telegramBotLinkExpired": "Login link expired",
+  "telegramBotLinkInvalid": "Invalid login link",
+  "@telegramBotLinkVerifying": {
+    "description": "Loading text when verifying a Telegram bot login link"
+  },
+  "@telegramBotLinkExpired": {
+    "description": "Error when bot login link has expired"
+  },
+  "@telegramBotLinkInvalid": {
+    "description": "Error when bot login link is invalid"
+  },
+  "linkedAccounts": "Linked Accounts",
+  "linkTelegram": "Link Telegram",
+  "unlinkTelegram": "Unlink Telegram",
+  "telegramLinked": "Telegram linked: @{username}",
+  "unlinkConfirmMessage": "Are you sure you want to unlink Telegram?",
+  "cantUnlinkOnlyMethod": "Cannot unlink — this is your only login method",
+  "@linkedAccounts": {
+    "description": "Section title for linked accounts"
+  },
+  "@linkTelegram": {
+    "description": "Button to link Telegram account"
+  },
+  "@unlinkTelegram": {
+    "description": "Button to unlink Telegram account"
+  },
+  "@telegramLinked": {
+    "description": "Text showing linked Telegram username",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "@unlinkConfirmMessage": {
+    "description": "Confirmation dialog for unlinking Telegram"
+  },
+  "@cantUnlinkOnlyMethod": {
+    "description": "Error when trying to unlink the only login method"
   }
 }

@@ -265,6 +265,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     ) {
       final state = next.value;
       if (state is TelegramAuthSuccess) {
+        // Show welcome toast for new Telegram users
+        if (state.isNewUser && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.loginWelcomeNewUser),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
         context.go('/connection');
       } else if (state is TelegramAuthNotInstalled) {
         _showTelegramNotInstalledDialog();
@@ -318,6 +328,49 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
+
+                      // ── Telegram — primary position ──────────────
+                      if (ref.watch(isTelegramLoginAvailableProvider)) ...[
+                        SocialLoginButton.telegram(
+                          onPressed: ref.watch(isTelegramAuthLoadingProvider)
+                              ? null
+                              : () {
+                                  unawaited(
+                                    ref
+                                        .read(telegramAuthProvider.notifier)
+                                        .startLogin(),
+                                  );
+                                },
+                          isLoading: ref.watch(isTelegramAuthLoadingProvider),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Divider ──────────────────────────────────
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                l10n.registerOrSeparator,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── Registration mode toggle ─────────────────
                       SegmentedButton<bool>(
@@ -761,48 +814,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         ),
                       ),
                       const SizedBox(height: 28),
-
-                      // ── Divider ────────────────────────────────────
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Divider(
-                              color: theme.colorScheme.outlineVariant,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              l10n.registerOrSeparator,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Divider(
-                              color: theme.colorScheme.outlineVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      // ── Social ─────────────────────────────────────
-                      if (ref.watch(isTelegramLoginAvailableProvider))
-                        SocialLoginButton.telegram(
-                          onPressed: ref.watch(isTelegramAuthLoadingProvider)
-                              ? null
-                              : () {
-                                  unawaited(
-                                    ref
-                                        .read(telegramAuthProvider.notifier)
-                                        .startLogin(),
-                                  );
-                                },
-                          isLoading: ref.watch(isTelegramAuthLoadingProvider),
-                        ),
-                      const SizedBox(height: 32),
 
                       // ── Login link ─────────────────────────────────
                       Row(

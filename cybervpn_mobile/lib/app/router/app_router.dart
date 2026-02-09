@@ -282,6 +282,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return path.isEmpty || path == '/' ? '/login' : null;
         }
 
+        // Handle Telegram bot link specially - exchange token for JWT.
+        // The token has a 5-min TTL, so consume it immediately.
+        if (parseResult.route case TelegramBotLinkRoute(:final token)) {
+          // Trigger bot link auth asynchronously.
+          // The auth state listener will handle navigation on success.
+          unawaited(ref.read(authProvider.notifier).loginWithBotLink(token));
+
+          // Stay on current screen — the auth listener will navigate
+          // to /connection on success, or show error on failure.
+          return path.isEmpty || path == '/' ? '/login' : null;
+        }
+
         final deepLinkPath =
             parseResult.route != null ? resolveDeepLinkPath(parseResult.route!) : null;
         if (deepLinkPath != null) {

@@ -172,4 +172,25 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
     final token = await _localDataSource.getCachedToken();
     return Success(token != null);
   }
+
+  @override
+  Future<Result<(UserEntity, String)>> loginWithBotLink({
+    required String token,
+  }) async {
+    if (!await _networkInfo.isConnected) {
+      return const Failure(NetworkFailure(message: 'No internet connection'));
+    }
+    try {
+      final (userModel, tokenModel) = await _remoteDataSource.loginWithBotLink(
+        token: token,
+      );
+      await _localDataSource.cacheToken(tokenModel);
+      await _localDataSource.cacheUser(userModel);
+      return Success((userModel.toEntity(), tokenModel.accessToken));
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
 }

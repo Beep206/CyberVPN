@@ -1,12 +1,14 @@
 """OAuth login use case - find or create user from OAuth provider data."""
 
 import logging
+import re
 import secrets
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.auth.verify_otp import RemnawaveGateway
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.oauth_account_model import OAuthAccount
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -48,11 +50,39 @@ class OAuthLoginUseCase:
         oauth_repo: OAuthAccountRepository,
         auth_service: AuthService,
         session: AsyncSession,
+        remnawave_gateway: RemnawaveGateway | None = None,
     ) -> None:
         self._user_repo = user_repo
         self._oauth_repo = oauth_repo
         self._auth_service = auth_service
         self._session = session
+        self._remnawave_gateway = remnawave_gateway
+
+    @staticmethod
+    def _generate_telegram_login(
+        username: str | None,
+        first_name: str | None,
+        telegram_id: str,
+    ) -> str:
+        """Generate a login from Telegram user data.
+
+        Priority: @telegram_username > first_name > tg_{id}
+        Sanitizes to alphanumeric + underscores, 3-32 chars.
+        """
+        # Priority 1: @telegram_username
+        if username:
+            login = re.sub(r"[^a-zA-Z0-9_]", "", username)
+            if 3 <= len(login) <= 32:
+                return login
+
+        # Priority 2: first_name
+        if first_name:
+            login = re.sub(r"[^a-zA-Z0-9_]", "", first_name.replace(" ", "_"))
+            if len(login) >= 3:
+                return login[:32]
+
+        # Priority 3: tg_{telegram_id}
+        return f"tg_{telegram_id}"
 
     async def execute(
         self,
@@ -81,6 +111,7 @@ class OAuthLoginUseCase:
         provider_access_token = user_info.get("access_token", "")
         provider_refresh_token = user_info.get("refresh_token")
 
+        is_telegram = provider == "telegram"
         is_new_user = False
 
         # Step 1: Check if OAuth account already exists (provider + provider_user_id)
@@ -120,7 +151,16 @@ class OAuthLoginUseCase:
                 )
             else:
                 # Step 3: Create new user
-                login = username or (email.split("@")[0] if email else f"user_{secrets.token_hex(4)}")
+                if is_telegram:
+                    # Telegram-specific username generation:
+                    # prefer @telegram_username, fallback to first_name, then tg_{id}
+                    login = self._generate_telegram_login(
+                        username=username,
+                        first_name=user_info.get("first_name"),
+                        telegram_id=provider_user_id,
+                    )
+                else:
+                    login = username or (email.split("@")[0] if email else f"user_{secrets.token_hex(4)}")
 
                 # Ensure login is unique
                 existing = await self._user_repo.get_by_login(login)
@@ -134,7 +174,8 @@ class OAuthLoginUseCase:
                     password_hash=password_hash,
                     role="viewer",
                     is_active=True,
-                    is_email_verified=email is not None,
+                    # Telegram users are auto-verified (no email required)
+                    is_email_verified=True if is_telegram else (email is not None),
                 )
                 user = await self._user_repo.create(user)
                 is_new_user = True
@@ -143,6 +184,24 @@ class OAuthLoginUseCase:
                     "Created new user from OAuth login",
                     extra={"provider": provider, "user_id": str(user.id), "login": login},
                 )
+
+                # Create user in Remnawave VPN backend (best-effort)
+                if self._remnawave_gateway:
+                    try:
+                        await self._remnawave_gateway.create_user(
+                            username=login,
+                            email=email or "",
+                            telegram_id=int(provider_user_id) if is_telegram else None,
+                        )
+                        logger.info(
+                            "Remnawave user created for OAuth registration",
+                            extra={"provider": provider, "user_id": str(user.id), "login": login},
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to create Remnawave user during OAuth registration",
+                            extra={"provider": provider, "user_id": str(user.id), "login": login},
+                        )
 
             # Create OAuth account link
             oauth_account = OAuthAccount(

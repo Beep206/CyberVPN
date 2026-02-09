@@ -16,14 +16,26 @@ class UnlinkSocialAccountUseCase {
   /// Unlinks the specified [provider] from the current user's account.
   ///
   /// Validates that the provider is currently linked before attempting removal.
-  /// Throws [StateError] if the provider is not linked.
+  /// Throws [StateError] if the provider is not linked or if it's the only
+  /// login method (no email/password and no other OAuth providers).
   Future<Result<void>> call({
     required OAuthProvider provider,
     required List<OAuthProvider> currentlyLinked,
+    bool hasEmailPassword = false,
   }) async {
     if (!currentlyLinked.contains(provider)) {
       throw StateError('${provider.name} is not linked to this account');
     }
+
+    // Prevent unlinking the only login method
+    final otherProviders =
+        currentlyLinked.where((p) => p != provider).toList();
+    if (!hasEmailPassword && otherProviders.isEmpty) {
+      throw StateError(
+        'Cannot unlink ${provider.name} — it is your only login method',
+      );
+    }
+
     return _repository.unlinkOAuth(provider);
   }
 }
