@@ -118,3 +118,10 @@ report/
 # Ralph TUI and worktrees
 .worktrees/
 .ralph-tui/
+
+# Secrets and credentials
+APIToken.txt
+*.secret
+*.credentials
+*.key
+!*.key.example
