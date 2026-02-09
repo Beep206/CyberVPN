@@ -2,8 +2,10 @@
 
 import hashlib
 import hmac
+import json
 import logging
 import time
+from urllib.parse import parse_qs, unquote
 
 from src.config.settings import settings
 
@@ -147,3 +149,94 @@ class TelegramOAuthProvider:
             return False
 
         return True
+
+    def validate_init_data(self, init_data: str) -> dict | None:
+        """Validate Telegram Mini App initData using HMAC-SHA256.
+
+        Following Telegram's verification protocol:
+        https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+
+        Steps:
+        1. Parse init_data as URL-encoded string.
+        2. Build data_check_string from sorted key=value pairs (excluding hash).
+        3. Compute secret_key = HMAC-SHA256("WebAppData", bot_token).
+        4. Compute expected_hash = HMAC-SHA256(secret_key, data_check_string).
+        5. Compare with constant-time hmac.compare_digest.
+        6. Validate auth_date freshness.
+
+        Args:
+            init_data: Raw URL-encoded initData string from Telegram.WebApp.initData
+
+        Returns:
+            Parsed user dict if valid, None otherwise.
+        """
+        if not self.bot_token:
+            logger.error("Telegram bot token not configured")
+            return None
+
+        if not init_data:
+            logger.debug("Empty initData")
+            return None
+
+        # Parse URL-encoded initData
+        parsed = parse_qs(init_data, keep_blank_values=True)
+        # parse_qs returns lists; flatten to single values
+        params: dict[str, str] = {k: v[0] for k, v in parsed.items()}
+
+        check_hash = params.get("hash")
+        if not check_hash:
+            logger.debug("initData missing hash")
+            return None
+
+        # Build data_check_string: sorted key=value pairs excluding "hash"
+        data_check_string = "\n".join(
+            f"{k}={v}" for k, v in sorted(params.items()) if k != "hash"
+        )
+
+        # Secret key: HMAC-SHA256("WebAppData", bot_token)
+        secret_key = hmac.new(
+            b"WebAppData",
+            self.bot_token.encode(),
+            hashlib.sha256,
+        ).digest()
+
+        # Expected hash: HMAC-SHA256(secret_key, data_check_string)
+        calculated_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        if not hmac.compare_digest(calculated_hash, check_hash):
+            logger.warning("initData HMAC validation failed")
+            return None
+
+        # Validate auth_date freshness
+        auth_date_str = params.get("auth_date")
+        if not auth_date_str:
+            logger.debug("initData missing auth_date")
+            return None
+
+        if not self._verify_auth_date({"auth_date": auth_date_str}):
+            return None
+
+        # Extract user from the "user" JSON field
+        user_json = params.get("user")
+        if not user_json:
+            logger.debug("initData missing user field")
+            return None
+
+        try:
+            user_data = json.loads(unquote(user_json))
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("initData user field is not valid JSON")
+            return None
+
+        return {
+            "id": str(user_data.get("id", "")),
+            "first_name": user_data.get("first_name"),
+            "last_name": user_data.get("last_name"),
+            "username": user_data.get("username"),
+            "photo_url": user_data.get("photo_url"),
+            "language_code": user_data.get("language_code"),
+        }

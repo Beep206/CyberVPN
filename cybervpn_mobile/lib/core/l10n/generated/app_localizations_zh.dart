@@ -4310,4 +4310,44 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => '即将推出';
+
+  @override
+  String get registerWithTelegram => '使用Telegram注册';
+
+  @override
+  String get registerWithTelegramHint => '使用Telegram账户快速注册';
+
+  @override
+  String get loginWelcomeNewUser => '欢迎使用 CyberVPN！';
+
+  @override
+  String get telegramBotLinkVerifying => 'Verifying login link...';
+
+  @override
+  String get telegramBotLinkExpired => 'Login link expired';
+
+  @override
+  String get telegramBotLinkInvalid => 'Invalid login link';
+
+  @override
+  String get linkedAccounts => 'Linked Accounts';
+
+  @override
+  String get linkTelegram => 'Link Telegram';
+
+  @override
+  String get unlinkTelegram => 'Unlink Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram linked: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      'Are you sure you want to unlink Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'Cannot unlink — this is your only login method';
 }

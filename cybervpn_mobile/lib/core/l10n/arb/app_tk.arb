@@ -2334,5 +2334,52 @@
   "continueWithApple": "Apple bilen dowam et",
   "magicLinkSendButton": "Magic Link iber",
   "registerUsernameOnlyWarning": "E-poçta bolmasa, parolyňyzy dikeldip we howpsuzlyk habarnamalaryny alyp bilmersiňiz.",
-  "registerUsernameLabel": "Ulanyjy ady"
+  "registerUsernameLabel": "Ulanyjy ady",
+  "registerWithTelegram": "Telegram bilen hasaba durmak",
+  "registerWithTelegramHint": "Telegram hasabyňyz bilen çalt hasaba durmak",
+  "loginWelcomeNewUser": "Welcome to CyberVPN!",
+  "@loginWelcomeNewUser": {
+    "description": "Welcome message for new Telegram users"
+  },
+  "telegramBotLinkVerifying": "Verifying login link...",
+  "telegramBotLinkExpired": "Login link expired",
+  "telegramBotLinkInvalid": "Invalid login link",
+  "@telegramBotLinkVerifying": {
+    "description": "Loading text when verifying a Telegram bot login link"
+  },
+  "@telegramBotLinkExpired": {
+    "description": "Error when bot login link has expired"
+  },
+  "@telegramBotLinkInvalid": {
+    "description": "Error when bot login link is invalid"
+  },
+  "linkedAccounts": "Linked Accounts",
+  "linkTelegram": "Link Telegram",
+  "unlinkTelegram": "Unlink Telegram",
+  "telegramLinked": "Telegram linked: @{username}",
+  "unlinkConfirmMessage": "Are you sure you want to unlink Telegram?",
+  "cantUnlinkOnlyMethod": "Cannot unlink — this is your only login method",
+  "@linkedAccounts": {
+    "description": "Section title for linked accounts"
+  },
+  "@linkTelegram": {
+    "description": "Button to link Telegram account"
+  },
+  "@unlinkTelegram": {
+    "description": "Button to unlink Telegram account"
+  },
+  "@telegramLinked": {
+    "description": "Text showing linked Telegram username",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "@unlinkConfirmMessage": {
+    "description": "Confirmation dialog for unlinking Telegram"
+  },
+  "@cantUnlinkOnlyMethod": {
+    "description": "Error when trying to unlink the only login method"
+  }
 }

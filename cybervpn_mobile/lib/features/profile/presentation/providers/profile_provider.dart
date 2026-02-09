@@ -301,14 +301,22 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
   }
 
   /// Unlinks the specified OAuth [provider] from the user's account.
+  ///
+  /// Throws [StateError] if the provider is the only login method.
   Future<void> unlinkAccount(OAuthProvider provider) async {
     final current = state.value;
     if (current == null) return;
+
+    // Check if user has email/password as alternative login method
+    final hasEmailPassword = current.profile != null &&
+        current.profile!.email.isNotEmpty &&
+        current.profile!.isEmailVerified;
 
     try {
       final unlinkResult = await _unlinkSocialAccount.call(
         provider: provider,
         currentlyLinked: current.linkedProviders,
+        hasEmailPassword: hasEmailPassword,
       );
       switch (unlinkResult) {
         case Success():

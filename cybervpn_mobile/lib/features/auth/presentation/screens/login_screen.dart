@@ -192,6 +192,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         (previous, next) {
       final state = next.value;
       if (state is TelegramAuthSuccess) {
+        // Show welcome toast for new Telegram users
+        if (state.isNewUser && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.loginWelcomeNewUser),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
         // Navigate to home screen on successful auth
         context.go('/connection');
       } else if (state is TelegramAuthNotInstalled) {
@@ -309,6 +319,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                   const SizedBox(height: Spacing.lg + Spacing.xs),
 
+                  // ── Social Login — Telegram (first position) ──
+                  if (isTelegramAvailable) ...[
+                    SocialLoginButton.telegram(
+                      onPressed: isLoading ? null : _handleTelegramLogin,
+                      isLoading: isTelegramLoading,
+                    ),
+                    const SizedBox(height: Spacing.sm),
+                  ],
+
                   // ── Social Login — Google (full-width) ─────────
                   _SocialOutlinedButton(
                     icon: Icons.g_mobiledata,
@@ -363,15 +382,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ],
                   ),
                   const SizedBox(height: Spacing.sm),
-
-                  // ── Social Login — Telegram (full-width) ───────
-                  if (isTelegramAvailable) ...[
-                    SocialLoginButton.telegram(
-                      onPressed: isLoading ? null : _handleTelegramLogin,
-                      isLoading: isTelegramLoading,
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                  ],
 
                   // ── Magic Link ─────────────────────────────────
                   TextButton(

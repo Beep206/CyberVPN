@@ -6,7 +6,7 @@ import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.
 import 'package:cybervpn_mobile/features/profile/domain/usecases/link_social_account.dart';
 import 'package:cybervpn_mobile/features/profile/domain/usecases/unlink_social_account.dart';
 
-import '../../helpers/mock_repositories.dart';
+import '../../../../helpers/mock_repositories.dart';
 
 void main() {
   late MockProfileRepository mockRepository;
@@ -174,9 +174,49 @@ void main() {
         () => useCase(
           provider: OAuthProvider.telegram,
           currentlyLinked: const [OAuthProvider.telegram],
+          hasEmailPassword: true,
         ),
         throwsA(isA<Exception>()),
       );
+    });
+
+    test('throws StateError when only login method and no email', () async {
+      // Telegram is the only linked provider, no email/password
+      await expectLater(
+        () => useCase(
+          provider: OAuthProvider.telegram,
+          currentlyLinked: const [OAuthProvider.telegram],
+          hasEmailPassword: false,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      verifyNever(() => mockRepository.unlinkOAuth(any()));
+    });
+
+    test('allows unlink when only provider but has email/password', () async {
+      when(() => mockRepository.unlinkOAuth(OAuthProvider.telegram))
+          .thenAnswer((_) async => const Success<void>(null));
+
+      await useCase(
+        provider: OAuthProvider.telegram,
+        currentlyLinked: const [OAuthProvider.telegram],
+        hasEmailPassword: true,
+      );
+
+      verify(() => mockRepository.unlinkOAuth(OAuthProvider.telegram)).called(1);
+    });
+
+    test('allows unlink when other providers linked even without email', () async {
+      when(() => mockRepository.unlinkOAuth(OAuthProvider.telegram))
+          .thenAnswer((_) async => const Success<void>(null));
+
+      await useCase(
+        provider: OAuthProvider.telegram,
+        currentlyLinked: const [OAuthProvider.telegram, OAuthProvider.github],
+        hasEmailPassword: false,
+      );
+
+      verify(() => mockRepository.unlinkOAuth(OAuthProvider.telegram)).called(1);
     });
   });
 
@@ -205,10 +245,11 @@ void main() {
         currentlyLinked: const [],
       );
 
-      // Act: unlink (simulating updated linked list)
+      // Act: unlink (simulating updated linked list, with email as alternative)
       await unlinkUseCase(
         provider: OAuthProvider.github,
         currentlyLinked: const [OAuthProvider.github],
+        hasEmailPassword: true,
       );
 
       // Assert

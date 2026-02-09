@@ -4322,4 +4322,45 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => 'Akan datang';
+
+  @override
+  String get registerWithTelegram => 'Daftar dengan Telegram';
+
+  @override
+  String get registerWithTelegramHint =>
+      'Pendaftaran pantas menggunakan akaun Telegram anda';
+
+  @override
+  String get loginWelcomeNewUser => 'Selamat datang ke CyberVPN!';
+
+  @override
+  String get telegramBotLinkVerifying => 'Verifying login link...';
+
+  @override
+  String get telegramBotLinkExpired => 'Login link expired';
+
+  @override
+  String get telegramBotLinkInvalid => 'Invalid login link';
+
+  @override
+  String get linkedAccounts => 'Linked Accounts';
+
+  @override
+  String get linkTelegram => 'Link Telegram';
+
+  @override
+  String get unlinkTelegram => 'Unlink Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram linked: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      'Are you sure you want to unlink Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'Cannot unlink — this is your only login method';
 }

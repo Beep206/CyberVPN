@@ -18,6 +18,7 @@ from src.application.services.oauth_state_service import OAuthStateService
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
@@ -337,6 +338,7 @@ async def oauth_login_callback(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> OAuthLoginResponse:
     """Process OAuth login callback and return JWT tokens (no authentication required).
 
@@ -391,6 +393,7 @@ async def oauth_login_callback(
         oauth_repo=oauth_repo,
         auth_service=auth_service,
         session=db,
+        remnawave_gateway=remnawave_adapter,
     )
 
     try:

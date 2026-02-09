@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -65,8 +66,11 @@ Widget _buildTestWidget({
     overrides: [
       profileProvider.overrideWith(() => notifier),
     ],
-    child: const MaterialApp(
-      home: SocialAccountsScreen(),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      home: const SocialAccountsScreen(),
     ),
   );
 }
@@ -182,6 +186,131 @@ void main() {
 
       // Verify dialog is dismissed
       expect(find.text('Unlink Telegram?'), findsNothing);
+    });
+
+    testWidgets('Telegram card is highlighted with neon cyan border',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: _testProfileNotLinked),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the Telegram provider card by its key
+      final telegramCard = find.byKey(const Key('provider_telegram'));
+      expect(telegramCard, findsOneWidget);
+
+      // Find the Card widget inside the Telegram provider card
+      final cardFinder = find.descendant(
+        of: telegramCard,
+        matching: find.byType(Card),
+      );
+      expect(cardFinder, findsOneWidget);
+
+      final cardWidget = tester.widget<Card>(cardFinder);
+      // Highlighted card should have a custom shape with border
+      expect(cardWidget.shape, isA<RoundedRectangleBorder>());
+      final shape = cardWidget.shape as RoundedRectangleBorder;
+      expect(shape.side.width, 1.5);
+    });
+
+    testWidgets('disables Unlink when Telegram is only login method (no email)',
+        (tester) async {
+      final telegramOnlyProfile = Profile(
+        id: 'user-1',
+        email: '',
+        username: 'testuser',
+        isEmailVerified: false,
+        is2FAEnabled: false,
+        linkedProviders: [OAuthProvider.telegram],
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: telegramOnlyProfile),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Unlink button exists but is disabled
+      final unlinkButton = find.byKey(const Key('unlink_telegram'));
+      expect(unlinkButton, findsOneWidget);
+
+      final button = tester.widget<OutlinedButton>(unlinkButton);
+      expect(button.onPressed, isNull);
+
+      // Verify warning message is shown
+      expect(
+        find.text('Cannot unlink — this is your only login method'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('enables Unlink when email is verified (alternative login)',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: _testProfileLinked),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Unlink button exists and is enabled
+      final unlinkButton = find.byKey(const Key('unlink_telegram'));
+      expect(unlinkButton, findsOneWidget);
+
+      final button = tester.widget<OutlinedButton>(unlinkButton);
+      expect(button.onPressed, isNotNull);
+
+      // No warning message
+      expect(
+        find.text('Cannot unlink — this is your only login method'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('enables Unlink when other providers are linked',
+        (tester) async {
+      final multiProviderProfile = Profile(
+        id: 'user-1',
+        email: '',
+        username: 'testuser',
+        isEmailVerified: false,
+        is2FAEnabled: false,
+        linkedProviders: [OAuthProvider.telegram, OAuthProvider.github],
+        createdAt: DateTime(2024, 1, 1),
+      );
+
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: multiProviderProfile),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Unlink button for Telegram is enabled
+      final unlinkButton = find.byKey(const Key('unlink_telegram'));
+      expect(unlinkButton, findsOneWidget);
+
+      final button = tester.widget<OutlinedButton>(unlinkButton);
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('Telegram and GitHub provider cards are visible at top',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: _testProfileNotLinked),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // First providers should be visible without scrolling
+      expect(find.text('Telegram'), findsOneWidget);
+      expect(find.text('GitHub'), findsOneWidget);
+      expect(find.text('Google'), findsOneWidget);
     });
   });
 }

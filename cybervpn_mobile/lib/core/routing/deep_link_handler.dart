@@ -73,6 +73,8 @@ String resolveDeepLinkPath(DeepLinkRoute route) {
           : '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
     TelegramAuthRoute(:final authData) =>
       '/telegram-auth?auth_data=$authData',
+    TelegramBotLinkRoute(:final token) =>
+      '/auth/telegram-link?token=$token',
     MagicLinkVerifyRoute(:final token) => '/magic-link/verify?token=$token',
   };
 }

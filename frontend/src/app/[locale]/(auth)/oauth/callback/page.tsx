@@ -42,8 +42,12 @@ export default function OAuthCallbackPage() {
                     return;
                 }
 
-                // Success - redirect to dashboard
-                router.push('/dashboard');
+                // Success - redirect to dashboard (with welcome flag for new users)
+                if (result.is_new_user) {
+                    router.push('/dashboard?welcome=true');
+                } else {
+                    router.push('/dashboard');
+                }
             } catch (err: unknown) {
                 const axiosError = err as { message?: string; response?: { data?: { detail?: string } } };
                 setError(

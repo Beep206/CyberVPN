@@ -4313,4 +4313,44 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get socialLoginComingSoon => '곧 출시';
+
+  @override
+  String get registerWithTelegram => 'Telegram으로 가입';
+
+  @override
+  String get registerWithTelegramHint => 'Telegram 계정으로 빠른 가입';
+
+  @override
+  String get loginWelcomeNewUser => 'CyberVPN에 오신 것을 환영합니다!';
+
+  @override
+  String get telegramBotLinkVerifying => 'Verifying login link...';
+
+  @override
+  String get telegramBotLinkExpired => 'Login link expired';
+
+  @override
+  String get telegramBotLinkInvalid => 'Invalid login link';
+
+  @override
+  String get linkedAccounts => 'Linked Accounts';
+
+  @override
+  String get linkTelegram => 'Link Telegram';
+
+  @override
+  String get unlinkTelegram => 'Unlink Telegram';
+
+  @override
+  String telegramLinked(String username) {
+    return 'Telegram linked: @$username';
+  }
+
+  @override
+  String get unlinkConfirmMessage =>
+      'Are you sure you want to unlink Telegram?';
+
+  @override
+  String get cantUnlinkOnlyMethod =>
+      'Cannot unlink — this is your only login method';
 }

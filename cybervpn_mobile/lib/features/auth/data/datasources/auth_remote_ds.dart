@@ -26,6 +26,7 @@ abstract class AuthRemoteDataSource {
     required String deviceId,
   });
   Future<UserModel> getCurrentUser();
+  Future<(UserModel, TokenModel)> loginWithBotLink({required String token});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -115,6 +116,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'refresh_token': refreshToken,
         'device_id': deviceId,
       },
+    );
+  }
+
+  @override
+  Future<(UserModel, TokenModel)> loginWithBotLink({
+    required String token,
+  }) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      ApiConstants.telegramBotLink,
+      data: {'token': token},
+    );
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw FormatException('Expected Map response, got ${data.runtimeType}');
+    }
+    return (
+      UserModel.fromJson(data['user'] as Map<String, dynamic>),
+      TokenModel.fromJson(data),
     );
   }
 

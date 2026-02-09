@@ -258,6 +258,27 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// Authenticate with a one-time Telegram bot login link token.
+  ///
+  /// Exchanges the token for JWT tokens via POST /auth/telegram/bot-link.
+  Future<void> loginWithBotLink(String token) async {
+    state = const AsyncValue.data(AuthLoading());
+    try {
+      final result = await _repo.loginWithBotLink(token: token);
+      switch (result) {
+        case Success(:final data):
+          final (user, _) = data;
+          state = AsyncValue.data(AuthAuthenticated(user));
+          _scheduleTokenRefresh();
+          _connectWebSocket();
+        case Failure(:final failure):
+          state = AsyncValue.data(AuthError(failure.message));
+      }
+    } catch (e) {
+      state = AsyncValue.data(AuthError(e.toString()));
+    }
+  }
+
   /// Re-check authentication status (e.g. after token refresh).
   Future<void> checkAuthStatus() async {
     state = const AsyncValue.data(AuthLoading());
