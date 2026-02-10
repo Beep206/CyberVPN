@@ -73,9 +73,7 @@ def create_telegram_auth_data(
 class TestTelegramAuthService:
     """Tests for TelegramAuthService."""
 
-    def test_validate_auth_data_success(
-        self, telegram_service: TelegramAuthService, bot_token: str
-    ) -> None:
+    def test_validate_auth_data_success(self, telegram_service: TelegramAuthService, bot_token: str) -> None:
         """Test successful validation of Telegram auth data."""
         auth_date = int(time.time())
         auth_data = create_telegram_auth_data(
@@ -93,9 +91,7 @@ class TestTelegramAuthService:
         assert result.username == "johndoe"
         assert not result.isExpired if hasattr(result, "isExpired") else True
 
-    def test_validate_auth_data_invalid_signature(
-        self, telegram_service: TelegramAuthService, bot_token: str
-    ) -> None:
+    def test_validate_auth_data_invalid_signature(self, telegram_service: TelegramAuthService, bot_token: str) -> None:
         """Test rejection of auth data with invalid signature."""
         data = {
             "id": 123456789,
@@ -108,9 +104,7 @@ class TestTelegramAuthService:
         with pytest.raises(InvalidTelegramAuthError, match="Invalid signature"):
             telegram_service.validate_auth_data(auth_data)
 
-    def test_validate_auth_data_expired(
-        self, telegram_service: TelegramAuthService, bot_token: str
-    ) -> None:
+    def test_validate_auth_data_expired(self, telegram_service: TelegramAuthService, bot_token: str) -> None:
         """Test rejection of auth data with expired auth_date."""
         # Create auth data from 25 hours ago (max is 24 hours)
         old_auth_date = int(time.time()) - (25 * 60 * 60)
@@ -124,9 +118,7 @@ class TestTelegramAuthService:
         with pytest.raises(TelegramAuthExpiredError):
             telegram_service.validate_auth_data(auth_data)
 
-    def test_validate_auth_data_missing_fields(
-        self, telegram_service: TelegramAuthService
-    ) -> None:
+    def test_validate_auth_data_missing_fields(self, telegram_service: TelegramAuthService) -> None:
         """Test rejection of auth data with missing required fields."""
         data = {"id": 123456789}  # Missing auth_date and hash
         auth_data = base64.b64encode(json.dumps(data).encode()).decode()
@@ -134,16 +126,12 @@ class TestTelegramAuthService:
         with pytest.raises(InvalidTelegramAuthError, match="Missing required fields"):
             telegram_service.validate_auth_data(auth_data)
 
-    def test_validate_auth_data_invalid_base64(
-        self, telegram_service: TelegramAuthService
-    ) -> None:
+    def test_validate_auth_data_invalid_base64(self, telegram_service: TelegramAuthService) -> None:
         """Test rejection of invalid base64 encoded data."""
         with pytest.raises(InvalidTelegramAuthError, match="Invalid auth data format"):
             telegram_service.validate_auth_data("not_valid_base64!!!")
 
-    def test_validate_auth_data_invalid_json(
-        self, telegram_service: TelegramAuthService
-    ) -> None:
+    def test_validate_auth_data_invalid_json(self, telegram_service: TelegramAuthService) -> None:
         """Test rejection of invalid JSON in auth data."""
         invalid_json = base64.b64encode(b"not json at all").decode()
 

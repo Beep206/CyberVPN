@@ -1,8 +1,9 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale } from '@/i18n/config';
 
-// i18n middleware
+const AUTH_COOKIE = 'access_token';
+
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
@@ -12,11 +13,25 @@ const intlMiddleware = createMiddleware({
 /**
  * Next.js 16 proxy function for routing.
  *
- * Auth is handled client-side via Zustand store (tokens in localStorage).
- * Dashboard layout uses AuthGuard component to check isAuthenticated
- * and redirect to login if needed.
+ * SEC-01: Auth uses httpOnly cookies. The proxy performs a fast-path cookie
+ * presence check on dashboard routes — this is NOT a security boundary.
+ * The backend remains the authority; AuthGuard is the client-side fallback.
  */
 export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Fast-path: redirect to login if accessing dashboard without auth cookie.
+  // Match /{locale}/(dashboard)/... or /{locale}/dashboard/...
+  const isDashboardRoute = /^\/[a-z]{2,3}(-[A-Z]{2})?(\/(dashboard|\(dashboard\)))/.test(pathname);
+
+  if (isDashboardRoute && !request.cookies.has(AUTH_COOKIE)) {
+    // Extract locale from path (first segment)
+    const locale = pathname.split('/')[1] || defaultLocale;
+    const redirectUrl = new URL(`/${locale}/login`, request.url);
+    redirectUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(redirectUrl, 307);
+  }
+
   return intlMiddleware(request);
 }
 
@@ -26,5 +41,4 @@ export const config = {
   ],
 };
 
-// Export default for backwards compatibility during migration
 export default proxy;

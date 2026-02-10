@@ -6,7 +6,6 @@ Uses AES-256-GCM for authenticated encryption.
 
 import base64
 import secrets
-from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -111,7 +110,7 @@ class EncryptionService:
 
 
 # Singleton instance (lazy initialization)
-_encryption_service: Optional[EncryptionService] = None
+_encryption_service: EncryptionService | None = None
 
 
 def get_encryption_service() -> EncryptionService:
@@ -134,7 +133,7 @@ def get_encryption_service() -> EncryptionService:
         if not key:
             raise ValueError(
                 "TOTP_ENCRYPTION_KEY not configured. "
-                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
         _encryption_service = EncryptionService(key)
 

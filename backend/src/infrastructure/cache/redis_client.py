@@ -6,7 +6,6 @@ import redis.asyncio as redis
 
 from src.config.settings import settings
 
-
 # Redis connection pool
 _redis_pool: redis.ConnectionPool | None = None
 
@@ -23,7 +22,7 @@ def get_redis_pool() -> redis.ConnectionPool:
     return _redis_pool
 
 
-async def get_redis() -> AsyncGenerator[redis.Redis, None]:
+async def get_redis() -> AsyncGenerator[redis.Redis]:
     """
     Dependency injection function for Redis client.
 

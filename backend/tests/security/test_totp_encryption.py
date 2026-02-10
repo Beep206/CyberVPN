@@ -8,8 +8,9 @@ Tests that:
 """
 
 import logging
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestTOTPKeyEnforcement:
@@ -25,13 +26,14 @@ class TestTOTPKeyEnforcement:
         mock_settings.totp_encryption_key = SecretStr("")
 
         with patch("src.main.settings", mock_settings):
-            from src.main import lifespan
             from fastapi import FastAPI
 
-            app = FastAPI()
+            from src.main import lifespan
+
+            _app = FastAPI()
 
             with pytest.raises(RuntimeError) as exc_info:
-                async with lifespan(app):
+                async with lifespan(_app):
                     pass
 
             assert "TOTP_ENCRYPTION_KEY is required in production" in str(exc_info.value)
@@ -48,10 +50,9 @@ class TestTOTPKeyEnforcement:
         with patch("src.main.settings", mock_settings):
             with patch("src.main.check_db_connection", return_value=True):
                 with patch("src.main.check_redis_connection", return_value=(True, None)):
-                    from src.main import lifespan
                     from fastapi import FastAPI
 
-                    app = FastAPI()
+                    _app = FastAPI()
 
                     # Should not raise - just verify it starts
                     # We can't fully test lifespan without mocking all dependencies
@@ -78,27 +79,31 @@ class TestTOTPKeySettingsValidator:
 
     def test_missing_totp_key_logs_warning(self, caplog):
         """Missing TOTP key logs a warning."""
-        from pydantic import SecretStr
-        from src.config.settings import Settings
 
         with caplog.at_level(logging.WARNING):
             # Create settings with empty TOTP key
             # This should trigger the warning validator
-            with patch.dict("os.environ", {
-                "REMNAWAVE_TOKEN": "test",
-                "JWT_SECRET": "test-secret",
-                "CRYPTOBOT_TOKEN": "test",
-                "TOTP_ENCRYPTION_KEY": "",
-            }):
+            with patch.dict(
+                "os.environ",
+                {
+                    "REMNAWAVE_TOKEN": "test",
+                    "JWT_SECRET": "test-secret",
+                    "CRYPTOBOT_TOKEN": "test",
+                    "TOTP_ENCRYPTION_KEY": "",
+                },
+            ):
                 # The validator should log a warning
                 pass  # Settings instantiation happens at module load
 
     def test_valid_totp_key_no_warning(self, caplog):
         """Valid TOTP key does not log a warning."""
         with caplog.at_level(logging.WARNING):
-            with patch.dict("os.environ", {
-                "TOTP_ENCRYPTION_KEY": "valid-32-char-key-for-testing!",
-            }):
+            with patch.dict(
+                "os.environ",
+                {
+                    "TOTP_ENCRYPTION_KEY": "valid-32-char-key-for-testing!",
+                },
+            ):
                 # No warning should be logged for valid key
                 pass
 
@@ -108,16 +113,16 @@ class TestTOTPEncryptionDecryption:
 
     def test_totp_encryption_roundtrip(self):
         """TOTP secret can be encrypted and decrypted."""
-        from pydantic import SecretStr
 
-        with patch.dict("os.environ", {
-            "TOTP_ENCRYPTION_KEY": "test-key-for-encryption-32chars!",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "TOTP_ENCRYPTION_KEY": "test-key-for-encryption-32chars!",
+            },
+        ):
             from src.infrastructure.totp.totp_encryption import TOTPEncryptionService
 
-            service = TOTPEncryptionService(
-                master_key="test-key-for-encryption-32chars!"
-            )
+            service = TOTPEncryptionService(master_key="test-key-for-encryption-32chars!")
 
             original_secret = "JBSWY3DPEHPK3PXP"
 

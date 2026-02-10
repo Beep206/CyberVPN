@@ -35,9 +35,7 @@ pytestmark = [
 FORGOT_PASSWORD_URL = "/api/v1/auth/forgot-password"
 RESET_PASSWORD_URL = "/api/v1/auth/reset-password"
 
-ANTI_ENUMERATION_MESSAGE = (
-    "If this email is registered, a password reset code has been sent."
-)
+ANTI_ENUMERATION_MESSAGE = "If this email is registered, a password reset code has been sent."
 
 # A strong password that satisfies all validation rules:
 # >= 12 chars, uppercase, lowercase, digit, special character

@@ -1,4 +1,5 @@
 """Manage servers use case."""
+
 from typing import Any
 from uuid import UUID
 
@@ -36,9 +37,7 @@ class ManageServersUseCase:
         """
         return await self.gateway.get_by_uuid(uuid)
 
-    async def create(
-        self, name: str, address: str, port: int, **kwargs: Any
-    ) -> Server:
+    async def create(self, name: str, address: str, port: int, **kwargs: Any) -> Server:
         """Create a new server.
 
         Args:
@@ -53,9 +52,7 @@ class ManageServersUseCase:
         Raises:
             Exception: If server creation fails
         """
-        return await self.gateway.create(
-            name=name, address=address, port=port, **kwargs
-        )
+        return await self.gateway.create(name=name, address=address, port=port, **kwargs)
 
     async def update(self, uuid: UUID, **kwargs: Any) -> Server:
         """Update a server.

@@ -6,7 +6,7 @@ Handles authentication of mobile app users with credential validation.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from src.application.dto.mobile_auth import (
@@ -83,7 +83,7 @@ class MobileLoginUseCase:
             device.app_version = request.device.app_version
             device.device_model = request.device.device_model
             device.push_token = request.device.push_token
-            device.last_active_at = datetime.now(timezone.utc)
+            device.last_active_at = datetime.now(UTC)
             await self.device_repo.update(device)
         else:
             # Register new device
@@ -96,12 +96,12 @@ class MobileLoginUseCase:
                 device_model=request.device.device_model,
                 push_token=request.device.push_token,
                 user_id=user.id,
-                last_active_at=datetime.now(timezone.utc),
+                last_active_at=datetime.now(UTC),
             )
             await self.device_repo.create(device)
 
         # Update last login timestamp
-        user.last_login_at = datetime.now(timezone.utc)
+        user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
 
         # Generate tokens

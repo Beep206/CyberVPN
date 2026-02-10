@@ -1,7 +1,5 @@
 """Bulk user action routes for VPN users."""
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.application.use_cases.auth.permissions import Permission
@@ -15,12 +13,12 @@ from src.presentation.dependencies.roles import require_permission
 router = APIRouter(prefix="/users/bulk", tags=["users"])
 
 
-@router.post("/disable", response_model=List[UserResponse])
+@router.post("/disable", response_model=list[UserResponse])
 async def bulk_disable_users(
     request: BulkUserActionRequest,
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
-) -> List[UserResponse]:
+) -> list[UserResponse]:
     """Disable multiple VPN user accounts."""
     try:
         gateway = RemnawaveUserGateway(client=client)
@@ -57,12 +55,12 @@ async def bulk_disable_users(
         )
 
 
-@router.post("/enable", response_model=List[UserResponse])
+@router.post("/enable", response_model=list[UserResponse])
 async def bulk_enable_users(
     request: BulkUserActionRequest,
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
-) -> List[UserResponse]:
+) -> list[UserResponse]:
     """Enable multiple VPN user accounts."""
     try:
         gateway = RemnawaveUserGateway(client=client)

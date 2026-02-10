@@ -48,9 +48,7 @@ class TestValidateToken:
             "jti": "jti-456",
         }
 
-        with patch(
-            "src.presentation.dependencies.auth.JWTRevocationService"
-        ) as mock_revocation_cls:
+        with patch("src.presentation.dependencies.auth.JWTRevocationService") as mock_revocation_cls:
             mock_revocation = AsyncMock()
             mock_revocation.is_revoked.return_value = False
             mock_revocation_cls.return_value = mock_revocation
@@ -69,9 +67,7 @@ class TestValidateToken:
             "jti": "revoked-jti",
         }
 
-        with patch(
-            "src.presentation.dependencies.auth.JWTRevocationService"
-        ) as mock_revocation_cls:
+        with patch("src.presentation.dependencies.auth.JWTRevocationService") as mock_revocation_cls:
             mock_revocation = AsyncMock()
             mock_revocation.is_revoked.return_value = True
             mock_revocation_cls.return_value = mock_revocation
@@ -119,9 +115,7 @@ class TestOptionalUserRevocation:
             "jti": "revoked-jti",
         }
 
-        with patch(
-            "src.presentation.dependencies.auth.JWTRevocationService"
-        ) as mock_revocation_cls:
+        with patch("src.presentation.dependencies.auth.JWTRevocationService") as mock_revocation_cls:
             mock_revocation = AsyncMock()
             mock_revocation.is_revoked.return_value = True
             mock_revocation_cls.return_value = mock_revocation

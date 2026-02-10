@@ -1,8 +1,9 @@
 import asyncio
-import time
-from typing import Any, Callable
-from functools import wraps
 import logging
+import time
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
 
 logger = logging.getLogger("cybervpn")
 

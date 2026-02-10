@@ -8,7 +8,7 @@ layer (5-min TTL) and graceful fallback when Remnawave is unavailable.
 import json
 import logging
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -91,7 +91,7 @@ class RemnawaveSubscriptionClient:
 
         # Override to EXPIRED if expire_at is in the past.
         if status == SubscriptionStatus.ACTIVE and user.expire_at:
-            if user.expire_at < datetime.now(timezone.utc):
+            if user.expire_at < datetime.now(UTC):
                 status = SubscriptionStatus.EXPIRED
 
         # Override to CANCELLED if subscription was explicitly revoked.

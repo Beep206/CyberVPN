@@ -5,10 +5,10 @@ new user creation), 2FA gating, token issuance, and error handling.
 """
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from src.application.use_cases.auth.oauth_login import OAuthLoginResult, OAuthLoginUseCase
 
@@ -623,6 +623,7 @@ class TestTelegramOAuthLogin:
             user.login = login
             user.email = email
             return user
+
         return _make
 
     @pytest.fixture

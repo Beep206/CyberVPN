@@ -1,4 +1,5 @@
 """Server statistics use case."""
+
 from src.domain.enums import ServerStatus
 from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 
@@ -22,18 +23,10 @@ class ServerStatsUseCase:
         """
         servers = await self.gateway.get_all()
 
-        online_count = sum(
-            1 for s in servers if s.status == ServerStatus.ONLINE
-        )
-        offline_count = sum(
-            1 for s in servers if s.status == ServerStatus.OFFLINE
-        )
-        maintenance_count = sum(
-            1 for s in servers if s.status == ServerStatus.MAINTENANCE
-        )
-        warning_count = sum(
-            1 for s in servers if s.status == ServerStatus.WARNING
-        )
+        online_count = sum(1 for s in servers if s.status == ServerStatus.ONLINE)
+        offline_count = sum(1 for s in servers if s.status == ServerStatus.OFFLINE)
+        maintenance_count = sum(1 for s in servers if s.status == ServerStatus.MAINTENANCE)
+        warning_count = sum(1 for s in servers if s.status == ServerStatus.WARNING)
 
         return {
             "total": len(servers),

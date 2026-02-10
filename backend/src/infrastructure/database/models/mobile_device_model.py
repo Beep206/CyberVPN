@@ -4,7 +4,7 @@ Stores device information for mobile app authentication and session management.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -75,7 +75,7 @@ class MobileDeviceModel(Base):
     # Timestamps
     registered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     last_active_at: Mapped[datetime | None] = mapped_column(

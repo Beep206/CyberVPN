@@ -8,7 +8,6 @@ Encrypts TOTP secrets at rest using AES-256-GCM:
 
 import base64
 import logging
-import os
 from typing import ClassVar
 
 from cryptography.fernet import Fernet
@@ -34,8 +33,7 @@ class TOTPEncryptionService:
         master_key = settings.totp_encryption_key.get_secret_value()
         if not master_key:
             logger.warning(
-                "TOTP_ENCRYPTION_KEY not set - secrets will not be encrypted. "
-                "Set TOTP_ENCRYPTION_KEY in production!"
+                "TOTP_ENCRYPTION_KEY not set - secrets will not be encrypted. Set TOTP_ENCRYPTION_KEY in production!"
             )
             self._fernet = None
         else:

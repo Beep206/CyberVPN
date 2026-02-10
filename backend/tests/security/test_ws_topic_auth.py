@@ -6,8 +6,6 @@ Tests that:
 3. Unknown topics are restricted to SUPER_ADMIN only
 """
 
-import pytest
-
 from src.application.services.ws_topic_authorization import WSTopicAuthorizationService
 from src.domain.enums.enums import AdminRole
 
@@ -24,8 +22,7 @@ class TestTopicPermissions:
         topics = ["servers", "users", "system", "payments", "general"]
 
         for topic in topics:
-            assert self.auth_service.can_subscribe(topic, AdminRole.SUPER_ADMIN), \
-                f"SUPER_ADMIN should access {topic}"
+            assert self.auth_service.can_subscribe(topic, AdminRole.SUPER_ADMIN), f"SUPER_ADMIN should access {topic}"
 
     def test_admin_can_access_admin_topics(self):
         """ADMIN can access servers, payments, general but not users or system."""
@@ -125,5 +122,4 @@ class TestGetAllowedTopics:
         allowed = self.auth_service.get_allowed_topics(AdminRole.VIEWER)
 
         assert "general" in allowed
-        assert len([t for t in allowed if t != "general"]) == 0 or \
-               all(t == "general" for t in allowed)
+        assert len([t for t in allowed if t != "general"]) == 0 or all(t == "general" for t in allowed)

@@ -4,10 +4,10 @@ Tests authorization URL generation (with PKCE and tenant), token exchange
 success/failure, and user info normalization from Microsoft Graph API.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 
 class TestMicrosoftOAuthProvider:

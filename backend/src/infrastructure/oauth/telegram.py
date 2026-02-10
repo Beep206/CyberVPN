@@ -189,9 +189,7 @@ class TelegramOAuthProvider:
             return None
 
         # Build data_check_string: sorted key=value pairs excluding "hash"
-        data_check_string = "\n".join(
-            f"{k}={v}" for k, v in sorted(params.items()) if k != "hash"
-        )
+        data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(params.items()) if k != "hash")
 
         # Secret key: HMAC-SHA256("WebAppData", bot_token)
         secret_key = hmac.new(

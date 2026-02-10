@@ -1,7 +1,6 @@
 """OtpCodeModel ORM model for email verification codes."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, func
@@ -73,7 +72,7 @@ class OtpCodeModel(Base):
         default=3,
     )
 
-    last_resend_at: Mapped[Optional[datetime]] = mapped_column(
+    last_resend_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -83,7 +82,7 @@ class OtpCodeModel(Base):
         nullable=False,
     )
 
-    verified_at: Mapped[Optional[datetime]] = mapped_column(
+    verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

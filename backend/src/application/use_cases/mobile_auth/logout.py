@@ -4,7 +4,7 @@ Handles logout and token revocation for mobile app users.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.application.dto.mobile_auth import LogoutRequestDTO
 from src.application.services.auth_service import AuthService
@@ -72,7 +72,7 @@ class MobileLogoutUseCase:
         else:
             # Just mark as inactive by clearing push token
             device.push_token = None
-            device.last_active_at = datetime.now(timezone.utc)
+            device.last_active_at = datetime.now(UTC)
             await self.device_repo.update(device)
 
         # Note: For a more complete implementation, we would store refresh tokens

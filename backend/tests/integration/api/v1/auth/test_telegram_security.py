@@ -8,7 +8,7 @@ import hmac
 import json
 import secrets
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from urllib.parse import quote, urlencode
 
 import pytest
@@ -18,7 +18,6 @@ from src.infrastructure.cache.bot_link_tokens import (
     generate_bot_link_token,
 )
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
-
 
 BOT_TOKEN = "7654321:AAHfVcYK-test-security-token"
 
@@ -166,7 +165,12 @@ class TestConstantTimeComparison:
 
         # Tampered hash (different first byte)
         import re
-        tampered = re.sub(r"hash=[0-9a-f]+", "hash=0000000000000000000000000000000000000000000000000000000000000000", valid_init_data)
+
+        tampered = re.sub(
+            r"hash=[0-9a-f]+",
+            "hash=0000000000000000000000000000000000000000000000000000000000000000",
+            valid_init_data,
+        )
         result = provider.validate_init_data(tampered)
         assert result is None
 

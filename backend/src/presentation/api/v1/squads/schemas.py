@@ -1,7 +1,5 @@
 """Squad API schemas for Remnawave proxy."""
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -20,16 +18,10 @@ class CreateSquadRequest(BaseModel):
     )
 
     name: str = Field(..., min_length=1, max_length=100, description="Squad name")
-    squad_type: str = Field(
-        ..., min_length=1, max_length=50, description="Squad type (internal/external)"
-    )
-    max_members: Optional[int] = Field(
-        None, ge=1, le=10_000, description="Maximum squad members"
-    )
+    squad_type: str = Field(..., min_length=1, max_length=50, description="Squad type (internal/external)")
+    max_members: int | None = Field(None, ge=1, le=10_000, description="Maximum squad members")
     is_active: bool = Field(True, description="Whether squad is active")
-    description: Optional[str] = Field(
-        None, max_length=500, description="Squad description"
-    )
+    description: str | None = Field(None, max_length=500, description="Squad description")
 
 
 class SquadResponse(BaseModel):
@@ -40,7 +32,7 @@ class SquadResponse(BaseModel):
     uuid: str = Field(..., description="Squad UUID")
     name: str = Field(..., max_length=100, description="Squad name")
     squad_type: str = Field(..., max_length=50, description="Squad type")
-    max_members: Optional[int] = Field(None, description="Maximum squad members")
+    max_members: int | None = Field(None, description="Maximum squad members")
     is_active: bool = Field(..., description="Whether squad is active")
-    description: Optional[str] = Field(None, max_length=500, description="Squad description")
-    member_count: Optional[int] = Field(None, description="Current member count")
+    description: str | None = Field(None, max_length=500, description="Squad description")
+    member_count: int | None = Field(None, description="Current member count")

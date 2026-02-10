@@ -1,7 +1,6 @@
 """ServerGeolocation ORM model for VPN server location data."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, DateTime, Numeric, String, func
@@ -27,7 +26,7 @@ class ServerGeolocation(Base):
 
     country_code: Mapped[str] = mapped_column(String(2), nullable=False)
 
-    city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     latitude: Mapped[float] = mapped_column(Numeric(10, 7), nullable=False)
 

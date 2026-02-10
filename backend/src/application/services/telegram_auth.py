@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TypedDict
 
 from src.config.settings import settings
@@ -95,8 +95,8 @@ class TelegramAuthService:
 
         # Check auth_date freshness
         auth_timestamp = auth_data["auth_date"]
-        auth_datetime = datetime.fromtimestamp(auth_timestamp, tz=timezone.utc)
-        now = datetime.now(timezone.utc)
+        auth_datetime = datetime.fromtimestamp(auth_timestamp, tz=UTC)
+        now = datetime.now(UTC)
         age_seconds = (now - auth_datetime).total_seconds()
 
         if age_seconds > self._max_age_seconds:

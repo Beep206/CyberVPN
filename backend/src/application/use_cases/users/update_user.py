@@ -1,4 +1,5 @@
 """Update user use case."""
+
 from typing import Any
 from uuid import UUID
 

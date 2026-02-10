@@ -11,9 +11,9 @@ Note on mocking redis.asyncio pipelines:
 """
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 
@@ -193,11 +193,13 @@ class TestMagicLinkServiceValidateAndConsume:
     async def test_validate_valid_token_returns_payload(self):
         """Valid token returns the stored payload dict."""
         # Arrange
-        payload = json.dumps({
-            "email": "test@example.com",
-            "ip_address": "10.0.0.1",
-            "created_at": "2026-01-15T10:00:00+00:00",
-        })
+        payload = json.dumps(
+            {
+                "email": "test@example.com",
+                "ip_address": "10.0.0.1",
+                "created_at": "2026-01-15T10:00:00+00:00",
+            }
+        )
         pipe = _make_pipeline(execute_return=[payload.encode(), 1])
         mock_redis = _make_redis(pipe)
 
@@ -227,7 +229,9 @@ class TestMagicLinkServiceValidateAndConsume:
     @pytest.mark.unit
     async def test_validate_consumes_token_atomically(self):
         """Token is deleted from Redis during validation (single-use)."""
-        payload = json.dumps({"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"})
+        payload = json.dumps(
+            {"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"}
+        )
         pipe = _make_pipeline(execute_return=[payload.encode(), 1])
         mock_redis = _make_redis(pipe)
 
@@ -254,7 +258,9 @@ class TestMagicLinkServiceValidateAndConsume:
     @pytest.mark.unit
     async def test_validate_returns_none_for_reused_token(self):
         """Second consumption of same token returns None (single-use enforcement)."""
-        payload = json.dumps({"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"})
+        payload = json.dumps(
+            {"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"}
+        )
 
         pipe1 = _make_pipeline(execute_return=[payload.encode(), 1])
         pipe2 = _make_pipeline(execute_return=[None, 0])

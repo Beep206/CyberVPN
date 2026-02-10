@@ -1,13 +1,12 @@
 """Unit tests for VerifyOtpUseCase."""
 
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.application.services.otp_service import OtpVerificationResult
-from src.application.use_cases.auth.verify_otp import VerifyOtpResult, VerifyOtpUseCase
+from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 
 
 @pytest.fixture
@@ -161,9 +160,7 @@ class TestVerifyOtpFailure:
         assert result.success is False
         assert result.error_code == "ALREADY_VERIFIED"
 
-    async def test_verify_otp_invalid_code(
-        self, verify_use_case, mock_user_repo, mock_otp_service, test_user
-    ):
+    async def test_verify_otp_invalid_code(self, verify_use_case, mock_user_repo, mock_otp_service, test_user):
         """Test verification fails with invalid code."""
         mock_user_repo.get_by_email.return_value = test_user
         mock_otp_service.validate_otp.return_value = OtpVerificationResult(
@@ -179,9 +176,7 @@ class TestVerifyOtpFailure:
         assert result.error_code == "OTP_INVALID"
         assert result.attempts_remaining == 4
 
-    async def test_verify_otp_expired(
-        self, verify_use_case, mock_user_repo, mock_otp_service, test_user
-    ):
+    async def test_verify_otp_expired(self, verify_use_case, mock_user_repo, mock_otp_service, test_user):
         """Test verification fails with expired code."""
         mock_user_repo.get_by_email.return_value = test_user
         mock_otp_service.validate_otp.return_value = OtpVerificationResult(
@@ -195,9 +190,7 @@ class TestVerifyOtpFailure:
         assert result.success is False
         assert result.error_code == "OTP_EXPIRED"
 
-    async def test_verify_otp_exhausted(
-        self, verify_use_case, mock_user_repo, mock_otp_service, test_user
-    ):
+    async def test_verify_otp_exhausted(self, verify_use_case, mock_user_repo, mock_otp_service, test_user):
         """Test verification fails when max attempts reached."""
         mock_user_repo.get_by_email.return_value = test_user
         mock_otp_service.validate_otp.return_value = OtpVerificationResult(

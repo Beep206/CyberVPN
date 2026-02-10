@@ -1,7 +1,6 @@
 """Payment and cryptocurrency invoice routes."""
 
 from dataclasses import asdict
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoiceUseCase
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
-from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
+from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.presentation.api.v1.payments.schemas import (
     CreateInvoiceRequest,
@@ -91,7 +90,7 @@ async def get_crypto_invoice(
 @router.get("/history", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     db: AsyncSession = Depends(get_db),
-    user_uuid: Optional[UUID] = Query(None, description="Filter by user UUID"),
+    user_uuid: UUID | None = Query(None, description="Filter by user UUID"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
     _: None = Depends(require_permission(Permission.PAYMENT_READ)),

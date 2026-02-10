@@ -41,6 +41,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/app/providers/theme-provider";
 import { AuthProvider } from "@/app/providers/auth-provider";
+import { QueryProvider } from "@/app/providers/query-provider";
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
 import { SkipNavLink } from "@/shared/ui/atoms/skip-nav-link";
@@ -74,12 +75,14 @@ export default async function RootLayout({
                 >
                     <NextIntlClientProvider locale={locale} messages={messages}>
                         <AuthProvider>
+                          <QueryProvider>
                             <SmoothScrollProvider>
                                 <SkipNavLink />
                                 <div className="relative z-10 h-full w-full">
                                     {children}
                                 </div>
                             </SmoothScrollProvider>
+                          </QueryProvider>
                         </AuthProvider>
                     </NextIntlClientProvider>
                     {/* Background scanline effect and glow can be global or part of specific layouts */}

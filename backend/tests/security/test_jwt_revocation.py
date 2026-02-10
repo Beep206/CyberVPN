@@ -7,9 +7,10 @@ Tests that:
 4. Revocation list uses appropriate TTL
 """
 
-import pytest
-from unittest.mock import AsyncMock
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
+
+import pytest
 
 
 class TestJTIClaims:

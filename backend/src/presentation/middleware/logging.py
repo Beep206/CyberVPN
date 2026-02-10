@@ -9,8 +9,8 @@ import time
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.config.settings import settings
-from src.shared.logging.sanitization import sanitize_url
 from src.presentation.middleware.request_id import get_request_id
+from src.shared.logging.sanitization import sanitize_url
 
 logger = logging.getLogger("cybervpn")
 

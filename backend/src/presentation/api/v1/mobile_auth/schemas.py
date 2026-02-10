@@ -388,8 +388,7 @@ class TelegramAuthRequest(BaseModel):
         ...,
         min_length=1,
         description=(
-            "Base64-encoded Telegram auth data. Contains: "
-            "id, first_name, username, photo_url, auth_date, hash"
+            "Base64-encoded Telegram auth data. Contains: id, first_name, username, photo_url, auth_date, hash"
         ),
     )
     device: DeviceInfo = Field(

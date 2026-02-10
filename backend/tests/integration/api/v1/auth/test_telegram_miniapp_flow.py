@@ -23,7 +23,6 @@ from src.application.use_cases.auth.telegram_miniapp import (
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 
-
 BOT_TOKEN = "7654321:AAHfVcYK-test-token-for-integration"
 
 

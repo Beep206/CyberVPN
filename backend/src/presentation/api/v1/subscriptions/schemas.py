@@ -1,6 +1,6 @@
 """Subscription template API schemas for Remnawave proxy."""
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,28 +21,22 @@ class CreateSubscriptionTemplateRequest(BaseModel):
     )
 
     name: str = Field(..., min_length=1, max_length=100, description="Template name")
-    template_type: str = Field(
-        ..., min_length=1, max_length=50, description="VPN client template type"
-    )
-    host_uuid: Optional[str] = Field(None, max_length=255, description="Host UUID")
-    inbound_tag: Optional[str] = Field(
-        None, max_length=100, description="Inbound tag"
-    )
-    flow: Optional[str] = Field(None, max_length=50, description="Flow control method")
-    config_data: Optional[dict[str, Any]] = Field(
-        None, description="Additional config data"
-    )
+    template_type: str = Field(..., min_length=1, max_length=50, description="VPN client template type")
+    host_uuid: str | None = Field(None, max_length=255, description="Host UUID")
+    inbound_tag: str | None = Field(None, max_length=100, description="Inbound tag")
+    flow: str | None = Field(None, max_length=50, description="Flow control method")
+    config_data: dict[str, Any] | None = Field(None, description="Additional config data")
 
 
 class UpdateSubscriptionTemplateRequest(BaseModel):
     """Request schema for updating a subscription template."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    template_type: Optional[str] = Field(None, min_length=1, max_length=50)
-    host_uuid: Optional[str] = Field(None, max_length=255)
-    inbound_tag: Optional[str] = Field(None, max_length=100)
-    flow: Optional[str] = Field(None, max_length=50)
-    config_data: Optional[dict[str, Any]] = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    template_type: str | None = Field(None, min_length=1, max_length=50)
+    host_uuid: str | None = Field(None, max_length=255)
+    inbound_tag: str | None = Field(None, max_length=100)
+    flow: str | None = Field(None, max_length=50)
+    config_data: dict[str, Any] | None = None
 
 
 class SubscriptionResponse(BaseModel):
@@ -53,10 +47,10 @@ class SubscriptionResponse(BaseModel):
     uuid: str = Field(..., description="Subscription UUID")
     name: str = Field(..., max_length=100, description="Template name")
     template_type: str = Field(..., max_length=50, description="Template type")
-    host_uuid: Optional[str] = Field(None, description="Host UUID")
-    inbound_tag: Optional[str] = Field(None, max_length=100, description="Inbound tag")
-    flow: Optional[str] = Field(None, max_length=50, description="Flow control method")
-    config_data: Optional[dict[str, Any]] = Field(None, description="Config data")
+    host_uuid: str | None = Field(None, description="Host UUID")
+    inbound_tag: str | None = Field(None, max_length=100, description="Inbound tag")
+    flow: str | None = Field(None, max_length=50, description="Flow control method")
+    config_data: dict[str, Any] | None = Field(None, description="Config data")
 
 
 class SubscriptionConfigResponse(BaseModel):
@@ -65,4 +59,4 @@ class SubscriptionConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     config: str = Field(..., description="Generated VPN configuration string")
-    subscription_url: Optional[str] = Field(None, max_length=5000, description="Subscription URL")
+    subscription_url: str | None = Field(None, max_length=5000, description="Subscription URL")

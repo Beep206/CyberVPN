@@ -4,10 +4,10 @@ Tests authorization URL generation, token exchange success/failure,
 user info normalization, and avatar URL construction.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 
 class TestDiscordOAuthProvider:

@@ -46,9 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # SEC-009: HSTS - only in production environment (not just debug check)
         if settings.environment == "production":
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains; preload"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
         # Content-Security-Policy
         csp_parts = [f"{key} {value}" for key, value in self.CSP_DIRECTIVES.items()]

@@ -98,9 +98,7 @@ class TelegramMiniAppUseCase:
             if existing:
                 login = f"{login}_{secrets.token_hex(3)}"
 
-            password_hash = await self._auth_service.hash_password(
-                secrets.token_urlsafe(32)
-            )
+            password_hash = await self._auth_service.hash_password(secrets.token_urlsafe(32))
             user = AdminUserModel(
                 login=login,
                 telegram_id=int(telegram_id),

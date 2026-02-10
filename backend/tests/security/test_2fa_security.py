@@ -7,8 +7,9 @@ Tests that:
 4. Rate limiting prevents brute force
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestReauthService:
@@ -69,7 +70,7 @@ class TestReauthService:
     @pytest.mark.asyncio
     async def test_require_reauth_raises_when_not_authenticated(self):
         """require_reauth raises exception when no token exists."""
-        from src.application.services.reauth_service import ReauthService, ReauthenticationRequired
+        from src.application.services.reauth_service import ReauthenticationRequired, ReauthService
 
         mock_redis = AsyncMock()
         mock_redis.get.return_value = None
@@ -105,6 +106,7 @@ class TestPendingTOTPService:
     async def test_verify_deletes_pending_on_success(self):
         """Successful verification deletes pending secret."""
         import json
+
         from src.application.services.pending_totp_service import PendingTOTPService
 
         mock_redis = AsyncMock()
@@ -123,6 +125,7 @@ class TestPendingTOTPService:
     async def test_verify_returns_none_on_failure(self):
         """Failed verification returns None."""
         import json
+
         from src.application.services.pending_totp_service import PendingTOTPService
 
         mock_redis = AsyncMock()

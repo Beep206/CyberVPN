@@ -10,35 +10,42 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.mobile_auth import (
     DeviceInfoDTO,
-    LogoutRequestDTO,
     LoginRequestDTO,
+    LogoutRequestDTO,
     Platform,
     RefreshTokenRequestDTO,
     RegisterRequestDTO,
     TelegramAuthRequestDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.cache_service import CacheService
 from src.application.services.telegram_auth import (
     InvalidTelegramAuthError,
     TelegramAuthExpiredError,
     TelegramAuthService,
 )
 from src.application.use_cases.mobile_auth.device import MobileDeviceRegistrationUseCase
-from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.application.use_cases.mobile_auth.login import MobileLoginUseCase
 from src.application.use_cases.mobile_auth.logout import MobileLogoutUseCase
 from src.application.use_cases.mobile_auth.me import MobileGetProfileUseCase
 from src.application.use_cases.mobile_auth.refresh import MobileRefreshUseCase
 from src.application.use_cases.mobile_auth.register import MobileRegisterUseCase
+from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.domain.exceptions import (
     DuplicateUsernameError,
     InvalidCredentialsError,
     InvalidTokenError,
     UserNotFoundError,
 )
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
+)
+from src.infrastructure.remnawave.client import remnawave_client
+from src.infrastructure.remnawave.subscription_client import (
+    CachedSubscriptionClient,
+    RemnawaveSubscriptionClient,
 )
 from src.presentation.api.v1.mobile_auth.schemas import (
     AuthResponse,
@@ -55,13 +62,6 @@ from src.presentation.api.v1.mobile_auth.schemas import (
     TokenResponse,
     UserResponse,
 )
-from src.application.services.cache_service import CacheService
-from src.infrastructure.cache.redis_client import get_redis
-from src.infrastructure.remnawave.client import remnawave_client
-from src.infrastructure.remnawave.subscription_client import (
-    CachedSubscriptionClient,
-    RemnawaveSubscriptionClient,
-)
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.mobile_rate_limit import (
@@ -77,6 +77,7 @@ async def _get_subscription_client(
     inner = RemnawaveSubscriptionClient(remnawave_client)
     cache = CacheService(redis_client)
     return CachedSubscriptionClient(inner=inner, cache=cache)
+
 
 router = APIRouter(prefix="/mobile/auth", tags=["mobile-auth"])
 

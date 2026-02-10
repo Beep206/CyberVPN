@@ -28,7 +28,7 @@ class SSEManager:
         for queue in self._subscribers[channel]:
             await queue.put(message)
 
-    async def create_stream(self, channel: str) -> AsyncGenerator[str, None]:
+    async def create_stream(self, channel: str) -> AsyncGenerator[str]:
         queue = self.subscribe(channel)
         try:
             while True:

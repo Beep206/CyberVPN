@@ -1,4 +1,5 @@
 """Alembic environment configuration for async SQLAlchemy migrations."""
+
 import asyncio
 from logging.config import fileConfig
 
@@ -19,17 +20,6 @@ if config.config_file_name is not None:
 
 # Add your model's MetaData object here for 'autogenerate' support
 # Import all SQLAlchemy models to ensure they're registered with MetaData
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from src.infrastructure.database.models.refresh_token_model import RefreshToken
-from src.infrastructure.database.models.payment_model import PaymentModel
-from src.infrastructure.database.models.audit_log_model import AuditLog
-from src.infrastructure.database.models.webhook_log_model import WebhookLog
-from src.infrastructure.database.models.oauth_account_model import OAuthAccount
-from src.infrastructure.database.models.notification_queue_model import NotificationQueue
-from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
-from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
-from src.infrastructure.database.models.mobile_user_model import MobileUserModel
-from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 
 # Import Base to get shared metadata
 from src.infrastructure.database.session import Base

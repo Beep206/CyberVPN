@@ -1,4 +1,5 @@
 """Get user use case."""
+
 from uuid import UUID
 
 from src.domain.entities.user import User

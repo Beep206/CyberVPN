@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useAuthStore } from '@/stores/auth-store';
-import { tokenStorage } from '@/lib/api/client';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -12,53 +11,49 @@ interface AuthGuardProps {
 
 /**
  * Client-side auth guard that redirects to login if not authenticated.
- * Checks localStorage for tokens and validates with the server.
+ * SEC-01: Auth is via httpOnly cookies — always attempt /auth/me to check session.
  */
 export function AuthGuard({ children }: AuthGuardProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { isAuthenticated, isLoading, fetchUser } = useAuthStore();
     const [isChecking, setIsChecking] = useState(true);
+    const fetchAttempted = useRef(false);
 
     useEffect(() => {
         const checkAuth = async () => {
-            // If already authenticated in store, we're good
             if (isAuthenticated) {
                 setIsChecking(false);
                 return;
             }
 
-            // Check if we have tokens in localStorage
-            if (!tokenStorage.hasTokens()) {
-                // No tokens - not authenticated
-                setIsChecking(false);
+            // Guard against double-fetch (AuthProvider may have already called fetchUser)
+            if (isLoading || fetchAttempted.current) {
                 return;
             }
 
-            // We have tokens but store says not authenticated
-            // Try to restore session by fetching user
+            fetchAttempted.current = true;
+
+            // SEC-01: httpOnly cookies are invisible to JS — always try /auth/me
             try {
                 await fetchUser();
             } catch {
-                // Failed to restore session - tokens might be expired
-                tokenStorage.clearTokens();
+                // Session invalid or expired — redirect will happen below
             }
 
             setIsChecking(false);
         };
 
         checkAuth();
-    }, [isAuthenticated, fetchUser]);
+    }, [isAuthenticated, isLoading, fetchUser]);
 
     useEffect(() => {
-        // After checking, if not authenticated, redirect to login
         if (!isChecking && !isLoading && !isAuthenticated) {
             const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
             router.push(redirectUrl);
         }
     }, [isChecking, isLoading, isAuthenticated, pathname, router]);
 
-    // Show loading while checking auth
     if (isChecking || isLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-terminal-bg">
@@ -72,7 +67,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
         );
     }
 
-    // Not authenticated - will redirect
     if (!isAuthenticated) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-terminal-bg">
@@ -86,6 +80,5 @@ export function AuthGuard({ children }: AuthGuardProps) {
         );
     }
 
-    // Authenticated - render children
     return <>{children}</>;
 }

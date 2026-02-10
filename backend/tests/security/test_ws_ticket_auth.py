@@ -6,8 +6,9 @@ Tests that:
 3. Ticket format is secure (cryptographically random)
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestWebSocketTicketService:
@@ -82,6 +83,7 @@ class TestTicketDataStructure:
     def test_ticket_data_dataclass(self):
         """TicketData dataclass works correctly."""
         from datetime import UTC, datetime
+
         from src.application.services.ws_ticket_service import TicketData
 
         data = TicketData(
@@ -103,8 +105,8 @@ class TestWSUserContext:
 
     def test_user_context_dataclass(self):
         """WSUserContext dataclass works correctly."""
-        from src.presentation.api.v1.ws.auth import WSUserContext
         from src.domain.enums.enums import AdminRole
+        from src.presentation.api.v1.ws.auth import WSUserContext
 
         ctx = WSUserContext(
             user_id="user-123",
@@ -118,8 +120,8 @@ class TestWSUserContext:
 
     def test_user_context_login_optional(self):
         """WSUserContext login field is optional."""
-        from src.presentation.api.v1.ws.auth import WSUserContext
         from src.domain.enums.enums import AdminRole
+        from src.presentation.api.v1.ws.auth import WSUserContext
 
         ctx = WSUserContext(
             user_id="user-123",

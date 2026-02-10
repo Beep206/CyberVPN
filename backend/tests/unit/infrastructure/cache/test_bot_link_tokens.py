@@ -1,9 +1,9 @@
 """Unit tests for bot link token Redis helpers."""
 
 import json
+from unittest.mock import AsyncMock
 
 import pytest
-from unittest.mock import AsyncMock
 
 from src.infrastructure.cache.bot_link_tokens import (
     consume_bot_link_token,

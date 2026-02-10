@@ -8,9 +8,9 @@ Tests that:
 import hashlib
 import hmac
 import time
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch
 
 
 class TestTelegramHMACValidation:
@@ -35,13 +35,9 @@ class TestTelegramHMACValidation:
             }
 
             # Calculate valid hash
-            data_check_string = "\n".join(
-                f"{k}={v}" for k, v in sorted(auth_data.items())
-            )
-            secret_key = hashlib.sha256("test_token".encode()).digest()
-            valid_hash = hmac.new(
-                secret_key, data_check_string.encode(), hashlib.sha256
-            ).hexdigest()
+            data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(auth_data.items()))
+            secret_key = hashlib.sha256(b"test_token").digest()
+            valid_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
             auth_data["hash"] = valid_hash
 

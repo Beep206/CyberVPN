@@ -5,11 +5,10 @@ token exchange, and user info normalization from Twitter API v2.
 """
 
 import base64
-
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 
 class TestTwitterOAuthProvider:

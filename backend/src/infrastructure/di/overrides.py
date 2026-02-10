@@ -18,7 +18,7 @@ from src.infrastructure.di.container import container
 
 
 @contextmanager
-def override_dependency(key: str, factory: Callable[..., Any]) -> Generator[None, None, None]:
+def override_dependency(key: str, factory: Callable[..., Any]) -> Generator[None]:
     """Context manager to temporarily override a DI dependency.
 
     Restores the original factory on exit.

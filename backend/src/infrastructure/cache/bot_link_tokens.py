@@ -31,11 +31,13 @@ async def generate_bot_link_token(
     """
     token = secrets.token_urlsafe(32)
     key = f"{_KEY_PREFIX}{token}"
-    value = json.dumps({
-        "telegram_id": telegram_id,
-        "created_at": int(time.time()),
-        "ip": ip,
-    })
+    value = json.dumps(
+        {
+            "telegram_id": telegram_id,
+            "created_at": int(time.time()),
+            "ip": ip,
+        }
+    )
 
     await redis_client.set(key, value, ex=_TOKEN_TTL_SECONDS)
 

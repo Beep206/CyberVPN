@@ -42,7 +42,7 @@ def test_settings():
 
 
 @pytest_asyncio.fixture
-async def async_client(test_settings) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(test_settings) -> AsyncGenerator[AsyncClient]:
     """
     Create an async HTTP client for testing the FastAPI application.
 

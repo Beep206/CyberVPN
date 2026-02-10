@@ -10,6 +10,7 @@ Creates mobile_users and mobile_devices tables for mobile app authentication.
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

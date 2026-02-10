@@ -1,10 +1,10 @@
 """Unit tests for TelegramMiniAppUseCase."""
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from src.application.use_cases.auth.telegram_miniapp import (
     TelegramMiniAppResult,
@@ -60,6 +60,7 @@ class TestTelegramMiniAppUseCase:
             user.created_at = datetime.now(UTC)
             user.totp_enabled = False
             return user
+
         return _make
 
     @pytest.fixture

@@ -1,6 +1,5 @@
 """Tests for rate limiter middleware with fail-closed behavior and circuit breaker (MED-1)."""
 
-import pytest
 import time
 
 from src.presentation.middleware.rate_limit import CircuitBreaker

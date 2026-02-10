@@ -35,9 +35,7 @@ class AccountLinkingUseCase:
 
     async def unlink_account(self, user_id: UUID, provider: str) -> None:
         result = await self._session.execute(
-            select(OAuthAccount).where(
-                OAuthAccount.user_id == user_id, OAuthAccount.provider == provider
-            )
+            select(OAuthAccount).where(OAuthAccount.user_id == user_id, OAuthAccount.provider == provider)
         )
         account = result.scalar_one_or_none()
         if account:
@@ -45,7 +43,5 @@ class AccountLinkingUseCase:
             await self._session.flush()
 
     async def get_linked_accounts(self, user_id: UUID) -> list[OAuthAccount]:
-        result = await self._session.execute(
-            select(OAuthAccount).where(OAuthAccount.user_id == user_id)
-        )
+        result = await self._session.execute(select(OAuthAccount).where(OAuthAccount.user_id == user_id))
         return list(result.scalars().all())

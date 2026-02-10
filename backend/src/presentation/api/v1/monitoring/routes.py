@@ -1,7 +1,7 @@
 """Monitoring and health check routes."""
 
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
@@ -14,7 +14,7 @@ from src.infrastructure.database.session import check_db_connection
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
-from .schemas import HealthResponse, StatsResponse, BandwidthResponse
+from .schemas import BandwidthResponse, HealthResponse, StatsResponse
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 async def health_check(
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Authenticated system health check endpoint."""
 
     async def db_check() -> None:
@@ -61,7 +61,7 @@ async def health_check(
 async def get_system_stats(
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get bandwidth statistics (authenticated)."""
     use_case = ServerBandwidthUseCase(client=client)
     stats = await use_case.execute()
@@ -85,7 +85,7 @@ async def get_bandwidth_analytics(
         description="Period for analytics: today, week, month",
     ),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get bandwidth analytics for a specific period (authenticated)."""
     use_case = BandwidthAnalyticsUseCase(client=client)
     stats = await use_case.execute(period=period)

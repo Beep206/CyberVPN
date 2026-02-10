@@ -1,7 +1,7 @@
 """Admin API schemas."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -13,14 +13,14 @@ class AuditLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    admin_id: Optional[UUID] = None
+    admin_id: UUID | None = None
     action: str
-    entity_type: Optional[str] = None
-    entity_id: Optional[str] = None
-    old_value: Optional[dict[str, Any]] = None
-    new_value: Optional[dict[str, Any]] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    entity_type: str | None = None
+    entity_id: str | None = None
+    old_value: dict[str, Any] | None = None
+    new_value: dict[str, Any] | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     created_at: datetime
 
 
@@ -31,11 +31,11 @@ class WebhookLogResponse(BaseModel):
 
     id: UUID
     source: str
-    event_type: Optional[str] = None
+    event_type: str | None = None
     payload: dict[str, Any]
-    is_valid: Optional[bool] = None
-    error_message: Optional[str] = None
-    processed_at: Optional[datetime] = None
+    is_valid: bool | None = None
+    error_message: str | None = None
+    processed_at: datetime | None = None
     created_at: datetime
 
 
@@ -47,5 +47,5 @@ class AdminSettingsResponse(BaseModel):
     id: UUID
     key: str
     value: Any
-    description: Optional[str] = None
+    description: str | None = None
     updated_at: datetime

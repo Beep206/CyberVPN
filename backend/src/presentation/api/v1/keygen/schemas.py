@@ -1,7 +1,5 @@
 """Keygen API schemas for Remnawave proxy."""
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -17,12 +15,8 @@ class SignPayloadRequest(BaseModel):
         }
     )
 
-    payload: str = Field(
-        ..., min_length=1, max_length=10_000, description="Payload to sign"
-    )
-    algorithm: Optional[str] = Field(
-        "RS256", max_length=20, description="Signing algorithm"
-    )
+    payload: str = Field(..., min_length=1, max_length=10_000, description="Payload to sign")
+    algorithm: str | None = Field("RS256", max_length=20, description="Signing algorithm")
 
 
 class PublicKeyResponse(BaseModel):

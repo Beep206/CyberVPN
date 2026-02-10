@@ -1,7 +1,8 @@
 """Tests for security headers middleware (MED-2)."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -33,6 +34,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_x_content_type_options(self, middleware, mock_request, mock_response):
         """X-Content-Type-Options header is set to nosniff."""
+
         async def call_next(_):
             return mock_response
 
@@ -42,6 +44,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_x_frame_options(self, middleware, mock_request, mock_response):
         """X-Frame-Options header is set to DENY."""
+
         async def call_next(_):
             return mock_response
 
@@ -51,6 +54,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_x_xss_protection(self, middleware, mock_request, mock_response):
         """X-XSS-Protection header is set correctly."""
+
         async def call_next(_):
             return mock_response
 
@@ -60,6 +64,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_referrer_policy(self, middleware, mock_request, mock_response):
         """Referrer-Policy header is set correctly."""
+
         async def call_next(_):
             return mock_response
 
@@ -69,6 +74,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_csp_header(self, middleware, mock_request, mock_response):
         """Content-Security-Policy header is set with required directives."""
+
         async def call_next(_):
             return mock_response
 
@@ -83,6 +89,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_permissions_policy(self, middleware, mock_request, mock_response):
         """Permissions-Policy header restricts dangerous features."""
+
         async def call_next(_):
             return mock_response
 
@@ -97,6 +104,7 @@ class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_adds_cache_control_if_missing(self, middleware, mock_request, mock_response):
         """Cache-Control header is added when not present."""
+
         async def call_next(_):
             return mock_response
 
