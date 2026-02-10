@@ -55,9 +55,13 @@
 /// **Future Endpoints (Pending Backend Implementation):**
 /// - /api/v1/auth/forgot-password ✅ Aligned
 /// - /api/v1/auth/reset-password ✅ Aligned
-/// - /api/v1/users/usage-stats
+/// - /api/v1/users/me/usage ✅ Aligned
+/// - /api/v1/trial/activate ✅ Aligned
+/// - /api/v1/trial/status ✅ Aligned
+/// - /api/v1/status ✅ Aligned
+/// - /api/v1/fcm/tokens ✅ Aligned
+/// - /api/v1/users/me/profile ✅ Aligned
 /// - /api/v1/payments/methods
-/// - /api/v1/trial/*
 ///
 class ApiConstants {
   const ApiConstants._();
@@ -235,17 +239,27 @@ class ApiConstants {
   /// Response: `{ "id": int, "login": string, "email": string, "role": string, ... }`
   static const String me = '$apiPrefix/auth/me';
 
-  /// **POST /api/v1/auth/me/fcm-token**
+  /// **POST /api/v1/fcm/tokens**
   ///
-  /// Backend: ❌ NOT IMPLEMENTED - Backend needs FCM token registration endpoint
+  /// Backend: `backend/src/presentation/api/v1/fcm/routes.py` - `/fcm/tokens`
   /// Auth: JWT (current authenticated user)
-  /// Status: ❌ Missing
+  /// Status: ✅ Aligned
   ///
   /// Registers FCM device token for push notifications.
-  /// Request: `{ "fcm_token": string, "platform": string, "os_version": string }`
-  /// Response: 204 No Content or `{ "status": "success" }`
-  /// TODO: Backend needs to implement FCM token registration endpoint
-  static const String registerFcmToken = '$apiPrefix/auth/me/fcm-token';
+  /// Request: `{ "token": string, "device_id": string, "platform": "android"|"ios" }`
+  /// Response: `{ "token": string, "device_id": string, "platform": string, "created_at": string }`
+  static const String registerFcmToken = '$apiPrefix/fcm/tokens';
+
+  /// **DELETE /api/v1/fcm/tokens**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/fcm/routes.py` - `/fcm/tokens`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Unregisters FCM device token on logout or notification disable.
+  /// Request: `{ "device_id": string }`
+  /// Response: 204 No Content
+  static const String deleteFcmToken = '$apiPrefix/fcm/tokens';
 
   /// **PATCH /api/v1/auth/me**
   ///
@@ -265,8 +279,35 @@ class ApiConstants {
   /// TODO: Backend needs to implement DELETE /auth/me for account deletion
   static const String deleteAccount = '$apiPrefix/auth/me';
 
-  // Future: usage-stats endpoint (backend task pending)
-  // TODO: Add /api/v1/users/usage-stats when backend implements it
+  /// **GET /api/v1/users/me/profile**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/profile/routes.py` - `/users/me/profile`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Returns current user's profile data.
+  /// Response: `{ "id": int, "login": string, "email": string, ... }`
+  static const String profile = '$apiPrefix/users/me/profile';
+
+  /// **PATCH /api/v1/users/me/profile**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/profile/routes.py` - `/users/me/profile`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Updates user profile fields.
+  /// Request: `{ "display_name"?: string, "avatar_url"?: string, "language"?: string, "timezone"?: string }`
+  static const String updateProfile = '$apiPrefix/users/me/profile';
+
+  /// **GET /api/v1/users/me/usage**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/usage/routes.py` - `/users/me/usage`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Returns VPN usage statistics for the current user.
+  /// Response: `{ "bandwidth_used_bytes": int, "bandwidth_limit_bytes": int, ... }`
+  static const String usage = '$apiPrefix/users/me/usage';
 
   // ── Referral Endpoints ──────────────────────────────────────────────
 
@@ -341,8 +382,27 @@ class ApiConstants {
   // Future: payment-methods endpoint (backend task pending)
   // TODO: Add /api/v1/payments/methods when backend implements it
 
-  // Future: trial endpoints (backend task pending)
-  // TODO: Add /api/v1/trial/* when backend implements trial functionality
+  // ── Trial Endpoints ──────────────────────────────────────────────────
+
+  /// **POST /api/v1/trial/activate**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/trial/routes.py` - `/trial/activate`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Activates a 7-day free trial for the current user.
+  /// Response: `{ "activated": bool, "trial_end": string, "message": string }`
+  static const String trialActivate = '$apiPrefix/trial/activate';
+
+  /// **GET /api/v1/trial/status**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/trial/routes.py` - `/trial/status`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  ///
+  /// Returns the user's trial status.
+  /// Response: `{ "is_trial_active": bool, "trial_start": string?, "trial_end": string?, "days_remaining": int, "is_eligible": bool }`
+  static const String trialStatus = '$apiPrefix/trial/status';
 
   // ── Two-Factor Authentication Endpoints ──────────────────────────────
 
@@ -449,6 +509,18 @@ class ApiConstants {
   /// Append the provider name at call site (e.g., "telegram", "github").
   /// Unlinks a social account from the current user.
   static const String oauthUnlink = '$apiPrefix/oauth/';
+
+  // ── Status Endpoint ─────────────────────────────────────────────────
+
+  /// **GET /api/v1/status**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/status/routes.py` - `/status`
+  /// Auth: None (public endpoint)
+  /// Status: ✅ Aligned
+  ///
+  /// Returns API status, version, and service health.
+  /// Response: `{ "status": "ok", "version": string, "timestamp": string, "services": { ... } }`
+  static const String status = '$apiPrefix/status';
 
   // ── Monitoring Endpoints ─────────────────────────────────────────────
 
@@ -621,9 +693,16 @@ class ApiConstants {
   //
   // **Planned Backend Endpoints (Not yet implemented):**
   //
-  // - /api/v1/users/usage-stats - User traffic and usage statistics
   // - /api/v1/payments/methods - Payment method management
-  // - /api/v1/trial/* - Trial subscription endpoints
+  //
+  // **Recently Implemented Backend Endpoints:**
+  //
+  // - /api/v1/status - ✅ Public API status check
+  // - /api/v1/fcm/tokens - ✅ FCM token registration (POST) and deletion (DELETE)
+  // - /api/v1/users/me/profile - ✅ User profile GET and PATCH
+  // - /api/v1/users/me/usage - ✅ VPN usage statistics
+  // - /api/v1/trial/activate - ✅ Trial activation
+  // - /api/v1/trial/status - ✅ Trial status check
   //
   // ══════════════════════════════════════════════════════════════════════
 

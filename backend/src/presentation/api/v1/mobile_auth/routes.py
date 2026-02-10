@@ -55,12 +55,28 @@ from src.presentation.api.v1.mobile_auth.schemas import (
     TokenResponse,
     UserResponse,
 )
+from src.application.services.cache_service import CacheService
+from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.remnawave.client import remnawave_client
+from src.infrastructure.remnawave.subscription_client import (
+    CachedSubscriptionClient,
+    RemnawaveSubscriptionClient,
+)
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.mobile_rate_limit import (
     LoginRateLimit,
     RegisterRateLimit,
 )
+
+
+async def _get_subscription_client(
+    redis_client=Depends(get_redis),
+) -> CachedSubscriptionClient:
+    """Dependency for CachedSubscriptionClient."""
+    inner = RemnawaveSubscriptionClient(remnawave_client)
+    cache = CacheService(redis_client)
+    return CachedSubscriptionClient(inner=inner, cache=cache)
 
 router = APIRouter(prefix="/mobile/auth", tags=["mobile-auth"])
 
@@ -215,6 +231,7 @@ async def login(
     request: LoginRequest,
     _rate_limit: LoginRateLimit,
     db: AsyncSession = Depends(get_db),
+    sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
 ) -> AuthResponse:
     """Authenticate a mobile app user.
 
@@ -231,6 +248,7 @@ async def login(
         user_repo=user_repo,
         device_repo=device_repo,
         auth_service=auth_service,
+        subscription_client=sub_client,
     )
 
     try:
@@ -360,6 +378,7 @@ async def logout(
 async def get_me(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
+    sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
 ) -> UserResponse:
     """Get current user profile.
 
@@ -371,7 +390,7 @@ async def get_me(
     """
     user_repo = MobileUserRepository(db)
 
-    use_case = MobileGetProfileUseCase(user_repo=user_repo)
+    use_case = MobileGetProfileUseCase(user_repo=user_repo, subscription_client=sub_client)
 
     try:
         result = await use_case.execute(user_id)
@@ -457,6 +476,7 @@ async def register_device(
 async def telegram_callback(
     request: TelegramAuthRequest,
     db: AsyncSession = Depends(get_db),
+    sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
 ) -> AuthResponse:
     """Authenticate via Telegram Login Widget.
 
@@ -477,6 +497,7 @@ async def telegram_callback(
         device_repo=device_repo,
         auth_service=auth_service,
         telegram_auth_service=telegram_auth_service,
+        subscription_client=sub_client,
     )
 
     try:

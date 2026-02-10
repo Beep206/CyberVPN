@@ -4,17 +4,10 @@ import { motion } from "motion/react";
 import { ServerStatusDot } from "@/shared/ui/atoms/server-status-dot";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import type { Server } from "@/entities/server/model/types";
 
 interface ServerCardProps {
-    server: {
-        id: string;
-        name: string;
-        location: string;
-        status: 'online' | 'offline' | 'warning' | 'maintenance';
-        ip: string;
-        load: number;
-        protocol: 'wireguard' | 'vless' | 'xhttp';
-    };
+    server: Pick<Server, 'id' | 'name' | 'location' | 'status' | 'ip' | 'load' | 'protocol'>;
     index: number;
 }
 

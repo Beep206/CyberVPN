@@ -3,8 +3,11 @@
 Handles Telegram Login Widget callback validation and user creation/linking.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from src.application.dto.mobile_auth import (
     AuthResponseDTO,
@@ -25,6 +28,9 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileUserRepository,
 )
 
+if TYPE_CHECKING:
+    from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient
+
 
 @dataclass
 class MobileTelegramAuthUseCase:
@@ -38,6 +44,7 @@ class MobileTelegramAuthUseCase:
     device_repo: MobileDeviceRepository
     auth_service: AuthService
     telegram_auth_service: TelegramAuthService
+    subscription_client: CachedSubscriptionClient | None = None
 
     async def execute(self, request: TelegramAuthRequestDTO) -> tuple[AuthResponseDTO, bool]:
         """Authenticate a user via Telegram OAuth.
@@ -93,10 +100,11 @@ class MobileTelegramAuthUseCase:
             expires_in=settings.access_token_expire_minutes * 60,
         )
 
-        subscription = SubscriptionInfoDTO(
-            status=SubscriptionStatus.NONE,
-            # TODO: Fetch actual subscription from Remnawave
-        )
+        # Fetch subscription from Remnawave (cached, with fallback to NONE).
+        if self.subscription_client and user.remnawave_uuid:
+            subscription = await self.subscription_client.get_subscription(user.remnawave_uuid)
+        else:
+            subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 
         user_response = UserResponseDTO(
             id=user.id,

@@ -3,7 +3,10 @@
 Handles fetching current user profile for mobile app users.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from src.application.dto.mobile_auth import (
@@ -14,6 +17,9 @@ from src.application.dto.mobile_auth import (
 from src.domain.exceptions import UserNotFoundError
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 
+if TYPE_CHECKING:
+    from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient
+
 
 @dataclass
 class MobileGetProfileUseCase:
@@ -23,6 +29,7 @@ class MobileGetProfileUseCase:
     """
 
     user_repo: MobileUserRepository
+    subscription_client: CachedSubscriptionClient | None = None
 
     async def execute(self, user_id: UUID) -> UserResponseDTO:
         """Get user profile.
@@ -43,11 +50,11 @@ class MobileGetProfileUseCase:
         if not user.is_active:
             raise UserNotFoundError(identifier=str(user_id))
 
-        # Build subscription info
-        # TODO: Fetch actual subscription from Remnawave
-        subscription = SubscriptionInfoDTO(
-            status=SubscriptionStatus.NONE,
-        )
+        # Fetch subscription from Remnawave (cached, with fallback to NONE).
+        if self.subscription_client and user.remnawave_uuid:
+            subscription = await self.subscription_client.get_subscription(user.remnawave_uuid)
+        else:
+            subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 
         return UserResponseDTO(
             id=user.id,

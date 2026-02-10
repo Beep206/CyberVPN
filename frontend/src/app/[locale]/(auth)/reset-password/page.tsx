@@ -106,6 +106,8 @@ export default function ResetPasswordPage() {
                 subtitle={t('successMessage')}
             >
                 <motion.div
+                    aria-live="assertive"
+                    aria-atomic="true"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center gap-4 py-6"
@@ -150,21 +152,23 @@ export default function ResetPasswordPage() {
             <RateLimitCountdown />
 
             {/* Error message */}
-            {error && !isRateLimited && (
-                <motion.div
-                    ref={errorRef}
-                    role="alert"
-                    tabIndex={-1}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                >
-                    <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span>{error}</span>
-                </motion.div>
-            )}
+            <div aria-live="polite" aria-atomic="true">
+                {error && !isRateLimited && (
+                    <motion.div
+                        ref={errorRef}
+                        role="alert"
+                        tabIndex={-1}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                        <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span>{error}</span>
+                    </motion.div>
+                )}
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isLoading}>
                 {/* Email input */}
                 <CyberInput
                     label={t('emailLabel')}

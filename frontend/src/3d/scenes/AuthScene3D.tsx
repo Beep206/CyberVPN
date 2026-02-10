@@ -1,6 +1,8 @@
 'use client';
 
 import * as THREE from 'three';
+
+const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail } from '@react-three/drei';
@@ -319,7 +321,7 @@ function AuthSceneContent() {
                 />
                 <Vignette eskil={false} offset={0.1} darkness={0.8} />
                 <ChromaticAberration
-                    offset={new THREE.Vector2(0.001, 0.001)}
+                    offset={AUTH_CHROMATIC_OFFSET}
                     radialModulation={false}
                     modulationOffset={0}
                 />

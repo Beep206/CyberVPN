@@ -52,12 +52,13 @@ export function RateLimitCountdown() {
     : String(secondsRemaining);
 
   return (
-    <div className="flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-400">
+    <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-400">
       <svg
         className="h-5 w-5 animate-pulse"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
+        aria-hidden="true"
       >
         <path
           strokeLinecap="round"

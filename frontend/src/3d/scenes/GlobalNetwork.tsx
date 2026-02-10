@@ -1,6 +1,8 @@
 'use client';
 
 import * as THREE from 'three';
+
+const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
@@ -392,7 +394,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} />
                     <Noise opacity={0.05} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
-                    <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} radialModulation={false} modulationOffset={0} />
+                    <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />
                 </EffectComposer>
             </Canvas>
         </div>

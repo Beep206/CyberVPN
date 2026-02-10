@@ -72,12 +72,16 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor - add Authorization header
+// Request interceptor - add Authorization header and X-Request-ID
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Add X-Request-ID for request correlation (DX-02)
+    if (config.headers) {
+      config.headers['X-Request-ID'] = crypto.randomUUID();
     }
     return config;
   },

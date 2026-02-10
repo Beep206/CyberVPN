@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-
-type ServerStatus = 'online' | 'offline' | 'warning' | 'maintenance';
+import type { ServerStatus } from "@/entities/server/model/types";
 
 interface ServerStatusDotProps {
     status: ServerStatus;

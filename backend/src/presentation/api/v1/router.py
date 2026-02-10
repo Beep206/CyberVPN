@@ -6,6 +6,7 @@ from src.presentation.api.v1.mobile_auth.routes import router as mobile_auth_rou
 from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.two_factor.routes import router as two_factor_router
 from src.presentation.api.v1.users.routes import router as users_router
+from src.presentation.api.v1.profile.routes import router as profile_router
 from src.presentation.api.v1.servers.routes import router as servers_router
 from src.presentation.api.v1.monitoring.routes import router as monitoring_router
 from src.presentation.api.v1.payments.routes import router as payments_router
@@ -25,6 +26,9 @@ from src.presentation.api.v1.keygen.routes import router as keygen_router
 from src.presentation.api.v1.xray.routes import router as xray_router
 from src.presentation.api.v1.settings.routes import router as settings_router
 from src.presentation.api.v1.status.routes import router as status_router
+from src.presentation.api.v1.usage.routes import router as usage_router
+from src.presentation.api.v1.trial.routes import router as trial_router
+from src.presentation.api.v1.fcm.routes import router as fcm_router
 from src.presentation.api.v1.ws.monitoring import router as ws_monitoring_router
 from src.presentation.api.v1.ws.notifications import router as ws_notifications_router
 from src.presentation.api.v1.ws.tickets import router as ws_tickets_router
@@ -40,9 +44,12 @@ api_router.include_router(two_factor_router)
 
 # Core resources
 api_router.include_router(users_router)
+api_router.include_router(profile_router)
 api_router.include_router(servers_router)
 api_router.include_router(subscriptions_router)
 api_router.include_router(plans_router)
+api_router.include_router(usage_router)
+api_router.include_router(trial_router)
 
 # Payments & billing
 api_router.include_router(payments_router)
@@ -57,6 +64,9 @@ api_router.include_router(invites_router)
 # Webhooks & integrations
 api_router.include_router(webhooks_router)
 api_router.include_router(telegram_router)
+
+# Push notifications
+api_router.include_router(fcm_router)
 
 # VPN management
 api_router.include_router(hosts_router)

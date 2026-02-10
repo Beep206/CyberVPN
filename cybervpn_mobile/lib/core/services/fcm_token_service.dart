@@ -92,8 +92,8 @@ class FcmTokenService {
       // Send to backend
       await _sendTokenToBackend(
         token: token,
+        deviceId: deviceInfo['device_id'] as String,
         platform: deviceInfo['platform'] as String,
-        osVersion: deviceInfo['os_version'] as String,
       );
 
       // Clear pending token on success.
@@ -118,7 +118,7 @@ class FcmTokenService {
 
   /// Collects device metadata for FCM token registration.
   ///
-  /// Returns a map with `platform` (android/ios) and `os_version`.
+  /// Returns a map with `platform` (android/ios) and `device_id`.
   Future<Map<String, String>> _getDeviceInfo() async {
     final deviceInfoPlugin = DeviceInfoPlugin();
 
@@ -126,20 +126,20 @@ class FcmTokenService {
       final androidInfo = await deviceInfoPlugin.androidInfo;
       return {
         'platform': 'android',
-        'os_version': 'Android ${androidInfo.version.release} (SDK ${androidInfo.version.sdkInt})',
+        'device_id': androidInfo.id,
       };
     } else if (Platform.isIOS) {
       final iosInfo = await deviceInfoPlugin.iosInfo;
       return {
         'platform': 'ios',
-        'os_version': 'iOS ${iosInfo.systemVersion}',
+        'device_id': iosInfo.identifierForVendor ?? 'unknown',
       };
     }
 
     // Fallback for unsupported platforms
     return {
       'platform': Platform.operatingSystem,
-      'os_version': Platform.operatingSystemVersion,
+      'device_id': 'unknown',
     };
   }
 
@@ -148,13 +148,13 @@ class FcmTokenService {
   /// Throws on network errors or server errors.
   Future<void> _sendTokenToBackend({
     required String token,
+    required String deviceId,
     required String platform,
-    required String osVersion,
   }) async {
     final payload = {
-      'fcm_token': token,
+      'token': token,
+      'device_id': deviceId,
       'platform': platform,
-      'os_version': osVersion,
     };
 
     AppLogger.debug(
@@ -162,12 +162,11 @@ class FcmTokenService {
       category: 'fcm_token_service',
       data: {
         'token_prefix': token.length >= 8 ? '${token.substring(0, 8)}...' : '(short)',
+        'device_id': deviceId,
         'platform': platform,
-        'os_version': osVersion,
       },
     );
 
-    // POST to backend endpoint (will return 404 until backend implements it)
     await _apiClient.post<void>(
       ApiConstants.registerFcmToken,
       data: payload,

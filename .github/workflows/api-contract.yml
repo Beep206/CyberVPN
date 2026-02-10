@@ -1,0 +1,101 @@
+name: API Contract Validation
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'scripts/check-api-contract.sh'
+      - '.github/workflows/api-contract.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'scripts/check-api-contract.sh'
+      - '.github/workflows/api-contract.yml'
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-check:
+    name: Check for Breaking API Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install --no-cache-dir -e .
+
+      - name: Run API contract check
+        id: contract
+        run: |
+          set +e
+          bash scripts/check-api-contract.sh --verbose 2>&1 | tee /tmp/contract-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=${EXIT_CODE}" >> "$GITHUB_OUTPUT"
+          exit ${EXIT_CODE}
+
+      - name: Post PR comment on breaking changes
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CONTRACT_OUTPUT="$(cat /tmp/contract-output.txt 2>/dev/null || echo 'No output captured.')"
+          python3 -c "
+          import sys, textwrap
+          output = sys.stdin.read()
+          body = textwrap.dedent('''
+          ## API Contract Validation Failed
+
+          Breaking API changes were detected in this pull request.
+          Existing API consumers (admin dashboard, mobile app) may break.
+
+          \`\`\`
+          {output}
+          \`\`\`
+
+          ### How to fix
+
+          - **If the change is unintentional:** revert the breaking changes in your backend code.
+          - **If the change is intentional:** regenerate and commit the updated spec:
+            \`\`\`bash
+            cd backend && python scripts/export_openapi.py
+            git add docs/api/openapi.json
+            \`\`\`
+
+          > This check compares the committed \`backend/docs/api/openapi.json\`
+          > against a freshly generated spec from the FastAPI application.
+          ''').strip().format(output=output)
+          with open('/tmp/pr-comment.md', 'w') as f:
+              f.write(body)
+          " <<< "${CONTRACT_OUTPUT}"
+          EXISTING_COMMENT_ID=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("## API Contract Validation")) | .id' \
+            2>/dev/null | head -n1)
+          if [ -n "${EXISTING_COMMENT_ID}" ]; then
+            gh api \
+              --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING_COMMENT_ID}" \
+              -F body=@/tmp/pr-comment.md
+          else
+            gh pr comment "${PR_NUMBER}" --body-file /tmp/pr-comment.md
+          fi

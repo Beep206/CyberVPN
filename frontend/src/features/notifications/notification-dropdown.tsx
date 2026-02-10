@@ -82,7 +82,8 @@ export function NotificationDropdown() {
                 {unreadCount > 0 && (
                     <span
                         className="absolute top-2 right-2 h-2 w-2 rounded-full bg-neon-pink shadow-[0_0_8px_#ff00ff]"
-                        aria-hidden="true"
+                        aria-label={`${unreadCount} unread notifications`}
+                        role="status"
                     />
                 )}
             </Button>
@@ -93,6 +94,7 @@ export function NotificationDropdown() {
                         id="notification-panel"
                         role="region"
                         aria-label="Notifications"
+                        aria-live="polite"
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}

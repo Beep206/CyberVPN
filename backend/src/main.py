@@ -132,6 +132,7 @@ tags_metadata = [
     {"name": "two-factor", "description": "Two-factor authentication management"},
     {"name": "oauth", "description": "OAuth social account linking"},
     {"name": "users", "description": "User CRUD operations"},
+    {"name": "profile", "description": "Authenticated user profile management"},
     {"name": "servers", "description": "VPN server management"},
     {"name": "status", "description": "Public API status (unauthenticated)"},
     {"name": "monitoring", "description": "System health, stats, bandwidth"},
@@ -150,6 +151,7 @@ tags_metadata = [
     {"name": "admin", "description": "Audit logs, webhook logs"},
     {"name": "webhooks", "description": "External webhook receivers"},
     {"name": "telegram", "description": "Telegram bot integration"},
+    {"name": "fcm", "description": "FCM push-notification token management"},
     {"name": "websocket", "description": "Real-time WebSocket channels"},
 ]
 

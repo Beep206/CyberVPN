@@ -29,7 +29,7 @@ export default async function Dashboard({
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section aria-label={t('serverStatus')} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="cyber-card p-6 rounded-xl">
                     <h2 className="text-xl font-mono text-neon-pink mb-2">{t('serverStatus')}</h2>
                     <div className="text-4xl font-display text-server-online drop-shadow-glow">
@@ -47,7 +47,7 @@ export default async function Dashboard({
                     <div className="text-4xl font-display text-matrix-green drop-shadow-glow">42 Pb/s</div>
                     <p className="text-sm text-muted-foreground mt-2">{t('aggregateThroughput')}</p>
                 </div>
-            </div>
+            </section>
 
             <h2 className="text-2xl font-display text-neon-purple mt-12 mb-6 pl-2 border-l-4 border-neon-purple">{t('serverMatrix')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

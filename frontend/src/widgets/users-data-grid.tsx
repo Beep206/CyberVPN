@@ -22,7 +22,9 @@ const statusStyles: Record<UserStatus, string> = {
     active: "text-matrix-green border-matrix-green",
     expired: "text-muted-foreground border-muted-foreground",
     banned: "text-server-offline border-server-offline",
-    trial: "text-neon-cyan border-neon-cyan"
+    trial: "text-neon-cyan border-neon-cyan",
+    disabled: "text-muted-foreground border-muted-foreground",
+    limited: "text-server-warning border-server-warning",
 };
 
 const mockUsers: User[] = [
@@ -42,7 +44,9 @@ export function UsersDataGrid() {
             active: t('status.active'),
             expired: t('status.expired'),
             banned: t('status.banned'),
-            trial: t('status.trial')
+            trial: t('status.trial'),
+            disabled: t('status.disabled'),
+            limited: t('status.limited'),
         };
 
         return [
