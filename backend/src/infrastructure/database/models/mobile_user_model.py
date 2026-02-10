@@ -8,7 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Boolean, DateTime, String, Uuid
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
@@ -70,6 +70,31 @@ class MobileUserModel(Base):
     )
     subscription_url: Mapped[str | None] = mapped_column(
         String(512),
+        nullable=True,
+    )
+
+    # Referral & Partner system
+    referral_code: Mapped[str | None] = mapped_column(
+        String(12),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+    referred_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    partner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    is_partner: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    partner_promoted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
 
