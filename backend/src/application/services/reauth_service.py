@@ -103,9 +103,7 @@ class ReauthService:
             ReauthenticationRequired: If user has not recently re-authenticated
         """
         if not await self.is_recently_authenticated(user_id):
-            raise ReauthenticationRequired(
-                "Password re-authentication required for this operation."
-            )
+            raise ReauthenticationRequired("Password re-authentication required for this operation.")
 
     async def invalidate(self, user_id: str) -> None:
         """Invalidate re-authentication token.

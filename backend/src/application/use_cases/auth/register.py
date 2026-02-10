@@ -125,7 +125,7 @@ class RegisterUseCase:
                     is_resend=False,
                 )
                 otp_sent = True
-            except Exception:
+            except Exception:  # noqa: S110
                 # Log but don't fail registration
                 # User can request resend
                 pass

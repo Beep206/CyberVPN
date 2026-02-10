@@ -4,36 +4,46 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.entities.user import User
 from src.domain.entities.server import Server
-from src.domain.entities.payment import Payment
-from src.domain.entities.subscription import SubscriptionTemplate, SubscriptionConfig
-from src.domain.entities.subscription_plan import SubscriptionPlan
+from src.domain.entities.user import User
 from src.domain.enums import (
-    AdminRole, PaymentProvider, PaymentStatus, PlanTier, ServerStatus, TemplateType, UserStatus,
+    AdminRole,
+    PaymentStatus,
+    ServerStatus,
+    UserStatus,
+)
+from src.domain.exceptions import (
+    DomainError,
+    InvalidCredentialsError,
+    UserNotFoundError,
 )
 from src.domain.value_objects.email import Email
+from src.domain.value_objects.geolocation import Geolocation
 from src.domain.value_objects.money import Money
 from src.domain.value_objects.traffic import Traffic
-from src.domain.value_objects.geolocation import Geolocation
-from src.domain.exceptions import (
-    DomainError, UserNotFoundError, InvalidCredentialsError, TrafficLimitExceededError,
-)
 
 
 class TestUser:
     def test_create_user(self):
         user = User(
-            uuid=uuid4(), username="testuser", status=UserStatus.ACTIVE,
-            short_uuid="abc123", created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            username="testuser",
+            status=UserStatus.ACTIVE,
+            short_uuid="abc123",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert user.username == "testuser"
         assert user.status == UserStatus.ACTIVE
 
     def test_optional_fields_default_none(self):
         user = User(
-            uuid=uuid4(), username="test", status=UserStatus.ACTIVE,
-            short_uuid="abc", created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            username="test",
+            status=UserStatus.ACTIVE,
+            short_uuid="abc",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert user.telegram_id is None
         assert user.email is None
@@ -42,33 +52,57 @@ class TestUser:
 class TestServer:
     def test_status_online(self):
         server = Server(
-            uuid=uuid4(), name="test", address="1.2.3.4", port=443,
-            is_connected=True, is_disabled=False, is_connecting=False,
-            created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            name="test",
+            address="1.2.3.4",
+            port=443,
+            is_connected=True,
+            is_disabled=False,
+            is_connecting=False,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert server.status == ServerStatus.ONLINE
 
     def test_status_maintenance(self):
         server = Server(
-            uuid=uuid4(), name="test", address="1.2.3.4", port=443,
-            is_connected=False, is_disabled=True, is_connecting=False,
-            created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            name="test",
+            address="1.2.3.4",
+            port=443,
+            is_connected=False,
+            is_disabled=True,
+            is_connecting=False,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert server.status == ServerStatus.MAINTENANCE
 
     def test_status_warning(self):
         server = Server(
-            uuid=uuid4(), name="test", address="1.2.3.4", port=443,
-            is_connected=False, is_disabled=False, is_connecting=True,
-            created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            name="test",
+            address="1.2.3.4",
+            port=443,
+            is_connected=False,
+            is_disabled=False,
+            is_connecting=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert server.status == ServerStatus.WARNING
 
     def test_status_offline(self):
         server = Server(
-            uuid=uuid4(), name="test", address="1.2.3.4", port=443,
-            is_connected=False, is_disabled=False, is_connecting=False,
-            created_at=datetime.now(), updated_at=datetime.now(),
+            uuid=uuid4(),
+            name="test",
+            address="1.2.3.4",
+            port=443,
+            is_connected=False,
+            is_disabled=False,
+            is_connecting=False,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         assert server.status == ServerStatus.OFFLINE
 

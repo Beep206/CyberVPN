@@ -1,4 +1,5 @@
 """List users use case."""
+
 from src.domain.entities.user import User
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 

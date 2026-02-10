@@ -1,15 +1,12 @@
 """Unit tests for OtpService."""
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 
 from src.application.services.otp_service import (
-    OtpExpiredError,
-    OtpExhaustedError,
-    OtpInvalidError,
     OtpRateLimitError,
     OtpService,
 )

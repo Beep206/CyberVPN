@@ -120,7 +120,7 @@ class ResendOtpUseCase:
                     locale=locale,
                     is_resend=True,  # Will use Brevo instead of Resend
                 )
-            except Exception:
+            except Exception:  # noqa: S110
                 # Log but don't fail - code was generated
                 pass
 

@@ -1,4 +1,5 @@
 """Get inbounds use case."""
+
 from src.infrastructure.remnawave.client import RemnawaveClient
 
 

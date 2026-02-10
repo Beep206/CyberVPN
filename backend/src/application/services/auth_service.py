@@ -10,9 +10,9 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
-import jwt
 
 from src.config.settings import settings
 
@@ -38,9 +38,7 @@ class AuthService:
 
         # MED-5: Validate configured algorithm is in allowlist
         if self._algorithm not in self.ALLOWED_ALGORITHMS:
-            raise ValueError(
-                f"JWT algorithm '{self._algorithm}' not in allowlist: {self.ALLOWED_ALGORITHMS}"
-            )
+            raise ValueError(f"JWT algorithm '{self._algorithm}' not in allowlist: {self.ALLOWED_ALGORITHMS}")
 
     def create_access_token(
         self,

@@ -4,7 +4,6 @@ LOW-005: All handlers include request_id for tracing and return it in responses.
 """
 
 import logging
-from typing import Union
 
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
@@ -24,6 +23,8 @@ from src.domain.exceptions.domain_errors import (
     TrafficLimitExceededError,
     UserAlreadyExistsError,
     UserNotFoundError,
+)
+from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
 from src.presentation.middleware.request_id import get_request_id
@@ -39,7 +40,7 @@ def _get_request_id_header() -> dict[str, str]:
 
 async def validation_exception_handler(
     request: Request,
-    exc: Union[RequestValidationError, ValidationError],
+    exc: RequestValidationError | ValidationError,
 ) -> JSONResponse:
     """Transform Pydantic validation errors into a standardized JSON response."""
     errors = []
@@ -180,9 +181,7 @@ async def invalid_token_handler(request: Request, exc: InvalidTokenError) -> JSO
     )
 
 
-async def insufficient_permissions_handler(
-    request: Request, exc: InsufficientPermissionsError
-) -> JSONResponse:
+async def insufficient_permissions_handler(request: Request, exc: InsufficientPermissionsError) -> JSONResponse:
     """Handle InsufficientPermissionsError - 403 with generic message (no role leak)."""
     request_id = get_request_id()
     logger.warning(
@@ -203,9 +202,7 @@ async def insufficient_permissions_handler(
     )
 
 
-async def subscription_expired_handler(
-    request: Request, exc: SubscriptionExpiredError
-) -> JSONResponse:
+async def subscription_expired_handler(request: Request, exc: SubscriptionExpiredError) -> JSONResponse:
     """Handle SubscriptionExpiredError - 402 Payment Required."""
     request_id = get_request_id()
     logger.warning(
@@ -226,9 +223,7 @@ async def subscription_expired_handler(
     )
 
 
-async def traffic_limit_exceeded_handler(
-    request: Request, exc: TrafficLimitExceededError
-) -> JSONResponse:
+async def traffic_limit_exceeded_handler(request: Request, exc: TrafficLimitExceededError) -> JSONResponse:
     """Handle TrafficLimitExceededError - 429 Too Many Requests."""
     request_id = get_request_id()
     logger.warning(
@@ -291,9 +286,7 @@ async def duplicate_username_handler(request: Request, exc: DuplicateUsernameErr
     )
 
 
-async def invalid_webhook_signature_handler(
-    request: Request, exc: InvalidWebhookSignatureError
-) -> JSONResponse:
+async def invalid_webhook_signature_handler(request: Request, exc: InvalidWebhookSignatureError) -> JSONResponse:
     """Handle InvalidWebhookSignatureError - 401 Unauthorized."""
     _ = exc  # exc not used but required by signature
     request_id = get_request_id()
@@ -313,9 +306,7 @@ async def invalid_webhook_signature_handler(
     )
 
 
-async def domain_validation_error_handler(
-    request: Request, exc: DomainValidationError
-) -> JSONResponse:
+async def domain_validation_error_handler(request: Request, exc: DomainValidationError) -> JSONResponse:
     """Handle domain ValidationError - 400 Bad Request."""
     request_id = get_request_id()
     logger.warning(

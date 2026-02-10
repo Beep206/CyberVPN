@@ -18,7 +18,6 @@ from src.application.services.oauth_state_service import OAuthStateService
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.infrastructure.cache.redis_client import get_redis
-from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
@@ -29,6 +28,7 @@ from src.infrastructure.oauth.google import GoogleOAuthProvider
 from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.oauth.twitter import TwitterOAuthProvider
+from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.presentation.api.v1.oauth.schemas import (
     GitHubCallbackRequest,
     OAuthAuthorizeResponse,

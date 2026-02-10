@@ -1,4 +1,5 @@
 """Remove inbound use case."""
+
 from uuid import UUID
 
 from src.infrastructure.remnawave.client import RemnawaveClient

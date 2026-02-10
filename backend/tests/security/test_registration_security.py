@@ -5,8 +5,9 @@ Tests that:
 2. Registration requires invite token when enabled with invite-only mode
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 class TestRegistrationDisabled:
@@ -16,6 +17,7 @@ class TestRegistrationDisabled:
     async def test_registration_blocked_when_disabled(self):
         """Registration returns 403 when disabled."""
         from fastapi import HTTPException
+
         from src.presentation.api.v1.auth.registration import register
         from src.presentation.api.v1.auth.schemas import RegisterRequest
 
@@ -55,6 +57,7 @@ class TestInviteTokenValidation:
     async def test_registration_requires_invite_token(self):
         """Registration fails without invite token when required."""
         from fastapi import HTTPException
+
         from src.presentation.api.v1.auth.registration import register
         from src.presentation.api.v1.auth.schemas import RegisterRequest
 
@@ -112,6 +115,7 @@ class TestInviteTokenService:
     async def test_validate_returns_data_for_valid_token(self):
         """Validating valid token returns data."""
         import json
+
         from src.application.services.invite_service import InviteTokenService
 
         mock_redis = AsyncMock()

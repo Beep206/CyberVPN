@@ -31,9 +31,12 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
+from src.application.services.jwt_revocation_service import JWTRevocationService
+from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
+from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.remnawave.adapters import (
     RemnawaveUserAdapter,
     get_remnawave_adapter,
@@ -42,8 +45,7 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
-from src.application.services.jwt_revocation_service import JWTRevocationService
-from src.infrastructure.oauth.telegram import TelegramOAuthProvider
+from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
     DeleteAccountResponse,
@@ -70,8 +72,6 @@ from src.presentation.api.v1.auth.schemas import (
     VerifyOtpRequest,
     VerifyOtpResponse,
 )
-from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
-from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service

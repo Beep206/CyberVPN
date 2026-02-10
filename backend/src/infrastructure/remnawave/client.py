@@ -10,7 +10,7 @@ Security improvements:
 import logging
 from typing import Any, TypeVar
 
-from httpx import AsyncClient, HTTPStatusError
+from httpx import AsyncClient
 from pydantic import BaseModel
 
 from src.config.settings import settings

@@ -4,10 +4,10 @@ Tests authorization URL generation (with and without PKCE),
 token exchange success/failure, and user info normalization.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 
 class TestGoogleOAuthProvider:

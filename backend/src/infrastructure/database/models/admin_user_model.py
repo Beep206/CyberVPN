@@ -1,11 +1,11 @@
 """AdminUserModel ORM model for CyberVPN backend authentication."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, Boolean, DateTime, String, func
-from sqlalchemy.dialects.postgresql import ARRAY, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
@@ -28,27 +28,27 @@ class AdminUserModel(Base):
 
     login: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
 
-    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
 
-    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     role: Mapped[str] = mapped_column(String(20), default="viewer", nullable=False)
 
-    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, unique=True, nullable=True, index=True)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True, index=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    totp_secret: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    totp_secret: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    backup_codes_hash: Mapped[Optional[list[str]]] = mapped_column(ARRAY(String), nullable=True)
+    backup_codes_hash: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
-    anti_phishing_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    anti_phishing_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    last_login_ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    last_login_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -60,7 +60,7 @@ class AdminUserModel(Base):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Soft-delete timestamp (FEAT-03)
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationship to OTP codes
     otp_codes = relationship("OtpCodeModel", back_populates="user", lazy="raise")

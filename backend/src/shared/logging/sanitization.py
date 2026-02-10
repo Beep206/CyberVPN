@@ -7,18 +7,50 @@ import re
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 # Sensitive query parameter names to redact
-SENSITIVE_PARAMS = frozenset({
-    "password", "pwd", "pass", "secret", "token", "api_key", "apikey",
-    "api-key", "access_token", "refresh_token", "bearer", "auth",
-    "authorization", "key", "code", "otp", "pin", "ssn", "credit_card",
-    "card_number", "cvv", "expiry", "session", "session_id", "sessionid",
-})
+SENSITIVE_PARAMS = frozenset(
+    {
+        "password",
+        "pwd",
+        "pass",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "api-key",
+        "access_token",
+        "refresh_token",
+        "bearer",
+        "auth",
+        "authorization",
+        "key",
+        "code",
+        "otp",
+        "pin",
+        "ssn",
+        "credit_card",
+        "card_number",
+        "cvv",
+        "expiry",
+        "session",
+        "session_id",
+        "sessionid",
+    }
+)
 
 # Sensitive header names to redact
-SENSITIVE_HEADERS = frozenset({
-    "authorization", "x-api-key", "x-auth-token", "cookie", "set-cookie",
-    "x-csrf-token", "x-xsrf-token", "api-key", "bearer",
-})
+SENSITIVE_HEADERS = frozenset(
+    {
+        "authorization",
+        "x-api-key",
+        "x-auth-token",
+        "cookie",
+        "set-cookie",
+        "x-csrf-token",
+        "x-xsrf-token",
+        "api-key",
+        "bearer",
+    }
+)
 
 REDACTED = "[REDACTED]"
 
@@ -54,14 +86,16 @@ def sanitize_url(url: str, *, redact_value: str = REDACTED) -> str:
 
         # Reconstruct URL with sanitized query string
         sanitized_query = urlencode(sanitized_params, doseq=True)
-        sanitized = urlunparse((
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            parsed.params,
-            sanitized_query,
-            parsed.fragment,
-        ))
+        sanitized = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                sanitized_query,
+                parsed.fragment,
+            )
+        )
 
         return sanitized
 
@@ -132,6 +166,7 @@ def sanitize_path_params(path: str, *, patterns: list[str] | None = None) -> str
 
 
 # SEC-007: PII sanitization for audit logs
+
 
 def sanitize_email(email: str) -> str:
     """Sanitize email address for audit logs.

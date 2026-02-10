@@ -1,15 +1,13 @@
 """Webhook routes for external service callbacks."""
 
-from typing import Dict
-
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
+from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.config.settings import settings
-from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
+from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
 from src.presentation.dependencies.database import get_db
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -19,7 +17,7 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 async def remnawave_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Handle webhook callbacks from Remnawave VPN service."""
     body = await request.body()
     signature = request.headers.get("X-Webhook-Signature", "")
@@ -34,7 +32,7 @@ async def remnawave_webhook(
 async def cryptobot_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Handle webhook callbacks from CryptoBot payment service."""
     body = await request.body()
     signature = request.headers.get("crypto-pay-api-signature", "")

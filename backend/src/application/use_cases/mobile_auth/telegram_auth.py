@@ -6,7 +6,7 @@ Handles Telegram Login Widget callback validation and user creation/linking.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from src.application.dto.mobile_auth import (
@@ -78,7 +78,7 @@ class MobileTelegramAuthUseCase:
         await self._register_device(user.id, request.device)
 
         # Update last login timestamp
-        user.last_login_at = datetime.now(timezone.utc)
+        user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
 
         # Generate tokens
@@ -186,7 +186,7 @@ class MobileTelegramAuthUseCase:
             existing_device.app_version = device.app_version
             existing_device.device_model = device.device_model
             existing_device.push_token = device.push_token
-            existing_device.last_active_at = datetime.now(timezone.utc)
+            existing_device.last_active_at = datetime.now(UTC)
             await self.device_repo.update(existing_device)
         else:
             # Create new device
@@ -199,6 +199,6 @@ class MobileTelegramAuthUseCase:
                 device_model=device.device_model,
                 push_token=device.push_token,
                 user_id=user_id,
-                last_active_at=datetime.now(timezone.utc),
+                last_active_at=datetime.now(UTC),
             )
             await self.device_repo.create(new_device)

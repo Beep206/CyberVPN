@@ -1,4 +1,5 @@
 """Delete user use case."""
+
 from uuid import UUID
 
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway

@@ -12,14 +12,13 @@ v2.0 Breaking Change:
 import logging
 from dataclasses import dataclass
 
+import redis.asyncio as redis
 from fastapi import Depends, Query, WebSocket, WebSocketException, status
 
 from src.application.services.ws_ticket_service import WebSocketTicketService
 from src.domain.enums.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.monitoring.metrics import websocket_auth_method_total
-
-import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 

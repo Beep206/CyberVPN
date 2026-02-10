@@ -14,22 +14,16 @@ import { Server } from '@/entities/server/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
 import { ServerStatusDot } from '@/shared/ui/atoms/server-status-dot';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
-import { Settings, Power, RotateCw } from 'lucide-react';
+import { Settings, Power, RotateCw, AlertTriangle } from 'lucide-react';
 import { InceptionButton } from '@/components/ui/InceptionButton';
+import { useServers } from '@/features/servers/hooks/useServers';
 
 const columnHelper = createColumnHelper<Server>();
-
-const mockServers: Server[] = [
-    { id: '1', name: 'Tokyo Node 01', location: 'Japan, Tokyo', ip: '45.32.12.90', protocol: 'vless', status: 'online', load: 45, uptime: '12d 4h', clients: 120 },
-    { id: '2', name: 'NYC Core', location: 'USA, New York', ip: '192.168.1.1', protocol: 'wireguard', status: 'warning', load: 82, uptime: '45d 1h', clients: 850 },
-    { id: '3', name: 'London Edge', location: 'UK, London', ip: '178.2.4.11', protocol: 'xhttp', status: 'online', load: 23, uptime: '2d 12h', clients: 45 },
-    { id: '4', name: 'Singapore Stealth', location: 'Singapore', ip: '201.10.3.55', protocol: 'vless', status: 'maintenance', load: 0, uptime: '0h', clients: 0 },
-    { id: '5', name: 'Berlin Stream', location: 'Germany, Berlin', ip: '88.10.22.1', protocol: 'wireguard', status: 'online', load: 65, uptime: '22d 8h', clients: 410 },
-];
 
 export function ServersDataGrid() {
     const t = useTranslations('ServersTable');
     const [sorting, setSorting] = useState<SortingState>([]);
+    const { data: servers = [], isPending, error } = useServers();
 
     const columns = (() => {
         const statusLabels = {
@@ -114,7 +108,7 @@ export function ServersDataGrid() {
     })();
 
     const table = useReactTable({
-        data: mockServers,
+        data: servers,
         columns,
         state: { sorting },
         onSortingChange: setSorting,
@@ -122,6 +116,15 @@ export function ServersDataGrid() {
         getSortedRowModel: getSortedRowModel(),
         getRowId: (row) => row.id,
     });
+
+    if (error) {
+        return (
+            <div className="flex items-center gap-2 rounded-sm border border-server-warning/50 bg-server-warning/10 p-4 font-mono text-sm text-server-warning">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>{t('error') ?? 'Failed to load servers'}</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
@@ -134,6 +137,13 @@ export function ServersDataGrid() {
                 </div>
             </div>
 
+            {isPending ? (
+                <div className="animate-pulse space-y-2">
+                    {Array.from({ length: 5 }, (_, i) => (
+                        <div key={i} className="h-12 rounded-xs bg-terminal-surface/50" />
+                    ))}
+                </div>
+            ) : (
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map(headerGroup => (
@@ -160,6 +170,7 @@ export function ServersDataGrid() {
                     ))}
                 </TableBody>
             </Table>
+            )}
         </div>
     );
 }

@@ -1,4 +1,5 @@
 """Bulk user operations use case."""
+
 from uuid import UUID
 
 from src.domain.enums import UserStatus

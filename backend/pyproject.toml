@@ -47,6 +47,51 @@ packages = ["src"]
 target-version = "py313"
 line-length = 120
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = [
+    "B008",   # function-call-in-default-argument — FastAPI Depends() pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S107"]  # Allow assert + hardcoded test values
+"src/config/**" = ["S104"]                       # Allow 0.0.0.0 bind in settings
+"alembic/env.py" = ["E402"]
+"migrations/env.py" = ["E402"]
+"src/infrastructure/database/migrations/**" = ["E402"]
+"src/infrastructure/oauth/*.py" = ["S105"]       # OAuth URLs contain TOKEN_URL constants
+"src/application/dto/mobile_auth.py" = ["S105", "S106"]
+"src/application/use_cases/auth/oauth_login.py" = ["S106"]
+"src/application/use_cases/auth/telegram_bot_link.py" = ["S106"]
+"src/application/use_cases/auth/telegram_miniapp.py" = ["S106"]
+"src/application/use_cases/auth/verify_otp.py" = ["S106", "S107", "S110"]
+"src/application/use_cases/mobile_auth/login.py" = ["S106"]
+"src/application/use_cases/mobile_auth/logout.py" = ["B904"]
+"src/application/use_cases/mobile_auth/refresh.py" = ["B904", "S106"]
+"src/application/use_cases/mobile_auth/register.py" = ["S106"]
+"src/application/use_cases/mobile_auth/telegram_auth.py" = ["S106"]
+"src/application/use_cases/users/bulk_operations.py" = ["S112"]
+"src/application/services/oauth_state_service.py" = ["S101"]
+"src/main.py" = ["S110"]
+"src/presentation/api/v1/auth/routes.py" = ["E402", "B904", "S106"]
+"src/presentation/api/v1/auth/schemas.py" = ["S105"]
+"src/presentation/api/v1/mobile_auth/routes.py" = ["B904"]
+"src/presentation/api/v1/oauth/routes.py" = ["B904"]
+"src/presentation/api/v1/oauth/schemas.py" = ["S105"]
+"src/presentation/api/v1/two_factor/routes.py" = ["B904"]
+"src/presentation/api/v1/users/actions.py" = ["B904"]
+"src/presentation/api/v1/users/bulk.py" = ["B904"]
+"src/presentation/api/shared/schemas.py" = ["UP046"]
+"src/presentation/dependencies/auth.py" = ["B904"]
+"src/presentation/middleware/auth.py" = ["S110"]
+"src/serve.py" = ["S104"]
+"src/domain/repositories/base.py" = ["UP046"]
+"src/infrastructure/health/checks.py" = ["ASYNC109"]
+"tests/unit/test_remnawave_responses.py" = ["S104"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--cov=src --cov-report=term-missing --cov-report=html"

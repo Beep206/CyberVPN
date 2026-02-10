@@ -11,9 +11,9 @@ from src.application.use_cases.servers.server_stats import ServerStatsUseCase
 from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 from src.presentation.api.v1.servers.schemas import (
     CreateServerRequest,
-    UpdateServerRequest,
     ServerResponse,
     ServerStatsResponse,
+    UpdateServerRequest,
 )
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client

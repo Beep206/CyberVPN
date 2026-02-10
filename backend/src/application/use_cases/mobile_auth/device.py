@@ -4,7 +4,7 @@ Handles device registration and updates for mobile app users.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from src.application.dto.mobile_auth import (
@@ -53,7 +53,7 @@ class MobileDeviceRegistrationUseCase:
             user_id=user_id,
         )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if existing_device:
             # Update existing device

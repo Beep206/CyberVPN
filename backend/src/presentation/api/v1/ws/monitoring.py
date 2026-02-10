@@ -65,10 +65,12 @@ async def _subscribe_with_auth(
     await ws_manager.connect(websocket, f"monitoring:{topic}")
 
     # Send subscription confirmation
-    await websocket.send_json({
-        "type": "subscribed",
-        "topic": topic,
-    })
+    await websocket.send_json(
+        {
+            "type": "subscribed",
+            "topic": topic,
+        }
+    )
 
     return True
 
@@ -101,11 +103,13 @@ async def monitoring_ws(
 
     # Send available topics for this user's role
     available = topic_auth.get_allowed_topics(user_ctx.role)
-    await websocket.send_json({
-        "type": "available_topics",
-        "topics": available,
-        "role": user_ctx.role.value,
-    })
+    await websocket.send_json(
+        {
+            "type": "available_topics",
+            "topics": available,
+            "role": user_ctx.role.value,
+        }
+    )
 
     try:
         while True:
@@ -131,10 +135,12 @@ async def monitoring_ws(
                         for topic in topics:
                             if isinstance(topic, str):
                                 ws_manager.disconnect(websocket, f"monitoring:{topic}")
-                                await websocket.send_json({
-                                    "type": "unsubscribed",
-                                    "topic": topic,
-                                })
+                                await websocket.send_json(
+                                    {
+                                        "type": "unsubscribed",
+                                        "topic": topic,
+                                    }
+                                )
 
                     elif msg_type == "ping":
                         await websocket.send_json({"type": "pong"})

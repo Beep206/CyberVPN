@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
@@ -116,8 +116,7 @@ class OtpCodeRepository:
         """
         now = datetime.now().astimezone()
         result = await self._session.execute(
-            select(OtpCodeModel)
-            .where(
+            select(OtpCodeModel).where(
                 and_(
                     OtpCodeModel.user_id == user_id,
                     OtpCodeModel.purpose == purpose,
@@ -158,8 +157,7 @@ class OtpCodeRepository:
             Number of OTP codes created in the window
         """
         result = await self._session.execute(
-            select(OtpCodeModel)
-            .where(
+            select(OtpCodeModel).where(
                 and_(
                     OtpCodeModel.user_id == user_id,
                     OtpCodeModel.purpose == purpose,

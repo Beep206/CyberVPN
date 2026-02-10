@@ -8,9 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 class ReauthRequest(BaseModel):
     """Request for password re-authentication."""
 
-    password: SecretStr = Field(
-        ..., min_length=1, description="Current password for re-authentication"
-    )
+    password: SecretStr = Field(..., min_length=1, description="Current password for re-authentication")
 
 
 class VerifyCodeRequest(BaseModel):

@@ -8,8 +8,8 @@ Tests that:
 """
 
 import pytest
-from pydantic import BaseModel
 from fastapi import HTTPException
+from pydantic import BaseModel
 
 from src.infrastructure.remnawave.response_validator import RemnawaveResponseValidator
 

@@ -31,7 +31,7 @@ class Container:
     # -- Default factories ------------------------------------------------
 
     @staticmethod
-    async def _default_db() -> AsyncGenerator[AsyncSession, None]:
+    async def _default_db() -> AsyncGenerator[AsyncSession]:
         async with AsyncSessionLocal() as session:
             try:
                 yield session
@@ -41,7 +41,7 @@ class Container:
                 raise
 
     @staticmethod
-    async def _default_redis() -> AsyncGenerator[redis.Redis, None]:
+    async def _default_redis() -> AsyncGenerator[redis.Redis]:
         from src.infrastructure.cache.redis_client import get_redis
 
         async for client in get_redis():

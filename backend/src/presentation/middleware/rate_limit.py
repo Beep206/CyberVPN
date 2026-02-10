@@ -11,11 +11,10 @@ import logging
 import time
 from threading import Lock
 
+import redis.asyncio as redis
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-
-import redis.asyncio as redis
 
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool

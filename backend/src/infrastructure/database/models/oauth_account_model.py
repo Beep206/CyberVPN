@@ -1,7 +1,6 @@
 """OAuthAccount ORM model for OAuth provider integration."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
@@ -31,17 +30,17 @@ class OAuthAccount(Base):
 
     provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    provider_username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    provider_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    provider_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    provider_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    provider_avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    provider_avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     access_token: Mapped[str] = mapped_column(Text, nullable=False)
 
-    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

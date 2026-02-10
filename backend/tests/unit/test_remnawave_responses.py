@@ -9,7 +9,7 @@ Tests cover:
 - Edge cases: empty inputs, max values, missing optional fields
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -42,12 +42,11 @@ from src.presentation.schemas.remnawave_responses import (
     StatusMessageResponse,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers & Fixtures
 # ---------------------------------------------------------------------------
 
-NOW = datetime(2026, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 15, 12, 0, 0, tzinfo=UTC)
 NOW_ISO = NOW.isoformat()
 
 
@@ -529,9 +528,7 @@ class TestRemnawaveNodeListResponse:
     @pytest.mark.unit
     def test_nested_node_serialization(self, node_data_snake):
         """Test nested nodes serialize correctly with camelCase."""
-        resp = RemnawaveNodeListResponse(
-            response=[RemnawaveNodeResponse(**node_data_snake)]
-        )
+        resp = RemnawaveNodeListResponse(response=[RemnawaveNodeResponse(**node_data_snake)])
         dumped = resp.model_dump(by_alias=True)
 
         assert len(dumped["response"]) == 1
@@ -625,9 +622,7 @@ class TestRemnawaveInboundResponse:
     def test_validation_rejects_string_for_port(self):
         """Test that non-int port raises ValidationError."""
         with pytest.raises(ValidationError):
-            RemnawaveInboundResponse(
-                uuid="inbound-1", tag="test", protocol="vless", port="not-int"
-            )
+            RemnawaveInboundResponse(uuid="inbound-1", tag="test", protocol="vless", port="not-int")
 
 
 # ---------------------------------------------------------------------------
@@ -647,9 +642,7 @@ class TestRemnawaveInboundListResponse:
     @pytest.mark.unit
     def test_nested_serialization(self):
         """Test nested inbound models serialize correctly."""
-        inbound = RemnawaveInboundResponse(
-            uuid="ib-1", tag="test", protocol="vless", port=443
-        )
+        inbound = RemnawaveInboundResponse(uuid="ib-1", tag="test", protocol="vless", port=443)
         resp = RemnawaveInboundListResponse(response=[inbound])
 
         assert len(resp.response) == 1
@@ -838,9 +831,7 @@ class TestRemnawaveSubscriptionConfigResponse:
     @pytest.mark.unit
     def test_instantiate_valid(self):
         """Test instantiation with required config field."""
-        resp = RemnawaveSubscriptionConfigResponse(
-            config="vless://uuid@host:443?security=tls"
-        )
+        resp = RemnawaveSubscriptionConfigResponse(config="vless://uuid@host:443?security=tls")
 
         assert resp.config.startswith("vless://")
         assert resp.subscription_url is None
@@ -904,9 +895,7 @@ class TestRemnavwavePlanResponse:
     @pytest.mark.unit
     def test_optional_fields(self):
         """Test optional fields default to None."""
-        plan = RemnavwavePlanResponse(
-            uuid="plan-1", name="Basic", price=0.0, currency="EUR", duration_days=7
-        )
+        plan = RemnavwavePlanResponse(uuid="plan-1", name="Basic", price=0.0, currency="EUR", duration_days=7)
 
         assert plan.data_limit_gb is None
         assert plan.max_devices is None
@@ -987,9 +976,7 @@ class TestRemnawaveSettingResponse:
     @pytest.mark.unit
     def test_instantiate_valid(self):
         """Test instantiation with required fields."""
-        setting = RemnawaveSettingResponse(
-            id=1, key="MAX_CONNECTIONS", value=100
-        )
+        setting = RemnawaveSettingResponse(id=1, key="MAX_CONNECTIONS", value=100)
 
         assert setting.id == 1
         assert setting.key == "MAX_CONNECTIONS"
@@ -1027,9 +1014,7 @@ class TestRemnawaveSettingResponse:
     @pytest.mark.unit
     def test_camel_case_serialization(self):
         """Test camelCase alias for isPublic."""
-        setting = RemnawaveSettingResponse(
-            id=1, key="test", value="val", is_public=True
-        )
+        setting = RemnawaveSettingResponse(id=1, key="test", value="val", is_public=True)
         dumped = setting.model_dump(by_alias=True)
 
         assert "isPublic" in dumped
@@ -1131,9 +1116,7 @@ class TestRemnavwaveBandwidthStatsResponse:
     @pytest.mark.unit
     def test_instantiate_with_values(self):
         """Test instantiation with explicit values."""
-        bw = RemnavwaveBandwidthStatsResponse(
-            bytes_in=1_000_000, bytes_out=2_000_000, total_bytes=3_000_000
-        )
+        bw = RemnavwaveBandwidthStatsResponse(bytes_in=1_000_000, bytes_out=2_000_000, total_bytes=3_000_000)
 
         assert bw.bytes_in == 1_000_000
         assert bw.bytes_out == 2_000_000
@@ -1241,9 +1224,7 @@ class TestRemnavwaveBillingRecordResponse:
     def test_validation_rejects_missing_required_amount(self):
         """Test that missing required 'amount' raises ValidationError."""
         with pytest.raises(ValidationError):
-            RemnavwaveBillingRecordResponse(
-                uuid="b-1", user_uuid="u-1", currency="USD", status="pending"
-            )
+            RemnavwaveBillingRecordResponse(uuid="b-1", user_uuid="u-1", currency="USD", status="pending")
 
     @pytest.mark.unit
     def test_validation_rejects_string_for_amount(self):
@@ -1316,9 +1297,7 @@ class TestRemnawaveConfigProfileResponse:
     def test_validation_rejects_missing_required_content(self):
         """Test that missing required 'content' raises ValidationError."""
         with pytest.raises(ValidationError):
-            RemnawaveConfigProfileResponse(
-                uuid="p-1", name="Test", profile_type="clash"
-            )
+            RemnawaveConfigProfileResponse(uuid="p-1", name="Test", profile_type="clash")
 
 
 # ---------------------------------------------------------------------------
@@ -1438,9 +1417,7 @@ class TestRemnawavePublicKeyResponse:
     @pytest.mark.unit
     def test_instantiate_valid(self):
         """Test instantiation with required public_key."""
-        resp = RemnawavePublicKeyResponse(
-            public_key="-----BEGIN PUBLIC KEY-----\nMIIBIjANBg..."
-        )
+        resp = RemnawavePublicKeyResponse(public_key="-----BEGIN PUBLIC KEY-----\nMIIBIjANBg...")
 
         assert resp.public_key.startswith("-----BEGIN PUBLIC KEY-----")
         assert resp.algorithm == "RS256"  # default
@@ -1607,9 +1584,7 @@ class TestCrossCuttingSerialization:
     @pytest.mark.unit
     def test_node_list_round_trip(self, node_data_snake):
         """Test that a node list can round-trip through dump and validate."""
-        original = RemnawaveNodeListResponse(
-            response=[RemnawaveNodeResponse(**node_data_snake)]
-        )
+        original = RemnawaveNodeListResponse(response=[RemnawaveNodeResponse(**node_data_snake)])
         dumped = original.model_dump(mode="json")
         restored = RemnawaveNodeListResponse.model_validate(dumped)
 
@@ -1662,9 +1637,7 @@ class TestCrossCuttingSerialization:
         for key, value in data.items():
             # Access by snake_case attribute name
             restored_dump = restored.model_dump(by_alias=True, mode="json")
-            assert key in restored_dump or any(
-                v == value for v in restored_dump.values()
-            )
+            assert key in restored_dump or any(v == value for v in restored_dump.values())
 
     @pytest.mark.unit
     def test_empty_input_validation_raises(self):

@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -47,13 +46,13 @@ class CreateServerRequest(BaseModel):
 class UpdateServerRequest(BaseModel):
     """Request schema for updating a server."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    address: Optional[str] = Field(None, min_length=1, max_length=255)
-    port: Optional[int] = Field(None, ge=1, le=65535)
+    name: str | None = Field(None, min_length=1, max_length=100)
+    address: str | None = Field(None, min_length=1, max_length=255)
+    port: int | None = Field(None, ge=1, le=65535)
 
     @field_validator("address")
     @classmethod
-    def validate_address(cls, v: Optional[str]) -> Optional[str]:
+    def validate_address(cls, v: str | None) -> str | None:
         if v is not None and not re.match(r"^[a-zA-Z0-9._-]+$", v):
             raise ValueError("Address must be a valid hostname or IP address")
         return v

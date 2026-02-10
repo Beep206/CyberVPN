@@ -4,7 +4,7 @@ Handles registration of new mobile app users with device tracking.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.application.dto.mobile_auth import (
     AuthResponseDTO,
@@ -76,7 +76,7 @@ class MobileRegisterUseCase:
             device_model=request.device.device_model,
             push_token=request.device.push_token,
             user_id=created_user.id,
-            last_active_at=datetime.now(timezone.utc),
+            last_active_at=datetime.now(UTC),
         )
         await self.device_repo.create(device)
 

@@ -1,14 +1,13 @@
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from starlette.types import ExceptionHandler
-
-from src.presentation.dependencies.auth import get_current_active_user
 
 from src.config.settings import settings
 from src.domain.exceptions.domain_errors import (
@@ -24,10 +23,14 @@ from src.domain.exceptions.domain_errors import (
     TrafficLimitExceededError,
     UserAlreadyExistsError,
     UserNotFoundError,
+)
+from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
+from src.infrastructure.payments.cryptobot.client import cryptobot_client
 from src.presentation.api.v1.router import api_router
 from src.presentation.api.well_known.security_txt import router as security_txt_router
+from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.exception_handlers import (
     domain_error_handler,
     domain_validation_error_handler,
@@ -49,7 +52,6 @@ from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
-from src.infrastructure.payments.cryptobot.client import cryptobot_client
 from src.version import __version__
 
 logger = logging.getLogger("cybervpn")

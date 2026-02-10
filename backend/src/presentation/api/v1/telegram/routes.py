@@ -1,6 +1,6 @@
 """Telegram bot integration routes."""
 
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -8,9 +8,9 @@ from src.application.use_cases.auth.permissions import Permission
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.telegram.schemas import (
-    TelegramUserResponse,
-    CreateSubscriptionRequest,
     ConfigResponse,
+    CreateSubscriptionRequest,
+    TelegramUserResponse,
 )
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
@@ -51,7 +51,7 @@ async def create_subscription(
     request: CreateSubscriptionRequest,
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.SUBSCRIPTION_CREATE)),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a subscription for a Telegram user."""
     gateway = RemnawaveUserGateway(client=remnawave_client)
     user = await gateway.get_by_telegram_id(telegram_id=telegram_id)

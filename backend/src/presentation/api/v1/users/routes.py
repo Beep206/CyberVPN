@@ -16,11 +16,11 @@ from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.users.schemas import (
     CreateUserRequest,
     UpdateUserRequest,
-    UserResponse,
     UserListResponse,
+    UserResponse,
 )
+from src.presentation.dependencies.pagination import PaginationParams, get_pagination
 from src.presentation.dependencies.remnawave import get_remnawave_client
-from src.presentation.dependencies.pagination import get_pagination, PaginationParams
 from src.presentation.dependencies.roles import require_permission
 
 router = APIRouter(prefix="/users", tags=["users"])

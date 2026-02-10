@@ -318,6 +318,4 @@ async def get_2fa_status(
     user: AdminUserModel = Depends(get_current_active_user),
 ) -> TwoFactorStatusResponse:
     """Get current 2FA status for the user."""
-    return TwoFactorStatusResponse(
-        status="enabled" if user.totp_enabled else "disabled"
-    )
+    return TwoFactorStatusResponse(status="enabled" if user.totp_enabled else "disabled")

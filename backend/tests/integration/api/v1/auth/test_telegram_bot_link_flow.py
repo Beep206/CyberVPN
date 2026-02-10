@@ -15,7 +15,6 @@ from src.application.use_cases.auth.telegram_bot_link import (
     TelegramBotLinkUseCase,
 )
 from src.infrastructure.cache.bot_link_tokens import (
-    consume_bot_link_token,
     generate_bot_link_token,
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -52,7 +51,7 @@ class TestBotLinkHappyPath:
 
         # Capture what was stored
         store_call = mock_redis.set.call_args
-        stored_key = store_call[0][0]
+        _stored_key = store_call[0][0]
         stored_value = store_call[0][1]
 
         # Step 2: Set up consume to return the stored data

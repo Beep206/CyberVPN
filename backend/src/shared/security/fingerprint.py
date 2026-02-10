@@ -5,6 +5,7 @@ to the original client, preventing token theft and replay attacks.
 """
 
 import hashlib
+
 from starlette.requests import Request
 
 

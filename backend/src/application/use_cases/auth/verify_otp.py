@@ -146,9 +146,7 @@ class VerifyOtpUseCase:
             subject=str(user.id),
             role=user.role,
         )
-        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
-            subject=str(user.id)
-        )
+        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(subject=str(user.id))
 
         # Store refresh token hash in database
         token_hash = sha256(refresh_token.encode()).hexdigest()

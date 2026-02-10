@@ -64,7 +64,7 @@ class RefreshTokenUseCase:
         try:
             payload = self._auth_service.decode_token(refresh_token)
         except JWTError:
-            raise InvalidCredentialsError()
+            raise InvalidCredentialsError() from None
 
         # Verify token type
         if payload.get("type") != "refresh":
@@ -90,7 +90,7 @@ class RefreshTokenUseCase:
         try:
             user_id = UUID(user_id_str)
         except ValueError:
-            raise InvalidCredentialsError()
+            raise InvalidCredentialsError() from None
 
         # Find token in database
         token_hash = sha256(refresh_token.encode()).hexdigest()

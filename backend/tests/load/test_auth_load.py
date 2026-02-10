@@ -40,10 +40,10 @@ import string
 
 from locust import HttpUser, between, tag, task
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _random_email() -> str:
     """Generate a unique random email for load testing.
@@ -51,7 +51,7 @@ def _random_email() -> str:
     Uses the ``@loadtest.cybervpn.io`` domain to guarantee that no real
     mailbox is ever targeted.
     """
-    name = "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+    name = "".join(random.choices(string.ascii_lowercase + string.digits, k=12))  # noqa: S311
     return f"{name}@loadtest.cybervpn.io"
 
 
@@ -67,6 +67,7 @@ _UNSUPPORTED_LOGIN_PROVIDER = "telegram"
 # ---------------------------------------------------------------------------
 # Locust user
 # ---------------------------------------------------------------------------
+
 
 class AuthLoadUser(HttpUser):
     """Simulates users exercising OAuth and magic link authentication flows.
@@ -95,7 +96,7 @@ class AuthLoadUser(HttpUser):
         Assert:  200 with authorize_url and state, OR 422 if the provider
                  is not configured on the server (missing client_id, etc.).
         """
-        provider = random.choice(_LOGIN_PROVIDERS)
+        provider = random.choice(_LOGIN_PROVIDERS)  # noqa: S311
         with self.client.get(
             f"/api/v1/oauth/{provider}/login",
             params={"redirect_uri": "http://localhost:3000/auth/callback"},
@@ -105,19 +106,13 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 200:
                 body = resp.json()
                 if "authorize_url" not in body or "state" not in body:
-                    resp.failure(
-                        f"Missing authorize_url or state in 200 response "
-                        f"(provider={provider})"
-                    )
+                    resp.failure(f"Missing authorize_url or state in 200 response (provider={provider})")
             elif resp.status_code in (400, 422):
                 # 400 = provider not in login flow map
                 # 422 = validation error (e.g. missing redirect_uri)
                 resp.success()
             else:
-                resp.failure(
-                    f"Unexpected status {resp.status_code} for "
-                    f"provider={provider}"
-                )
+                resp.failure(f"Unexpected status {resp.status_code} for provider={provider}")
 
     @tag("oauth", "authorize", "negative")
     @task(1)
@@ -138,9 +133,7 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 400:
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 400 for unsupported provider, got {resp.status_code}"
-                )
+                resp.failure(f"Expected 400 for unsupported provider, got {resp.status_code}")
 
     # ------------------------------------------------------------------
     # Magic link request
@@ -198,10 +191,7 @@ class AuthLoadUser(HttpUser):
             if resp.status_code in (200, 429):
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 200 or 429 for rate-limit probe, "
-                    f"got {resp.status_code}"
-                )
+                resp.failure(f"Expected 200 or 429 for rate-limit probe, got {resp.status_code}")
 
     # ------------------------------------------------------------------
     # Magic link verify (invalid token)
@@ -228,10 +218,7 @@ class AuthLoadUser(HttpUser):
                 # Pydantic validation error (token too short, etc.)
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 400 or 422 for invalid token, "
-                    f"got {resp.status_code}"
-                )
+                resp.failure(f"Expected 400 or 422 for invalid token, got {resp.status_code}")
 
     # ------------------------------------------------------------------
     # Magic link request -- edge cases
@@ -255,9 +242,7 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 422:
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 422 for malformed email, got {resp.status_code}"
-                )
+                resp.failure(f"Expected 422 for malformed email, got {resp.status_code}")
 
     @tag("magic-link", "negative")
     @task(1)
@@ -277,9 +262,7 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 422:
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 422 for empty body, got {resp.status_code}"
-                )
+                resp.failure(f"Expected 422 for empty body, got {resp.status_code}")
 
     @tag("magic-link", "verify", "negative")
     @task(1)
@@ -299,9 +282,7 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 422:
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 422 for empty token, got {resp.status_code}"
-                )
+                resp.failure(f"Expected 422 for empty token, got {resp.status_code}")
 
     @tag("oauth", "authorize", "negative")
     @task(1)
@@ -312,7 +293,7 @@ class AuthLoadUser(HttpUser):
         Act:     send GET.
         Assert:  422 validation error.
         """
-        provider = random.choice(_LOGIN_PROVIDERS)
+        provider = random.choice(_LOGIN_PROVIDERS)  # noqa: S311
         with self.client.get(
             f"/api/v1/oauth/{provider}/login",
             name="/api/v1/oauth/[provider]/login [no-redirect]",
@@ -321,7 +302,4 @@ class AuthLoadUser(HttpUser):
             if resp.status_code == 422:
                 resp.success()
             else:
-                resp.failure(
-                    f"Expected 422 for missing redirect_uri, "
-                    f"got {resp.status_code}"
-                )
+                resp.failure(f"Expected 422 for missing redirect_uri, got {resp.status_code}")

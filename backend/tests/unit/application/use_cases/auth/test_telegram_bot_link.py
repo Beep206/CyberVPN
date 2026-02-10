@@ -1,10 +1,10 @@
 """Unit tests for TelegramBotLinkUseCase."""
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.application.use_cases.auth.telegram_bot_link import (
     TelegramBotLinkResult,
@@ -45,6 +45,7 @@ class TestTelegramBotLinkUseCase:
             user.is_email_verified = True
             user.created_at = datetime.now(UTC)
             return user
+
         return _make
 
     @pytest.fixture

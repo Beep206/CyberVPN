@@ -1,16 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
-
-import pytest
-
 from src.application.services.auth_service import AuthService
-from src.application.use_cases.auth.permissions import Permission, has_permission, check_minimum_role
+from src.application.use_cases.auth.permissions import Permission, check_minimum_role, has_permission
 from src.domain.enums import AdminRole
 
 
 class TestAuthService:
     def test_hash_and_verify_password(self):
-        service = AuthService.__new__(AuthService)
+        _service = AuthService.__new__(AuthService)
         hashed = AuthService.hash_password("testpassword123")
         assert AuthService.verify_password("testpassword123", hashed)
         assert not AuthService.verify_password("wrong", hashed)

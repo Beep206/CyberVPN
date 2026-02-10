@@ -1,6 +1,6 @@
 """Billing API schemas for Remnawave proxy."""
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,15 +21,9 @@ class CreatePaymentRequest(BaseModel):
 
     user_uuid: str = Field(..., max_length=255, description="User UUID")
     amount: float = Field(..., gt=0, description="Payment amount")
-    currency: str = Field(
-        ..., min_length=3, max_length=3, description="Currency code (ISO 4217)"
-    )
-    payment_method: Optional[str] = Field(
-        None, max_length=50, description="Payment method"
-    )
-    metadata: Optional[dict[str, Any]] = Field(
-        None, description="Additional payment metadata"
-    )
+    currency: str = Field(..., min_length=3, max_length=3, description="Currency code (ISO 4217)")
+    payment_method: str | None = Field(None, max_length=50, description="Payment method")
+    metadata: dict[str, Any] | None = Field(None, description="Additional payment metadata")
 
 
 class BillingRecordResponse(BaseModel):
@@ -42,5 +36,5 @@ class BillingRecordResponse(BaseModel):
     amount: float = Field(..., description="Payment amount")
     currency: str = Field(..., max_length=3, description="Currency code")
     status: str = Field(..., max_length=50, description="Payment status")
-    payment_method: Optional[str] = Field(None, max_length=50, description="Payment method")
-    created_at: Optional[str] = Field(None, description="Creation timestamp")
+    payment_method: str | None = Field(None, max_length=50, description="Payment method")
+    created_at: str | None = Field(None, description="Creation timestamp")

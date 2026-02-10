@@ -1,4 +1,5 @@
 """User statistics use case."""
+
 from uuid import UUID
 
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
@@ -37,13 +38,9 @@ class UserStatsUseCase:
             "data_usage": user.data_usage,
             "data_limit": user.data_limit,
             "usage_percentage": (
-                (user.data_usage / user.data_limit * 100)
-                if user.data_limit and user.data_limit > 0
-                else 0.0
+                (user.data_usage / user.data_limit * 100) if user.data_limit and user.data_limit > 0 else 0.0
             ),
-            "remaining_data": (
-                max(0, user.data_limit - user.data_usage) if user.data_limit else None
-            ),
+            "remaining_data": (max(0, user.data_limit - user.data_usage) if user.data_limit else None),
             "status": user.status.value if hasattr(user.status, "value") else user.status,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "expires_at": user.expires_at.isoformat() if user.expires_at else None,

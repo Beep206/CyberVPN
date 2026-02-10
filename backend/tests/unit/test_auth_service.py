@@ -1,6 +1,6 @@
 """Unit tests for AuthService."""
+
 import pytest
-from datetime import datetime, timedelta, UTC
 
 from src.application.services.auth_service import AuthService
 
