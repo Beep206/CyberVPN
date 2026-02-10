@@ -114,6 +114,13 @@ class Settings(BaseSettings):
     # Token Device Binding (MED-2)
     enforce_token_binding: bool = False  # Strict fingerprint validation on token refresh
 
+    # Cookie settings (SEC-01)
+    cookie_domain: str = ""  # Leave empty for current domain
+    cookie_secure: bool = True  # Set to False for local HTTP development
+
+    # Metrics (SEC-02)
+    metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:

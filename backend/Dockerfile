@@ -22,5 +22,6 @@ COPY --chown=cybervpn:cybervpn . .
 USER cybervpn
 
 EXPOSE 8000
+EXPOSE 9091
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "src.serve"]

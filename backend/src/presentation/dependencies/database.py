@@ -2,14 +2,10 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.database.session import AsyncSessionLocal
+from src.infrastructure.di.container import container
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+    factory = container.get("db")
+    async for session in factory():
+        yield session

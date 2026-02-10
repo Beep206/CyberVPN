@@ -1,0 +1,32 @@
+# Development overrides — use with:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  remnawave:
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  remnawave-redis:
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+      --loglevel notice
+
+  cybervpn-worker:
+    volumes:
+      - ../services/task-worker/src:/app/src
+    environment:
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "127.0.0.1:5678:5678"
+
+  cybervpn-scheduler:
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  grafana:
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin

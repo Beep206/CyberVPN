@@ -94,27 +94,27 @@ async def lifespan(app: FastAPI):
         from src.infrastructure.remnawave.client import remnawave_client
 
         await remnawave_client.close()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Shutdown error in remnawave_client: %s", e, exc_info=True)
 
     try:
         await cryptobot_client.close()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Shutdown error in cryptobot_client: %s", e, exc_info=True)
 
     try:
         from src.infrastructure.tasks.email_task_dispatcher import shutdown_email_dispatcher
 
         await shutdown_email_dispatcher()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Shutdown error in email_dispatcher: %s", e, exc_info=True)
 
     try:
         from src.infrastructure.cache.redis_client import close_redis_pool
 
         await close_redis_pool()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Shutdown error in redis_pool: %s", e, exc_info=True)
 
     from src.infrastructure.messaging.websocket_manager import ws_manager
 
@@ -291,20 +291,27 @@ async def health_check_detailed(
     }
 
 
-@app.get("/metrics")
-async def metrics_endpoint():
-    """Prometheus metrics endpoint.
+def create_metrics_app() -> FastAPI:
+    """SEC-02: Separate ASGI app for /metrics on internal-only port."""
+    metrics_app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    Exposes application metrics for Prometheus scraping.
-    LOW-006: Includes websocket_auth_method_total for deprecation tracking.
-    """
-    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-    from starlette.responses import Response
+    @metrics_app.get("/metrics")
+    async def metrics_endpoint():
+        from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+        from starlette.responses import Response
 
-    # Import metrics modules to ensure they're registered
-    from src.infrastructure.monitoring import metrics  # noqa: F401
+        from src.infrastructure.monitoring import metrics  # noqa: F401
 
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST,
-    )
+        return Response(
+            content=generate_latest(),
+            media_type=CONTENT_TYPE_LATEST,
+        )
+
+    @metrics_app.get("/health")
+    async def metrics_health():
+        return {"status": "ok"}
+
+    return metrics_app
+
+
+metrics_app = create_metrics_app()

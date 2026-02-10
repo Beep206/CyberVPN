@@ -5,6 +5,7 @@ import { toPng } from "html-to-image";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { CrumbleEffect } from "@/components/effects/CrumbleEffect";
+import { ErrorBoundary } from "@/shared/ui/error-boundary";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface InceptionButtonProps {
@@ -135,27 +136,29 @@ export function InceptionButton({ children, onClick, className = "", wrapperClas
             height: dimensions.height * 4
           }}
         >
-          <Canvas
-            orthographic
-            camera={{
-              zoom: 1,
-              position: [0, 0, 100],
-              left: -dimensions.width * 2,
-              right: dimensions.width * 2,
-              top: dimensions.height * 2,
-              bottom: -dimensions.height * 2
-            }}
-            gl={{ alpha: true, antialias: true }}
-            className="w-full h-full"
-          >
-            <ambientLight intensity={1} />
-            <CrumbleEffect
-              texture={texture}
-              width={dimensions.width}
-              height={dimensions.height}
-              progress={progress}
-            />
-          </Canvas>
+          <ErrorBoundary label="Crumble Effect">
+            <Canvas
+              orthographic
+              camera={{
+                zoom: 1,
+                position: [0, 0, 100],
+                left: -dimensions.width * 2,
+                right: dimensions.width * 2,
+                top: dimensions.height * 2,
+                bottom: -dimensions.height * 2
+              }}
+              gl={{ alpha: true, antialias: true }}
+              className="w-full h-full"
+            >
+              <ambientLight intensity={1} />
+              <CrumbleEffect
+                texture={texture}
+                width={dimensions.width}
+                height={dimensions.height}
+                progress={progress}
+              />
+            </Canvas>
+          </ErrorBoundary>
         </div>
       )}
     </div>

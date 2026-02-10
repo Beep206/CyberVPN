@@ -10,7 +10,7 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -71,6 +71,7 @@ from src.presentation.api.v1.auth.schemas import (
     VerifyOtpResponse,
 )
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
+from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
@@ -103,6 +104,7 @@ def _get_client_ip(request: Request) -> str:
 async def login(
     request: LoginRequest,
     http_request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
@@ -172,6 +174,8 @@ async def login(
     # Successful login - reset attempts
     await protection.reset_on_success(identifier)
 
+    set_auth_cookies(response, result["access_token"], result["refresh_token"])
+
     return TokenResponse(
         access_token=result["access_token"],
         refresh_token=result["refresh_token"],
@@ -188,6 +192,7 @@ async def login(
 async def refresh_token(
     request: RefreshTokenRequest,
     http_request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
@@ -208,6 +213,8 @@ async def refresh_token(
         client_fingerprint=fingerprint,
     )
 
+    set_auth_cookies(response, result["access_token"], result["refresh_token"])
+
     return TokenResponse(
         access_token=result["access_token"],
         refresh_token=result["refresh_token"],
@@ -219,12 +226,14 @@ async def refresh_token(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: LogoutRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Logout user by invalidating refresh token."""
+    """Logout user by invalidating refresh token and clearing auth cookies."""
     use_case = LogoutUseCase(session=db)
 
     await use_case.execute(refresh_token=request.refresh_token)
+    clear_auth_cookies(response)
     return None
 
 
@@ -234,6 +243,7 @@ async def logout(
     responses={401: {"description": "Not authenticated"}},
 )
 async def logout_all_devices(
+    response: Response,
     current_user=Depends(get_current_active_user),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> LogoutAllResponse:
@@ -243,6 +253,8 @@ async def logout_all_devices(
     """
     revocation_service = JWTRevocationService(redis_client)
     revoked_count = await revocation_service.revoke_all_user_tokens(str(current_user.id))
+
+    clear_auth_cookies(response)
 
     logger.info(
         "User logged out from all devices",
@@ -322,6 +334,7 @@ async def delete_account(
 )
 async def verify_otp(
     request: VerifyOtpRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
@@ -367,6 +380,9 @@ async def verify_otp(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification"
         )
+
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return VerifyOtpResponse(
         access_token=result.access_token or "",
@@ -486,6 +502,7 @@ async def request_magic_link(
 )
 async def verify_magic_link(
     request: MagicLinkVerifyRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
@@ -528,6 +545,8 @@ async def verify_magic_link(
     refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
 
+    set_auth_cookies(response, access_token, refresh_token)
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -546,6 +565,7 @@ async def verify_magic_link(
 async def telegram_miniapp_auth(
     request: TelegramMiniAppRequest,
     _rate_limit: TelegramMiniAppRateLimit,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
@@ -574,6 +594,8 @@ async def telegram_miniapp_auth(
             detail=str(e),
         )
 
+    set_auth_cookies(response, result.access_token, result.refresh_token)
+
     return TelegramMiniAppResponse(
         access_token=result.access_token,
         refresh_token=result.refresh_token,
@@ -594,6 +616,7 @@ async def telegram_miniapp_auth(
 async def telegram_bot_link_auth(
     request: TelegramBotLinkRequest,
     _rate_limit: TelegramBotLinkRateLimit,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
@@ -618,6 +641,8 @@ async def telegram_bot_link_auth(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
         )
+
+    set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return TelegramBotLinkResponse(
         access_token=result.access_token,

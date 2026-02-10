@@ -4,6 +4,7 @@ import { TerminalHeader } from "@/widgets/terminal-header";
 import { GlobalNetworkWrapper } from "@/widgets/3d-background/global-network-wrapper";
 import { Scanlines } from "@/shared/ui/atoms/scanlines";
 import { AuthGuard } from "@/features/auth/components";
+import { ErrorBoundary } from "@/shared/ui/error-boundary";
 
 export default function DashboardLayout({
     children,
@@ -21,10 +22,14 @@ export default function DashboardLayout({
                     Skip to main content
                 </a>
                 <Scanlines />
-                <CyberSidebar />
+                <ErrorBoundary label="Sidebar">
+                    <CyberSidebar />
+                </ErrorBoundary>
                 <MobileSidebar />
                 <div className="relative flex flex-1 flex-col overflow-hidden md:pl-64">
-                    <TerminalHeader />
+                    <ErrorBoundary label="Header">
+                        <TerminalHeader />
+                    </ErrorBoundary>
                     <main id="main-content" tabIndex={-1} aria-live="polite" className="flex-1 overflow-y-auto overflow-x-hidden relative p-4 md:p-6 pb-20 z-10 focus:outline-hidden">
                         {children}
                     </main>

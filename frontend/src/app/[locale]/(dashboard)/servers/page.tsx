@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { ServersDataGrid } from '@/widgets/servers-data-grid';
+import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
 export default async function ServersPage({
     params,
@@ -21,7 +22,9 @@ export default async function ServersPage({
                 </div>
             </div>
 
-            <ServersDataGrid />
+            <ErrorBoundary label="Server Data Grid">
+                <ServersDataGrid />
+            </ErrorBoundary>
         </div>
     );
 }

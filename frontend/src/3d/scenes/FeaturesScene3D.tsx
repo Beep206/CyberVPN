@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail, MeshTransmissionMaterial } from '@react-three/drei';
+import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
 // Floating Cyber Particles - Performance optimized with InstancedMesh
 function CyberParticles({ count = 800 }: { count?: number }) {
@@ -333,18 +334,20 @@ function FeaturesSceneContent() {
 export function FeaturesScene3D() {
     return (
         <div className="absolute inset-0 z-0 pointer-events-none">
-            <Canvas
-                camera={{ position: [0, 0, 6], fov: 60 }}
-                dpr={[1, 1.5]}
-                gl={{
-                    antialias: true,
-                    alpha: true,
-                    powerPreference: 'high-performance'
-                }}
-                style={{ background: 'transparent' }}
-            >
-                <FeaturesSceneContent />
-            </Canvas>
+            <ErrorBoundary label="Features 3D Scene">
+                <Canvas
+                    camera={{ position: [0, 0, 6], fov: 60 }}
+                    dpr={[1, 1.5]}
+                    gl={{
+                        antialias: true,
+                        alpha: true,
+                        powerPreference: 'high-performance'
+                    }}
+                    style={{ background: 'transparent' }}
+                >
+                    <FeaturesSceneContent />
+                </Canvas>
+            </ErrorBoundary>
         </div>
     );
 }

@@ -255,8 +255,8 @@ describe('Auth Store', () => {
       expect(state.error).toBe(null);
     });
 
-    it('test_login_success_stores_tokens', async () => {
-      // Arrange
+    it('test_login_success_does_not_store_tokens_locally_SEC01', async () => {
+      // Arrange — SEC-01: tokens are now delivered via httpOnly cookies
       mockLogin.mockResolvedValue({
         data: createMockTokenResponse({
           access_token: 'at_login',
@@ -268,8 +268,8 @@ describe('Auth Store', () => {
       // Act
       await useAuthStore.getState().login('test@test.com', 'password');
 
-      // Assert
-      expect(mockSetTokens).toHaveBeenCalledWith('at_login', 'rt_login');
+      // Assert — setTokens must NOT be called (cookies handle it)
+      expect(mockSetTokens).not.toHaveBeenCalled();
     });
 
     it('test_login_success_calls_analytics', async () => {
@@ -541,7 +541,7 @@ describe('Auth Store', () => {
   // =========================================================================
 
   describe('verifyOtpAndLogin', () => {
-    it('test_verifyOtp_success_sets_authenticated_user_with_tokens', async () => {
+    it('test_verifyOtp_success_sets_authenticated_user', async () => {
       // Arrange
       const mockUser = createMockUser({ id: 'usr_otp_001', role: 'user' });
       mockVerifyOtp.mockResolvedValue({
@@ -562,7 +562,8 @@ describe('Auth Store', () => {
       expect(state.isAuthenticated).toBe(true);
       expect(state.user?.id).toBe('usr_otp_001');
       expect(state.isLoading).toBe(false);
-      expect(mockSetTokens).toHaveBeenCalledWith('otp_access', 'otp_refresh');
+      // SEC-01: tokens delivered via httpOnly cookies, not localStorage
+      expect(mockSetTokens).not.toHaveBeenCalled();
     });
 
     it('test_verifyOtp_calls_api_with_email_and_code', async () => {
@@ -969,7 +970,8 @@ describe('Auth Store', () => {
       expect(state.user?.id).toBe('usr_bot_001');
       expect(state.user?.email).toBe('bot@test.com');
       expect(state.isLoading).toBe(false);
-      expect(mockSetTokens).toHaveBeenCalledWith('bot_access', 'bot_refresh');
+      // SEC-01: tokens delivered via httpOnly cookies, not localStorage
+      expect(mockSetTokens).not.toHaveBeenCalled();
     });
 
     it('test_loginWithBotLink_passes_token_to_api', async () => {
@@ -1300,7 +1302,7 @@ describe('Auth Store', () => {
       expect(useAuthStore.getState().isLoading).toBe(false);
     });
 
-    it('test_oauthCallback_stores_tokens_on_success_without_2FA', async () => {
+    it('test_oauthCallback_sets_user_on_success_without_2FA', async () => {
       sessionStorage.setItem('oauth_state', 'matched_state');
 
       mockOauthLoginCallback.mockResolvedValue({
@@ -1325,8 +1327,8 @@ describe('Auth Store', () => {
 
       const result = await useAuthStore.getState().oauthCallback('github', 'valid_code', 'matched_state');
 
-      // Tokens should be stored
-      expect(mockSetTokens).toHaveBeenCalledWith('access_tok_123', 'refresh_tok_456');
+      // SEC-01: tokens delivered via httpOnly cookies, not localStorage
+      expect(mockSetTokens).not.toHaveBeenCalled();
 
       // User should be set and authenticated
       const state = useAuthStore.getState();
@@ -1484,7 +1486,7 @@ describe('Auth Store', () => {
   // =========================================================================
 
   describe('verifyMagicLink', () => {
-    it('test_verifyMagicLink_stores_tokens_on_success', async () => {
+    it('test_verifyMagicLink_authenticates_user_on_success', async () => {
       mockVerifyMagicLink.mockResolvedValue({
         data: {
           access_token: 'ml_access_tok',
@@ -1508,8 +1510,8 @@ describe('Auth Store', () => {
 
       await useAuthStore.getState().verifyMagicLink('valid_magic_token');
 
-      // Tokens should be stored
-      expect(mockSetTokens).toHaveBeenCalledWith('ml_access_tok', 'ml_refresh_tok');
+      // SEC-01: tokens delivered via httpOnly cookies, not localStorage
+      expect(mockSetTokens).not.toHaveBeenCalled();
 
       // API should fetch user info
       expect(mockMe).toHaveBeenCalled();

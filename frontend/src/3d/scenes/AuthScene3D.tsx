@@ -6,6 +6,7 @@ const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
 import { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail } from '@react-three/drei';
+import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 
 // ============================================
@@ -345,18 +346,20 @@ export function AuthScene3D() {
     // This fixes "Cannot read properties of null" errors when switching languages
     return (
         <div key={pathname} className="absolute inset-0 z-0 pointer-events-none">
-            <Canvas
-                camera={{ position: [0, 0, 5], fov: 50 }}
-                dpr={[1, 1.5]}
-                gl={{
-                    antialias: true,
-                    alpha: true,
-                    powerPreference: 'high-performance',
-                }}
-                style={{ background: 'transparent' }}
-            >
-                <AuthSceneContent />
-            </Canvas>
+            <ErrorBoundary label="Auth 3D Scene">
+                <Canvas
+                    camera={{ position: [0, 0, 5], fov: 50 }}
+                    dpr={[1, 1.5]}
+                    gl={{
+                        antialias: true,
+                        alpha: true,
+                        powerPreference: 'high-performance',
+                    }}
+                    style={{ background: 'transparent' }}
+                >
+                    <AuthSceneContent />
+                </Canvas>
+            </ErrorBoundary>
         </div>
     );
 }

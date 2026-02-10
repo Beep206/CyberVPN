@@ -11,6 +11,12 @@ rule_files:
   - /etc/prometheus/rules/worker_alerts.yml
 
 scrape_configs:
+  - job_name: 'cybervpn-backend'
+    static_configs:
+      - targets: ['cybervpn-backend:9091']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
   - job_name: 'remnawave'
     static_configs:
       - targets: ['remnawave:3001']

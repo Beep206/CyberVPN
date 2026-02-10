@@ -46,13 +46,10 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.loginStarted();
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
-          // Login returns tokens
-          const { data: tokenData } = await authApi.login({ email, password, remember_me: rememberMe });
+          // SEC-01: backend sets httpOnly cookies automatically
+          await authApi.login({ email, password, remember_me: rememberMe });
 
-          // Store tokens in localStorage
-          tokenStorage.setTokens(tokenData.access_token, tokenData.refresh_token);
-
-          // Fetch user info with the new token
+          // Fetch user info (auth via httpOnly cookie)
           const { data: user } = await authApi.me();
           set({ user, isAuthenticated: true, isLoading: false });
           authAnalytics.loginSuccess(user.id, 'email');
@@ -118,11 +115,8 @@ export const useAuthStore = create<AuthState>()(
       verifyOtpAndLogin: async (email, code) => {
         set({ isLoading: true, error: null });
         try {
-          // Verify OTP - returns tokens AND user data (auto-login)
+          // SEC-01: backend sets httpOnly cookies; we just need user data
           const { data } = await authApi.verifyOtp({ email, code });
-
-          // Store tokens in localStorage
-          tokenStorage.setTokens(data.access_token, data.refresh_token);
 
           // User is now verified and authenticated
           set({
@@ -161,7 +155,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.logout();
         } finally {
-          // Clear tokens from localStorage
+          // SEC-01: backend clears cookies; clean up any legacy localStorage
           tokenStorage.clearTokens();
           set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
           authAnalytics.logout();
@@ -210,8 +204,8 @@ export const useAuthStore = create<AuthState>()(
         // 1 retry on failure
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
+            // SEC-01: backend sets httpOnly cookies
             const { data } = await authApi.telegramMiniApp(initData);
-            tokenStorage.setTokens(data.access_token, data.refresh_token);
             const isNewUser = data.is_new_user ?? false;
             set({
               user: {
@@ -248,8 +242,8 @@ export const useAuthStore = create<AuthState>()(
       loginWithBotLink: async (token) => {
         set({ isLoading: true, error: null });
         try {
+          // SEC-01: backend sets httpOnly cookies
           const { data } = await authApi.telegramBotLink({ token });
-          tokenStorage.setTokens(data.access_token, data.refresh_token);
           set({
             user: {
               id: data.user.id,
@@ -316,10 +310,7 @@ export const useAuthStore = create<AuthState>()(
             return data;
           }
 
-          // Store tokens
-          tokenStorage.setTokens(data.access_token, data.refresh_token);
-
-          // Set user
+          // SEC-01: backend sets httpOnly cookies; set user state
           set({
             user: {
               id: data.user.id,
@@ -369,8 +360,8 @@ export const useAuthStore = create<AuthState>()(
       verifyMagicLink: async (token) => {
         set({ isLoading: true, error: null });
         try {
-          const { data } = await authApi.verifyMagicLink({ token });
-          tokenStorage.setTokens(data.access_token, data.refresh_token);
+          // SEC-01: backend sets httpOnly cookies
+          await authApi.verifyMagicLink({ token });
 
           // Fetch full user info
           const { data: user } = await authApi.me();
@@ -388,7 +379,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           await authApi.deleteAccount();
-          // Clear tokens and reset auth state
+          // SEC-01: backend clears cookies; clean up legacy localStorage
           tokenStorage.clearTokens();
           set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
           authAnalytics.logout();

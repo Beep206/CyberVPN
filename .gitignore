@@ -124,6 +124,9 @@ _*.jq
 .worktrees/
 .ralph-tui/
 
+# Database backups
+infra/backups/
+
 # Secrets and credentials
 APIToken.txt
 *.secret
