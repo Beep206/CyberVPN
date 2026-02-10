@@ -103,3 +103,29 @@ class PaymentHistoryResponse(BaseModel):
     )
 
     payments: list[PaymentHistoryItem] = Field(..., description="List of payment history items")
+
+
+class CheckoutRequest(BaseModel):
+    """Unified checkout request combining plan + promo + wallet."""
+
+    plan_id: UUID = Field(..., description="Subscription plan to purchase")
+    promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
+    use_wallet: float = Field(0, ge=0, description="Amount to pay from wallet balance")
+    currency: str = Field("USD", min_length=3, max_length=3, description="Payment currency")
+
+
+class CheckoutResponse(BaseModel):
+    """Checkout calculation result."""
+
+    base_price: float
+    displayed_price: float
+    discount_amount: float
+    wallet_amount: float
+    gateway_amount: float
+    partner_markup: float
+    is_zero_gateway: bool
+    plan_id: UUID | None = None
+    promo_code_id: UUID | None = None
+    partner_code_id: UUID | None = None
+    payment_id: UUID | None = Field(None, description="Set when zero-gateway payment is completed")
+    status: str = Field("pending", description="'completed' for zero-gateway, 'pending' for gateway needed")
