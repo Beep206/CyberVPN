@@ -36,6 +36,14 @@ services:
         condition: service_healthy
       remnawave-redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
   remnawave-db:
     image: postgres:17.7
@@ -57,6 +65,14 @@ services:
       interval: 3s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
   remnawave-redis:
     image: valkey/valkey:8.1-alpine
@@ -65,6 +81,10 @@ services:
     <<: [*common, *logging]
     ports:
       - "127.0.0.1:6379:6379"
+    # INFRA-04: Valkey runs with zero persistence (--save "" --appendonly no).
+    # This is intentional: Valkey is used only for cache and task queues.
+    # All data is ephemeral and reconstructed on restart. No backup needed.
+    # Trade-off: faster writes, lower disk I/O, but data lost on container restart.
     command: >
       valkey-server
       --save ""
@@ -76,6 +96,41 @@ services:
       interval: 3s
       timeout: 3s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
+          cpus: "0.10"
+
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:17
+    container_name: db-backup
+    hostname: db-backup
+    <<: [*common, *logging]
+    environment:
+      - POSTGRES_HOST=remnawave-db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_EXTRA_OPTS=--format=custom --compress=6
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - HEALTHCHECK_PORT=8080
+      - TZ=UTC
+    volumes:
+      - ./backups/postgres:/backups
+    depends_on:
+      remnawave-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "find /backups -name '*.sql.gz' -o -name '*.dump' -mmin -1500 | grep -q ."]
+      interval: 3600s
+      timeout: 10s
+      retries: 1
+      start_period: 86400s
 
   cybervpn-worker:
     build:
@@ -115,6 +170,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
 
   cybervpn-scheduler:
     build:
@@ -149,6 +212,14 @@ services:
       options:
         max-size: 20m
         max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
+          cpus: "0.10"
 
   caddy:
     image: caddy:2.9
@@ -263,7 +334,7 @@ services:
           cpus: "0.25"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.2.1
     container_name: prometheus
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -281,7 +352,7 @@ services:
       - remnawave-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.5.2
     container_name: grafana
     profiles: ["monitoring"]
     restart: unless-stopped
@@ -300,7 +371,7 @@ services:
       - remnawave-network
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.28.1
     container_name: alertmanager
     profiles: ["monitoring"]
     restart: unless-stopped
