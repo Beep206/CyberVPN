@@ -70,7 +70,16 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         deleteAccount,
         auth,
         a11y,
-        miniApp
+        miniApp,
+        settings,
+        analytics,
+        monitoring,
+        subscriptions,
+        wallet,
+        paymentHistory,
+        referral,
+        partner,
+        devices
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
@@ -88,7 +97,16 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         import(`../../messages/${locale}/delete-account.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/auth.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/a11y.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/MiniApp.json`).catch(() => ({ default: {} }))
+        import(`../../messages/${locale}/MiniApp.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/settings.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/analytics.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/monitoring.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/subscriptions.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/wallet.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/payment-history.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/referral.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/partner.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/devices.json`).catch(() => ({ default: {} }))
     ]);
 
     return {
@@ -108,6 +126,15 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         DeleteAccount: deleteAccount.default,
         Auth: auth.default,
         A11y: a11y.default,
-        MiniApp: miniApp.default
+        MiniApp: miniApp.default,
+        Settings: settings.default,
+        Analytics: analytics.default,
+        Monitoring: monitoring.default,
+        Subscriptions: subscriptions.default,
+        Wallet: wallet.default,
+        PaymentHistory: paymentHistory.default,
+        Referral: referral.default,
+        Partner: partner.default,
+        Devices: devices.default
     };
 });

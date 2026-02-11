@@ -257,8 +257,6 @@ class ApiClient {
 /// Masks Authorization headers and suppresses response bodies for
 /// auth endpoints that return tokens.
 class _RedactedLogInterceptor extends Interceptor {
-  static const _sensitiveEndpoints = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/token'];
-
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final headers = Map<String, dynamic>.from(options.headers);

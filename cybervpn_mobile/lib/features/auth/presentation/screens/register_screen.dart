@@ -4,7 +4,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:cybervpn_mobile/core/constants/app_constants.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
@@ -913,8 +915,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                         fontWeight: FontWeight.w600,
                                       ),
                                       recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          // TODO: open T&C page / URL
+                                        ..onTap = () async {
+                                          final uri = Uri.parse(AppConstants.termsOfServiceUrl);
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          }
                                         },
                                     ),
                                     TextSpan(text: l10n.registerAndSeparator),
@@ -925,8 +930,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                         fontWeight: FontWeight.w600,
                                       ),
                                       recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          // TODO: open Privacy Policy page / URL
+                                        ..onTap = () async {
+                                          final uri = Uri.parse(AppConstants.privacyPolicyUrl);
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          }
                                         },
                                     ),
                                   ],

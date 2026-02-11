@@ -7,6 +7,7 @@ import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
@@ -239,11 +240,11 @@ void main() {
 
     // Configure auth state
     when(() => mockAuthRepo.isAuthenticated())
-        .thenAnswer((_) async => isAuthenticated);
+        .thenAnswer((_) async => Success(isAuthenticated));
 
     if (isAuthenticated) {
       when(() => mockAuthRepo.getCurrentUser())
-          .thenAnswer((_) async => testUser);
+          .thenAnswer((_) async => Success(testUser));
     }
 
     // Configure biometric state
@@ -306,15 +307,15 @@ void main() {
               password: any(named: 'password'),
               device: any(named: 'device'),
               referralCode: any(named: 'referralCode'),
-            )).thenAnswer((_) async => (testUser, testAccessToken));
+            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
 
         // After registration, auth check should pass
         var registrationComplete = false;
         when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
-          return registrationComplete;
+          return Success(registrationComplete);
         });
         when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
-          return registrationComplete ? testUser : null;
+          return Success(registrationComplete ? testUser : null);
         });
 
         await pumpTestApp(tester, onboardingCompleted: true);
@@ -400,14 +401,14 @@ void main() {
               password: any(named: 'password'),
               device: any(named: 'device'),
               rememberMe: any(named: 'rememberMe'),
-            )).thenAnswer((_) async => (testUser, testAccessToken));
+            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
 
         var loginComplete = false;
         when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
-          return loginComplete;
+          return Success(loginComplete);
         });
         when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
-          return loginComplete ? testUser : null;
+          return Success(loginComplete ? testUser : null);
         });
 
         await pumpTestApp(tester, onboardingCompleted: true);
@@ -517,7 +518,7 @@ void main() {
             key: SecureStorageWrapper.refreshTokenKey,
             value: testRefreshToken,
           );
-          return (testUser, testAccessToken);
+          return Success((testUser, testAccessToken));
         });
 
         await pumpTestApp(tester, onboardingCompleted: true);
@@ -619,7 +620,7 @@ void main() {
               password: any(named: 'password'),
               device: any(named: 'device'),
               rememberMe: any(named: 'rememberMe'),
-            )).thenAnswer((_) async => (testUser, testAccessToken));
+            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
 
         await pumpTestApp(
           tester,
@@ -665,9 +666,9 @@ void main() {
 
         // Auth check should work with cached data
         when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => true);
+            .thenAnswer((_) async => Success(true));
         when(() => mockAuthRepo.getCurrentUser())
-            .thenAnswer((_) async => testUser);
+            .thenAnswer((_) async => Success(testUser));
 
         await pumpTestApp(
           tester,
@@ -727,9 +728,9 @@ void main() {
         });
 
         when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => true);
+            .thenAnswer((_) async => Success(true));
         when(() => mockAuthRepo.getCurrentUser())
-            .thenAnswer((_) async => testUser);
+            .thenAnswer((_) async => Success(testUser));
 
         await pumpTestApp(
           tester,
@@ -780,8 +781,8 @@ void _setupDefaultMockBehaviors({
       .thenAnswer((_) async {});
 
   // Auth defaults
-  when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async => false);
-  when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async => null);
+  when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async => Success(false));
+  when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async => Success(null));
 
   // Biometric defaults
   when(() => mockBiometricService.isBiometricAvailable())

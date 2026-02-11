@@ -18,6 +18,7 @@ from src.application.services.login_protection import AccountLockedException, Lo
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
+from src.infrastructure.monitoring.instrumentation.routes import track_auth_attempt, track_registration
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
@@ -161,6 +162,9 @@ async def login(
         # Record failed attempt
         attempts = await protection.record_failed_attempt(identifier)
 
+        # Track failed auth attempt metric
+        track_auth_attempt(method="password", success=False)
+
         # Ensure constant response time (LOW-002: use asyncio.sleep instead of blocking time.sleep)
         elapsed = time.time() - start_time
         if elapsed < min_response_time:
@@ -179,6 +183,9 @@ async def login(
 
     # Successful login - reset attempts
     await protection.reset_on_success(identifier)
+
+    # Track successful auth attempt metric
+    track_auth_attempt(method="password", success=True)
 
     set_auth_cookies(response, result["access_token"], result["refresh_token"])
 
@@ -380,6 +387,9 @@ async def verify_otp(
     result = await use_case.execute(email=request.email, code=request.code)
 
     if not result.success:
+        # Track failed 2FA verification
+        track_auth_attempt(method="2fa_verify", success=False)
+
         status_code = (
             status.HTTP_429_TOO_MANY_REQUESTS if result.error_code == "OTP_EXHAUSTED" else status.HTTP_400_BAD_REQUEST
         )
@@ -391,6 +401,9 @@ async def verify_otp(
                 "attempts_remaining": result.attempts_remaining,
             },
         )
+
+    # Track successful 2FA verification
+    track_auth_attempt(method="2fa_verify", success=True)
 
     # Get user for response
     user = await user_repo.get_by_email(request.email)
@@ -553,6 +566,7 @@ async def verify_magic_link(
     user_repo = AdminUserRepository(db)
     user = await user_repo.get_by_email(email)
 
+    is_new_user = False
     if not user:
         # Auto-register: create user with verified email
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
@@ -565,6 +579,10 @@ async def verify_magic_link(
             is_email_verified=True,
         )
         user = await user_repo.create(user)
+        is_new_user = True
+
+        # Track registration for new users
+        track_registration(method="email")
 
     # Issue JWT tokens
     access_token, _, access_exp = auth_service.create_access_token(
@@ -573,6 +591,9 @@ async def verify_magic_link(
     )
     refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+
+    # Track successful magic link auth
+    track_auth_attempt(method="magic_link", success=True)
 
     set_auth_cookies(response, access_token, refresh_token)
 
@@ -622,6 +643,13 @@ async def telegram_miniapp_auth(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
         )
+
+    # Track OAuth authentication
+    track_auth_attempt(method="oauth", success=True)
+
+    # Track registration for new users
+    if result.is_new_user:
+        track_registration(method="oauth")
 
     set_auth_cookies(response, result.access_token, result.refresh_token)
 
