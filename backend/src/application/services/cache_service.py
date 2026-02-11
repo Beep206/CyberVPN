@@ -3,6 +3,8 @@ from typing import Any
 
 import redis.asyncio as redis
 
+from src.infrastructure.monitoring.instrumentation.cache import track_cache_operation
+
 
 class CacheService:
     PREFIX = "cybervpn:"
@@ -13,15 +15,18 @@ class CacheService:
     def _key(self, key: str) -> str:
         return f"{self.PREFIX}{key}"
 
+    @track_cache_operation("get")
     async def get(self, key: str) -> Any | None:
         data = await self._redis.get(self._key(key))
         if data is None:
             return None
         return json.loads(data)
 
+    @track_cache_operation("set")
     async def set(self, key: str, value: Any, ttl: int = 300) -> None:
         await self._redis.set(self._key(key), json.dumps(value, default=str), ex=ttl)
 
+    @track_cache_operation("delete")
     async def delete(self, key: str) -> None:
         await self._redis.delete(self._key(key))
 

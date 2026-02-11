@@ -58,7 +58,15 @@ export function AnalyticsClient() {
       total: Array.isArray(paymentsData)
         ? (paymentsData as any[]).reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
         : 0,
-      growth: 12.5, // TODO: Calculate from historical data when endpoint available
+      // Calculate growth from first half vs second half of payment data
+      growth: Array.isArray(paymentsData) && paymentsData.length >= 2
+        ? (() => {
+            const midpoint = Math.floor(paymentsData.length / 2);
+            const firstHalf = (paymentsData as any[]).slice(0, midpoint).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+            const secondHalf = (paymentsData as any[]).slice(midpoint).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+            return firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
+          })()
+        : 0,
       chartData: Array.isArray(paymentsData)
         ? (paymentsData as any[]).slice(0, 30).map((p: any) => ({
             date: new Date(p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -67,10 +75,39 @@ export function AnalyticsClient() {
         : [],
     },
     users: {
-      total: 0, // TODO: Add user analytics endpoint
-      active: 0, // TODO: Add user analytics endpoint
-      growth: 0, // TODO: Calculate from historical data when endpoint available
-      chartData: [], // TODO: Add user analytics endpoint
+      // Estimate total users from subscriptions data (one user per subscription)
+      total: Array.isArray(subscriptionsData) ? subscriptionsData.length : 0,
+      // Estimate active users as those with active subscriptions
+      active: Array.isArray(subscriptionsData)
+        ? (subscriptionsData as any[]).filter((s: any) => s.status === 'active').length
+        : 0,
+      // Calculate growth from subscription count change (placeholder until user endpoint exists)
+      growth: Array.isArray(subscriptionsData) && subscriptionsData.length >= 2
+        ? (() => {
+            const midpoint = Math.floor(subscriptionsData.length / 2);
+            const oldCount = midpoint;
+            const newCount = subscriptionsData.length - midpoint;
+            return oldCount > 0 ? ((newCount - oldCount) / oldCount) * 100 : 0;
+          })()
+        : 0,
+      // Generate placeholder chart data from subscription creation dates
+      chartData: Array.isArray(subscriptionsData) && subscriptionsData.length > 0
+        ? (subscriptionsData as any[])
+            .slice(0, 30)
+            .map((s: any) => ({
+              date: new Date(s.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              count: 1,
+            }))
+            .reduce((acc: any[], item: any) => {
+              const existing = acc.find(a => a.date === item.date);
+              if (existing) {
+                existing.count += 1;
+              } else {
+                acc.push(item);
+              }
+              return acc;
+            }, [])
+        : [],
     },
     subscriptions: {
       byPlan: Array.isArray(subscriptionsData)

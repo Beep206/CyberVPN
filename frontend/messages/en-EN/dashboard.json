@@ -1,4 +1,8 @@
 {
+    "meta": {
+        "title": "Dashboard - VPN Command Center",
+        "description": "Secure VPN administration dashboard with real-time monitoring, analytics, and network management"
+    },
     "title": "VPN COMMAND CENTER",
     "statusLabel": "SYSTEM STATUS:",
     "statusValue": "OPTIMAL",

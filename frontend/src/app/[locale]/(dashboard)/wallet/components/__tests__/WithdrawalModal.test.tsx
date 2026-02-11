@@ -57,18 +57,43 @@ describe('WithdrawalModal', () => {
     });
 
     it('test_renders_withdrawal_button', () => {
-      // TODO: Render modal
-      // TODO: Assert "Withdraw" or "Submit" button is present
+      render(
+        <WithdrawalModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          currentBalance={100.00}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Request Withdrawal/i })).toBeInTheDocument();
     });
 
     it('test_renders_cancel_button', () => {
-      // TODO: Render modal
-      // TODO: Assert "Cancel" button is present
+      render(
+        <WithdrawalModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          currentBalance={100.00}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     });
 
     it('test_displays_withdrawal_method_selector', () => {
-      // TODO: Render modal
-      // TODO: Assert method selector (cryptobot, bank, etc.) is present
+      render(
+        <WithdrawalModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          currentBalance={100.00}
+        />
+      );
+
+      // Withdrawal method selector should be present
+      expect(screen.getByText(/Withdrawal Method|Method/i)).toBeInTheDocument();
     });
 
     it('test_displays_minimum_withdrawal_info', () => {
@@ -125,10 +150,35 @@ describe('WithdrawalModal', () => {
     });
 
     it('test_displays_loading_state_during_withdrawal', async () => {
-      // TODO: Setup MSW handler with delay
-      // TODO: Render modal
-      // TODO: Submit withdrawal
-      // TODO: Assert loading spinner or disabled button
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/wallet/withdraw`, async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return HttpResponse.json({ id: 'wd_delay', status: 'pending' }, { status: 201 });
+        })
+      );
+
+      render(
+        <WithdrawalModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          currentBalance={100.00}
+        />
+      );
+
+      const amountInput = screen.getByLabelText(/Amount|amount/i);
+      await user.type(amountInput, '50');
+
+      const addressInput = screen.getByLabelText(/Wallet Address|address/i);
+      await user.type(addressInput, 'TRXAddr123');
+
+      const withdrawButton = screen.getByRole('button', { name: /Request Withdrawal/i });
+      await user.click(withdrawButton);
+
+      // Button should be disabled during submission
+      expect(withdrawButton).toBeDisabled();
     });
 
     it('test_displays_success_message_after_withdrawal', async () => {
@@ -148,10 +198,22 @@ describe('WithdrawalModal', () => {
     });
 
     it('test_closes_modal_on_cancel_button_click', async () => {
-      // TODO: Mock onClose callback
-      // TODO: Render modal
-      // TODO: Click cancel button
-      // TODO: Assert onClose was called
+      const user = userEvent.setup({ delay: null });
+      const onClose = vi.fn();
+
+      render(
+        <WithdrawalModal
+          isOpen={true}
+          onClose={onClose}
+          onSuccess={vi.fn()}
+          currentBalance={100.00}
+        />
+      );
+
+      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
+      await user.click(cancelButton);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 

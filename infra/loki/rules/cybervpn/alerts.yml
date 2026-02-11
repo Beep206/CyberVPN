@@ -1,0 +1,93 @@
+groups:
+  - name: cybervpn_log_alerts
+    interval: 1m
+    rules:
+      - alert: HighErrorLogRate
+        expr: |
+          sum by (compose_service) (
+            rate({compose_service=~".+"} |~ "(?i)error" | json | level="error" [5m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+          source: loki
+        annotations:
+          summary: "High error log rate detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} is producing more than 10 error logs per second for the last 5 minutes. Current rate: {{ $value | printf \"%.2f\" }} logs/sec."
+          runbook_url: "https://docs.example.com/runbooks/high-error-rate"
+
+      - alert: AuthFailureSpike
+        expr: |
+          sum by (compose_service) (
+            rate({compose_service=~".+"} |~ "(?i)(authentication failed|login failed|invalid credentials|unauthorized)" [3m])
+          ) > 5
+        for: 3m
+        labels:
+          severity: critical
+          category: security
+          source: loki
+        annotations:
+          summary: "Authentication failure spike detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} has more than 5 authentication failures per second for the last 3 minutes. This may indicate a brute-force attack. Current rate: {{ $value | printf \"%.2f\" }} failures/sec."
+          runbook_url: "https://docs.example.com/runbooks/auth-failure-spike"
+
+      - alert: DatabaseConnectionErrors
+        expr: |
+          sum by (compose_service) (
+            count_over_time({compose_service=~".+"} |~ "(?i)(database.*error|connection.*refused|could not connect to database|database.*timeout)" [2m])
+          ) > 0
+        for: 2m
+        labels:
+          severity: critical
+          category: infrastructure
+          source: loki
+        annotations:
+          summary: "Database connection errors detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} is experiencing database connection errors. Total errors in last 2 minutes: {{ $value }}."
+          runbook_url: "https://docs.example.com/runbooks/database-connection-errors"
+
+      - alert: ExternalAPITimeouts
+        expr: |
+          sum by (compose_service) (
+            count_over_time({compose_service=~".+"} |~ "(?i)(timeout|timed out|deadline exceeded)" |~ "(?i)(api|external|http)" [10m])
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+          category: integration
+          source: loki
+        annotations:
+          summary: "External API timeouts detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} has more than 3 external API timeouts in the last 10 minutes (5m firing threshold). Total timeouts: {{ $value }}."
+          runbook_url: "https://docs.example.com/runbooks/external-api-timeouts"
+
+      - alert: CriticalLogMessages
+        expr: |
+          sum by (compose_service) (
+            count_over_time({compose_service=~".+"} |~ "(?i)(critical|fatal|panic)" [5m])
+          ) > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: application
+          source: loki
+        annotations:
+          summary: "Critical log messages detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} has logged critical/fatal/panic messages. Count in last 5 minutes: {{ $value }}."
+          runbook_url: "https://docs.example.com/runbooks/critical-logs"
+
+      - alert: HighMemoryUsageWarnings
+        expr: |
+          sum by (compose_service) (
+            count_over_time({compose_service=~".+"} |~ "(?i)(out of memory|oom|memory limit|memory exceeded)" [5m])
+          ) > 0
+        for: 2m
+        labels:
+          severity: warning
+          category: infrastructure
+          source: loki
+        annotations:
+          summary: "Memory usage warnings detected in {{ $labels.compose_service }}"
+          description: "Service {{ $labels.compose_service }} is logging memory-related warnings. Count in last 5 minutes: {{ $value }}."
+          runbook_url: "https://docs.example.com/runbooks/high-memory-usage"

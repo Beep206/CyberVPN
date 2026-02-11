@@ -44,18 +44,33 @@ class CertPins {
   /// echo | openssl s_client -connect api.cybervpn.com:443 2>/dev/null \
   ///   | openssl x509 -fingerprint -sha256 -noout
   /// ```
-  static const String production =
-      ''; // TODO: Set from `openssl` output before production release
+  ///
+  /// **TODO: Generate production fingerprint before release**
+  /// Run: `echo | openssl s_client -connect api.cybervpn.com:443 2>/dev/null | openssl x509 -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
+  /// Expected format: 'AA:BB:CC:DD:EE:FF:...' (32 bytes, colon-separated)
+  ///
+  /// **IMPORTANT**: Certificate pinning is DISABLED in debug mode.
+  /// Empty fingerprints will not cause connection failures during development.
+  static const String production = '';
 
   /// SHA-256 fingerprint of the backup/next production certificate.
   ///
   /// Used during certificate rotation to prevent service disruption.
-  static const String productionBackup =
-      ''; // TODO: Set backup cert fingerprint
+  ///
+  /// **TODO: Generate backup fingerprint when planning certificate rotation**
+  /// Run the same openssl command against the backup certificate file:
+  /// `openssl x509 -in backup-cert.pem -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
+  ///
+  /// Keep empty until certificate rotation is planned.
+  static const String productionBackup = '';
 
   /// SHA-256 fingerprint of the staging API certificate.
-  static const String staging =
-      ''; // TODO: Set staging cert fingerprint
+  ///
+  /// **TODO: Generate staging fingerprint for staging environment**
+  /// Run: `echo | openssl s_client -connect staging.cybervpn.com:443 2>/dev/null | openssl x509 -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
+  ///
+  /// Used only when connecting to staging API endpoints.
+  static const String staging = '';
 
   /// All active fingerprints as a list.
   ///

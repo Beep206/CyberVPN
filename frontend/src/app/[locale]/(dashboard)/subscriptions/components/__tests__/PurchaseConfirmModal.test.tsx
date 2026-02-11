@@ -67,18 +67,66 @@ describe('PurchaseConfirmModal', () => {
     });
 
     it('test_renders_purchase_button', () => {
-      // TODO: Render modal
-      // TODO: Assert "Purchase" or "Confirm" button is present
+      const mockPlan = {
+        uuid: 'plan-001',
+        name: 'Basic Plan',
+        price: 9.99,
+        currency: 'USD',
+        durationDays: 7,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      expect(screen.getByText(/Pay with Crypto/i)).toBeInTheDocument();
     });
 
     it('test_renders_cancel_button', () => {
-      // TODO: Render modal
-      // TODO: Assert "Cancel" button is present
+      const mockPlan = {
+        uuid: 'plan-002',
+        name: 'Pro Plan',
+        price: 19.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      expect(screen.getByText(/Cancel/i)).toBeInTheDocument();
     });
 
     it('test_displays_plan_features_list', () => {
-      // TODO: Render modal with plan features
-      // TODO: Assert each feature is displayed
+      const mockPlan = {
+        uuid: 'plan-003',
+        name: 'Premium Plan',
+        price: 49.99,
+        currency: 'USD',
+        durationDays: 90,
+        features: ['Unlimited Bandwidth', 'Priority Support', '10 Devices'],
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      mockPlan.features.forEach((feature) => {
+        expect(screen.getByText(feature)).toBeInTheDocument();
+      });
     });
   });
 
@@ -123,10 +171,36 @@ describe('PurchaseConfirmModal', () => {
     });
 
     it('test_displays_loading_state_during_purchase', async () => {
-      // TODO: Setup MSW handler with delay
-      // TODO: Render modal
-      // TODO: Click purchase button
-      // TODO: Assert loading spinner or disabled button appears
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return HttpResponse.json({ payment_url: 'https://crypto.example/inv' }, { status: 201 });
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-delay',
+        name: 'Test Plan',
+        price: 15.00,
+        currency: 'USD',
+        durationDays: 14,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      // Button should be disabled or show loading state
+      expect(purchaseButton).toBeDisabled();
     });
 
     it('test_displays_crypto_invoice_after_purchase_success', async () => {
@@ -147,10 +221,29 @@ describe('PurchaseConfirmModal', () => {
     });
 
     it('test_closes_modal_on_cancel_button_click', async () => {
-      // TODO: Mock onClose callback
-      // TODO: Render modal
-      // TODO: Click cancel button
-      // TODO: Assert onClose was called
+      const user = userEvent.setup({ delay: null });
+      const onClose = vi.fn();
+
+      const mockPlan = {
+        uuid: 'plan-cancel',
+        name: 'Test Plan',
+        price: 12.00,
+        currency: 'USD',
+        durationDays: 10,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={onClose}
+          plan={mockPlan}
+        />
+      );
+
+      const cancelButton = screen.getByText(/Cancel/i);
+      await user.click(cancelButton);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 

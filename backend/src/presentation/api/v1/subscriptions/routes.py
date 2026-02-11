@@ -7,6 +7,7 @@ from src.application.services.cache_service import CacheService
 from src.application.use_cases.subscriptions import CancelSubscriptionUseCase, GetActiveSubscriptionUseCase
 from src.domain.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.monitoring.instrumentation.routes import track_subscription_activation
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient, RemnawaveSubscriptionClient
@@ -116,6 +117,10 @@ async def get_active_subscription(
     use_case = GetActiveSubscriptionUseCase(cached_client)
     subscription = await use_case.execute(current_user.id)
 
+    # Track subscription activation metric
+    if subscription.status == "active" and subscription.plan_name:
+        track_subscription_activation(plan_type=subscription.plan_name)
+
     return ActiveSubscriptionResponse(
         status=subscription.status,
         plan_name=subscription.plan_name,
@@ -134,6 +139,7 @@ async def get_active_subscription(
     responses={
         401: {"description": "Not authenticated"},
         404: {"description": "User not found in VPN backend"},
+        429: {"description": "Rate limit exceeded (3 requests per hour)"},
     },
 )
 async def cancel_subscription(
@@ -145,7 +151,23 @@ async def cancel_subscription(
 
     Sets the subscription revocation timestamp and invalidates cached data.
     Does not throw an error if the subscription is already canceled.
+
+    Rate limited to 3 requests per hour per user.
     """
+    # Rate limiting: 3 requests per hour per user
+    rate_limit_key = f"subscription_cancel:{current_user.id}"
+    rate_limit_window = 3600  # 1 hour in seconds
+    rate_limit_max = 3
+
+    # Check current request count
+    current_count = await redis_client.get(rate_limit_key)
+    if current_count and int(current_count) >= rate_limit_max:
+        ttl = await redis_client.ttl(rate_limit_key)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Try again in {ttl} seconds.",
+        )
+
     # Build dependencies
     cache_service = CacheService(redis_client)
     user_gateway = RemnawaveUserGateway(remnawave_client)
@@ -162,5 +184,11 @@ async def cancel_subscription(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+    # Increment rate limit counter
+    pipe = redis_client.pipeline()
+    await pipe.incr(rate_limit_key)
+    await pipe.expire(rate_limit_key, rate_limit_window)
+    await pipe.execute()
 
     return CancelSubscriptionResponse(canceled_at=datetime.now(UTC))

@@ -14,6 +14,7 @@ from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoic
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_payment
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.presentation.api.v1.payments.schemas import (
     CheckoutRequest,
@@ -62,6 +63,9 @@ async def create_crypto_invoice(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    # Track payment creation
+    track_payment(status="created", currency=request.currency)
 
     return InvoiceResponse(**asdict(invoice_data))
 
@@ -166,6 +170,9 @@ async def checkout(
             )
             response.payment_id = payment.id
             response.status = "completed"
+
+            # Track completed payment
+            track_payment(status="completed", currency=body.currency)
         except Exception:
             logger.exception("Zero-gateway completion failed")
             raise HTTPException(

@@ -5,6 +5,21 @@ import { GlobalNetworkWrapper } from "@/widgets/3d-background/global-network-wra
 import { Scanlines } from "@/shared/ui/atoms/scanlines";
 import { AuthGuard } from "@/features/auth/components";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
+import { getTranslations } from 'next-intl/server';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Dashboard.meta' });
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default function DashboardLayout({
     children,

@@ -5,6 +5,21 @@ import { ThemeToggle } from '@/features/theme-toggle';
 import { LanguageSelector } from '@/features/language-selector';
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Auth.meta' });
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default function AuthLayout({
     children,

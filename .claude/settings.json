@@ -1,16 +1,94 @@
 {
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code session-start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code session-end"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code user-prompt-submit"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code stop"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code pre-task"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code post-task"
+          }
+        ]
+      },
+      {
+        "matcher": "TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "entire hooks claude-code post-todo"
+          }
+        ]
+      }
+    ]
+  },
+  "model": "opus",
   "permissions": {
     "allow": [
       "Bash(task-master *)",
-      "Bash(cd * && task-master *)",
+      "Bash(cd * \u0026\u0026 task-master *)",
       "Bash(free -m*)",
       "Bash(flutter *)",
-      "Bash(cd */cybervpn_mobile && flutter *)",
+      "Bash(cd */cybervpn_mobile \u0026\u0026 flutter *)",
       "Bash(npm run *)",
-      "Bash(cd */admin && npm run *)",
+      "Bash(cd */admin \u0026\u0026 npm run *)",
       "Bash(python -m ruff *)",
       "Bash(python -m pytest *)",
-      "Bash(cd */backend && python *)",
+      "Bash(cd */backend \u0026\u0026 python *)",
       "Bash(docker compose *)",
       "Bash(git status*)",
       "Bash(git diff*)",
@@ -39,8 +117,8 @@
     "deny": [
       "Bash(npx task-master*)",
       "Bash(rm -rf *)",
-      "Bash(sudo *)"
+      "Bash(sudo *)",
+      "Read(./.entire/metadata/**)"
     ]
-  },
-  "model": "opus"
+  }
 }

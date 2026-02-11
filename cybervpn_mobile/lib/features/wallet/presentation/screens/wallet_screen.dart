@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/wallet/domain/entities/wallet.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
+import 'package:cybervpn_mobile/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart';
 
 /// Wallet screen displaying balance, transaction history, and withdraw button.
 ///
@@ -280,19 +281,15 @@ class WalletScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    // TODO: Implement withdraw dialog with amount input and method selection
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.walletWithdraw),
-        content: Text(l10n.walletWithdrawNotImplemented),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.close),
-          ),
-        ],
-      ),
-    );
+    final balanceAsync = ref.read(walletBalanceProvider);
+
+    balanceAsync.whenData((balance) async {
+      final result = await WithdrawBottomSheet.show(context, balance.balance);
+      if (result == true && context.mounted) {
+        // Refresh wallet data after successful withdrawal
+        ref.invalidate(walletBalanceProvider);
+        ref.invalidate(walletTransactionsProvider);
+      }
+    });
   }
 }

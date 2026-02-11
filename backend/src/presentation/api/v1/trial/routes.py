@@ -9,12 +9,15 @@ Both endpoints require authentication and track trial usage in the database.
 
 import logging
 
+import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCase
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.monitoring.instrumentation.routes import track_trial_activation
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 
@@ -33,17 +36,35 @@ router = APIRouter(prefix="/trial", tags=["trial"])
     responses={
         400: {"description": "Trial already activated or currently active"},
         404: {"description": "User not found"},
+        429: {"description": "Rate limit exceeded (3 requests per hour)"},
     },
 )
 async def activate_trial(
     current_user: AdminUserModel = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> TrialActivateResponse:
     """Activate a trial period for the authenticated user.
 
     Checks eligibility (user hasn't used a trial before), then activates
     a 7-day trial period and records it in the database.
+
+    Rate limited to 3 requests per hour per user to prevent abuse.
     """
+    # Rate limiting: 3 requests per hour per user
+    rate_limit_key = f"trial_activate:{current_user.id}"
+    rate_limit_window = 3600  # 1 hour in seconds
+    rate_limit_max = 3
+
+    # Check current request count
+    current_count = await redis_client.get(rate_limit_key)
+    if current_count and int(current_count) >= rate_limit_max:
+        ttl = await redis_client.ttl(rate_limit_key)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Try again in {ttl} seconds.",
+        )
+
     use_case = ActivateTrialUseCase(db)
 
     try:
@@ -55,6 +76,15 @@ async def activate_trial(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.message,
             )
+
+        # Increment rate limit counter
+        pipe = redis_client.pipeline()
+        await pipe.incr(rate_limit_key)
+        await pipe.expire(rate_limit_key, rate_limit_window)
+        await pipe.execute()
+
+        # Track trial activation
+        track_trial_activation()
 
         return TrialActivateResponse(
             activated=result.activated,
