@@ -1,0 +1,100 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"1","subject":"FQ-1: Replace `any` in SubscriptionsClient.tsx (6 occurrences)","description":"Replace 6 `any` types in frontend/src/app/[locale]/(dashboard)/subscriptions/components/SubscriptionsClient.tsx with proper types from generated/types.ts","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.713Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"2","subject":"FQ-2: Replace `any` in AnalyticsClient.tsx (8 occurrences)","description":"Replace 8 `as any[]` casts in frontend/src/app/[locale]/(dashboard)/analytics/components/AnalyticsClient.tsx with PaymentRecord and SubscriptionRecord interfaces","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.715Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"3","subject":"FQ-3: Replace `any` + fix `new Date()` in MonitoringClient.tsx","description":"Fix 16 `as any` casts and 5 `new Date()` hydration-unsafe calls in MonitoringClient.tsx","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.717Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"4","subject":"FQ-4: Replace `any` in 5 remaining files (6 occurrences)","description":"Fix any types in PurchaseConfirmModal.tsx, CodesSection.tsx, WithdrawalModal.tsx, ReferralClient.tsx, PartnerClient.tsx","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.718Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"5","subject":"FQ-5: Fix `new Date()` in TrialSection.tsx render","description":"Fix hydration-unsafe new Date() in getDaysRemaining() called during render in TrialSection.tsx line 55","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.720Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"6","subject":"FQ-6: frameloop=\"demand\" + remove useMemo in PasswordStrengthMeter","description":"Change frameloop=\"always\" to \"demand\" in GlobalNetwork.tsx:352. Remove manual useMemo in PasswordStrengthMeter.tsx:43 (React Compiler handles it)","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.723Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"7","subject":"FQ-7: Remove console.log + fix root layout metadata","description":"Remove console.log from useTelegramWebApp.ts:115. Optionally convert root layout static metadata to generateMetadata","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.725Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are frontend-quality on the CyberVPN team (Phase 6). You fix TypeScript type safety, hydration issues, and performance problems.
+Stack: Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, React Compiler enabled.
+You work ONLY in frontend/src/. Do NOT touch test files (__tests__/ directories).
+
+CONTEXT — What's already working:
+- 238 source files, 51 test files — all working
+- schema-dts JSON-LD, Sentry, i18n (24 namespaces, 38 locales) — all configured
+- error.tsx + not-found.tsx + loading.tsx in all 3 route groups
+- React Compiler is enabled (reactCompiler: true in next.config.ts)
+- OpenAPI types exist in frontend/src/lib/api/generated/types.ts
+
+KEY FILES TO READ FIRST:
+- OpenAPI types: frontend/src/lib/api/generated/types.ts (find Plan, Subscription, Payment, HealthCheck types)
+- API modules with proper types: frontend/src/lib/api/subscriptions.ts, frontend/src/lib/api/payments.ts
+- Existing well-typed component pattern: frontend/src/app/[locale]/(dashboard)/settings/page.tsx
+
+RULES:
+- Use Context7 MCP to look up library docs before using any library.
+- Do NOT downgrade any library version.
+- NEVER add `any` types. Replace with proper types from generated/types.ts or define local interfaces.
+- Do NOT modify test files — frontend-tests agent handles those.
+- Do NOT modify files in node_modules, generated/types.ts, or 3d/__tests__/.
+- Follow existing code patterns in the codebase.
+
+You have 7 tasks assigned to you (tasks #1-7 in the team task list). Work through them sequentially:
+
+**Task #1 (FQ-1): Replace `any` types in SubscriptionsClient.tsx (6 occurrences)**
+- File: frontend/src/app/[locale]/(dashboard)/subscriptions/components/SubscriptionsClient.tsx
+- Read frontend/src/lib/api/generated/types.ts FIRST to find Plan and Subscription types
+- Read frontend/src/lib/api/subscriptions.ts to see how data is fetched
+- Replace 6 occurrences: Line 28 `(p: any)`, Line 60 `(sub: any)`, Lines 158-159 `(plan: any)`, Lines 197-198 `(sub: any)`
+- If no exact type exists in generated/types.ts, create a local interface matching the data shape
+
+**Task #2 (FQ-2): Replace `any` types in AnalyticsClient.tsx (8 occurrences)**
+- File: frontend/src/app/[locale]/(dashboard)/analytics/components/AnalyticsClient.tsx
+- Replace 8 occurrences: lines 59, 65, 66, 71, 82, 97, 101, 115
+- All are `(paymentsData as any[])` or `(subscriptionsData as any[])`
+- Define local interfaces like PaymentRecord { amount?: number; created_at?: string; currency?: string; }
+
+**Task #3 (FQ-3): Replace `any` types + fix `new Date()` in MonitoringClient.tsx**
+- File: frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx
+- PART A: Fix 16 `as any` casts (lines 73-104) — create HealthData and StatsData interfaces
+- PART B: Fix `new Date()` in render (lines 75, 82, 89, 96, 161) — use useState + useEffect pattern
+
+**Task #4 (FQ-4): Replace `any` types in 5 remaining files**
+- PurchaseConfirmModal.tsx:135 → `requestData: any` → define request interface
+- CodesSection.tsx:196 → `(invite: any, i: number)` → define Invite type
+- WithdrawalModal.tsx:100 → `withdrawalData: any` → define withdrawal interface
+- ReferralClient.tsx:145 → `(commission: any)` → define Commission interface
+- PartnerClient.tsx:278,317 → `(code: any)` and `(earning: any)` → define Code and Earning interfaces
+
+**Task #5 (FQ-5): Fix `new Date()` in TrialSection.tsx render**
+- File: frontend/src/app/[locale]/(dashboard)/subscriptions/components/TrialSection.tsx
+- Line 55: `const now = new Date()` inside getDaysRemaining() called during render
+- Fix: `const [now] = useState(() => new Date());`
+
+**Task #6 (FQ-6): Change frameloop to "demand" + remove useMemo**
+- GlobalNetwork.tsx:352: Change `frameloop="always"` to `frameloop="demand"`
+- PasswordStrengthMeter.tsx:43: Remove useMemo wrapper, just call `calculateStrength(password)` directly (React Compiler handles memoization)
+
+**Task #7 (FQ-7): Remove console.log + optional metadata fix**
+- useTelegramWebApp.ts:115: Remove `console.log('[useTelegramWebApp] Initialized', {...})`
+- Line 96: Wrap `console.warn(...)` in `process.env.NODE_ENV === 'development'` check OR remove it
+- Optionally convert root layout static metadata to generateMetadata (low priority)
+
+For EACH task: Mark it in_progress when starting (TaskUpdate status=in_progress), mark completed when done (TaskUpdate status=completed).
+
+After ALL 7 tasks are done, message the verify agent: "Frontend quality fixes done — all FQ-1 through FQ-7 complete. Run VF-1."
+
+DONE CRITERIA: grep ": any" across frontend/src/app/ (excluding __tests__/ and generated/) returns 0. grep "as any" also 0. No new Date() in render paths. frameloop="demand". No console.log in production.
+</teammate-message>
