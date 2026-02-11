@@ -3,7 +3,7 @@
   "checkpoint_id": "7ca70f075677",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "AGENT_TEAM_GAPS_PROMPT.md",
     "AGENT_TEAM_PHASE3_PROMPT.md",
@@ -17,7 +17,9 @@
     "frontend/src/app/[locale]/(dashboard)/partner/components/PartnerClient.tsx",
     "frontend/src/app/[locale]/(dashboard)/payment-history/components/PaymentHistoryClient.tsx",
     "frontend/src/app/[locale]/(dashboard)/referral/components/ReferralClient.tsx",
+    "frontend/src/app/[locale]/(dashboard)/subscriptions/components/__tests__/PurchaseConfirmModal.test.tsx",
     "frontend/src/app/[locale]/(dashboard)/wallet/components/WalletClient.tsx",
+    "frontend/src/app/[locale]/(dashboard)/wallet/components/__tests__/WithdrawalModal.test.tsx",
     "frontend/src/app/[locale]/(miniapp)/devices/components/DevicesClient.tsx",
     "frontend/src/app/[locale]/(miniapp)/home/page.tsx",
     "frontend/src/app/[locale]/(miniapp)/plans/page.tsx",
@@ -44,13 +46,20 @@
       "context": "/7c/a70f075677/2/context.md",
       "content_hash": "/7c/a70f075677/2/content_hash.txt",
       "prompt": "/7c/a70f075677/2/prompt.txt"
+    },
+    {
+      "metadata": "/7c/a70f075677/3/metadata.json",
+      "transcript": "/7c/a70f075677/3/full.jsonl",
+      "context": "/7c/a70f075677/3/context.md",
+      "content_hash": "/7c/a70f075677/3/content_hash.txt",
+      "prompt": "/7c/a70f075677/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 27187,
-    "cache_creation_tokens": 472777,
-    "cache_read_tokens": 9512693,
-    "output_tokens": 32697,
-    "api_call_count": 99
+    "input_tokens": 27325,
+    "cache_creation_tokens": 638423,
+    "cache_read_tokens": 10751280,
+    "output_tokens": 53195,
+    "api_call_count": 116
   }
 }

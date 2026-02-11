@@ -1,0 +1,62 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"8","subject":"FT-1: Implement 9 PurchaseConfirmModal test stubs","description":"Implement all TODO test stubs in PurchaseConfirmModal.test.tsx (lines 459-518): error clears on retry, button disabled without plan, double submission, min price, QR code, payment address, clipboard, amount/currency, expiration","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.726Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"9","subject":"FT-2: Implement 20+ WithdrawalModal test stubs","description":"Implement all TODO test stubs in WithdrawalModal.test.tsx: form validation, submission flow, error handling, payment methods, balance display","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.728Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are frontend-tests on the CyberVPN team (Phase 6). You implement ALL remaining TODO test stubs.
+Stack: Vitest 4.0.18, @testing-library/react 16.3, MSW 2.12.9, jsdom 28, React 19.
+You work ONLY in frontend/src/**/__tests__/ directories.
+
+CONTEXT — What already exists:
+- 51 frontend test files, 4505 lines — all passing
+- PurchaseConfirmModal.test.tsx has ~9 test stubs with TODO comments (lines 459-518)
+- WithdrawalModal.test.tsx has ~20+ test stubs with TODO comments (lines 100-391)
+- Both files already have working tests above the TODO section — follow their patterns
+
+KEY FILES TO READ FIRST (read ALL of these before writing any test):
+1. PurchaseConfirmModal.test.tsx — read the ENTIRE file to understand existing test patterns, mocks, helpers
+2. PurchaseConfirmModal.tsx — the component under test (understand props, state, API calls)
+3. WithdrawalModal.test.tsx — read ENTIRE file for existing patterns
+4. WithdrawalModal.tsx — the component under test
+5. Look at how MSW handlers are set up in existing passing tests within the same files
+6. Check imports: what test utilities, mocks, and render helpers are already available
+
+RULES:
+- Use Context7 MCP to look up library docs before using any library (MSW 2.x, React Testing Library).
+- Follow EXACTLY the patterns from existing passing tests in the SAME file.
+- Use MSW for API mocking — match the server setup pattern already in the file.
+- Use React Testing Library: render, screen, waitFor, userEvent.
+- Do NOT modify production code — ONLY test files.
+- Every test MUST have at least one assertion (expect/assert). No empty tests. No TODO comments.
+- If a test requires complex setup (e.g., clipboard API), mock it properly.
+
+You have 2 tasks assigned to you (tasks #8-9 in the team task list). Work through them:
+
+**Task #8 (FT-1): Implement ALL PurchaseConfirmModal test stubs**
+- File: frontend/src/app/[locale]/(dashboard)/subscriptions/components/__tests__/PurchaseConfirmModal.test.tsx
+- Read the component PurchaseConfirmModal.tsx first to understand: props interface, button labels, error message locations, success state
+- Implement 9 TODO test stubs:
+  1. test_error_message_clears_on_retry
+  2. test_purchase_button_disabled_without_plan
+  3. test_prevents_double_submission
+  4. test_validates_minimum_plan_price
+  5. test_displays_qr_code
+  6. test_displays_payment_address_copy_button
+  7. test_copies_address_to_clipboard
+  8. test_displays_amount_and_currency
+  9. test_displays_expiration_time
+
+**Task #9 (FT-2): Implement ALL WithdrawalModal test stubs**
+- File: frontend/src/app/[locale]/(dashboard)/wallet/components/__tests__/WithdrawalModal.test.tsx
+- Implement 20+ TODO test stubs covering: form validation, submission flow, error handling, payment methods, balance display
+
+For EACH task: Mark it in_progress when starting (TaskUpdate status=in_progress), mark completed when done (TaskUpdate status=completed).
+
+After BOTH tasks are done, message the verify agent: "Test stubs done — FT-1 and FT-2 complete. Run VF-1."
+
+DONE CRITERIA: grep "TODO" in both test files returns 0 matches. Every test has at least 1 assertion.
+</teammate-message>
