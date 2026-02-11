@@ -437,3 +437,11 @@ The app contains **20 feature modules** under `lib/features/`:
 
 Напиши промт для устанения всех GAPов, без remnashop (legacy), remnashop вообще нужно убрать из проекта у нас свой бот!! Промт должен быть написан примерно так только более детальнее чтобы точно GAP закрыть AGENT_TEAM_PHASE5_PROMPT.md - такой промт запускает работу Claude Code по такому принципу https://www.marc0.dev/e...
 
+### Prompt 37
+
+Привет! мы поработали над проектом, дай теперь новый анализ о том что сделано. Только анализ без исправления кода
+
+### Prompt 38
+
+[Request interrupted by user]
+
