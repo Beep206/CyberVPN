@@ -10,6 +10,12 @@ import { Gift, Tag, Check, AlertCircle, Copy, CheckCircle, Percent } from 'lucid
 import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
+interface InviteCode {
+  code: string;
+  expires_at?: string;
+  uses_remaining?: number;
+}
+
 export function CodesSection() {
   const t = useTranslations('Subscriptions');
 
@@ -193,7 +199,7 @@ export function CodesSection() {
             </div>
           ) : (
             <div className="space-y-2">
-              {myInvites.map((invite: any, i: number) => (
+              {myInvites.map((invite: InviteCode, i: number) => (
                 <div
                   key={i}
                   className="flex items-center justify-between p-3 bg-terminal-bg border border-grid-line/30 rounded hover:border-neon-cyan/50 transition-colors"

@@ -9,6 +9,24 @@ import { Handshake, DollarSign, Users, Code, Plus, Edit, CheckCircle, AlertCircl
 import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
+interface PartnerCode {
+  id: string;
+  code: string;
+  markup_pct: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface PartnerEarning {
+  id: string;
+  client_user_id: string;
+  base_price: number;
+  markup_amount: number;
+  commission_amount: number;
+  total_earning: number;
+  created_at: string;
+}
+
 export function PartnerClient() {
   const t = useTranslations('Partner');
   const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = usePartnerDashboard();
@@ -25,7 +43,7 @@ export function PartnerClient() {
   const [creatingCode, setCreatingCode] = useState(false);
   const [createError, setCreateError] = useState('');
 
-  const isPartner = !dashboardError || (dashboardError as any)?.response?.status !== 403;
+  const isPartner = !dashboardError || (dashboardError as AxiosError)?.response?.status !== 403;
 
   // Handle binding to partner
   const handleBind = async () => {
@@ -39,7 +57,7 @@ export function PartnerClient() {
     setBindSuccess('');
 
     try {
-      await partnerApi.bindToPartner({ code: bindCode });
+      await partnerApi.bindToPartner({ partner_code: bindCode });
       setBindSuccess('Successfully bound to partner!');
       setBindCode('');
       setTimeout(() => window.location.reload(), 2000);
@@ -70,7 +88,7 @@ export function PartnerClient() {
     setCreateError('');
 
     try {
-      await partnerApi.createCode({ code: newCodeName.toUpperCase(), markup_percent: markup });
+      await partnerApi.createCode({ code: newCodeName.toUpperCase(), markup_pct: markup });
       setNewCodeName('');
       setNewCodeMarkup('');
       await refetchCodes();
@@ -86,7 +104,7 @@ export function PartnerClient() {
   };
 
   // Non-partner view - bind form
-  if (dashboardError && (dashboardError as any)?.response?.status === 403) {
+  if (dashboardError && (dashboardError as AxiosError)?.response?.status === 403) {
     return (
       <div className="space-y-6">
         <motion.div
@@ -169,7 +187,7 @@ export function PartnerClient() {
                 <h3 className="text-sm text-muted-foreground">Total Earnings</h3>
               </div>
               <p className="text-3xl font-display text-matrix-green">
-                ${dashboard.total_earnings || 0}
+                ${dashboard.total_earned || 0}
               </p>
             </motion.div>
 
@@ -184,7 +202,7 @@ export function PartnerClient() {
                 <h3 className="text-sm text-muted-foreground">Active Codes</h3>
               </div>
               <p className="text-3xl font-display text-neon-cyan">
-                {dashboard.active_codes_count || 0}
+                {dashboard.codes?.length || 0}
               </p>
             </motion.div>
 
@@ -199,7 +217,7 @@ export function PartnerClient() {
                 <h3 className="text-sm text-muted-foreground">Referrals</h3>
               </div>
               <p className="text-3xl font-display text-neon-pink">
-                {dashboard.referrals_count || 0}
+                {dashboard.total_clients || 0}
               </p>
             </motion.div>
           </div>
@@ -275,14 +293,14 @@ export function PartnerClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {codes.map((code: any, i: number) => (
+                  {codes.map((code: PartnerCode, i: number) => (
                     <tr key={i} className="border-b border-grid-line/10 hover:bg-terminal-surface/50 transition-colors">
                       <td className="p-4">
                         <code className="text-neon-cyan font-mono text-sm">{code.code}</code>
                       </td>
-                      <td className="p-4 font-mono text-sm">{code.markup_percent}%</td>
-                      <td className="p-4 font-mono text-sm">{code.uses_count || 0}</td>
-                      <td className="p-4 font-mono text-sm text-matrix-green">${code.earnings || 0}</td>
+                      <td className="p-4 font-mono text-sm">{code.markup_pct}%</td>
+                      <td className="p-4 font-mono text-sm">-</td>
+                      <td className="p-4 font-mono text-sm text-matrix-green">-</td>
                     </tr>
                   ))}
                 </tbody>
@@ -314,11 +332,11 @@ export function PartnerClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {earnings.slice(0, 10).map((earning: any, i: number) => (
+                  {earnings.slice(0, 10).map((earning: PartnerEarning, i: number) => (
                     <tr key={i} className="border-b border-grid-line/10">
                       <td className="p-4 text-sm font-mono">{new Date(earning.created_at).toLocaleDateString()}</td>
-                      <td className="p-4"><code className="text-neon-cyan text-sm">{earning.code}</code></td>
-                      <td className="p-4 font-mono text-sm text-matrix-green">${earning.amount}</td>
+                      <td className="p-4"><code className="text-neon-cyan text-sm">{earning.client_user_id.slice(0, 8)}...</code></td>
+                      <td className="p-4 font-mono text-sm text-matrix-green">${earning.total_earning.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>

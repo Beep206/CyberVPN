@@ -13,6 +13,24 @@ import {
 import { useState } from 'react';
 import { paymentsApi, usageApi, subscriptionsApi } from '@/lib/api';
 
+// Local interfaces for analytics data (API responses may differ from expected structure)
+interface PaymentRecord {
+  amount?: number;
+  created_at?: string;
+  currency?: string;
+}
+
+interface SubscriptionRecord {
+  uuid: string;
+  status?: string;
+  created_at?: string;
+  plan_name?: string;
+}
+
+interface UsageRecord {
+  bandwidth_used_gb?: number;
+}
+
 /**
  * Analytics Client Component
  * Displays revenue charts, user growth, subscription distribution, and bandwidth analytics
@@ -56,19 +74,19 @@ export function AnalyticsClient() {
   const analytics = !isLoading && paymentsData && usageData && subscriptionsData ? {
     revenue: {
       total: Array.isArray(paymentsData)
-        ? (paymentsData as any[]).reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+        ? (paymentsData as PaymentRecord[]).reduce((sum, p) => sum + (p.amount || 0), 0)
         : 0,
       // Calculate growth from first half vs second half of payment data
       growth: Array.isArray(paymentsData) && paymentsData.length >= 2
         ? (() => {
             const midpoint = Math.floor(paymentsData.length / 2);
-            const firstHalf = (paymentsData as any[]).slice(0, midpoint).reduce((s: number, p: any) => s + (p.amount || 0), 0);
-            const secondHalf = (paymentsData as any[]).slice(midpoint).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+            const firstHalf = (paymentsData as PaymentRecord[]).slice(0, midpoint).reduce((s, p) => s + (p.amount || 0), 0);
+            const secondHalf = (paymentsData as PaymentRecord[]).slice(midpoint).reduce((s, p) => s + (p.amount || 0), 0);
             return firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
           })()
         : 0,
       chartData: Array.isArray(paymentsData)
-        ? (paymentsData as any[]).slice(0, 30).map((p: any) => ({
+        ? (paymentsData as PaymentRecord[]).slice(0, 30).map((p) => ({
             date: new Date(p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             value: p.amount || 0,
           }))
@@ -79,7 +97,7 @@ export function AnalyticsClient() {
       total: Array.isArray(subscriptionsData) ? subscriptionsData.length : 0,
       // Estimate active users as those with active subscriptions
       active: Array.isArray(subscriptionsData)
-        ? (subscriptionsData as any[]).filter((s: any) => s.status === 'active').length
+        ? (subscriptionsData as SubscriptionRecord[]).filter((s) => s.status === 'active').length
         : 0,
       // Calculate growth from subscription count change (placeholder until user endpoint exists)
       growth: Array.isArray(subscriptionsData) && subscriptionsData.length >= 2
@@ -92,13 +110,13 @@ export function AnalyticsClient() {
         : 0,
       // Generate placeholder chart data from subscription creation dates
       chartData: Array.isArray(subscriptionsData) && subscriptionsData.length > 0
-        ? (subscriptionsData as any[])
+        ? (subscriptionsData as SubscriptionRecord[])
             .slice(0, 30)
-            .map((s: any) => ({
+            .map((s) => ({
               date: new Date(s.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
               count: 1,
             }))
-            .reduce((acc: any[], item: any) => {
+            .reduce((acc: Array<{ date: string; count: number }>, item) => {
               const existing = acc.find(a => a.date === item.date);
               if (existing) {
                 existing.count += 1;
@@ -112,7 +130,7 @@ export function AnalyticsClient() {
     subscriptions: {
       byPlan: Array.isArray(subscriptionsData)
         ? Object.entries(
-            (subscriptionsData as any[]).reduce((acc: any, sub: any) => {
+            (subscriptionsData as SubscriptionRecord[]).reduce((acc: Record<string, number>, sub) => {
               const planName = sub.plan_name || 'Unknown';
               acc[planName] = (acc[planName] || 0) + 1;
               return acc;
@@ -126,11 +144,11 @@ export function AnalyticsClient() {
       total: Array.isArray(subscriptionsData) ? subscriptionsData.length : 0,
     },
     bandwidth: {
-      total: ((usageData as any)?.bandwidth_used_gb || 0) / 1000, // Convert GB to TB
-      peak: ((usageData as any)?.bandwidth_used_gb || 0) / 30, // Rough average per day
+      total: ((usageData as UsageRecord)?.bandwidth_used_gb || 0) / 1000, // Convert GB to TB
+      peak: ((usageData as UsageRecord)?.bandwidth_used_gb || 0) / 30, // Rough average per day
       chartData: Array.from({ length: 24 }, (_, i) => ({
         hour: `${i}:00`,
-        value: ((usageData as any)?.bandwidth_used_gb || 0) / 24, // Distribute evenly across hours
+        value: ((usageData as UsageRecord)?.bandwidth_used_gb || 0) / 24, // Distribute evenly across hours
       })),
     },
   } : null;

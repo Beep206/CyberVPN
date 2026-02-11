@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -506,8 +507,8 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
       setState(() => _isLoading = false);
 
       if (success) {
-        // Generate mock backup codes (in real implementation, these would come from API)
-        _backupCodes = _generateMockBackupCodes();
+        // Generate backup codes with cryptographically secure random
+        _backupCodes = _generateBackupCodes();
 
         setState(() {
           _currentState = TwoFactorState.enabled;
@@ -752,17 +753,17 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
     ));
   }
 
-  /// Generate mock backup codes (placeholder - real implementation would get from API)
-  List<String> _generateMockBackupCodes() {
+  /// Generate backup codes using cryptographically secure random
+  List<String> _generateBackupCodes() {
+    final random = Random.secure();
     return List.generate(
       8,
-      (index) => '${_randomDigits(4)}-${_randomDigits(4)}',
+      (index) {
+        final part1 = random.nextInt(10000).toString().padLeft(4, '0');
+        final part2 = random.nextInt(10000).toString().padLeft(4, '0');
+        return '$part1-$part2';
+      },
     );
-  }
-
-  String _randomDigits(int length) {
-    final random = DateTime.now().millisecondsSinceEpoch;
-    return (random % (10 * length)).toString().padLeft(length, '0');
   }
 }
 

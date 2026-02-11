@@ -235,7 +235,7 @@ export default function MiniAppPlansPage() {
           </div>
         ) : plansData && plansData.length > 0 ? (
           <div className="space-y-3">
-            {plansData.filter((p: any) => p.isActive).map((plan: any, index: number) => (
+            {plansData.map((plan, index: number) => (
               <PlanCard
                 key={plan.uuid}
                 plan={plan}

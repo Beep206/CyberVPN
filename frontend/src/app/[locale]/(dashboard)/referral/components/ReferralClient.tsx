@@ -5,6 +5,13 @@ import { useTranslations } from 'next-intl';
 import { useReferralCode, useReferralStats, useRecentCommissions } from '../hooks/useReferral';
 import { Copy, Check, Users, DollarSign, Percent, TrendingUp } from 'lucide-react';
 
+interface Commission {
+  id: string;
+  description?: string;
+  created_at: string;
+  amount?: number;
+}
+
 export function ReferralClient() {
   const t = useTranslations('Referral');
   const [copied, setCopied] = useState(false);
@@ -13,8 +20,8 @@ export function ReferralClient() {
   const { data: stats, isLoading: statsLoading } = useReferralStats();
   const { data: commissionsData, isLoading: commissionsLoading } = useRecentCommissions();
 
-  const referralCode = (codeData as any)?.code;
-  const commissions = (commissionsData as any)?.commissions || [];
+  const referralCode = codeData?.referral_code;
+  const commissions = commissionsData || [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -80,7 +87,7 @@ export function ReferralClient() {
             <div className="h-10 bg-grid-line/20 rounded animate-pulse" />
           ) : (
             <div className="text-3xl font-display text-neon-cyan">
-              {(stats as any)?.total_referrals || 0}
+              {stats?.total_referrals || 0}
             </div>
           )}
         </div>
@@ -95,7 +102,7 @@ export function ReferralClient() {
             <div className="h-10 bg-grid-line/20 rounded animate-pulse" />
           ) : (
             <div className="text-3xl font-display text-matrix-green">
-              {formatCurrency((stats as any)?.total_earnings || 0)}
+              {formatCurrency(stats?.total_earned || 0)}
             </div>
           )}
         </div>
@@ -110,7 +117,7 @@ export function ReferralClient() {
             <div className="h-10 bg-grid-line/20 rounded animate-pulse" />
           ) : (
             <div className="text-3xl font-display text-neon-purple">
-              {(stats as any)?.commission_rate || 0}%
+              {stats?.commission_rate || 0}%
             </div>
           )}
         </div>
@@ -142,7 +149,7 @@ export function ReferralClient() {
           </div>
         ) : (
           <div className="space-y-2">
-            {commissions.map((commission: any) => (
+            {commissions.map((commission: Commission) => (
               <div
                 key={commission.id}
                 className="cyber-card p-4 flex items-center justify-between hover:bg-terminal-surface/50 transition-colors"

@@ -61,7 +61,7 @@ export function WalletClient() {
           <div className="h-16 bg-grid-line/20 rounded animate-pulse" />
         ) : (
           <div className="text-5xl font-display text-matrix-green drop-shadow-glow">
-            {formatCurrency((balance as any)?.balance || 0)}
+            {formatCurrency(balance?.balance || 0)}
           </div>
         )}
       </div>
@@ -81,13 +81,13 @@ export function WalletClient() {
               </div>
             ))}
           </div>
-        ) : !transactions || (transactions as any[]).length === 0 ? (
+        ) : !transactions || transactions.length === 0 ? (
           <div className="cyber-card p-8 text-center">
             <p className="text-muted-foreground font-mono">{t('noTransactions') || 'No transactions yet'}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {(transactions as any[]).map((tx) => (
+            {transactions.map((tx) => (
               <div key={tx.id} className="cyber-card p-4 flex items-center justify-between hover:bg-terminal-surface/50 transition-colors">
                 <div className="flex items-center gap-4">
                   {tx.type === 'credit' ? (
@@ -109,7 +109,7 @@ export function WalletClient() {
         )}
 
         {/* Pagination */}
-        {transactions && (transactions as any[]).length >= limit && (
+        {transactions && transactions.length >= limit && (
           <div className="flex justify-center gap-2 mt-6">
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
@@ -138,7 +138,7 @@ export function WalletClient() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['wallet'] });
         }}
-        currentBalance={(balance as any)?.balance || 0}
+        currentBalance={balance?.balance || 0}
       />
     </div>
   );

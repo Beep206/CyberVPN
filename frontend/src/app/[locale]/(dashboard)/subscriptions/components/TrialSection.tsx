@@ -50,9 +50,10 @@ export function TrialSection() {
     }
   };
 
-  // Calculate days remaining
+  // Calculate days remaining (use state to avoid hydration mismatch)
+  const [now] = useState(() => new Date());
+
   const getDaysRemaining = (trialEnd: string): number => {
-    const now = new Date();
     const end = new Date(trialEnd);
     const diff = end.getTime() - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
