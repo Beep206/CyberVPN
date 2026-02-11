@@ -1,5 +1,5 @@
 # Stage 1: Builder — compiles C-extensions (argon2-cffi, asyncpg, etc.)
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0"
 RUN pip install --no-cache-dir .
 
 # Stage 2: Runtime — lean image without build-essential
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # SEC-002: Create non-root user for security
 RUN groupadd -r cybervpn && useradd -r -g cybervpn cybervpn
