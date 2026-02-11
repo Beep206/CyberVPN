@@ -18,7 +18,6 @@ from src.application.services.login_protection import AccountLockedException, Lo
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
-from src.infrastructure.monitoring.instrumentation.routes import track_auth_attempt, track_registration
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
@@ -30,6 +29,7 @@ from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseC
 from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.monitoring.instrumentation.routes import track_auth_attempt, track_registration
 from src.shared.security.fingerprint import generate_client_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -910,6 +910,7 @@ async def list_devices(
     Returns device_id, IP address, user agent, last used time, and marks the current session.
     """
     from sqlalchemy import select
+
     from src.infrastructure.database.models.refresh_token_model import RefreshToken
 
     # Get the current device fingerprint to mark the current session
@@ -974,6 +975,7 @@ async def revoke_device(
     Revokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.
     """
     from sqlalchemy import select, update
+
     from src.infrastructure.database.models.refresh_token_model import RefreshToken
 
     # Find tokens for this device

@@ -266,6 +266,7 @@ class TestMagicLinkFlow:
             # In real test, we'd need to access Redis or mock MagicLinkService
             # For now, we'll create a token manually
             import redis.asyncio as redis
+
             from src.config.settings import settings
 
             redis_client = redis.from_url(settings.redis_url, decode_responses=True)
@@ -310,6 +311,7 @@ class TestMagicLinkFlow:
 
         # Create magic link token for non-existent user
         import redis.asyncio as redis
+
         from src.config.settings import settings
 
         redis_client = redis.from_url(settings.redis_url, decode_responses=True)
@@ -367,6 +369,7 @@ class TestMagicLinkFlow:
 
         # Create magic link token
         import redis.asyncio as redis
+
         from src.config.settings import settings
 
         redis_client = redis.from_url(settings.redis_url, decode_responses=True)

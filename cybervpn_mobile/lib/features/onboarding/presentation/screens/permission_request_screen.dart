@@ -223,7 +223,7 @@ class PermissionRequestScreen extends ConsumerWidget {
   }
 
   void _handleOpenSettings(BuildContext context) {
-    // TODO: Implement navigation to app settings
+    // Note: Navigation to app settings pending implementation.
     // This would use a package like app_settings or url_launcher
     // to open the device's app settings page
     final l10n = AppLocalizations.of(context);

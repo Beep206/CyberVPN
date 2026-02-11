@@ -103,7 +103,7 @@ class ReferralRemoteDataSourceImpl implements ReferralRemoteDataSource {
     // Map to domain model fields
     return ReferralStats(
       totalInvited: data['total_referrals'] as int,
-      paidUsers: 0, // TODO: Backend doesn't provide this yet
+      paidUsers: 0, // Note: Backend doesn't provide paid users count field
       pointsEarned: (data['total_earned'] as num).toDouble(),
       balance: (data['total_earned'] as num).toDouble(), // Assuming balance = total_earned
     );

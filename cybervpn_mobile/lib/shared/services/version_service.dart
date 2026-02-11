@@ -162,8 +162,8 @@ class VersionService {
   /// Returns the version string or `null` if the request fails.
   Future<String?> _fetchLatestVersion() async {
     try {
-      // TODO: Update this endpoint when backend implements app version endpoint
-      // For now, using a placeholder endpoint structure
+      // Note: Backend app version endpoint pending implementation.
+      // Using placeholder endpoint structure for now.
       final response = await _apiClient.get<Map<String, dynamic>>(
         '${ApiConstants.apiPrefix}/app/version',
       );

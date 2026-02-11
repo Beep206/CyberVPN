@@ -21,6 +21,7 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_oauth_attempt
 from src.infrastructure.oauth.apple import AppleOAuthProvider
 from src.infrastructure.oauth.discord import DiscordOAuthProvider
 from src.infrastructure.oauth.github import GitHubOAuthProvider
@@ -193,6 +194,7 @@ async def telegram_callback(
         extra={"user_id": str(user.id), "telegram_id": user_info["id"]},
     )
 
+    track_oauth_attempt(provider="telegram", success=True)
     return OAuthLinkResponse(
         status="linked",
         provider="telegram",

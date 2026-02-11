@@ -30,7 +30,8 @@ class TestPrometheusMetricsE2E:
     @pytest.mark.e2e
     async def test_metrics_endpoint_accessible(self, async_client: AsyncClient):
         """Verify /metrics endpoint is accessible without authentication."""
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
@@ -46,7 +47,8 @@ class TestPrometheusMetricsE2E:
         self, async_client: AsyncClient
     ):
         """Verify all expected metric names are present in /metrics."""
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
@@ -82,7 +84,8 @@ class TestPrometheusMetricsE2E:
         self, async_client: AsyncClient
     ):
         """Verify Prometheus format with HELP and TYPE comments."""
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
@@ -195,7 +198,8 @@ class TestHTTPRequestCounterE2E:
     @pytest.mark.e2e
     async def test_http_requests_counter_increments(self, async_client: AsyncClient):
         """Verify http_requests_total increments after making API requests."""
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
@@ -321,7 +325,8 @@ class TestMetricsReliabilityE2E:
         """Verify metrics endpoint handles multiple concurrent requests."""
         import asyncio
 
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
@@ -336,7 +341,7 @@ class TestMetricsReliabilityE2E:
             successful_responses = []
             for r in responses:
                 if not isinstance(r, Exception):
-                    if hasattr(r, "status_code") and getattr(r, "status_code") == 200:
+                    if hasattr(r, "status_code") and r.status_code == 200:
                         successful_responses.append(r)
 
             assert (
@@ -350,7 +355,8 @@ class TestMetricsReliabilityE2E:
         """Verify metrics endpoint responds within acceptable time."""
         import time
 
-        from httpx import ASGITransport, AsyncClient as HTTPXAsyncClient
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 

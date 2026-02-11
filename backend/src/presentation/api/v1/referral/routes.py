@@ -14,6 +14,7 @@ from src.infrastructure.database.repositories.referral_commission_repo import (
     ReferralCommissionRepository,
 )
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_referral_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 
@@ -41,6 +42,7 @@ async def get_referral_status(
     enabled = await config_service.is_referral_enabled()
     commission_rate = await config_service.get_referral_commission_rate()
 
+    track_referral_operation(operation="status")
     return ReferralStatusResponse(enabled=enabled, commission_rate=commission_rate)
 
 
@@ -57,6 +59,7 @@ async def get_referral_code(
         logger.warning("get_referral_code_failed", extra={"user_id": str(user_id), "error": str(exc)})
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
+    track_referral_operation(operation="get_code")
     return ReferralCodeResponse(referral_code=code)
 
 
@@ -77,6 +80,7 @@ async def get_referral_stats(
         logger.warning("get_referral_stats_failed", extra={"user_id": str(user_id), "error": str(exc)})
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
+    track_referral_operation(operation="stats")
     return ReferralStatsResponse(
         total_referrals=result["total_referrals"],
         total_earned=float(result["total_earned"]),
@@ -92,4 +96,5 @@ async def get_recent_commissions(
     """Return the 10 most recent referral commissions for the authenticated user."""
     commission_repo = ReferralCommissionRepository(db)
     commissions = await commission_repo.get_by_referrer(user_id, limit=10)
+    track_referral_operation(operation="list_commissions")
     return commissions

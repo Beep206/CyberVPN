@@ -26,6 +26,7 @@ from src.domain.exceptions import (
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_promo_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
@@ -74,18 +75,22 @@ async def validate_promo(
             amount=Decimal(str(body.amount)) if body.amount is not None else None,
         )
     except PromoCodeNotFoundError:
+        track_promo_operation(operation="validate", success=False)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Promo code not found") from None
     except PromoCodeInvalidError as exc:
+        track_promo_operation(operation="validate", success=False)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from None
     except PromoCodeExhaustedError:
+        track_promo_operation(operation="validate", success=False)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Promo code usage limit reached",
         ) from None
 
+    track_promo_operation(operation="validate", success=True)
     return ValidatePromoResponse(**result)
 
 
@@ -123,6 +128,7 @@ async def admin_create_promo(
         currency=body.currency,
     )
 
+    track_promo_operation(operation="create", success=True)
     return PromoCodeResponse.model_validate(result)
 
 

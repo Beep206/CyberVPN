@@ -17,6 +17,8 @@ router = APIRouter(prefix="/plans", tags=["plans"])
 async def list_plans(client: RemnawaveClient = Depends(get_remnawave_client)):
     """List all available subscription plans (public)"""
     return await client.get("/plans")
+    track_plan_query(operation="list")
+
 
 
 @router.post("/", response_model=RemnavwavePlanResponse)

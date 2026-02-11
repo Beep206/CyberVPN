@@ -21,11 +21,9 @@ Run with: pytest backend/tests/e2e/test_all_endpoints.py -v
 """
 
 import time
-from typing import Dict, Optional
 
 import pytest
 from httpx import AsyncClient
-
 
 # Test user credentials
 TEST_EMAIL = "e2e_test@example.com"
@@ -35,12 +33,12 @@ TEST_PASSWORD = "E2ETestPassword123!"
 class TestContext:
     """Shared test context for authentication tokens"""
 
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
+    access_token: str | None = None
+    refresh_token: str | None = None
 
 
 @pytest.fixture(scope="module")
-async def auth_tokens(async_client: AsyncClient) -> Dict[str, str]:
+async def auth_tokens(async_client: AsyncClient) -> dict[str, str]:
     """
     Setup authentication for all tests.
     Registers test user and obtains access/refresh tokens.
@@ -79,7 +77,7 @@ async def auth_tokens(async_client: AsyncClient) -> Dict[str, str]:
 
 
 @pytest.fixture
-def auth_headers(auth_tokens: Dict[str, str]) -> Dict[str, str]:
+def auth_headers(auth_tokens: dict[str, str]) -> dict[str, str]:
     """Returns authorization headers for authenticated requests"""
     return {"Authorization": f"Bearer {auth_tokens['access_token']}"}
 
@@ -148,7 +146,7 @@ class TestAuthEndpoints:
         print(f"✓ POST /auth/resend-otp [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_refresh_token(self, async_client: AsyncClient, auth_tokens: Dict[str, str]):
+    async def test_refresh_token(self, async_client: AsyncClient, auth_tokens: dict[str, str]):
         """POST /auth/refresh - Refresh access token"""
         start = time.time()
 
@@ -160,7 +158,7 @@ class TestAuthEndpoints:
         print(f"✓ POST /auth/refresh [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_logout(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_logout(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/logout - User logout"""
         start = time.time()
 
@@ -175,7 +173,7 @@ class TestTwoFactorEndpoints:
     """Test 2FA-related endpoints"""
 
     @pytest.mark.asyncio
-    async def test_2fa_reauth(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_reauth(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/2fa/reauth - Re-authenticate for 2FA setup"""
         start = time.time()
 
@@ -189,7 +187,7 @@ class TestTwoFactorEndpoints:
         print(f"✓ POST /auth/2fa/reauth [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_2fa_setup(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_setup(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/2fa/setup - Setup 2FA"""
         start = time.time()
 
@@ -200,7 +198,7 @@ class TestTwoFactorEndpoints:
         print(f"✓ POST /auth/2fa/setup [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_2fa_verify_invalid_code(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_verify_invalid_code(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/2fa/verify - Verify 2FA with invalid code (expected 400)"""
         start = time.time()
 
@@ -214,7 +212,7 @@ class TestTwoFactorEndpoints:
         print(f"✓ POST /auth/2fa/verify [400] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_2fa_validate_invalid_code(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_validate_invalid_code(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/2fa/validate - Validate 2FA with invalid code (expected 400)"""
         start = time.time()
 
@@ -228,7 +226,7 @@ class TestTwoFactorEndpoints:
         print(f"✓ POST /auth/2fa/validate [400] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_2fa_disable_invalid(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_disable_invalid(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /auth/2fa/disable - Disable 2FA with invalid code (expected 400)"""
         start = time.time()
 
@@ -242,7 +240,7 @@ class TestTwoFactorEndpoints:
         print(f"✓ POST /auth/2fa/disable [400] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_2fa_status(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_2fa_status(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /auth/2fa/status - Get 2FA status"""
         start = time.time()
 
@@ -262,7 +260,7 @@ class TestVPNEndpoints:
     """Test VPN-related endpoints"""
 
     @pytest.mark.asyncio
-    async def test_vpn_usage(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_vpn_usage(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /vpn/usage - Get VPN usage statistics"""
         start = time.time()
 
@@ -282,7 +280,7 @@ class TestWalletEndpoints:
     """Test wallet-related endpoints"""
 
     @pytest.mark.asyncio
-    async def test_wallet_balance(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_wallet_balance(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /wallet/balance - Get wallet balance"""
         start = time.time()
 
@@ -293,7 +291,7 @@ class TestWalletEndpoints:
         print(f"✓ GET /wallet/balance [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_wallet_transactions(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_wallet_transactions(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /wallet/transactions - Get wallet transactions"""
         start = time.time()
 
@@ -304,7 +302,7 @@ class TestWalletEndpoints:
         print(f"✓ GET /wallet/transactions [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_wallet_withdraw(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_wallet_withdraw(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /wallet/withdraw - Withdraw from wallet"""
         start = time.time()
 
@@ -327,7 +325,7 @@ class TestPaymentEndpoints:
     """Test payment-related endpoints"""
 
     @pytest.mark.asyncio
-    async def test_create_invoice(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_create_invoice(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /payments/invoice - Create payment invoice"""
         start = time.time()
 
@@ -341,7 +339,7 @@ class TestPaymentEndpoints:
         print(f"✓ POST /payments/invoice [201] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_get_invoice_not_found(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_get_invoice_not_found(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /payments/invoice/{invoice_id} - Get invoice status (expected 404)"""
         start = time.time()
 
@@ -354,7 +352,7 @@ class TestPaymentEndpoints:
         print(f"✓ GET /payments/invoice/inv_test [404] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_payment_history(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_payment_history(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /payments/history - Get payment history"""
         start = time.time()
 
@@ -374,7 +372,7 @@ class TestSubscriptionEndpoints:
     """Test subscription-related endpoints"""
 
     @pytest.mark.asyncio
-    async def test_list_subscriptions(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_list_subscriptions(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /subscriptions/ - List user subscriptions"""
         start = time.time()
 
@@ -385,7 +383,7 @@ class TestSubscriptionEndpoints:
         print(f"✓ GET /subscriptions/ [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_get_subscription_not_found(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_get_subscription_not_found(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /subscriptions/{uuid} - Get subscription (expected 404)"""
         start = time.time()
 
@@ -398,7 +396,7 @@ class TestSubscriptionEndpoints:
         print(f"✓ GET /subscriptions/test-uuid [404] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_get_vpn_config_not_found(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_get_vpn_config_not_found(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /subscriptions/config/{user_uuid} - Get VPN config (expected 404)"""
         start = time.time()
 
@@ -421,7 +419,7 @@ class TestPromoCodeEndpoints:
 
     @pytest.mark.asyncio
     async def test_validate_promo_code_not_found(
-        self, async_client: AsyncClient, auth_headers: Dict[str, str]
+        self, async_client: AsyncClient, auth_headers: dict[str, str]
     ):
         """POST /codes/validate - Validate promo code (expected 404)"""
         start = time.time()
@@ -445,7 +443,7 @@ class TestReferralEndpoints:
     """Test referral system endpoints"""
 
     @pytest.mark.asyncio
-    async def test_referral_status(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_referral_status(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /referral/status - Get referral status"""
         start = time.time()
 
@@ -456,7 +454,7 @@ class TestReferralEndpoints:
         print(f"✓ GET /referral/status [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_referral_code_not_found(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_referral_code_not_found(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /referral/code - Get referral code (expected 404)"""
         start = time.time()
 
@@ -467,7 +465,7 @@ class TestReferralEndpoints:
         print(f"✓ GET /referral/code [404] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_referral_stats(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_referral_stats(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /referral/stats - Get referral statistics"""
         start = time.time()
 
@@ -478,7 +476,7 @@ class TestReferralEndpoints:
         print(f"✓ GET /referral/stats [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_recent_commissions(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_recent_commissions(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /referral/recent - Get recent commissions"""
         start = time.time()
 
@@ -498,7 +496,7 @@ class TestProfileEndpoints:
     """Test user profile endpoints"""
 
     @pytest.mark.asyncio
-    async def test_get_profile(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_get_profile(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /users/me/profile - Get user profile"""
         start = time.time()
 
@@ -509,7 +507,7 @@ class TestProfileEndpoints:
         print(f"✓ GET /users/me/profile [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_update_profile(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_update_profile(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """PATCH /users/me/profile - Update user profile"""
         start = time.time()
 
@@ -533,7 +531,7 @@ class TestSecurityEndpoints:
 
     @pytest.mark.asyncio
     async def test_change_password_wrong_current(
-        self, async_client: AsyncClient, auth_headers: Dict[str, str]
+        self, async_client: AsyncClient, auth_headers: dict[str, str]
     ):
         """POST /security/change-password - Change password with wrong current (expected 401)"""
         start = time.time()
@@ -548,7 +546,7 @@ class TestSecurityEndpoints:
         print(f"✓ POST /security/change-password [401] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_get_antiphishing(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_get_antiphishing(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /security/antiphishing - Get antiphishing code"""
         start = time.time()
 
@@ -559,7 +557,7 @@ class TestSecurityEndpoints:
         print(f"✓ GET /security/antiphishing [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_set_antiphishing(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_set_antiphishing(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /security/antiphishing - Set antiphishing code"""
         start = time.time()
 
@@ -574,7 +572,7 @@ class TestSecurityEndpoints:
 
     @pytest.mark.asyncio
     async def test_delete_antiphishing_not_found(
-        self, async_client: AsyncClient, auth_headers: Dict[str, str]
+        self, async_client: AsyncClient, auth_headers: dict[str, str]
     ):
         """DELETE /security/antiphishing - Delete antiphishing code (expected 404)"""
         start = time.time()
@@ -597,7 +595,7 @@ class TestTrialEndpoints:
     """Test trial subscription endpoints"""
 
     @pytest.mark.asyncio
-    async def test_activate_trial(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_activate_trial(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """POST /trial/activate - Activate trial subscription"""
         start = time.time()
 
@@ -608,7 +606,7 @@ class TestTrialEndpoints:
         print(f"✓ POST /trial/activate [200] {elapsed_ms:.0f}ms")
 
     @pytest.mark.asyncio
-    async def test_trial_status(self, async_client: AsyncClient, auth_headers: Dict[str, str]):
+    async def test_trial_status(self, async_client: AsyncClient, auth_headers: dict[str, str]):
         """GET /trial/status - Get trial status"""
         start = time.time()
 

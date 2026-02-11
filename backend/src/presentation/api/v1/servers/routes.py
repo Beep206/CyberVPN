@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.servers.manage_servers import ManageServersUseCase
 from src.application.use_cases.servers.server_stats import ServerStatsUseCase
+from src.infrastructure.monitoring.instrumentation.routes import track_server_query
 from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 from src.presentation.api.v1.servers.schemas import (
     CreateServerRequest,
@@ -33,6 +34,8 @@ async def list_servers(
     use_case = ManageServersUseCase(gateway=gateway)
 
     servers = await use_case.get_all()
+    track_server_query(operation="list")
+
 
     return [
         ServerResponse(

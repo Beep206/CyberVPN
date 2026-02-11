@@ -3,7 +3,6 @@
 LOW-005: All handlers include request_id for tracing and return it in responses.
 """
 
-import logging
 
 import structlog
 from fastapi import Request, status

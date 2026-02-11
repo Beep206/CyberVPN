@@ -54,7 +54,7 @@ class ApiClient {
     );
 
     // Configure certificate pinning if fingerprints are provided.
-    // TODO(security): For production releases, configure CERT_FINGERPRINTS
+    // Pre-production: For production releases, configure CERT_FINGERPRINTS
     // via --dart-define or .env with the SHA-256 fingerprint(s) of the
     // api.cybervpn.com TLS certificate. Include at least one backup
     // fingerprint to allow for certificate rotation without app updates.

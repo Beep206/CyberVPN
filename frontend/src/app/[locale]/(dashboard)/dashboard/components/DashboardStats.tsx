@@ -49,8 +49,8 @@ export function DashboardStats() {
 
   // Calculate bandwidth usage percentage
   const getBandwidthPercentage = () => {
-    if (!usage?.bandwidth_used || !usage?.bandwidth_limit) return 0;
-    return Math.min((usage.bandwidth_used / usage.bandwidth_limit) * 100, 100);
+    if (!usage?.bandwidth_used_bytes || !usage?.bandwidth_limit_bytes) return 0;
+    return Math.min((usage.bandwidth_used_bytes / usage.bandwidth_limit_bytes) * 100, 100);
   };
 
   return (
@@ -105,10 +105,10 @@ export function DashboardStats() {
             <div>
               <div className="flex justify-between items-baseline mb-2">
                 <span className="text-2xl font-display text-neon-cyan drop-shadow-glow">
-                  {formatDataUsage(usage?.bandwidth_used)}
+                  {formatDataUsage(usage?.bandwidth_used_bytes)}
                 </span>
                 <span className="text-sm text-muted-foreground font-mono">
-                  / {formatDataUsage(usage?.bandwidth_limit)}
+                  / {formatDataUsage(usage?.bandwidth_limit_bytes)}
                 </span>
               </div>
               {/* Progress Bar */}
@@ -126,7 +126,7 @@ export function DashboardStats() {
             {/* Connections Count */}
             <div className="pt-2 border-t border-grid-line/30">
               <div className="text-3xl font-display text-neon-purple drop-shadow-glow">
-                {usage?.connections_count?.toLocaleString() ?? '0'}
+                {usage?.connections_active?.toLocaleString() ?? '0'}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{t('activeConnections') || 'Active Connections'}</p>
             </div>

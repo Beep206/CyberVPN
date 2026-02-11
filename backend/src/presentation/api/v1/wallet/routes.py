@@ -23,6 +23,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.infrastructure.database.repositories.withdrawal_repo import WithdrawalRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_wallet_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
@@ -100,13 +101,18 @@ async def request_withdrawal(
     use_case = RequestWithdrawalUseCase(wallet_service, withdrawal_repo, config_service)
     try:
         result = await use_case.execute(user_id, Decimal(str(body.amount)), body.method)
+        track_wallet_operation(operation="debit", success=True)
     except WithdrawalBelowMinimumError as exc:
+        track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
     except InsufficientWalletBalanceError as exc:
+        track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
     except ValueError as exc:
+        track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except DomainError as exc:
+        track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
     return result
@@ -142,7 +148,9 @@ async def admin_topup_wallet(
     use_case = AdminTopupUseCase(wallet_service)
     try:
         tx = await use_case.execute(user_id, Decimal(str(body.amount)), body.description)
+        track_wallet_operation(operation="credit", success=True)
     except DomainError as exc:
+        track_wallet_operation(operation="credit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
     return tx

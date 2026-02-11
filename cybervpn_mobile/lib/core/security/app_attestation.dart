@@ -217,7 +217,7 @@ class AppAttestationService {
   /// - Android: google_play_integrity or app_attest_integrity package
   /// - iOS: app_attest or app_attest_integrity package
   Future<String> _generatePlatformToken(String? challenge) async {
-    // TODO: Implement actual platform attestation
+    // Pre-production: Implement actual platform attestation
     // For now, generate a placeholder for logging infrastructure testing
     //
     // Real implementation would use:

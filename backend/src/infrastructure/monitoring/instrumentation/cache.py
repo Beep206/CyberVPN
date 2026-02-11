@@ -3,8 +3,9 @@
 Tracks cache hit/miss rates and operation counts.
 """
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from src.infrastructure.monitoring.metrics import cache_operations_total
 

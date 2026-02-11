@@ -118,11 +118,11 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       const data = response.data;
 
       setSecret(data.secret);
-      setQrCodeUri(data.qr_code_uri);
-      setBackupCodes(data.backup_codes);
+      setQrCodeUri(data.qr_uri);
+      setBackupCodes((data as Record<string, unknown>).backup_codes as string[] ?? []);
 
       // Generate QR code data URL
-      const dataUrl = await QRCode.toDataURL(data.qr_code_uri, {
+      const dataUrl = await QRCode.toDataURL(data.qr_uri, {
         width: 256,
         margin: 2,
         color: {
@@ -156,7 +156,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
     setError('');
 
     try {
-      await twofaApi.verify({ totp_code: totpCode });
+      await twofaApi.verify({ code: totpCode });
       setEnableStep('success');
     } catch (err) {
       if (err instanceof RateLimitError) {
@@ -187,7 +187,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
     setError('');
 
     try {
-      await twofaApi.disable({ password: disablePassword, totp_code: disableTotpCode });
+      await twofaApi.disable({ password: disablePassword, code: disableTotpCode });
       setDisableStep('success');
     } catch (err) {
       if (err instanceof RateLimitError) {

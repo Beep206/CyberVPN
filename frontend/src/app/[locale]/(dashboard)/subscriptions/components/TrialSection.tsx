@@ -69,12 +69,12 @@ export function TrialSection() {
   }
 
   // Don't show section if not eligible and not active
-  if (!trialStatus?.is_eligible && !trialStatus?.is_active) {
+  if (!trialStatus?.is_eligible && !trialStatus?.is_trial_active) {
     return null;
   }
 
   // Active trial - show badge
-  if (trialStatus?.is_active && trialStatus?.trial_end) {
+  if (trialStatus?.is_trial_active && trialStatus?.trial_end) {
     const daysRemaining = getDaysRemaining(trialStatus.trial_end);
     const isExpiringSoon = daysRemaining <= 2;
 

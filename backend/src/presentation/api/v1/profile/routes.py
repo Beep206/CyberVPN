@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_profile_update
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 
@@ -83,6 +84,7 @@ async def update_profile(
     for field, value in updates.items():
         if hasattr(current_user, field):
             setattr(current_user, field, value)
+            track_profile_update(field=field)
 
     # Persist to database
     updated_user = await user_repo.update(current_user)

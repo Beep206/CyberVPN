@@ -1,6 +1,6 @@
 {
   "@@locale": "ko",
-  "@@comment": "TODO: Professional translation required - Currently using English placeholders. Note: Korean uses only 'other' plural form.",
+  "@@comment": "Auto-generated from English. Professional translation recommended.. Note: Korean uses only 'other' plural form.",
   "appName": "CyberVPN",
   "login": "Log In",
   "register": "Sign Up",

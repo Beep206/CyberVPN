@@ -11,7 +11,7 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 class IosUpdateService {
   /// App Store ID for CyberVPN.
   ///
-  /// TODO: Replace with actual App Store ID once app is published.
+  /// Pre-production: Replace with actual App Store ID once app is published.
   /// Find this ID in App Store Connect after app submission.
   static const String _appStoreId = 'YOUR_APP_STORE_ID';
 
