@@ -25,8 +25,17 @@ type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
  */
 export default function MiniAppWalletPage() {
   const t = useTranslations('MiniApp.wallet');
-  const { haptic, colorScheme } = useTelegramWebApp();
+  const { webApp, haptic, hapticNotification, colorScheme } = useTelegramWebApp();
   const [showWithdrawSheet, setShowWithdrawSheet] = useState(false);
+
+  const showError = (msg: string) => {
+    hapticNotification('error');
+    if (webApp) {
+      webApp.showAlert(msg);
+    } else {
+      console.error('[Wallet]', msg);
+    }
+  };
 
   // Fetch wallet balance
   const { data: walletData, isLoading: balanceLoading } = useQuery({
@@ -186,6 +195,7 @@ export default function MiniAppWalletPage() {
         balance={walletData?.balance || 0}
         colorScheme={colorScheme}
         haptic={haptic}
+        showError={showError}
         t={t}
         formatCurrency={formatCurrency}
       />
@@ -279,6 +289,7 @@ function WithdrawSheet({
   balance,
   colorScheme,
   haptic,
+  showError,
   t,
   formatCurrency,
 }: {
@@ -287,6 +298,7 @@ function WithdrawSheet({
   balance: number;
   colorScheme: 'light' | 'dark';
   haptic: (style: 'light' | 'medium' | 'heavy') => void;
+  showError: (msg: string) => void;
   t: (key: string) => string;
   formatCurrency: (amount: number) => string;
 }) {
@@ -310,7 +322,7 @@ function WithdrawSheet({
     onError: (error: unknown) => {
       haptic('heavy');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      alert(axiosError.response?.data?.detail || t('withdrawError'));
+      showError(axiosError.response?.data?.detail || t('withdrawError'));
     },
   });
 
@@ -318,15 +330,15 @@ function WithdrawSheet({
     e.preventDefault();
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      alert(t('invalidAmount'));
+      showError(t('invalidAmount'));
       return;
     }
     if (amountNum > balance) {
-      alert(t('insufficientBalance'));
+      showError(t('insufficientBalance'));
       return;
     }
     if (!paymentMethod.trim()) {
-      alert(t('paymentMethodRequired'));
+      showError(t('paymentMethodRequired'));
       return;
     }
     haptic('medium');
