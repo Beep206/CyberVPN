@@ -10,3 +10,49 @@ datasources:
     jsonData:
       timeInterval: 15s
       httpMethod: POST
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: prometheus
+          matcherRegex: "request_id=(\\w+)"
+          name: RequestID
+          url: "$${__value.raw}"
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['request_id']
+        mappedTags: [{ key: 'request_id', value: 'request_id' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: false
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
+        queries:
+          - name: 'Request rate'
+            query: 'rate(http_requests_total{$$__tags}[5m])'
+      serviceMap:
+        datasourceUid: prometheus
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki

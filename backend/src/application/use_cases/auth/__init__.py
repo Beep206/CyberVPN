@@ -1,3 +1,4 @@
+from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.login import LoginUseCase
 from src.application.use_cases.auth.logout import LogoutUseCase
@@ -7,6 +8,7 @@ from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 
 __all__ = [
+    "ChangePasswordUseCase",
     "DeleteAccountUseCase",
     "LoginUseCase",
     "LogoutUseCase",

@@ -43,6 +43,11 @@
 /// | subscriptionConfig | /api/v1/subscriptions/config/:uuid | GET | JWT | ✅ Aligned |
 /// | configProfiles | /api/v1/config-profiles | GET | JWT | ✅ Aligned |
 /// | billing | /api/v1/billing | GET | JWT | ✅ Aligned |
+/// | walletBalance | /api/v1/wallet/balance | GET | JWT | ✅ Aligned (BF2-1) |
+/// | walletTransactions | /api/v1/wallet/transactions | GET | JWT | ✅ Aligned (BF2-1) |
+/// | walletWithdraw | /api/v1/wallet/withdraw | POST | JWT | ✅ Aligned (BF2-1) |
+/// | verifyEmail | /api/v1/auth/verify-email | POST | None | ✅ Aligned (BF2-2) |
+/// | resendOtp | /api/v1/auth/resend-otp | POST | None | ✅ Aligned (BF2-2) |
 /// | wsMonitoring | /ws/monitoring | WebSocket | JWT | 🔄 TBD |
 /// | wsNotifications | /ws/notifications | WebSocket | JWT | 🔄 TBD |
 ///
@@ -156,6 +161,83 @@ class ApiConstants {
   /// Response: 200 OK `{ "message": "Password reset successfully." }`
   static const String resetPassword = '$apiPrefix/auth/reset-password';
 
+  /// **POST /api/v1/auth/verify-email**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/verify-email`
+  /// Auth: None (public endpoint, rate-limited)
+  /// Status: ✅ Aligned (Task BF2-2: Backend added alias route from /auth/verify-otp)
+  ///
+  /// Verifies email address using the 6-digit OTP code sent during registration.
+  /// On success, returns JWT tokens for auto-login.
+  /// Request: `{ "email": string, "code": string }`
+  /// Response: 200 OK `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int, "user": {...} }`
+  ///
+  /// Note: Backend primary endpoint is `/auth/verify-otp`, `/auth/verify-email` is an alias.
+  static const String verifyEmail = '$apiPrefix/auth/verify-email';
+
+  /// **POST /api/v1/auth/resend-otp**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/resend-otp`
+  /// Auth: None (public endpoint, rate-limited)
+  /// Status: ✅ Aligned (Task BF2-2: Backend added GET /auth/resend-verification alias)
+  ///
+  /// Resends the OTP verification code to the user's email.
+  /// Request: `{ "email": string }`
+  /// Response: 200 OK `{ "message": "OTP sent successfully." }`
+  ///
+  /// Note: Backend also supports GET /auth/resend-verification as an alias.
+  static const String resendOtp = '$apiPrefix/auth/resend-otp';
+
+  /// **POST /api/v1/auth/change-password**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/change-password`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF-4)
+  ///
+  /// Changes the user's password (requires current password verification).
+  /// Rate limited: 3 requests per hour per user.
+  /// OAuth-only users will receive an error (no password to change).
+  /// Request: `{ "current_password": string, "new_password": string }`
+  /// Response: 200 OK `{ "message": "Password changed successfully." }`
+  /// Errors: 400 (invalid password), 401 (not authenticated), 429 (rate limited)
+  static const String changePassword = '$apiPrefix/auth/change-password';
+
+  // ── Security Endpoints ────────────────────────────────────────────────
+
+  /// **GET /api/v1/security/antiphishing**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/security/routes.py` (BF-5)
+  /// Auth: JWT (requires authentication)
+  /// Status: ✅ Aligned
+  ///
+  /// Retrieves the user's antiphishing code (used to verify legitimate emails from CyberVPN).
+  /// Response: 200 OK `{ "code": string | null }`
+  /// Errors: 401 (not authenticated), 404 (code not set)
+  static const String getAntiphishingCode = '$apiPrefix/security/antiphishing';
+
+  /// **POST /api/v1/security/antiphishing**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/security/routes.py` (BF-5)
+  /// Auth: JWT (requires authentication)
+  /// Status: ✅ Aligned
+  ///
+  /// Sets or updates the user's antiphishing code (max 50 characters).
+  /// Request: `{ "code": string }`
+  /// Response: 200 OK `{ "code": string, "message": "Antiphishing code updated." }`
+  /// Errors: 400 (invalid code), 401 (not authenticated)
+  static const String setAntiphishingCode = '$apiPrefix/security/antiphishing';
+
+  /// **DELETE /api/v1/security/antiphishing**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/security/routes.py` (BF-5)
+  /// Auth: JWT (requires authentication)
+  /// Status: ✅ Aligned
+  ///
+  /// Removes the user's antiphishing code.
+  /// Response: 200 OK `{ "message": "Antiphishing code removed." }`
+  /// Errors: 401 (not authenticated), 404 (code not set)
+  static const String deleteAntiphishingCode = '$apiPrefix/security/antiphishing';
+
   // ── Server Endpoints ──────────────────────────────────────────────────
 
   /// **GET /api/v1/servers**
@@ -209,14 +291,18 @@ class ApiConstants {
   /// Request: `{ "name": string, "duration_days": int, ... }`
   static const String subscriptions = '$apiPrefix/subscriptions';
 
-  /// **GET /api/v1/subscriptions/active**
+  /// **GET /api/v1/subscription/active**
   ///
-  /// Backend: ❌ NOT IMPLEMENTED - Backend has no /active endpoint
-  /// Auth: JWT (expected)
-  /// Status: ❌ Missing
+  /// Backend: `backend/src/presentation/api/v1/subscription/routes.py` - `/subscription/active`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-3)
   ///
-  /// TODO: Backend needs to implement active subscription endpoint for users
-  static const String activeSubscription = '$apiPrefix/subscriptions/active';
+  /// Fetches the active subscription for the current user.
+  /// Note: Backend uses singular `/subscription` (not `/subscriptions`).
+  static const String activeSubscription = '$apiPrefix/subscription/active';
+
+  /// Alias for [activeSubscription] for consistency with task naming.
+  static const String subscriptionActive = activeSubscription;
 
   /// **POST /api/v1/subscriptions/cancel**
   ///
@@ -226,6 +312,60 @@ class ApiConstants {
   ///
   /// TODO: Backend needs to implement subscription cancellation endpoint
   static const String cancelSubscription = '$apiPrefix/subscriptions/cancel';
+
+  /// **GET /api/v1/trial/status**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/trial/routes.py` - `/trial/status`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-3)
+  ///
+  /// Checks trial eligibility for the current user.
+  /// Response: `{ "is_eligible": bool, "days_remaining": int?, "trial_used": bool }`
+  static const String trialStatus = '$apiPrefix/trial/status';
+
+  /// **POST /api/v1/trial/activate**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/trial/routes.py` - `/trial/activate`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-3)
+  ///
+  /// Activates a free trial subscription for the user (7 days).
+  /// Response: `{ "subscription": SubscriptionEntity, "days_remaining": int }`
+  static const String trialActivate = '$apiPrefix/trial/activate';
+
+  /// **POST /api/v1/invites/redeem**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/invites/routes.py` - `/invites/redeem`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ⚠️ Pending (Task MF2-3)
+  ///
+  /// Redeems an invite code to grant subscription benefits to the user.
+  /// Request: `{ "code": string }`
+  /// Response: 200 OK `{ "subscription": {...}, "message": string }`
+  /// Errors: 400 (invalid code), 404 (code not found), 409 (already redeemed)
+  static const String redeemInviteCode = '$apiPrefix/invites/redeem';
+
+  /// **GET /api/v1/invites/my**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/invites/routes.py` - `/invites/my`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ⚠️ Pending (Task MF2-3)
+  ///
+  /// Returns the user's invite codes (created and used).
+  /// Response: 200 OK `{ "codes": [...] }`
+  static const String myInviteCodes = '$apiPrefix/invites/my';
+
+  /// **POST /api/v1/promo/validate**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/promo/routes.py` - `/promo/validate`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ⚠️ Pending (Task MF2-4)
+  ///
+  /// Validates a promo code and returns the discount information.
+  /// Request: `{ "code": string, "plan_id": string }`
+  /// Response: 200 OK `{ "discount_amount": float, "final_price": float, "message": string }`
+  /// Errors: 400 (invalid code), 404 (code not found), 410 (expired)
+  static const String validatePromoCode = '$apiPrefix/promo/validate';
 
   // ── User Endpoints ────────────────────────────────────────────────────
 
@@ -347,16 +487,55 @@ class ApiConstants {
   /// TODO: Backend needs to implement referral system endpoints
   static const String referralRecent = '$apiPrefix/referral/recent';
 
+  // ── Wallet Endpoints ──────────────────────────────────────────────────
+
+  /// **GET /api/v1/wallet/balance**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/wallet/routes.py` - `/wallet/balance`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-1: Backend added alias route from /wallet)
+  ///
+  /// Returns the current wallet balance for the authenticated user.
+  /// Response: `{ "balance": float, "currency": string, "pending_balance": float }`
+  ///
+  /// Note: Backend primary endpoint is `/wallet`, `/wallet/balance` is an alias.
+  static const String walletBalance = '$apiPrefix/wallet/balance';
+
+  /// **GET /api/v1/wallet/transactions**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/wallet/routes.py` - `/wallet/transactions`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-1: Backend implementation confirmed)
+  ///
+  /// Returns the transaction history for the authenticated user's wallet.
+  /// Query params: `limit`, `offset`, `type` (deposit, withdrawal, referral, bonus)
+  /// Response: `{ "transactions": [...], "total": int }`
+  static const String walletTransactions = '$apiPrefix/wallet/transactions';
+
+  /// **POST /api/v1/wallet/withdraw**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/wallet/routes.py` - `/wallet/withdraw`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned (Task BF2-1: Backend implementation confirmed)
+  ///
+  /// Initiates a withdrawal request from the user's wallet.
+  /// Request: `{ "amount": float, "method": string, "details": {...} }`
+  /// Response: `{ "withdrawal_id": string, "status": string, "estimated_completion": string }`
+  static const String walletWithdraw = '$apiPrefix/wallet/withdraw';
+
   // ── Payment Endpoints ─────────────────────────────────────────────────
 
   /// **POST /api/v1/payments/create**
   ///
-  /// Backend: ⚠️ Different endpoint - Backend uses `/payments/crypto/invoice`
+  /// Backend: `backend/src/presentation/api/v1/payments/routes.py` - `/payments/create`
   /// Auth: JWT (requires PAYMENT_CREATE permission)
-  /// Status: ⚠️ Partial
+  /// Status: ✅ Aligned (Task BF-1: Backend added alias route from /payments/crypto/invoice)
   ///
-  /// TODO: Mobile should use `/payments/crypto/invoice` instead, or backend should add alias
-  /// Backend endpoint: `backend/src/presentation/api/v1/payments/routes.py` - `/payments/crypto/invoice`
+  /// Creates a new payment/invoice.
+  /// Request: `{ "plan_id": string, "payment_method": string }`
+  /// Response: `{ "invoice_id": string, "amount": float, "currency": string, "payment_url": string }`
+  ///
+  /// Note: Backend primary endpoint is `/payments/crypto/invoice`, `/payments/create` is an alias.
   static const String createPayment = '$apiPrefix/payments/create';
 
   /// **GET /api/v1/payments/history**
@@ -371,12 +550,15 @@ class ApiConstants {
 
   /// **GET /api/v1/payments/:id/status**
   ///
-  /// Backend: ⚠️ Different endpoint - Backend uses `/payments/crypto/invoice/:id`
+  /// Backend: `backend/src/presentation/api/v1/payments/routes.py` - `/payments/:id/status`
   /// Auth: JWT (requires PAYMENT_READ permission)
-  /// Status: ⚠️ Partial
+  /// Status: ✅ Aligned (Task BF-1: Backend added alias route from /payments/crypto/invoice/:id)
   ///
-  /// TODO: Mobile should use `/payments/crypto/invoice/:id` instead, or backend should add alias
-  /// Backend endpoint: `backend/src/presentation/api/v1/payments/routes.py` - `/payments/crypto/invoice/{invoice_id}`
+  /// Retrieves payment/invoice status by ID.
+  /// Append the payment ID at call site.
+  /// Response: `{ "invoice_id": string, "status": string, "amount": float, "created_at": string }`
+  ///
+  /// Note: Backend primary endpoint is `/payments/crypto/invoice/:id`, `/payments/:id/status` is an alias.
   static String paymentStatus(String id) => '$apiPrefix/payments/$id/status';
 
   // Future: payment-methods endpoint (backend task pending)
@@ -390,19 +572,7 @@ class ApiConstants {
   /// Auth: JWT (current authenticated user)
   /// Status: ✅ Aligned
   ///
-  /// Activates a 7-day free trial for the current user.
-  /// Response: `{ "activated": bool, "trial_end": string, "message": string }`
-  static const String trialActivate = '$apiPrefix/trial/activate';
-
-  /// **GET /api/v1/trial/status**
-  ///
-  /// Backend: `backend/src/presentation/api/v1/trial/routes.py` - `/trial/status`
-  /// Auth: JWT (current authenticated user)
-  /// Status: ✅ Aligned
-  ///
-  /// Returns the user's trial status.
-  /// Response: `{ "is_trial_active": bool, "trial_start": string?, "trial_end": string?, "days_remaining": int, "is_eligible": bool }`
-  static const String trialStatus = '$apiPrefix/trial/status';
+  // Duplicate constants removed - already defined earlier in the file at lines 324 and 334
 
   // ── Two-Factor Authentication Endpoints ──────────────────────────────
 
@@ -437,14 +607,17 @@ class ApiConstants {
   /// Response: `{ "valid": bool }`
   static const String validate2fa = '$apiPrefix/2fa/validate';
 
-  /// **POST /api/v1/2fa/disable**
+  /// **DELETE /api/v1/2fa/disable**
   ///
-  /// Backend: ⚠️ Method mismatch - Backend uses DELETE instead of POST
+  /// Backend: `backend/src/presentation/api/v1/two_factor/routes.py` - `/2fa/disable`
   /// Auth: JWT (current authenticated user)
-  /// Status: ⚠️ Partial
+  /// Status: ✅ Aligned (Task BF-1: Backend added POST alias for backward compatibility)
   ///
-  /// TODO: Mobile should use DELETE method, or backend should support POST as alias
-  /// Backend: `backend/src/presentation/api/v1/two_factor/routes.py` - DELETE `/2fa/disable`
+  /// Disables two-factor authentication for the current user.
+  /// Request: `{ "password": string }` (password confirmation required)
+  /// Response: `{ "message": "2FA disabled successfully" }`
+  ///
+  /// Note: Backend supports both DELETE (primary) and POST (alias) methods.
   static const String disable2fa = '$apiPrefix/2fa/disable';
 
   // ── OAuth Endpoints ──────────────────────────────────────────────────
@@ -459,14 +632,17 @@ class ApiConstants {
   /// Response: `{ "authorize_url": string }`
   static const String oauthTelegramAuth = '$apiPrefix/oauth/telegram/authorize';
 
-  /// **GET /api/v1/oauth/telegram/callback**
+  /// **POST /api/v1/oauth/telegram/callback**
   ///
-  /// Backend: ⚠️ Method mismatch - Backend uses POST instead of GET
+  /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - `/oauth/telegram/callback`
   /// Auth: JWT (current authenticated user)
-  /// Status: ⚠️ Partial
+  /// Status: ✅ Aligned (Task BF-1: Backend added GET alias for backward compatibility)
   ///
-  /// TODO: Mobile should use POST method for OAuth callbacks
-  /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - POST `/oauth/telegram/callback`
+  /// Handles Telegram OAuth callback after authorization.
+  /// Request: `{ "code": string, "state": string }`
+  /// Response: `{ "success": bool, "message": string }`
+  ///
+  /// Note: Backend supports both POST (primary) and GET (alias) methods.
   static const String oauthTelegramCallback = '$apiPrefix/oauth/telegram/callback';
 
   /// **POST /api/v1/auth/telegram/bot-link**
@@ -490,14 +666,17 @@ class ApiConstants {
   /// Response: `{ "authorize_url": string }`
   static const String oauthGithubAuth = '$apiPrefix/oauth/github/authorize';
 
-  /// **GET /api/v1/oauth/github/callback**
+  /// **POST /api/v1/oauth/github/callback**
   ///
-  /// Backend: ⚠️ Method mismatch - Backend uses POST instead of GET
+  /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - `/oauth/github/callback`
   /// Auth: JWT (current authenticated user)
-  /// Status: ⚠️ Partial
+  /// Status: ✅ Aligned (Task BF-1: Backend added GET alias for backward compatibility)
   ///
-  /// TODO: Mobile should use POST method for OAuth callbacks
-  /// Backend: `backend/src/presentation/api/v1/oauth/routes.py` - POST `/oauth/github/callback`
+  /// Handles GitHub OAuth callback after authorization.
+  /// Request: `{ "code": string, "state": string }`
+  /// Response: `{ "success": bool, "message": string }`
+  ///
+  /// Note: Backend supports both POST (primary) and GET (alias) methods.
   static const String oauthGithubCallback = '$apiPrefix/oauth/github/callback';
 
   /// **DELETE /api/v1/oauth/:provider**

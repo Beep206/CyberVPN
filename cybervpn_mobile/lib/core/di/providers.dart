@@ -19,6 +19,7 @@ import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_d
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_local_ds.dart';
 import 'package:cybervpn_mobile/features/referral/data/datasources/referral_remote_ds.dart';
+import 'package:cybervpn_mobile/features/partner/data/datasources/partner_remote_ds.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/vpn_engine_datasource.dart';
 import 'package:cybervpn_mobile/features/profile/data/datasources/profile_remote_ds.dart';
 import 'package:cybervpn_mobile/features/profile/data/repositories/profile_repository_impl.dart';
@@ -53,6 +54,8 @@ import 'package:cybervpn_mobile/features/settings/data/repositories/settings_rep
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
 import 'package:cybervpn_mobile/features/referral/data/repositories/referral_repository_impl.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
+import 'package:cybervpn_mobile/features/partner/data/repositories/partner_repository_impl.dart';
+import 'package:cybervpn_mobile/features/partner/domain/repositories/partner_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/repositories/server_repository_impl.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
@@ -134,6 +137,17 @@ final onboardingRepositoryProvider = Provider<OnboardingRepository>((ref) {
 final referralRepositoryProvider = Provider<ReferralRepository>((ref) {
   return ReferralRepositoryImpl(
     remoteDataSource: ref.watch(referralRemoteDataSourceProvider),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Partner repository provider
+// ---------------------------------------------------------------------------
+
+/// Provides the [PartnerRepository] backed by [PartnerRemoteDataSource].
+final partnerRepositoryProvider = Provider<PartnerRepository>((ref) {
+  return PartnerRepositoryImpl(
+    remoteDataSource: ref.watch(partnerRemoteDataSourceProvider),
   );
 });
 
@@ -498,6 +512,14 @@ final referralRemoteDataSourceProvider = Provider<ReferralRemoteDataSource>((
 ) {
   final apiClient = ref.watch(apiClientProvider);
   return ReferralRemoteDataSourceImpl(apiClient);
+});
+
+/// Provides the [PartnerRemoteDataSource] backed by the [ApiClient].
+final partnerRemoteDataSourceProvider = Provider<PartnerRemoteDataSource>((
+  ref,
+) {
+  final apiClient = ref.watch(apiClientProvider);
+  return PartnerRemoteDataSourceImpl(apiClient);
 });
 
 // ---------------------------------------------------------------------------

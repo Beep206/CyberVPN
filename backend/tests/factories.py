@@ -22,3 +22,9 @@ class AdminUserFactory(factory.Factory):
     telegram_id = None
     created_at = factory.LazyFunction(lambda: datetime.now(UTC))
     updated_at = factory.LazyFunction(lambda: datetime.now(UTC))
+    # BF2-3: Profile fields
+    display_name = None
+    language = "en"
+    timezone = "UTC"
+    # BF2-5: Notification preferences
+    notification_prefs = None

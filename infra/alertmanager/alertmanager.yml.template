@@ -1,0 +1,107 @@
+# AlertManager configuration with severity-based routing
+#
+# IMPORTANT: To use a custom webhook URL, set ALERTMANAGER_WEBHOOK_URL in .env
+# Example: ALERTMANAGER_WEBHOOK_URL=https://your-telegram-bot.example.com/webhook
+#
+# For production, you'll need to:
+# 1. Set up a Telegram bot webhook relay service
+# 2. Configure the ALERTMANAGER_WEBHOOK_URL environment variable
+# 3. Run: docker compose --profile monitoring up -d alertmanager --force-recreate
+#
+# The config uses envsubst preprocessing via entrypoint to inject the URL.
+
+global:
+  resolve_timeout: 5m
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Root route with default receiver
+route:
+  receiver: 'telegram-default'
+  group_by: ['alertname', 'severity', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+
+  # Child routes with severity-based routing
+  routes:
+    # Critical alerts - immediate notification, no grouping delay
+    - match:
+        severity: critical
+      receiver: 'telegram-critical'
+      group_wait: 0s
+      group_interval: 5m
+      repeat_interval: 30m
+      continue: false
+
+    # Warning alerts - grouped with slight delay
+    - match:
+        severity: warning
+      receiver: 'telegram-warning'
+      group_wait: 30s
+      group_interval: 10m
+      repeat_interval: 2h
+      continue: false
+
+    # Info alerts - heavily grouped, less frequent
+    - match:
+        severity: info
+      receiver: 'telegram-info'
+      group_wait: 2m
+      group_interval: 15m
+      repeat_interval: 4h
+      continue: false
+
+receivers:
+  # Critical severity receiver - immediate notifications
+  - name: 'telegram-critical'
+    webhook_configs:
+      - url: '${ALERTMANAGER_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 0
+
+  # Warning severity receiver
+  - name: 'telegram-warning'
+    webhook_configs:
+      - url: '${ALERTMANAGER_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 0
+
+  # Info severity receiver
+  - name: 'telegram-info'
+    webhook_configs:
+      - url: '${ALERTMANAGER_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 0
+
+  # Default receiver for alerts without severity label
+  - name: 'telegram-default'
+    webhook_configs:
+      - url: '${ALERTMANAGER_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 0
+
+# Inhibition rules - suppress lower severity alerts when higher severity is firing
+inhibit_rules:
+  # Inhibit warning/info alerts if critical alert for same service is firing
+  - source_match:
+      severity: 'critical'
+    target_match_re:
+      severity: 'warning|info'
+    equal: ['service', 'instance']
+
+  # Inhibit info alerts if warning alert for same service is firing
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['service', 'instance']

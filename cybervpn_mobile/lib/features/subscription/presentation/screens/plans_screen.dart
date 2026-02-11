@@ -7,6 +7,8 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entit
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/widgets/plan_card.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/widgets/redeem_invite_code_dialog.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/widgets/trial_card.dart';
 
 // ---------------------------------------------------------------------------
 // Plans catalog screen
@@ -17,13 +19,31 @@ import 'package:cybervpn_mobile/features/subscription/presentation/widgets/plan_
 class PlansScreen extends ConsumerWidget {
   const PlansScreen({super.key});
 
+  /// Shows the redeem invite code dialog.
+  static void _showRedeemDialog(BuildContext context) {
+    unawaited(showDialog<bool>(
+      context: context,
+      builder: (context) => const RedeemInviteCodeDialog(),
+    ));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(subscriptionProvider);
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.subscriptionChooseYourPlan)),
+      appBar: AppBar(
+        title: Text(l10n.subscriptionChooseYourPlan),
+        actions: [
+          IconButton(
+            key: const Key('btn_redeem_invite_code'),
+            icon: const Icon(Icons.card_giftcard),
+            tooltip: l10n.subscriptionRedeemInviteCode,
+            onPressed: () => _showRedeemDialog(context),
+          ),
+        ],
+      ),
       body: asyncState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBody(
@@ -114,6 +134,12 @@ class _PlansBodyState extends State<_PlansBody> {
               ),
             ),
           ),
+        ),
+
+        // -- Trial card -------------------------------------------------------
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: TrialCard(),
         ),
 
         // -- Content ----------------------------------------------------------

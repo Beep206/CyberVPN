@@ -250,6 +250,47 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
     );
   }
 
+  /// Redeems an invite code to grant subscription benefits.
+  ///
+  /// Updates [SubscriptionState.purchaseState] throughout the flow so the
+  /// UI can react to loading / success / error.
+  Future<void> redeemInviteCode(String code) async {
+    final current = state.value;
+    if (current == null) return;
+
+    // Signal loading.
+    state = AsyncValue.data(
+      current.copyWith(
+        purchaseState: PurchaseState.loading,
+        clearPurchaseError: true,
+      ),
+    );
+
+    // Perform app attestation before redemption (logging-only mode).
+    await _performAttestation(AttestationTrigger.purchase);
+
+    final result = await _repo.redeemInviteCode(code);
+
+    switch (result) {
+      case Success(:final data):
+        state = AsyncValue.data(
+          current.copyWith(
+            currentSubscription: data,
+            purchaseState: PurchaseState.success,
+            trialEligibility: false,
+            clearPurchaseError: true,
+          ),
+        );
+      case Failure(:final failure):
+        state = AsyncValue.data(
+          current.copyWith(
+            purchaseState: PurchaseState.error,
+            purchaseError: failure.message,
+          ),
+        );
+    }
+  }
+
   /// Called when the app returns to the foreground.
   ///
   /// Silently refreshes the subscription so the UI is up-to-date after

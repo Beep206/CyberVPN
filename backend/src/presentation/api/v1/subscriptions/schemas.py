@@ -1,5 +1,6 @@
 """Subscription template API schemas for Remnawave proxy."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,3 +61,23 @@ class SubscriptionConfigResponse(BaseModel):
 
     config: str = Field(..., description="Generated VPN configuration string")
     subscription_url: str | None = Field(None, max_length=5000, description="Subscription URL")
+
+
+class ActiveSubscriptionResponse(BaseModel):
+    """Response schema for active subscription."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str = Field(..., description="Subscription status (active, expired, trial, cancelled, none)")
+    plan_name: str | None = Field(None, description="Name of the subscription plan")
+    expires_at: datetime | None = Field(None, description="Subscription expiration timestamp")
+    traffic_limit_bytes: int | None = Field(None, description="Traffic limit in bytes")
+    used_traffic_bytes: int | None = Field(None, description="Used traffic in bytes")
+    auto_renew: bool = Field(False, description="Whether subscription auto-renews")
+
+
+class CancelSubscriptionResponse(BaseModel):
+    """Response schema for subscription cancellation."""
+
+    message: str = "Subscription canceled successfully"
+    canceled_at: datetime = Field(..., description="Cancellation timestamp")

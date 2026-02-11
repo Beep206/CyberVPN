@@ -20,6 +20,7 @@ dependencies = [
     "pydantic-settings>=2.7",
     "structlog>=24.4",
     "prometheus-client>=0.21",
+    "sentry-sdk>=2.0.0",
     "tenacity>=9.0",
     "orjson>=3.10",
 ]

@@ -80,6 +80,18 @@ async def startup_event(state) -> None:
     try:
         logger.info("worker_startup_initiated", redis_url=settings.redis_url)
 
+        # Initialize Sentry SDK if DSN is configured
+        if settings.sentry_dsn:
+            import sentry_sdk
+
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                environment=settings.environment,
+                traces_sample_rate=1.0 if settings.environment == "development" else 0.1,
+                profiles_sample_rate=1.0 if settings.environment == "development" else 0.1,
+            )
+            logger.info("sentry_initialized", environment=settings.environment)
+
         # Start Prometheus metrics HTTP server
         if settings.metrics_enabled:
             start_metrics_server(

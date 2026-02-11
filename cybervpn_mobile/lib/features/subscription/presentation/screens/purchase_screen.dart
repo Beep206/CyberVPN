@@ -9,6 +9,7 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entit
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/widgets/payment_method_picker.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/widgets/promo_code_field.dart';
 
 // ---------------------------------------------------------------------------
 // Purchase flow screen
@@ -143,7 +144,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen>
 // Step 1: Review
 // ---------------------------------------------------------------------------
 
-class _ReviewStep extends StatelessWidget {
+class _ReviewStep extends StatefulWidget {
   const _ReviewStep({
     super.key,
     required this.plan,
@@ -156,10 +157,22 @@ class _ReviewStep extends StatelessWidget {
   final VoidCallback onContinue;
 
   @override
+  State<_ReviewStep> createState() => _ReviewStepState();
+}
+
+class _ReviewStepState extends State<_ReviewStep> {
+  double? _discountAmount;
+  double? _finalPrice;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
+
+    // Calculate displayed price based on promo code application
+    final displayedPrice = _finalPrice ?? widget.plan.price;
+    final hasDiscount = _discountAmount != null && _discountAmount! > 0;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -184,21 +197,21 @@ class _ReviewStep extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(plan.name, style: theme.textTheme.titleMedium),
+                  Text(widget.plan.name, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   _InfoRow(
                     label: l10n.subscriptionDurationLabel,
-                    value: l10n.subscriptionDurationDays(plan.durationDays),
+                    value: l10n.subscriptionDurationDays(widget.plan.durationDays),
                   ),
                   _InfoRow(
                     label: l10n.subscriptionTrafficLabel,
-                    value: plan.trafficLimitGb > 0
-                        ? l10n.subscriptionTrafficGb(plan.trafficLimitGb)
+                    value: widget.plan.trafficLimitGb > 0
+                        ? l10n.subscriptionTrafficGb(widget.plan.trafficLimitGb)
                         : l10n.subscriptionUnlimited,
                   ),
                   _InfoRow(
                     label: l10n.subscriptionDevicesLabel,
-                    value: '${plan.maxDevices}',
+                    value: '${widget.plan.maxDevices}',
                   ),
                   const Divider(height: 24),
                   // Price
@@ -209,17 +222,18 @@ class _ReviewStep extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          if (originalPrice != null &&
-                              originalPrice! > plan.price)
+                          // Show original price with strikethrough if promo applied
+                          if (hasDiscount)
                             Text(
-                              '${plan.currency} ${originalPrice!.toStringAsFixed(2)}',
+                              '${widget.plan.currency} ${widget.plan.price.toStringAsFixed(2)}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 decoration: TextDecoration.lineThrough,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                          // Show final price
                           Text(
-                            '${plan.currency} ${plan.price.toStringAsFixed(2)}',
+                            '${widget.plan.currency} ${displayedPrice.toStringAsFixed(2)}',
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: colorScheme.primary,
@@ -234,10 +248,23 @@ class _ReviewStep extends StatelessWidget {
             ),
           ),
 
+          const SizedBox(height: 16),
+
+          // Promo code field
+          PromoCodeField(
+            planId: widget.plan.id,
+            onPromoApplied: (discountAmount, finalPrice) {
+              setState(() {
+                _discountAmount = discountAmount;
+                _finalPrice = finalPrice;
+              });
+            },
+          ),
+
           const Spacer(),
 
           FilledButton(
-            onPressed: onContinue,
+            onPressed: widget.onContinue,
             child: Text(l10n.subscriptionContinueToPayment),
           ),
         ],

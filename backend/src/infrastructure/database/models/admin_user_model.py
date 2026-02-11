@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, Boolean, DateTime, String, func
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -61,6 +61,18 @@ class AdminUserModel(Base):
 
     # Soft-delete timestamp (FEAT-03)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Trial period tracking
+    trial_activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    trial_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Profile fields (BF2-3)
+    display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
+
+    # Notification preferences (BF2-5)
+    notification_prefs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Relationship to OTP codes
     otp_codes = relationship("OtpCodeModel", back_populates="user", lazy="raise")

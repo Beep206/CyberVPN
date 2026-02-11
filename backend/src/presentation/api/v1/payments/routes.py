@@ -174,3 +174,47 @@ async def checkout(
             ) from None
 
     return response
+
+
+# ── Backward Compatibility Aliases ───────────────────────────────────────────
+
+
+@router.post(
+    "/create",
+    response_model=InvoiceResponse,
+    status_code=status.HTTP_201_CREATED,
+    deprecated=True,
+)
+async def create_payment_alias(
+    request: CreateInvoiceRequest,
+    db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    _: None = Depends(require_permission(Permission.PAYMENT_CREATE)),
+) -> InvoiceResponse:
+    """Create a payment (POST /create alias for mobile compatibility).
+
+    **DEPRECATED**: Use POST /payments/crypto/invoice instead.
+
+    This is an alias route for backward compatibility with mobile clients.
+    """
+    return await create_crypto_invoice(request, db, crypto_client, _)
+
+
+@router.get(
+    "/{invoice_id}/status",
+    response_model=InvoiceResponse,
+    deprecated=True,
+)
+async def get_payment_status_alias(
+    invoice_id: str,
+    db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    _: None = Depends(require_permission(Permission.PAYMENT_READ)),
+) -> InvoiceResponse:
+    """Get payment status (GET /:id/status alias for mobile compatibility).
+
+    **DEPRECATED**: Use GET /payments/crypto/invoice/:id instead.
+
+    This is an alias route for backward compatibility with mobile clients.
+    """
+    return await get_crypto_invoice(invoice_id, db, crypto_client, _)

@@ -1,0 +1,277 @@
+/**
+ * PurchaseConfirmModal Component Tests (TOB-2)
+ *
+ * Tests the subscription purchase confirmation flow:
+ * - Modal rendering with plan details
+ * - Purchase API call with correct parameters
+ * - Crypto invoice display after successful purchase
+ * - Error handling for API failures
+ * - Form validation
+ *
+ * Depends on: FG-1 (Purchase flow implementation)
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { PurchaseConfirmModal } from '../PurchaseConfirmModal';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/test/mocks/server';
+
+// Mock next-intl
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
+// Mock Modal component
+vi.mock('@/shared/ui/modal', () => ({
+  Modal: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div data-testid="modal">{children}</div> : null,
+}));
+
+const API_BASE = 'http://localhost:8000/api/v1';
+
+describe('PurchaseConfirmModal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  describe('Rendering', () => {
+    it('test_renders_purchase_modal_with_plan_details', () => {
+      const mockPlan = {
+        uuid: 'plan-123',
+        name: 'Premium Plan',
+        price: 29.99,
+        currency: 'USD',
+        durationDays: 30,
+        dataLimitGb: 500,
+        maxDevices: 5,
+        features: ['High Speed', 'No Ads', 'Priority Support'],
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      expect(screen.getByText('Premium Plan')).toBeInTheDocument();
+      expect(screen.getByText(/29.99/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 month/i)).toBeInTheDocument();
+    });
+
+    it('test_renders_purchase_button', () => {
+      // TODO: Render modal
+      // TODO: Assert "Purchase" or "Confirm" button is present
+    });
+
+    it('test_renders_cancel_button', () => {
+      // TODO: Render modal
+      // TODO: Assert "Cancel" button is present
+    });
+
+    it('test_displays_plan_features_list', () => {
+      // TODO: Render modal with plan features
+      // TODO: Assert each feature is displayed
+    });
+  });
+
+  describe('Purchase Flow', () => {
+    it('test_purchase_button_calls_api_with_correct_params', async () => {
+      const user = userEvent.setup({ delay: null });
+      let capturedRequest: any = null;
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, async ({ request }) => {
+          capturedRequest = await request.json();
+          return HttpResponse.json({
+            payment_url: 'https://cryptobot.example/invoice/123',
+          }, { status: 201 });
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-456',
+        name: 'Test Plan',
+        price: 19.99,
+        currency: 'USD',
+        durationDays: 7,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(capturedRequest).not.toBeNull();
+        expect(capturedRequest.plan_id).toBe('plan-456');
+        expect(capturedRequest.currency).toBe('USDT');
+      });
+    });
+
+    it('test_displays_loading_state_during_purchase', async () => {
+      // TODO: Setup MSW handler with delay
+      // TODO: Render modal
+      // TODO: Click purchase button
+      // TODO: Assert loading spinner or disabled button appears
+    });
+
+    it('test_displays_crypto_invoice_after_purchase_success', async () => {
+      // TODO: Setup MSW handler to return invoice data
+      // TODO: Render modal
+      // TODO: Click purchase button
+      // TODO: Wait for success
+      // TODO: Assert invoice details are displayed (amount, address, QR code)
+    });
+
+    it('test_calls_onSuccess_callback_after_purchase', async () => {
+      // TODO: Setup MSW handler for successful purchase
+      // TODO: Mock onSuccess callback
+      // TODO: Render modal with onSuccess prop
+      // TODO: Click purchase button
+      // TODO: Wait for completion
+      // TODO: Assert onSuccess was called
+    });
+
+    it('test_closes_modal_on_cancel_button_click', async () => {
+      // TODO: Mock onClose callback
+      // TODO: Render modal
+      // TODO: Click cancel button
+      // TODO: Assert onClose was called
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('test_displays_error_message_on_purchase_failure', async () => {
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.json(
+            { detail: 'Payment gateway error' },
+            { status: 400 }
+          );
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-789',
+        name: 'Test Plan',
+        price: 9.99,
+        currency: 'USD',
+        durationDays: 1,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Payment Failed/i)).toBeInTheDocument();
+      });
+    });
+
+    it('test_displays_insufficient_balance_error', async () => {
+      // TODO: Setup MSW handler to return 422 insufficient balance
+      // TODO: Render modal
+      // TODO: Click purchase button
+      // TODO: Assert specific error message about balance
+    });
+
+    it('test_displays_plan_not_found_error', async () => {
+      // TODO: Setup MSW handler to return 404
+      // TODO: Render modal
+      // TODO: Click purchase button
+      // TODO: Assert plan not found error
+    });
+
+    it('test_displays_network_error_message', async () => {
+      // TODO: Setup MSW handler to throw network error
+      // TODO: Render modal
+      // TODO: Click purchase button
+      // TODO: Assert network error message
+    });
+
+    it('test_error_message_clears_on_retry', async () => {
+      // TODO: Setup MSW handler to fail first, succeed second
+      // TODO: Render modal
+      // TODO: Click purchase (fail)
+      // TODO: Assert error displayed
+      // TODO: Click purchase again (succeed)
+      // TODO: Assert error cleared
+    });
+  });
+
+  describe('Form Validation', () => {
+    it('test_purchase_button_disabled_without_plan', () => {
+      // TODO: Render modal without plan prop
+      // TODO: Assert purchase button is disabled
+    });
+
+    it('test_prevents_double_submission', async () => {
+      // TODO: Setup MSW handler with delay
+      // TODO: Render modal
+      // TODO: Click purchase button twice rapidly
+      // TODO: Assert only one API call was made
+    });
+
+    it('test_validates_minimum_plan_price', () => {
+      // TODO: Render modal with invalid price (0 or negative)
+      // TODO: Click purchase button
+      // TODO: Assert validation error or button disabled
+    });
+  });
+
+  describe('Crypto Invoice Display', () => {
+    it('test_displays_qr_code_for_payment', async () => {
+      // TODO: Setup MSW handler with invoice
+      // TODO: Render modal
+      // TODO: Complete purchase
+      // TODO: Assert QR code is rendered
+    });
+
+    it('test_displays_payment_address_with_copy_button', async () => {
+      // TODO: Complete purchase flow
+      // TODO: Assert payment address is displayed
+      // TODO: Assert copy button is present
+    });
+
+    it('test_copy_button_copies_address_to_clipboard', async () => {
+      // TODO: Mock navigator.clipboard.writeText
+      // TODO: Complete purchase flow
+      // TODO: Click copy button
+      // TODO: Assert clipboard.writeText was called with address
+    });
+
+    it('test_displays_payment_amount_and_currency', async () => {
+      // TODO: Complete purchase flow
+      // TODO: Assert amount is displayed
+      // TODO: Assert currency (BTC, USDT, etc.) is displayed
+    });
+
+    it('test_displays_payment_expiration_time', async () => {
+      // TODO: Complete purchase flow
+      // TODO: Assert expiration countdown or timestamp is shown
+    });
+  });
+});

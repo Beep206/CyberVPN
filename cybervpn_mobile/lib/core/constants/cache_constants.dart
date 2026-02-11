@@ -39,6 +39,9 @@ class CacheConstants {
   /// Referral data in-memory cache duration.
   static const Duration referralCacheTtl = Duration(minutes: 5);
 
+  /// Wallet data in-memory cache duration.
+  static const Duration walletCacheTtl = Duration(minutes: 5);
+
   /// Maximum age for stored notifications before auto-pruning.
   static const Duration notificationMaxAge = Duration(days: 30);
 

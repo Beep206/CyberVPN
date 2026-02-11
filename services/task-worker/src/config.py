@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     environment: str = "development"
 
+    # Sentry (Observability)
+    sentry_dsn: str = ""  # Sentry DSN for error tracking (optional, empty = disabled)
+
     # Email Provider Configuration (OTP)
     # Primary: Resend.com (initial OTP)
     resend_api_key: SecretStr | None = None

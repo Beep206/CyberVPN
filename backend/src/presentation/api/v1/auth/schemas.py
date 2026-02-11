@@ -221,3 +221,49 @@ class DeleteAccountResponse(BaseModel):
     """Response for successful account deletion (FEAT-03)."""
 
     message: str = "Account has been deleted"
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request to change user password."""
+
+    current_password: str = Field(..., min_length=1, max_length=255)
+    new_password: str = Field(..., min_length=12, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        """Validate new password using shared validator (MED-001)."""
+        return validate_password_strength(v)
+
+
+class ChangePasswordResponse(BaseModel):
+    """Response for successful password change."""
+
+    message: str = "Password changed successfully"
+
+
+class DeviceSessionResponse(BaseModel):
+    """Response schema for active device session (BF2-4)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    device_id: str | None = Field(None, description="Unique device identifier")
+    ip_address: str | None = Field(None, description="Last known IP address")
+    user_agent: str | None = Field(None, description="Browser/device user agent string")
+    last_used_at: datetime = Field(..., description="Last time this session was used")
+    created_at: datetime = Field(..., description="When this session was created")
+    is_current: bool = Field(False, description="Whether this is the current session")
+
+
+class DeviceSessionListResponse(BaseModel):
+    """Response schema for list of active sessions (BF2-4)."""
+
+    devices: list[DeviceSessionResponse] = Field(..., description="List of active sessions")
+    total: int = Field(..., description="Total number of active sessions")
+
+
+class RevokeDeviceResponse(BaseModel):
+    """Response for successful device session revocation (BF2-4)."""
+
+    message: str = "Device session revoked successfully"
+    device_id: str = Field(..., description="ID of the revoked device")

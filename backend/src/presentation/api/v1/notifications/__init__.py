@@ -1,0 +1,1 @@
+"""Notification preferences API module."""

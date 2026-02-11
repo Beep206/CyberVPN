@@ -332,4 +332,33 @@ export const authApi = {
    */
   deleteAccount: () =>
     apiClient.delete<DeleteAccountResponse>('/auth/me'),
+
+  /**
+   * List all active devices/sessions for the authenticated user
+   * GET /api/v1/auth/devices
+   *
+   * Returns all active sessions with device info, IP, user agent, and is_current flag.
+   */
+  listDevices: () =>
+    apiClient.get<{
+      devices: Array<{
+        device_id: string;
+        ip_address: string;
+        user_agent: string;
+        last_used_at: string;
+        is_current: boolean;
+      }>;
+    }>('/auth/devices'),
+
+  /**
+   * Remote logout for a specific device
+   * DELETE /api/v1/auth/devices/{device_id}
+   *
+   * Revokes the session for the specified device.
+   *
+   * @param deviceId - Device ID to logout
+   * @throws 404 - Device not found
+   */
+  logoutDevice: (deviceId: string) =>
+    apiClient.delete<{ message: string }>(`/auth/devices/${deviceId}`),
 };

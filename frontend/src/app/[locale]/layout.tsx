@@ -45,6 +45,7 @@ import { QueryProvider } from "@/app/providers/query-provider";
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
 import { SkipNavLink } from "@/shared/ui/atoms/skip-nav-link";
+import { WebVitalsReporter } from "@/shared/ui/atoms/web-vitals-reporter";
 
 export default async function RootLayout({
     children,
@@ -88,6 +89,7 @@ export default async function RootLayout({
                     {/* Background scanline effect and glow can be global or part of specific layouts */}
                     <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
                     <DevPanel />
+                    <WebVitalsReporter />
                 </ThemeProvider>
             </body>
         </html>

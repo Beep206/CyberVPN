@@ -158,4 +158,71 @@ class SubscriptionRepositoryImpl with NetworkErrorHandler, CachedRepository impl
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
+
+  @override
+  Future<Result<SubscriptionEntity>> redeemInviteCode(String code) async {
+    try {
+      final subscription = await _remoteDataSource.redeemInviteCode(code);
+      // Invalidate caches on mutation.
+      _cachedSubscription = null;
+      _hasSubscriptionCache = false;
+      try {
+        await _localDataSource?.clearCache();
+      } catch (e) {
+        AppLogger.debug('Persistent cache clear failed', error: e);
+      }
+      return Success(subscription);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> applyPromoCode(String code, String planId) async {
+    try {
+      final result = await _remoteDataSource.applyPromoCode(code, planId);
+      return Success(result);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getTrialStatus() async {
+    try {
+      final result = await _remoteDataSource.getTrialStatus();
+      return Success(result);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<SubscriptionEntity>> activateTrial() async {
+    try {
+      final subscription = await _remoteDataSource.activateTrial();
+
+      // Clear cached subscription since trial activation creates a new subscription
+      _cachedSubscription = null;
+      _hasSubscriptionCache = false;
+
+      try {
+        await _localDataSource?.clearCache();
+      } catch (e) {
+        AppLogger.debug('Persistent cache clear failed', error: e, category: 'subscription');
+      }
+
+      return Success(subscription);
+    } on AppException catch (e) {
+      return Failure(mapExceptionToFailure(e));
+    } catch (e) {
+      return Failure(UnknownFailure(message: e.toString()));
+    }
+  }
 }

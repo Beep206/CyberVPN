@@ -17,6 +17,7 @@ from src.application.services.auth_service import AuthService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
+from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
 from src.application.use_cases.auth.login import LoginUseCase
@@ -48,7 +49,11 @@ from src.infrastructure.tasks.email_task_dispatcher import (
 from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     DeleteAccountResponse,
+    DeviceSessionListResponse,
+    DeviceSessionResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     GenerateLoginLinkRequest,
@@ -64,6 +69,7 @@ from src.presentation.api.v1.auth.schemas import (
     ResendOtpResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    RevokeDeviceResponse,
     TelegramBotLinkRequest,
     TelegramBotLinkResponse,
     TelegramMiniAppRequest,
@@ -332,6 +338,14 @@ async def delete_account(
         429: {"description": "Too many attempts"},
     },
 )
+@router.post(
+    "/verify-email",
+    response_model=VerifyOtpResponse,
+    responses={
+        400: {"description": "Invalid or expired OTP code"},
+        429: {"description": "Too many attempts"},
+    },
+)
 async def verify_otp(
     request: VerifyOtpRequest,
     response: Response,
@@ -346,6 +360,10 @@ async def verify_otp(
     1. Activates user account
     2. Creates user in Remnawave VPN backend
     3. Returns access/refresh tokens (auto-login)
+
+    Aliases:
+    - POST /auth/verify-otp (primary)
+    - POST /auth/verify-email (mobile compatibility)
     """
     user_repo = AdminUserRepository(db)
     otp_repo = OtpCodeRepository(db)
@@ -400,6 +418,13 @@ async def verify_otp(
         429: {"description": "Rate limit exceeded"},
     },
 )
+@router.post(
+    "/resend-verification",
+    response_model=ResendOtpResponse,
+    responses={
+        429: {"description": "Rate limit exceeded"},
+    },
+)
 async def resend_otp(
     request: ResendOtpRequest,
     db: AsyncSession = Depends(get_db),
@@ -410,6 +435,10 @@ async def resend_otp(
 
     Uses Brevo (secondary provider) for resend requests.
     Rate limited to 3 resends per hour per email.
+
+    Aliases:
+    - POST /auth/resend-otp (primary)
+    - POST /auth/resend-verification (mobile compatibility)
     """
     user_repo = AdminUserRepository(db)
     otp_repo = OtpCodeRepository(db)
@@ -767,3 +796,204 @@ async def reset_password(
         )
 
     return ResetPasswordResponse()
+
+
+@router.post(
+    "/change-password",
+    response_model=ChangePasswordResponse,
+    responses={
+        400: {"description": "Invalid password or validation error"},
+        401: {"description": "Not authenticated"},
+        429: {"description": "Rate limit exceeded (3 requests per hour)"},
+    },
+)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> ChangePasswordResponse:
+    """Change user password after verifying current password.
+
+    Rate limited to 3 requests per hour per user.
+    """
+    # Rate limiting: 3 requests per hour per user
+    rate_limit_key = f"password_change:{current_user.id}"
+    rate_limit_window = 3600  # 1 hour in seconds
+    rate_limit_max = 3
+
+    # Check current request count
+    current_count = await redis_client.get(rate_limit_key)
+    if current_count and int(current_count) >= rate_limit_max:
+        ttl = await redis_client.ttl(rate_limit_key)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Try again in {ttl} seconds.",
+        )
+
+    # Execute password change
+    use_case = ChangePasswordUseCase(session=db, auth_service=auth_service)
+
+    try:
+        await use_case.execute(
+            user_id=current_user.id,
+            current_password=request.current_password,
+            new_password=request.new_password,
+        )
+    except ValueError as exc:
+        logger.warning(
+            "Password change failed",
+            extra={"user_id": str(current_user.id), "error": str(exc)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    # Increment rate limit counter
+    pipe = redis_client.pipeline()
+    await pipe.incr(rate_limit_key)
+    await pipe.expire(rate_limit_key, rate_limit_window)
+    await pipe.execute()
+
+    logger.info(
+        "Password changed via API",
+        extra={"user_id": str(current_user.id)},
+    )
+
+    return ChangePasswordResponse()
+
+
+@router.get(
+    "/devices",
+    response_model=DeviceSessionListResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+    },
+)
+async def list_devices(
+    http_request: Request,
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeviceSessionListResponse:
+    """List all active sessions/devices for the current user (BF2-4).
+
+    Returns device_id, IP address, user agent, last used time, and marks the current session.
+    """
+    from sqlalchemy import select
+    from src.infrastructure.database.models.refresh_token_model import RefreshToken
+
+    # Get the current device fingerprint to mark the current session
+    current_fingerprint = generate_client_fingerprint(http_request)
+
+    # Query all active (non-revoked) refresh tokens for the user
+    stmt = (
+        select(RefreshToken)
+        .where(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > datetime.now(UTC),
+        )
+        .order_by(RefreshToken.last_used_at.desc())
+    )
+
+    result = await db.execute(stmt)
+    tokens = result.scalars().all()
+
+    # Convert to response format
+    devices = []
+    for token in tokens:
+        is_current = token.device_id == current_fingerprint
+        devices.append(
+            DeviceSessionResponse(
+                device_id=token.device_id,
+                ip_address=token.ip_address,
+                user_agent=token.user_agent,
+                last_used_at=token.last_used_at,
+                created_at=token.created_at,
+                is_current=is_current,
+            )
+        )
+
+    logger.info(
+        "Device list requested",
+        extra={"user_id": str(current_user.id), "device_count": len(devices)},
+    )
+
+    return DeviceSessionListResponse(
+        devices=devices,
+        total=len(devices),
+    )
+
+
+@router.delete(
+    "/devices/{device_id}",
+    response_model=RevokeDeviceResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        404: {"description": "Device not found"},
+    },
+)
+async def revoke_device(
+    device_id: str,
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> RevokeDeviceResponse:
+    """Revoke a specific device session (remote logout) (BF2-4).
+
+    Revokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.
+    """
+    from sqlalchemy import select, update
+    from src.infrastructure.database.models.refresh_token_model import RefreshToken
+
+    # Find tokens for this device
+    stmt = (
+        select(RefreshToken)
+        .where(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.device_id == device_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    )
+
+    result = await db.execute(stmt)
+    tokens = result.scalars().all()
+
+    if not tokens:
+        logger.warning(
+            "Device revocation attempted for non-existent device",
+            extra={"user_id": str(current_user.id), "device_id": device_id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found or already revoked",
+        )
+
+    # Revoke all tokens for this device
+    await db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.device_id == device_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+        .values(revoked_at=datetime.now(UTC))
+    )
+
+    await db.commit()
+
+    # Also revoke JWT access tokens for this user (they'll need to re-login)
+    revocation_service = JWTRevocationService(redis_client)
+    await revocation_service.revoke_all_user_tokens(str(current_user.id))
+
+    logger.info(
+        "Device session revoked",
+        extra={"user_id": str(current_user.id), "device_id": device_id, "tokens_revoked": len(tokens)},
+    )
+
+    return RevokeDeviceResponse(
+        message="Device session revoked successfully",
+        device_id=device_id,
+    )

@@ -68,8 +68,8 @@ def _get_client_ip(request: Request) -> str:
 
 @router.get("/telegram/authorize", response_model=OAuthAuthorizeResponse)
 async def telegram_authorize(
+    request: Request,
     redirect_uri: str = Query(..., description="Redirect URI after authentication"),
-    request: Request = None,
     redis_client: redis.Redis = Depends(get_redis),
     user: AdminUserModel = Depends(get_current_active_user),
 ) -> OAuthAuthorizeResponse:
@@ -81,7 +81,7 @@ async def telegram_authorize(
     state, _ = await state_service.generate(
         provider="telegram",
         user_id=str(user.id),
-        ip_address=_get_client_ip(request) if request else None,
+        ip_address=_get_client_ip(request),
     )
 
     provider = TelegramOAuthProvider()
@@ -98,8 +98,8 @@ async def telegram_authorize(
 
 @router.get("/github/authorize", response_model=OAuthAuthorizeResponse)
 async def github_authorize(
+    request: Request,
     redirect_uri: str = Query(..., description="Redirect URI after authentication"),
-    request: Request = None,
     redis_client: redis.Redis = Depends(get_redis),
     user: AdminUserModel = Depends(get_current_active_user),
 ) -> OAuthAuthorizeResponse:
@@ -111,7 +111,7 @@ async def github_authorize(
     state, _ = await state_service.generate(
         provider="github",
         user_id=str(user.id),
-        ip_address=_get_client_ip(request) if request else None,
+        ip_address=_get_client_ip(request),
     )
 
     provider = GitHubOAuthProvider()
@@ -293,9 +293,9 @@ async def unlink_provider(
 
 @router.get("/{provider}/login", response_model=OAuthAuthorizeResponse)
 async def oauth_login_authorize(
+    request: Request,
     provider: OAuthProvider,
     redirect_uri: str = Query(..., description="Redirect URI after authentication"),
-    request: Request = None,
     redis_client: redis.Redis = Depends(get_redis),
 ) -> OAuthAuthorizeResponse:
     """Get OAuth authorization URL for login (no authentication required).
@@ -312,7 +312,7 @@ async def oauth_login_authorize(
     state_service = OAuthStateService(redis_client)
     state, code_challenge = await state_service.generate(
         provider=provider.value,
-        ip_address=_get_client_ip(request) if request else None,
+        ip_address=_get_client_ip(request),
         pkce=requires_pkce,
     )
 
@@ -427,3 +427,62 @@ async def oauth_login_callback(
         requires_2fa=result.requires_2fa,
         tfa_token=result.tfa_token,
     )
+
+
+# ── Backward Compatibility Aliases ───────────────────────────────────────────
+
+
+@router.get("/telegram/callback", response_model=OAuthLinkResponse, deprecated=True)
+async def telegram_callback_get_alias(
+    request: Request,
+    id: int = Query(...),
+    first_name: str = Query(...),
+    auth_date: int = Query(...),
+    hash: str = Query(...),
+    state: str = Query(...),
+    last_name: str | None = Query(None),
+    username: str | None = Query(None),
+    photo_url: str | None = Query(None),
+    user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> OAuthLinkResponse:
+    """Telegram OAuth callback (GET alias for mobile compatibility).
+
+    **DEPRECATED**: Use POST /oauth/telegram/callback instead.
+
+    This is an alias route for backward compatibility with mobile clients
+    that use GET redirects. New implementations should use POST.
+    """
+    callback_data = TelegramCallbackRequest(
+        id=str(id),
+        first_name=first_name,
+        auth_date=str(auth_date),
+        hash=hash,
+        state=state,
+        last_name=last_name,
+        username=username,
+        photo_url=photo_url,
+    )
+    return await telegram_callback(callback_data, request, user, db, redis_client)
+
+
+@router.get("/github/callback", response_model=OAuthLinkResponse, deprecated=True)
+async def github_callback_get_alias(
+    request: Request,
+    code: str = Query(...),
+    state: str = Query(...),
+    redirect_uri: str = Query(...),
+    user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> OAuthLinkResponse:
+    """GitHub OAuth callback (GET alias for mobile compatibility).
+
+    **DEPRECATED**: Use POST /oauth/github/callback instead.
+
+    This is an alias route for backward compatibility with mobile clients
+    that use GET redirects. New implementations should use POST.
+    """
+    callback_data = GitHubCallbackRequest(code=code, state=state, redirect_uri=redirect_uri)
+    return await github_callback(callback_data, request, user, db, redis_client)

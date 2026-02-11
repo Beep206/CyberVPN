@@ -1,0 +1,258 @@
+groups:
+  - name: cybervpn_infrastructure_alerts
+    interval: 30s
+    rules:
+      # Host CPU usage
+      - alert: HostHighCPUUsage
+        expr: |
+          (
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          ) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage on host"
+          description: "Host {{ $labels.instance }} has {{ $value | humanize }}% CPU usage for more than 10 minutes."
+
+      - alert: HostCriticalCPUUsage
+        expr: |
+          (
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          ) > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical CPU usage on host"
+          description: "Host {{ $labels.instance }} has {{ $value | humanize }}% CPU usage. System may be unresponsive."
+
+      # Host memory usage
+      - alert: HostHighMemoryUsage
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+            /
+            node_memory_MemTotal_bytes
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage on host"
+          description: "Host {{ $labels.instance }} is using {{ $value | humanizePercentage }} of available memory."
+
+      - alert: HostCriticalMemoryUsage
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+            /
+            node_memory_MemTotal_bytes
+          ) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical memory usage on host"
+          description: "Host {{ $labels.instance }} is using {{ $value | humanizePercentage }} of memory. OOM killer may activate."
+
+      # Host disk space
+      - alert: HostLowDiskSpace
+        expr: |
+          (
+            (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.*",mountpoint!~"/boot.*"}
+            /
+            node_filesystem_size_bytes)
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Low disk space on host"
+          description: "Host {{ $labels.instance }} mount {{ $labels.mountpoint }} has only {{ $value | humanizePercentage }} space remaining."
+
+      - alert: HostCriticalDiskSpace
+        expr: |
+          (
+            (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.*",mountpoint!~"/boot.*"}
+            /
+            node_filesystem_size_bytes)
+          ) < 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical disk space on host"
+          description: "Host {{ $labels.instance }} mount {{ $labels.mountpoint }} has only {{ $value | humanizePercentage }} space remaining. Disk full imminent."
+
+      # Disk I/O saturation
+      - alert: HostHighDiskIOWait
+        expr: rate(node_cpu_seconds_total{mode="iowait"}[5m]) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High disk I/O wait on host"
+          description: "Host {{ $labels.instance }} has {{ $value | humanizePercentage }} CPU time in I/O wait. Disk may be saturated."
+
+      # Network errors
+      - alert: HostNetworkErrors
+        expr: |
+          rate(node_network_receive_errs_total[5m]) > 10
+          or
+          rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Network errors detected on host"
+          description: "Host {{ $labels.instance }} interface {{ $labels.device }} is experiencing {{ $value }} errors/sec."
+
+      # Container restarts (cAdvisor)
+      - alert: ContainerHighRestartRate
+        expr: |
+          rate(container_start_time_seconds[5m]) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.name }} on {{ $labels.instance }} is restarting frequently."
+
+      - alert: ContainerOOMKilled
+        expr: |
+          container_last_seen{name!=""} == 0
+          and
+          container_oom_events_total > 0
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container killed by OOM"
+          description: "Container {{ $labels.name }} was killed by the OOM killer."
+
+      # Container resource usage
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""}
+            /
+            container_spec_memory_limit_bytes{name!=""} > 0
+          ) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container memory usage is high"
+          description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit."
+
+      - alert: ContainerHighCPUUsage
+        expr: |
+          (
+            rate(container_cpu_usage_seconds_total{name!=""}[5m])
+            /
+            container_spec_cpu_quota{name!=""} / container_spec_cpu_period{name!=""} > 0
+          ) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container CPU usage is high"
+          description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its CPU limit."
+
+      # System load
+      - alert: HostHighLoadAverage
+        expr: node_load15 / count without (cpu, mode) (node_cpu_seconds_total{mode="idle"}) > 1.5
+        for: 15m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High system load average"
+          description: "Host {{ $labels.instance }} has load average of {{ $value }} (15min) relative to CPU count."
+
+      # Swap usage (if enabled)
+      - alert: HostSwapUsage
+        expr: |
+          (
+            (node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes)
+            /
+            node_memory_SwapTotal_bytes
+          ) > 0.50
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Host is using swap space"
+          description: "Host {{ $labels.instance }} is using {{ $value | humanizePercentage }} of swap. Memory pressure detected."
+
+      # Open file descriptors
+      - alert: HostHighFileDescriptorUsage
+        expr: |
+          (
+            process_open_fds
+            /
+            process_max_fds
+          ) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High file descriptor usage"
+          description: "Process {{ $labels.job }} on {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max file descriptors."
+
+      # Time synchronization
+      - alert: HostClockSkew
+        expr: abs(node_timex_offset_seconds) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Host clock is skewed"
+          description: "Host {{ $labels.instance }} clock is {{ $value }}s out of sync. Check NTP configuration."
+
+      # Prometheus scrape failures
+      - alert: PrometheusScrapeFailures
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Prometheus scrape failing"
+          description: "Prometheus cannot scrape {{ $labels.job }} target {{ $labels.instance }} for more than 5 minutes."
+
+      # AlertManager issues
+      - alert: AlertManagerConfigReloadFailure
+        expr: alertmanager_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "AlertManager config reload failed"
+          description: "AlertManager on {{ $labels.instance }} failed to reload its configuration."
+
+      - alert: AlertManagerNotificationsFailing
+        expr: rate(alertmanager_notifications_failed_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "AlertManager notifications are failing"
+          description: "AlertManager on {{ $labels.instance }} is failing to send notifications via {{ $labels.integration }}."
