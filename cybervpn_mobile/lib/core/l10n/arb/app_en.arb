@@ -157,6 +157,155 @@
   "profileCurrentPassword": "Current Password",
   "profileNewPassword": "New Password",
   "profileConfirmNewPassword": "Confirm New Password",
+  "changePassword": "Change Password",
+  "@changePassword": {
+    "description": "Title for the change password screen"
+  },
+  "changePasswordSubtitle": "Update your account password to keep your account secure.",
+  "@changePasswordSubtitle": {
+    "description": "Subtitle description for the change password screen"
+  },
+  "changePasswordCurrent": "Current Password",
+  "@changePasswordCurrent": {
+    "description": "Label for the current password field"
+  },
+  "changePasswordNew": "New Password",
+  "@changePasswordNew": {
+    "description": "Label for the new password field"
+  },
+  "changePasswordConfirm": "Confirm New Password",
+  "@changePasswordConfirm": {
+    "description": "Label for the confirm password field"
+  },
+  "changePasswordSubmit": "Change Password",
+  "@changePasswordSubmit": {
+    "description": "Text for the submit button"
+  },
+  "changePasswordSuccess": "Password Changed",
+  "@changePasswordSuccess": {
+    "description": "Title shown when password change succeeds"
+  },
+  "changePasswordSuccessMessage": "Your password has been changed successfully. Please use your new password when signing in.",
+  "@changePasswordSuccessMessage": {
+    "description": "Message shown when password change succeeds"
+  },
+  "changePasswordInvalidPassword": "The new password does not meet security requirements. Please ensure it's at least 12 characters long.",
+  "@changePasswordInvalidPassword": {
+    "description": "Error message for invalid new password (400)"
+  },
+  "changePasswordCurrentWrong": "The current password is incorrect. Please try again.",
+  "@changePasswordCurrentWrong": {
+    "description": "Error message for wrong current password (401)"
+  },
+  "changePasswordOAuthOnly": "Your account uses OAuth authentication (Google, GitHub, etc.). You cannot set a password for OAuth-only accounts.",
+  "@changePasswordOAuthOnly": {
+    "description": "Error message for OAuth-only users trying to change password"
+  },
+  "changePasswordTooShort": "Password must be at least 12 characters long.",
+  "@changePasswordTooShort": {
+    "description": "Validation error for password too short"
+  },
+  "changePasswordSameAsOld": "New password must be different from your current password.",
+  "@changePasswordSameAsOld": {
+    "description": "Validation error when new password matches old password"
+  },
+  "changePasswordMismatch": "Passwords do not match. Please try again.",
+  "@changePasswordMismatch": {
+    "description": "Validation error when passwords don't match"
+  },
+  "changePasswordRateLimit": "Too many password change attempts. Please try again in {minutes} minutes.",
+  "@changePasswordRateLimit": {
+    "description": "Rate limit message for password changes",
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "changePasswordStrengthWeak": "Weak",
+  "@changePasswordStrengthWeak": {
+    "description": "Label for weak password strength"
+  },
+  "changePasswordStrengthMedium": "Medium",
+  "@changePasswordStrengthMedium": {
+    "description": "Label for medium password strength"
+  },
+  "changePasswordStrengthStrong": "Strong",
+  "@changePasswordStrengthStrong": {
+    "description": "Label for strong password strength"
+  },
+  "antiphishingTitle": "Antiphishing Code",
+  "@antiphishingTitle": {
+    "description": "Title for the antiphishing code screen"
+  },
+  "antiphishingDescription": "This code will appear in all official emails from CyberVPN to help you verify their authenticity.",
+  "@antiphishingDescription": {
+    "description": "Description of what the antiphishing code is used for"
+  },
+  "antiphishingNotSetTitle": "No Antiphishing Code Set",
+  "@antiphishingNotSetTitle": {
+    "description": "Title shown when user has not set an antiphishing code"
+  },
+  "antiphishingNotSetMessage": "Set a personal antiphishing code that will appear in all official emails from CyberVPN. This helps you identify legitimate emails and avoid phishing attempts.",
+  "@antiphishingNotSetMessage": {
+    "description": "Message explaining why to set an antiphishing code"
+  },
+  "antiphishingSetCode": "Set Antiphishing Code",
+  "@antiphishingSetCode": {
+    "description": "Button text to set a new antiphishing code"
+  },
+  "antiphishingCurrentCode": "Your Antiphishing Code",
+  "@antiphishingCurrentCode": {
+    "description": "Label for the current antiphishing code display"
+  },
+  "antiphishingEditCode": "Edit Code",
+  "@antiphishingEditCode": {
+    "description": "Button text to edit the antiphishing code"
+  },
+  "antiphishingDeleteCode": "Delete Code",
+  "@antiphishingDeleteCode": {
+    "description": "Button text to delete the antiphishing code"
+  },
+  "antiphishingDeleteConfirmTitle": "Delete Antiphishing Code?",
+  "@antiphishingDeleteConfirmTitle": {
+    "description": "Title for delete confirmation dialog"
+  },
+  "antiphishingDeleteConfirmMessage": "Are you sure you want to delete your antiphishing code? You can set a new one later.",
+  "@antiphishingDeleteConfirmMessage": {
+    "description": "Message for delete confirmation dialog"
+  },
+  "antiphishingEditDescription": "Enter a memorable code (max 50 characters) that will appear in all official emails from CyberVPN.",
+  "@antiphishingEditDescription": {
+    "description": "Description shown in edit mode"
+  },
+  "antiphishingCodeLabel": "Antiphishing Code",
+  "@antiphishingCodeLabel": {
+    "description": "Label for the code input field"
+  },
+  "antiphishingCodeHint": "Enter your personal code",
+  "@antiphishingCodeHint": {
+    "description": "Hint text for the code input field"
+  },
+  "antiphishingCodeHelper": "This code will be included in all official CyberVPN emails",
+  "@antiphishingCodeHelper": {
+    "description": "Helper text for the code input field"
+  },
+  "antiphishingCodeTooLong": "Code must be 50 characters or less.",
+  "@antiphishingCodeTooLong": {
+    "description": "Validation error when code exceeds 50 characters"
+  },
+  "antiphishingLoadError": "Failed to load antiphishing code. Please try again.",
+  "@antiphishingLoadError": {
+    "description": "Error message when loading antiphishing code fails"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Generic save button text"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Generic delete button text"
+  },
   "profileTwoFactorAuth": "Two-Factor Authentication",
   "profileTwoFactorAuthDescription": "Add an extra layer of security to your account.",
   "profileTwoFactorEnable": "Enable 2FA",
@@ -1112,6 +1261,10 @@
   "profileStatsDaysLeft": "Days Left",
   "profileStatsDevices": "Devices",
   "profileStatsNoPlan": "No Plan",
+  "profileAutoRenew": "Auto-Renew",
+  "@profileAutoRenew": {
+    "description": "Badge text shown when subscription will auto-renew"
+  },
   "profileSubActive": "Active",
   "profileSubTrial": "Trial",
   "profileSubExpired": "Expired",
@@ -2531,5 +2684,298 @@
   "resetPasswordPasswordTooShort": "Password must be at least 12 characters",
   "@resetPasswordPasswordTooShort": {
     "description": "Validation error when password is too short"
-  }
+  },
+  "otpVerificationTitle": "Verify Email",
+  "@otpVerificationTitle": {
+    "description": "Title for OTP verification screen"
+  },
+  "otpVerificationSubtitle": "Enter the 6-digit code sent to {email}",
+  "@otpVerificationSubtitle": {
+    "description": "Subtitle explaining OTP verification process",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otpVerificationCodeLabel": "Verification Code",
+  "@otpVerificationCodeLabel": {
+    "description": "Label for OTP input field"
+  },
+  "otpVerificationCodeHint": "000000",
+  "@otpVerificationCodeHint": {
+    "description": "Hint text for OTP input field"
+  },
+  "otpVerificationInvalidCode": "Invalid or expired code. Please try again.",
+  "@otpVerificationInvalidCode": {
+    "description": "Error message for invalid or expired OTP code"
+  },
+  "otpVerificationSubmit": "Verify Email",
+  "@otpVerificationSubmit": {
+    "description": "Button text to submit OTP code"
+  },
+  "otpVerificationResend": "Resend Code",
+  "@otpVerificationResend": {
+    "description": "Button text to resend OTP code"
+  },
+  "otpVerificationResendSuccess": "Verification code sent successfully",
+  "@otpVerificationResendSuccess": {
+    "description": "Success message after resending OTP code"
+  },
+  "otpVerificationResendCooldown": "Resend in {seconds}s",
+  "@otpVerificationResendCooldown": {
+    "description": "Cooldown message when user must wait before resending",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "otpVerificationSuccess": "Email Verified!",
+  "@otpVerificationSuccess": {
+    "description": "Success title after verifying email"
+  },
+  "otpVerificationSuccessMessage": "Your email has been verified successfully. Logging you in...",
+  "@otpVerificationSuccessMessage": {
+    "description": "Success message after verifying email"
+  },
+  "wallet": "Wallet",
+  "@wallet": {
+    "description": "Wallet screen title"
+  },
+  "walletBalance": "Balance",
+  "@walletBalance": {
+    "description": "Wallet balance label"
+  },
+  "walletPending": "Pending",
+  "@walletPending": {
+    "description": "Pending balance label"
+  },
+  "walletWithdraw": "Withdraw",
+  "@walletWithdraw": {
+    "description": "Withdraw button text"
+  },
+  "walletTransactionHistory": "Transaction History",
+  "@walletTransactionHistory": {
+    "description": "Transaction history section title"
+  },
+  "walletNoTransactions": "No transactions yet",
+  "@walletNoTransactions": {
+    "description": "Empty state message for transactions"
+  },
+  "walletUnavailable": "Wallet Unavailable",
+  "@walletUnavailable": {
+    "description": "Title when wallet feature is not available"
+  },
+  "walletUnavailableMessage": "The wallet feature is not available yet. Please check back later.",
+  "@walletUnavailableMessage": {
+    "description": "Message when wallet feature is not available"
+  },
+  "walletWithdrawNotImplemented": "Withdraw functionality coming soon.",
+  "@walletWithdrawNotImplemented": {
+    "description": "Placeholder message for withdraw dialog"
+  },
+  "errorLoadingBalance": "Error loading balance",
+  "@errorLoadingBalance": {
+    "description": "Error message when balance fails to load"
+  },
+  "errorLoadingTransactions": "Error loading transactions",
+  "@errorLoadingTransactions": {
+    "description": "Error message when transactions fail to load"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button text"
+  },
+  "paymentHistory": "Payment History",
+  "@paymentHistory": {
+    "description": "Payment history screen title"
+  },
+  "paymentHistoryEmpty": "No payments yet",
+  "@paymentHistoryEmpty": {
+    "description": "Empty state title for payment history"
+  },
+  "paymentHistoryEmptyMessage": "Your payment history will appear here once you make a subscription payment.",
+  "@paymentHistoryEmptyMessage": {
+    "description": "Empty state message for payment history"
+  },
+  "paymentHistoryError": "Failed to load payment history. Please try again.",
+  "@paymentHistoryError": {
+    "description": "Error message for payment history"
+  },
+  "subscriptionRedeemInviteCode": "Redeem Invite Code",
+  "@subscriptionRedeemInviteCode": {
+    "description": "Title for invite code redemption dialog"
+  },
+  "subscriptionEnterInviteCodePrompt": "Enter your invite code to activate subscription benefits.",
+  "@subscriptionEnterInviteCodePrompt": {
+    "description": "Prompt message in invite code dialog"
+  },
+  "subscriptionInviteCode": "Invite Code",
+  "@subscriptionInviteCode": {
+    "description": "Label for invite code input field"
+  },
+  "subscriptionInviteCodeTooShort": "Invite code is too short",
+  "@subscriptionInviteCodeTooShort": {
+    "description": "Validation error for short invite code"
+  },
+  "subscriptionRedeem": "Redeem",
+  "@subscriptionRedeem": {
+    "description": "Button text to redeem invite code"
+  },
+  "subscriptionInviteCodeRedeemed": "Invite code redeemed successfully!",
+  "@subscriptionInviteCodeRedeemed": {
+    "description": "Success message after redeeming invite code"
+  },
+  "subscriptionHavePromoCode": "Have a promo code?",
+  "@subscriptionHavePromoCode": {
+    "description": "Button text to show promo code input field"
+  },
+  "subscriptionPromoCode": "Promo Code",
+  "@subscriptionPromoCode": {
+    "description": "Label for promo code input field"
+  },
+  "subscriptionApply": "Apply",
+  "@subscriptionApply": {
+    "description": "Button text to apply promo code"
+  },
+  "subscriptionRemovePromo": "Remove promo code",
+  "@subscriptionRemovePromo": {
+    "description": "Tooltip for button to remove applied promo code"
+  },
+  "subscriptionPromoAppliedDiscount": "Discount applied: {discount}",
+  "@subscriptionPromoAppliedDiscount": {
+    "description": "Success message showing applied discount amount",
+    "placeholders": {
+      "discount": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionTrialTitle": "7-Day Free Trial",
+  "@subscriptionTrialTitle": {
+    "description": "Title for free trial card"
+  },
+  "subscriptionTrialDescription": "Try CyberVPN free for 7 days with full access to all features.",
+  "@subscriptionTrialDescription": {
+    "description": "Description for free trial offer"
+  },
+  "subscriptionStartTrial": "Start Trial",
+  "@subscriptionStartTrial": {
+    "description": "Button text to activate free trial"
+  },
+  "subscriptionTrialActivated": "Trial activated successfully!",
+  "@subscriptionTrialActivated": {
+    "description": "Success message after activating trial"
+  },
+  "subscriptionTrialActive": "Trial Active",
+  "@subscriptionTrialActive": {
+    "description": "Heading for active trial badge"
+  },
+  "subscriptionTrialDaysRemaining": "{days} days remaining",
+  "@subscriptionTrialDaysRemaining": {
+    "description": "Shows remaining days in active trial",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionCancelTitle": "Cancel Subscription?",
+  "@subscriptionCancelTitle": {
+    "description": "Title for subscription cancellation confirmation"
+  },
+  "subscriptionCancelWarning": "Are you sure you want to cancel your subscription?",
+  "@subscriptionCancelWarning": {
+    "description": "Warning message for subscription cancellation"
+  },
+  "subscriptionCancelDetails": "Your subscription will remain active until the end of the current billing period.",
+  "@subscriptionCancelDetails": {
+    "description": "Details about what happens after cancellation"
+  },
+  "subscriptionCancelButton": "Cancel Subscription",
+  "@subscriptionCancelButton": {
+    "description": "Button text to confirm subscription cancellation"
+  },
+  "subscriptionKeepButton": "Keep Subscription",
+  "@subscriptionKeepButton": {
+    "description": "Button text to keep subscription (dismiss cancellation)"
+  },
+  "subscriptionCancelled": "Subscription cancelled successfully.",
+  "@subscriptionCancelled": {
+    "description": "Success message after cancelling subscription"
+  },
+  "commonFieldRequired": "This field is required",
+  "@commonFieldRequired": {
+    "description": "Generic validation error for required fields"
+  },
+  "partnerDashboardTitle": "Partner Dashboard",
+  "partnerDashboardTab": "Dashboard",
+  "partnerCodesTab": "Codes",
+  "partnerEarningsTab": "Earnings",
+  "partnerTier": "Tier",
+  "partnerClients": "Clients",
+  "partnerTotalEarnings": "Total Earnings",
+  "partnerAvailableBalance": "Available Balance",
+  "partnerCommissionRate": "Commission Rate",
+  "partnerSince": "Partner Since",
+  "partnerYourStats": "Your Statistics",
+  "partnerRecentCodes": "Recent Codes",
+  "partnerNoCodesYet": "No partner codes yet",
+  "partnerNoEarningsYet": "No earnings yet",
+  "partnerCodesList": "Partner Codes",
+  "partnerCreateCode": "Create Code",
+  "partnerCodeCreated": "Partner code created successfully",
+  "partnerEditMarkup": "Edit Markup",
+  "partnerMarkupPercentage": "Markup Percentage",
+  "partnerMarkupLabel": "Markup: {markup}",
+  "@partnerMarkupLabel": {
+    "placeholders": {
+      "markup": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerMarkupUpdated": "Markup updated successfully",
+  "partnerCodeDescription": "Description (optional)",
+  "partnerClientCountLabel": "{count} clients",
+  "@partnerClientCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "partnerCreatedDate": "Created {date}",
+  "@partnerCreatedDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "partnerCodeCopied": "Partner code copied to clipboard",
+  "partnerCopyCode": "Copy Code",
+  "partnerCodeActive": "Active",
+  "partnerCodeInactive": "Inactive",
+  "partnerCodeStatusUpdated": "Code status updated",
+  "partnerActivate": "Activate",
+  "partnerDeactivate": "Deactivate",
+  "partnerTransactionCount": "{count} transactions",
+  "@partnerTransactionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "partnerBindCode": "Bind Code",
+  "partnerBindCodeLabel": "Partner Code",
+  "partnerBindCodeHint": "Enter partner code",
+  "partnerBecomePartnerTitle": "Become a Partner",
+  "partnerBecomePartnerDescription": "Enter a partner code to join the CyberVPN partner program and start earning commissions.",
+  "partnerComingSoonTitle": "Partner Program Coming Soon",
+  "partnerComingSoonDescription": "Join our partner program and earn commissions. Stay tuned for more details!",
+  "commonCreate": "Create",
+  "commonSave": "Save"
 }

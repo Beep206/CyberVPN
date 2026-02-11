@@ -3,6 +3,7 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, cast
 
+import structlog
 from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,13 +55,66 @@ from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 from src.version import __version__
 
-logger = logging.getLogger("cybervpn")
+logger = structlog.get_logger("cybervpn")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    # Configure structured JSON logging before any logging occurs
+    from src.shared.logging.config import configure_logging
+
+    configure_logging(json_logs=settings.json_logs, log_level=settings.log_level)
+
     logger.info("CyberVPN Backend starting up...")
+
+    # Initialize Sentry SDK if DSN is configured
+    if settings.sentry_dsn:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            traces_sample_rate=1.0 if settings.environment == "development" else 0.1,
+            profiles_sample_rate=1.0 if settings.environment == "development" else 0.1,
+            integrations=[FastApiIntegration()],
+        )
+        logger.info("Sentry SDK initialized", environment=settings.environment)
+
+    # Initialize OpenTelemetry tracing if enabled
+    if settings.otel_enabled:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+        from opentelemetry.instrumentation.redis import RedisInstrumentor
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+        # Create resource with service name
+        resource = Resource.create({"service.name": settings.otel_service_name})
+
+        # Configure tracer provider
+        tracer_provider = TracerProvider(resource=resource)
+        trace.set_tracer_provider(tracer_provider)
+
+        # Configure OTLP exporter
+        otlp_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_endpoint, insecure=True)
+
+        # Add batch span processor
+        tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+
+        # Store instrumentors for cleanup
+        app.state.otel_instrumentors = []
+
+        logger.info(
+            "OpenTelemetry initialized",
+            service_name=settings.otel_service_name,
+            exporter_endpoint=settings.otel_exporter_endpoint,
+        )
 
     # HIGH-001: Enforce TOTP encryption key in production
     if settings.environment == "production":
@@ -92,6 +146,19 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("CyberVPN Backend shutting down...")
+
+    # Shutdown OpenTelemetry tracer provider if enabled
+    if settings.otel_enabled:
+        try:
+            from opentelemetry import trace
+
+            tracer_provider = trace.get_tracer_provider()
+            if hasattr(tracer_provider, "shutdown"):
+                tracer_provider.shutdown()
+                logger.info("OpenTelemetry tracer provider shut down")
+        except Exception as e:
+            logger.warning("Shutdown error in OpenTelemetry: %s", e, exc_info=True)
+
     try:
         from src.infrastructure.remnawave.client import remnawave_client
 
@@ -178,6 +245,49 @@ app = FastAPI(
     redoc_url=redoc_url,
 )
 
+# Auto-instrument with OpenTelemetry if enabled (must be done after app creation)
+if settings.otel_enabled:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.redis import RedisInstrumentor
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+    # Instrument FastAPI app
+    FastAPIInstrumentor.instrument_app(app)
+    logger.info("OpenTelemetry FastAPI instrumentation applied")
+
+    # Instrument httpx (for Remnawave, Cryptobot clients)
+    HTTPXClientInstrumentor().instrument()
+    logger.info("OpenTelemetry httpx instrumentation applied")
+
+    # Instrument SQLAlchemy
+    from src.infrastructure.database.session import engine
+
+    SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
+    logger.info("OpenTelemetry SQLAlchemy instrumentation applied")
+
+    # Instrument Redis
+    RedisInstrumentor().instrument()
+    logger.info("OpenTelemetry Redis instrumentation applied")
+
+# Initialize Prometheus FastAPI instrumentator
+# Expose metrics on separate metrics_app (port 9091), not main app
+from prometheus_fastapi_instrumentator import Instrumentator
+
+instrumentator = Instrumentator(
+    should_group_status_codes=True,
+    should_ignore_untemplated=False,
+    should_respect_env_var=True,
+    should_instrument_requests_inprogress=True,
+    excluded_handlers=["/health", "/metrics", "/docs", "/openapi.json", "/redoc"],
+    env_var_name="ENABLE_METRICS",
+    inprogress_name="http_requests_in_progress",
+    inprogress_labels=True,
+)
+
+# Instrument the main app but expose metrics on metrics_app
+instrumentator.instrument(app)
+
 # Middleware (order matters - last added = first executed)
 # Order: Logging (runs last) → RequestID → SecurityHeaders → Rate Limit → CORS (runs first)
 
@@ -255,6 +365,83 @@ async def health_check() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/readiness")
+async def readiness_check() -> dict:
+    """Readiness check for Kubernetes and orchestrators (unauthenticated).
+
+    Checks if the service is ready to accept traffic by verifying:
+    - Database connection is healthy
+    - Redis connection is healthy
+    - Task queue depth is below threshold (< 1000)
+
+    Returns:
+        200 OK if all checks pass
+        503 Service Unavailable if any check fails
+    """
+    from fastapi import status as http_status
+    from fastapi.responses import JSONResponse
+
+    from src.infrastructure.cache.redis_client import check_redis_connection
+    from src.infrastructure.database.session import check_db_connection
+
+    checks = {
+        "database": False,
+        "redis": False,
+        "queue": False,
+    }
+    all_healthy = True
+
+    # Check database connection
+    try:
+        checks["database"] = await check_db_connection()
+        if not checks["database"]:
+            all_healthy = False
+    except Exception:
+        checks["database"] = False
+        all_healthy = False
+
+    # Check Redis connection
+    try:
+        redis_ok, _ = await check_redis_connection()
+        checks["redis"] = redis_ok
+        if not redis_ok:
+            all_healthy = False
+    except Exception:
+        checks["redis"] = False
+        all_healthy = False
+
+    # Check task queue depth (optional - requires Redis)
+    try:
+        if checks["redis"]:
+            from src.infrastructure.cache.redis_client import get_redis_client
+
+            redis = await get_redis_client()
+            # Check pending tasks in TaskIQ queue (stream length)
+            queue_depth = await redis.xlen("taskiq:stream")
+            checks["queue"] = queue_depth < 1000
+            checks["queue_depth"] = queue_depth
+            if not checks["queue"]:
+                all_healthy = False
+        else:
+            checks["queue"] = False
+            all_healthy = False
+    except Exception:
+        checks["queue"] = False
+        all_healthy = False
+
+    # Return appropriate status code
+    if all_healthy:
+        return JSONResponse(
+            status_code=http_status.HTTP_200_OK,
+            content={"status": "ready", "checks": checks},
+        )
+    else:
+        return JSONResponse(
+            status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not_ready", "checks": checks},
+        )
+
+
 @app.get("/health/detailed")
 async def health_check_detailed(
     _user=Depends(get_current_active_user),
@@ -297,17 +484,8 @@ def create_metrics_app() -> FastAPI:
     """SEC-02: Separate ASGI app for /metrics on internal-only port."""
     metrics_app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    @metrics_app.get("/metrics")
-    async def metrics_endpoint():
-        from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-        from starlette.responses import Response
-
-        from src.infrastructure.monitoring import metrics  # noqa: F401
-
-        return Response(
-            content=generate_latest(),
-            media_type=CONTENT_TYPE_LATEST,
-        )
+    # Expose Prometheus metrics from instrumentator on metrics_app
+    instrumentator.expose(metrics_app, endpoint="/metrics", include_in_schema=False)
 
     @metrics_app.get("/health")
     async def metrics_health():

@@ -17,6 +17,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/screens/reset_passwor
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/magic_link_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/otp_verification_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/qr_scanner_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/subscription_url_screen.dart';
@@ -28,14 +29,18 @@ import 'package:cybervpn_mobile/features/notifications/presentation/screens/noti
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/permission_request_screen.dart';
+import 'package:cybervpn_mobile/features/profile/presentation/screens/change_password_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/delete_account_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/devices_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/profile_dashboard_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/social_accounts_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/two_factor_screen.dart';
+import 'package:cybervpn_mobile/features/security/presentation/screens/antiphishing_screen.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/providers/quick_setup_provider.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/screens/quick_setup_screen.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/screens/referral_dashboard_screen.dart';
+import 'package:cybervpn_mobile/features/partner/presentation/screens/partner_dashboard_screen.dart';
+import 'package:cybervpn_mobile/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_detail_screen.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_list_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/appearance_screen.dart';
@@ -46,6 +51,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/settings_
 import 'package:cybervpn_mobile/features/settings/presentation/screens/trusted_wifi_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans_screen.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/screens/payment_history_screen.dart';
 import 'package:cybervpn_mobile/features/splash/presentation/screens/splash_screen.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_screen.dart';
 import 'package:cybervpn_mobile/shared/widgets/feature_error_boundary.dart';
@@ -239,7 +245,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final uri = state.uri;
       final path = uri.path;
-      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password' || path == '/reset-password' || path == '/magic-link';
+      final isAuthRoute = path == '/login' || path == '/register' || path == '/forgot-password' || path == '/reset-password' || path == '/magic-link' || path == '/otp-verification';
       final isOnboardingRoute = path == '/onboarding';
       final isQuickSetupRoute = path == '/quick-setup';
       final isSplashRoute = path == '/splash';
@@ -401,6 +407,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/otp-verification',
+        name: 'otp-verification',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: OtpVerificationScreen(
+            email: state.uri.queryParameters['email'] ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/forgot-password',
         name: 'forgot-password',
         parentNavigatorKey: rootNavigatorKey,
@@ -505,6 +522,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/partner',
+        name: 'partner',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: const FeatureErrorBoundary(
+            featureName: 'Partner',
+            child: PartnerDashboardScreen(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/wallet',
+        name: 'wallet',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: const FeatureErrorBoundary(
+            featureName: 'Wallet',
+            child: WalletScreen(),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/subscribe',
         name: 'subscribe',
         parentNavigatorKey: rootNavigatorKey,
@@ -513,6 +554,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const FeatureErrorBoundary(
             featureName: 'Subscription',
             child: PlansScreen(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/payment-history',
+        name: 'payment-history',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: const FeatureErrorBoundary(
+            featureName: 'Payment History',
+            child: PaymentHistoryScreen(),
           ),
         ),
       ),
@@ -659,6 +712,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       child: const FeatureErrorBoundary(
                         featureName: 'Two-Factor Auth',
                         child: TwoFactorScreen(),
+                      ),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'change-password',
+                    name: 'profile-change-password',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
+                      state: state,
+                      child: const FeatureErrorBoundary(
+                        featureName: 'Change Password',
+                        child: ChangePasswordScreen(),
+                      ),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'antiphishing',
+                    name: 'profile-antiphishing',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
+                      state: state,
+                      child: const FeatureErrorBoundary(
+                        featureName: 'Antiphishing Code',
+                        child: AntiphishingScreen(),
                       ),
                     ),
                   ),

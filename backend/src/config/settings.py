@@ -76,6 +76,7 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    json_logs: bool = True  # Enable JSON structured logging (False = human-readable console)
 
     # Rate limiting
     rate_limit_enabled: bool = True
@@ -120,6 +121,14 @@ class Settings(BaseSettings):
 
     # Metrics (SEC-02)
     metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
+
+    # Sentry (Observability)
+    sentry_dsn: str = ""  # Sentry DSN for error tracking (optional, empty = disabled)
+
+    # OpenTelemetry (Distributed Tracing)
+    otel_exporter_endpoint: str = "http://otel-collector:4317"  # OTLP gRPC endpoint
+    otel_service_name: str = "cybervpn-backend"  # Service name in traces
+    otel_enabled: bool = True  # Enable OpenTelemetry tracing
 
     @field_validator("cors_origins", mode="before")
     @classmethod

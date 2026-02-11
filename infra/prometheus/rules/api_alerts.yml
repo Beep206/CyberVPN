@@ -1,0 +1,132 @@
+groups:
+  - name: cybervpn_api_alerts
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: APIServiceDown
+        expr: up{job="remnawave"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: cybervpn-api
+        annotations:
+          summary: "CyberVPN API service is down"
+          description: "API service {{ $labels.instance }} has been down for more than 3 minutes."
+
+      - alert: APIHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{job="remnawave"}[5m])
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "High API latency detected"
+          description: "API endpoint {{ $labels.handler }} P95 latency is {{ $value }}s (threshold: 1.0s) for {{ $labels.method }} requests."
+
+      - alert: APICriticalLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{job="remnawave"}[5m])
+          ) > 3.0
+        for: 5m
+        labels:
+          severity: critical
+          service: cybervpn-api
+        annotations:
+          summary: "Critical API latency detected"
+          description: "API endpoint {{ $labels.handler }} P95 latency is {{ $value }}s (threshold: 3.0s) for {{ $labels.method }} requests. Service degradation likely."
+
+      # Error rates
+      - alert: APIHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="remnawave", status=~"5.."}[5m])
+            /
+            rate(http_requests_total{job="remnawave"}[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 5xx error rate (threshold: 5%) for the last 5 minutes."
+
+      - alert: APICriticalErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="remnawave", status=~"5.."}[5m])
+            /
+            rate(http_requests_total{job="remnawave"}[5m])
+          ) > 0.15
+        for: 3m
+        labels:
+          severity: critical
+          service: cybervpn-api
+        annotations:
+          summary: "Critical API error rate detected"
+          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 5xx error rate (threshold: 15%). Immediate action required."
+
+      - alert: APIHighClientErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="remnawave", status=~"4.."}[10m])
+            /
+            rate(http_requests_total{job="remnawave"}[10m])
+          ) > 0.25
+        for: 10m
+        labels:
+          severity: info
+          service: cybervpn-api
+        annotations:
+          summary: "High 4xx client error rate"
+          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 4xx error rate. Check client integrations."
+
+      # Request volume anomalies
+      - alert: APILowRequestRate
+        expr: |
+          rate(http_requests_total{job="remnawave"}[5m]) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "Unusually low API request rate"
+          description: "API request rate is {{ $value | humanize }} req/s. Expected higher traffic. Possible upstream issue."
+
+      - alert: APIHighRequestRate
+        expr: |
+          rate(http_requests_total{job="remnawave"}[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "Unusually high API request rate"
+          description: "API request rate is {{ $value | humanize }} req/s. Possible traffic spike or DDoS."
+
+      # In-flight request saturation
+      - alert: APIHighInFlightRequests
+        expr: http_requests_in_progress{job="remnawave"} > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "High number of in-flight requests"
+          description: "API has {{ $value }} in-flight requests for more than 5 minutes. Service may be saturated."
+
+      # Specific endpoint issues
+      - alert: APIEndpointConsistentErrors
+        expr: |
+          rate(http_requests_total{job="remnawave", status=~"5.."}[15m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-api
+        annotations:
+          summary: "Endpoint experiencing consistent errors"
+          description: "Endpoint {{ $labels.handler }} ({{ $labels.method }}) is consistently failing with {{ $value }} errors/sec."

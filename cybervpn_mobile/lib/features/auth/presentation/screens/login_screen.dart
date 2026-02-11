@@ -7,16 +7,19 @@ import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
+import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/apple_sign_in_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/google_sign_in_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/biometric_login_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/login_form.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
-import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 
 /// Full-screen login page with email/password form, social login options,
 /// and a link to the registration screen.
@@ -84,6 +87,114 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  /// Handle Google Sign-In with native SDK + backend OAuth flow.
+  Future<void> _handleGoogleSignIn() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      // Step 1: Get state token from backend
+      final apiClient = ref.read(apiClientProvider);
+      final oauthDataSource = OAuthRemoteDataSourceImpl(apiClient);
+      const redirectUri = 'cybervpn://oauth/callback';
+
+      final authorizeResponse = await oauthDataSource.getAuthorizeUrl(
+        provider: 'google',
+        redirectUri: redirectUri,
+      );
+
+      // Step 2: Trigger native Google Sign-In
+      final googleService = ref.read(googleSignInServiceProvider);
+      final googleResult = await googleService.signIn();
+
+      if (googleResult == null) {
+        // User cancelled
+        return;
+      }
+
+      if (googleResult.serverAuthCode == null) {
+        throw Exception('No server auth code received from Google');
+      }
+
+      // Step 3: Exchange auth code for JWT tokens via backend
+      final loginResponse = await oauthDataSource.loginCallback(
+        provider: 'google',
+        code: googleResult.serverAuthCode!,
+        state: authorizeResponse.state,
+        redirectUri: redirectUri,
+      );
+
+      // Step 4: Store tokens and navigate
+      final secureStorage = ref.read(secureStorageProvider);
+      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
+      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+
+      if (!mounted) return;
+
+      // Navigate to home
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorAuthenticationFailed),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  /// Handle Apple Sign-In with native SDK + backend OAuth flow.
+  Future<void> _handleAppleSignIn() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      // Step 1: Get state token from backend
+      final apiClient = ref.read(apiClientProvider);
+      final oauthDataSource = OAuthRemoteDataSourceImpl(apiClient);
+      const redirectUri = 'cybervpn://oauth/callback';
+
+      final authorizeResponse = await oauthDataSource.getAuthorizeUrl(
+        provider: 'apple',
+        redirectUri: redirectUri,
+      );
+
+      // Step 2: Trigger native Apple Sign-In
+      final appleService = ref.read(appleSignInServiceProvider);
+      final appleResult = await appleService.signIn();
+
+      if (appleResult == null) {
+        // User cancelled
+        return;
+      }
+
+      // Step 3: Exchange auth code for JWT tokens via backend
+      final loginResponse = await oauthDataSource.loginCallback(
+        provider: 'apple',
+        code: appleResult.authorizationCode,
+        state: authorizeResponse.state,
+        redirectUri: redirectUri,
+      );
+
+      // Step 4: Store tokens and navigate
+      final secureStorage = ref.read(secureStorageProvider);
+      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
+      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+
+      if (!mounted) return;
+
+      // Navigate to home
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorAuthenticationFailed),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
   }
 
   void _showTelegramNotInstalledDialog() {
@@ -332,7 +443,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   _SocialOutlinedButton(
                     icon: Icons.g_mobiledata,
                     label: l10n.continueWithGoogle,
-                    onPressed: isLoading ? null : _showComingSoon,
+                    onPressed: isLoading ? null : () => unawaited(_handleGoogleSignIn()),
                   ),
                   const SizedBox(height: Spacing.sm),
 
@@ -341,7 +452,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     _SocialOutlinedButton(
                       icon: Icons.apple,
                       label: l10n.continueWithApple,
-                      onPressed: isLoading ? null : _showComingSoon,
+                      onPressed: isLoading ? null : () => unawaited(_handleAppleSignIn()),
                     ),
                     const SizedBox(height: Spacing.sm),
                   ],

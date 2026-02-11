@@ -1,12 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { ServerCard } from "@/shared/ui/molecules/server-card";
-
-const servers = [
-    { id: '1', name: 'Tokyo Node 01', location: 'Japan, Tokyo', status: 'online' as const, ip: '45.32.12.90', load: 45, protocol: 'vless' as const },
-    { id: '2', name: 'NYC Core', location: 'USA, New York', status: 'warning' as const, ip: '192.168.1.1', load: 82, protocol: 'wireguard' as const },
-    { id: '3', name: 'London Edge', location: 'UK, London', status: 'online' as const, ip: '178.2.4.11', load: 23, protocol: 'xhttp' as const },
-    { id: '4', name: 'Singapore Stealth', location: 'Singapore', status: 'maintenance' as const, ip: '201.10.3.55', load: 0, protocol: 'vless' as const },
-];
+import { DashboardStats } from "./components/DashboardStats";
+import { ServerGrid } from "./components/ServerGrid";
 
 export default async function Dashboard({
     params,
@@ -15,6 +9,7 @@ export default async function Dashboard({
 }) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Dashboard' });
+
     return (
         <div className="p-8 space-y-8">
             <header className="flex flex-col md:flex-row justify-between md:items-center mb-8 bg-terminal-surface/30 p-4 rounded-xl border border-grid-line/30 backdrop-blur gap-4">
@@ -28,33 +23,13 @@ export default async function Dashboard({
                 </div>
             </header>
 
-            {/* Stats Grid */}
-            <section aria-label={t('serverStatus')} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('serverStatus')}</h2>
-                    <div className="text-4xl font-display text-server-online drop-shadow-glow">
-                        {servers.filter(s => s.status === 'online').length} / {servers.length}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">{t('nodesOnline')}</p>
-                </div>
-                <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('activeSessions')}</h2>
-                    <div className="text-4xl font-display text-neon-cyan drop-shadow-glow">1,337</div>
-                    <p className="text-sm text-muted-foreground mt-2">{t('currentConnections')}</p>
-                </div>
-                <div className="cyber-card p-6 rounded-xl">
-                    <h2 className="text-xl font-mono text-neon-pink mb-2">{t('networkLoad')}</h2>
-                    <div className="text-4xl font-display text-matrix-green drop-shadow-glow">42 Pb/s</div>
-                    <p className="text-sm text-muted-foreground mt-2">{t('aggregateThroughput')}</p>
-                </div>
-            </section>
+            {/* Stats Grid - Now using real API data via TanStack Query */}
+            <DashboardStats />
 
             <h2 className="text-2xl font-display text-neon-purple mt-12 mb-6 pl-2 border-l-4 border-neon-purple">{t('serverMatrix')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {servers.map((server, index) => (
-                    <ServerCard key={server.id} server={server} index={index} />
-                ))}
-            </div>
+
+            {/* Server Grid - Now using real API data via TanStack Query */}
+            <ServerGrid />
         </div>
     );
 }

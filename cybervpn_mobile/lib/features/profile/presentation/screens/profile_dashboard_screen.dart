@@ -12,6 +12,7 @@ import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
+import 'package:cybervpn_mobile/features/subscription/presentation/widgets/cancel_subscription_sheet.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
@@ -100,6 +101,7 @@ class ProfileDashboardScreen extends ConsumerWidget {
                 // -- Quick actions --
                 _QuickActionsSection(
                   hasSubscription: subState?.isActive ?? false,
+                  subscription: subState?.currentSubscription,
                 ),
 
                 // Bottom padding for navigation bar clearance.
@@ -229,21 +231,25 @@ class _StatsCardsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final sub = subscription;
+
+    // If no subscription, show "Get Started" CTA card instead of empty stats
+    if (sub == null) {
+      return _NoSubscriptionCard(key: const Key('no_subscription_card'));
+    }
+
     final daysRemaining = subState?.daysRemaining ?? 0;
-    final totalDays = sub != null
-        ? sub.endDate.difference(sub.startDate).inDays
-        : 1;
+    final totalDays = sub.endDate.difference(sub.startDate).inDays;
     final daysProgress = totalDays > 0
         ? (daysRemaining / totalDays).clamp(0.0, 1.0)
         : 0.0;
 
-    final trafficUsedGb = sub != null
-        ? sub.trafficUsedBytes / (1024 * 1024 * 1024)
-        : 0.0;
-    final trafficLimitGb = sub != null
-        ? sub.trafficLimitBytes / (1024 * 1024 * 1024)
-        : 0.0;
+    final trafficUsedGb = sub.trafficUsedBytes / (1024 * 1024 * 1024);
+    final trafficLimitGb = sub.trafficLimitBytes / (1024 * 1024 * 1024);
     final trafficRatio = subState?.trafficUsageRatio ?? 0.0;
+
+    // Resolve plan name from planId
+    final planName = _getPlanName(sub, subState);
+    final isTrial = sub.status == SubscriptionStatus.trial;
 
     final cards = <Widget>[
       // Card 1: Current Plan
@@ -251,10 +257,11 @@ class _StatsCardsGrid extends StatelessWidget {
         key: const Key('stats_plan'),
         icon: Icons.workspace_premium_outlined,
         label: l10n.currentPlan,
-        value: sub != null ? _statusLabel(sub.status, l10n) : l10n.profileStatsNoPlan,
+        value: planName ?? l10n.profileStatsNoPlan,
         accentColor: sub != null
             ? _statusColor(sub.status)
             : null,
+        badge: _buildPlanBadge(sub, isTrial, daysRemaining, l10n),
       ),
 
       // Card 2: Traffic Usage
@@ -269,13 +276,19 @@ class _StatsCardsGrid extends StatelessWidget {
         accentColor: _trafficColor(trafficRatio),
       ),
 
-      // Card 3: Days Remaining
+      // Card 3: Days Remaining with Expiry Date
       _StatsCard(
         key: const Key('stats_days'),
         icon: Icons.calendar_today_outlined,
         label: l10n.profileStatsDaysLeft,
-        value: sub != null ? '$daysRemaining' : '--',
-        progress: sub != null ? daysProgress : null,
+        value: '$daysRemaining',
+        subtitle: 'Expires ${DateFormat.yMMMd().format(sub.endDate)}',
+        progress: daysProgress,
+        accentColor: daysRemaining < 7
+            ? const Color(0xFFFF5252)
+            : daysRemaining < 30
+                ? const Color(0xFFFFAB40)
+                : CyberColors.matrixGreen,
       ),
 
       // Card 4: Devices
@@ -316,6 +329,43 @@ class _StatsCardsGrid extends StatelessWidget {
     );
   }
 
+  /// Resolves the plan name from the subscription's planId.
+  String? _getPlanName(SubscriptionEntity? sub, SubscriptionState? state) {
+    if (sub == null || state == null) return null;
+
+    try {
+      final plan = state.availablePlans.firstWhere(
+        (p) => p.id == sub.planId,
+      );
+      return plan.name;
+    } catch (_) {
+      // Plan not found in available plans list - return planId as fallback
+      return sub.planId;
+    }
+  }
+
+  /// Builds the appropriate badge text based on subscription state.
+  String? _buildPlanBadge(
+    SubscriptionEntity? sub,
+    bool isTrial,
+    int daysRemaining,
+    AppLocalizations l10n,
+  ) {
+    if (sub == null) return null;
+
+    // Trial badge with days remaining
+    if (isTrial) {
+      return '${l10n.profileSubTrial} • $daysRemaining ${l10n.profileStatsDaysLeft}';
+    }
+
+    // Auto-renew indicator for active subscriptions
+    if (sub.cancelledAt == null && sub.status == SubscriptionStatus.active) {
+      return l10n.profileAutoRenew;
+    }
+
+    return null;
+  }
+
   String _statusLabel(SubscriptionStatus status, AppLocalizations l10n) {
     return switch (status) {
       SubscriptionStatus.active => l10n.profileSubActive,
@@ -353,15 +403,19 @@ class _StatsCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.subtitle,
     this.progress,
     this.accentColor,
+    this.badge,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final String? subtitle;
   final double? progress;
   final Color? accentColor;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -424,6 +478,45 @@ class _StatsCard extends StatelessWidget {
                 ),
               ),
 
+              // Optional subtitle
+              if (subtitle != null) ...[
+                const SizedBox(height: Spacing.xs),
+                ExcludeSemantics(
+                  child: Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+
+              // Optional badge
+              if (badge != null) ...[
+                const SizedBox(height: Spacing.xs),
+                ExcludeSemantics(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.xs,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: CyberColors.matrixGreen.withAlpha(40),
+                      borderRadius: BorderRadius.circular(Radii.xs),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: CyberColors.matrixGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
               // Optional progress bar
               if (progress != null) ...[
                 const SizedBox(height: Spacing.sm),
@@ -448,13 +541,89 @@ class _StatsCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// No Subscription Card
+// ---------------------------------------------------------------------------
+
+class _NoSubscriptionCard extends ConsumerWidget {
+  const _NoSubscriptionCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final haptics = ref.read(hapticServiceProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(Spacing.md),
+              decoration: BoxDecoration(
+                color: CyberColors.matrixGreen.withAlpha(25),
+                borderRadius: BorderRadius.circular(Radii.md),
+              ),
+              child: Icon(
+                Icons.rocket_launch_outlined,
+                size: 32,
+                color: CyberColors.matrixGreen,
+              ),
+            ),
+            const SizedBox(height: Spacing.md),
+
+            // Title
+            Text(
+              l10n.profileStatsNoPlan,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: Spacing.xs),
+
+            // Description
+            Text(
+              'Get secure, fast VPN access with premium features',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: Spacing.md),
+
+            // CTA Button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  unawaited(haptics.selection());
+                  unawaited(context.push('/subscribe'));
+                },
+                icon: const Icon(Icons.arrow_forward),
+                label: Text(l10n.upgradePlan),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Quick Actions Section
 // ---------------------------------------------------------------------------
 
 class _QuickActionsSection extends ConsumerWidget {
-  const _QuickActionsSection({required this.hasSubscription});
+  const _QuickActionsSection({
+    required this.hasSubscription,
+    this.subscription,
+  });
 
   final bool hasSubscription;
+  final SubscriptionEntity? subscription;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -505,6 +674,27 @@ class _QuickActionsSection extends ConsumerWidget {
             unawaited(context.push('/profile/2fa'));
           },
         ),
+
+        // Cancel Subscription (only shown if user has active subscription)
+        if (hasSubscription && subscription != null)
+          _QuickActionButton(
+            key: const Key('action_cancel_subscription'),
+            icon: Icons.cancel_outlined,
+            label: l10n.subscriptionCancelButton,
+            onTap: () async {
+              unawaited(haptics.selection());
+              final result = await CancelSubscriptionSheet.show(
+                context,
+                subscription!.id,
+              );
+              if (result == true && context.mounted) {
+                // Refresh subscription data after cancellation
+                unawaited(
+                  ref.read(subscriptionProvider.notifier).loadSubscription(),
+                );
+              }
+            },
+          ),
       ],
     );
   }

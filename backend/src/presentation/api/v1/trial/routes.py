@@ -4,25 +4,23 @@ Provides:
 - ``POST /api/v1/trial/activate`` -- activate a 7-day trial
 - ``GET  /api/v1/trial/status``   -- check current trial status
 
-Both endpoints require authentication.
-
-This is a **placeholder implementation** -- no database writes are
-performed and eligibility is always ``True``.
+Both endpoints require authentication and track trial usage in the database.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
+from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCase
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.database import get_db
 
 from .schemas import TrialActivateResponse, TrialStatusResponse
 
 logger = logging.getLogger(__name__)
-
-TRIAL_DURATION_DAYS = 7
 
 router = APIRouter(prefix="/trial", tags=["trial"])
 
@@ -31,64 +29,81 @@ router = APIRouter(prefix="/trial", tags=["trial"])
     "/activate",
     response_model=TrialActivateResponse,
     summary="Activate trial period",
-    description=(
-        "Activate a 7-day trial period for the authenticated user. Placeholder implementation -- always succeeds."
-    ),
+    description="Activate a 7-day trial period for the authenticated user.",
+    responses={
+        400: {"description": "Trial already activated or currently active"},
+        404: {"description": "User not found"},
+    },
 )
 async def activate_trial(
     current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ) -> TrialActivateResponse:
     """Activate a trial period for the authenticated user.
 
-    This is a placeholder that always returns a successful activation.
-    A real implementation would check trial eligibility in the database,
-    provision a Remnawave subscription, and record the trial start/end.
+    Checks eligibility (user hasn't used a trial before), then activates
+    a 7-day trial period and records it in the database.
     """
-    now = datetime.now(UTC)
-    trial_end = now + timedelta(days=TRIAL_DURATION_DAYS)
+    use_case = ActivateTrialUseCase(db)
 
-    logger.info(
-        "Trial activated (placeholder)",
-        extra={
-            "user_id": str(current_user.id),
-            "trial_end": trial_end.isoformat(),
-        },
-    )
+    try:
+        result = await use_case.execute(current_user.id)
 
-    return TrialActivateResponse(
-        activated=True,
-        trial_end=trial_end,
-        message=f"Trial activated successfully. Expires in {TRIAL_DURATION_DAYS} days.",
-    )
+        if not result.activated:
+            # Trial is already active
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.message,
+            )
+
+        return TrialActivateResponse(
+            activated=result.activated,
+            trial_end=result.trial_end,
+            message=result.message,
+        )
+    except ValueError as exc:
+        # User not found or trial already used
+        if "already activated" in str(exc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
     "/status",
     response_model=TrialStatusResponse,
     summary="Get trial status",
-    description=(
-        "Returns the current trial status for the authenticated user. "
-        "Placeholder implementation -- always returns not active, eligible."
-    ),
+    description="Returns the current trial status for the authenticated user.",
+    responses={404: {"description": "User not found"}},
 )
 async def get_trial_status(
     current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ) -> TrialStatusResponse:
     """Return the trial status for the authenticated user.
 
-    This is a placeholder that always returns the user as eligible
-    but with no active trial.  A real implementation would query the
-    database for trial records.
+    Retrieves trial activation date, expiration date, and eligibility
+    status from the database.
     """
-    logger.info(
-        "Trial status requested",
-        extra={"user_id": str(current_user.id)},
-    )
+    use_case = GetTrialStatusUseCase(db)
 
-    return TrialStatusResponse(
-        is_trial_active=False,
-        trial_start=None,
-        trial_end=None,
-        days_remaining=0,
-        is_eligible=True,
-    )
+    try:
+        status_data = await use_case.execute(current_user.id)
+
+        return TrialStatusResponse(
+            is_trial_active=status_data.is_trial_active,
+            trial_start=status_data.trial_start,
+            trial_end=status_data.trial_end,
+            days_remaining=status_data.days_remaining,
+            is_eligible=status_data.is_eligible,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc

@@ -7,6 +7,7 @@ import logging
 import uuid
 from contextvars import ContextVar
 
+import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -50,6 +51,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Store in context variable for access in logs and handlers
         token = request_id_var.set(request_id)
 
+        # Bind request_id to structlog context for all logs in this request
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+
         try:
             # Process request
             response = await call_next(request)
@@ -60,6 +64,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             return response
 
         finally:
+            # Clear structlog context
+            structlog.contextvars.clear_contextvars()
+
             # Reset context variable
             request_id_var.reset(token)
 

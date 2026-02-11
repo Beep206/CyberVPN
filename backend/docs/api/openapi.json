@@ -24,7 +24,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LoginRequest"
               }
             }
           },
@@ -36,7 +36,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
                 }
               }
             }
@@ -77,7 +77,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
                 }
               }
             }
@@ -104,13 +104,13 @@
           "auth"
         ],
         "summary": "Logout",
-        "description": "Logout user by invalidating refresh token.",
+        "description": "Logout user by invalidating refresh token and clearing auth cookies.",
         "operationId": "logout_api_v1_auth_logout_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LogoutRequest"
+                "$ref": "#/components/schemas/LogoutRequest"
               }
             }
           },
@@ -386,7 +386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
                 }
               }
             }
@@ -670,7 +670,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__RegisterRequest"
               }
             }
           }
@@ -711,7 +711,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__RegisterRequest"
+                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           },
@@ -773,7 +773,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LoginRequest"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
           },
@@ -847,7 +847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             }
@@ -887,7 +887,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LogoutRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"
               }
             }
           },
@@ -1204,15 +1204,20 @@
         "summary": "Telegram Callback",
         "description": "Process Telegram OAuth callback and link account.\n\nValidates:\n1. CSRF state token\n2. HMAC-SHA256 signature using bot token\n3. auth_date is within acceptable range (24 hours)",
         "operationId": "telegram_callback_api_v1_oauth_telegram_callback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TelegramCallbackRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1235,12 +1240,138 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Telegram Callback Get Alias",
+        "description": "Telegram OAuth callback (GET alias for mobile compatibility).\n\n**DEPRECATED**: Use POST /oauth/telegram/callback instead.\n\nThis is an alias route for backward compatibility with mobile clients\nthat use GET redirects. New implementations should use POST.",
+        "operationId": "telegram_callback_get_alias_api_v1_oauth_telegram_callback_get",
+        "deprecated": true,
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "first_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "First Name"
+            }
+          },
+          {
+            "name": "auth_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Auth Date"
+            }
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hash"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "State"
+            }
+          },
+          {
+            "name": "last_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last Name"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Username"
+            }
+          },
+          {
+            "name": "photo_url",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Photo Url"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/oauth/github/callback": {
@@ -1251,15 +1382,20 @@
         "summary": "Github Callback",
         "description": "Process GitHub OAuth callback and link account.\n\nValidates:\n1. CSRF state token\n2. Exchanges code for access token via GitHub API\n3. Fetches user info from GitHub API",
         "operationId": "github_callback_api_v1_oauth_github_callback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GitHubCallbackRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1282,12 +1418,72 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Github Callback Get Alias",
+        "description": "GitHub OAuth callback (GET alias for mobile compatibility).\n\n**DEPRECATED**: Use POST /oauth/github/callback instead.\n\nThis is an alias route for backward compatibility with mobile clients\nthat use GET redirects. New implementations should use POST.",
+        "operationId": "github_callback_get_alias_api_v1_oauth_github_callback_get",
+        "deprecated": true,
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "State"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Redirect Uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/oauth/{provider}": {
@@ -1632,6 +1828,58 @@
       }
     },
     "/api/v1/2fa/disable": {
+      "post": {
+        "tags": [
+          "two-factor"
+        ],
+        "summary": "Disable 2Fa Post Alias",
+        "description": "Disable 2FA (POST alias for mobile compatibility).\n\n**DEPRECATED**: Use DELETE /2fa/disable instead.\n\nThis is an alias route for backward compatibility with mobile clients\nthat expect POST method. New implementations should use DELETE.",
+        "operationId": "disable_2fa_post_alias_api_v1_2fa_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorDisableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "2FA not enabled"
+          },
+          "401": {
+            "description": "Invalid password or TOTP code"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
       "delete": {
         "tags": [
           "two-factor"
@@ -1964,6 +2212,78 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/users/me/profile": {
+      "get": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Get current user profile",
+        "description": "Returns the profile of the currently authenticated user. Placeholder implementation returning mock data.",
+        "operationId": "get_profile_api_v1_users_me_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "profile"
+        ],
+        "summary": "Update current user profile",
+        "description": "Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied. Placeholder implementation -- changes are NOT persisted.",
+        "operationId": "update_profile_api_v1_users_me_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/servers/": {
@@ -2664,6 +2984,87 @@
         }
       }
     },
+    "/api/v1/users/me/usage": {
+      "get": {
+        "tags": [
+          "usage"
+        ],
+        "summary": "Get current user usage statistics",
+        "description": "Returns VPN usage statistics for the currently authenticated user. Placeholder implementation returning mock data.",
+        "operationId": "get_usage_api_v1_users_me_usage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/trial/activate": {
+      "post": {
+        "tags": [
+          "trial"
+        ],
+        "summary": "Activate trial period",
+        "description": "Activate a 7-day trial period for the authenticated user. Placeholder implementation -- always succeeds.",
+        "operationId": "activate_trial_api_v1_trial_activate_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialActivateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/trial/status": {
+      "get": {
+        "tags": [
+          "trial"
+        ],
+        "summary": "Get trial status",
+        "description": "Returns the current trial status for the authenticated user. Placeholder implementation -- always returns not active, eligible.",
+        "operationId": "get_trial_status_api_v1_trial_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/payments/crypto/invoice": {
       "post": {
         "tags": [
@@ -2843,6 +3244,150 @@
         }
       }
     },
+    "/api/v1/payments/checkout": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Checkout",
+        "description": "Unified checkout: plan + promo + wallet + partner resolution.",
+        "operationId": "checkout_api_v1_payments_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/create": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Create Payment Alias",
+        "description": "Create a payment (POST /create alias for mobile compatibility).\n\n**DEPRECATED**: Use POST /payments/crypto/invoice instead.\n\nThis is an alias route for backward compatibility with mobile clients.",
+        "operationId": "create_payment_alias_api_v1_payments_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{invoice_id}/status": {
+      "get": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Get Payment Status Alias",
+        "description": "Get payment status (GET /:id/status alias for mobile compatibility).\n\n**DEPRECATED**: Use GET /payments/crypto/invoice/:id instead.\n\nThis is an alias route for backward compatibility with mobile clients.",
+        "operationId": "get_payment_status_alias_api_v1_payments__invoice_id__status_get",
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Invoice Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/billing/": {
       "get": {
         "tags": [
@@ -2917,6 +3462,1356 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/invites/redeem": {
+      "post": {
+        "tags": [
+          "invites"
+        ],
+        "summary": "Redeem an invite code",
+        "description": "Redeem an invite code for the authenticated mobile user.",
+        "operationId": "redeem_invite_api_v1_invites_redeem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite code not found"
+          },
+          "409": {
+            "description": "Invite code already used"
+          },
+          "410": {
+            "description": "Invite code expired"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invites/my": {
+      "get": {
+        "tags": [
+          "invites"
+        ],
+        "summary": "List my invite codes",
+        "description": "List invite codes owned by the authenticated mobile user.",
+        "operationId": "list_my_invites_api_v1_invites_my_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Pagination offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Pagination offset"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Pagination limit",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Pagination limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InviteCodeResponse"
+                  },
+                  "title": "Response List My Invites Api V1 Invites My Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invite-codes": {
+      "post": {
+        "tags": [
+          "invites"
+        ],
+        "summary": "Admin: create invite codes",
+        "description": "Create one or more invite codes (admin only).",
+        "operationId": "admin_create_invites_api_v1_admin_invite_codes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InviteCodeResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Admin Create Invites Api V1 Admin Invite Codes Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/promo/validate": {
+      "post": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Validate a promo code",
+        "description": "Validate a promo code and calculate the discount for the authenticated mobile user.",
+        "operationId": "validate_promo_api_v1_promo_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePromoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatePromoResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Promo code not found"
+          },
+          "422": {
+            "description": "Promo code invalid for given parameters"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/promo-codes": {
+      "post": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Admin: create a promo code",
+        "description": "Create a new promo code (admin only).",
+        "operationId": "admin_create_promo_api_v1_admin_promo_codes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Admin: list all promo codes",
+        "description": "List all promo codes with pagination (admin only).",
+        "operationId": "admin_list_promos_api_v1_admin_promo_codes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Pagination offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Pagination offset"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Pagination limit",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Pagination limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PromoCodeResponse"
+                  },
+                  "title": "Response Admin List Promos Api V1 Admin Promo Codes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/promo-codes/{promo_id}": {
+      "get": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Admin: get promo code detail",
+        "description": "Get a single promo code by ID (admin only).",
+        "operationId": "admin_get_promo_api_v1_admin_promo_codes__promo_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "promo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Promo Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Promo code not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Admin: update a promo code",
+        "description": "Update an existing promo code (admin only).",
+        "operationId": "admin_update_promo_api_v1_admin_promo_codes__promo_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "promo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Promo Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Promo code not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "promo-codes"
+        ],
+        "summary": "Admin: deactivate a promo code",
+        "description": "Deactivate a promo code by setting is_active=False (admin only).",
+        "operationId": "admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "promo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Promo Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Promo code not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/referral/status": {
+      "get": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Get Referral Status",
+        "description": "Return whether the referral programme is enabled and the current commission rate.",
+        "operationId": "get_referral_status_api_v1_referral_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/referral/code": {
+      "get": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Get Referral Code",
+        "description": "Get or generate the authenticated user's referral code.",
+        "operationId": "get_referral_code_api_v1_referral_code_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralCodeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/referral/stats": {
+      "get": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Get Referral Stats",
+        "description": "Return aggregated referral statistics for the authenticated user.",
+        "operationId": "get_referral_stats_api_v1_referral_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferralStatsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/referral/recent": {
+      "get": {
+        "tags": [
+          "referral"
+        ],
+        "summary": "Get Recent Commissions",
+        "description": "Return the 10 most recent referral commissions for the authenticated user.",
+        "operationId": "get_recent_commissions_api_v1_referral_recent_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReferralCommissionResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Recent Commissions Api V1 Referral Recent Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/partner/codes": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Partner Codes",
+        "description": "List all partner codes owned by the authenticated user.",
+        "operationId": "list_partner_codes_api_v1_partner_codes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerCodeResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Partner Codes Api V1 Partner Codes Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Create Partner Code",
+        "description": "Create a new partner referral code with an optional markup percentage.",
+        "operationId": "create_partner_code_api_v1_partner_codes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/partner/codes/{code_id}": {
+      "put": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Update Partner Code Markup",
+        "description": "Update the markup percentage on a partner code owned by the authenticated user.",
+        "operationId": "update_partner_code_markup_api_v1_partner_codes__code_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMarkupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner/dashboard": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Partner Dashboard",
+        "description": "Return aggregated partner dashboard data.",
+        "operationId": "get_partner_dashboard_api_v1_partner_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerDashboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/partner/earnings": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Partner Earnings",
+        "description": "List recent earnings for the authenticated partner.",
+        "operationId": "list_partner_earnings_api_v1_partner_earnings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerEarningResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Partner Earnings Api V1 Partner Earnings Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/partner/bind": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Bind To Partner",
+        "description": "Bind the authenticated user to a partner via a partner code.",
+        "operationId": "bind_to_partner_api_v1_partner_bind_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindPartnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Bind To Partner Api V1 Partner Bind Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/partners/promote": {
+      "post": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Admin Promote Partner",
+        "description": "Admin action to promote a mobile user to partner status.",
+        "operationId": "admin_promote_partner_api_v1_admin_partners_promote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotePartnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Admin Promote Partner Api V1 Admin Partners Promote Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wallet": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Get Wallet",
+        "description": "Return the authenticated user's wallet balance.",
+        "operationId": "get_wallet_api_v1_wallet_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wallet/transactions": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "List Wallet Transactions",
+        "description": "Return paginated wallet transaction history for the authenticated user.",
+        "operationId": "list_wallet_transactions_api_v1_wallet_transactions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WalletTransactionResponse"
+                  },
+                  "title": "Response List Wallet Transactions Api V1 Wallet Transactions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wallet/withdraw": {
+      "post": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Request Withdrawal",
+        "description": "Request a withdrawal from the authenticated user's wallet.",
+        "operationId": "request_withdrawal_api_v1_wallet_withdraw_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wallet/withdrawals": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "List Withdrawals",
+        "description": "Return the authenticated user's withdrawal requests.",
+        "operationId": "list_withdrawals_api_v1_wallet_withdrawals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WithdrawalResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Withdrawals Api V1 Wallet Withdrawals Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/wallets/{user_id}/topup": {
+      "post": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Admin Topup Wallet",
+        "description": "Admin action to credit funds into a user's wallet.",
+        "operationId": "admin_topup_wallet_api_v1_admin_wallets__user_id__topup_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTopupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/wallets/{user_id}": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Admin Get Wallet",
+        "description": "Admin view of a user's wallet balance.",
+        "operationId": "admin_get_wallet_api_v1_admin_wallets__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/withdrawals": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Admin List Pending Withdrawals",
+        "description": "Admin view of all pending withdrawal requests.",
+        "operationId": "admin_list_pending_withdrawals_api_v1_admin_withdrawals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WithdrawalResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Admin List Pending Withdrawals Api V1 Admin Withdrawals Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/withdrawals/{withdrawal_id}/approve": {
+      "put": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Admin Approve Withdrawal",
+        "description": "Admin action to approve a pending withdrawal request.",
+        "operationId": "admin_approve_withdrawal_api_v1_admin_withdrawals__withdrawal_id__approve_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "withdrawal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Withdrawal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminProcessWithdrawalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/withdrawals/{withdrawal_id}/reject": {
+      "put": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Admin Reject Withdrawal",
+        "description": "Admin action to reject a pending withdrawal request.",
+        "operationId": "admin_reject_withdrawal_api_v1_admin_withdrawals__withdrawal_id__reject_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "withdrawal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Withdrawal Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminProcessWithdrawalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WithdrawalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/status": {
+      "get": {
+        "tags": [
+          "status"
+        ],
+        "summary": "Public API status",
+        "description": "Returns backend status, version, server timestamp, and placeholder service health.  Accessible without authentication.",
+        "operationId": "get_status_api_v1_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/monitoring/health": {
@@ -3490,6 +5385,89 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/users/me/fcm-token": {
+      "post": {
+        "tags": [
+          "fcm"
+        ],
+        "summary": "Register FCM token",
+        "description": "Register (or refresh) a Firebase Cloud Messaging token for the authenticated user's device.  If a token already exists for the given device_id it will be replaced.",
+        "operationId": "register_fcm_token_api_v1_users_me_fcm_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FCMTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FCMTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          },
+          "403": {
+            "description": "User account is inactive"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "fcm"
+        ],
+        "summary": "Unregister FCM token",
+        "description": "Remove the FCM token for the authenticated user's device.  Called on logout or when push notifications are disabled.",
+        "operationId": "unregister_fcm_token_api_v1_users_me_fcm_token_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FCMTokenDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          },
+          "403": {
+            "description": "User account is inactive"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/hosts/": {
@@ -4438,27 +6416,71 @@
           }
         ]
       }
-    },
-    "/metrics": {
-      "get": {
-        "summary": "Metrics Endpoint",
-        "description": "Prometheus metrics endpoint.\n\nExposes application metrics for Prometheus scraping.\nLOW-006: Includes websocket_auth_method_total for deprecation tracking.",
-        "operationId": "metrics_endpoint_metrics_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
+      "AdminCreateInviteRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "User who will own the invite codes"
+          },
+          "free_days": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Free Days",
+            "description": "Number of free subscription days the code grants"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "description": "Number of codes to generate",
+            "default": 1
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id",
+            "description": "Optional plan to associate with the codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "free_days"
+        ],
+        "title": "AdminCreateInviteRequest",
+        "description": "Request body for admin-created invite codes."
+      },
+      "AdminProcessWithdrawalRequest": {
+        "properties": {
+          "admin_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Note"
+          }
+        },
+        "type": "object",
+        "title": "AdminProcessWithdrawalRequest"
+      },
       "AdminRole": {
         "type": "string",
         "enum": [
@@ -4469,6 +6491,30 @@
           "viewer"
         ],
         "title": "AdminRole"
+      },
+      "AdminTopupRequest": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "AdminTopupRequest"
       },
       "AdminUserResponse": {
         "properties": {
@@ -4640,7 +6686,7 @@
       "AuthResponse": {
         "properties": {
           "tokens": {
-            "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse",
+            "$ref": "#/components/schemas/TokenResponse",
             "description": "Authentication tokens"
           },
           "user": {
@@ -4693,6 +6739,162 @@
         ],
         "title": "BandwidthResponse",
         "description": "Bandwidth usage response."
+      },
+      "BindPartnerRequest": {
+        "properties": {
+          "partner_code": {
+            "type": "string",
+            "title": "Partner Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "partner_code"
+        ],
+        "title": "BindPartnerRequest"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id",
+            "description": "Subscription plan to purchase"
+          },
+          "promo_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promo Code",
+            "description": "Optional promo code"
+          },
+          "use_wallet": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Use Wallet",
+            "description": "Amount to pay from wallet balance",
+            "default": 0
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "description": "Payment currency",
+            "default": "USD"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "CheckoutRequest",
+        "description": "Unified checkout request combining plan + promo + wallet."
+      },
+      "CheckoutResponse": {
+        "properties": {
+          "base_price": {
+            "type": "number",
+            "title": "Base Price"
+          },
+          "displayed_price": {
+            "type": "number",
+            "title": "Displayed Price"
+          },
+          "discount_amount": {
+            "type": "number",
+            "title": "Discount Amount"
+          },
+          "wallet_amount": {
+            "type": "number",
+            "title": "Wallet Amount"
+          },
+          "gateway_amount": {
+            "type": "number",
+            "title": "Gateway Amount"
+          },
+          "partner_markup": {
+            "type": "number",
+            "title": "Partner Markup"
+          },
+          "is_zero_gateway": {
+            "type": "boolean",
+            "title": "Is Zero Gateway"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "promo_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promo Code Id"
+          },
+          "partner_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Code Id"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id",
+            "description": "Set when zero-gateway payment is completed"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "'completed' for zero-gateway, 'pending' for gateway needed",
+            "default": "pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_price",
+          "displayed_price",
+          "discount_amount",
+          "wallet_amount",
+          "gateway_amount",
+          "partner_markup",
+          "is_zero_gateway"
+        ],
+        "title": "CheckoutResponse",
+        "description": "Checkout calculation result."
       },
       "ComponentStatus": {
         "properties": {
@@ -5017,6 +7219,22 @@
           "user_uuid": "550e8400-e29b-41d4-a716-446655440000"
         }
       },
+      "CreatePartnerCodeRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "default": ""
+          },
+          "markup_pct": {
+            "type": "number",
+            "title": "Markup Pct",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "CreatePartnerCodeRequest"
+      },
       "CreatePaymentRequest": {
         "properties": {
           "user_uuid": {
@@ -5174,6 +7392,118 @@
           "name": "Premium Monthly",
           "price": 9.99
         }
+      },
+      "CreatePromoRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code",
+            "description": "Unique promo code string"
+          },
+          "discount_type": {
+            "type": "string",
+            "title": "Discount Type",
+            "description": "Discount type (percent or fixed)"
+          },
+          "discount_value": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Discount Value",
+            "description": "Discount value"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses",
+            "description": "Maximum number of redemptions"
+          },
+          "is_single_use": {
+            "type": "boolean",
+            "title": "Is Single Use",
+            "description": "Whether a user can use it only once",
+            "default": false
+          },
+          "plan_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Ids",
+            "description": "Restrict to specific plans"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Amount",
+            "description": "Minimum order amount"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Expiration timestamp"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Admin description"
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "description": "Currency code (ISO 4217)",
+            "default": "USD"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "discount_type",
+          "discount_value"
+        ],
+        "title": "CreatePromoRequest",
+        "description": "Request body for creating a promo code (admin)."
       },
       "CreateServerRequest": {
         "properties": {
@@ -5678,6 +8008,91 @@
         "title": "DeviceResponse",
         "description": "Response schema for device registration.\n\nReturned by device registration endpoint."
       },
+      "FCMTokenDeleteRequest": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Device Id",
+            "description": "Device identifier whose token should be removed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id"
+        ],
+        "title": "FCMTokenDeleteRequest",
+        "description": "Request body for unregistering an FCM push-notification token.\n\nSent by mobile clients on logout or when the user disables\npush notifications."
+      },
+      "FCMTokenRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Token",
+            "description": "FCM registration token obtained from Firebase SDK"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Device Id",
+            "description": "Unique device identifier (e.g. Android ID, IDFV)"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ],
+            "title": "Platform",
+            "description": "Mobile platform that generated the token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "device_id",
+          "platform"
+        ],
+        "title": "FCMTokenRequest",
+        "description": "Request body for registering an FCM push-notification token.\n\nSent by mobile clients after obtaining a token from Firebase.\nEach ``(device_id, platform)`` pair identifies a unique device."
+      },
+      "FCMTokenResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Registered FCM token"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id",
+            "description": "Device identifier associated with the token"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "description": "Mobile platform (android / ios)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when the token was registered (ISO 8601)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "device_id",
+          "platform"
+        ],
+        "title": "FCMTokenResponse",
+        "description": "Response returned after a successful FCM token registration."
+      },
       "ForgotPasswordRequest": {
         "properties": {
           "email": {
@@ -5914,6 +8329,55 @@
         "title": "HostResponse",
         "description": "Expected response from Remnawave hosts API."
       },
+      "InviteCodeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "free_days": {
+            "type": "integer",
+            "title": "Free Days"
+          },
+          "is_used": {
+            "type": "boolean",
+            "title": "Is Used"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "free_days",
+          "is_used",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InviteCodeResponse",
+        "description": "Response schema for a single invite code."
+      },
       "InviteTokenInfo": {
         "properties": {
           "token": {
@@ -6040,25 +8504,38 @@
       },
       "LoginRequest": {
         "properties": {
-          "login_or_email": {
+          "email": {
             "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Login Or Email"
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
           },
           "password": {
             "type": "string",
-            "maxLength": 255,
+            "maxLength": 128,
             "minLength": 1,
-            "title": "Password"
+            "title": "Password",
+            "description": "User password"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for login"
+          },
+          "remember_me": {
+            "type": "boolean",
+            "title": "Remember Me",
+            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "login_or_email",
-          "password"
+          "email",
+          "password",
+          "device"
         ],
-        "title": "LoginRequest"
+        "title": "LoginRequest",
+        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
       },
       "LogoutAllResponse": {
         "properties": {
@@ -6081,25 +8558,16 @@
         "properties": {
           "refresh_token": {
             "type": "string",
+            "maxLength": 1000,
             "minLength": 1,
-            "title": "Refresh Token",
-            "description": "Refresh token to revoke"
-          },
-          "device_id": {
-            "type": "string",
-            "maxLength": 36,
-            "minLength": 36,
-            "title": "Device Id",
-            "description": "Device ID for session revocation"
+            "title": "Refresh Token"
           }
         },
         "type": "object",
         "required": [
-          "refresh_token",
-          "device_id"
+          "refresh_token"
         ],
-        "title": "LogoutRequest",
-        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
+        "title": "LogoutRequest"
       },
       "MagicLinkRequest": {
         "properties": {
@@ -6379,6 +8847,127 @@
         "title": "OAuthProvider",
         "description": "Valid OAuth providers (HIGH-7)."
       },
+      "PartnerCodeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "markup_pct": {
+            "type": "number",
+            "title": "Markup Pct"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "markup_pct",
+          "is_active",
+          "created_at"
+        ],
+        "title": "PartnerCodeResponse"
+      },
+      "PartnerDashboardResponse": {
+        "properties": {
+          "total_clients": {
+            "type": "integer",
+            "title": "Total Clients"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "current_tier": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Tier"
+          },
+          "codes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_clients",
+          "total_earned",
+          "current_tier",
+          "codes"
+        ],
+        "title": "PartnerDashboardResponse"
+      },
+      "PartnerEarningResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "client_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client User Id"
+          },
+          "base_price": {
+            "type": "number",
+            "title": "Base Price"
+          },
+          "markup_amount": {
+            "type": "number",
+            "title": "Markup Amount"
+          },
+          "commission_amount": {
+            "type": "number",
+            "title": "Commission Amount"
+          },
+          "total_earning": {
+            "type": "number",
+            "title": "Total Earning"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_user_id",
+          "base_price",
+          "markup_amount",
+          "commission_amount",
+          "total_earning",
+          "created_at"
+        ],
+        "title": "PartnerEarningResponse"
+      },
       "PaymentHistoryItem": {
         "properties": {
           "id": {
@@ -6490,6 +9079,226 @@
         "title": "Platform",
         "description": "Mobile platform identifiers."
       },
+      "ProfileResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier of the user"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Email address associated with the account"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Human-readable display name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "URL to the user avatar image"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "BCP-47 language tag",
+            "default": "en"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "description": "IANA timezone identifier",
+            "default": "UTC"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Timestamp of the last profile update"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "updated_at"
+        ],
+        "title": "ProfileResponse",
+        "description": "Response schema for the authenticated user profile."
+      },
+      "ProfileUpdateRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Human-readable display name"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "URL to the user avatar image"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "BCP-47 language tag (e.g. 'en', 'ru', 'ja')"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone",
+            "description": "IANA timezone identifier (e.g. 'Europe/Moscow')"
+          }
+        },
+        "type": "object",
+        "title": "ProfileUpdateRequest",
+        "description": "Request schema for partial profile updates (PATCH semantics).\n\nAll fields are optional.  Only the fields provided in the request\nbody will be applied to the user profile."
+      },
+      "PromoCodeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "discount_type": {
+            "type": "string",
+            "title": "Discount Type"
+          },
+          "discount_value": {
+            "type": "number",
+            "title": "Discount Value"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses"
+          },
+          "current_uses": {
+            "type": "integer",
+            "title": "Current Uses"
+          },
+          "is_single_use": {
+            "type": "boolean",
+            "title": "Is Single Use"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "discount_type",
+          "discount_value",
+          "currency",
+          "max_uses",
+          "current_uses",
+          "is_single_use",
+          "is_active",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "PromoCodeResponse",
+        "description": "Full promo code representation."
+      },
+      "PromotePartnerRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "PromotePartnerRequest"
+      },
       "ReauthRequest": {
         "properties": {
           "password": {
@@ -6527,6 +9336,118 @@
         "title": "ReauthResponse",
         "description": "Response from successful re-authentication."
       },
+      "RedeemInviteRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Code",
+            "description": "Invite code to redeem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "RedeemInviteRequest",
+        "description": "Request body for redeeming an invite code."
+      },
+      "ReferralCodeResponse": {
+        "properties": {
+          "referral_code": {
+            "type": "string",
+            "title": "Referral Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "referral_code"
+        ],
+        "title": "ReferralCodeResponse"
+      },
+      "ReferralCommissionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "referred_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Referred User Id"
+          },
+          "commission_amount": {
+            "type": "number",
+            "title": "Commission Amount"
+          },
+          "base_amount": {
+            "type": "number",
+            "title": "Base Amount"
+          },
+          "commission_rate": {
+            "type": "number",
+            "title": "Commission Rate"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "referred_user_id",
+          "commission_amount",
+          "base_amount",
+          "commission_rate",
+          "created_at"
+        ],
+        "title": "ReferralCommissionResponse"
+      },
+      "ReferralStatsResponse": {
+        "properties": {
+          "total_referrals": {
+            "type": "integer",
+            "title": "Total Referrals"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "commission_rate": {
+            "type": "number",
+            "title": "Commission Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_referrals",
+          "total_earned",
+          "commission_rate"
+        ],
+        "title": "ReferralStatsResponse"
+      },
+      "ReferralStatusResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "commission_rate": {
+            "type": "number",
+            "title": "Commission Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "commission_rate"
+        ],
+        "title": "ReferralStatusResponse"
+      },
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
@@ -6544,45 +9465,32 @@
       },
       "RegisterRequest": {
         "properties": {
-          "login": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_]+$",
-            "title": "Login"
-          },
           "email": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "email"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User email address (must be valid and unique)"
           },
           "password": {
             "type": "string",
             "maxLength": 128,
             "minLength": 12,
-            "title": "Password"
+            "title": "Password",
+            "description": "User password (minimum 12 characters, requires complexity)"
           },
-          "locale": {
-            "type": "string",
-            "maxLength": 10,
-            "title": "Locale",
-            "default": "en-EN"
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for registration"
           }
         },
         "type": "object",
         "required": [
-          "login",
-          "password"
+          "email",
+          "password",
+          "device"
         ],
         "title": "RegisterRequest",
-        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
+        "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
       },
       "RegisterResponse": {
         "properties": {
@@ -7553,6 +10461,25 @@
         ],
         "title": "ServerStatus"
       },
+      "ServiceStatuses": {
+        "properties": {
+          "database": {
+            "type": "string",
+            "title": "Database",
+            "description": "Database connectivity status",
+            "default": "ok"
+          },
+          "redis": {
+            "type": "string",
+            "title": "Redis",
+            "description": "Redis cache connectivity status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "ServiceStatuses",
+        "description": "Health status of backend service dependencies."
+      },
       "SignPayloadRequest": {
         "properties": {
           "payload": {
@@ -7654,6 +10581,37 @@
         ],
         "title": "StatusMessageResponse",
         "description": "Generic status + message response returned by many mutating endpoints."
+      },
+      "StatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Overall backend status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Backend release version"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Server timestamp in ISO 8601 format"
+          },
+          "services": {
+            "$ref": "#/components/schemas/ServiceStatuses",
+            "description": "Individual service dependency statuses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "StatusResponse",
+        "description": "Public API status response.\n\nReturned by ``GET /api/v1/status`` without authentication.\nMobile clients use this endpoint to verify backend reachability\nbefore attempting authenticated requests."
       },
       "SubscriptionInfo": {
         "properties": {
@@ -8024,21 +10982,26 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "title": "Access Token"
+            "title": "Access Token",
+            "description": "JWT access token (TTL: 15 minutes)"
           },
           "refresh_token": {
             "type": "string",
-            "title": "Refresh Token"
+            "title": "Refresh Token",
+            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
           },
           "token_type": {
             "type": "string",
             "title": "Token Type",
-            "default": "bearer"
+            "description": "Token type for Authorization header",
+            "default": "Bearer"
           },
           "expires_in": {
             "type": "integer",
+            "minimum": 0.0,
             "title": "Expires In",
-            "default": 0
+            "description": "Access token expiration in seconds (default: 15 minutes)",
+            "default": 900
           }
         },
         "type": "object",
@@ -8046,7 +11009,89 @@
           "access_token",
           "refresh_token"
         ],
-        "title": "TokenResponse"
+        "title": "TokenResponse",
+        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
+      },
+      "TrialActivateResponse": {
+        "properties": {
+          "activated": {
+            "type": "boolean",
+            "title": "Activated",
+            "description": "Whether trial was successfully activated"
+          },
+          "trial_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Trial End",
+            "description": "When the trial period ends"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable status message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activated",
+          "trial_end",
+          "message"
+        ],
+        "title": "TrialActivateResponse",
+        "description": "Response schema for trial activation."
+      },
+      "TrialStatusResponse": {
+        "properties": {
+          "is_trial_active": {
+            "type": "boolean",
+            "title": "Is Trial Active",
+            "description": "Whether user is currently on trial"
+          },
+          "trial_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Start",
+            "description": "When trial started"
+          },
+          "trial_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial End",
+            "description": "When trial ends/ended"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining",
+            "description": "Days remaining in trial",
+            "default": 0
+          },
+          "is_eligible": {
+            "type": "boolean",
+            "title": "Is Eligible",
+            "description": "Whether user is eligible for trial (hasn't used one)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_trial_active",
+          "is_eligible"
+        ],
+        "title": "TrialStatusResponse",
+        "description": "Response schema for trial status inquiry."
       },
       "TwoFactorDisableRequest": {
         "properties": {
@@ -8277,6 +11322,19 @@
         "title": "UpdateHostRequest",
         "description": "Request schema for updating a VPN host."
       },
+      "UpdateMarkupRequest": {
+        "properties": {
+          "markup_pct": {
+            "type": "number",
+            "title": "Markup Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "markup_pct"
+        ],
+        "title": "UpdateMarkupRequest"
+      },
       "UpdatePlanRequest": {
         "properties": {
           "name": {
@@ -8384,6 +11442,77 @@
         "type": "object",
         "title": "UpdatePlanRequest",
         "description": "Request schema for updating a subscription plan."
+      },
+      "UpdatePromoRequest": {
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "description": "Toggle active status"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses",
+            "description": "Update max uses"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Update expiration"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Update description"
+          },
+          "discount_value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Value",
+            "description": "Update discount value"
+          }
+        },
+        "type": "object",
+        "title": "UpdatePromoRequest",
+        "description": "Request body for updating an existing promo code (admin)."
       },
       "UpdateServerRequest": {
         "properties": {
@@ -8722,6 +11851,66 @@
           }
         }
       },
+      "UsageResponse": {
+        "properties": {
+          "bandwidth_used_bytes": {
+            "type": "integer",
+            "title": "Bandwidth Used Bytes",
+            "description": "Total bandwidth consumed in bytes"
+          },
+          "bandwidth_limit_bytes": {
+            "type": "integer",
+            "title": "Bandwidth Limit Bytes",
+            "description": "Bandwidth limit in bytes (0 = unlimited)"
+          },
+          "connections_active": {
+            "type": "integer",
+            "title": "Connections Active",
+            "description": "Number of currently active connections"
+          },
+          "connections_limit": {
+            "type": "integer",
+            "title": "Connections Limit",
+            "description": "Maximum allowed concurrent connections"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Period Start",
+            "description": "Start of the current billing period"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Period End",
+            "description": "End of the current billing period"
+          },
+          "last_connection_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Connection At",
+            "description": "Timestamp of last VPN connection"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bandwidth_used_bytes",
+          "bandwidth_limit_bytes",
+          "connections_active",
+          "connections_limit",
+          "period_start",
+          "period_end"
+        ],
+        "title": "UsageResponse",
+        "description": "Response schema for user VPN usage statistics."
+      },
       "UserListResponse": {
         "properties": {
           "users": {
@@ -8852,6 +12041,84 @@
         ],
         "title": "UserStatus"
       },
+      "ValidatePromoRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code",
+            "description": "Promo code to validate"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id",
+            "description": "Plan the promo is applied to"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "Order amount for discount calculation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "ValidatePromoRequest",
+        "description": "Request body for validating / calculating a promo code discount."
+      },
+      "ValidatePromoResponse": {
+        "properties": {
+          "promo_code_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Promo Code Id"
+          },
+          "discount_type": {
+            "type": "string",
+            "title": "Discount Type"
+          },
+          "discount_value": {
+            "type": "number",
+            "title": "Discount Value"
+          },
+          "discount_amount": {
+            "type": "number",
+            "title": "Discount Amount"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "promo_code_id",
+          "discount_type",
+          "discount_value",
+          "discount_amount",
+          "code"
+        ],
+        "title": "ValidatePromoResponse",
+        "description": "Response for a successful promo code validation."
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -8875,13 +12142,6 @@
           "type": {
             "type": "string",
             "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
           }
         },
         "type": "object",
@@ -8990,6 +12250,87 @@
         "title": "WSTicketResponse",
         "description": "Response containing a WebSocket authentication ticket."
       },
+      "WalletResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "frozen": {
+            "type": "number",
+            "title": "Frozen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "balance",
+          "currency",
+          "frozen"
+        ],
+        "title": "WalletResponse"
+      },
+      "WalletTransactionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "balance_after": {
+            "type": "number",
+            "title": "Balance After"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "amount",
+          "balance_after",
+          "reason",
+          "description",
+          "created_at"
+        ],
+        "title": "WalletTransactionResponse"
+      },
       "WebhookLogResponse": {
         "properties": {
           "id": {
@@ -9067,55 +12408,179 @@
         "title": "WebhookLogResponse",
         "description": "Response schema for webhook log entry."
       },
-      "src__presentation__api__v1__auth__schemas__LogoutRequest": {
+      "WithdrawRequest": {
         "properties": {
-          "refresh_token": {
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "method": {
             "type": "string",
-            "maxLength": 1000,
-            "minLength": 1,
-            "title": "Refresh Token"
+            "title": "Method",
+            "default": "cryptobot"
           }
         },
         "type": "object",
         "required": [
-          "refresh_token"
+          "amount"
         ],
-        "title": "LogoutRequest"
+        "title": "WithdrawRequest"
       },
-      "src__presentation__api__v1__mobile_auth__schemas__LoginRequest": {
+      "WithdrawalResponse": {
         "properties": {
-          "email": {
+          "id": {
             "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address"
+            "format": "uuid",
+            "title": "Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "amount",
+          "currency",
+          "method",
+          "status",
+          "created_at"
+        ],
+        "title": "WithdrawalResponse"
+      },
+      "src__presentation__api__v1__auth__schemas__LoginRequest": {
+        "properties": {
+          "login_or_email": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Login Or Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login_or_email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "src__presentation__api__v1__auth__schemas__RegisterRequest": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_]+$",
+            "title": "Login"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "password": {
             "type": "string",
             "maxLength": 128,
-            "minLength": 1,
-            "title": "Password",
-            "description": "User password"
+            "minLength": 12,
+            "title": "Password"
           },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for login"
-          },
-          "remember_me": {
-            "type": "boolean",
-            "title": "Remember Me",
-            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
-            "default": false
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
           }
         },
         "type": "object",
         "required": [
-          "email",
-          "password",
-          "device"
+          "login",
+          "password"
         ],
-        "title": "LoginRequest",
-        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
+        "title": "RegisterRequest",
+        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
+      },
+      "src__presentation__api__v1__auth__schemas__TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenResponse"
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__LogoutRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Refresh Token",
+            "description": "Refresh token to revoke"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Device Id",
+            "description": "Device ID for session revocation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token",
+          "device_id"
+        ],
+        "title": "LogoutRequest",
+        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
       },
       "src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest": {
         "properties": {
@@ -9140,69 +12605,6 @@
         ],
         "title": "RefreshTokenRequest",
         "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
-      },
-      "src__presentation__api__v1__mobile_auth__schemas__RegisterRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address (must be valid and unique)"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 12,
-            "title": "Password",
-            "description": "User password (minimum 12 characters, requires complexity)"
-          },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for registration"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "password",
-          "device"
-        ],
-        "title": "RegisterRequest",
-        "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
-      },
-      "src__presentation__api__v1__mobile_auth__schemas__TokenResponse": {
-        "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token",
-            "description": "JWT access token (TTL: 15 minutes)"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token",
-            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "description": "Token type for Authorization header",
-            "default": "Bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expires In",
-            "description": "Access token expiration in seconds (default: 15 minutes)",
-            "default": 900
-          }
-        },
-        "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token"
-        ],
-        "title": "TokenResponse",
-        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "src__presentation__api__v1__users__schemas__UserResponse": {
         "properties": {
@@ -9339,8 +12741,16 @@
       "description": "User CRUD operations"
     },
     {
+      "name": "profile",
+      "description": "Authenticated user profile management"
+    },
+    {
       "name": "servers",
       "description": "VPN server management"
+    },
+    {
+      "name": "status",
+      "description": "Public API status (unauthenticated)"
     },
     {
       "name": "monitoring",
@@ -9405,6 +12815,10 @@
     {
       "name": "telegram",
       "description": "Telegram bot integration"
+    },
+    {
+      "name": "fcm",
+      "description": "FCM push-notification token management"
     },
     {
       "name": "websocket",

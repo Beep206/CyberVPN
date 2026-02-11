@@ -76,3 +76,17 @@ OTP_FAILED = Counter(
     "Total failed OTP attempts",
     ["reason"],  # reason=invalid_code|expired|exhausted
 )
+
+# Generic email metrics (BOB-6: metrics hardening)
+EMAIL_SEND_DURATION = Histogram(
+    "cybervpn_email_send_duration_seconds",
+    "Email sending duration in seconds",
+    ["provider", "email_type"],  # provider=resend|brevo|smtp, email_type=otp|notification
+    buckets=[0.1, 0.5, 1, 2, 5, 10, 30],
+)
+
+EMAIL_SEND_ERRORS = Counter(
+    "cybervpn_email_send_errors_total",
+    "Total email sending errors",
+    ["provider", "error_type"],  # error_type=api_error|network_error|timeout|unknown
+)

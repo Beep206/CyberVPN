@@ -84,6 +84,11 @@ Future<void> main() async {
       options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
       options.sendDefaultPii = false;
 
+      // Performance tracing: automatic transaction tracking for app lifecycle,
+      // routing, and user interactions.
+      options.enableAutoPerformanceTracing = true;
+      options.enableUserInteractionTracing = true;
+
       // SECURITY: Sanitize breadcrumbs to prevent PII leakage (JWTs, emails, UUIDs).
       options.beforeBreadcrumb = _sanitizeBreadcrumb;
 

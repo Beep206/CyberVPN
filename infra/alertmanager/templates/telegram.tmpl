@@ -1,0 +1,45 @@
+{{ define "telegram.title" -}}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}
+{{- end }}
+
+{{ define "telegram.message" -}}
+{{ if gt (len .Alerts.Firing) 0 -}}
+🔥 *FIRING ALERTS* ({{ .Alerts.Firing | len }})
+{{ range .Alerts.Firing }}
+━━━━━━━━━━━━━━━━━━━━
+🚨 *{{ .Labels.alertname }}*
+📊 Severity: {{ .Labels.severity | toUpper }}
+🔧 Service: {{ .Labels.service }}
+⏰ Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+
+{{ if .Annotations.summary }}📝 {{ .Annotations.summary }}{{ end }}
+{{ if .Annotations.description }}
+💬 {{ .Annotations.description }}{{ end }}
+{{ if .Labels.instance }}
+🖥 Instance: `{{ .Labels.instance }}`{{ end }}
+{{ if .DashboardURL }}
+📊 [Dashboard]({{ .DashboardURL }}){{ end }}
+{{ if .SilenceURL }}
+🔇 [Silence]({{ .SilenceURL }}){{ end }}
+{{ end }}
+{{- end }}
+
+{{ if gt (len .Alerts.Resolved) 0 -}}
+✅ *RESOLVED ALERTS* ({{ .Alerts.Resolved | len }})
+{{ range .Alerts.Resolved }}
+━━━━━━━━━━━━━━━━━━━━
+✓ *{{ .Labels.alertname }}*
+📊 Severity: {{ .Labels.severity | toUpper }}
+🔧 Service: {{ .Labels.service }}
+⏰ Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+⏱ Duration: {{ (.EndsAt.Sub .StartsAt).Round 1000000000 }}
+
+{{ if .Annotations.summary }}📝 {{ .Annotations.summary }}{{ end }}
+{{ if .Labels.instance }}
+🖥 Instance: `{{ .Labels.instance }}`{{ end }}
+{{ end }}
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━
+🔗 [AlertManager]({{ .ExternalURL }})
+{{- end }}

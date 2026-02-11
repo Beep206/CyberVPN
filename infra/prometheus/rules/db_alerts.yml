@@ -1,0 +1,176 @@
+groups:
+  - name: cybervpn_database_alerts
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL instance {{ $labels.instance }} has been down for more than 3 minutes."
+
+      - alert: PostgreSQLRestarted
+        expr: time() - pg_postmaster_start_time_seconds < 300
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL has recently restarted"
+          description: "PostgreSQL instance {{ $labels.instance }} restarted {{ $value | humanizeDuration }} ago."
+
+      # Connection issues
+      - alert: PostgreSQLHighConnections
+        expr: |
+          (
+            pg_stat_database_numbackends{datname!~"template.*|postgres"}
+            /
+            pg_settings_max_connections
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL connection usage is high"
+          description: "Database {{ $labels.datname }} is using {{ $value | humanizePercentage }} of max connections ({{ $labels.instance }})."
+
+      - alert: PostgreSQLConnectionsExhausted
+        expr: |
+          (
+            pg_stat_database_numbackends{datname!~"template.*|postgres"}
+            /
+            pg_settings_max_connections
+          ) > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL connections nearly exhausted"
+          description: "Database {{ $labels.datname }} is using {{ $value | humanizePercentage }} of max connections. Connection pool saturation imminent."
+
+      # Transaction performance
+      - alert: PostgreSQLSlowQueries
+        expr: |
+          rate(pg_stat_activity_max_tx_duration{datname!~"template.*|postgres"}[5m]) > 60
+        for: 10m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "Slow queries detected in PostgreSQL"
+          description: "Database {{ $labels.datname }} has queries running for more than 60 seconds."
+
+      - alert: PostgreSQLTooManyDeadTuples
+        expr: |
+          (
+            pg_stat_user_tables_n_dead_tup
+            /
+            (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup + 1)
+          ) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "High percentage of dead tuples"
+          description: "Table {{ $labels.schemaname }}.{{ $labels.relname }} has {{ $value | humanizePercentage }} dead tuples. VACUUM may be needed."
+
+      - alert: PostgreSQLDeadTupleCritical
+        expr: |
+          (
+            pg_stat_user_tables_n_dead_tup
+            /
+            (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup + 1)
+          ) > 0.3
+        for: 15m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "Critical dead tuple percentage"
+          description: "Table {{ $labels.schemaname }}.{{ $labels.relname }} has {{ $value | humanizePercentage }} dead tuples. Performance degradation likely."
+
+      # Cache performance
+      - alert: PostgreSQLLowCacheHitRatio
+        expr: |
+          (
+            rate(pg_stat_database_blks_hit{datname!~"template.*|postgres"}[5m])
+            /
+            (rate(pg_stat_database_blks_hit{datname!~"template.*|postgres"}[5m]) + rate(pg_stat_database_blks_read{datname!~"template.*|postgres"}[5m]))
+          ) < 0.90
+        for: 15m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL cache hit ratio is low"
+          description: "Database {{ $labels.datname }} has cache hit ratio of {{ $value | humanizePercentage }} (threshold: 90%). Consider increasing shared_buffers."
+
+      # Locks and deadlocks
+      - alert: PostgreSQLDeadlocks
+        expr: rate(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "Database {{ $labels.datname }} is experiencing {{ $value }} deadlocks/sec."
+
+      # Replication lag (if applicable)
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL replication lag is high"
+          description: "Replication lag is {{ $value }} seconds on {{ $labels.instance }}."
+
+      # Disk usage
+      - alert: PostgreSQLTableBloat
+        expr: |
+          (
+            pg_stat_user_tables_n_dead_tup * 100
+            /
+            (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup + 1)
+          ) > 20
+        for: 1h
+        labels:
+          severity: info
+          service: postgresql
+        annotations:
+          summary: "Table bloat detected"
+          description: "Table {{ $labels.schemaname }}.{{ $labels.relname }} has {{ $value }}% bloat. Consider VACUUM FULL."
+
+      # Transaction rate anomalies
+      - alert: PostgreSQLLowTransactionRate
+        expr: rate(pg_stat_database_xact_commit{datname!~"template.*|postgres"}[5m]) < 1
+        for: 15m
+        labels:
+          severity: info
+          service: postgresql
+        annotations:
+          summary: "Low database transaction rate"
+          description: "Database {{ $labels.datname }} has unusually low transaction rate: {{ $value }} commits/sec."
+
+      - alert: PostgreSQLHighRollbackRate
+        expr: |
+          (
+            rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m])
+            /
+            (rate(pg_stat_database_xact_commit{datname!~"template.*|postgres"}[5m]) + rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "High transaction rollback rate"
+          description: "Database {{ $labels.datname }} has {{ $value | humanizePercentage }} rollback rate. Check for application errors."

@@ -59,6 +59,10 @@ abstract class SubscriptionRemoteDataSource {
     int offset = 0,
     int limit = 20,
   });
+  Future<SubscriptionEntity> redeemInviteCode(String code);
+  Future<Map<String, dynamic>> applyPromoCode(String code, String planId);
+  Future<Map<String, dynamic>> getTrialStatus();
+  Future<SubscriptionEntity> activateTrial();
 }
 
 class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
@@ -169,6 +173,71 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
       total: total,
       offset: offset,
       limit: limit,
+    );
+  }
+
+  @override
+  Future<SubscriptionEntity> redeemInviteCode(String code) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/invites/redeem',
+      data: {'code': code},
+    );
+    final body = response.data!;
+    final subData = body['subscription'] as Map<String, dynamic>;
+    AppLogger.info('Invite code redeemed successfully: $code');
+    return _parseSubscription(subData);
+  }
+
+  @override
+  Future<Map<String, dynamic>> applyPromoCode(String code, String planId) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/promo/validate',
+      data: {'code': code, 'plan_id': planId},
+    );
+    final body = response.data!;
+    AppLogger.info('Promo code validated successfully: $code');
+    return {
+      'discount_amount': (body['discount_amount'] as num?)?.toDouble() ?? 0.0,
+      'final_price': (body['final_price'] as num?)?.toDouble() ?? 0.0,
+      'message': body['message'] as String? ?? '',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getTrialStatus() async {
+    final response = await _apiClient.get<Map<String, dynamic>>('/trial/status');
+    final body = response.data!;
+    return {
+      'is_eligible': body['is_eligible'] as bool? ?? false,
+      'days_remaining': (body['days_remaining'] as num?)?.toInt(),
+      'trial_used': body['trial_used'] as bool? ?? false,
+    };
+  }
+
+  @override
+  Future<SubscriptionEntity> activateTrial() async {
+    final response = await _apiClient.post<Map<String, dynamic>>('/trial/activate');
+    final body = response.data!;
+    final subData = body['subscription'] as Map<String, dynamic>;
+    AppLogger.info('Trial activated successfully');
+    return _parseSubscription(subData);
+  }
+
+  /// Helper method to parse subscription data from API response.
+  SubscriptionEntity _parseSubscription(Map<String, dynamic> data) {
+    return SubscriptionEntity(
+      id: data['id'] as String,
+      planId: data['plan_id'] as String,
+      userId: data['user_id'] as String? ?? '',
+      status: SubscriptionStatus.values.firstWhere(
+        (e) => e.name == (data['status'] as String?),
+        orElse: () => SubscriptionStatus.expired,
+      ),
+      startDate: DateTime.parse(data['start_date'] as String),
+      endDate: DateTime.parse(data['end_date'] as String),
+      trafficUsedBytes: (data['traffic_used_bytes'] as num?)?.toInt() ?? 0,
+      trafficLimitBytes: (data['traffic_limit_bytes'] as num?)?.toInt() ?? 0,
+      maxDevices: (data['max_devices'] as num?)?.toInt() ?? 1,
     );
   }
 }

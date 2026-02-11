@@ -15,6 +15,11 @@ engine = create_async_engine(
     pool_recycle=3600,
 )
 
+# Instrument database with Prometheus metrics
+from src.infrastructure.monitoring.instrumentation import instrument_database
+
+instrument_database(engine)
+
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,

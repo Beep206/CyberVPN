@@ -319,3 +319,32 @@ async def get_2fa_status(
 ) -> TwoFactorStatusResponse:
     """Get current 2FA status for the user."""
     return TwoFactorStatusResponse(status="enabled" if user.totp_enabled else "disabled")
+
+
+# ── Backward Compatibility Aliases ───────────────────────────────────────────
+
+
+@router.post(
+    "/disable",
+    response_model=TwoFactorStatusResponse,
+    responses={
+        400: {"description": "2FA not enabled"},
+        401: {"description": "Invalid password or TOTP code"},
+    },
+    deprecated=True,
+)
+async def disable_2fa_post_alias(
+    body: TwoFactorDisableRequest,
+    user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> TwoFactorStatusResponse:
+    """Disable 2FA (POST alias for mobile compatibility).
+
+    **DEPRECATED**: Use DELETE /2fa/disable instead.
+
+    This is an alias route for backward compatibility with mobile clients
+    that expect POST method. New implementations should use DELETE.
+    """
+    return await disable_2fa(body, user, db, redis_client, auth_service)

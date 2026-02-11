@@ -1,0 +1,70 @@
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+  max_block_bytes: 524288000  # 500MB
+  complete_block_timeout: 5m
+
+compactor:
+  compaction:
+    block_retention: 168h  # 7 days
+    compacted_block_retention: 1h
+    compaction_window: 1h
+    max_compaction_objects: 1000000
+    max_block_bytes: 107374182400  # 100GB
+    retention_concurrency: 10
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tempo/traces
+    wal:
+      path: /tempo/wal
+    cache: redis
+    redis:
+      endpoint: remnawave-redis:6379
+      timeout: 100ms
+
+querier:
+  max_concurrent_queries: 20
+  search:
+    max_duration: 0s  # unlimited
+    query_timeout: 30s
+
+query_frontend:
+  search:
+    max_duration: 0s
+  trace_by_id:
+    query_timeout: 30s
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: local
+  storage:
+    path: /tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+      generate_native_histograms: both
+
+usage_report:
+  reporting_enabled: false

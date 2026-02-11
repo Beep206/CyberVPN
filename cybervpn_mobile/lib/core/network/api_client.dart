@@ -7,6 +7,7 @@ import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/security/certificate_pinner.dart';
 import 'package:cybervpn_mobile/core/network/request_deduplicator.dart';
+import 'package:cybervpn_mobile/core/network/sentry_http_interceptor.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 class ApiClient {
@@ -107,6 +108,11 @@ class ApiClient {
     // before they hit the network or trigger auth flows.
     _dio.interceptors.add(RequestDeduplicator());
 
+    // Add Sentry HTTP interceptor for performance monitoring when Sentry is enabled.
+    if (EnvironmentConfig.sentryDsn.isNotEmpty) {
+      _dio.interceptors.add(SentryHttpInterceptor());
+    }
+
     if (kDebugMode) {
       _dio.interceptors.add(_RedactedLogInterceptor());
     }
@@ -178,6 +184,24 @@ class ApiClient {
   }) async {
     try {
       return await _dio.patch<T>(
+        path,
+        data: data,
+        options: options,
+        cancelToken: cancelToken,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Response<T>> put<T>(
+    String path, {
+    dynamic data,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await _dio.put<T>(
         path,
         data: data,
         options: options,

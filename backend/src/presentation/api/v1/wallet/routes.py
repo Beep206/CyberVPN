@@ -47,11 +47,17 @@ router = APIRouter(tags=["wallet"])
 
 
 @router.get("/wallet", response_model=WalletResponse)
+@router.get("/wallet/balance", response_model=WalletResponse)
 async def get_wallet(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> WalletResponse:
-    """Return the authenticated user's wallet balance."""
+    """Return the authenticated user's wallet balance.
+
+    Aliases:
+    - GET /wallet (primary)
+    - GET /wallet/balance (mobile compatibility)
+    """
     wallet_repo = WalletRepository(db)
     wallet_service = WalletService(wallet_repo)
 

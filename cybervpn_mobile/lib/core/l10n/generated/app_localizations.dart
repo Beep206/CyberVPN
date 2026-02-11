@@ -98,8 +98,7 @@ import 'app_localizations_zh.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -107,8 +106,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -120,13 +118,12 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
@@ -167,7 +164,7 @@ abstract class AppLocalizations {
     Locale('uz'),
     Locale('vi'),
     Locale('yo'),
-    Locale('zh'),
+    Locale('zh')
   ];
 
   /// No description provided for @appName.
@@ -925,6 +922,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm New Password'**
   String get profileConfirmNewPassword;
+
+  /// Title for the change password screen
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// Subtitle description for the change password screen
+  ///
+  /// In en, this message translates to:
+  /// **'Update your account password to keep your account secure.'**
+  String get changePasswordSubtitle;
+
+  /// Label for the current password field
+  ///
+  /// In en, this message translates to:
+  /// **'Current Password'**
+  String get changePasswordCurrent;
+
+  /// Label for the new password field
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get changePasswordNew;
+
+  /// Label for the confirm password field
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Password'**
+  String get changePasswordConfirm;
+
+  /// Text for the submit button
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordSubmit;
+
+  /// Title shown when password change succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Password Changed'**
+  String get changePasswordSuccess;
+
+  /// Message shown when password change succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Your password has been changed successfully. Please use your new password when signing in.'**
+  String get changePasswordSuccessMessage;
+
+  /// Error message for invalid new password (400)
+  ///
+  /// In en, this message translates to:
+  /// **'The new password does not meet security requirements. Please ensure it\'s at least 12 characters long.'**
+  String get changePasswordInvalidPassword;
+
+  /// Error message for wrong current password (401)
+  ///
+  /// In en, this message translates to:
+  /// **'The current password is incorrect. Please try again.'**
+  String get changePasswordCurrentWrong;
+
+  /// Error message for OAuth-only users trying to change password
+  ///
+  /// In en, this message translates to:
+  /// **'Your account uses OAuth authentication (Google, GitHub, etc.). You cannot set a password for OAuth-only accounts.'**
+  String get changePasswordOAuthOnly;
+
+  /// Validation error for password too short
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 12 characters long.'**
+  String get changePasswordTooShort;
+
+  /// Validation error when new password matches old password
+  ///
+  /// In en, this message translates to:
+  /// **'New password must be different from your current password.'**
+  String get changePasswordSameAsOld;
+
+  /// Validation error when passwords don't match
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match. Please try again.'**
+  String get changePasswordMismatch;
+
+  /// Rate limit message for password changes
+  ///
+  /// In en, this message translates to:
+  /// **'Too many password change attempts. Please try again in {minutes} minutes.'**
+  String changePasswordRateLimit(String minutes);
+
+  /// Label for weak password strength
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get changePasswordStrengthWeak;
+
+  /// Label for medium password strength
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get changePasswordStrengthMedium;
+
+  /// Label for strong password strength
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get changePasswordStrengthStrong;
+
+  /// Title for the antiphishing code screen
+  ///
+  /// In en, this message translates to:
+  /// **'Antiphishing Code'**
+  String get antiphishingTitle;
+
+  /// Description of what the antiphishing code is used for
+  ///
+  /// In en, this message translates to:
+  /// **'This code will appear in all official emails from CyberVPN to help you verify their authenticity.'**
+  String get antiphishingDescription;
+
+  /// Title shown when user has not set an antiphishing code
+  ///
+  /// In en, this message translates to:
+  /// **'No Antiphishing Code Set'**
+  String get antiphishingNotSetTitle;
+
+  /// Message explaining why to set an antiphishing code
+  ///
+  /// In en, this message translates to:
+  /// **'Set a personal antiphishing code that will appear in all official emails from CyberVPN. This helps you identify legitimate emails and avoid phishing attempts.'**
+  String get antiphishingNotSetMessage;
+
+  /// Button text to set a new antiphishing code
+  ///
+  /// In en, this message translates to:
+  /// **'Set Antiphishing Code'**
+  String get antiphishingSetCode;
+
+  /// Label for the current antiphishing code display
+  ///
+  /// In en, this message translates to:
+  /// **'Your Antiphishing Code'**
+  String get antiphishingCurrentCode;
+
+  /// Button text to edit the antiphishing code
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Code'**
+  String get antiphishingEditCode;
+
+  /// Button text to delete the antiphishing code
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Code'**
+  String get antiphishingDeleteCode;
+
+  /// Title for delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Antiphishing Code?'**
+  String get antiphishingDeleteConfirmTitle;
+
+  /// Message for delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your antiphishing code? You can set a new one later.'**
+  String get antiphishingDeleteConfirmMessage;
+
+  /// Description shown in edit mode
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a memorable code (max 50 characters) that will appear in all official emails from CyberVPN.'**
+  String get antiphishingEditDescription;
+
+  /// Label for the code input field
+  ///
+  /// In en, this message translates to:
+  /// **'Antiphishing Code'**
+  String get antiphishingCodeLabel;
+
+  /// Hint text for the code input field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your personal code'**
+  String get antiphishingCodeHint;
+
+  /// Helper text for the code input field
+  ///
+  /// In en, this message translates to:
+  /// **'This code will be included in all official CyberVPN emails'**
+  String get antiphishingCodeHelper;
+
+  /// Validation error when code exceeds 50 characters
+  ///
+  /// In en, this message translates to:
+  /// **'Code must be 50 characters or less.'**
+  String get antiphishingCodeTooLong;
+
+  /// Error message when loading antiphishing code fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load antiphishing code. Please try again.'**
+  String get antiphishingLoadError;
+
+  /// Generic save button text
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// Generic delete button text
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
 
   /// No description provided for @profileTwoFactorAuth.
   ///
@@ -3086,7 +3299,7 @@ abstract class AppLocalizations {
   /// **'No previous purchases found'**
   String get subscriptionRestoreNotFound;
 
-  /// No description provided for @subscriptionCancelButton.
+  /// Button text to confirm subscription cancellation
   ///
   /// In en, this message translates to:
   /// **'Cancel Subscription'**
@@ -4171,6 +4384,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No Plan'**
   String get profileStatsNoPlan;
+
+  /// Badge text shown when subscription will auto-renew
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-Renew'**
+  String get profileAutoRenew;
 
   /// No description provided for @profileSubActive.
   ///
@@ -7681,10 +7900,549 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password must be at least 12 characters'**
   String get resetPasswordPasswordTooShort;
+
+  /// Title for OTP verification screen
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Email'**
+  String get otpVerificationTitle;
+
+  /// Subtitle explaining OTP verification process
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {email}'**
+  String otpVerificationSubtitle(String email);
+
+  /// Label for OTP input field
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Code'**
+  String get otpVerificationCodeLabel;
+
+  /// Hint text for OTP input field
+  ///
+  /// In en, this message translates to:
+  /// **'000000'**
+  String get otpVerificationCodeHint;
+
+  /// Error message for invalid or expired OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code. Please try again.'**
+  String get otpVerificationInvalidCode;
+
+  /// Button text to submit OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Email'**
+  String get otpVerificationSubmit;
+
+  /// Button text to resend OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get otpVerificationResend;
+
+  /// Success message after resending OTP code
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code sent successfully'**
+  String get otpVerificationResendSuccess;
+
+  /// Cooldown message when user must wait before resending
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String otpVerificationResendCooldown(String seconds);
+
+  /// Success title after verifying email
+  ///
+  /// In en, this message translates to:
+  /// **'Email Verified!'**
+  String get otpVerificationSuccess;
+
+  /// Success message after verifying email
+  ///
+  /// In en, this message translates to:
+  /// **'Your email has been verified successfully. Logging you in...'**
+  String get otpVerificationSuccessMessage;
+
+  /// Wallet screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get wallet;
+
+  /// Wallet balance label
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get walletBalance;
+
+  /// Pending balance label
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get walletPending;
+
+  /// Withdraw button text
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get walletWithdraw;
+
+  /// Transaction history section title
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction History'**
+  String get walletTransactionHistory;
+
+  /// Empty state message for transactions
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get walletNoTransactions;
+
+  /// Title when wallet feature is not available
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet Unavailable'**
+  String get walletUnavailable;
+
+  /// Message when wallet feature is not available
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet feature is not available yet. Please check back later.'**
+  String get walletUnavailableMessage;
+
+  /// Placeholder message for withdraw dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw functionality coming soon.'**
+  String get walletWithdrawNotImplemented;
+
+  /// Error message when balance fails to load
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading balance'**
+  String get errorLoadingBalance;
+
+  /// Error message when transactions fail to load
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading transactions'**
+  String get errorLoadingTransactions;
+
+  /// Close button text
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// Payment history screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Payment History'**
+  String get paymentHistory;
+
+  /// Empty state title for payment history
+  ///
+  /// In en, this message translates to:
+  /// **'No payments yet'**
+  String get paymentHistoryEmpty;
+
+  /// Empty state message for payment history
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment history will appear here once you make a subscription payment.'**
+  String get paymentHistoryEmptyMessage;
+
+  /// Error message for payment history
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load payment history. Please try again.'**
+  String get paymentHistoryError;
+
+  /// Title for invite code redemption dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem Invite Code'**
+  String get subscriptionRedeemInviteCode;
+
+  /// Prompt message in invite code dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your invite code to activate subscription benefits.'**
+  String get subscriptionEnterInviteCodePrompt;
+
+  /// Label for invite code input field
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Code'**
+  String get subscriptionInviteCode;
+
+  /// Validation error for short invite code
+  ///
+  /// In en, this message translates to:
+  /// **'Invite code is too short'**
+  String get subscriptionInviteCodeTooShort;
+
+  /// Button text to redeem invite code
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem'**
+  String get subscriptionRedeem;
+
+  /// Success message after redeeming invite code
+  ///
+  /// In en, this message translates to:
+  /// **'Invite code redeemed successfully!'**
+  String get subscriptionInviteCodeRedeemed;
+
+  /// Button text to show promo code input field
+  ///
+  /// In en, this message translates to:
+  /// **'Have a promo code?'**
+  String get subscriptionHavePromoCode;
+
+  /// Label for promo code input field
+  ///
+  /// In en, this message translates to:
+  /// **'Promo Code'**
+  String get subscriptionPromoCode;
+
+  /// Button text to apply promo code
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get subscriptionApply;
+
+  /// Tooltip for button to remove applied promo code
+  ///
+  /// In en, this message translates to:
+  /// **'Remove promo code'**
+  String get subscriptionRemovePromo;
+
+  /// Success message showing applied discount amount
+  ///
+  /// In en, this message translates to:
+  /// **'Discount applied: {discount}'**
+  String subscriptionPromoAppliedDiscount(String discount);
+
+  /// Title for free trial card
+  ///
+  /// In en, this message translates to:
+  /// **'7-Day Free Trial'**
+  String get subscriptionTrialTitle;
+
+  /// Description for free trial offer
+  ///
+  /// In en, this message translates to:
+  /// **'Try CyberVPN free for 7 days with full access to all features.'**
+  String get subscriptionTrialDescription;
+
+  /// Button text to activate free trial
+  ///
+  /// In en, this message translates to:
+  /// **'Start Trial'**
+  String get subscriptionStartTrial;
+
+  /// Success message after activating trial
+  ///
+  /// In en, this message translates to:
+  /// **'Trial activated successfully!'**
+  String get subscriptionTrialActivated;
+
+  /// Heading for active trial badge
+  ///
+  /// In en, this message translates to:
+  /// **'Trial Active'**
+  String get subscriptionTrialActive;
+
+  /// Shows remaining days in active trial
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days remaining'**
+  String subscriptionTrialDaysRemaining(int days);
+
+  /// Title for subscription cancellation confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Subscription?'**
+  String get subscriptionCancelTitle;
+
+  /// Warning message for subscription cancellation
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel your subscription?'**
+  String get subscriptionCancelWarning;
+
+  /// Details about what happens after cancellation
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription will remain active until the end of the current billing period.'**
+  String get subscriptionCancelDetails;
+
+  /// Button text to keep subscription (dismiss cancellation)
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Subscription'**
+  String get subscriptionKeepButton;
+
+  /// Success message after cancelling subscription
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription cancelled successfully.'**
+  String get subscriptionCancelled;
+
+  /// Generic validation error for required fields
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required'**
+  String get commonFieldRequired;
+
+  /// No description provided for @partnerDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Dashboard'**
+  String get partnerDashboardTitle;
+
+  /// No description provided for @partnerDashboardTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get partnerDashboardTab;
+
+  /// No description provided for @partnerCodesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Codes'**
+  String get partnerCodesTab;
+
+  /// No description provided for @partnerEarningsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Earnings'**
+  String get partnerEarningsTab;
+
+  /// No description provided for @partnerTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier'**
+  String get partnerTier;
+
+  /// No description provided for @partnerClients.
+  ///
+  /// In en, this message translates to:
+  /// **'Clients'**
+  String get partnerClients;
+
+  /// No description provided for @partnerTotalEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Earnings'**
+  String get partnerTotalEarnings;
+
+  /// No description provided for @partnerAvailableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Balance'**
+  String get partnerAvailableBalance;
+
+  /// No description provided for @partnerCommissionRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Commission Rate'**
+  String get partnerCommissionRate;
+
+  /// No description provided for @partnerSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Since'**
+  String get partnerSince;
+
+  /// No description provided for @partnerYourStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Statistics'**
+  String get partnerYourStats;
+
+  /// No description provided for @partnerRecentCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Codes'**
+  String get partnerRecentCodes;
+
+  /// No description provided for @partnerNoCodesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No partner codes yet'**
+  String get partnerNoCodesYet;
+
+  /// No description provided for @partnerNoEarningsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No earnings yet'**
+  String get partnerNoEarningsYet;
+
+  /// No description provided for @partnerCodesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Codes'**
+  String get partnerCodesList;
+
+  /// No description provided for @partnerCreateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Code'**
+  String get partnerCreateCode;
+
+  /// No description provided for @partnerCodeCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner code created successfully'**
+  String get partnerCodeCreated;
+
+  /// No description provided for @partnerEditMarkup.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Markup'**
+  String get partnerEditMarkup;
+
+  /// No description provided for @partnerMarkupPercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Markup Percentage'**
+  String get partnerMarkupPercentage;
+
+  /// No description provided for @partnerMarkupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Markup: {markup}'**
+  String partnerMarkupLabel(String markup);
+
+  /// No description provided for @partnerMarkupUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Markup updated successfully'**
+  String get partnerMarkupUpdated;
+
+  /// No description provided for @partnerCodeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get partnerCodeDescription;
+
+  /// No description provided for @partnerClientCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} clients'**
+  String partnerClientCountLabel(int count);
+
+  /// No description provided for @partnerCreatedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Created {date}'**
+  String partnerCreatedDate(String date);
+
+  /// No description provided for @partnerCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner code copied to clipboard'**
+  String get partnerCodeCopied;
+
+  /// No description provided for @partnerCopyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Code'**
+  String get partnerCopyCode;
+
+  /// No description provided for @partnerCodeActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get partnerCodeActive;
+
+  /// No description provided for @partnerCodeInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get partnerCodeInactive;
+
+  /// No description provided for @partnerCodeStatusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Code status updated'**
+  String get partnerCodeStatusUpdated;
+
+  /// No description provided for @partnerActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get partnerActivate;
+
+  /// No description provided for @partnerDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get partnerDeactivate;
+
+  /// No description provided for @partnerTransactionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} transactions'**
+  String partnerTransactionCount(int count);
+
+  /// No description provided for @partnerBindCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind Code'**
+  String get partnerBindCode;
+
+  /// No description provided for @partnerBindCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Code'**
+  String get partnerBindCodeLabel;
+
+  /// No description provided for @partnerBindCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter partner code'**
+  String get partnerBindCodeHint;
+
+  /// No description provided for @partnerBecomePartnerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Become a Partner'**
+  String get partnerBecomePartnerTitle;
+
+  /// No description provided for @partnerBecomePartnerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a partner code to join the CyberVPN partner program and start earning commissions.'**
+  String get partnerBecomePartnerDescription;
+
+  /// No description provided for @partnerComingSoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Program Coming Soon'**
+  String get partnerComingSoonTitle;
+
+  /// No description provided for @partnerComingSoonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Join our partner program and earn commissions. Stay tuned for more details!'**
+  String get partnerComingSoonDescription;
+
+  /// No description provided for @commonCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get commonCreate;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -7693,136 +8451,61 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) => <String>[
-    'am',
-    'ar',
-    'be',
-    'bn',
-    'cs',
-    'de',
-    'en',
-    'es',
-    'fa',
-    'fil',
-    'fr',
-    'ha',
-    'he',
-    'hi',
-    'hu',
-    'id',
-    'it',
-    'ja',
-    'kk',
-    'ko',
-    'ku',
-    'ms',
-    'my',
-    'nl',
-    'pl',
-    'pt',
-    'ro',
-    'ru',
-    'sv',
-    'th',
-    'tk',
-    'tr',
-    'uk',
-    'ur',
-    'uz',
-    'vi',
-    'yo',
-    'zh',
-  ].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['am', 'ar', 'be', 'bn', 'cs', 'de', 'en', 'es', 'fa', 'fil', 'fr', 'ha', 'he', 'hi', 'hu', 'id', 'it', 'ja', 'kk', 'ko', 'ku', 'ms', 'my', 'nl', 'pl', 'pt', 'ro', 'ru', 'sv', 'th', 'tk', 'tr', 'uk', 'ur', 'uz', 'vi', 'yo', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'am':
-      return AppLocalizationsAm();
-    case 'ar':
-      return AppLocalizationsAr();
-    case 'be':
-      return AppLocalizationsBe();
-    case 'bn':
-      return AppLocalizationsBn();
-    case 'cs':
-      return AppLocalizationsCs();
-    case 'de':
-      return AppLocalizationsDe();
-    case 'en':
-      return AppLocalizationsEn();
-    case 'es':
-      return AppLocalizationsEs();
-    case 'fa':
-      return AppLocalizationsFa();
-    case 'fil':
-      return AppLocalizationsFil();
-    case 'fr':
-      return AppLocalizationsFr();
-    case 'ha':
-      return AppLocalizationsHa();
-    case 'he':
-      return AppLocalizationsHe();
-    case 'hi':
-      return AppLocalizationsHi();
-    case 'hu':
-      return AppLocalizationsHu();
-    case 'id':
-      return AppLocalizationsId();
-    case 'it':
-      return AppLocalizationsIt();
-    case 'ja':
-      return AppLocalizationsJa();
-    case 'kk':
-      return AppLocalizationsKk();
-    case 'ko':
-      return AppLocalizationsKo();
-    case 'ku':
-      return AppLocalizationsKu();
-    case 'ms':
-      return AppLocalizationsMs();
-    case 'my':
-      return AppLocalizationsMy();
-    case 'nl':
-      return AppLocalizationsNl();
-    case 'pl':
-      return AppLocalizationsPl();
-    case 'pt':
-      return AppLocalizationsPt();
-    case 'ro':
-      return AppLocalizationsRo();
-    case 'ru':
-      return AppLocalizationsRu();
-    case 'sv':
-      return AppLocalizationsSv();
-    case 'th':
-      return AppLocalizationsTh();
-    case 'tk':
-      return AppLocalizationsTk();
-    case 'tr':
-      return AppLocalizationsTr();
-    case 'uk':
-      return AppLocalizationsUk();
-    case 'ur':
-      return AppLocalizationsUr();
-    case 'uz':
-      return AppLocalizationsUz();
-    case 'vi':
-      return AppLocalizationsVi();
-    case 'yo':
-      return AppLocalizationsYo();
-    case 'zh':
-      return AppLocalizationsZh();
+    case 'am': return AppLocalizationsAm();
+    case 'ar': return AppLocalizationsAr();
+    case 'be': return AppLocalizationsBe();
+    case 'bn': return AppLocalizationsBn();
+    case 'cs': return AppLocalizationsCs();
+    case 'de': return AppLocalizationsDe();
+    case 'en': return AppLocalizationsEn();
+    case 'es': return AppLocalizationsEs();
+    case 'fa': return AppLocalizationsFa();
+    case 'fil': return AppLocalizationsFil();
+    case 'fr': return AppLocalizationsFr();
+    case 'ha': return AppLocalizationsHa();
+    case 'he': return AppLocalizationsHe();
+    case 'hi': return AppLocalizationsHi();
+    case 'hu': return AppLocalizationsHu();
+    case 'id': return AppLocalizationsId();
+    case 'it': return AppLocalizationsIt();
+    case 'ja': return AppLocalizationsJa();
+    case 'kk': return AppLocalizationsKk();
+    case 'ko': return AppLocalizationsKo();
+    case 'ku': return AppLocalizationsKu();
+    case 'ms': return AppLocalizationsMs();
+    case 'my': return AppLocalizationsMy();
+    case 'nl': return AppLocalizationsNl();
+    case 'pl': return AppLocalizationsPl();
+    case 'pt': return AppLocalizationsPt();
+    case 'ro': return AppLocalizationsRo();
+    case 'ru': return AppLocalizationsRu();
+    case 'sv': return AppLocalizationsSv();
+    case 'th': return AppLocalizationsTh();
+    case 'tk': return AppLocalizationsTk();
+    case 'tr': return AppLocalizationsTr();
+    case 'uk': return AppLocalizationsUk();
+    case 'ur': return AppLocalizationsUr();
+    case 'uz': return AppLocalizationsUz();
+    case 'vi': return AppLocalizationsVi();
+    case 'yo': return AppLocalizationsYo();
+    case 'zh': return AppLocalizationsZh();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

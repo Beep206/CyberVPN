@@ -70,7 +70,7 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Logout user by invalidating refresh token.
+         * @description Logout user by invalidating refresh token and clearing auth cookies.
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -591,7 +591,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Telegram Callback Get Alias
+         * @deprecated
+         * @description Telegram OAuth callback (GET alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use POST /oauth/telegram/callback instead.
+         *
+         *     This is an alias route for backward compatibility with mobile clients
+         *     that use GET redirects. New implementations should use POST.
+         */
+        get: operations["telegram_callback_get_alias_api_v1_oauth_telegram_callback_get"];
         put?: never;
         /**
          * Telegram Callback
@@ -616,7 +626,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Github Callback Get Alias
+         * @deprecated
+         * @description GitHub OAuth callback (GET alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use POST /oauth/github/callback instead.
+         *
+         *     This is an alias route for backward compatibility with mobile clients
+         *     that use GET redirects. New implementations should use POST.
+         */
+        get: operations["github_callback_get_alias_api_v1_oauth_github_callback_get"];
         put?: never;
         /**
          * Github Callback
@@ -804,7 +824,17 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Disable 2Fa Post Alias
+         * @deprecated
+         * @description Disable 2FA (POST alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use DELETE /2fa/disable instead.
+         *
+         *     This is an alias route for backward compatibility with mobile clients
+         *     that expect POST method. New implementations should use DELETE.
+         */
+        post: operations["disable_2fa_post_alias_api_v1_2fa_disable_post"];
         /**
          * Disable 2Fa
          * @description Disable two-factor authentication.
@@ -891,6 +921,30 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user profile
+         * @description Returns the profile of the currently authenticated user. Placeholder implementation returning mock data.
+         */
+        get: operations["get_profile_api_v1_users_me_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update current user profile
+         * @description Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied. Placeholder implementation -- changes are NOT persisted.
+         */
+        patch: operations["update_profile_api_v1_users_me_profile_patch"];
         trace?: never;
     };
     "/api/v1/servers/": {
@@ -1085,6 +1139,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user usage statistics
+         * @description Returns VPN usage statistics for the currently authenticated user. Placeholder implementation returning mock data.
+         */
+        get: operations["get_usage_api_v1_users_me_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trial/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate trial period
+         * @description Activate a 7-day trial period for the authenticated user. Placeholder implementation -- always succeeds.
+         */
+        post: operations["activate_trial_api_v1_trial_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trial/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get trial status
+         * @description Returns the current trial status for the authenticated user. Placeholder implementation -- always returns not active, eligible.
+         */
+        get: operations["get_trial_status_api_v1_trial_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/crypto/invoice": {
         parameters: {
             query?: never;
@@ -1145,6 +1259,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Checkout
+         * @description Unified checkout: plan + promo + wallet + partner resolution.
+         */
+        post: operations["checkout_api_v1_payments_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Payment Alias
+         * @deprecated
+         * @description Create a payment (POST /create alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use POST /payments/crypto/invoice instead.
+         *
+         *     This is an alias route for backward compatibility with mobile clients.
+         */
+        post: operations["create_payment_alias_api_v1_payments_create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{invoice_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Payment Status Alias
+         * @deprecated
+         * @description Get payment status (GET /:id/status alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use GET /payments/crypto/invoice/:id instead.
+         *
+         *     This is an alias route for backward compatibility with mobile clients.
+         */
+        get: operations["get_payment_status_alias_api_v1_payments__invoice_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/": {
         parameters: {
             query?: never;
@@ -1163,6 +1347,542 @@ export interface paths {
          * @description Create a new payment transaction
          */
         post: operations["create_payment_api_v1_billing__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem an invite code
+         * @description Redeem an invite code for the authenticated mobile user.
+         */
+        post: operations["redeem_invite_api_v1_invites_redeem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my invite codes
+         * @description List invite codes owned by the authenticated mobile user.
+         */
+        get: operations["list_my_invites_api_v1_invites_my_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invite-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin: create invite codes
+         * @description Create one or more invite codes (admin only).
+         */
+        post: operations["admin_create_invites_api_v1_admin_invite_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/promo/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate a promo code
+         * @description Validate a promo code and calculate the discount for the authenticated mobile user.
+         */
+        post: operations["validate_promo_api_v1_promo_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promo-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin: list all promo codes
+         * @description List all promo codes with pagination (admin only).
+         */
+        get: operations["admin_list_promos_api_v1_admin_promo_codes_get"];
+        put?: never;
+        /**
+         * Admin: create a promo code
+         * @description Create a new promo code (admin only).
+         */
+        post: operations["admin_create_promo_api_v1_admin_promo_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/promo-codes/{promo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin: get promo code detail
+         * @description Get a single promo code by ID (admin only).
+         */
+        get: operations["admin_get_promo_api_v1_admin_promo_codes__promo_id__get"];
+        /**
+         * Admin: update a promo code
+         * @description Update an existing promo code (admin only).
+         */
+        put: operations["admin_update_promo_api_v1_admin_promo_codes__promo_id__put"];
+        post?: never;
+        /**
+         * Admin: deactivate a promo code
+         * @description Deactivate a promo code by setting is_active=False (admin only).
+         */
+        delete: operations["admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Referral Status
+         * @description Return whether the referral programme is enabled and the current commission rate.
+         */
+        get: operations["get_referral_status_api_v1_referral_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Referral Code
+         * @description Get or generate the authenticated user's referral code.
+         */
+        get: operations["get_referral_code_api_v1_referral_code_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Referral Stats
+         * @description Return aggregated referral statistics for the authenticated user.
+         */
+        get: operations["get_referral_stats_api_v1_referral_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Recent Commissions
+         * @description Return the 10 most recent referral commissions for the authenticated user.
+         */
+        get: operations["get_recent_commissions_api_v1_referral_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Partner Codes
+         * @description List all partner codes owned by the authenticated user.
+         */
+        get: operations["list_partner_codes_api_v1_partner_codes_get"];
+        put?: never;
+        /**
+         * Create Partner Code
+         * @description Create a new partner referral code with an optional markup percentage.
+         */
+        post: operations["create_partner_code_api_v1_partner_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/codes/{code_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Partner Code Markup
+         * @description Update the markup percentage on a partner code owned by the authenticated user.
+         */
+        put: operations["update_partner_code_markup_api_v1_partner_codes__code_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Partner Dashboard
+         * @description Return aggregated partner dashboard data.
+         */
+        get: operations["get_partner_dashboard_api_v1_partner_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Partner Earnings
+         * @description List recent earnings for the authenticated partner.
+         */
+        get: operations["list_partner_earnings_api_v1_partner_earnings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/bind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bind To Partner
+         * @description Bind the authenticated user to a partner via a partner code.
+         */
+        post: operations["bind_to_partner_api_v1_partner_bind_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Promote Partner
+         * @description Admin action to promote a mobile user to partner status.
+         */
+        post: operations["admin_promote_partner_api_v1_admin_partners_promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Wallet
+         * @description Return the authenticated user's wallet balance.
+         */
+        get: operations["get_wallet_api_v1_wallet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Wallet Transactions
+         * @description Return paginated wallet transaction history for the authenticated user.
+         */
+        get: operations["list_wallet_transactions_api_v1_wallet_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Withdrawal
+         * @description Request a withdrawal from the authenticated user's wallet.
+         */
+        post: operations["request_withdrawal_api_v1_wallet_withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Withdrawals
+         * @description Return the authenticated user's withdrawal requests.
+         */
+        get: operations["list_withdrawals_api_v1_wallet_withdrawals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/wallets/{user_id}/topup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Topup Wallet
+         * @description Admin action to credit funds into a user's wallet.
+         */
+        post: operations["admin_topup_wallet_api_v1_admin_wallets__user_id__topup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/wallets/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Get Wallet
+         * @description Admin view of a user's wallet balance.
+         */
+        get: operations["admin_get_wallet_api_v1_admin_wallets__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/withdrawals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin List Pending Withdrawals
+         * @description Admin view of all pending withdrawal requests.
+         */
+        get: operations["admin_list_pending_withdrawals_api_v1_admin_withdrawals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/withdrawals/{withdrawal_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Admin Approve Withdrawal
+         * @description Admin action to approve a pending withdrawal request.
+         */
+        put: operations["admin_approve_withdrawal_api_v1_admin_withdrawals__withdrawal_id__approve_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/withdrawals/{withdrawal_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Admin Reject Withdrawal
+         * @description Admin action to reject a pending withdrawal request.
+         */
+        put: operations["admin_reject_withdrawal_api_v1_admin_withdrawals__withdrawal_id__reject_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public API status
+         * @description Returns backend status, version, server timestamp, and placeholder service health.  Accessible without authentication.
+         */
+        get: operations["get_status_api_v1_status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1418,6 +2138,30 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/fcm-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register FCM token
+         * @description Register (or refresh) a Firebase Cloud Messaging token for the authenticated user's device.  If a token already exists for the given device_id it will be replaced.
+         */
+        post: operations["register_fcm_token_api_v1_users_me_fcm_token_post"];
+        /**
+         * Unregister FCM token
+         * @description Remove the FCM token for the authenticated user's device.  Called on logout or when push notifications are disabled.
+         */
+        delete: operations["unregister_fcm_token_api_v1_users_me_fcm_token_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1842,38 +2586,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/metrics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Metrics Endpoint
-         * @description Prometheus metrics endpoint.
-         *
-         *     Exposes application metrics for Prometheus scraping.
-         *     LOW-006: Includes websocket_auth_method_total for deprecation tracking.
-         */
-        get: operations["metrics_endpoint_metrics_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AdminCreateInviteRequest
+         * @description Request body for admin-created invite codes.
+         */
+        AdminCreateInviteRequest: {
+            /**
+             * User Id
+             * Format: uuid
+             * @description User who will own the invite codes
+             */
+            user_id: string;
+            /**
+             * Free Days
+             * @description Number of free subscription days the code grants
+             */
+            free_days: number;
+            /**
+             * Count
+             * @description Number of codes to generate
+             * @default 1
+             */
+            count: number;
+            /**
+             * Plan Id
+             * @description Optional plan to associate with the codes
+             */
+            plan_id?: string | null;
+        };
+        /** AdminProcessWithdrawalRequest */
+        AdminProcessWithdrawalRequest: {
+            /** Admin Note */
+            admin_note?: string | null;
+        };
+        /**
          * AdminRole
          * @enum {string}
          */
         AdminRole: "super_admin" | "admin" | "operator" | "support" | "viewer";
+        /** AdminTopupRequest */
+        AdminTopupRequest: {
+            /** Amount */
+            amount: number;
+            /** Description */
+            description?: string | null;
+        };
         /** AdminUserResponse */
         AdminUserResponse: {
             /**
@@ -1945,7 +2706,7 @@ export interface components {
          */
         AuthResponse: {
             /** @description Authentication tokens */
-            tokens: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"];
+            tokens: components["schemas"]["TokenResponse"];
             /** @description User profile data */
             user: components["schemas"]["UserResponse"];
             /**
@@ -1976,6 +2737,77 @@ export interface components {
              * @enum {string}
              */
             period: "today" | "week" | "month";
+        };
+        /** BindPartnerRequest */
+        BindPartnerRequest: {
+            /** Partner Code */
+            partner_code: string;
+        };
+        /**
+         * CheckoutRequest
+         * @description Unified checkout request combining plan + promo + wallet.
+         */
+        CheckoutRequest: {
+            /**
+             * Plan Id
+             * Format: uuid
+             * @description Subscription plan to purchase
+             */
+            plan_id: string;
+            /**
+             * Promo Code
+             * @description Optional promo code
+             */
+            promo_code?: string | null;
+            /**
+             * Use Wallet
+             * @description Amount to pay from wallet balance
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @description Payment currency
+             * @default USD
+             */
+            currency: string;
+        };
+        /**
+         * CheckoutResponse
+         * @description Checkout calculation result.
+         */
+        CheckoutResponse: {
+            /** Base Price */
+            base_price: number;
+            /** Displayed Price */
+            displayed_price: number;
+            /** Discount Amount */
+            discount_amount: number;
+            /** Wallet Amount */
+            wallet_amount: number;
+            /** Gateway Amount */
+            gateway_amount: number;
+            /** Partner Markup */
+            partner_markup: number;
+            /** Is Zero Gateway */
+            is_zero_gateway: boolean;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Promo Code Id */
+            promo_code_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /**
+             * Payment Id
+             * @description Set when zero-gateway payment is completed
+             */
+            payment_id?: string | null;
+            /**
+             * Status
+             * @description 'completed' for zero-gateway, 'pending' for gateway needed
+             * @default pending
+             */
+            status: string;
         };
         /**
          * ComponentStatus
@@ -2180,6 +3012,19 @@ export interface components {
              */
             currency: string;
         };
+        /** CreatePartnerCodeRequest */
+        CreatePartnerCodeRequest: {
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+            /**
+             * Markup Pct
+             * @default 0
+             */
+            markup_pct: number;
+        };
         /**
          * CreatePaymentRequest
          * @description Request schema for creating a billing payment.
@@ -2272,6 +3117,64 @@ export interface components {
              * @default true
              */
             is_active: boolean;
+        };
+        /**
+         * CreatePromoRequest
+         * @description Request body for creating a promo code (admin).
+         */
+        CreatePromoRequest: {
+            /**
+             * Code
+             * @description Unique promo code string
+             */
+            code: string;
+            /**
+             * Discount Type
+             * @description Discount type (percent or fixed)
+             */
+            discount_type: string;
+            /**
+             * Discount Value
+             * @description Discount value
+             */
+            discount_value: number;
+            /**
+             * Max Uses
+             * @description Maximum number of redemptions
+             */
+            max_uses?: number | null;
+            /**
+             * Is Single Use
+             * @description Whether a user can use it only once
+             * @default false
+             */
+            is_single_use: boolean;
+            /**
+             * Plan Ids
+             * @description Restrict to specific plans
+             */
+            plan_ids?: string[] | null;
+            /**
+             * Min Amount
+             * @description Minimum order amount
+             */
+            min_amount?: number | null;
+            /**
+             * Expires At
+             * @description Expiration timestamp
+             */
+            expires_at?: string | null;
+            /**
+             * Description
+             * @description Admin description
+             */
+            description?: string | null;
+            /**
+             * Currency
+             * @description Currency code (ISO 4217)
+             * @default USD
+             */
+            currency: string;
         };
         /**
          * CreateServerRequest
@@ -2560,6 +3463,72 @@ export interface components {
             last_active_at?: string | null;
         };
         /**
+         * FCMTokenDeleteRequest
+         * @description Request body for unregistering an FCM push-notification token.
+         *
+         *     Sent by mobile clients on logout or when the user disables
+         *     push notifications.
+         */
+        FCMTokenDeleteRequest: {
+            /**
+             * Device Id
+             * @description Device identifier whose token should be removed
+             */
+            device_id: string;
+        };
+        /**
+         * FCMTokenRequest
+         * @description Request body for registering an FCM push-notification token.
+         *
+         *     Sent by mobile clients after obtaining a token from Firebase.
+         *     Each ``(device_id, platform)`` pair identifies a unique device.
+         */
+        FCMTokenRequest: {
+            /**
+             * Token
+             * @description FCM registration token obtained from Firebase SDK
+             */
+            token: string;
+            /**
+             * Device Id
+             * @description Unique device identifier (e.g. Android ID, IDFV)
+             */
+            device_id: string;
+            /**
+             * Platform
+             * @description Mobile platform that generated the token
+             * @enum {string}
+             */
+            platform: "android" | "ios";
+        };
+        /**
+         * FCMTokenResponse
+         * @description Response returned after a successful FCM token registration.
+         */
+        FCMTokenResponse: {
+            /**
+             * Token
+             * @description Registered FCM token
+             */
+            token: string;
+            /**
+             * Device Id
+             * @description Device identifier associated with the token
+             */
+            device_id: string;
+            /**
+             * Platform
+             * @description Mobile platform (android / ios)
+             */
+            platform: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description Timestamp when the token was registered (ISO 8601)
+             */
+            created_at?: string;
+        };
+        /**
          * ForgotPasswordRequest
          * @description Request for password reset OTP.
          */
@@ -2707,6 +3676,30 @@ export interface components {
             alpn?: string[] | null;
         };
         /**
+         * InviteCodeResponse
+         * @description Response schema for a single invite code.
+         */
+        InviteCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Free Days */
+            free_days: number;
+            /** Is Used */
+            is_used: boolean;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
          * InviteTokenInfo
          * @description Information about an invite token.
          */
@@ -2779,12 +3772,32 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** LoginRequest */
+        /**
+         * LoginRequest
+         * @description Request schema for mobile user login.
+         *
+         *     Used by POST /api/v1/mobile/auth/login endpoint.
+         */
         LoginRequest: {
-            /** Login Or Email */
-            login_or_email: string;
-            /** Password */
+            /**
+             * Email
+             * Format: email
+             * @description User email address
+             */
+            email: string;
+            /**
+             * Password
+             * @description User password
+             */
             password: string;
+            /** @description Device information for login */
+            device: components["schemas"]["DeviceInfo"];
+            /**
+             * Remember Me
+             * @description If True, extends refresh token TTL to 30 days (default: 7 days)
+             * @default false
+             */
+            remember_me: boolean;
         };
         /**
          * LogoutAllResponse
@@ -2802,23 +3815,10 @@ export interface components {
              */
             sessions_revoked: number;
         };
-        /**
-         * LogoutRequest
-         * @description Request schema for logout.
-         *
-         *     Used by POST /api/v1/mobile/auth/logout endpoint.
-         */
+        /** LogoutRequest */
         LogoutRequest: {
-            /**
-             * Refresh Token
-             * @description Refresh token to revoke
-             */
+            /** Refresh Token */
             refresh_token: string;
-            /**
-             * Device Id
-             * @description Device ID for session revocation
-             */
-            device_id: string;
         };
         /**
          * MagicLinkRequest
@@ -3000,6 +4000,66 @@ export interface components {
          * @enum {string}
          */
         OAuthProvider: "telegram" | "github" | "google" | "discord" | "apple" | "microsoft" | "twitter";
+        /** PartnerCodeResponse */
+        PartnerCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Markup Pct */
+            markup_pct: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PartnerDashboardResponse */
+        PartnerDashboardResponse: {
+            /** Total Clients */
+            total_clients: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Current Tier */
+            current_tier: {
+                [key: string]: unknown;
+            } | null;
+            /** Codes */
+            codes: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** PartnerEarningResponse */
+        PartnerEarningResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Client User Id
+             * Format: uuid
+             */
+            client_user_id: string;
+            /** Base Price */
+            base_price: number;
+            /** Markup Amount */
+            markup_amount: number;
+            /** Commission Amount */
+            commission_amount: number;
+            /** Total Earning */
+            total_earning: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /**
          * PaymentHistoryItem
          * @description Payment history item.
@@ -3080,6 +4140,121 @@ export interface components {
          */
         Platform: "ios" | "android";
         /**
+         * ProfileResponse
+         * @description Response schema for the authenticated user profile.
+         */
+        ProfileResponse: {
+            /**
+             * Id
+             * @description Unique identifier of the user
+             */
+            id: string;
+            /**
+             * Email
+             * @description Email address associated with the account
+             */
+            email: string;
+            /**
+             * Display Name
+             * @description Human-readable display name
+             */
+            display_name?: string | null;
+            /**
+             * Avatar Url
+             * @description URL to the user avatar image
+             */
+            avatar_url?: string | null;
+            /**
+             * Language
+             * @description BCP-47 language tag
+             * @default en
+             */
+            language: string;
+            /**
+             * Timezone
+             * @description IANA timezone identifier
+             * @default UTC
+             */
+            timezone: string;
+            /**
+             * Updated At
+             * Format: date-time
+             * @description Timestamp of the last profile update
+             */
+            updated_at: string;
+        };
+        /**
+         * ProfileUpdateRequest
+         * @description Request schema for partial profile updates (PATCH semantics).
+         *
+         *     All fields are optional.  Only the fields provided in the request
+         *     body will be applied to the user profile.
+         */
+        ProfileUpdateRequest: {
+            /**
+             * Display Name
+             * @description Human-readable display name
+             */
+            display_name?: string | null;
+            /**
+             * Avatar Url
+             * @description URL to the user avatar image
+             */
+            avatar_url?: string | null;
+            /**
+             * Language
+             * @description BCP-47 language tag (e.g. 'en', 'ru', 'ja')
+             */
+            language?: string | null;
+            /**
+             * Timezone
+             * @description IANA timezone identifier (e.g. 'Europe/Moscow')
+             */
+            timezone?: string | null;
+        };
+        /**
+         * PromoCodeResponse
+         * @description Full promo code representation.
+         */
+        PromoCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Discount Type */
+            discount_type: string;
+            /** Discount Value */
+            discount_value: number;
+            /** Currency */
+            currency: string;
+            /** Max Uses */
+            max_uses: number | null;
+            /** Current Uses */
+            current_uses: number;
+            /** Is Single Use */
+            is_single_use: boolean;
+            /** Is Active */
+            is_active: boolean;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PromotePartnerRequest */
+        PromotePartnerRequest: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
          * ReauthRequest
          * @description Request for password re-authentication.
          */
@@ -3109,6 +4284,62 @@ export interface components {
              */
             valid_for_minutes: number;
         };
+        /**
+         * RedeemInviteRequest
+         * @description Request body for redeeming an invite code.
+         */
+        RedeemInviteRequest: {
+            /**
+             * Code
+             * @description Invite code to redeem
+             */
+            code: string;
+        };
+        /** ReferralCodeResponse */
+        ReferralCodeResponse: {
+            /** Referral Code */
+            referral_code: string;
+        };
+        /** ReferralCommissionResponse */
+        ReferralCommissionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Referred User Id
+             * Format: uuid
+             */
+            referred_user_id: string;
+            /** Commission Amount */
+            commission_amount: number;
+            /** Base Amount */
+            base_amount: number;
+            /** Commission Rate */
+            commission_rate: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReferralStatsResponse */
+        ReferralStatsResponse: {
+            /** Total Referrals */
+            total_referrals: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Commission Rate */
+            commission_rate: number;
+        };
+        /** ReferralStatusResponse */
+        ReferralStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Commission Rate */
+            commission_rate: number;
+        };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
             /** Refresh Token */
@@ -3116,23 +4347,25 @@ export interface components {
         };
         /**
          * RegisterRequest
-         * @description Registration request with strong password policy (MED-001).
+         * @description Request schema for mobile user registration.
          *
-         *     Uses shared password validator for consistency with mobile auth.
-         *     Supports email+password or login+password (username-only) registration.
+         *     Used by POST /api/v1/mobile/auth/register endpoint.
+         *     MED-001: Password requirements aligned with admin auth.
          */
         RegisterRequest: {
-            /** Login */
-            login: string;
-            /** Email */
-            email?: string | null;
-            /** Password */
-            password: string;
             /**
-             * Locale
-             * @default en-EN
+             * Email
+             * Format: email
+             * @description User email address (must be valid and unique)
              */
-            locale: string;
+            email: string;
+            /**
+             * Password
+             * @description User password (minimum 12 characters, requires complexity)
+             */
+            password: string;
+            /** @description Device information for registration */
+            device: components["schemas"]["DeviceInfo"];
         };
         /**
          * RegisterResponse
@@ -3722,6 +4955,24 @@ export interface components {
          */
         ServerStatus: "online" | "offline" | "warning" | "maintenance";
         /**
+         * ServiceStatuses
+         * @description Health status of backend service dependencies.
+         */
+        ServiceStatuses: {
+            /**
+             * Database
+             * @description Database connectivity status
+             * @default ok
+             */
+            database: string;
+            /**
+             * Redis
+             * @description Redis cache connectivity status
+             * @default ok
+             */
+            redis: string;
+        };
+        /**
          * SignPayloadRequest
          * @description Request schema for signing a payload.
          * @example {
@@ -3788,6 +5039,35 @@ export interface components {
              * @description Status message
              */
             message?: string | null;
+        };
+        /**
+         * StatusResponse
+         * @description Public API status response.
+         *
+         *     Returned by ``GET /api/v1/status`` without authentication.
+         *     Mobile clients use this endpoint to verify backend reachability
+         *     before attempting authenticated requests.
+         */
+        StatusResponse: {
+            /**
+             * Status
+             * @description Overall backend status
+             * @default ok
+             */
+            status: string;
+            /**
+             * Version
+             * @description Backend release version
+             */
+            version: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             * @description Server timestamp in ISO 8601 format
+             */
+            timestamp?: string;
+            /** @description Individual service dependency statuses */
+            services?: components["schemas"]["ServiceStatuses"];
         };
         /**
          * SubscriptionInfo
@@ -4009,22 +5289,89 @@ export interface components {
              */
             subscription_url?: string | null;
         };
-        /** TokenResponse */
+        /**
+         * TokenResponse
+         * @description Response schema for authentication tokens.
+         *
+         *     Returned by login, register, and refresh endpoints.
+         */
         TokenResponse: {
-            /** Access Token */
+            /**
+             * Access Token
+             * @description JWT access token (TTL: 15 minutes)
+             */
             access_token: string;
-            /** Refresh Token */
+            /**
+             * Refresh Token
+             * @description JWT refresh token (TTL: 7 days or 30 days with remember_me)
+             */
             refresh_token: string;
             /**
              * Token Type
-             * @default bearer
+             * @description Token type for Authorization header
+             * @default Bearer
              */
             token_type: string;
             /**
              * Expires In
-             * @default 0
+             * @description Access token expiration in seconds (default: 15 minutes)
+             * @default 900
              */
             expires_in: number;
+        };
+        /**
+         * TrialActivateResponse
+         * @description Response schema for trial activation.
+         */
+        TrialActivateResponse: {
+            /**
+             * Activated
+             * @description Whether trial was successfully activated
+             */
+            activated: boolean;
+            /**
+             * Trial End
+             * Format: date-time
+             * @description When the trial period ends
+             */
+            trial_end: string;
+            /**
+             * Message
+             * @description Human-readable status message
+             */
+            message: string;
+        };
+        /**
+         * TrialStatusResponse
+         * @description Response schema for trial status inquiry.
+         */
+        TrialStatusResponse: {
+            /**
+             * Is Trial Active
+             * @description Whether user is currently on trial
+             */
+            is_trial_active: boolean;
+            /**
+             * Trial Start
+             * @description When trial started
+             */
+            trial_start?: string | null;
+            /**
+             * Trial End
+             * @description When trial ends/ended
+             */
+            trial_end?: string | null;
+            /**
+             * Days Remaining
+             * @description Days remaining in trial
+             * @default 0
+             */
+            days_remaining: number;
+            /**
+             * Is Eligible
+             * @description Whether user is eligible for trial (hasn't used one)
+             */
+            is_eligible: boolean;
         };
         /**
          * TwoFactorDisableRequest
@@ -4126,6 +5473,11 @@ export interface components {
             /** Alpn */
             alpn?: string[] | null;
         };
+        /** UpdateMarkupRequest */
+        UpdateMarkupRequest: {
+            /** Markup Pct */
+            markup_pct: number;
+        };
         /**
          * UpdatePlanRequest
          * @description Request schema for updating a subscription plan.
@@ -4147,6 +5499,37 @@ export interface components {
             features?: string[] | null;
             /** Is Active */
             is_active?: boolean | null;
+        };
+        /**
+         * UpdatePromoRequest
+         * @description Request body for updating an existing promo code (admin).
+         */
+        UpdatePromoRequest: {
+            /**
+             * Is Active
+             * @description Toggle active status
+             */
+            is_active?: boolean | null;
+            /**
+             * Max Uses
+             * @description Update max uses
+             */
+            max_uses?: number | null;
+            /**
+             * Expires At
+             * @description Update expiration
+             */
+            expires_at?: string | null;
+            /**
+             * Description
+             * @description Update description
+             */
+            description?: string | null;
+            /**
+             * Discount Value
+             * @description Update discount value
+             */
+            discount_value?: number | null;
         };
         /**
          * UpdateServerRequest
@@ -4270,6 +5653,49 @@ export interface components {
             } | null;
         };
         /**
+         * UsageResponse
+         * @description Response schema for user VPN usage statistics.
+         */
+        UsageResponse: {
+            /**
+             * Bandwidth Used Bytes
+             * @description Total bandwidth consumed in bytes
+             */
+            bandwidth_used_bytes: number;
+            /**
+             * Bandwidth Limit Bytes
+             * @description Bandwidth limit in bytes (0 = unlimited)
+             */
+            bandwidth_limit_bytes: number;
+            /**
+             * Connections Active
+             * @description Number of currently active connections
+             */
+            connections_active: number;
+            /**
+             * Connections Limit
+             * @description Maximum allowed concurrent connections
+             */
+            connections_limit: number;
+            /**
+             * Period Start
+             * Format: date-time
+             * @description Start of the current billing period
+             */
+            period_start: string;
+            /**
+             * Period End
+             * Format: date-time
+             * @description End of the current billing period
+             */
+            period_end: string;
+            /**
+             * Last Connection At
+             * @description Timestamp of last VPN connection
+             */
+            last_connection_at?: string | null;
+        };
+        /**
          * UserListResponse
          * @description Response schema for a list of VPN users.
          */
@@ -4335,6 +5761,46 @@ export interface components {
          * @enum {string}
          */
         UserStatus: "active" | "disabled" | "limited" | "expired";
+        /**
+         * ValidatePromoRequest
+         * @description Request body for validating / calculating a promo code discount.
+         */
+        ValidatePromoRequest: {
+            /**
+             * Code
+             * @description Promo code to validate
+             */
+            code: string;
+            /**
+             * Plan Id
+             * @description Plan the promo is applied to
+             */
+            plan_id?: string | null;
+            /**
+             * Amount
+             * @description Order amount for discount calculation
+             */
+            amount?: number | null;
+        };
+        /**
+         * ValidatePromoResponse
+         * @description Response for a successful promo code validation.
+         */
+        ValidatePromoResponse: {
+            /**
+             * Promo Code Id
+             * Format: uuid
+             */
+            promo_code_id: string;
+            /** Discount Type */
+            discount_type: string;
+            /** Discount Value */
+            discount_value: number;
+            /** Discount Amount */
+            discount_amount: number;
+            /** Code */
+            code: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -4343,10 +5809,6 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /**
          * VerifyCodeRequest
@@ -4413,6 +5875,43 @@ export interface components {
              */
             expires_in: number;
         };
+        /** WalletResponse */
+        WalletResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Balance */
+            balance: number;
+            /** Currency */
+            currency: string;
+            /** Frozen */
+            frozen: number;
+        };
+        /** WalletTransactionResponse */
+        WalletTransactionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Type */
+            type: string;
+            /** Amount */
+            amount: number;
+            /** Balance After */
+            balance_after: number;
+            /** Reason */
+            reason: string;
+            /** Description */
+            description: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /**
          * WebhookLogResponse
          * @description Response schema for webhook log entry.
@@ -4443,37 +5942,98 @@ export interface components {
              */
             created_at: string;
         };
-        /** LogoutRequest */
-        src__presentation__api__v1__auth__schemas__LogoutRequest: {
-            /** Refresh Token */
-            refresh_token: string;
+        /** WithdrawRequest */
+        WithdrawRequest: {
+            /** Amount */
+            amount: number;
+            /**
+             * Method
+             * @default cryptobot
+             */
+            method: string;
+        };
+        /** WithdrawalResponse */
+        WithdrawalResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /** Method */
+            method: string;
+            /** Status */
+            status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** LoginRequest */
+        src__presentation__api__v1__auth__schemas__LoginRequest: {
+            /** Login Or Email */
+            login_or_email: string;
+            /** Password */
+            password: string;
         };
         /**
-         * LoginRequest
-         * @description Request schema for mobile user login.
+         * RegisterRequest
+         * @description Registration request with strong password policy (MED-001).
          *
-         *     Used by POST /api/v1/mobile/auth/login endpoint.
+         *     Uses shared password validator for consistency with mobile auth.
+         *     Supports email+password or login+password (username-only) registration.
          */
-        src__presentation__api__v1__mobile_auth__schemas__LoginRequest: {
-            /**
-             * Email
-             * Format: email
-             * @description User email address
-             */
-            email: string;
-            /**
-             * Password
-             * @description User password
-             */
+        src__presentation__api__v1__auth__schemas__RegisterRequest: {
+            /** Login */
+            login: string;
+            /** Email */
+            email?: string | null;
+            /** Password */
             password: string;
-            /** @description Device information for login */
-            device: components["schemas"]["DeviceInfo"];
             /**
-             * Remember Me
-             * @description If True, extends refresh token TTL to 30 days (default: 7 days)
-             * @default false
+             * Locale
+             * @default en-EN
              */
-            remember_me: boolean;
+            locale: string;
+        };
+        /** TokenResponse */
+        src__presentation__api__v1__auth__schemas__TokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @default 0
+             */
+            expires_in: number;
+        };
+        /**
+         * LogoutRequest
+         * @description Request schema for logout.
+         *
+         *     Used by POST /api/v1/mobile/auth/logout endpoint.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__LogoutRequest: {
+            /**
+             * Refresh Token
+             * @description Refresh token to revoke
+             */
+            refresh_token: string;
+            /**
+             * Device Id
+             * @description Device ID for session revocation
+             */
+            device_id: string;
         };
         /**
          * RefreshTokenRequest
@@ -4492,58 +6052,6 @@ export interface components {
              * @description Device ID for session validation
              */
             device_id: string;
-        };
-        /**
-         * RegisterRequest
-         * @description Request schema for mobile user registration.
-         *
-         *     Used by POST /api/v1/mobile/auth/register endpoint.
-         *     MED-001: Password requirements aligned with admin auth.
-         */
-        src__presentation__api__v1__mobile_auth__schemas__RegisterRequest: {
-            /**
-             * Email
-             * Format: email
-             * @description User email address (must be valid and unique)
-             */
-            email: string;
-            /**
-             * Password
-             * @description User password (minimum 12 characters, requires complexity)
-             */
-            password: string;
-            /** @description Device information for registration */
-            device: components["schemas"]["DeviceInfo"];
-        };
-        /**
-         * TokenResponse
-         * @description Response schema for authentication tokens.
-         *
-         *     Returned by login, register, and refresh endpoints.
-         */
-        src__presentation__api__v1__mobile_auth__schemas__TokenResponse: {
-            /**
-             * Access Token
-             * @description JWT access token (TTL: 15 minutes)
-             */
-            access_token: string;
-            /**
-             * Refresh Token
-             * @description JWT refresh token (TTL: 7 days or 30 days with remember_me)
-             */
-            refresh_token: string;
-            /**
-             * Token Type
-             * @description Token type for Authorization header
-             * @default Bearer
-             */
-            token_type: string;
-            /**
-             * Expires In
-             * @description Access token expiration in seconds (default: 15 minutes)
-             * @default 900
-             */
-            expires_in: number;
         };
         /**
          * UserResponse
@@ -4601,7 +6109,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LoginRequest"];
             };
         };
         responses: {
@@ -4611,7 +6119,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid credentials */
@@ -4656,7 +6164,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -4686,7 +6194,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LogoutRequest"];
+                "application/json": components["schemas"]["LogoutRequest"];
             };
         };
         responses: {
@@ -4942,7 +6450,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid or expired token */
@@ -5175,7 +6683,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__RegisterRequest"];
             };
         };
         responses: {
@@ -5208,7 +6716,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__RegisterRequest"];
+                "application/json": components["schemas"]["RegisterRequest"];
             };
         };
         responses: {
@@ -5259,7 +6767,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__LoginRequest"];
+                "application/json": components["schemas"]["LoginRequest"];
             };
         };
         responses: {
@@ -5320,7 +6828,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"];
+                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -5352,7 +6860,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LogoutRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"];
             };
         };
         responses: {
@@ -5587,6 +7095,44 @@ export interface operations {
             };
         };
     };
+    telegram_callback_get_alias_api_v1_oauth_telegram_callback_get: {
+        parameters: {
+            query: {
+                id: number;
+                first_name: string;
+                auth_date: number;
+                hash: string;
+                state: string;
+                last_name?: string | null;
+                username?: string | null;
+                photo_url?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     telegram_callback_api_v1_oauth_telegram_callback_post: {
         parameters: {
             query?: never;
@@ -5599,6 +7145,39 @@ export interface operations {
                 "application/json": components["schemas"]["TelegramCallbackRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    github_callback_get_alias_api_v1_oauth_github_callback_get: {
+        parameters: {
+            query: {
+                code: string;
+                state: string;
+                redirect_uri: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5921,6 +7500,53 @@ export interface operations {
             };
         };
     };
+    disable_2fa_post_alias_api_v1_2fa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorDisableRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorStatusResponse"];
+                };
+            };
+            /** @description 2FA not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid password or TOTP code */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     disable_2fa_api_v1_2fa_disable_delete: {
         parameters: {
             query?: never;
@@ -6162,6 +7788,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_v1_users_me_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+        };
+    };
+    update_profile_api_v1_users_me_profile_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6642,6 +8321,66 @@ export interface operations {
             };
         };
     };
+    get_usage_api_v1_users_me_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageResponse"];
+                };
+            };
+        };
+    };
+    activate_trial_api_v1_trial_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialActivateResponse"];
+                };
+            };
+        };
+    };
+    get_trial_status_api_v1_trial_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialStatusResponse"];
+                };
+            };
+        };
+    };
     create_crypto_invoice_api_v1_payments_crypto_invoice_post: {
         parameters: {
             query?: never;
@@ -6754,6 +8493,103 @@ export interface operations {
             };
         };
     };
+    checkout_api_v1_payments_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_payment_alias_api_v1_payments_create_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_payment_status_alias_api_v1_payments__invoice_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_billing_info_api_v1_billing__get: {
         parameters: {
             query?: never;
@@ -6803,6 +8639,909 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redeem_invite_api_v1_invites_redeem_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedeemInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCodeResponse"];
+                };
+            };
+            /** @description Invite code not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invite code already used */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invite code expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_invites_api_v1_invites_my_get: {
+        parameters: {
+            query?: {
+                /** @description Pagination offset */
+                offset?: number;
+                /** @description Pagination limit */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_invites_api_v1_admin_invite_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_promo_api_v1_promo_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidatePromoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidatePromoResponse"];
+                };
+            };
+            /** @description Promo code not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Promo code invalid for given parameters */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    admin_list_promos_api_v1_admin_promo_codes_get: {
+        parameters: {
+            query?: {
+                /** @description Pagination offset */
+                offset?: number;
+                /** @description Pagination limit */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_create_promo_api_v1_admin_promo_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePromoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_promo_api_v1_admin_promo_codes__promo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeResponse"];
+                };
+            };
+            /** @description Promo code not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_update_promo_api_v1_admin_promo_codes__promo_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePromoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeResponse"];
+                };
+            };
+            /** @description Promo code not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_deactivate_promo_api_v1_admin_promo_codes__promo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoCodeResponse"];
+                };
+            };
+            /** @description Promo code not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_referral_status_api_v1_referral_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralStatusResponse"];
+                };
+            };
+        };
+    };
+    get_referral_code_api_v1_referral_code_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralCodeResponse"];
+                };
+            };
+        };
+    };
+    get_referral_stats_api_v1_referral_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralStatsResponse"];
+                };
+            };
+        };
+    };
+    get_recent_commissions_api_v1_referral_recent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralCommissionResponse"][];
+                };
+            };
+        };
+    };
+    list_partner_codes_api_v1_partner_codes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeResponse"][];
+                };
+            };
+        };
+    };
+    create_partner_code_api_v1_partner_codes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_partner_code_markup_api_v1_partner_codes__code_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMarkupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_dashboard_api_v1_partner_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDashboardResponse"];
+                };
+            };
+        };
+    };
+    list_partner_earnings_api_v1_partner_earnings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerEarningResponse"][];
+                };
+            };
+        };
+    };
+    bind_to_partner_api_v1_partner_bind_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BindPartnerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_promote_partner_api_v1_admin_partners_promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotePartnerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_wallet_api_v1_wallet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletResponse"];
+                };
+            };
+        };
+    };
+    list_wallet_transactions_api_v1_wallet_transactions_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletTransactionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_withdrawal_api_v1_wallet_withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_withdrawals_api_v1_wallet_withdrawals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"][];
+                };
+            };
+        };
+    };
+    admin_topup_wallet_api_v1_admin_wallets__user_id__topup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTopupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletTransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_wallet_api_v1_admin_wallets__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_pending_withdrawals_api_v1_admin_withdrawals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"][];
+                };
+            };
+        };
+    };
+    admin_approve_withdrawal_api_v1_admin_withdrawals__withdrawal_id__approve_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                withdrawal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminProcessWithdrawalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_reject_withdrawal_api_v1_admin_withdrawals__withdrawal_id__reject_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                withdrawal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminProcessWithdrawalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_status_api_v1_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
                 };
             };
         };
@@ -7176,6 +9915,94 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    register_fcm_token_api_v1_users_me_fcm_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FCMTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FCMTokenResponse"];
+                };
+            };
+            /** @description Missing or invalid authentication token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User account is inactive */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unregister_fcm_token_api_v1_users_me_fcm_token_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FCMTokenDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid authentication token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User account is inactive */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7840,26 +10667,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-        };
-    };
-    metrics_endpoint_metrics_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
         };

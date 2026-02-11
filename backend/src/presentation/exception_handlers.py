@@ -5,6 +5,7 @@ LOW-005: All handlers include request_id for tracing and return it in responses.
 
 import logging
 
+import structlog
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -29,7 +30,7 @@ from src.domain.exceptions.domain_errors import (
 )
 from src.presentation.middleware.request_id import get_request_id
 
-logger = logging.getLogger("cybervpn.exceptions")
+logger = structlog.get_logger("cybervpn.exceptions")
 
 
 def _get_request_id_header() -> dict[str, str]:
@@ -352,6 +353,15 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unhandled exceptions - 500 Internal Server Error (no stack trace leak)."""
     request_id = get_request_id()
+
+    # Capture exception in Sentry if configured
+    try:
+        import sentry_sdk
+
+        sentry_sdk.capture_exception(exc)
+    except ImportError:
+        pass  # Sentry not installed or not configured
+
     logger.exception(
         "Unhandled exception",
         extra={

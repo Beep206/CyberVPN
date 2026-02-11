@@ -1,20 +1,40 @@
 import 'package:flutter/gestures.dart';
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
+import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/apple_sign_in_service.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/google_sign_in_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/animated_form_field.dart';
+
+/// Feature flag: Enable OTP email verification after registration.
+///
+/// When `true`, registration will redirect to OTP verification screen
+/// instead of immediately logging in the user.
+///
+/// **Requirements for enabling:**
+/// - Backend must implement POST /api/v1/auth/verify-email ✅ Aligned (BF2-2)
+/// - Backend must implement POST /api/v1/auth/resend-otp ✅ Aligned (BF2-2)
+/// - Backend must send OTP email on successful registration
+/// - Backend must NOT return tokens on registration (only on OTP verification)
+///
+/// Set to `false` for immediate login after registration.
+/// Set to `true` for OTP verification flow (enabled in Task MF2-2).
+const bool _kEnableOtpVerification = true;
 
 /// Registration screen with email, password (with strength indicator),
 /// confirm-password, optional referral code, and T&C acceptance.
@@ -186,6 +206,114 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
   // ── Submit ────────────────────────────────────────────────────────
 
+  /// Handle Google Sign-In with native SDK + backend OAuth flow.
+  Future<void> _handleGoogleSignIn() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      // Step 1: Get state token from backend
+      final apiClient = ref.read(apiClientProvider);
+      final oauthDataSource = OAuthRemoteDataSourceImpl(apiClient);
+      const redirectUri = 'cybervpn://oauth/callback';
+
+      final authorizeResponse = await oauthDataSource.getAuthorizeUrl(
+        provider: 'google',
+        redirectUri: redirectUri,
+      );
+
+      // Step 2: Trigger native Google Sign-In
+      final googleService = ref.read(googleSignInServiceProvider);
+      final googleResult = await googleService.signIn();
+
+      if (googleResult == null) {
+        // User cancelled
+        return;
+      }
+
+      if (googleResult.serverAuthCode == null) {
+        throw Exception('No server auth code received from Google');
+      }
+
+      // Step 3: Exchange auth code for JWT tokens via backend
+      final loginResponse = await oauthDataSource.loginCallback(
+        provider: 'google',
+        code: googleResult.serverAuthCode!,
+        state: authorizeResponse.state,
+        redirectUri: redirectUri,
+      );
+
+      // Step 4: Store tokens and navigate
+      final secureStorage = ref.read(secureStorageProvider);
+      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
+      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+
+      if (!mounted) return;
+
+      // Navigate to home
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorAuthenticationFailed),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  /// Handle Apple Sign-In with native SDK + backend OAuth flow.
+  Future<void> _handleAppleSignIn() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      // Step 1: Get state token from backend
+      final apiClient = ref.read(apiClientProvider);
+      final oauthDataSource = OAuthRemoteDataSourceImpl(apiClient);
+      const redirectUri = 'cybervpn://oauth/callback';
+
+      final authorizeResponse = await oauthDataSource.getAuthorizeUrl(
+        provider: 'apple',
+        redirectUri: redirectUri,
+      );
+
+      // Step 2: Trigger native Apple Sign-In
+      final appleService = ref.read(appleSignInServiceProvider);
+      final appleResult = await appleService.signIn();
+
+      if (appleResult == null) {
+        // User cancelled
+        return;
+      }
+
+      // Step 3: Exchange auth code for JWT tokens via backend
+      final loginResponse = await oauthDataSource.loginCallback(
+        provider: 'apple',
+        code: appleResult.authorizationCode,
+        state: authorizeResponse.state,
+        redirectUri: redirectUri,
+      );
+
+      // Step 4: Store tokens and navigate
+      final secureStorage = ref.read(secureStorageProvider);
+      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
+      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+
+      if (!mounted) return;
+
+      // Navigate to home
+      context.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.errorAuthenticationFailed),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -235,7 +363,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         );
       case AuthAuthenticated():
         if (!mounted) return;
-        context.go('/connection');
+        // TODO(backend): Once backend implements OTP verification flow,
+        // set _kEnableOtpVerification to true at the top of this file.
+        if (_kEnableOtpVerification) {
+          // Redirect to OTP verification screen instead of auto-login
+          context.go('/otp-verification?email=${Uri.encodeComponent(identifier)}');
+        } else {
+          // Current behavior: immediate login after registration
+          context.go('/connection');
+        }
       default:
         break;
     }
@@ -252,6 +388,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final isLoading = authState is AuthLoading;
 
     // Listen for external auth state changes (e.g. from social login).
+    // Note: Social logins (Telegram, etc.) bypass OTP verification since
+    // the provider has already verified the user's identity.
     ref.listen<AsyncValue<AuthState>>(authProvider, (_, next) {
       if (next.value is AuthAuthenticated) {
         context.go('/connection');
@@ -344,7 +482,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           isLoading: ref.watch(isTelegramAuthLoadingProvider),
                         ),
                         const SizedBox(height: 16),
+                      ],
 
+                      // ── Google OAuth ─────────────────────────────
+                      SocialLoginButton(
+                        icon: Icons.g_mobiledata,
+                        label: l10n.continueWithGoogle,
+                        onPressed: () => unawaited(_handleGoogleSignIn()),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Apple OAuth (iOS only) ───────────────────
+                      if (Platform.isIOS) ...[
+                        SocialLoginButton(
+                          icon: Icons.apple,
+                          label: l10n.continueWithApple,
+                          onPressed: () => unawaited(_handleAppleSignIn()),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── Divider (only if Telegram is available) ──
+                      if (ref.watch(isTelegramLoginAvailableProvider)) ...[
                         // ── Divider ──────────────────────────────────
                         Row(
                           children: [
