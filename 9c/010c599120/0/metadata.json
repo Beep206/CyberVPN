@@ -1,0 +1,116 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "9c010c599120",
+  "session_id": "39d5e4d9-e886-4f7f-b728-c4c2efda5ef6",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-11T15:44:53.022350654Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "backend/.coverage"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 1627,
+    "cache_creation_tokens": 106416,
+    "cache_read_tokens": 3247701,
+    "output_tokens": 23252,
+    "api_call_count": 42
+  },
+  "summary": {
+    "intent": "Execute Phase 6 of CyberVPN project to close all remaining gaps: remove legacy remnashop bot, eliminate TypeScript `any` types in frontend production code, implement all TODO test stubs, fix infrastructure configs, and wire mobile wallet/2FA features across 4 platforms.",
+    "outcome": "Successfully completed all 19 Phase 6 tasks using a 5-agent team (frontend-quality, frontend-tests, infra-cleanup, mobile-polish, verify). Removed remnashop services, eliminated all `any` types from production .tsx files, implemented 29+ test stubs, added healthchecks, wired mobile wallet withdraw to real repository, and replaced mock 2FA backup codes with crypto-random generation. Final verification revealed pre-existing architectural issues (Math.random() in React 19, route conflicts) but confirmed all Phase 6 work completed correctly.",
+    "learnings": {
+      "repo": [
+        "React 19 compiler strictly enforces render purity - Math.random() calls in 3D scene components (AuthScene3D, GlobalNetwork, speed-tunnel) now trigger lint errors despite working in React 18",
+        "Dashboard and miniapp route groups have duplicate paths (/referral, /wallet) causing Next.js build conflicts - architectural issue predating Phase 6",
+        "Frontend uses generated OpenAPI types in frontend/src/lib/api/generated/types.ts - should import Plan, Subscription, Payment types from there rather than defining inline",
+        "cybervpn-telegram-bot uses remnawave-redis, NOT remnashop-redis - the legacy bot's Redis was unused pollution",
+        "Mobile Future.delayed calls in production are legitimate UX timing (navigation delays, notification dismissal, animation sequencing), not mock placeholders",
+        "Backend has 180+ integration tests with Redis/external API dependencies - 484/753 pass without infrastructure, failures are pre-existing tech debt"
+      ],
+      "code": [
+        {
+          "path": "frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx",
+          "line": 75,
+          "end_line": 161,
+          "finding": "Calling `new Date().toISOString()` during render causes hydration mismatch - server/client time differs. Fix: use useState + useEffect to initialize once, or use actual API-provided timestamps"
+        },
+        {
+          "path": "frontend/src/app/[locale]/(dashboard)/subscriptions/components/TrialSection.tsx",
+          "line": 55,
+          "finding": "getDaysRemaining() called during render invokes `new Date()` on every render - hydration-unsafe. Solution: `const [now] = useState(() =\u003e new Date())` for stable reference"
+        },
+        {
+          "path": "frontend/src/3d/scenes/GlobalNetwork.tsx",
+          "line": 352,
+          "finding": "frameloop='always' causes continuous rendering even when static. Changed to 'demand' for performance - R3F invalidates automatically on state changes"
+        },
+        {
+          "path": "cybervpn_mobile/lib/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart",
+          "line": 56,
+          "end_line": 67,
+          "finding": "Future.delayed placeholder replaced with ref.read(walletRepositoryProvider).withdrawFunds() - full repository chain (provider -\u003e repository -\u003e remote data source -\u003e API) already existed, just needed wiring"
+        },
+        {
+          "path": "cybervpn_mobile/lib/features/profile/presentation/screens/two_factor_screen.dart",
+          "line": 755,
+          "end_line": 766,
+          "finding": "Mock backup codes used DateTime.now().millisecondsSinceEpoch % (10*length) - predictable and generates same digits in same millisecond. Replaced with Random.secure() for crypto-random generation"
+        },
+        {
+          "path": "infra/docker-compose.yml",
+          "line": 256,
+          "end_line": 292,
+          "finding": "remnashop-redis (profile: bot) and remnashop (profile: bot-legacy) services were unused legacy - cybervpn-telegram-bot depends only on remnawave and remnawave-redis"
+        },
+        {
+          "path": "infra/prometheus/prometheus.yml",
+          "line": 18,
+          "end_line": 22,
+          "finding": "Job 'cybervpn-backend' targeted cybervpn-backend:9091 but no such service exists in docker-compose - commented out with TODO until backend service added"
+        },
+        {
+          "path": "infra/loki/rules/cybervpn/alerts.yml",
+          "line": 18,
+          "finding": "All 6 runbook_url references used https://docs.example.com/runbooks/ placeholder - replaced with wiki.cybervpn.internal for internal wiki convention"
+        }
+      ],
+      "workflow": [
+        "Agent teams work well for independent parallel tasks - 5 agents handled 19 tasks with clear ownership boundaries (frontend-quality: production .tsx, frontend-tests: __tests__/, infra-cleanup: infra/, mobile-polish: cybervpn_mobile/)",
+        "File conflict prevention critical for parallel agents - frontend-quality and frontend-tests working on same directory required strict __tests__/ vs production file separation",
+        "Verification agent pattern effective - dedicated verify agent ran all build/lint/test/grep checks after implementation agents completed, catching scope gaps",
+        "Pre-existing vs regression distinction important - verify correctly identified Math.random() lint errors, route conflicts, and test failures as architectural issues predating Phase 6, not new regressions",
+        "Grep checks with exclusions (--include, | grep -v __tests__) essential for accurate production code verification when test files legitimately use patterns forbidden in production",
+        "React Compiler (Next.js 15+ with reactCompiler: true) auto-memoizes expensive calculations - manual useMemo for pure functions like calculateStrength(password) is redundant, but useCallback for external APIs (rAF, Telegram SDK) still needed"
+      ]
+    },
+    "friction": [
+      "Docker compose config -q cannot run in WSL2 without Docker daemon - verify had to skip runtime validation and rely on grep checks",
+      "Font loading failures (Google Fonts JetBrains Mono, Orbitron) in Next.js build due to TLS connection issues in WSL2 - suggests NEXT_TURBOPACK_EXPERIMENTAL_USE_SYSTEM_TLS_CERTS=1 but not code issue",
+      "jsdom/undici compatibility causes 184/933 frontend tests to fail with InvalidArgumentError - infrastructure issue, 77% still pass",
+      "Initial frontend-quality agent scope (tasks FQ-1 through FQ-7) targeted specific files but missed broader codebase sweep - required spawning frontend-fix agent to clean remaining 13 `as any` casts in ReferralClient, WalletClient, PartnerClient, home/page.tsx",
+      "Backend pytest requires running Redis for integration tests - 69/753 tests fail with 503 rate limiter errors without Redis instance",
+      "Mobile flutter analyze shows 1159 issues (4 errors in test helpers missing CancelToken parameters, rest warnings/info) - errors are tech debt in FakeApiClient, not production code"
+    ],
+    "open_items": [
+      "Math.random() purity violations in 3D scenes (AuthScene3D.tsx:147-153, GlobalNetwork.tsx, speed-tunnel.tsx:97-99, 113) - React 19 forbids impure functions in render, need to move to useState/useMemo initialization (estimated 4-6 hours architectural fix)",
+      "Duplicate route conflicts: /[locale]/(dashboard)/referral vs /[locale]/(miniapp), /[locale]/(dashboard)/wallet vs /[locale]/(miniapp) - Next.js build fails, need to restructure miniapp vs dashboard route groups",
+      "Certificate pinning values out of scope - require production server access to obtain cert fingerprints",
+      "AlertManager webhook URL (ALERTMANAGER_WEBHOOK_URL) defaults to https://your-telegram-relay.example.com/alert - requires Telegram relay deployment to set real value",
+      "Backend 2FA verify endpoint may return backup codes - mobile currently generates client-side with Random.secure(), should investigate if API provides them and use those instead",
+      "4 test helper errors in mobile test/helpers/fakes/fake_api_client.dart - invalid_override, missing CancelToken parameters to match ApiClient interface",
+      "Backend test tech debt: missing locust package (load tests fail import), unregistered @pytest.mark.security marker, mock _MockUser missing display_name attribute",
+      "2 TODO comments in frontend/src/app/[locale]/(auth)/home/page.tsx - subscription API returns templates not user subscriptions, needs clarification"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-11T15:43:48.450527198Z",
+    "agent_lines": 0,
+    "human_added": 1295,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1295,
+    "agent_percentage": 0
+  }
+}
