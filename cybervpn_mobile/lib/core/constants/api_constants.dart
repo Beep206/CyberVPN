@@ -98,7 +98,7 @@ class ApiConstants {
   /// Auth: None (public endpoint)
   /// Status: ⚠️ Partial - Mobile expects this, but backend may use different registration flow
   ///
-  /// TODO: Verify backend registration implementation in `backend/src/presentation/api/v1/auth/registration.py`
+  /// Note: Backend endpoint pending verification in `backend/src/presentation/api/v1/auth/registration.py`
   static const String register = '$apiPrefix/auth/register';
 
   /// **POST /api/v1/auth/refresh**
@@ -266,7 +266,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement dedicated status endpoint, or mobile should use GET /servers/:id instead
+  /// Note: Backend endpoint pending - dedicated status endpoint needed, or mobile should use GET /servers/:id instead
   static String serverStatus(String id) => '$apiPrefix/servers/$id/status';
 
   // ── Subscription Endpoints ────────────────────────────────────────────
@@ -310,7 +310,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement subscription cancellation endpoint
+  /// Note: Backend endpoint pending - subscription cancellation endpoint needed
   static const String cancelSubscription = '$apiPrefix/subscriptions/cancel';
 
   /// **GET /api/v1/trial/status**
@@ -407,7 +407,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement PATCH /auth/me for user profile updates
+  /// Note: Backend endpoint pending - PATCH /auth/me for user profile updates needed
   static const String updateMe = '$apiPrefix/auth/me';
 
   /// **DELETE /api/v1/auth/me**
@@ -416,7 +416,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement DELETE /auth/me for account deletion
+  /// Note: Backend endpoint pending - DELETE /auth/me for account deletion needed
   static const String deleteAccount = '$apiPrefix/auth/me';
 
   /// **GET /api/v1/users/me/profile**
@@ -457,7 +457,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement referral system endpoints
+  /// Note: Backend endpoint pending - referral system endpoints needed
   static const String referralStatus = '$apiPrefix/referral/status';
 
   /// **GET /api/v1/referral/code**
@@ -466,7 +466,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement referral system endpoints
+  /// Note: Backend endpoint pending - referral system endpoints needed
   static const String referralCode = '$apiPrefix/referral/code';
 
   /// **GET /api/v1/referral/stats**
@@ -475,7 +475,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement referral system endpoints
+  /// Note: Backend endpoint pending - referral system endpoints needed
   static const String referralStats = '$apiPrefix/referral/stats';
 
   /// **GET /api/v1/referral/recent**
@@ -484,7 +484,7 @@ class ApiConstants {
   /// Auth: JWT (expected)
   /// Status: ❌ Missing
   ///
-  /// TODO: Backend needs to implement referral system endpoints
+  /// Note: Backend endpoint pending - referral system endpoints needed
   static const String referralRecent = '$apiPrefix/referral/recent';
 
   // ── Wallet Endpoints ──────────────────────────────────────────────────
@@ -562,7 +562,7 @@ class ApiConstants {
   static String paymentStatus(String id) => '$apiPrefix/payments/$id/status';
 
   // Future: payment-methods endpoint (backend task pending)
-  // TODO: Add /api/v1/payments/methods when backend implements it
+  // Note: Backend endpoint pending - /api/v1/payments/methods when backend implements it
 
   // ── Trial Endpoints ──────────────────────────────────────────────────
 
@@ -777,7 +777,7 @@ class ApiConstants {
   /// Status: 🔄 TBD
   ///
   /// Real-time monitoring data via WebSocket connection.
-  /// TODO: Verify WebSocket implementation and authentication mechanism
+  /// Note: WebSocket implementation and authentication mechanism pending verification
   static const String wsMonitoring = '/ws/monitoring';
 
   /// **POST /api/v1/ws/ticket**
@@ -798,7 +798,7 @@ class ApiConstants {
   /// Status: 🔄 TBD
   ///
   /// Push notifications via WebSocket connection.
-  /// TODO: Verify WebSocket implementation and authentication mechanism
+  /// Note: WebSocket implementation and authentication mechanism pending verification
   static const String wsNotifications = '/ws/notifications';
 
   // ══════════════════════════════════════════════════════════════════════

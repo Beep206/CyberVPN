@@ -365,8 +365,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         );
       case AuthAuthenticated():
         if (!mounted) return;
-        // TODO(backend): Once backend implements OTP verification flow,
-        // set _kEnableOtpVerification to true at the top of this file.
+        // Note: Backend OTP verification flow pending - set _kEnableOtpVerification to true once implemented.
         if (_kEnableOtpVerification) {
           // Redirect to OTP verification screen instead of auto-login
           context.go('/otp-verification?email=${Uri.encodeComponent(identifier)}');

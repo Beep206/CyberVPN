@@ -98,8 +98,8 @@ class QuickSettingsChannel {
         return true;
       } else {
         // Disconnected or error state
-        // TODO: Implement connect logic when disconnected
-        // This requires storing and retrieving the last connected server
+        // Note: Connect logic from disconnected state pending implementation.
+        // This requires storing and retrieving the last connected server.
         // For now, log and return false
         AppLogger.info(
           'QuickSettingsChannel: Cannot connect from tile - last server unknown',

@@ -74,3 +74,73 @@ websocket_auth_method_total = Counter(
     "Total WebSocket authentications by method",
     ["method"],  # "ticket" only (token auth removed in v2.0)
 )
+
+# Wallet operations metrics
+wallet_operations_total = Counter(
+    "wallet_operations_total",
+    "Total wallet operations",
+    ["operation", "status"],  # operation: credit/debit/freeze/unfreeze, status: success/failure
+)
+
+# OAuth operations metrics
+oauth_attempts_total = Counter(
+    "oauth_attempts_total",
+    "Total OAuth authentication attempts",
+    ["provider", "status"],  # provider: github/google/telegram, status: success/failure
+)
+
+# 2FA operations metrics
+two_factor_operations_total = Counter(
+    "two_factor_operations_total",
+    "Total 2FA operations",
+    ["operation", "status"],  # operation: enable/disable/verify, status: success/failure
+)
+
+# Profile update metrics
+profile_updates_total = Counter(
+    "profile_updates_total",
+    "Total profile updates",
+    ["field"],  # field: email/password/preferences/display_name
+)
+
+# Server query metrics
+server_queries_total = Counter(
+    "server_queries_total",
+    "Total server queries",
+    ["operation"],  # operation: list/get/create/update/delete
+)
+
+# Plan query metrics
+plan_queries_total = Counter(
+    "plan_queries_total",
+    "Total subscription plan queries",
+    ["operation"],  # operation: list/get/activate
+)
+
+# Invite operations metrics
+invite_operations_total = Counter(
+    "invite_operations_total",
+    "Total invite code operations",
+    ["operation", "status"],  # operation: create/use/list, status: success/failure
+)
+
+# Promo code operations metrics
+promo_operations_total = Counter(
+    "promo_operations_total",
+    "Total promo code operations",
+    ["operation", "status"],  # operation: create/use/validate, status: success/failure
+)
+
+# Referral operations metrics
+referral_operations_total = Counter(
+    "referral_operations_total",
+    "Total referral operations",
+    ["operation"],  # operation: register/claim/list_earnings
+)
+
+# Partner operations metrics
+partner_operations_total = Counter(
+    "partner_operations_total",
+    "Total partner operations",
+    ["operation"],  # operation: create/update/track_sale
+)

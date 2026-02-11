@@ -118,5 +118,4 @@ If you need durable queues in the future, enable AOF: `--appendonly yes --append
 
 ## Notes
 - If you change `METRICS_PASS` in `infra/.env`, update `infra/prometheus/prometheus.yml`.
-- `infra/postgres/init/001-create-remnashop.sql` auto-creates the `remnashop` database.
-- Remnashop and Subscription Page require a Remnawave API token from the panel.
+- Subscription Page requires a Remnawave API token from the panel.

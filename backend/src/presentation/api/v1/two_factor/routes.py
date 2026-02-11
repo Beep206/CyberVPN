@@ -20,6 +20,7 @@ from src.application.services.reauth_service import ReauthenticationRequired, Re
 from src.application.use_cases.auth.two_factor import TwoFactorUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.totp.totp_service import TOTPService
 from src.presentation.dependencies.auth import get_current_active_user
@@ -159,6 +160,7 @@ async def setup_2fa(
         extra={"user_id": str(user.id)},
     )
 
+    track_2fa_operation(operation="setup", success=True)
     return TwoFactorSetupResponse(
         secret=result["secret"],
         qr_uri=result["qr_uri"],
@@ -191,6 +193,7 @@ async def verify_2fa(
     secret = await pending_service.verify_and_consume(str(user.id), body.code)
 
     if not secret:
+        track_2fa_operation(operation="verify", success=False)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid verification code or no pending 2FA setup.",
@@ -210,6 +213,7 @@ async def verify_2fa(
         extra={"user_id": str(user.id)},
     )
 
+    track_2fa_operation(operation="enable", success=True)
     return TwoFactorStatusResponse(status="enabled")
 
 
@@ -240,6 +244,7 @@ async def validate_2fa(
     if valid:
         await _reset_verify_rate_limit(str(user.id), redis_client)
 
+    track_2fa_operation(operation="validate", success=valid)
     return TwoFactorValidateResponse(valid=valid)
 
 
@@ -307,6 +312,7 @@ async def disable_2fa(
         extra={"user_id": str(user.id)},
     )
 
+    track_2fa_operation(operation="disable", success=True)
     return TwoFactorStatusResponse(status="disabled", recovery_codes=recovery_codes)
 
 

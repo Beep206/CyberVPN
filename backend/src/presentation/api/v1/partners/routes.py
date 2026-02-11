@@ -21,6 +21,7 @@ from src.domain.exceptions import (
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_partner_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
@@ -60,10 +61,13 @@ async def create_partner_code(
     try:
         code_model = await use_case.execute(user_id, body.code, body.markup_pct)
     except MarkupExceedsLimitError as exc:
+        track_partner_operation(operation="create_code")
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
     except DomainError as exc:
+        track_partner_operation(operation="create_code")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
 
+    track_partner_operation(operation="create_code")
     return code_model
 
 
@@ -75,6 +79,7 @@ async def list_partner_codes(
     """List all partner codes owned by the authenticated user."""
     partner_repo = PartnerRepository(db)
     codes = await partner_repo.get_codes_by_partner(user_id)
+    track_partner_operation(operation="list_codes")
     return codes
 
 
@@ -103,6 +108,7 @@ async def update_partner_code_markup(
 
     code_model.markup_pct = body.markup_pct
     updated = await partner_repo.update_code(code_model)
+    track_partner_operation(operation="update_code")
     return updated
 
 
@@ -121,6 +127,8 @@ async def get_partner_dashboard(
         result = await use_case.execute(user_id)
     except DomainError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
+
+    track_partner_operation(operation="dashboard")
 
     return PartnerDashboardResponse(
         total_clients=result["total_clients"],
@@ -147,6 +155,7 @@ async def list_partner_earnings(
     """List recent earnings for the authenticated partner."""
     partner_repo = PartnerRepository(db)
     earnings = await partner_repo.get_earnings_by_partner(user_id)
+    track_partner_operation(operation="list_earnings")
     return earnings
 
 
@@ -168,6 +177,7 @@ async def bind_to_partner(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    track_partner_operation(operation="bind")
     return {"status": "bound"}
 
 
@@ -189,4 +199,5 @@ async def admin_promote_partner(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    track_partner_operation(operation="promote")
     return {"status": "promoted", "user_id": str(user.id)}

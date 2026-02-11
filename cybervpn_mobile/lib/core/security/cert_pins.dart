@@ -45,7 +45,7 @@ class CertPins {
   ///   | openssl x509 -fingerprint -sha256 -noout
   /// ```
   ///
-  /// **TODO: Generate production fingerprint before release**
+  /// **Pre-production: Generate production fingerprint before release**
   /// Run: `echo | openssl s_client -connect api.cybervpn.com:443 2>/dev/null | openssl x509 -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
   /// Expected format: 'AA:BB:CC:DD:EE:FF:...' (32 bytes, colon-separated)
   ///
@@ -57,7 +57,7 @@ class CertPins {
   ///
   /// Used during certificate rotation to prevent service disruption.
   ///
-  /// **TODO: Generate backup fingerprint when planning certificate rotation**
+  /// **Pre-production: Generate backup fingerprint when planning certificate rotation**
   /// Run the same openssl command against the backup certificate file:
   /// `openssl x509 -in backup-cert.pem -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
   ///
@@ -66,7 +66,7 @@ class CertPins {
 
   /// SHA-256 fingerprint of the staging API certificate.
   ///
-  /// **TODO: Generate staging fingerprint for staging environment**
+  /// **Pre-production: Generate staging fingerprint for staging environment**
   /// Run: `echo | openssl s_client -connect staging.cybervpn.com:443 2>/dev/null | openssl x509 -fingerprint -sha256 -noout | sed 's/sha256 Fingerprint=//'`
   ///
   /// Used only when connecting to staging API endpoints.

@@ -28,16 +28,20 @@ const shareTechMono = Share_Tech_Mono({
     display: "swap",
 });
 
-export const metadata: Metadata = {
-    title: "VPN Command Center",
-    description: "Advanced Cyberpunk VPN Admin Interface",
-    metadataBase: new URL('https://vpn-admin.example.com'), // Replace with actual domain in production
-    alternates: {
-        languages: Object.fromEntries(
-            locales.map((locale) => [locale, `/${locale}`])
-        ),
-    },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params;
+    return {
+        title: "VPN Command Center",
+        description: "Advanced Cyberpunk VPN Admin Interface",
+        metadataBase: new URL('https://vpn-admin.example.com'),
+        alternates: {
+            languages: Object.fromEntries(
+                locales.map((l) => [l, `/${l}`])
+            ),
+            canonical: `/${locale}`,
+        },
+    };
+}
 
 import { JsonLd } from '@/shared/lib/json-ld';
 import type { Organization, WebSite } from 'schema-dts';

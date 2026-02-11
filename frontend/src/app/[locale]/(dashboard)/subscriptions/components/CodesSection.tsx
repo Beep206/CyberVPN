@@ -12,8 +12,14 @@ import { AxiosError } from 'axios';
 
 interface InviteCode {
   code: string;
-  expires_at?: string;
+  expires_at?: string | null;
   uses_remaining?: number;
+}
+
+interface PromoDiscount {
+  discount_percent?: number;
+  discount_amount?: number;
+  expires_at?: string;
 }
 
 export function CodesSection() {
@@ -29,7 +35,7 @@ export function CodesSection() {
   const [promoCode, setPromoCode] = useState('');
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [promoError, setPromoError] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState<any>(null);
+  const [promoDiscount, setPromoDiscount] = useState<PromoDiscount | null>(null);
 
   // Fetch user's invite codes
   const { data: myInvites, isLoading: loadingInvites } = useQuery({
@@ -53,10 +59,8 @@ export function CodesSection() {
     setInviteSuccess('');
 
     try {
-      const response = await invitesApi.redeem({ code: inviteCode });
-      setInviteSuccess(
-        response.data.message || 'Invite code redeemed successfully!'
-      );
+      await invitesApi.redeem({ code: inviteCode });
+      setInviteSuccess('Invite code redeemed successfully!');
       setInviteCode('');
 
       // Refetch user invites after redemption

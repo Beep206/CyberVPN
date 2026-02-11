@@ -67,7 +67,8 @@ async def db() -> AsyncGenerator:
 
     Creates tables, yields session, then rolls back and cleans up.
     """
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
     from src.infrastructure.database.session import Base
 
     # Use test database from environment (set by test_settings fixture)

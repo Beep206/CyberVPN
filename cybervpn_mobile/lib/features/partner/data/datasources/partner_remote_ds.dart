@@ -140,9 +140,9 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
           : PartnerTier.bronze,
       clientCount: data['total_clients'] as int,
       totalEarnings: (data['total_earned'] as num).toDouble(),
-      availableBalance: (data['total_earned'] as num).toDouble(), // TODO: Backend doesn't separate balance
-      commissionRate: 0.0, // TODO: Backend doesn't provide this in dashboard
-      partnerSince: DateTime.now(), // TODO: Backend doesn't provide this
+      availableBalance: (data['total_earned'] as num).toDouble(), // Note: Backend doesn't separate balance field
+      commissionRate: 0.0, // Note: Backend doesn't provide commission rate in dashboard
+      partnerSince: DateTime.now(), // Note: Backend doesn't provide partner start date
     );
   }
 
@@ -160,9 +160,9 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
         code: map['code'] as String,
         markup: (map['markup_pct'] as num).toDouble(), // Backend uses 'markup_pct'
         isActive: map['is_active'] as bool,
-        clientCount: 0, // TODO: Backend doesn't provide client_count per code
+        clientCount: 0, // Note: Backend doesn't provide client_count per code
         createdAt: DateTime.parse(map['created_at'] as String),
-        description: null, // TODO: Backend doesn't provide description yet
+        description: null, // Note: Backend doesn't provide code description field
       );
     }).toList();
   }

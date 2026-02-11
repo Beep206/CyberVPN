@@ -9,7 +9,7 @@ Requires: AsyncClient, test database, Redis, Remnawave mock.
 """
 
 import secrets
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient

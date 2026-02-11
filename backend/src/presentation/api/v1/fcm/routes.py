@@ -5,18 +5,16 @@ Cloud Messaging tokens so the backend can send push notifications.
 
 Both endpoints require authentication -- the token is associated with
 the currently authenticated user.
-
-NOTE: This is a **placeholder** implementation.  The endpoints accept
-valid schemas and return appropriate responses, but token persistence
-will be added once the FCM infrastructure layer is in place.
 """
 
 import logging
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.infrastructure.database.repositories.fcm_token_repo import FCMTokenRepositoryImpl
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.database import get_db
 
 from .schemas import FCMTokenDeleteRequest, FCMTokenRequest, FCMTokenResponse
 
@@ -44,26 +42,36 @@ router = APIRouter(prefix="/users/me/fcm-token", tags=["fcm"])
 async def register_fcm_token(
     body: FCMTokenRequest,
     _user=Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ) -> FCMTokenResponse:
     """Register an FCM push-notification token for the current user.
 
-    Placeholder implementation -- logs the registration and returns the
-    token data without persisting it.  Real storage will be wired once
-    the infrastructure repository is ready.
+    Persists the token to the database using upsert (INSERT ... ON CONFLICT DO UPDATE).
+    If a token already exists for this (user_id, device_id), it will be updated.
     """
+    repo = FCMTokenRepositoryImpl(db)
+
+    fcm_token = await repo.upsert(
+        user_id=_user.id,
+        token=body.token,
+        device_id=body.device_id,
+        platform=body.platform,
+    )
+
     logger.info(
-        "FCM token registered (placeholder)",
+        "FCM token registered",
         extra={
             "user_id": str(_user.id),
             "device_id": body.device_id,
             "platform": body.platform,
         },
     )
+
     return FCMTokenResponse(
-        token=body.token,
-        device_id=body.device_id,
-        platform=body.platform,
-        created_at=datetime.now(UTC),
+        token=fcm_token.token,
+        device_id=fcm_token.device_id,
+        platform=fcm_token.platform,
+        created_at=fcm_token.created_at,
     )
 
 
@@ -84,14 +92,22 @@ async def register_fcm_token(
 async def unregister_fcm_token(
     body: FCMTokenDeleteRequest,
     _user=Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
 ) -> None:
     """Unregister an FCM push-notification token for the current user.
 
-    Placeholder implementation -- logs the removal without touching
-    any persistent store.
+    Deletes the token from the database. If the token doesn't exist, this
+    operation is idempotent and returns successfully.
     """
+    repo = FCMTokenRepositoryImpl(db)
+
+    await repo.delete(
+        user_id=_user.id,
+        device_id=body.device_id,
+    )
+
     logger.info(
-        "FCM token unregistered (placeholder)",
+        "FCM token unregistered",
         extra={
             "user_id": str(_user.id),
             "device_id": body.device_id,

@@ -24,6 +24,7 @@ from src.domain.exceptions import (
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_invite_operation
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
@@ -57,12 +58,16 @@ async def redeem_invite(
     try:
         result = await use_case.execute(code=body.code, user_id=user_id)
     except InviteCodeNotFoundError:
+        track_invite_operation(operation="redeem", success=False)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invite code not found") from None
     except InviteCodeAlreadyUsedError:
+        track_invite_operation(operation="redeem", success=False)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invite code already used") from None
     except InviteCodeExpiredError:
+        track_invite_operation(operation="redeem", success=False)
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Invite code expired") from None
 
+    track_invite_operation(operation="redeem", success=True)
     return InviteCodeResponse.model_validate(result)
 
 
@@ -80,6 +85,7 @@ async def list_my_invites(
     """List invite codes owned by the authenticated mobile user."""
     repo = InviteCodeRepository(db)
     invites = await repo.get_by_owner(owner_user_id=user_id, offset=offset, limit=limit)
+    track_invite_operation(operation="list", success=True)
     return [InviteCodeResponse.model_validate(inv) for inv in invites]
 
 
@@ -110,4 +116,5 @@ async def admin_create_invites(
         plan_id=body.plan_id,
     )
 
+    track_invite_operation(operation="create", success=True)
     return [InviteCodeResponse.model_validate(inv) for inv in created]
