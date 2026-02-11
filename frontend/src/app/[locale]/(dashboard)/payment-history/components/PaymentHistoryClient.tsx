@@ -8,7 +8,7 @@ export function PaymentHistoryClient() {
   const t = useTranslations('PaymentHistory');
   const { data: paymentsData, isLoading } = usePaymentHistory();
 
-  const payments = (paymentsData as any)?.payments || [];
+  const payments = paymentsData?.payments || [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -68,7 +68,7 @@ export function PaymentHistoryClient() {
           </div>
         ) : (
           <div className="space-y-2">
-            {payments.map((payment: any) => (
+            {payments.map((payment) => (
               <div
                 key={payment.id}
                 className="cyber-card p-4 flex items-center justify-between hover:bg-terminal-surface/50 transition-colors"
@@ -77,19 +77,15 @@ export function PaymentHistoryClient() {
                   {getStatusIcon(payment.status)}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="font-mono text-sm">{payment.description || payment.type || 'Payment'}</p>
+                      <p className="font-mono text-sm">{payment.provider} Payment</p>
                       <span className={`text-xs font-mono px-2 py-0.5 rounded border ${getStatusColor(payment.status)} border-current/30 bg-current/10`}>
                         {payment.status?.toUpperCase()}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span>{new Date(payment.created_at).toLocaleString()}</span>
-                      {payment.currency && (
-                        <span className="font-mono">{payment.currency.toUpperCase()}</span>
-                      )}
-                      {payment.invoice_id && (
-                        <span className="font-mono">ID: {payment.invoice_id.slice(0, 8)}...</span>
-                      )}
+                      <span className="font-mono">{payment.currency.toUpperCase()}</span>
+                      <span className="font-mono">ID: {payment.id.slice(0, 8)}...</span>
                     </div>
                   </div>
                 </div>

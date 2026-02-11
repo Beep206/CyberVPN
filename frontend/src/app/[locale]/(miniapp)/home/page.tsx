@@ -56,8 +56,9 @@ export default function MiniAppHomePage() {
     },
   });
 
-  // Find active subscription (type assertion since API returns flexible structure)
-  const activeSubscription = subscriptionsData?.find((sub: any) => sub.status === 'active') as any;
+  // Find active subscription (note: subscriptions API returns templates, not user subscriptions)
+  // TODO: Replace with proper user subscription endpoint when available
+  const activeSubscription = subscriptionsData?.[0];
   const hasActiveSubscription = !!activeSubscription;
   const isOnTrial = trialData?.is_trial_active || false;
   const canActivateTrial = trialData?.is_eligible || false;

@@ -15,7 +15,7 @@ groups:
         annotations:
           summary: "High error log rate detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} is producing more than 10 error logs per second for the last 5 minutes. Current rate: {{ $value | printf \"%.2f\" }} logs/sec."
-          runbook_url: "https://docs.example.com/runbooks/high-error-rate"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/high-error-rate"
 
       - alert: AuthFailureSpike
         expr: |
@@ -30,7 +30,7 @@ groups:
         annotations:
           summary: "Authentication failure spike detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} has more than 5 authentication failures per second for the last 3 minutes. This may indicate a brute-force attack. Current rate: {{ $value | printf \"%.2f\" }} failures/sec."
-          runbook_url: "https://docs.example.com/runbooks/auth-failure-spike"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/auth-failure-spike"
 
       - alert: DatabaseConnectionErrors
         expr: |
@@ -45,7 +45,7 @@ groups:
         annotations:
           summary: "Database connection errors detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} is experiencing database connection errors. Total errors in last 2 minutes: {{ $value }}."
-          runbook_url: "https://docs.example.com/runbooks/database-connection-errors"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/database-connection-errors"
 
       - alert: ExternalAPITimeouts
         expr: |
@@ -60,7 +60,7 @@ groups:
         annotations:
           summary: "External API timeouts detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} has more than 3 external API timeouts in the last 10 minutes (5m firing threshold). Total timeouts: {{ $value }}."
-          runbook_url: "https://docs.example.com/runbooks/external-api-timeouts"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/external-api-timeouts"
 
       - alert: CriticalLogMessages
         expr: |
@@ -75,7 +75,7 @@ groups:
         annotations:
           summary: "Critical log messages detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} has logged critical/fatal/panic messages. Count in last 5 minutes: {{ $value }}."
-          runbook_url: "https://docs.example.com/runbooks/critical-logs"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/critical-logs"
 
       - alert: HighMemoryUsageWarnings
         expr: |
@@ -90,4 +90,4 @@ groups:
         annotations:
           summary: "Memory usage warnings detected in {{ $labels.compose_service }}"
           description: "Service {{ $labels.compose_service }} is logging memory-related warnings. Count in last 5 minutes: {{ $value }}."
-          runbook_url: "https://docs.example.com/runbooks/high-memory-usage"
+          runbook_url: "https://wiki.cybervpn.internal/runbooks/high-memory-usage"

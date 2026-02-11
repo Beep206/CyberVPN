@@ -9,6 +9,22 @@ import { PurchaseConfirmModal } from './PurchaseConfirmModal';
 import { PlanCard } from './PlanCard';
 import { TrialSection } from './TrialSection';
 import { CodesSection } from './CodesSection';
+import type { components } from '@/lib/api/generated/types';
+
+// Type for subscription plans from API
+type SubscriptionPlan = components['schemas']['RemnavwavePlanResponse'];
+
+// Local interface for user subscription data (API returns subscription templates, not user subscriptions)
+interface UserSubscription {
+  uuid: string;
+  name?: string;
+  plan_name?: string;
+  plan_uuid?: string;
+  status?: string;
+  expires_at?: string;
+  created_at?: string;
+  is_active?: boolean;
+}
 
 /**
  * Subscriptions client component
@@ -21,11 +37,11 @@ export function SubscriptionsClient() {
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
 
   // Handle plan purchase - show confirmation modal
   const handlePurchase = (planUuid: string) => {
-    const plan = plans?.find((p: any) => p.uuid === planUuid);
+    const plan = plans?.find((p: SubscriptionPlan) => p.uuid === planUuid);
     if (plan) {
       setSelectedPlan(plan);
       setShowPurchaseModal(true);
@@ -57,7 +73,8 @@ export function SubscriptionsClient() {
   }
 
   // Type assertion - API currently returns templates, not user subscriptions
-  const activeSubscription = subscriptions?.find((sub: any) => sub.status === 'active');
+  // Cast to UserSubscription[] since actual API response differs from schema
+  const activeSubscription = (subscriptions as UserSubscription[] | undefined)?.find((sub) => sub.status === 'active');
 
   return (
     <div className="space-y-8">
@@ -75,16 +92,16 @@ export function SubscriptionsClient() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-2xl font-display text-neon-cyan">
-                  {(activeSubscription as any).plan_name || activeSubscription.name || 'Active Plan'}
+                  {activeSubscription.plan_name || activeSubscription.name || 'Active Plan'}
                 </h3>
                 <p className="text-muted-foreground font-mono text-sm mt-1">
-                  {t('status')}: <span className="text-matrix-green">{(activeSubscription as any).status}</span>
+                  {t('status')}: <span className="text-matrix-green">{activeSubscription.status}</span>
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">{t('expiresAt') || 'Expires'}</p>
                 <p className="font-mono text-neon-pink">
-                  {(activeSubscription as any).expires_at ? new Date((activeSubscription as any).expires_at).toLocaleDateString() : 'N/A'}
+                  {activeSubscription.expires_at ? new Date(activeSubscription.expires_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>
@@ -93,13 +110,13 @@ export function SubscriptionsClient() {
               <div>
                 <p className="text-xs text-muted-foreground uppercase">{t('startedAt') || 'Started'}</p>
                 <p className="font-mono text-sm mt-1">
-                  {(activeSubscription as any).created_at ? new Date((activeSubscription as any).created_at).toLocaleDateString() : 'N/A'}
+                  {activeSubscription.created_at ? new Date(activeSubscription.created_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase">{t('autoRenew') || 'Auto-Renew'}</p>
                 <p className="font-mono text-sm mt-1">
-                  {(activeSubscription as any).is_active ? t('enabled') || 'Enabled' : t('disabled') || 'Disabled'}
+                  {activeSubscription.is_active ? t('enabled') || 'Enabled' : t('disabled') || 'Disabled'}
                 </p>
               </div>
             </div>
@@ -155,14 +172,14 @@ export function SubscriptionsClient() {
         ) : plans && plans.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans
-              .filter((plan: any) => plan.isActive)
-              .map((plan: any) => (
+              .filter((plan: SubscriptionPlan) => plan.isActive)
+              .map((plan: SubscriptionPlan) => (
                 <PlanCard
                   key={plan.uuid}
                   plan={plan}
                   isCurrentPlan={
                     activeSubscription &&
-                    (activeSubscription as any).plan_uuid === plan.uuid
+                    activeSubscription.plan_uuid === plan.uuid
                   }
                   onPurchase={handlePurchase}
                 />
@@ -193,14 +210,14 @@ export function SubscriptionsClient() {
           </h2>
 
           <div className="space-y-3">
-            {subscriptions
-              .filter((sub: any) => sub.status !== 'active')
-              .map((sub: any) => (
+            {(subscriptions as UserSubscription[])
+              .filter((sub) => sub.status !== 'active')
+              .map((sub) => (
                 <div key={sub.uuid} className="cyber-card p-4 flex justify-between items-center">
                   <div>
                     <p className="font-mono text-sm">{sub.plan_name || 'Plan'}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(sub.created_at).toLocaleDateString()} - {new Date(sub.expires_at).toLocaleDateString()}
+                      {sub.created_at ? new Date(sub.created_at).toLocaleDateString() : 'N/A'} - {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : 'N/A'}
                     </p>
                   </div>
                   <span className={`font-mono text-xs px-3 py-1 rounded ${
@@ -222,8 +239,8 @@ export function SubscriptionsClient() {
           onSuccess={() => {
             refetch();
           }}
-          subscriptionName={(activeSubscription as any).plan_name || activeSubscription.name || 'subscription'}
-          expiresAt={(activeSubscription as any).expires_at}
+          subscriptionName={activeSubscription.plan_name || activeSubscription.name || 'subscription'}
+          expiresAt={activeSubscription.expires_at}
         />
       )}
 

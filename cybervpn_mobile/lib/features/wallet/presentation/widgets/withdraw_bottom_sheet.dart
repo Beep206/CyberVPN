@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 
 // ---------------------------------------------------------------------------
 // WithdrawBottomSheet
@@ -53,21 +54,42 @@ class _WithdrawBottomSheetState extends ConsumerState<WithdrawBottomSheet> {
 
     setState(() => _isWithdrawing = true);
 
-    // Simulate withdrawal processing
-    await Future.delayed(const Duration(milliseconds: 800));
+    final amount = double.parse(_amountController.text);
+    final method = _selectedMethod;
+    final details = <String, dynamic>{
+      'method': method,
+      'amount': amount,
+    };
+
+    final result = await ref.read(walletRepositoryProvider).withdrawFunds(
+      amount: amount,
+      method: method,
+      details: details,
+    );
 
     if (!mounted) return;
 
-    // TODO: Wire actual wallet repository withdraw method
-    // For now, show placeholder message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Withdrawal initiated. This feature will be fully implemented soon.'),
-      ),
-    );
+    setState(() => _isWithdrawing = false);
 
-    // Close with success
-    Navigator.of(context).pop(true);
+    result.when(
+      success: (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Withdrawal initiated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(true);
+      },
+      failure: (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(failure.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+    );
   }
 
   String? _validateAmount(String? value) {

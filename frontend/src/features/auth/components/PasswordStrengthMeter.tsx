@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +39,8 @@ function calculateStrength(password: string): { score: number; label: string; co
 }
 
 export function PasswordStrengthMeter({ password, className }: PasswordStrengthMeterProps) {
-    const strength = useMemo(() => calculateStrength(password), [password]);
+    // React Compiler handles memoization automatically - no need for useMemo
+    const strength = calculateStrength(password);
 
     if (!password) return null;
 

@@ -97,7 +97,13 @@ export function WithdrawalModal({
     setError('');
 
     try {
-      const withdrawalData: any = {
+      const withdrawalData: {
+        amount: number;
+        method: string;
+        wallet_address?: string;
+        bank_account?: string;
+        paypal_email?: string;
+      } = {
         amount: parseFloat(amount),
         method: paymentMethod,
       };

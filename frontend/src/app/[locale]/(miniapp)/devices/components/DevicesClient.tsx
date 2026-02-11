@@ -32,8 +32,11 @@ export function DevicesClient() {
       queryClient.invalidateQueries({ queryKey: ['active-devices'] });
       setLogoutError(null);
     },
-    onError: (error: any) => {
-      setLogoutError(error.response?.data?.detail || 'Failed to logout device');
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? ((error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to logout device')
+        : 'Failed to logout device';
+      setLogoutError(errorMessage);
     },
   });
 

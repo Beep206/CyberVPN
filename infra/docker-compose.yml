@@ -237,6 +237,12 @@ services:
       - caddy-ssl-data:/data
     depends_on:
       - remnawave
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   remnawave-subscription-page:
     image: remnawave/subscription-page:latest
@@ -252,44 +258,12 @@ services:
       - remnawave-network
     depends_on:
       - remnawave
-
-  remnashop-redis:
-    image: valkey/valkey:8.1-alpine
-    container_name: remnashop-redis
-    hostname: remnashop-redis
-    profiles: ["bot"]
-    <<: [*common, *logging]
-    command: >
-      valkey-server
-      --save ""
-      --appendonly no
-      --maxmemory-policy noeviction
-      --loglevel warning
-      --requirepass ${REMNASHOP_REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "valkey-cli", "-a", "${REMNASHOP_REDIS_PASSWORD}", "ping"]
-      interval: 3s
-      timeout: 3s
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3010"]
+      interval: 30s
+      timeout: 5s
       retries: 3
-
-  remnashop:
-    image: ghcr.io/snoups/remnashop:latest
-    container_name: remnashop
-    profiles: ["bot-legacy"]
-    restart: unless-stopped
-    env_file:
-      - ./remnashop/.env
-    volumes:
-      - ./remnashop/assets:/opt/remnashop/assets
-    depends_on:
-      remnawave-db:
-        condition: service_healthy
-      remnawave:
-        condition: service_healthy
-      remnashop-redis:
-        condition: service_healthy
-    networks:
-      - remnawave-network
+      start_period: 15s
 
   cybervpn-telegram-bot:
     build:

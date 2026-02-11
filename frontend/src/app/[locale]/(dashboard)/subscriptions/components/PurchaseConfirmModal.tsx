@@ -27,6 +27,18 @@ interface PurchaseConfirmModalProps {
   plan: Plan | null;
 }
 
+interface PromoDiscount {
+  discount_percent?: number;
+  discount_amount?: number;
+}
+
+interface InvoiceRequest {
+  plan_id: string;
+  user_uuid: string;
+  currency: string;
+  promo_code?: string;
+}
+
 type ModalStep = 'confirm' | 'processing' | 'success' | 'error';
 
 export function PurchaseConfirmModal({
@@ -39,7 +51,7 @@ export function PurchaseConfirmModal({
   const [promoCode, setPromoCode] = useState('');
   const [validatingPromo, setValidatingPromo] = useState(false);
   const [promoError, setPromoError] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState<any>(null);
+  const [promoDiscount, setPromoDiscount] = useState<PromoDiscount | null>(null);
 
   // Reset state on close
   const handleClose = () => {
@@ -132,7 +144,7 @@ export function PurchaseConfirmModal({
     setError('');
 
     try {
-      const requestData: any = {
+      const requestData: InvoiceRequest = {
         plan_id: plan.uuid,
         user_uuid: '',
         currency: 'USDT',

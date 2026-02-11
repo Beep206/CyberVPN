@@ -349,7 +349,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
-                frameloop="always"
+                frameloop="demand"
                 camera={{ position: [0, 2, 7], fov: 40 }}
                 gl={{
                     antialias: false,

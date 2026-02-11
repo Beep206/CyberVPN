@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle,
   XCircle,
@@ -16,11 +17,54 @@ import { monitoringApi } from '@/lib/api';
 
 type HealthStatus = 'healthy' | 'degraded' | 'down';
 
+// Local interfaces for monitoring API responses
+interface HealthData {
+  status?: HealthStatus;
+  api_status?: HealthStatus;
+  api_response_time?: number;
+  api_uptime?: number;
+  database_status?: HealthStatus;
+  database_response_time?: number;
+  database_uptime?: number;
+  redis_status?: HealthStatus;
+  redis_response_time?: number;
+  redis_uptime?: number;
+  worker_status?: HealthStatus;
+  worker_response_time?: number;
+  worker_uptime?: number;
+}
+
+interface StatsData {
+  total_requests?: number;
+  avg_response_time?: number;
+  error_rate?: number;
+  active_connections?: number;
+}
+
+interface BandwidthData {
+  inbound_mbps?: number;
+  outbound_mbps?: number;
+}
+
 /**
  * Monitoring Client Component
  * Displays system health dashboard with API, DB, Redis, Worker status
  */
 export function MonitoringClient() {
+  // Client-side timestamp state to avoid hydration mismatch
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    // Set initial time on mount
+    setCurrentTime(new Date().toLocaleTimeString());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
   // Fetch system health
   const { data: healthData, isLoading: healthLoading } = useQuery({
     queryKey: ['system-health'],
@@ -65,46 +109,51 @@ export function MonitoringClient() {
   }
 
   // Transform API data to component format
+  const typedHealthData = healthData as HealthData;
+  const typedStatsData = statsData as StatsData;
+  const typedBandwidthData = bandwidthData as BandwidthData;
+  const lastCheckTime = currentTime || new Date().toISOString();
+
   const health = {
-    overall: (healthData as any).status || 'healthy' as HealthStatus,
+    overall: typedHealthData.status || ('healthy' as HealthStatus),
     services: [
       {
         name: 'API Server',
-        status: (healthData as any).api_status || 'healthy' as HealthStatus,
-        responseTime: (healthData as any).api_response_time || 0,
-        lastCheck: new Date().toISOString(),
-        uptime: (healthData as any).api_uptime || 100,
+        status: typedHealthData.api_status || ('healthy' as HealthStatus),
+        responseTime: typedHealthData.api_response_time || 0,
+        lastCheck: lastCheckTime,
+        uptime: typedHealthData.api_uptime || 100,
       },
       {
         name: 'PostgreSQL Database',
-        status: (healthData as any).database_status || 'healthy' as HealthStatus,
-        responseTime: (healthData as any).database_response_time || 0,
-        lastCheck: new Date().toISOString(),
-        uptime: (healthData as any).database_uptime || 100,
+        status: typedHealthData.database_status || ('healthy' as HealthStatus),
+        responseTime: typedHealthData.database_response_time || 0,
+        lastCheck: lastCheckTime,
+        uptime: typedHealthData.database_uptime || 100,
       },
       {
         name: 'Redis Cache',
-        status: (healthData as any).redis_status || 'healthy' as HealthStatus,
-        responseTime: (healthData as any).redis_response_time || 0,
-        lastCheck: new Date().toISOString(),
-        uptime: (healthData as any).redis_uptime || 100,
+        status: typedHealthData.redis_status || ('healthy' as HealthStatus),
+        responseTime: typedHealthData.redis_response_time || 0,
+        lastCheck: lastCheckTime,
+        uptime: typedHealthData.redis_uptime || 100,
       },
       {
         name: 'Background Workers',
-        status: (healthData as any).worker_status || 'healthy' as HealthStatus,
-        responseTime: (healthData as any).worker_response_time || 0,
-        lastCheck: new Date().toISOString(),
-        uptime: (healthData as any).worker_uptime || 100,
+        status: typedHealthData.worker_status || ('healthy' as HealthStatus),
+        responseTime: typedHealthData.worker_response_time || 0,
+        lastCheck: lastCheckTime,
+        uptime: typedHealthData.worker_uptime || 100,
       },
     ],
     metrics: {
-      totalRequests: (statsData as any).total_requests || 0,
-      avgResponseTime: (statsData as any).avg_response_time || 0,
-      errorRate: (statsData as any).error_rate || 0,
-      activeConnections: (statsData as any).active_connections || 0,
+      totalRequests: typedStatsData.total_requests || 0,
+      avgResponseTime: typedStatsData.avg_response_time || 0,
+      errorRate: typedStatsData.error_rate || 0,
+      activeConnections: typedStatsData.active_connections || 0,
       bandwidth: {
-        inbound: (bandwidthData as any).inbound_mbps || 0,
-        outbound: (bandwidthData as any).outbound_mbps || 0,
+        inbound: typedBandwidthData.inbound_mbps || 0,
+        outbound: typedBandwidthData.outbound_mbps || 0,
       },
     },
   };
@@ -158,7 +207,7 @@ export function MonitoringClient() {
                 All Systems {getStatusText(health.overall)}
               </h2>
               <p className="text-sm text-muted-foreground font-mono mt-1">
-                Last updated: {new Date().toLocaleTimeString()}
+                Last updated: {currentTime}
               </p>
             </div>
           </div>

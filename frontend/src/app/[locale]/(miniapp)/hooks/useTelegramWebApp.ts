@@ -93,7 +93,9 @@ export function useTelegramWebApp() {
 
     const tg = window.Telegram?.WebApp;
     if (!tg) {
-      console.warn('Telegram WebApp not available. Running outside Telegram Mini App context.');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Telegram WebApp not available. Running outside Telegram Mini App context.');
+      }
       return;
     }
 
@@ -111,13 +113,6 @@ export function useTelegramWebApp() {
     if (tg.themeParams.text_color) {
       document.documentElement.style.setProperty('--tg-text-color', tg.themeParams.text_color);
     }
-
-    console.log('[useTelegramWebApp] Initialized', {
-      colorScheme: tg.colorScheme,
-      isExpanded: tg.isExpanded,
-      viewportHeight: tg.viewportHeight,
-      user: tg.initDataUnsafe.user,
-    });
   }, []);
 
   // Haptic feedback helpers
