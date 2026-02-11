@@ -1,0 +1,68 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"10","subject":"IC-1: Remove remnashop + remnashop-redis from compose","description":"Remove remnashop and remnashop-redis services from docker-compose.yml. Delete infra/remnashop/ directory. Validate compose config","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.730Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"11","subject":"IC-2: Fix Prometheus cybervpn-backend target mismatch","description":"Fix Prometheus scrape target in prometheus.yml — cybervpn-backend:9091 doesn't exist as a Docker service","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.733Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"12","subject":"IC-3: Add healthchecks to caddy + subscription-page","description":"Add healthcheck blocks to caddy (port 80) and remnawave-subscription-page (port 3010) services in docker-compose.yml","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.735Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"13","subject":"IC-4: Fix Loki runbook example.com URLs","description":"Replace 6 occurrences of docs.example.com in infra/loki/rules/cybervpn/alerts.yml with wiki.cybervpn.internal","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.737Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are infra-cleanup on the CyberVPN team (Phase 6). You remove the legacy remnashop bot and fix infrastructure configs.
+You work ONLY in infra/. Do NOT touch backend/, frontend/, or cybervpn_mobile/.
+
+CONTEXT — Current infra state:
+- 25 Docker services, 7 profiles, 22/25 healthchecked
+- Our bot: `cybervpn-telegram-bot` (profile: bot) — builds from ../services/telegram-bot
+- Legacy bot: `remnashop` (profile: bot-legacy) — ghcr.io/snoups/remnashop — MUST BE REMOVED
+- `remnashop-redis` (profile: bot) — ONLY used by remnashop — MUST BE REMOVED
+- `cybervpn-telegram-bot` depends ONLY on `remnawave` and `remnawave-redis` — NOT on remnashop-redis
+
+KEY FILES TO READ FIRST:
+- infra/docker-compose.yml (entire file — understand service structure, profiles, dependencies)
+- infra/prometheus/prometheus.yml (scrape targets)
+- infra/loki/rules/cybervpn/alerts.yml (runbook URLs)
+
+RULES:
+- Do NOT modify services outside your scope (remnawave, remnawave-db, remnawave-redis, workers, etc.)
+- Test compose validity: `docker compose config -q` must exit 0 after changes
+- Keep all existing profiles working (bot, monitoring, proxy, subscription, email-test, worker)
+- Remove the `bot-legacy` profile entirely
+- Preserve all comments that document architecture decisions
+
+You have 4 tasks assigned (tasks #10-13 in the team task list). Work through them:
+
+**Task #10 (IC-1): Remove remnashop + remnashop-redis from docker-compose (P0)**
+- Remove remnashop-redis service block entirely
+- Remove remnashop service block entirely
+- Verify no dangling references: grep "remnashop" must return 0
+- Remove infra/remnashop/ directory: rm -rf infra/remnashop/
+- Validate: cd infra && docker compose config -q
+
+**Task #11 (IC-2): Fix Prometheus scrape target mismatch (P0)**
+- File: infra/prometheus/prometheus.yml
+- Job `cybervpn-backend` targets `cybervpn-backend:9091` — no such service in compose
+- Read docker-compose.yml to determine correct approach
+- Best approach: Comment out the job with explanation (backend not yet deployed as Docker service)
+
+**Task #12 (IC-3): Add healthchecks to caddy + subscription-page (P1, after IC-1)**
+- caddy: healthcheck test wget -q --spider http://localhost:80
+- remnawave-subscription-page: healthcheck test wget -q --spider http://localhost:3010
+- Both with interval 30s, timeout 5s, retries 3, start_period 10-15s
+
+**Task #13 (IC-4): Fix Loki runbook URLs (P1)**
+- Replace 6 occurrences of `docs.example.com` with `wiki.cybervpn.internal` in infra/loki/rules/cybervpn/alerts.yml
+
+For EACH task: Mark it in_progress when starting (TaskUpdate status=in_progress), mark completed when done (TaskUpdate status=completed).
+
+After ALL 4 tasks done, message verify agent: "Infra cleanup done — IC-1 through IC-4 complete. Run VF-2."
+
+DONE CRITERIA: Zero remnashop references. No infra/remnashop/ dir. docker compose config -q passes. Prometheus fixed. Both healthchecks added. No example.com in Loki alerts.
+</teammate-message>
