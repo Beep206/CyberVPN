@@ -1,0 +1,60 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"14","subject":"MP-1: Wire wallet withdraw to walletRepositoryProvider","description":"Replace Future.delayed placeholder in withdraw_bottom_sheet.dart with real call to walletRepositoryProvider.withdrawFunds()","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.739Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"15","subject":"MP-2: Replace mock backup codes with Random.secure()","description":"Replace DateTime.now().millisecondsSinceEpoch-based mock backup codes in two_factor_screen.dart with crypto-random Random.secure()","assignedBy":"team-lead","timestamp":"2026-02-11T15:21:17.740Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are mobile-polish on the CyberVPN team (Phase 6). You wire the wallet withdraw to the real repository and improve 2FA backup codes.
+Stack: Flutter 3.x, Dart 3.x, Riverpod 3.x.
+You work ONLY in cybervpn_mobile/.
+
+CONTEXT — Mobile state:
+- 20 features, 184 tests, 38 locales — all working
+- Google/Apple/Telegram OAuth all wired and working
+- Wallet repository has FULL withdraw implementation — just not wired in the bottom sheet
+- 2FA screen has mock backup codes — should use crypto-random at minimum
+
+KEY FILES TO READ FIRST:
+- Widget with placeholder: cybervpn_mobile/lib/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart
+- Repository interface: cybervpn_mobile/lib/features/wallet/domain/repositories/wallet_repository.dart
+- Repository impl: cybervpn_mobile/lib/features/wallet/data/repositories/wallet_repository_impl.dart
+- Remote data source: cybervpn_mobile/lib/features/wallet/data/datasources/wallet_remote_ds.dart
+- Provider: cybervpn_mobile/lib/features/wallet/presentation/providers/wallet_provider.dart
+- 2FA screen: cybervpn_mobile/lib/features/profile/presentation/screens/two_factor_screen.dart
+
+RULES:
+- Use Context7 MCP to look up library docs before using any library.
+- Follow existing patterns in the codebase.
+- This is a ConsumerStatefulWidget — use ref.read() to access providers.
+- Handle errors gracefully — show user-friendly error messages via SnackBar.
+- Do NOT break existing tests — run flutter analyze after changes.
+
+You have 2 tasks assigned (tasks #14-15 in the team task list). Work through them:
+
+**Task #14 (MP-1): Wire wallet withdraw to real repository (P0)**
+- File: cybervpn_mobile/lib/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart
+- Replace the Future.delayed placeholder (lines 54-67) with real repository call
+- Use ref.read(walletRepositoryProvider).withdrawFunds(amount, method, details)
+- Handle success: show success snackbar, pop with true
+- Handle failure: show error snackbar with failure.message
+- Remove Future.delayed completely
+- Import walletRepositoryProvider
+
+**Task #15 (MP-2): Replace mock backup codes with Random.secure() (P1)**
+- File: cybervpn_mobile/lib/features/profile/presentation/screens/two_factor_screen.dart
+- Replace _generateMockBackupCodes() with crypto-random implementation using Random.secure()
+- Add import 'dart:math' if needed
+- Rename from _generateMockBackupCodes to _generateBackupCodes
+- Remove the _randomDigits helper
+- Update call site (line 510)
+- Remove mock-related comments
+
+For EACH task: Mark it in_progress when starting (TaskUpdate status=in_progress), mark completed when done (TaskUpdate status=completed).
+
+After BOTH tasks done, message verify agent: "Mobile fixes done — MP-1 and MP-2 complete. Run VF-3."
+
+DONE CRITERIA: No Future.delayed placeholder in withdraw. 2FA uses Random.secure(). flutter analyze passes.
+</teammate-message>

@@ -3,7 +3,7 @@
   "checkpoint_id": "7ca70f075677",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "AGENT_TEAM_GAPS_PROMPT.md",
     "AGENT_TEAM_PHASE3_PROMPT.md",
@@ -11,6 +11,9 @@
     "AGENT_TEAM_PHASE5_PROMPT.md",
     "AGENT_TEAM_PHASE6_PROMPT.md",
     "AGENT_TEAM_PHASE7_PROMPT.md",
+    "backend/.coverage",
+    "cybervpn_mobile/lib/features/profile/presentation/screens/two_factor_screen.dart",
+    "cybervpn_mobile/lib/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart",
     "frontend/src/app/[locale]/(dashboard)/partner/components/PartnerClient.tsx",
     "frontend/src/app/[locale]/(dashboard)/payment-history/components/PaymentHistoryClient.tsx",
     "frontend/src/app/[locale]/(dashboard)/referral/components/ReferralClient.tsx",
@@ -34,13 +37,20 @@
       "context": "/7c/a70f075677/1/context.md",
       "content_hash": "/7c/a70f075677/1/content_hash.txt",
       "prompt": "/7c/a70f075677/1/prompt.txt"
+    },
+    {
+      "metadata": "/7c/a70f075677/2/metadata.json",
+      "transcript": "/7c/a70f075677/2/full.jsonl",
+      "context": "/7c/a70f075677/2/context.md",
+      "content_hash": "/7c/a70f075677/2/content_hash.txt",
+      "prompt": "/7c/a70f075677/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 27129,
-    "cache_creation_tokens": 367857,
-    "cache_read_tokens": 9223080,
-    "output_tokens": 28129,
-    "api_call_count": 92
+    "input_tokens": 27187,
+    "cache_creation_tokens": 472777,
+    "cache_read_tokens": 9512693,
+    "output_tokens": 32697,
+    "api_call_count": 99
   }
 }
