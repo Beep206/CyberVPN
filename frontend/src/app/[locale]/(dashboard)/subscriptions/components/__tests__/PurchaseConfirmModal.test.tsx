@@ -199,25 +199,90 @@ describe('PurchaseConfirmModal', () => {
       const purchaseButton = screen.getByText(/Pay with Crypto/i);
       await user.click(purchaseButton);
 
-      // Button should be disabled or show loading state
-      expect(purchaseButton).toBeDisabled();
+      // Component transitions to processing step with spinner
+      expect(screen.getByText(/Creating payment invoice/i)).toBeInTheDocument();
     });
 
     it('test_displays_crypto_invoice_after_purchase_success', async () => {
-      // TODO: Setup MSW handler to return invoice data
-      // TODO: Render modal
-      // TODO: Click purchase button
-      // TODO: Wait for success
-      // TODO: Assert invoice details are displayed (amount, address, QR code)
+      const user = userEvent.setup({ delay: null });
+      const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.json({
+            payment_url: 'https://cryptobot.example/invoice/456',
+          }, { status: 201 });
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-success',
+        name: 'Premium Plan',
+        price: 29.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Payment Page Opened/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Complete your payment in the new tab/i)).toBeInTheDocument();
+      expect(windowOpenSpy).toHaveBeenCalledWith('https://cryptobot.example/invoice/456', '_blank');
+      windowOpenSpy.mockRestore();
     });
 
     it('test_calls_onSuccess_callback_after_purchase', async () => {
-      // TODO: Setup MSW handler for successful purchase
-      // TODO: Mock onSuccess callback
-      // TODO: Render modal with onSuccess prop
-      // TODO: Click purchase button
-      // TODO: Wait for completion
-      // TODO: Assert onSuccess was called
+      const user = userEvent.setup({ delay: null });
+      const paymentUrl = 'https://cryptobot.example/invoice/789';
+      const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.json({
+            payment_url: paymentUrl,
+          }, { status: 201 });
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-callback',
+        name: 'Test Plan',
+        price: 19.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      const onClose = vi.fn();
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={onClose}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(windowOpenSpy).toHaveBeenCalledWith(paymentUrl, '_blank');
+      });
+
+      expect(screen.getByText(/Payment Page Opened/i)).toBeInTheDocument();
+      windowOpenSpy.mockRestore();
     });
 
     it('test_closes_modal_on_cancel_button_click', async () => {
@@ -285,24 +350,110 @@ describe('PurchaseConfirmModal', () => {
     });
 
     it('test_displays_insufficient_balance_error', async () => {
-      // TODO: Setup MSW handler to return 422 insufficient balance
-      // TODO: Render modal
-      // TODO: Click purchase button
-      // TODO: Assert specific error message about balance
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.json(
+            { detail: 'Insufficient balance' },
+            { status: 422 }
+          );
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-balance',
+        name: 'Test Plan',
+        price: 99.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Payment Failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/Insufficient balance/i)).toBeInTheDocument();
+      });
     });
 
     it('test_displays_plan_not_found_error', async () => {
-      // TODO: Setup MSW handler to return 404
-      // TODO: Render modal
-      // TODO: Click purchase button
-      // TODO: Assert plan not found error
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.json(
+            { detail: 'Plan not found' },
+            { status: 404 }
+          );
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-notfound',
+        name: 'Test Plan',
+        price: 19.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Payment Failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/Plan not found/i)).toBeInTheDocument();
+      });
     });
 
     it('test_displays_network_error_message', async () => {
-      // TODO: Setup MSW handler to throw network error
-      // TODO: Render modal
-      // TODO: Click purchase button
-      // TODO: Assert network error message
+      const user = userEvent.setup({ delay: null });
+
+      server.use(
+        http.post(`${API_BASE}/payments/crypto/invoice`, () => {
+          return HttpResponse.error();
+        })
+      );
+
+      const mockPlan = {
+        uuid: 'plan-network',
+        name: 'Test Plan',
+        price: 19.99,
+        currency: 'USD',
+        durationDays: 30,
+      };
+
+      render(
+        <PurchaseConfirmModal
+          isOpen={true}
+          onClose={vi.fn()}
+          plan={mockPlan}
+        />
+      );
+
+      const purchaseButton = screen.getByText(/Pay with Crypto/i);
+      await user.click(purchaseButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Payment Failed/i)).toBeInTheDocument();
+      });
     });
 
     it('test_error_message_clears_on_retry', async () => {

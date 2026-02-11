@@ -4,6 +4,8 @@ import { TerminalHeader } from "@/widgets/terminal-header";
 import { GlobalNetworkWrapper } from "@/widgets/3d-background/global-network-wrapper";
 import { Scanlines } from "@/shared/ui/atoms/scanlines";
 import { AuthGuard } from "@/features/auth/components";
+import { JsonLd } from '@/shared/lib/json-ld';
+import type { SoftwareApplication } from 'schema-dts';
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
 import { getTranslations } from 'next-intl/server';
 
@@ -28,6 +30,20 @@ export default function DashboardLayout({
 }) {
     return (
         <AuthGuard>
+            <JsonLd<SoftwareApplication>
+                data={{
+                    '@context': 'https://schema.org',
+                    '@type': 'SoftwareApplication',
+                    name: 'CyberVPN',
+                    applicationCategory: 'SecurityApplication',
+                    operatingSystem: 'Web, Android, iOS',
+                    offers: {
+                        '@type': 'Offer',
+                        price: '0',
+                        priceCurrency: 'USD',
+                    },
+                }}
+            />
             <div className="flex h-screen w-full overflow-hidden bg-terminal-bg text-foreground">
                 {/* Skip to main content link for keyboard/screen reader users */}
                 <a

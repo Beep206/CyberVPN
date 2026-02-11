@@ -39,6 +39,8 @@ export const metadata: Metadata = {
     },
 };
 
+import { JsonLd } from '@/shared/lib/json-ld';
+import type { Organization, WebSite } from 'schema-dts';
 import { ThemeProvider } from "@/app/providers/theme-provider";
 import { AuthProvider } from "@/app/providers/auth-provider";
 import { QueryProvider } from "@/app/providers/query-provider";
@@ -91,6 +93,32 @@ export default async function RootLayout({
                     <DevPanel />
                     <WebVitalsReporter />
                 </ThemeProvider>
+                <JsonLd<Organization>
+                    data={{
+                        '@context': 'https://schema.org',
+                        '@type': 'Organization',
+                        name: 'CyberVPN',
+                        url: 'https://cybervpn.com',
+                        logo: 'https://cybervpn.com/logo.png',
+                        sameAs: [
+                            'https://t.me/cybervpn',
+                        ],
+                    }}
+                />
+                <JsonLd<WebSite>
+                    data={{
+                        '@context': 'https://schema.org',
+                        '@type': 'WebSite',
+                        name: 'CyberVPN',
+                        url: 'https://cybervpn.com',
+                        potentialAction: {
+                            '@type': 'SearchAction',
+                            target: 'https://cybervpn.com/search?q={search_term_string}',
+                            // @ts-expect-error - schema.org query-input format
+                            'query-input': 'required name=search_term_string',
+                        },
+                    }}
+                />
             </body>
         </html>
     );
