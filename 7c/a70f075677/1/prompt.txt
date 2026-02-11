@@ -1,0 +1,37 @@
+<teammate-message teammate_id="team-lead">
+You are a quick-fix agent for CyberVPN Phase 6. Fix remaining `as any` casts in PRODUCTION frontend code (not test files).
+
+There are 13 `as any` casts remaining in 4 production files:
+1. **ReferralClient.tsx** (5 casts) - frontend/src/app/[locale]/(dashboard)/referral/components/ReferralClient.tsx
+2. **WalletClient.tsx** (5 casts) - frontend/src/app/[locale]/(dashboard)/wallet/components/WalletClient.tsx
+3. **PartnerClient.tsx** (2 casts) - frontend/src/app/[locale]/(dashboard)/partner/components/PartnerClient.tsx
+4. **home/page.tsx** (1 cast) - frontend/src/app/[locale]/(dashboard)/home/page.tsx
+
+For EACH file:
+1. Read the file first to understand context
+2. Read frontend/src/lib/api/generated/types.ts to find existing types
+3. Read the relevant API module (e.g., frontend/src/lib/api/referral.ts, wallet.ts, partner.ts) to see return types
+4. Replace every `as any` with a proper type — either from generated/types.ts or define a local interface
+5. Verify: grep "as any" on the file returns 0 matches
+
+RULES:
+- Do NOT touch test files (__tests__/)
+- Do NOT touch generated/types.ts
+- Do NOT add `any` types — use proper interfaces
+- If a type is unknown, define a minimal interface matching the data shape used in the code
+- Keep changes minimal — only replace `as any` casts
+
+After fixing all 4 files, run:
+```bash
+cd /home/beep/projects/VPNBussiness/frontend && grep -rn "as any" src/app/ --include="*.tsx" | grep -v __tests__ | grep -v generated/
+```
+This must return 0 matches.
+
+Also run:
+```bash
+cd /home/beep/projects/VPNBussiness/frontend && grep -rn ": any" src/app/ --include="*.tsx" | grep -v __tests__ | grep -v generated/
+```
+This must also return 0 matches.
+
+Report your results when done.
+</teammate-message>
