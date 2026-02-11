@@ -5,6 +5,10 @@
   "branch": "main",
   "checkpoints_count": 4,
   "files_touched": [
+    "AGENT_TEAM_GAPS_PROMPT.md",
+    "AGENT_TEAM_PHASE3_PROMPT.md",
+    "AGENT_TEAM_PHASE4_PROMPT.md",
+    "AGENT_TEAM_PHASE5_PROMPT.md",
     "backend/.coverage",
     "frontend/src/3d/scenes/GlobalNetwork.tsx",
     "frontend/src/app/[locale]/(dashboard)/analytics/components/AnalyticsClient.tsx",
@@ -33,13 +37,20 @@
       "context": "/9c/010c599120/1/context.md",
       "content_hash": "/9c/010c599120/1/content_hash.txt",
       "prompt": "/9c/010c599120/1/prompt.txt"
+    },
+    {
+      "metadata": "/9c/010c599120/2/metadata.json",
+      "transcript": "/9c/010c599120/2/full.jsonl",
+      "context": "/9c/010c599120/2/context.md",
+      "content_hash": "/9c/010c599120/2/content_hash.txt",
+      "prompt": "/9c/010c599120/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 4295,
-    "cache_creation_tokens": 290016,
-    "cache_read_tokens": 9124248,
-    "output_tokens": 55224,
-    "api_call_count": 107
+    "input_tokens": 4891,
+    "cache_creation_tokens": 450017,
+    "cache_read_tokens": 12097237,
+    "output_tokens": 78144,
+    "api_call_count": 134
   }
 }
