@@ -3,13 +3,18 @@
   "checkpoint_id": "2256a53d0540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     "frontend/src/3d/scenes/AuthScene3D.tsx",
     "frontend/src/3d/scenes/FeaturesScene3D.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.tsx",
     "frontend/src/widgets/speed-tunnel.tsx",
+    "infra/.env",
+    "infra/.env.example",
+    "infra/docker-compose.yml",
+    "infra/prometheus/prometheus.yml",
+    "infra/scripts/backup-monitoring.sh",
     "services/telegram-bot/pyproject.toml",
     "services/telegram-bot/src/handlers/account.py",
     "services/telegram-bot/src/keyboards/__init__.py",
@@ -40,13 +45,20 @@
       "context": "/22/56a53d0540/1/context.md",
       "content_hash": "/22/56a53d0540/1/content_hash.txt",
       "prompt": "/22/56a53d0540/1/prompt.txt"
+    },
+    {
+      "metadata": "/22/56a53d0540/2/metadata.json",
+      "transcript": "/22/56a53d0540/2/full.jsonl",
+      "context": "/22/56a53d0540/2/context.md",
+      "content_hash": "/22/56a53d0540/2/content_hash.txt",
+      "prompt": "/22/56a53d0540/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8392,
-    "cache_creation_tokens": 346942,
-    "cache_read_tokens": 5944807,
-    "output_tokens": 34274,
-    "api_call_count": 65
+    "input_tokens": 8405,
+    "cache_creation_tokens": 433487,
+    "cache_read_tokens": 6550867,
+    "output_tokens": 35815,
+    "api_call_count": 76
   }
 }

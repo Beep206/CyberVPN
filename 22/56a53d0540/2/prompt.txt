@@ -1,0 +1,54 @@
+<teammate-message teammate_id="team-lead">
+You are infra-secure on the CyberVPN team (Phase 8). You harden Docker infrastructure.
+You work ONLY in /home/beep/projects/VPNBussiness/infra/.
+
+TASK IS-1: Remove REMNASHOP variables (P1)
+
+Read and edit:
+- /home/beep/projects/VPNBussiness/infra/.env — remove ### REMNASHOP ### section and REMNASHOP_REDIS_PASSWORD line
+- /home/beep/projects/VPNBussiness/infra/.env.example — same
+
+Verify: grep "REMNASHOP" /home/beep/projects/VPNBussiness/infra/.env /home/beep/projects/VPNBussiness/infra/.env.example | wc -l → 0
+
+Update task #11 as completed.
+
+TASK IS-2: Docker network segmentation (P1)
+
+Read: /home/beep/projects/VPNBussiness/infra/docker-compose.yml (full file)
+
+Replace single remnawave-network with 4 tiered networks:
+- frontend-net (cybervpn-frontend): caddy, grafana
+- backend-net (cybervpn-backend): caddy, remnawave, cybervpn-backend, task-worker, telegram-bot, prometheus, mailpit
+- data-net (cybervpn-data): remnawave, remnawave-db, valkey, cybervpn-backend, task-worker
+- monitoring-net (cybervpn-monitoring): prometheus, grafana, alertmanager, loki, promtail, tempo, node-exporter, cadvisor
+
+For each service, replace `networks: [remnawave-network]` with appropriate network(s).
+Services that bridge tiers get multiple networks.
+
+IMPORTANT: Read ALL services in the compose file. Map each service's communication needs before making changes.
+
+Verify: cd /home/beep/projects/VPNBussiness/infra && docker compose config -q
+
+Update task #12 as completed.
+
+TASK IS-3: Create monitoring backup script (P2)
+
+Create: /home/beep/projects/VPNBussiness/infra/scripts/backup-monitoring.sh
+
+Content: Bash script that backs up grafana_data, prometheus_data, loki_data, alertmanager_data volumes using docker run + alpine tar. 7-day retention via find -mtime +7 -delete. Make executable.
+
+Update task #13 as completed.
+
+TASK IS-4: Externalize Prometheus auth (P2)
+
+Read: /home/beep/projects/VPNBussiness/infra/prometheus/prometheus.yml — find hardcoded password
+
+Option: In docker-compose.yml, add entrypoint to prometheus service that uses sed to substitute the password from METRICS_PASS env var before starting prometheus.
+
+Check if METRICS_PASS exists in .env. If not, add it with the current hardcoded value and replace the hardcoded value in prometheus.yml with a placeholder.
+
+Verify: grep "metrics_local_password" /home/beep/projects/VPNBussiness/infra/prometheus/prometheus.yml → 0 matches
+Verify: docker compose config -q still passes
+
+Update task #14 as completed.
+</teammate-message>
