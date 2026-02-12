@@ -3,13 +3,28 @@
   "checkpoint_id": "2256a53d0540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "frontend/src/3d/scenes/AuthScene3D.tsx",
     "frontend/src/3d/scenes/FeaturesScene3D.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.tsx",
-    "frontend/src/widgets/speed-tunnel.tsx"
+    "frontend/src/widgets/speed-tunnel.tsx",
+    "services/telegram-bot/pyproject.toml",
+    "services/telegram-bot/src/handlers/account.py",
+    "services/telegram-bot/src/keyboards/__init__.py",
+    "services/telegram-bot/src/keyboards/account.py",
+    "services/telegram-bot/src/keyboards/common.py",
+    "services/telegram-bot/src/keyboards/config.py",
+    "services/telegram-bot/src/keyboards/menu.py",
+    "services/telegram-bot/src/keyboards/payment.py",
+    "services/telegram-bot/src/keyboards/referral.py",
+    "services/telegram-bot/src/keyboards/subscription.py",
+    "services/telegram-bot/src/locales/en/messages.ftl",
+    "services/telegram-bot/src/locales/ru/messages.ftl",
+    "services/telegram-bot/src/middlewares/i18n.py",
+    "services/telegram-bot/src/utils/__init__.py",
+    "services/telegram-bot/src/utils/keyboard_helpers.py"
   ],
   "sessions": [
     {
@@ -18,13 +33,20 @@
       "context": "/22/56a53d0540/0/context.md",
       "content_hash": "/22/56a53d0540/0/content_hash.txt",
       "prompt": "/22/56a53d0540/0/prompt.txt"
+    },
+    {
+      "metadata": "/22/56a53d0540/1/metadata.json",
+      "transcript": "/22/56a53d0540/1/full.jsonl",
+      "context": "/22/56a53d0540/1/context.md",
+      "content_hash": "/22/56a53d0540/1/content_hash.txt",
+      "prompt": "/22/56a53d0540/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 46,
-    "cache_creation_tokens": 229120,
-    "cache_read_tokens": 4036328,
-    "output_tokens": 19171,
-    "api_call_count": 42
+    "input_tokens": 8392,
+    "cache_creation_tokens": 346942,
+    "cache_read_tokens": 5944807,
+    "output_tokens": 34274,
+    "api_call_count": 65
   }
 }

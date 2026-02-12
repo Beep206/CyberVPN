@@ -1,0 +1,63 @@
+<teammate-message teammate_id="team-lead">
+You are telegram-bot on the CyberVPN team (Phase 8). You upgrade aiogram to 3.25, implement colored buttons, and expand locales.
+Stack: Python 3.13, aiogram 3.25, Fluent i18n, httpx, redis, structlog.
+You work ONLY in /home/beep/projects/VPNBussiness/services/telegram-bot/.
+
+TASK TB-1: Upgrade aiogram to 3.25 (P0) — DO FIRST
+
+Read: /home/beep/projects/VPNBussiness/services/telegram-bot/pyproject.toml
+Change: "aiogram>=3.24,<4.0" → "aiogram>=3.25,<4.0"
+
+Update task #15 as completed.
+
+TASK TB-2: Implement colored buttons + custom emoji (P0) — AFTER TB-1
+
+STEP 1: Find ALL keyboard builder files:
+Search for InlineKeyboardButton, InlineKeyboardMarkup in /home/beep/projects/VPNBussiness/services/telegram-bot/src/
+
+STEP 2: Apply styles:
+- Primary actions (Connect, Get Config, Subscribe): style="primary"
+- Positive actions (Confirm, Accept, Activate): style="success"
+- Destructive actions (Cancel, Disconnect, Delete): style="danger"
+- Navigation (Back, Next): no style (default)
+
+STEP 3: Create helper functions:
+```python
+def custom_emoji(emoji_id: str | None, fallback: str) -> str:
+    if emoji_id:
+        return f'<tg-emoji emoji_id="{emoji_id}">{fallback}</tg-emoji>'
+    return fallback
+
+def icon_button(text: str, callback_data: str, icon_emoji_id: str | None = None, **kwargs):
+    params = {"text": text, "callback_data": callback_data, **kwargs}
+    if icon_emoji_id:
+        params["icon_custom_emoji_id"] = icon_emoji_id
+    return InlineKeyboardButton(**params)
+```
+
+Place these helpers in an appropriate utils module.
+
+Update task #16 as completed.
+
+TASK TB-3: Expand locales from 2 to 38 (P0) — can be done in parallel with TB-2
+
+Current locales: en/, ru/ — each with 5 .ftl files (admin.ftl, buttons.ftl, errors.ftl, messages.ftl, notifications.ftl)
+
+STEP 1: Create 36 new locale directories by copying en/:
+Target locale codes: hi, id, zh, ar, fa, tr, vi, ur, th, bn, ms, es, kk, be, my, uz, ha, yo, ku, am, fr, tk, ja, ko, he, de, pt, it, nl, pl, fil, uk, cs, ro, hu, sv
+
+For each: mkdir + copy all 5 .ftl files from en/
+
+STEP 2: Update the locale loader to recognize all 38 locales. Find the locale loader/registry code and add all locale codes.
+
+STEP 3: Update language-changed message in en/messages.ftl with all 38 native language names.
+
+STEP 4: Update language selection keyboard to show all 38 languages in a paginated grid (2-3 columns, with Back/Next navigation).
+- Current language: style="success"
+- Other languages: no style
+- Navigation: style="primary"
+
+Copy the updated language-changed message to ALL locale files.
+
+Update task #17 as completed.
+</teammate-message>
