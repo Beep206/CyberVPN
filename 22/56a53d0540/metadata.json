@@ -3,8 +3,15 @@
   "checkpoint_id": "2256a53d0540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 8,
+  "checkpoints_count": 22,
   "files_touched": [
+    "AGENT_TEAM_GAPS_PROMPT.md",
+    "AGENT_TEAM_PHASE3_PROMPT.md",
+    "AGENT_TEAM_PHASE4_PROMPT.md",
+    "AGENT_TEAM_PHASE5_PROMPT.md",
+    "AGENT_TEAM_PHASE6_PROMPT.md",
+    "AGENT_TEAM_PHASE7_PROMPT.md",
+    "AGENT_TEAM_PHASE8_PROMPT.md",
     "frontend/src/3d/scenes/AuthScene3D.tsx",
     "frontend/src/3d/scenes/FeaturesScene3D.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
@@ -59,13 +66,20 @@
       "context": "/22/56a53d0540/3/context.md",
       "content_hash": "/22/56a53d0540/3/content_hash.txt",
       "prompt": "/22/56a53d0540/3/prompt.txt"
+    },
+    {
+      "metadata": "/22/56a53d0540/4/metadata.json",
+      "transcript": "/22/56a53d0540/4/full.jsonl",
+      "context": "/22/56a53d0540/4/context.md",
+      "content_hash": "/22/56a53d0540/4/content_hash.txt",
+      "prompt": "/22/56a53d0540/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8536,
-    "cache_creation_tokens": 562225,
-    "cache_read_tokens": 10207914,
-    "output_tokens": 41609,
-    "api_call_count": 139
+    "input_tokens": 8668,
+    "cache_creation_tokens": 1097766,
+    "cache_read_tokens": 16538982,
+    "output_tokens": 44879,
+    "api_call_count": 209
   }
 }
