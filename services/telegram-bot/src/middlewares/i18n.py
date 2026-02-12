@@ -18,18 +18,54 @@ from fluent.runtime import FluentBundle, FluentResource
 logger = structlog.get_logger(__name__)
 
 # Supported locale codes
-SUPPORTED_LOCALES = ("ru", "en")
+SUPPORTED_LOCALES = (
+    "am", "ar", "be", "bn", "cs", "de", "en", "es", "fa", "fil",
+    "fr", "ha", "he", "hi", "hu", "id", "it", "ja", "kk", "ko",
+    "ku", "ms", "my", "nl", "pl", "pt", "ro", "ru", "sv", "th",
+    "tk", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zh-Hant",
+)
 DEFAULT_LOCALE = "ru"
 
 # Telegram language_code → our locale mapping
 LANGUAGE_MAP: dict[str, str] = {
-    "ru": "ru",
-    "uk": "ru",  # Ukrainian → Russian fallback
-    "be": "ru",  # Belarusian → Russian fallback
-    "kk": "ru",  # Kazakh → Russian fallback
-    "en": "en",
-    "en-US": "en",
-    "en-GB": "en",
+    # Direct matches
+    "am": "am", "ar": "ar", "be": "be", "bn": "bn", "cs": "cs",
+    "de": "de", "en": "en", "es": "es", "fa": "fa", "fil": "fil",
+    "fr": "fr", "ha": "ha", "he": "he", "hi": "hi", "hu": "hu",
+    "id": "id", "it": "it", "ja": "ja", "kk": "kk", "ko": "ko",
+    "ku": "ku", "ms": "ms", "my": "my", "nl": "nl", "pl": "pl",
+    "pt": "pt", "ro": "ro", "ru": "ru", "sv": "sv", "th": "th",
+    "tk": "tk", "tr": "tr", "uk": "uk", "ur": "ur", "uz": "uz",
+    "vi": "vi", "yo": "yo", "zh": "zh",
+    # Regional variants
+    "ar-EG": "ar", "ar-SA": "ar",
+    "bn-BD": "bn",
+    "cs-CZ": "cs",
+    "de-AT": "de", "de-DE": "de",
+    "en-GB": "en", "en-US": "en",
+    "es-AR": "es", "es-ES": "es", "es-MX": "es",
+    "fa-IR": "fa",
+    "fr-CA": "fr", "fr-FR": "fr",
+    "he-IL": "he",
+    "hi-IN": "hi",
+    "hu-HU": "hu",
+    "id-ID": "id",
+    "it-IT": "it",
+    "ja-JP": "ja",
+    "ko-KR": "ko",
+    "ms-MY": "ms",
+    "nl-BE": "nl", "nl-NL": "nl",
+    "pl-PL": "pl",
+    "pt-BR": "pt", "pt-PT": "pt",
+    "ro-RO": "ro",
+    "sv-SE": "sv",
+    "th-TH": "th",
+    "tr-TR": "tr",
+    "uk-UA": "uk",
+    "ur-PK": "ur",
+    "vi-VN": "vi",
+    "zh-Hans": "zh",
+    "zh-Hant": "zh-Hant", "zh-HK": "zh-Hant", "zh-TW": "zh-Hant",
 }
 
 

@@ -1,0 +1,24 @@
+{
+  "title": "活跃基础设施",
+  "deployNode": "+ 部署节点",
+  "columns": {
+    "serverName": "服务器名称",
+    "location": "位置",
+    "ipAddress": "IP地址",
+    "protocol": "协议",
+    "status": "状态",
+    "load": "负载",
+    "controls": "控制"
+  },
+  "actions": {
+    "restart": "重启",
+    "stop": "停止",
+    "config": "配置"
+  },
+  "status": {
+    "online": "在线",
+    "offline": "离线",
+    "warning": "警告",
+    "maintenance": "维护中"
+  }
+}

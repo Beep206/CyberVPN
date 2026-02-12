@@ -1,0 +1,7 @@
+{
+  "title": "服务器管理",
+  "subtitle": "管理VPN节点、协议及部署区域。",
+  "globalStatus": "全局状态：{status}",
+  "globalStatusValue": "已部署",
+  "lastSync": "上次同步：{time}前"
+}

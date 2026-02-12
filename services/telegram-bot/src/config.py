@@ -221,7 +221,14 @@ class BotSettings(BaseSettings):
 
     # ── i18n ─────────────────────────────────────────────────────────────
     default_language: str = "ru"
-    available_languages: list[str] = Field(default_factory=lambda: ["ru", "en"])
+    available_languages: list[str] = Field(
+        default_factory=lambda: [
+            "am", "ar", "be", "bn", "cs", "de", "en", "es", "fa", "fil",
+            "fr", "ha", "he", "hi", "hu", "id", "it", "ja", "kk", "ko",
+            "ku", "ms", "my", "nl", "pl", "pt", "ro", "ru", "sv", "th",
+            "tk", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zh-Hant",
+        ]
+    )
 
     # ── Nested groups ────────────────────────────────────────────────────
     webhook: WebhookSettings = Field(default_factory=WebhookSettings)
