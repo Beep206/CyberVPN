@@ -87,6 +87,10 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   @override
   Future<void> updateDynamicColor(bool enabled) async {}
   @override
+  Future<void> updateOledMode(bool enabled) async {}
+  @override
+  Future<void> updateScanlineEffect(bool enabled) async {}
+  @override
   Future<void> updateTextScale(TextScale scale) async {}
   @override
   Future<void> updateLocale(String locale) async {}
@@ -110,6 +114,8 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   Future<void> toggleClipboardAutoDetect() async {}
   @override
   Future<void> updateLogLevel(LogLevel level) async {}
+  @override
+  Future<void> updatePreferMapView(bool prefer) async {}
 }
 
 // ---------------------------------------------------------------------------

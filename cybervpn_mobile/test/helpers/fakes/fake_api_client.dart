@@ -51,6 +51,7 @@ class FakeApiClient extends ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
+    CancelToken? cancelToken,
   }) async {
     return _resolve<T>(_getResponses, path);
   }
@@ -60,6 +61,7 @@ class FakeApiClient extends ApiClient {
     String path, {
     dynamic data,
     Options? options,
+    CancelToken? cancelToken,
   }) async {
     return _resolve<T>(_postResponses, path);
   }
@@ -69,6 +71,7 @@ class FakeApiClient extends ApiClient {
     String path, {
     dynamic data,
     Options? options,
+    CancelToken? cancelToken,
   }) async {
     return _resolve<T>(_patchResponses, path);
   }
@@ -77,6 +80,7 @@ class FakeApiClient extends ApiClient {
   Future<Response<T>> delete<T>(
     String path, {
     Options? options,
+    CancelToken? cancelToken,
   }) async {
     return _resolve<T>(_deleteResponses, path);
   }

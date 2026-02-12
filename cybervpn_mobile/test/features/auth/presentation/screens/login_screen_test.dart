@@ -5,8 +5,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/login_form.dart';
 
-import '../helpers/mock_repositories.dart';
-import 'auth_test_helpers.dart';
+import '../../../../helpers/mock_repositories.dart';
+import '../../../../helpers/auth_test_helpers.dart';
 
 void main() {
   late MockAuthRepository mockAuthRepo;

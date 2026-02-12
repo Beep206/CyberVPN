@@ -12,7 +12,6 @@ import 'package:cybervpn_mobile/features/profile/domain/services/device_registra
 import 'package:cybervpn_mobile/features/review/data/services/review_service.dart';
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
-import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_state_entity.dart';

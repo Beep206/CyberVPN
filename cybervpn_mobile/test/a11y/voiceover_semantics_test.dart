@@ -108,11 +108,13 @@ void main() {
       final disabledButton = find.widgetWithText(ElevatedButton, 'Disabled');
       expect(disabledButton, findsOneWidget);
       final disabledSemantics = tester.getSemantics(find.text('Disabled'));
+      // isEnabled != Tristate.none means the enabled state is reported
       expect(
-        disabledSemantics.flagsCollection.contains(SemanticsFlag.hasEnabledState),
+        disabledSemantics.flagsCollection.isEnabled != Tristate.none,
         isTrue,
       );
-      expect(disabledSemantics.flagsCollection.contains(SemanticsFlag.isEnabled), isFalse);
+      // isEnabled should be Tristate.isFalse for a disabled button
+      expect(disabledSemantics.flagsCollection.isEnabled, Tristate.isFalse);
     });
   });
 }

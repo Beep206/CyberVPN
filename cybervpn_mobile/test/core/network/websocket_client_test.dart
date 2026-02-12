@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
@@ -162,7 +161,7 @@ void main() {
     test('returns null for unknown type', () {
       final json = {
         'type': 'unknown_event_type',
-        'data': {},
+        'data': <String, dynamic>{},
       };
 
       final event = WebSocketEvent.fromJson(json);
@@ -171,7 +170,7 @@ void main() {
 
     test('returns null when type field is missing', () {
       final json = <String, dynamic>{
-        'data': {'foo': 'bar'},
+        'data': <String, dynamic>{'foo': 'bar'},
       };
 
       final event = WebSocketEvent.fromJson(json);

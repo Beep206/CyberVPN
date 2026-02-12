@@ -27,7 +27,6 @@ class _TrialCardState extends ConsumerState<TrialCard> {
   bool _isLoading = true;
   bool _isEligible = false;
   int? _daysRemaining;
-  bool _trialUsed = false;
   bool _isActivating = false;
   String? _errorMessage;
 
@@ -53,7 +52,6 @@ class _TrialCardState extends ConsumerState<TrialCard> {
         setState(() {
           _isEligible = data['is_eligible'] as bool? ?? false;
           _daysRemaining = data['days_remaining'] as int?;
-          _trialUsed = data['trial_used'] as bool? ?? false;
           _isLoading = false;
         });
       case Failure(:final failure):

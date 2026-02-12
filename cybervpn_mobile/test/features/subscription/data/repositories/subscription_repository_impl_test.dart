@@ -2,7 +2,8 @@ import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_local_ds.dart';
-import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
+import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart'
+    show SubscriptionRemoteDataSource, PaginatedPaymentHistory;
 import 'package:cybervpn_mobile/features/subscription/data/repositories/subscription_repository_impl.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
@@ -47,6 +48,44 @@ class _MockRemoteDataSource implements SubscriptionRemoteDataSource {
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
     if (shouldFail) throw ServerException(message: errorMsg);
+  }
+
+  @override
+  Future<PaginatedPaymentHistory> fetchPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    if (shouldFail) throw ServerException(message: errorMsg);
+    return const PaginatedPaymentHistory(
+      items: [],
+      total: 0,
+      offset: 0,
+      limit: 20,
+    );
+  }
+
+  @override
+  Future<SubscriptionEntity> redeemInviteCode(String code) async {
+    if (shouldFail) throw ServerException(message: errorMsg);
+    return createResult!;
+  }
+
+  @override
+  Future<Map<String, dynamic>> applyPromoCode(String code, String planId) async {
+    if (shouldFail) throw ServerException(message: errorMsg);
+    return <String, dynamic>{'discount_amount': 0.0, 'final_price': 0.0, 'message': ''};
+  }
+
+  @override
+  Future<Map<String, dynamic>> getTrialStatus() async {
+    if (shouldFail) throw ServerException(message: errorMsg);
+    return <String, dynamic>{'is_eligible': false, 'days_remaining': null, 'trial_used': false};
+  }
+
+  @override
+  Future<SubscriptionEntity> activateTrial() async {
+    if (shouldFail) throw ServerException(message: errorMsg);
+    return createResult!;
   }
 }
 

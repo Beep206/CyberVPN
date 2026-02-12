@@ -111,61 +111,7 @@ class _BiometricSettingsScreenState
     }
   }
 
-  Future<({String email, String password})?> _showCredentialsDialog() async {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
 
-    return showDialog<({String email, String password})>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).biometricEnterCredentialsTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppLocalizations.of(context).biometricEnterCredentialsMessage,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).formEmailLabel,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).formPasswordLabel,
-                border: const OutlineInputBorder(),
-              ),
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: Text(AppLocalizations.of(context).cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final email = emailController.text.trim();
-              final password = passwordController.text;
-              if (email.isNotEmpty && password.isNotEmpty) {
-                Navigator.of(context).pop((email: email, password: password));
-              }
-            },
-            child: Text(AppLocalizations.of(context).biometricSave),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _toggleAppLock(bool value) async {
     // Trigger medium haptic on toggle switch change.

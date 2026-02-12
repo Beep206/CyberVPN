@@ -9,8 +9,8 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../../helpers/mock_factories.dart';
-import '../../helpers/mock_repositories.dart';
+import '../../../helpers/mock_factories.dart';
+import '../../../helpers/mock_repositories.dart';
 
 void main() {
   late MockVpnRepository mockRepository;

@@ -1,6 +1,3 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,26 +20,6 @@ class _FakeSettingsNotifier extends SettingsNotifier {
 
   @override
   Future<AppSettings> build() async => _settings;
-}
-
-// ---------------------------------------------------------------------------
-// Helper to create a container with overridden settingsProvider
-// ---------------------------------------------------------------------------
-
-ProviderContainer _createContainer({AppSettings? settings}) {
-  final container = ProviderContainer(
-    overrides: [
-      settingsProvider
-          .overrideWith(() => _FakeSettingsNotifier(settings)),
-    ],
-  );
-  return container;
-}
-
-/// Reads [currentThemeDataProvider] after waiting for settings to load.
-Future<ThemeDataPair> _readThemePair(ProviderContainer container) async {
-  await container.read(settingsProvider.future);
-  return container.read(currentThemeDataProvider);
 }
 
 // ---------------------------------------------------------------------------

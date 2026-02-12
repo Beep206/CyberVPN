@@ -41,7 +41,7 @@ void main() {
       // because Flutter tests run in debug mode by default.
 
       try {
-        await dio.get('/');
+        await dio.get<dynamic>('/');
         // If we get here, either:
         // 1. We're in debug mode (validation bypassed) - expected
         // 2. Certificate matched (unlikely with random fingerprint)

@@ -116,12 +116,10 @@ void main() {
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
 
-      final currentField =
-          tester.widget<TextFormField>(find.byType(TextFormField).at(0));
-      final newField =
-          tester.widget<TextFormField>(find.byType(TextFormField).at(1));
-      final confirmField =
-          tester.widget<TextFormField>(find.byType(TextFormField).at(2));
+      final textFields = find.byType(TextField);
+      final currentField = tester.widget<TextField>(textFields.at(0));
+      final newField = tester.widget<TextField>(textFields.at(1));
+      final confirmField = tester.widget<TextField>(textFields.at(2));
 
       expect(currentField.obscureText, isTrue);
       expect(newField.obscureText, isTrue);
@@ -226,7 +224,7 @@ void main() {
         (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {'message': 'Password changed'},
@@ -255,7 +253,7 @@ void main() {
     testWidgets('test_successful_change_sends_correct_data', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {'message': 'Success'},
@@ -291,7 +289,7 @@ void main() {
     testWidgets('test_invalid_current_password_shows_error', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Current password is incorrect', code: 401),
       );
@@ -316,7 +314,7 @@ void main() {
     testWidgets('test_oauth_user_shows_oauth_only_error', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(
           message: 'OAuth users cannot change password',
@@ -347,7 +345,7 @@ void main() {
     testWidgets('test_network_error_shows_message', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const NetworkException(message: 'No internet connection'),
       );
@@ -374,7 +372,7 @@ void main() {
     testWidgets('test_rate_limit_429_shows_countdown', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.changePassword,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );
@@ -409,7 +407,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final currentField =
-          tester.widget<TextFormField>(find.byType(TextFormField).at(0));
+          tester.widget<TextField>(find.byType(TextField).at(0));
       expect(currentField.obscureText, isFalse);
     });
 
@@ -423,7 +421,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final newField =
-          tester.widget<TextFormField>(find.byType(TextFormField).at(1));
+          tester.widget<TextField>(find.byType(TextField).at(1));
       expect(newField.obscureText, isFalse);
     });
   });

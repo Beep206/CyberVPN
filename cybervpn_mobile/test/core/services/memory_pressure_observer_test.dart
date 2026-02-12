@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cybervpn_mobile/core/services/memory_pressure_observer.dart';

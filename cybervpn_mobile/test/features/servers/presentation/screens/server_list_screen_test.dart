@@ -180,6 +180,9 @@ class _FakeServerListNotifier extends AsyncNotifier<ServerListState>
 
   @override
   Future<void> refresh() async {}
+
+  @override
+  Future<void> loadMore() async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +222,8 @@ class _LoadingNotifier extends AsyncNotifier<ServerListState>
   Future<void> reorderFavorites(int oldIndex, int newIndex) async {}
   @override
   Future<void> refresh() async {}
+  @override
+  Future<void> loadMore() async {}
 }
 
 class _ErrorNotifier extends AsyncNotifier<ServerListState>
@@ -242,6 +247,8 @@ class _ErrorNotifier extends AsyncNotifier<ServerListState>
   Future<void> reorderFavorites(int oldIndex, int newIndex) async {}
   @override
   Future<void> refresh() async {}
+  @override
+  Future<void> loadMore() async {}
 }
 
 // ---------------------------------------------------------------------------

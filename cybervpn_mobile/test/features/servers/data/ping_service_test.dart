@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
 
-import '../../helpers/mock_factories.dart';
+import '../../../helpers/mock_factories.dart';
 
 void main() {
   group('PingService', () {
@@ -73,14 +73,14 @@ void main() {
         // Connection refused = very fast int, unreachable = null.
         final result = await pingService.pingServer('192.0.2.1', 1);
 
-        // Either null (timeout/unreachable) or an int (connection refused quickly)
-        expect(result == null || result is int, isTrue);
+        // Either null (timeout/unreachable) or a non-negative int (connection refused quickly)
+        expect(result == null || result >= 0, isTrue);
       });
 
       test('returns int or null for another unreachable host', () async {
         final result = await pingService.pingServer('192.0.2.99', 9999);
 
-        expect(result == null || result is int, isTrue);
+        expect(result == null || result >= 0, isTrue);
       });
     });
 

@@ -73,8 +73,9 @@ void main() {
     group('authenticate', () {
       test('returns true on successful authentication', () async {
         when(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         final result = await biometricService.authenticate();
@@ -82,14 +83,16 @@ void main() {
         expect(result, isTrue);
         verify(() => mockLocalAuth.authenticate(
               localizedReason: 'Authenticate to continue',
-              options: any(named: 'options'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).called(1);
       });
 
       test('returns false on failed authentication', () async {
         when(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => false);
 
         final result = await biometricService.authenticate();
@@ -100,36 +103,41 @@ void main() {
       test('passes custom reason to authenticate', () async {
         const customReason = 'Unlock CyberVPN';
         when(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         await biometricService.authenticate(reason: customReason);
 
         verify(() => mockLocalAuth.authenticate(
               localizedReason: customReason,
-              options: any(named: 'options'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).called(1);
       });
 
       test('passes AuthenticationOptions with biometricOnly and stickyAuth', () async {
         when(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).thenAnswer((_) async => true);
 
         await biometricService.authenticate();
 
         verify(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).called(1);
       });
 
       test('propagates exception from local_auth', () async {
         when(() => mockLocalAuth.authenticate(
-              localizedReason: any(named: 'localizedReason'),
-              options: any(named: 'options'),
+              localizedReason: any<String>(named: 'localizedReason'),
+              biometricOnly: any<bool>(named: 'biometricOnly'),
+              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
             )).thenThrow(Exception('Biometric hardware error'));
 
         expect(

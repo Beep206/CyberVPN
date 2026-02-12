@@ -62,8 +62,8 @@ void main() {
       expect(EnvironmentConfig.certificateFingerprints, isEmpty);
     });
 
-    test('rootEnforcement defaults to logging', () {
-      expect(EnvironmentConfig.rootEnforcement, equals('logging'));
+    test('telegramBotUsername returns empty string by default', () {
+      expect(EnvironmentConfig.telegramBotUsername, isEmpty);
     });
   });
 }

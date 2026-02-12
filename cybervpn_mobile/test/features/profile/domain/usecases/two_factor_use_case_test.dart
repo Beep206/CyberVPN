@@ -7,7 +7,7 @@ import 'package:cybervpn_mobile/features/profile/domain/usecases/setup_2fa.dart'
 import 'package:cybervpn_mobile/features/profile/domain/usecases/verify_2fa.dart';
 import 'package:cybervpn_mobile/features/profile/domain/usecases/disable_2fa.dart';
 
-import '../../helpers/mock_repositories.dart';
+import '../../../../helpers/mock_repositories.dart';
 
 void main() {
   late MockProfileRepository mockRepository;

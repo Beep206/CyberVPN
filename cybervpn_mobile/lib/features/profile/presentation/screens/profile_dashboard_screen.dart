@@ -258,9 +258,7 @@ class _StatsCardsGrid extends StatelessWidget {
         icon: Icons.workspace_premium_outlined,
         label: l10n.currentPlan,
         value: planName ?? l10n.profileStatsNoPlan,
-        accentColor: sub != null
-            ? _statusColor(sub.status)
-            : null,
+        accentColor: _statusColor(sub.status),
         badge: _buildPlanBadge(sub, isTrial, daysRemaining, l10n),
       ),
 
@@ -296,9 +294,7 @@ class _StatsCardsGrid extends StatelessWidget {
         key: const Key('stats_devices'),
         icon: Icons.devices_outlined,
         label: l10n.profileStatsDevices,
-        value: sub != null
-            ? '${sub.devicesConnected} / ${sub.maxDevices}'
-            : '--',
+        value: '${sub.devicesConnected} / ${sub.maxDevices}',
       ),
     ];
 
@@ -364,16 +360,6 @@ class _StatsCardsGrid extends StatelessWidget {
     }
 
     return null;
-  }
-
-  String _statusLabel(SubscriptionStatus status, AppLocalizations l10n) {
-    return switch (status) {
-      SubscriptionStatus.active => l10n.profileSubActive,
-      SubscriptionStatus.trial => l10n.profileSubTrial,
-      SubscriptionStatus.expired => l10n.profileSubExpired,
-      SubscriptionStatus.cancelled => l10n.profileSubCancelled,
-      SubscriptionStatus.pending => l10n.profileSubPending,
-    };
   }
 
   Color _statusColor(SubscriptionStatus status) {

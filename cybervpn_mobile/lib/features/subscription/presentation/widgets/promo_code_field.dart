@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
+
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 
@@ -37,7 +37,6 @@ class _PromoCodeFieldState extends ConsumerState<PromoCodeField> {
   final _codeController = TextEditingController();
   String? _errorMessage;
   double? _discountAmount;
-  double? _finalPrice;
   bool _isApplied = false;
 
   @override
@@ -178,7 +177,6 @@ class _PromoCodeFieldState extends ConsumerState<PromoCodeField> {
 
           setState(() {
             _discountAmount = discountAmount;
-            _finalPrice = finalPrice;
             _isApplied = true;
             _isValidating = false;
             _errorMessage = null;
@@ -206,7 +204,6 @@ class _PromoCodeFieldState extends ConsumerState<PromoCodeField> {
     setState(() {
       _codeController.clear();
       _discountAmount = null;
-      _finalPrice = null;
       _isApplied = false;
       _errorMessage = null;
     });

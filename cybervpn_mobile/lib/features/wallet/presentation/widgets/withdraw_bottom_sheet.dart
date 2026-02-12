@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/core/types/result.dart' show AppFailure;
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 
 // ---------------------------------------------------------------------------

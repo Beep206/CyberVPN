@@ -102,6 +102,13 @@ class MockAuthRepository implements AuthRepository {
   }) async {
     return const Success('new-access-token');
   }
+
+  @override
+  Future<Result<(UserEntity, String)>> loginWithBotLink({
+    required String token,
+  }) async {
+    return Success((loginUser!, loginToken));
+  }
 }
 
 // ---------------------------------------------------------------------------

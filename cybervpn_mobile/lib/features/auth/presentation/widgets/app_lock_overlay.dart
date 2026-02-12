@@ -58,10 +58,8 @@ class _AppLockOverlayState extends ConsumerState<AppLockOverlay> {
       final l10n = AppLocalizations.of(context);
       final authenticated = await localAuth.authenticate(
         localizedReason: l10n.appLockLocalizedReason,
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
 
       if (authenticated) {

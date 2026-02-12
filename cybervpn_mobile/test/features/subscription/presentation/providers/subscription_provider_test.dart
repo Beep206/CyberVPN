@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cybervpn_mobile/core/analytics/analytics_service.dart';
 import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
@@ -8,6 +7,8 @@ import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/features/subscription/data/datasources/revenuecat_datasource.dart';
+import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart'
+    show PaginatedPaymentHistory;
 import 'package:purchases_flutter/purchases_flutter.dart'
     show CustomerInfo, EntitlementInfos;
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
@@ -60,6 +61,29 @@ class _MockSubscriptionRepo implements SubscriptionRepository {
 
   @override
   Future<Result<void>> restorePurchases() async => const Success(null);
+
+  @override
+  Future<Result<PaginatedPaymentHistory>> getPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  }) async =>
+      const Success(PaginatedPaymentHistory(items: [], total: 0, offset: 0, limit: 20));
+
+  @override
+  Future<Result<SubscriptionEntity>> redeemInviteCode(String code) async =>
+      const Failure(ServerFailure(message: 'Not implemented'));
+
+  @override
+  Future<Result<Map<String, dynamic>>> applyPromoCode(String code, String planId) async =>
+      const Success(<String, dynamic>{});
+
+  @override
+  Future<Result<Map<String, dynamic>>> getTrialStatus() async =>
+      const Success(<String, dynamic>{'is_eligible': false, 'days_remaining': null, 'trial_used': false});
+
+  @override
+  Future<Result<SubscriptionEntity>> activateTrial() async =>
+      const Failure(ServerFailure(message: 'Not implemented'));
 }
 
 class _MockRevenueCat implements RevenueCatDataSource {

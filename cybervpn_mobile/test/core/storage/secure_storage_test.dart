@@ -125,67 +125,36 @@ void main() {
       });
     });
 
-    group('Biometric Credentials', () {
-      test('setBiometricCredentials stores credentials as JSON', () async {
-        await storage.setBiometricCredentials(
-          email: 'test@example.com',
-          password: 'secret123',
-        );
+    group('Device Token (Biometric Re-auth)', () {
+      test('setDeviceToken stores token', () async {
+        await storage.setDeviceToken('device-token-123');
 
         expect(
-          storage.store[SecureStorageWrapper.biometricCredentialsKey],
-          contains('test@example.com'),
-        );
-        expect(
-          storage.store[SecureStorageWrapper.biometricCredentialsKey],
-          contains('secret123'),
+          storage.store[SecureStorageWrapper.deviceTokenKey],
+          'device-token-123',
         );
       });
 
-      test('getBiometricCredentials returns stored credentials', () async {
-        await storage.setBiometricCredentials(
-          email: 'user@test.com',
-          password: 'mypassword',
-        );
+      test('getDeviceToken returns stored token', () async {
+        await storage.setDeviceToken('device-token-abc');
 
-        final credentials = await storage.getBiometricCredentials();
+        final token = await storage.getDeviceToken();
 
-        expect(credentials, isNotNull);
-        expect(credentials!.email, 'user@test.com');
-        expect(credentials.password, 'mypassword');
+        expect(token, 'device-token-abc');
       });
 
-      test('getBiometricCredentials returns null when not set', () async {
-        final credentials = await storage.getBiometricCredentials();
+      test('getDeviceToken returns null when not set', () async {
+        final token = await storage.getDeviceToken();
 
-        expect(credentials, isNull);
+        expect(token, isNull);
       });
 
-      test('getBiometricCredentials returns null for invalid JSON', () async {
-        storage.seed({SecureStorageWrapper.biometricCredentialsKey: 'not-valid-json'});
+      test('clearDeviceToken removes token', () async {
+        await storage.setDeviceToken('device-token-xyz');
 
-        final credentials = await storage.getBiometricCredentials();
+        await storage.clearDeviceToken();
 
-        expect(credentials, isNull);
-      });
-
-      test('getBiometricCredentials returns null for incomplete JSON', () async {
-        storage.seed({SecureStorageWrapper.biometricCredentialsKey: '{"email":"test@test.com"}'});
-
-        final credentials = await storage.getBiometricCredentials();
-
-        expect(credentials, isNull);
-      });
-
-      test('clearBiometricCredentials removes credentials', () async {
-        await storage.setBiometricCredentials(
-          email: 'test@example.com',
-          password: 'secret',
-        );
-
-        await storage.clearBiometricCredentials();
-
-        expect(await storage.getBiometricCredentials(), isNull);
+        expect(await storage.getDeviceToken(), isNull);
       });
     });
 
@@ -280,7 +249,7 @@ void main() {
           refreshToken: 'refresh_token',
         );
         await storage.write(key: SecureStorageWrapper.userIdKey, value: 'user-123');
-        await storage.setBiometricCredentials(email: 'e@e.com', password: 'p');
+        await storage.setDeviceToken('device-token-test');
         await storage.setAppLockEnabled(true);
         await storage.setCachedUser({'id': '123'});
         final deviceId = await storage.getOrCreateDeviceId();
@@ -292,7 +261,7 @@ void main() {
         expect(await storage.getAccessToken(), isNull);
         expect(await storage.getRefreshToken(), isNull);
         expect(await storage.read(key: SecureStorageWrapper.userIdKey), isNull);
-        expect(await storage.getBiometricCredentials(), isNull);
+        expect(await storage.getDeviceToken(), isNull);
         expect(await storage.isAppLockEnabled(), isFalse);
         expect(await storage.getCachedUser(), isNull);
 

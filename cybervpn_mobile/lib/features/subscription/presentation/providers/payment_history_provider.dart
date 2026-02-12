@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
-import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart' show subscriptionRepositoryProvider;
 
 /// Provides paginated payment history for the current user.
 ///

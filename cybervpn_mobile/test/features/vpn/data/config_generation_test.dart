@@ -318,8 +318,8 @@ void main() {
       final vlessConfig = jsonDecode(vlessJson) as Map<String, dynamic>;
       final vmessConfig = jsonDecode(vmessJson) as Map<String, dynamic>;
 
-      expect(vlessConfig['outbounds'], isA<List>());
-      expect(vmessConfig['outbounds'], isA<List>());
+      expect(vlessConfig['outbounds'], isA<List<dynamic>>());
+      expect(vmessConfig['outbounds'], isA<List<dynamic>>());
       expect((vlessConfig['outbounds'] as List).length, 1);
       expect((vmessConfig['outbounds'] as List).length, 1);
     });

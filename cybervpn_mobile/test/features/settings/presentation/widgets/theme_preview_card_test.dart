@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cybervpn_mobile/app/theme/cyberpunk_theme.dart';
-import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/theme_preview_card.dart';
 
 void main() {

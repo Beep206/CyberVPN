@@ -195,8 +195,8 @@ class VpnNotificationService {
   // -- Cleanup ----------------------------------------------------------------
 
   void dispose() {
-    _connectionSubscription?.cancel();
-    _statsSubscription?.cancel();
+    _connectionSubscription?.close();
+    _statsSubscription?.close();
     _androidNotification.dispose();
 
     AppLogger.debug('VPN notification service disposed');

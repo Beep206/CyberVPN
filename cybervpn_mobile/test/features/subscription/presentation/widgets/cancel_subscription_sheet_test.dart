@@ -1,189 +1,167 @@
+import 'dart:async';
+
+import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' as failures;
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
-import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/widgets/cancel_subscription_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+import '../../../../helpers/mock_repositories.dart';
 
 // ---------------------------------------------------------------------------
 // Test Helpers
 // ---------------------------------------------------------------------------
 
 Widget buildTestableCancelSheet({
-  required AsyncValue<SubscriptionState> subscriptionStateOverride,
+  required String subscriptionId,
+  required MockSubscriptionRepository mockRepo,
 }) {
   return ProviderScope(
     overrides: [
-      subscriptionProvider.overrideWith(
-        (ref) => subscriptionStateOverride,
-      ),
+      subscriptionRepositoryProvider.overrideWithValue(mockRepo),
     ],
-    child: const MaterialApp(
+    child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: CancelSubscriptionSheet(),
+        body: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () {
+              unawaited(CancelSubscriptionSheet.show(context, subscriptionId));
+            },
+            child: const Text('Open Sheet'),
+          ),
+        ),
       ),
     ),
   );
 }
+
+// Finders
+Finder findOpenSheetButton() => find.text('Open Sheet');
+Finder findCancelButton() => find.byKey(const Key('btn_confirm_cancel'));
+Finder findKeepButton() => find.byKey(const Key('btn_keep_subscription'));
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 void main() {
+  late MockSubscriptionRepository mockRepo;
+
+  setUp(() {
+    mockRepo = MockSubscriptionRepository();
+  });
+
   group('CancelSubscriptionSheet - Rendering', () {
     testWidgets('test_renders_confirmation_title', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.idle,
-      );
-
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
       expect(find.text('Cancel Subscription?'), findsOneWidget);
     });
 
     testWidgets('test_renders_warning_message', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.idle,
-      );
-
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('You will lose access'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('You will lose access'), findsOneWidget);
     });
 
-    testWidgets('test_renders_cancel_button', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.idle,
-      );
-
+    testWidgets('test_renders_cancel_and_keep_buttons', (tester) async {
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('Cancel Subscription'), findsOneWidget);
-    });
-
-    testWidgets('test_renders_keep_subscription_button', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.idle,
-      );
-
-      await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Keep Subscription'), findsOneWidget);
+      expect(findCancelButton(), findsOneWidget);
+      expect(findKeepButton(), findsOneWidget);
     });
   });
 
   group('CancelSubscriptionSheet - Cancel Flow', () {
-    testWidgets('test_shows_loading_during_cancellation', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.loading,
-      );
+    testWidgets('test_cancel_button_calls_repository', (tester) async {
+      when(() => mockRepo.cancelSubscription(any()))
+          .thenAnswer((_) async => const Success<void>(null));
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
-      await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
-
-    testWidgets('test_disables_buttons_during_loading', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.loading,
-      );
-
-      await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
-        ),
-      );
-      await tester.pump();
-
-      final cancelButton =
-          find.widgetWithText(ElevatedButton, 'Cancel Subscription');
-      final button = tester.widget<ElevatedButton>(cancelButton);
-      expect(button.enabled, isFalse);
-    });
-
-    testWidgets('test_closes_sheet_on_success', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.success,
-      );
-
-      await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
-        ),
-      );
+      await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
-      expect(find.byType(CancelSubscriptionSheet), findsNothing);
+      await tester.tap(findCancelButton());
+      await tester.pumpAndSettle();
+
+      verify(() => mockRepo.cancelSubscription('sub-123')).called(1);
     });
 
-    testWidgets('test_shows_success_snackbar', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.success,
-      );
+    testWidgets('test_success_shows_snackbar_and_closes_sheet', (tester) async {
+      when(() => mockRepo.cancelSubscription(any()))
+          .thenAnswer((_) async => const Success<void>(null));
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
+      await tester.pumpAndSettle();
+
+      await tester.tap(findCancelButton());
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.text('Subscription cancelled'), findsOneWidget);
+      expect(find.byType(CancelSubscriptionSheet), findsNothing);
     });
 
-    testWidgets('test_shows_error_snackbar_on_failure', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.error,
-        purchaseError: 'Failed to cancel subscription',
+    testWidgets('test_error_shows_snackbar', (tester) async {
+      when(() => mockRepo.cancelSubscription(any())).thenAnswer(
+        (_) async => const Failure<void>(
+            failures.ServerFailure(message: 'Failed to cancel subscription')),
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
+      await tester.pumpAndSettle();
+
+      await tester.tap(findCancelButton());
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
@@ -191,25 +169,23 @@ void main() {
     });
   });
 
-  group('CancelSubscriptionSheet - Keep Subscription Action', () {
-    testWidgets('test_keep_button_closes_sheet', (tester) async {
-      const subscriptionState = SubscriptionState(
-        plans: [],
-        purchaseState: PurchaseState.idle,
-      );
-
+  group('CancelSubscriptionSheet - Keep Subscription', () {
+    testWidgets('test_keep_button_closes_sheet_without_api_call', (tester) async {
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
+          subscriptionId: 'sub-123',
+          mockRepo: mockRepo,
         ),
       );
+
+      await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
-      final keepButton = find.text('Keep Subscription');
-      await tester.tap(keepButton);
+      await tester.tap(findKeepButton());
       await tester.pumpAndSettle();
 
       expect(find.byType(CancelSubscriptionSheet), findsNothing);
+      verifyNever(() => mockRepo.cancelSubscription(any()));
     });
   });
 }

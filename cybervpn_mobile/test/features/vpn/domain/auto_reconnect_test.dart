@@ -7,8 +7,8 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../../helpers/mock_factories.dart';
-import '../../helpers/mock_repositories.dart';
+import '../../../helpers/mock_factories.dart';
+import '../../../helpers/mock_repositories.dart';
 
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 

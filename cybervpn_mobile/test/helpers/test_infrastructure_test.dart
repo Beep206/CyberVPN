@@ -94,7 +94,7 @@ void main() {
       final servers = createMockServerList(count: 3);
 
       expect(servers, hasLength(3));
-      expect(servers.every((s) => s is ServerEntity), isTrue);
+      expect(servers.every((s) => s.id.isNotEmpty), isTrue);
     });
 
     test('createMockPlan returns valid PlanEntity', () {
@@ -293,7 +293,7 @@ void main() {
 
     test('throws error for unconfigured path', () {
       expect(
-        () => api.get('/unknown'),
+        () => api.get<dynamic>('/unknown'),
         throwsA(isA<StateError>()),
       );
     });
@@ -302,7 +302,7 @@ void main() {
       api.setGetError('/fail', Exception('Network error'));
 
       expect(
-        () => api.get('/fail'),
+        () => api.get<dynamic>('/fail'),
         throwsA(isA<Exception>()),
       );
     });
@@ -312,7 +312,7 @@ void main() {
       api.reset();
 
       expect(
-        () => api.get('/test'),
+        () => api.get<dynamic>('/test'),
         throwsA(isA<StateError>()),
       );
     });
@@ -320,10 +320,9 @@ void main() {
 
   group('Fixture loader', () {
     test('loads user fixture', () async {
-      final data = await loadFixture('user_fixture.json');
-      expect(data, isA<List<dynamic>>());
-      expect((data as List<dynamic>).length, greaterThanOrEqualTo(5));
-      final firstUser = (data as List<dynamic>).first as Map<String, dynamic>;
+      final data = await loadFixture('user_fixture.json') as List<dynamic>;
+      expect(data.length, greaterThanOrEqualTo(5));
+      final firstUser = data.first as Map<String, dynamic>;
       expect(firstUser['id'], isNotEmpty);
       expect(firstUser['email'], isNotEmpty);
     });

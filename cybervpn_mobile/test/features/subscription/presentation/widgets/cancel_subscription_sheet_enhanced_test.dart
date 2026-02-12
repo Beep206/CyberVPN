@@ -217,7 +217,7 @@ void main() {
       // Arrange: Mock slow cancellation to test loading state
       when(() => mockRepo.cancelSubscription(any())).thenAnswer(
         (_) async {
-          await Future.delayed(const Duration(milliseconds: 500));
+          await Future<void>.delayed(const Duration(milliseconds: 500));
           return const Success(null);
         },
       );
@@ -281,7 +281,7 @@ void main() {
       // Arrange: Mock slow cancellation
       when(() => mockRepo.cancelSubscription(any())).thenAnswer(
         (_) async {
-          await Future.delayed(const Duration(milliseconds: 300));
+          await Future<void>.delayed(const Duration(milliseconds: 300));
           return const Success(null);
         },
       );
