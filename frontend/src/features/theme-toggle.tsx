@@ -62,7 +62,7 @@ export function ThemeToggle() {
                     await transition.ready;
 
                     // Animate the circle reveal
-                    const animation = document.documentElement.animate(
+                    document.documentElement.animate(
                         {
                             clipPath: [
                                 `circle(0px at ${x}px ${y}px)`,

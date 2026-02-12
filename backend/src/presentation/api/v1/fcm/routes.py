@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.repositories.fcm_token_repo import FCMTokenRepositoryImpl
+from src.infrastructure.monitoring.metrics import fcm_operations_total
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 
@@ -67,6 +68,7 @@ async def register_fcm_token(
         },
     )
 
+    fcm_operations_total.labels(operation="register").inc()
     return FCMTokenResponse(
         token=fcm_token.token,
         device_id=fcm_token.device_id,
@@ -106,6 +108,7 @@ async def unregister_fcm_token(
         device_id=body.device_id,
     )
 
+    fcm_operations_total.labels(operation="unregister").inc()
     logger.info(
         "FCM token unregistered",
         extra={

@@ -29,34 +29,41 @@ def admin_plans_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder.button(
         text=i18n("plans-view-all"),
         callback_data="plans:list",
+        style="primary",
     )
     builder.button(
         text=i18n("plans-create-new"),
         callback_data="plans:create",
+        style="success",
     )
     builder.button(
         text=i18n("plans-edit-existing"),
         callback_data="plans:edit",
+        style="primary",
     )
     builder.button(
         text=i18n("plans-toggle-active"),
         callback_data="plans:toggle",
+        style="primary",
     )
 
     # Pricing configuration
     builder.button(
         text=i18n("plans-pricing"),
         callback_data="plans:pricing",
+        style="primary",
     )
     builder.button(
         text=i18n("plans-durations"),
         callback_data="plans:durations",
+        style="primary",
     )
 
     # Navigation
     builder.button(
         text=i18n("button-back"),
         callback_data="admin:main",
+        style="primary",
     )
 
     # Layout: 2 buttons per row

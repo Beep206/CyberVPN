@@ -197,9 +197,10 @@ class OAuthLoginUseCase:
                             "Remnawave user created for OAuth registration",
                             extra={"provider": provider, "user_id": str(user.id), "login": login},
                         )
-                    except Exception:
+                    except Exception as e:
                         logger.exception(
-                            "Failed to create Remnawave user during OAuth registration",
+                            "Failed to create Remnawave user during OAuth registration: %s",
+                            e,
                             extra={"provider": provider, "user_id": str(user.id), "login": login},
                         )
 

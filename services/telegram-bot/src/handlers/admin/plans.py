@@ -48,6 +48,7 @@ async def plans_menu_handler(
                 InlineKeyboardButton(
                     text=f"{status_emoji} {plan_name} - ${price}",
                     callback_data=f"admin:plan:view:{plan_id}",
+                    style="primary",
                 )
             )
 
@@ -55,12 +56,14 @@ async def plans_menu_handler(
             InlineKeyboardButton(
                 text="➕ " + i18n.get("admin-plans-create"),
                 callback_data="admin:plan:create",
+                style="success",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
+                style="primary",
             )
         )
 
@@ -113,18 +116,21 @@ async def plan_view_handler(
             InlineKeyboardButton(
                 text=toggle_text,
                 callback_data=f"admin:plan:toggle:{plan_id}",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text=i18n.get("admin-plan-edit"),
                 callback_data=f"admin:plan:edit:{plan_id}",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:plans",
+                style="primary",
             )
         )
 

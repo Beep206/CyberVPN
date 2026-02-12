@@ -23,6 +23,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text=f"{expiry_status} {i18n.get('admin-notif-expiry-enabled')}",
             callback_data="admin:notifications:toggle_expiry",
+            style="primary",
         )
     )
 
@@ -33,6 +34,7 @@ def notification_settings_keyboard(
             InlineKeyboardButton(
                 text=f"📅 {i18n.get('admin-notif-expiry-days')}: {expiry_days}",
                 callback_data="admin:notifications:set_expiry_days",
+                style="primary",
             )
         )
 
@@ -43,6 +45,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text=f"{payment_status} {i18n.get('admin-notif-payment-enabled')}",
             callback_data="admin:notifications:toggle_payment",
+            style="primary",
         )
     )
 
@@ -53,6 +56,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text=f"{referral_status} {i18n.get('admin-notif-referral-enabled')}",
             callback_data="admin:notifications:toggle_referral",
+            style="primary",
         )
     )
 
@@ -63,6 +67,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text=f"{system_status} {i18n.get('admin-notif-system-enabled')}",
             callback_data="admin:notifications:toggle_system",
+            style="primary",
         )
     )
 
@@ -71,6 +76,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text="🕐 " + i18n.get("admin-notif-time-window"),
             callback_data="admin:notifications:set_time_window",
+            style="primary",
         )
     )
 
@@ -79,6 +85,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text="🧪 " + i18n.get("admin-notif-test"),
             callback_data="admin:notifications:test",
+            style="primary",
         )
     )
 
@@ -87,6 +94,7 @@ def notification_settings_keyboard(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:settings",
+            style="primary",
         )
     )
 

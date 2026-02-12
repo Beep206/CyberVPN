@@ -1,8 +1,8 @@
 'use client';
 
-import { OTPInput, OTPInputContext } from 'input-otp';
+import { OTPInput } from 'input-otp';
 import { motion } from 'motion/react';
-import { Fragment, useContext, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CyberOtpInputProps {

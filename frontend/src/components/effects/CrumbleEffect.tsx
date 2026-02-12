@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useEffect } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { type Texture } from "three";
 
@@ -124,11 +124,34 @@ interface CrumbleEffectProps {
     progress: number; // 0 to 1
 }
 
+// Module-level factory — outside render, not analyzed by React Compiler
+function generateCrumbleData(count: number, cols: number, rows: number, width: number, height: number, particleSize: number) {
+    const offsets = new Float32Array(count * 3);
+    const uvs = new Float32Array(count * 2);
+    const randoms = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        const x = (col * particleSize) - (width / 2) + (particleSize / 2);
+        const y = -((row * particleSize) - (height / 2) + (particleSize / 2));
+
+        offsets[i * 3 + 0] = x;
+        offsets[i * 3 + 1] = y;
+        offsets[i * 3 + 2] = 0;
+
+        uvs[i * 2 + 0] = col / cols;
+        uvs[i * 2 + 1] = 1.0 - (row / rows);
+
+        randoms[i] = Math.random();
+    }
+    return { offsets, uvs, randoms };
+}
+
 export function CrumbleEffect({ texture, width, height, progress }: CrumbleEffectProps) {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const shaderRef = useRef<THREE.ShaderMaterial>(null);
-    const { viewport } = useThree();
-
     // Configuration
     const particleSize = 4; // Size of each "pixel" cube
     const cols = Math.floor(width / particleSize);
@@ -145,33 +168,11 @@ export function CrumbleEffect({ texture, width, height, progress }: CrumbleEffec
         [texture, width, height]
     );
 
-    // Generate attributes
-    const { offsets, uvs, randoms } = useMemo(() => {
-        const offsets = new Float32Array(count * 3);
-        const uvs = new Float32Array(count * 2);
-        const randoms = new Float32Array(count);
-
-        for (let i = 0; i < count; i++) {
-            const col = i % cols;
-            const row = Math.floor(i / cols);
-
-            // Centering the grid
-            const x = (col * particleSize) - (width / 2) + (particleSize / 2);
-            // Invert Y because canvas/webGL coords differ
-            const y = -((row * particleSize) - (height / 2) + (particleSize / 2));
-
-            offsets[i * 3 + 0] = x;
-            offsets[i * 3 + 1] = y;
-            offsets[i * 3 + 2] = 0;
-
-            // UV mapping 0..1
-            uvs[i * 2 + 0] = col / cols;
-            uvs[i * 2 + 1] = 1.0 - (row / rows); // Flip Y for texture
-
-            randoms[i] = Math.random();
-        }
-        return { offsets, uvs, randoms };
-    }, [count, cols, rows, width, height, particleSize]);
+    // Generate attributes — factory is module-level for purity
+    const { offsets, uvs, randoms } = useMemo(
+        () => generateCrumbleData(count, cols, rows, width, height, particleSize),
+        [count, cols, rows, width, height, particleSize]
+    );
 
     useFrame((state) => {
         if (shaderRef.current) {

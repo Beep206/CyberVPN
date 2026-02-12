@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, ArrowRight, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
@@ -15,7 +14,6 @@ import { authApi, OtpErrorResponse } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function OtpVerificationForm() {
-    const t = useTranslations('Auth.verify');
     const router = useRouter();
     const searchParams = useSearchParams();
 

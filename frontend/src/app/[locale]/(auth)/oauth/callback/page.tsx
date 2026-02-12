@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, startTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -27,7 +27,9 @@ export default function OAuthCallbackPage() {
         const provider = sessionStorage.getItem('oauth_provider') as OAuthProvider | null;
 
         if (!code || !state || !provider) {
-            setError(t('missingParams'));
+            startTransition(() => {
+                setError(t('missingParams'));
+            });
             return;
         }
 

@@ -8,12 +8,10 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import {
     Line,
     Sphere,
-    Icosahedron,
     OrbitControls,
-    Trail,
     Environment
 } from '@react-three/drei';
-import { EffectComposer, Bloom, ChromaticAberration, ToneMapping, Noise, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
 import '@/3d/shaders/AtmosphereShader'; // Keeping atmosphere for outer glow only
@@ -299,7 +297,6 @@ function ObsidianSphere() {
             {/* 4. THE ATMOSPHERE: Subtle outer glow (using shader) */}
             <mesh scale={[1.2, 1.2, 1.2]} renderOrder={-1}>
                 <sphereGeometry args={[2, 32, 32]} />
-                {/* @ts-ignore */}
                 <atmosphereShader
                     side={THREE.BackSide}
                     transparent

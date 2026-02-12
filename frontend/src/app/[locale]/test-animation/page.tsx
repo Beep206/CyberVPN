@@ -50,6 +50,7 @@ export default function AnimationTestPage() {
             {/* Large Block */}
             <InceptionButton className="cursor-pointer">
                 <div className="relative w-[500px] h-[200px] rounded-3xl overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop"
                         alt="Abstract"

@@ -332,7 +332,7 @@ export function PurchaseConfirmModal({
                   Crypto Payment
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  You'll be redirected to a secure crypto payment page. Complete the payment to activate your subscription instantly.
+                  You&apos;ll be redirected to a secure crypto payment page. Complete the payment to activate your subscription instantly.
                 </p>
               </div>
             </div>

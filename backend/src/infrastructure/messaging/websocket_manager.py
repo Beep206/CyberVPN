@@ -1,7 +1,10 @@
 import json
+import logging
 from typing import Any
 
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class WebSocketManager:
@@ -28,7 +31,8 @@ class WebSocketManager:
         for ws in self._connections[channel]:
             try:
                 await ws.send_text(message)
-            except Exception:
+            except Exception as e:
+                logger.warning("WebSocket send failed, marking for disconnect: %s", e)
                 disconnected.add(ws)
         for ws in disconnected:
             self._connections[channel].discard(ws)

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Shield, Navigation, Monitor, Settings, Globe } from "lucide-react";
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 export function DevPanel() {
@@ -15,12 +15,12 @@ export function DevPanel() {
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
+    /* eslint-disable react-hooks/set-state-in-effect -- Dev-only hydration guard and cookie check on mount */
     useEffect(() => {
         setMounted(true);
-        // Initial check for cookie on mount
-        const hasCookie = document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH='));
-        setBypassAuth(hasCookie);
+        setBypassAuth(document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH=')));
     }, []);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const toggleAuthBypass = () => {
         if (bypassAuth) {
@@ -282,6 +282,7 @@ function BrowserTab({ isDark }: { isDark: boolean }) {
         memory: 0,
     });
 
+    /* eslint-disable react-hooks/set-state-in-effect -- Dev-only browser info collection on mount */
     useEffect(() => {
         if (typeof window !== "undefined") {
             setInfo({
@@ -299,6 +300,7 @@ function BrowserTab({ isDark }: { isDark: boolean }) {
             return () => clearInterval(interval);
         }
     }, []);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     return (
         <div className="space-y-4 relative z-20">

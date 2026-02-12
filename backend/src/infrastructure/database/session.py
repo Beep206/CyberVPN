@@ -36,9 +36,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession]:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except Exception as e:
             await session.rollback()
-            raise
+            raise e
 
 
 async def check_db_connection() -> bool:
@@ -46,5 +46,6 @@ async def check_db_connection() -> bool:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
         return True
-    except Exception:
+    except Exception as e:
+        _ = e  # Expected when database is unreachable
         return False

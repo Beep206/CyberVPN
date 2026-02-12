@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.application.use_cases.auth.permissions import Permission
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.telegram.schemas import (
@@ -34,6 +35,7 @@ async def get_telegram_user(
             detail=f"User with telegram_id {telegram_id} not found",
         )
 
+    route_operations_total.labels(route="telegram", action="get_user", status="success").inc()
     return TelegramUserResponse(
         uuid=user.uuid,
         username=user.username,
@@ -73,6 +75,7 @@ async def create_subscription(
         json=subscription_data,
     )
 
+    route_operations_total.labels(route="telegram", action="create_subscription", status="success").inc()
     return {
         "status": "success",
         "subscription_id": result.get("id"),
@@ -100,6 +103,7 @@ async def get_user_config(
         f"/api/users/{user.uuid}/config",
     )
 
+    route_operations_total.labels(route="telegram", action="get_config", status="success").inc()
     return ConfigResponse(
         config_string=str(result.get("config_string", "")),
         client_type=result.get("client_type", "vless"),

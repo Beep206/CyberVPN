@@ -5,8 +5,7 @@ import { usePartnerDashboard, usePartnerCodes, usePartnerEarnings } from '../hoo
 import { partnerApi } from '@/lib/api/partner';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { motion } from 'motion/react';
-import { Handshake, DollarSign, Users, Code, Plus, Edit, CheckCircle, AlertCircle } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Handshake, DollarSign, Users, Code, Plus, CheckCircle } from 'lucide-react';
 import { AxiosError } from 'axios';
 
 interface PartnerCode {
@@ -28,10 +27,9 @@ interface PartnerEarning {
 }
 
 export function PartnerClient() {
-  const t = useTranslations('Partner');
   const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = usePartnerDashboard();
   const { data: codes, isLoading: codesLoading, refetch: refetchCodes } = usePartnerCodes();
-  const { data: earnings, isLoading: earningsLoading } = usePartnerEarnings();
+  const { data: earnings } = usePartnerEarnings();
 
   const [bindCode, setBindCode] = useState('');
   const [bindLoading, setBindLoading] = useState(false);
@@ -42,8 +40,6 @@ export function PartnerClient() {
   const [newCodeMarkup, setNewCodeMarkup] = useState('');
   const [creatingCode, setCreatingCode] = useState(false);
   const [createError, setCreateError] = useState('');
-
-  const isPartner = !dashboardError || (dashboardError as AxiosError)?.response?.status !== 403;
 
   // Handle binding to partner
   const handleBind = async () => {

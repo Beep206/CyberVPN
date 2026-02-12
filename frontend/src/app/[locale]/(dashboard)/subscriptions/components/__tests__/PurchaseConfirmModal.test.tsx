@@ -137,7 +137,7 @@ describe('PurchaseConfirmModal', () => {
 
       server.use(
         http.post(`${API_BASE}/payments/crypto/invoice`, async ({ request }) => {
-          capturedRequest = await request.json();
+          capturedRequest = await request.json() as Record<string, unknown>;
           return HttpResponse.json({
             payment_url: 'https://cryptobot.example/invoice/123',
           }, { status: 201 });
@@ -165,8 +165,8 @@ describe('PurchaseConfirmModal', () => {
 
       await waitFor(() => {
         expect(capturedRequest).not.toBeNull();
-        expect(capturedRequest.plan_id).toBe('plan-456');
-        expect(capturedRequest.currency).toBe('USDT');
+        expect(capturedRequest!.plan_id).toBe('plan-456');
+        expect(capturedRequest!.currency).toBe('USDT');
       });
     });
 

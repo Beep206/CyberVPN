@@ -14,9 +14,11 @@ export function DevButton({ onClick }: DevButtonProps) {
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
+    /* eslint-disable react-hooks/set-state-in-effect -- Dev-only hydration guard */
     useEffect(() => {
         setMounted(true);
     }, []);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!mounted) return null;
 

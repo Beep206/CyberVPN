@@ -42,8 +42,8 @@ vi.mock('@/stores/auth-store', () => ({
 vi.mock('@/components/ui/button', async () => {
   const React = await import('react');
   return {
-    Button: ({ children, onClick, ...props }: Record<string, unknown>) => {
-      return React.createElement('button', { onClick, ...props }, children);
+    Button: ({ children, onClick, ...props }: { children?: React.ReactNode; onClick?: React.MouseEventHandler } & Record<string, unknown>) => {
+      return React.createElement('button', { onClick, ...props }, children as React.ReactNode);
     },
   };
 });

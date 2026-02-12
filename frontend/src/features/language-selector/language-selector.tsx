@@ -131,7 +131,8 @@ export function LanguageSelector() {
 
                     {filteredLanguages.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground font-mono">
-                            // NO_MATCHES_FOUND
+                            {/* NO_MATCHES_FOUND */}
+                            NO_MATCHES_FOUND
                         </div>
                     )}
                 </div>

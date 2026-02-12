@@ -29,28 +29,34 @@ def broadcast_audience_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMar
     builder.button(
         text=i18n("broadcast-all-users"),
         callback_data="broadcast:audience:all",
+        style="primary",
     )
     builder.button(
         text=i18n("broadcast-active-subscribers"),
         callback_data="broadcast:audience:active",
+        style="primary",
     )
     builder.button(
         text=i18n("broadcast-expired-subscribers"),
         callback_data="broadcast:audience:expired",
+        style="primary",
     )
     builder.button(
         text=i18n("broadcast-trial-users"),
         callback_data="broadcast:audience:trial",
+        style="primary",
     )
     builder.button(
         text=i18n("broadcast-no-subscription"),
         callback_data="broadcast:audience:none",
+        style="primary",
     )
 
     # Navigation
     builder.button(
         text=i18n("button-cancel"),
         callback_data="admin:main",
+        style="danger",
     )
 
     # Layout: 1 audience per row for clarity

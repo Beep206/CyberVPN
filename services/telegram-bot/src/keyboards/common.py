@@ -27,6 +27,7 @@ def back_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-back"),
         callback_data="nav:back",
+        style="primary",
     )
 
 
@@ -42,6 +43,7 @@ def cancel_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-cancel"),
         callback_data="nav:cancel",
+        style="danger",
     )
 
 
@@ -57,6 +59,7 @@ def confirm_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text=i18n("btn-confirm"),
         callback_data="nav:confirm",
+        style="success",
     )
 
 
@@ -84,20 +87,24 @@ def main_menu_keyboard(
         builder.button(
             text=i18n("btn-connect"),
             callback_data="menu:connect",
+            style="primary",
         )
         builder.button(
             text=i18n("btn-extend"),
             callback_data="subscription:buy",
+            style="primary",
         )
     else:
         if trial_available:
             builder.button(
                 text=i18n("btn-trial"),
                 callback_data="trial:activate",
+                style="success",
             )
         builder.button(
             text=i18n("btn-buy"),
             callback_data="subscription:buy",
+            style="primary",
         )
 
     # Account section

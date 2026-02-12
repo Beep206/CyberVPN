@@ -26,8 +26,6 @@ export function ScrambleText({
     const [display, setDisplay] = useState(text);
     const ref = useRef(null);
     const isInView = useInView(ref, { once: !loop, amount: 0.5 });
-    const [isHovered, setIsHovered] = useState(false);
-
     // Internal state to track if interaction is happening
     const isAnimating = useRef(false);
 
@@ -88,11 +86,9 @@ export function ScrambleText({
         if (triggerOnHover) {
             scramble();
         }
-        setIsHovered(true);
     };
 
     const handleMouseLeave = () => {
-        setIsHovered(false);
     };
 
     return (

@@ -1,10 +1,13 @@
 """Verify OTP use case for email verification with auto-login."""
 
+import logging
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from src.application.services.auth_service import AuthService
 from src.application.services.otp_service import OtpService, OtpVerificationResult
@@ -136,9 +139,9 @@ class VerifyOtpUseCase:
                     email=user.email or email,
                     telegram_id=user.telegram_id,
                 )
-            except Exception:
+            except Exception as e:
                 # Log but don't fail - user can still use dashboard
-                pass
+                logger.warning("Failed to create Remnawave user during OTP verification: %s", e)
 
         # Create tokens (auto-login)
         # MED-003: Properly unpack token tuple (token, jti, expires_at)

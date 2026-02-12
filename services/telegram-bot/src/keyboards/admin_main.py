@@ -30,42 +30,50 @@ def admin_main_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     builder.button(
         text=i18n("admin-stats"),
         callback_data="admin:stats",
+        style="primary",
     )
     builder.button(
         text=i18n("admin-revenue"),
         callback_data="admin:revenue",
+        style="primary",
     )
 
     # User management
     builder.button(
         text=i18n("admin-users"),
         callback_data="admin:users",
+        style="primary",
     )
     builder.button(
         text=i18n("admin-search-user"),
         callback_data="admin:search",
+        style="primary",
     )
 
     # Content and engagement
     builder.button(
         text=i18n("admin-broadcast"),
         callback_data="admin:broadcast",
+        style="primary",
     )
 
     # Configuration
     builder.button(
         text=i18n("admin-plans"),
         callback_data="admin:plans",
+        style="primary",
     )
     builder.button(
         text=i18n("admin-settings"),
         callback_data="admin:settings",
+        style="primary",
     )
 
     # Navigation
     builder.button(
         text=i18n("button-main-menu"),
         callback_data="nav:menu",
+        style="primary",
     )
 
     # Layout: 2 buttons per row

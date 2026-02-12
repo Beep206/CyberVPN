@@ -1,9 +1,12 @@
 """Bulk user operations use case."""
 
+import logging
 from uuid import UUID
 
 from src.domain.enums import UserStatus
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+
+logger = logging.getLogger(__name__)
 
 
 class BulkUserOperationsUseCase:
@@ -31,8 +34,8 @@ class BulkUserOperationsUseCase:
             try:
                 await self.gateway.update(uuid, status=UserStatus.DISABLED)
                 success_count += 1
-            except Exception:
-                # Log error but continue with other users
+            except Exception as e:
+                logger.warning("Failed to disable user %s: %s", uuid, e)
                 continue
         return success_count
 
@@ -50,7 +53,7 @@ class BulkUserOperationsUseCase:
             try:
                 await self.gateway.update(uuid, status=UserStatus.ACTIVE)
                 success_count += 1
-            except Exception:
-                # Log error but continue with other users
+            except Exception as e:
+                logger.warning("Failed to enable user %s: %s", uuid, e)
                 continue
         return success_count

@@ -2,8 +2,12 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, cast
 
+import logging
+
 import structlog
 from fastapi import Depends, FastAPI
+
+logger = logging.getLogger(__name__)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -391,7 +395,8 @@ async def readiness_check() -> dict:
         checks["database"] = await check_db_connection()
         if not checks["database"]:
             all_healthy = False
-    except Exception:
+    except Exception as e:
+        logger.warning("Database health check failed: %s", e)
         checks["database"] = False
         all_healthy = False
 
@@ -401,7 +406,8 @@ async def readiness_check() -> dict:
         checks["redis"] = redis_ok
         if not redis_ok:
             all_healthy = False
-    except Exception:
+    except Exception as e:
+        logger.warning("Redis health check failed: %s", e)
         checks["redis"] = False
         all_healthy = False
 
@@ -420,7 +426,8 @@ async def readiness_check() -> dict:
         else:
             checks["queue"] = False
             all_healthy = False
-    except Exception:
+    except Exception as e:
+        logger.warning("Task queue health check failed: %s", e)
         checks["queue"] = False
         all_healthy = False
 
@@ -455,13 +462,13 @@ async def health_check_detailed(
 
     try:
         db_ok = await check_db_connection()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Detailed health check - database failed: %s", e)
 
     try:
         redis_ok, _ = await check_redis_connection()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Detailed health check - redis failed: %s", e)
 
     return {
         "status": "ok" if (db_ok and redis_ok) else "degraded",

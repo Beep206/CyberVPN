@@ -18,6 +18,7 @@ from src.application.use_cases.auth.anti_phishing import AntiPhishingUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 
@@ -93,6 +94,7 @@ async def set_antiphishing_code(
         extra={"user_id": str(current_user.id)},
     )
 
+    route_operations_total.labels(route="security", action="set_antiphishing", status="success").inc()
     return AntiPhishingCodeResponse(code=request.code)
 
 
@@ -123,6 +125,7 @@ async def get_antiphishing_code(
         extra={"user_id": str(current_user.id), "code_set": code is not None},
     )
 
+    route_operations_total.labels(route="security", action="get_antiphishing", status="success").inc()
     return AntiPhishingCodeResponse(code=code)
 
 
@@ -178,4 +181,5 @@ async def delete_antiphishing_code(
         extra={"user_id": str(current_user.id)},
     )
 
+    route_operations_total.labels(route="security", action="delete_antiphishing", status="success").inc()
     return DeleteAntiPhishingCodeResponse()

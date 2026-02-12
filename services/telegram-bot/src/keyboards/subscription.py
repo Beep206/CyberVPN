@@ -158,6 +158,7 @@ def payment_methods_keyboard(
         builder.button(
             text=i18n("btn-pay-cryptobot"),
             callback_data="pay:cryptobot",
+            style="primary",
         )
 
     # YooKassa (cards, wallets)
@@ -165,6 +166,7 @@ def payment_methods_keyboard(
         builder.button(
             text=i18n("btn-pay-yookassa"),
             callback_data="pay:yookassa",
+            style="primary",
         )
 
     # Telegram Stars
@@ -172,12 +174,14 @@ def payment_methods_keyboard(
         builder.button(
             text=i18n("btn-pay-stars"),
             callback_data="pay:telegram_stars",
+            style="primary",
         )
 
     # Navigation
     builder.button(
         text=i18n("btn-back"),
         callback_data="subscription:back",
+        style="primary",
     )
 
     builder.adjust(1)
@@ -192,15 +196,15 @@ def subscription_keyboard(
     builder = InlineKeyboardBuilder()
 
     if has_active:
-        builder.button(text=i18n("btn-get-config"), callback_data="config:menu")
-        builder.button(text=i18n("btn-extend"), callback_data="subscription:buy")
-        builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions")
+        builder.button(text=i18n("btn-get-config"), callback_data="config:menu", style="primary")
+        builder.button(text=i18n("btn-extend"), callback_data="subscription:buy", style="primary")
+        builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions", style="primary")
     else:
-        builder.button(text=i18n("btn-trial"), callback_data="trial:activate")
-        builder.button(text=i18n("btn-buy"), callback_data="subscription:buy")
-        builder.button(text=i18n("btn-enter-promo"), callback_data="promocode:enter")
+        builder.button(text=i18n("btn-trial"), callback_data="trial:activate", style="success")
+        builder.button(text=i18n("btn-buy"), callback_data="subscription:buy", style="primary")
+        builder.button(text=i18n("btn-enter-promo"), callback_data="promocode:enter", style="primary")
 
-    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
     builder.adjust(1)
 
     return builder.as_markup()

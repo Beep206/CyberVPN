@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, startTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -23,7 +23,9 @@ export default function TelegramLinkPage() {
 
         const token = searchParams.get('token');
         if (!token) {
-            setError(t('botLinkInvalid'));
+            startTransition(() => {
+                setError(t('botLinkInvalid'));
+            });
             return;
         }
 

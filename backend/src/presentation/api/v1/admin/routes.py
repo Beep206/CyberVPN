@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.auth.permissions import Permission
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
 from src.infrastructure.database.repositories.webhook_log_repo import WebhookLogRepository
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.presentation.api.v1.admin.schemas import AuditLogResponse, WebhookLogResponse
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.pagination import PaginationParams, get_pagination
@@ -28,6 +29,7 @@ async def get_audit_logs(
         limit=pagination.page_size,
     )
 
+    route_operations_total.labels(route="admin", action="get_audit_logs", status="success").inc()
     return logs
 
 
@@ -45,4 +47,5 @@ async def get_webhook_logs(
         limit=pagination.page_size,
     )
 
+    route_operations_total.labels(route="admin", action="get_webhook_logs", status="success").inc()
     return logs

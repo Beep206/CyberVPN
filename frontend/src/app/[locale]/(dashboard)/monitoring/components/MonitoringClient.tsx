@@ -55,10 +55,9 @@ export function MonitoringClient() {
   const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
-    // Set initial time on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Timer pattern: setState in interval callback is intentional
     setCurrentTime(new Date().toLocaleTimeString());
 
-    // Update every second
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);

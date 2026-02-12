@@ -126,6 +126,7 @@ async def payment_method_selected_handler(
                     InlineKeyboardButton(
                         text=i18n.get("payment-check-status"),
                         callback_data=f"payment:check:{payment_id}",
+                        style="primary",
                     )
                 )
 

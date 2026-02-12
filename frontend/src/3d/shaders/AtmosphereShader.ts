@@ -46,10 +46,8 @@ export const AtmosphereShader = shaderMaterial(
 
 extend({ AtmosphereShader });
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      atmosphereShader: ThreeElement<typeof AtmosphereShader>;
-    }
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    atmosphereShader: ThreeElement<typeof AtmosphereShader>;
   }
 }

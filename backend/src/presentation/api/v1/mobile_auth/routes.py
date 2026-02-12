@@ -42,6 +42,7 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
 )
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import remnawave_client
 from src.infrastructure.remnawave.subscription_client import (
     CachedSubscriptionClient,
@@ -205,6 +206,7 @@ async def register(
         dto_request = _register_dto_from_request(request)
         result = await use_case.execute(dto_request)
         await db.commit()
+        route_operations_total.labels(route="mobile_auth", action="register", status="success").inc()
         return _auth_response_from_dto(result)
 
     except DuplicateUsernameError:
@@ -256,6 +258,7 @@ async def login(
         dto_request = _login_dto_from_request(request)
         result = await use_case.execute(dto_request)
         await db.commit()
+        route_operations_total.labels(route="mobile_auth", action="login", status="success").inc()
         return _auth_response_from_dto(result)
 
     except InvalidCredentialsError:

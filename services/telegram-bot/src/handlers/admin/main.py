@@ -60,30 +60,35 @@ async def admin_settings_handler(
         InlineKeyboardButton(
             text=i18n.get("admin-settings-access"),
             callback_data="admin:access:settings",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-settings-gateways"),
             callback_data="admin:gateways:settings",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-settings-referral"),
             callback_data="admin:referral:settings",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-settings-notifications"),
             callback_data="admin:notifications:settings",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
+            style="primary",
         )
     )
 

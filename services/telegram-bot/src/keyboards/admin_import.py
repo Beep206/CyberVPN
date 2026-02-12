@@ -18,6 +18,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="🔄 " + i18n.get("admin-import-sync-remnawave"),
             callback_data="admin:import:sync_remnawave",
+            style="primary",
         )
     )
 
@@ -26,6 +27,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="📥 " + i18n.get("admin-import-users-csv"),
             callback_data="admin:import:users_csv",
+            style="primary",
         )
     )
 
@@ -34,6 +36,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="📥 " + i18n.get("admin-import-subscriptions-csv"),
             callback_data="admin:import:subscriptions_csv",
+            style="primary",
         )
     )
 
@@ -42,6 +45,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="📤 " + i18n.get("admin-import-export-users"),
             callback_data="admin:import:export_users",
+            style="primary",
         )
     )
 
@@ -50,6 +54,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="📤 " + i18n.get("admin-import-export-subscriptions"),
             callback_data="admin:import:export_subscriptions",
+            style="primary",
         )
     )
 
@@ -58,6 +63,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="📊 " + i18n.get("admin-import-sync-status"),
             callback_data="admin:import:sync_status",
+            style="primary",
         )
     )
 
@@ -66,6 +72,7 @@ def import_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
+            style="primary",
         )
     )
 

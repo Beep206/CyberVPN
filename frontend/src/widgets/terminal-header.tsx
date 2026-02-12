@@ -1,9 +1,8 @@
 'use client';
 
-import { Search, Wifi, Menu } from 'lucide-react';
+import { Wifi, Menu } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
-import { CypherText } from '@/shared/ui/atoms/cypher-text';
+import { useTranslations } from 'next-intl';
 import { LanguageSelector } from '@/features/language-selector';
 import { ThemeToggle } from '@/features/theme-toggle';
 import { NotificationDropdown } from "@/features/notifications/notification-dropdown";
@@ -13,7 +12,6 @@ export function TerminalHeader() {
     const [time, setTime] = useState<string>('');
     const fpsRef = useRef<HTMLSpanElement>(null);
     const pingRef = useRef<HTMLSpanElement>(null);
-    const locale = useLocale();
     const t = useTranslations('Header');
 
     // Hydration fix for time

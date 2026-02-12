@@ -87,7 +87,7 @@ export function AnalyticsClient() {
         : 0,
       chartData: Array.isArray(paymentsData)
         ? (paymentsData as PaymentRecord[]).slice(0, 30).map((p) => ({
-            date: new Date(p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            date: new Date(p.created_at || '1970-01-01').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             value: p.amount || 0,
           }))
         : [],
@@ -113,7 +113,7 @@ export function AnalyticsClient() {
         ? (subscriptionsData as SubscriptionRecord[])
             .slice(0, 30)
             .map((s) => ({
-              date: new Date(s.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              date: new Date(s.created_at || '1970-01-01').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
               count: 1,
             }))
             .reduce((acc: Array<{ date: string; count: number }>, item) => {

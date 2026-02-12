@@ -99,8 +99,9 @@ def sanitize_url(url: str, *, redact_value: str = REDACTED) -> str:
 
         return sanitized
 
-    except Exception:
+    except Exception as e:
         # If parsing fails, return original URL
+        _ = e  # Expected for malformed URLs
         return url
 
 
@@ -193,7 +194,8 @@ def sanitize_email(email: str) -> str:
         else:
             masked_local = local[:2] + "***"
         return f"{masked_local}@{domain}"
-    except Exception:
+    except Exception as e:
+        _ = e  # Expected for malformed emails
         return REDACTED
 
 

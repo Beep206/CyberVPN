@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.version import __version__
 
 from .schemas import ServiceStatuses, StatusResponse
@@ -33,6 +34,7 @@ async def get_status() -> StatusResponse:
     Service checks are placeholders that always return ``"ok"``; real
     health probes live behind ``/api/v1/monitoring/health`` (authed).
     """
+    route_operations_total.labels(route="status", action="get_status", status="success").inc()
     return StatusResponse(
         status="ok",
         version=__version__,

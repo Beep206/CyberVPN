@@ -6,7 +6,6 @@ import { CyberInput } from '@/features/auth/components/CyberInput';
 import { twofaApi } from '@/lib/api/twofa';
 import { motion } from 'motion/react';
 import { ShieldCheck, Key, Copy, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 import { RateLimitError } from '@/lib/api/client';
 import QRCode from 'qrcode';
@@ -22,13 +21,11 @@ type EnableStep = 'reauth' | 'setup' | 'verify' | 'success';
 type DisableStep = 'confirm' | 'success';
 
 export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFactorModalProps) {
-  const t = useTranslations('Settings');
-
   // Enable flow state
   const [enableStep, setEnableStep] = useState<EnableStep>('reauth');
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
-  const [qrCodeUri, setQrCodeUri] = useState('');
+  const [, setQrCodeUri] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [secret, setSecret] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -209,7 +206,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       setError('Failed to copy to clipboard');
     }
   };
@@ -303,6 +300,7 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
             {qrCodeDataUrl && (
               <div className="flex justify-center">
                 <div className="p-4 bg-white rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-64 h-64" />
                 </div>
               </div>

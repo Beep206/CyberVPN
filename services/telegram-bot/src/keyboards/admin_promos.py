@@ -26,6 +26,7 @@ def promos_list_keyboard(
         builder.button(
             text=f"{status} {code}",
             callback_data=f"admin:promo:{promo.get('id')}",
+            style="primary",
         )
     builder.adjust(2)
 
@@ -36,6 +37,7 @@ def promos_list_keyboard(
             InlineKeyboardButton(
                 text="◀️ " + i18n.get("button-prev"),
                 callback_data=f"admin:promos:page:{page - 1}",
+                style="primary",
             )
         )
     nav_buttons.append(
@@ -49,6 +51,7 @@ def promos_list_keyboard(
             InlineKeyboardButton(
                 text=i18n.get("button-next") + " ▶️",
                 callback_data=f"admin:promos:page:{page + 1}",
+                style="primary",
             )
         )
     builder.row(*nav_buttons)
@@ -58,6 +61,7 @@ def promos_list_keyboard(
         InlineKeyboardButton(
             text="➕ " + i18n.get("admin-promo-create-new"),
             callback_data="admin:promo:create",
+            style="success",
         )
     )
 
@@ -66,6 +70,7 @@ def promos_list_keyboard(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
+            style="primary",
         )
     )
 
@@ -80,30 +85,35 @@ def promo_actions_keyboard(i18n: I18nContext, promo_id: str | int) -> InlineKeyb
         InlineKeyboardButton(
             text="✏️ " + i18n.get("admin-promo-edit"),
             callback_data=f"admin:promo:edit:{promo_id}",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔄 " + i18n.get("admin-promo-toggle"),
             callback_data=f"admin:promo:toggle:{promo_id}",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="📊 " + i18n.get("admin-promo-stats"),
             callback_data=f"admin:promo:stats:{promo_id}",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🗑 " + i18n.get("admin-promo-delete"),
             callback_data=f"admin:promo:delete:{promo_id}",
+            style="danger",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:promos",
+            style="primary",
         )
     )
 
@@ -118,30 +128,35 @@ def create_promo_keyboard(i18n: I18nContext) -> InlineKeyboardMarkup:
         InlineKeyboardButton(
             text="💰 " + i18n.get("admin-promo-discount-type"),
             callback_data="admin:promo:create:discount",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="📅 " + i18n.get("admin-promo-duration-type"),
             callback_data="admin:promo:create:duration",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔢 " + i18n.get("admin-promo-usage-limit"),
             callback_data="admin:promo:create:limit",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="✅ " + i18n.get("admin-promo-create-confirm"),
             callback_data="admin:promo:create:confirm",
+            style="success",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="❌ " + i18n.get("button-cancel"),
             callback_data="admin:promos",
+            style="danger",
         )
     )
 

@@ -48,12 +48,14 @@ async def remnawave_stats_handler(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-remnawave-refresh"),
                 callback_data="admin:remnawave:stats",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
+                style="primary",
             )
         )
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/lib/api/auth';
 import { motion } from 'motion/react';
-import { Smartphone, Monitor, Laptop, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Smartphone, Monitor, Laptop, Trash2, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
@@ -80,7 +80,7 @@ export function DevicesSection() {
     try {
       await Promise.all(otherDevices.map(d => authApi.logoutDevice(d.device_id)));
       await refetch();
-    } catch (err) {
+    } catch {
       setError('Failed to logout some devices');
     }
   };

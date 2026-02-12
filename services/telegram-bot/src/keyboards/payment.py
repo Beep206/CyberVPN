@@ -32,10 +32,12 @@ def payment_status_keyboard(i18n: Callable[..., str], payment_id: str | None = N
     builder.button(
         text=i18n("btn-refresh"),
         callback_data=callback_data,
+        style="primary",
     )
     builder.button(
         text=i18n("btn-cancel"),
         callback_data="payment:cancel",
+        style="danger",
     )
 
     # Layout: 1 button per row for clarity
@@ -60,14 +62,17 @@ def payment_success_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup
     builder.button(
         text=i18n("btn-connect"),
         callback_data="menu:connect",
+        style="success",
     )
     builder.button(
         text=i18n("btn-subscription"),
         callback_data="sub:status",
+        style="primary",
     )
     builder.button(
         text=i18n("btn-back"),
         callback_data="nav:menu",
+        style="primary",
     )
 
     # Layout: 1 button per row

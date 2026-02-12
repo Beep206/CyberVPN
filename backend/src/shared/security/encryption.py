@@ -40,8 +40,9 @@ class EncryptionService:
                 raise ValueError("Encryption key cannot be empty")
             try:
                 key_bytes = base64.urlsafe_b64decode(key)
-            except Exception:
-                # Try as raw bytes if not base64
+            except Exception as e:  # noqa: S110
+                # Try as raw bytes if not base64 (expected fallback for non-b64 keys)
+                _ = e  # Deliberate fallback, not an error
                 key_bytes = key.encode("utf-8")
         else:
             key_bytes = key

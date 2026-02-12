@@ -23,6 +23,7 @@ def access_settings_keyboard(
         InlineKeyboardButton(
             text=f"{mode_status} {i18n.get('admin-access-mode')}: {access_mode.upper()}",
             callback_data="admin:access:toggle_mode",
+            style="primary",
         )
     )
 
@@ -33,6 +34,7 @@ def access_settings_keyboard(
         InlineKeyboardButton(
             text=f"{channel_status} {i18n.get('admin-access-channel-required')}",
             callback_data="admin:access:toggle_channel",
+            style="primary",
         )
     )
 
@@ -42,6 +44,7 @@ def access_settings_keyboard(
             InlineKeyboardButton(
                 text="📢 " + i18n.get("admin-access-set-channel"),
                 callback_data="admin:access:set_channel",
+                style="primary",
             )
         )
 
@@ -52,6 +55,7 @@ def access_settings_keyboard(
         InlineKeyboardButton(
             text=f"{rules_status} {i18n.get('admin-access-rules-enabled')}",
             callback_data="admin:access:toggle_rules",
+            style="primary",
         )
     )
 
@@ -61,6 +65,7 @@ def access_settings_keyboard(
             InlineKeyboardButton(
                 text="📝 " + i18n.get("admin-access-edit-rules"),
                 callback_data="admin:access:edit_rules",
+                style="primary",
             )
         )
 
@@ -69,10 +74,12 @@ def access_settings_keyboard(
         InlineKeyboardButton(
             text="✅ " + i18n.get("admin-access-whitelist"),
             callback_data="admin:access:whitelist",
+            style="primary",
         ),
         InlineKeyboardButton(
             text="🚫 " + i18n.get("admin-access-blacklist"),
             callback_data="admin:access:blacklist",
+            style="danger",
         ),
     )
 
@@ -81,6 +88,7 @@ def access_settings_keyboard(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:settings",
+            style="primary",
         )
     )
 

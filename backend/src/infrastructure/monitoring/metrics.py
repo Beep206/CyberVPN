@@ -144,3 +144,45 @@ partner_operations_total = Counter(
     "Total partner operations",
     ["operation"],  # operation: create/update/track_sale
 )
+
+# Generic route operations metrics (for routes without specific counters)
+route_operations_total = Counter(
+    "route_operations_total",
+    "Total route operations",
+    ["route", "action", "status"],
+)
+
+# Webhook operations metrics
+webhook_operations_total = Counter(
+    "webhook_operations_total",
+    "Total webhook operations",
+    ["provider", "status"],  # provider: remnawave/cryptobot, status: success/failure
+)
+
+# User management operations metrics
+user_management_total = Counter(
+    "user_management_total",
+    "Total user management operations",
+    ["operation", "status"],  # operation: list/get/create/update/delete, status: success/failure
+)
+
+# Notification operations metrics
+notification_operations_total = Counter(
+    "notification_operations_total",
+    "Total notification operations",
+    ["operation"],  # operation: get_preferences/update_preferences
+)
+
+# FCM token operations metrics
+fcm_operations_total = Counter(
+    "fcm_operations_total",
+    "Total FCM token operations",
+    ["operation"],  # operation: register/unregister
+)
+
+# Monitoring operations metrics
+monitoring_operations_total = Counter(
+    "monitoring_operations_total",
+    "Total monitoring operations",
+    ["operation"],  # operation: health_check/stats/bandwidth
+)

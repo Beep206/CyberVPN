@@ -3,6 +3,7 @@
 Handles JWT token refresh for mobile app users.
 """
 
+import logging
 from dataclasses import dataclass
 
 from src.application.dto.mobile_auth import (
@@ -19,6 +20,9 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
 
 
 @dataclass
+logger = logging.getLogger(__name__)
+
+
 class MobileRefreshUseCase:
     """Use case for refreshing mobile app authentication tokens.
 
@@ -44,7 +48,8 @@ class MobileRefreshUseCase:
         # Decode and validate refresh token
         try:
             payload = self.auth_service.decode_token(request.refresh_token)
-        except Exception:
+        except Exception as e:
+            logger.warning("Mobile refresh token decode failed: %s", e)
             raise InvalidTokenError()
 
         # Verify token type

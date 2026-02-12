@@ -95,6 +95,7 @@ class NotificationService:
                 InlineKeyboardButton(
                     text=i18n.get("notification-renew-subscription"),
                     callback_data="subscription:buy",
+                    style="primary",
                 )
             )
 
@@ -142,6 +143,7 @@ class NotificationService:
                 InlineKeyboardButton(
                     text=i18n.get("notification-renew-subscription"),
                     callback_data="subscription:buy",
+                    style="primary",
                 )
             )
 
@@ -220,6 +222,7 @@ class NotificationService:
                 InlineKeyboardButton(
                     text=i18n.get("notification-get-config"),
                     callback_data="config:qr",
+                    style="primary",
                 )
             )
 
@@ -265,6 +268,7 @@ class NotificationService:
                 InlineKeyboardButton(
                     text=i18n.get("notification-get-config"),
                     callback_data="config:qr",
+                    style="primary",
                 )
             )
 

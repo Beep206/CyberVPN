@@ -5,12 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { trialApi } from '@/lib/api/trial';
 import { motion } from 'motion/react';
 import { Zap, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
 export function TrialSection() {
-  const t = useTranslations('Subscriptions');
-
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState('');
 

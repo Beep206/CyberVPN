@@ -6,8 +6,7 @@ import { invitesApi } from '@/lib/api/invites';
 import { promoApi } from '@/lib/api/promo';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { motion } from 'motion/react';
-import { Gift, Tag, Check, AlertCircle, Copy, CheckCircle, Percent } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Gift, Tag, Check, Copy, CheckCircle, Percent } from 'lucide-react';
 import { AxiosError } from 'axios';
 
 interface InviteCode {
@@ -23,8 +22,6 @@ interface PromoDiscount {
 }
 
 export function CodesSection() {
-  const t = useTranslations('Subscriptions');
-
   // Invite code state
   const [inviteCode, setInviteCode] = useState('');
   const [redeemingInvite, setRedeemingInvite] = useState(false);
@@ -121,7 +118,7 @@ export function CodesSection() {
   const copyCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-    } catch (err) {
+    } catch {
       console.error('Failed to copy code');
     }
   };
