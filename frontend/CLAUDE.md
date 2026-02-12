@@ -71,7 +71,7 @@ Rules derived from code review findings and stack best practices.
 ### Internationalization (i18n)
 
 - **No hardcoded UI strings.** Use `useTranslations()` from `next-intl`.
-- **Message files** must exist for all 41 locales in `messages/{locale}/`.
+- **Message files** must exist for all 39 locales in `messages/{locale}/`.
 - **New namespace registration:** Add imports to `i18n/request.ts` in `Promise.all` and return object.
 
 ---
@@ -367,7 +367,7 @@ R3F v9 is the React 19 compatibility release. Compatible with React 19.0–19.2.
 - **Session cookie** by default for locale (GDPR compliance)
 - **`createNavigation`** exports: `usePathname`, `useRouter`, `Link`, `redirect`, `getPathname`
 - **`forcePrefix`** option for `redirect` and `getPathname`
-- **41 locales** configured; 5 RTL (ar-SA, he-IL, fa-IR, ur-PK, ku-IQ)
+- **39 locales** configured; 5 RTL (ar-SA, he-IL, fa-IR, ur-PK, ku-IQ)
 - Import `usePathname` and `useRouter` from `@/i18n/navigation`, not `next/navigation`
 
 ---

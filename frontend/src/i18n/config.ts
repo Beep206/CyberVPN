@@ -9,7 +9,7 @@ export const locales = [
     'ha-NG', 'yo-NG', 'ku-IQ', 'am-ET', 'fr-FR', 'tk-TM',
     // Дополнительные
     'ja-JP', 'ko-KR', 'he-IL', 'de-DE', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL',
-    'fil-PH', 'uk-UA', 'cs-CZ', 'ro-RO', 'hu-HU', 'sv-SE'
+    'fil-PH', 'uk-UA', 'cs-CZ', 'ro-RO', 'hu-HU', 'sv-SE', 'zh-Hant'
 ] as const;
 
 export const defaultLocale = 'en-EN';

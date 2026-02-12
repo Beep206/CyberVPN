@@ -2,7 +2,7 @@ import 'package:cybervpn_mobile/features/settings/domain/models/language_item.da
 
 /// Repository providing the list of supported languages.
 ///
-/// All 36 locales matching `AppLocalizations.supportedLocales` are listed.
+/// All 39 locales matching `AppLocalizations.supportedLocales` are listed.
 /// The list is intentionally kept in a static constant so it can be extended
 /// without changing the API.
 class LanguageRepository {
@@ -45,6 +45,12 @@ class LanguageRepository {
       nativeName: '\u4E2D\u6587\u7B80\u4F53',
       englishName: 'Chinese (Simplified)',
       flagEmoji: '\u{1F1E8}\u{1F1F3}', // CN flag
+    ),
+    LanguageItem(
+      localeCode: 'zh_Hant',
+      nativeName: '\u4E2D\u6587\u7E41\u9AD4',
+      englishName: 'Chinese (Traditional)',
+      flagEmoji: '\u{1F1F9}\u{1F1FC}', // TW flag
     ),
     LanguageItem(
       localeCode: 'cs',

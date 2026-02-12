@@ -1,0 +1,10 @@
+{
+  "systemLabel": "系统",
+  "integrity": "完整性校验通过",
+  "encryptionLabel": "加密",
+  "encryptionValue": "已激活 - AES-256",
+  "netUplink": "网络上行",
+  "fps": "帧率",
+  "ping": "延迟",
+  "language": "语言"
+}
