@@ -1,0 +1,78 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "2256a53d0540",
+  "session_id": "d5676c50-b3e5-444e-8c30-98ec1bb23936",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T13:41:23.702179993Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cybervpn_mobile/lib/core/security/cert_pins.dart",
+    "cybervpn_mobile/lib/features/auth/domain/usecases/oauth_login.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/screens/server_list_screen.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/screens/server_map_screen.dart",
+    "cybervpn_mobile/test/shared/widgets/in_app_update_dialog_test.dart",
+    "frontend/src/3d/scenes/GlobalNetwork.backup.tsx"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 37,
+    "cache_creation_tokens": 79592,
+    "cache_read_tokens": 2013591,
+    "output_tokens": 4406,
+    "api_call_count": 35
+  },
+  "summary": {
+    "intent": "Fix Dart analysis issues in a Flutter mobile app, including resolving import ambiguities, applying automated style fixes, and documenting certificate pinning implementation.",
+    "outcome": "Successfully resolved the Failure class import conflict in oauth_login.dart, applied 366 automated dart fixes plus 5 manual fixes for unused variables and discarded futures, and enhanced certificate pinning documentation with SPKI extraction methods and build commands.",
+    "learnings": {
+      "repo": [
+        "The codebase has both core/errors/failures.dart and core/types/result.dart that export classes named 'Failure', causing import ambiguities",
+        "Flutter project uses Riverpod 3.x for state management and has comprehensive security features including certificate pinning",
+        "The app has debug mode bypasses for certificate pinning to allow development testing"
+      ],
+      "code": [
+        {
+          "path": "cybervpn_mobile/lib/features/auth/domain/usecases/oauth_login.dart",
+          "line": 3,
+          "end_line": 3,
+          "finding": "Import ambiguity resolved by hiding Failure from failures.dart since only AuthFailure was used, while result.dart's Failure and Success were both needed"
+        },
+        {
+          "path": "cybervpn_mobile/lib/core/security/cert_pins.dart",
+          "line": 1,
+          "end_line": 60,
+          "finding": "Certificate pinning can use either certificate fingerprints or SPKI pins (Subject Public Key Info), with SPKI being more robust for certificate rotation"
+        },
+        {
+          "path": "cybervpn_mobile/test/shared/widgets/in_app_update_dialog_test.dart",
+          "line": 149,
+          "end_line": 150,
+          "finding": "Test callbacks for rendering tests don't need to be tracked if they're not expected to be invoked - cleaner to not create the variables at all"
+        }
+      ],
+      "workflow": [
+        "dart fix --apply can automatically resolve hundreds of linting issues across a codebase efficiently",
+        "Manual fixes for discarded_futures warnings use unawaited() from dart:async to explicitly mark fire-and-forget async calls",
+        "flutter analyze can be filtered with grep to focus on specific error types or files",
+        "Using 'hide' or 'show' clauses on imports is the cleanest way to resolve naming conflicts between packages"
+      ]
+    },
+    "friction": [
+      "768 analysis issues remain after fixes, but many are pre-existing type/API mismatch errors outside the scope of the assigned tasks"
+    ],
+    "open_items": [
+      "Pre-existing type and API mismatch errors in the codebase were not addressed as they were outside the scope of the three assigned tasks",
+      "Many discarded_futures infos remain across the codebase but weren't fixed due to volume and being lower priority than warnings/errors"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T13:41:05.69629319Z",
+    "agent_lines": 0,
+    "human_added": 47461,
+    "human_modified": 86,
+    "human_removed": 0,
+    "total_committed": 47517,
+    "agent_percentage": 0
+  }
+}

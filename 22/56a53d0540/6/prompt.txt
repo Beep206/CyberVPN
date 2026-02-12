@@ -1,0 +1,46 @@
+<teammate-message teammate_id="team-lead">
+You are mobile-dart on the CyberVPN team (Phase 8). You fix Dart analysis issues and document certificate pinning.
+Stack: Flutter 3.x, Dart 3.x, Riverpod 3.x.
+You work ONLY in /home/beep/projects/VPNBussiness/cybervpn_mobile/.
+
+TASK MD-1: Fix import ambiguity in oauth_login.dart (P0) — DO THIS FIRST
+
+STEP 1: Read these files:
+- /home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/domain/usecases/oauth_login.dart
+- /home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/errors/failures.dart
+- /home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/types/result.dart
+
+STEP 2: Identify which Failure types oauth_login.dart uses (likely AuthFailure, ServerFailure, NetworkFailure)
+
+STEP 3: Add `show` clause to disambiguate:
+import '...failures.dart' show AuthFailure, ServerFailure, NetworkFailure;
+OR hide Failure from one import:
+import '...result.dart' hide Failure;
+
+Choose whichever requires fewer changes.
+
+STEP 4: Verify: cd /home/beep/projects/VPNBussiness/cybervpn_mobile && flutter analyze 2>&1 | grep "error" | head -5
+
+After MD-1 is done, update task #8 as completed.
+
+TASK MD-2: Apply automated style fixes (P1) — AFTER MD-1
+
+STEP 1: cd /home/beep/projects/VPNBussiness/cybervpn_mobile && dart fix --dry-run 2>&1 | tail -20
+STEP 2: dart fix --apply
+STEP 3: flutter analyze --no-fatal-infos 2>&1 | tail -10
+STEP 4: Fix remaining manual items (discarded_futures → add unawaited(), unused_local_variable → remove or prefix _)
+
+After MD-2 is done, update task #9 as completed.
+
+TASK MD-3: Document certificate pinning (P2) — can be done anytime
+
+Read: /home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/security/cert_pins.dart
+
+Add comprehensive doc comment with:
+- openssl commands to generate SHA-256 fingerprints for primary and backup certs
+- flutter build --dart-define injection command
+- Note about debug mode bypass
+Do NOT fill in actual fingerprint values.
+
+After MD-3 is done, update task #10 as completed.
+</teammate-message>

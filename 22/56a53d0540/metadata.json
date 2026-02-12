@@ -3,7 +3,7 @@
   "checkpoint_id": "2256a53d0540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 25,
+  "checkpoints_count": 26,
   "files_touched": [
     "AGENT_TEAM_GAPS_PROMPT.md",
     "AGENT_TEAM_PHASE3_PROMPT.md",
@@ -64,6 +64,11 @@
     "backend/src/presentation/middleware/auth.py",
     "backend/src/shared/logging/sanitization.py",
     "backend/src/shared/security/encryption.py",
+    "cybervpn_mobile/lib/core/security/cert_pins.dart",
+    "cybervpn_mobile/lib/features/auth/domain/usecases/oauth_login.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/screens/server_list_screen.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/screens/server_map_screen.dart",
+    "cybervpn_mobile/test/shared/widgets/in_app_update_dialog_test.dart",
     "frontend/src/3d/scenes/AuthScene3D.tsx",
     "frontend/src/3d/scenes/FeaturesScene3D.tsx",
     "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
@@ -132,13 +137,20 @@
       "context": "/22/56a53d0540/5/context.md",
       "content_hash": "/22/56a53d0540/5/content_hash.txt",
       "prompt": "/22/56a53d0540/5/prompt.txt"
+    },
+    {
+      "metadata": "/22/56a53d0540/6/metadata.json",
+      "transcript": "/22/56a53d0540/6/full.jsonl",
+      "context": "/22/56a53d0540/6/context.md",
+      "content_hash": "/22/56a53d0540/6/content_hash.txt",
+      "prompt": "/22/56a53d0540/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8748,
-    "cache_creation_tokens": 1518769,
-    "cache_read_tokens": 24740632,
-    "output_tokens": 89686,
-    "api_call_count": 281
+    "input_tokens": 8785,
+    "cache_creation_tokens": 1598361,
+    "cache_read_tokens": 26754223,
+    "output_tokens": 94092,
+    "api_call_count": 316
   }
 }
