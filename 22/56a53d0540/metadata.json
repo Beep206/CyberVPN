@@ -3,7 +3,7 @@
   "checkpoint_id": "2256a53d0540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 8,
   "files_touched": [
     "frontend/src/3d/scenes/AuthScene3D.tsx",
     "frontend/src/3d/scenes/FeaturesScene3D.tsx",
@@ -52,13 +52,20 @@
       "context": "/22/56a53d0540/2/context.md",
       "content_hash": "/22/56a53d0540/2/content_hash.txt",
       "prompt": "/22/56a53d0540/2/prompt.txt"
+    },
+    {
+      "metadata": "/22/56a53d0540/3/metadata.json",
+      "transcript": "/22/56a53d0540/3/full.jsonl",
+      "context": "/22/56a53d0540/3/context.md",
+      "content_hash": "/22/56a53d0540/3/content_hash.txt",
+      "prompt": "/22/56a53d0540/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 8405,
-    "cache_creation_tokens": 433487,
-    "cache_read_tokens": 6550867,
-    "output_tokens": 35815,
-    "api_call_count": 76
+    "input_tokens": 8536,
+    "cache_creation_tokens": 562225,
+    "cache_read_tokens": 10207914,
+    "output_tokens": 41609,
+    "api_call_count": 139
   }
 }

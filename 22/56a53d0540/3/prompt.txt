@@ -1,0 +1,122 @@
+<teammate-message teammate_id="team-lead">
+You are verify on the CyberVPN team (Phase 8). You run ALL verification checks after other agents complete.
+You work across ALL directories. You do NOT write production code — only fix minor issues (typos, missing imports) to unblock builds.
+
+IMPORTANT: Other agents are working in parallel. Wait for agents to complete by checking task status periodically.
+
+YOUR WORKFLOW:
+1. Check TaskList periodically to see which tasks are completed
+2. When all tasks for a verification block are done, run that block
+3. Report results
+
+VERIFICATION BLOCKS:
+
+VF-1 (after tasks #1, #2, #3, #4, #5 are completed):
+cd /home/beep/projects/VPNBussiness/frontend
+npx eslint src/ 2>&1 | tail -10
+npx eslint src/3d/ src/widgets/speed-tunnel.tsx 2>&1 | grep -c "react-hooks/purity\|react-hooks/immutability"  → 0
+npx eslint src/ 2>&1 | grep "no-unused-vars" | grep -v __tests__ | grep -v ".test." | wc -l  → 0
+grep -rn "console.warn" src/ --include="*.tsx" --include="*.ts" | grep -v __tests__ | grep -v ".test." | wc -l  → 0
+ls src/3d/scenes/GlobalNetwork.backup.tsx 2>/dev/null && echo "FAIL" || echo "OK"  → OK
+
+VF-2 (after VF-1):
+cd /home/beep/projects/VPNBussiness/frontend && npm run build 2>&1 | tail -10
+cd /home/beep/projects/VPNBussiness/frontend && npm run lint 2>&1 | tail -5
+
+VF-3 (after tasks #6, #7 are completed):
+grep -rn "except Exception:" /home/beep/projects/VPNBussiness/backend/src/ | grep -v "as e" | wc -l  → 0
+grep -rl "\.inc()\|\.labels(" /home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/ --include="*.py" | wc -l  → >= 30
+
+VF-4 (after tasks #8, #9, #10 are completed):
+cd /home/beep/projects/VPNBussiness/cybervpn_mobile && flutter analyze --no-fatal-infos 2>&1 | tail -10
+cd /home/beep/projects/VPNBussiness/cybervpn_mobile && dart fix --dry-run 2>&1 | tail -3
+
+VF-5 (after tasks #11, #12, #13, #14 are completed):
+grep "REMNASHOP" /home/beep/projects/VPNBussiness/infra/.env /home/beep/projects/VPNBussiness/infra/.env.example 2>/dev/null | wc -l  → 0
+cd /home/beep/projects/VPNBussiness/infra && docker compose config -q
+cd /home/beep/projects/VPNBussiness/infra && docker compose --profile monitoring config -q
+cd /home/beep/projects/VPNBussiness/infra && docker compose --profile bot config -q
+ls /home/beep/projects/VPNBussiness/infra/scripts/backup-monitoring.sh
+grep "metrics_local_password" /home/beep/projects/VPNBussiness/infra/prometheus/prometheus.yml | wc -l  → 0
+
+VF-6 (after tasks #15, #16, #17 are completed):
+ls /home/beep/projects/VPNBussiness/services/telegram-bot/src/locales/ | wc -l  → >= 38
+grep "aiogram>=3.25" /home/beep/projects/VPNBussiness/services/telegram-bot/pyproject.toml
+find /home/beep/projects/VPNBussiness/services/telegram-bot/src/ -name "*.py" -exec python3 -m py_compile {} \; 2>&1
+grep -rn "style=" /home/beep/projects/VPNBussiness/services/telegram-bot/src/ --include="*.py" | head -10
+
+START by checking TaskList. Poll every 60 seconds until dependencies are met. Run each VF block as soon as its dependencies are completed. Report pass/fail for each.
+
+Mark verification tasks (#18-#23) as completed as each passes.
+
+If any check fails, report the failure details to the team lead via SendMessage. You MAY fix minor issues like missing commas or imports to unblock, but do NOT make substantive changes.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Infra tasks done, run VF-5 now">
+Infrastructure tasks #11, #12, #13, #14 are all completed by infra-secure. You can now run VF-5 (infrastructure verification - task #22). Note: Docker daemon may not be available in this WSL env, so for compose validation use `python3 -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"` as fallback if `docker compose config -q` fails. Focus on: REMNASHOP grep, backup script exists, prometheus auth externalized, and network definitions in compose YAML.
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"22","subject":"VF-5: Infrastructure compose verification","description":"Verify REMNASHOP removed, compose valid for all profiles, 4 networks, backup script exists, Prometheus auth externalized. Depends on IS-*.","assignedBy":"verify","timestamp":"2026-02-11T18:17:54.866Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead" summary="Telegram tasks done, run VF-6 now">
+Telegram bot tasks #15, #16, #17 are all completed. You can now run VF-6 (task #23). Check: >=38 locale dirs, aiogram>=3.25 in pyproject.toml, Python syntax valid, style= attributes present in .py files.
+</teammate-message>
+
+<teammate-message teammate_id="team-lead" summary="Mobile done, run VF-4 and VF-6">
+Mobile tasks #8, #9, #10 are all completed. You can run VF-4 (task #21) now — flutter analyze and dart fix checks. Also VF-6 (task #23) for telegram bot should be runnable now if you haven't started it yet.
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"21","subject":"VF-4: Mobile flutter analyze verification","description":"Run flutter analyze (0 errors), dart fix --dry-run (nothing to fix). Depends on MD-*.","assignedBy":"verify","timestamp":"2026-02-11T18:19:43.814Z"}
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"23","subject":"VF-6: Telegram bot verification","description":"Verify >=38 locales, aiogram>=3.25, Python syntax valid, colored buttons present. Depends on TB-*.","assignedBy":"verify","timestamp":"2026-02-11T18:19:43.846Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead" summary="All frontend tasks done, run VF-1+VF-2">
+Frontend tasks #1, #2, #3, #4, #5 are ALL completed. You can now run VF-1 (task #18) — ESLint verification. Then VF-2 (task #19) — build + lint. Note: Some no-unused-vars may remain in 3D files and test files, which is acceptable. Focus on production code outside __tests__/ and 3d/ scenes.
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"18","subject":"VF-1: Frontend ESLint verification","description":"Run ESLint, verify < 30 problems, 0 purity violations in 3D, 0 unused-vars in prod, 0 console.warn, backup deleted. Depends on FE3D-* and FL-*.","assignedBy":"verify","timestamp":"2026-02-11T18:25:58.463Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead" summary="Backend done, run VF-3 now">
+Backend tasks #6 and #7 are completed. You can now run VF-3 (task #20). Checks:
+1. `grep -rn "except Exception:" backend/src/ | grep -v "as e" | wc -l` — target 0 (agent says 2 remain but they are DB rollback+re-raise patterns that may have `as e` — verify)
+2. `grep -rl "\.inc()\|\.labels(" backend/src/presentation/api/v1/ --include="*.py" | wc -l` — must be >= 30 (agent reports 21 route files, but there were 15 pre-existing so check total)
+Note: The metrics coverage count of 21 file matches might be lower than the 30 target if the grep pattern doesn't match all variations. Check for `.inc()` and `.labels(` patterns broadly.
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"20","subject":"VF-3: Backend metrics + exceptions verification","description":"Verify 0 bare except Exception, >=30 route files with metrics, ruff check passes, pytest passes. Depends on BH-*.","assignedBy":"verify","timestamp":"2026-02-11T18:27:51.509Z"}
+</teammate-message>
+
+<teammate-message teammate_id="verify" color="cyan">
+{"type":"task_assignment","taskId":"19","subject":"VF-2: Frontend build + lint verification","description":"Run npm run build and npm run lint. Both must pass. Depends on VF-1.","assignedBy":"verify","timestamp":"2026-02-11T18:28:28.233Z"}
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Run final verification sweep">
+All agents have applied their fixes. Please run one final verification sweep:
+
+1. cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/ 2>&1 | grep "no-unused-vars" | grep -v __tests__ | grep -v ".test." | wc -l
+   → Expected: 0
+
+2. cd /home/beep/projects/VPNBussiness/frontend && npm run build 2>&1 | tail -5
+   → Must pass
+
+3. grep -rn "except Exception:" /home/beep/projects/VPNBussiness/backend/src/ | grep -v "as e" | grep -v "as exc" | wc -l
+   → Expected: 0
+
+4. grep -rl "\.inc()\|\.labels(\|track_" /home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/ --include="*.py" | wc -l
+   → Expected: >= 30
+
+Report final numbers for all 4 checks.
+</teammate-message>
