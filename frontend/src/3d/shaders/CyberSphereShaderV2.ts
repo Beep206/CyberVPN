@@ -175,10 +175,8 @@ export const CyberSphereShaderV2 = shaderMaterial(
 
 extend({ CyberSphereShaderV2 });
 
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            cyberSphereShaderV2: ThreeElement<typeof CyberSphereShaderV2>;
-        }
+declare module '@react-three/fiber' {
+    interface ThreeElements {
+        cyberSphereShaderV2: ThreeElement<typeof CyberSphereShaderV2>;
     }
 }

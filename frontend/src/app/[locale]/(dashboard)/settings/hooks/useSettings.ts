@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { profileApi, twofaApi, securityApi } from '@/lib/api';
+import { profileApi, twofaApi } from '@/lib/api';
 
 /**
  * Hook to fetch user profile

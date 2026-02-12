@@ -53,6 +53,6 @@ export const paymentsApi = {
    *
    * Ordered by most recent first.
    */
-  getHistory: () =>
-    apiClient.get<PaymentHistoryResponse>('/payments/history'),
+  getHistory: (params?: { offset?: number; limit?: number }) =>
+    apiClient.get<PaymentHistoryResponse>('/payments/history', { params }),
 };

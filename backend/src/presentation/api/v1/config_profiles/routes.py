@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from src.domain.enums import AdminRole
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
 from src.presentation.schemas.remnawave_responses import RemnawaveConfigProfileResponse
@@ -15,7 +16,9 @@ async def list_config_profiles(
     current_user=Depends(get_current_active_user), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """List available configuration profiles"""
-    return await client.get("/config-profiles")
+    result = await client.get("/config-profiles")
+    route_operations_total.labels(route="config_profiles", action="list", status="success").inc()
+    return result
 
 
 @router.post("/", response_model=RemnawaveConfigProfileResponse)
@@ -25,4 +28,6 @@ async def create_config_profile(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Create a new configuration profile (admin only)"""
-    return await client.post("/config-profiles", json=profile_data.model_dump())
+    result = await client.post("/config-profiles", json=profile_data.model_dump())
+    route_operations_total.labels(route="config_profiles", action="create", status="success").inc()
+    return result

@@ -60,5 +60,5 @@ class ForgotPasswordUseCase:
                 email=user.email or email,
                 otp_code=otp.code,
             )
-        except Exception:
-            logger.exception("Failed to dispatch password reset email")
+        except Exception as e:
+            logger.exception("Failed to dispatch password reset email: %s", e)

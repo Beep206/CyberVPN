@@ -1,10 +1,13 @@
 """Resend OTP use case for email verification."""
 
+import logging
 from datetime import datetime
 from typing import Protocol
 
 from src.application.services.otp_service import OtpRateLimitError, OtpService
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class EmailTaskDispatcher(Protocol):
@@ -120,9 +123,9 @@ class ResendOtpUseCase:
                     locale=locale,
                     is_resend=True,  # Will use Brevo instead of Resend
                 )
-            except Exception:  # noqa: S110
+            except Exception as e:  # noqa: S110
                 # Log but don't fail - code was generated
-                pass
+                logger.warning("Failed to dispatch resend OTP email: %s", e)
 
         return ResendOtpResult(
             success=True,

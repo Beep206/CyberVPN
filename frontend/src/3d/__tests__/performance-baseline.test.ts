@@ -74,8 +74,8 @@ vi.mock('three', () => {
 vi.mock('@react-three/fiber', async () => {
   const React = await import('react');
   return {
-    Canvas: ({ children, ...props }: Record<string, unknown>) =>
-      React.createElement('div', { 'data-testid': 'r3f-canvas', ...props }, children),
+    Canvas: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) =>
+      React.createElement('div', { 'data-testid': 'r3f-canvas', ...props }, children as React.ReactNode),
     useFrame: () => {},
     useThree: () => ({
       pointer: { x: 0, y: 0 },

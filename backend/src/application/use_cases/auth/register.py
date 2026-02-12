@@ -2,9 +2,12 @@
 Registration use case for creating new admin users with email verification.
 """
 
+import logging
 from typing import Protocol
 
 from src.application.services.auth_service import AuthService
+
+logger = logging.getLogger(__name__)
 from src.application.services.otp_service import OtpService
 from src.domain.enums import AdminRole
 from src.domain.exceptions import DuplicateUsernameError
@@ -125,9 +128,9 @@ class RegisterUseCase:
                     is_resend=False,
                 )
                 otp_sent = True
-            except Exception:  # noqa: S110
+            except Exception as e:  # noqa: S110
                 # Log but don't fail registration
                 # User can request resend
-                pass
+                logger.warning("Failed to dispatch OTP email during registration: %s", e)
 
         return RegisterResult(user=created_user, otp_sent=otp_sent)

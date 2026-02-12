@@ -5,7 +5,6 @@ import { Modal } from '@/shared/ui/modal';
 import { subscriptionsApi } from '@/lib/api/subscriptions';
 import { motion } from 'motion/react';
 import { AlertTriangle, CheckCircle, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
 interface CancelSubscriptionModalProps {
@@ -25,8 +24,6 @@ export function CancelSubscriptionModal({
   subscriptionName = 'subscription',
   expiresAt,
 }: CancelSubscriptionModalProps) {
-  const t = useTranslations('Subscriptions');
-
   const [step, setStep] = useState<ModalStep>('confirm');
   const [error, setError] = useState('');
 
@@ -90,7 +87,7 @@ export function CancelSubscriptionModal({
           {/* Warning Message */}
           <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg space-y-3">
             <p className="text-sm text-red-400 font-mono leading-relaxed">
-              You're about to cancel your <span className="text-red-300 font-semibold">{subscriptionName}</span> subscription.
+              You&apos;re about to cancel your <span className="text-red-300 font-semibold">{subscriptionName}</span> subscription.
             </p>
 
             <div className="space-y-2">

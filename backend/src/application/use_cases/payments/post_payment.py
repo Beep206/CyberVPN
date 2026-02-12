@@ -113,7 +113,7 @@ class PostPaymentProcessingUseCase:
                     payment_id=payment.id,
                 )
                 results["invites_generated"] = len(invites)
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "post_payment_invite_generation_failed",
                     extra={"payment_id": str(payment_id)},
@@ -134,7 +134,7 @@ class PostPaymentProcessingUseCase:
                     base_amount=base_amount,
                 )
                 results["referral_commission"] = float(commission.commission_amount) if commission else None
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "post_payment_referral_commission_failed",
                     extra={"payment_id": str(payment_id)},
@@ -157,7 +157,7 @@ class PostPaymentProcessingUseCase:
                     base_price=base_price,
                 )
                 results["partner_earning"] = float(earning.total_earning)
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "post_payment_partner_earning_failed",
                     extra={"payment_id": str(payment_id)},
@@ -182,7 +182,7 @@ class PostPaymentProcessingUseCase:
                 )
                 await self._wallet.unfreeze(payment.user_uuid, wallet_used)
                 results["wallet_debited"] = float(wallet_used)
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "post_payment_wallet_debit_failed",
                     extra={"payment_id": str(payment_id)},
@@ -203,7 +203,7 @@ class PostPaymentProcessingUseCase:
                 )
                 await self._promo_repo.record_usage(usage)
                 results["promo_usage_recorded"] = True
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "post_payment_promo_usage_failed",
                     extra={"payment_id": str(payment_id)},

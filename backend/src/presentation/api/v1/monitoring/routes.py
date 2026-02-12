@@ -11,6 +11,7 @@ from src.application.use_cases.monitoring.server_bandwidth import ServerBandwidt
 from src.application.use_cases.monitoring.system_health import SystemHealthUseCase
 from src.infrastructure.cache.redis_client import check_redis_connection
 from src.infrastructure.database.session import check_db_connection
+from src.infrastructure.monitoring.metrics import monitoring_operations_total
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
@@ -50,6 +51,7 @@ async def health_check(
     )
     result = await use_case.execute()
 
+    monitoring_operations_total.labels(operation="health_check").inc()
     return result
 
 
@@ -66,6 +68,7 @@ async def get_system_stats(
     use_case = ServerBandwidthUseCase(client=client)
     stats = await use_case.execute()
 
+    monitoring_operations_total.labels(operation="stats").inc()
     return {
         "timestamp": datetime.now(UTC).isoformat(),
         **stats,
@@ -90,6 +93,7 @@ async def get_bandwidth_analytics(
     use_case = BandwidthAnalyticsUseCase(client=client)
     stats = await use_case.execute(period=period)
 
+    monitoring_operations_total.labels(operation="bandwidth").inc()
     return {
         "timestamp": datetime.now(UTC).isoformat(),
         "period": period,

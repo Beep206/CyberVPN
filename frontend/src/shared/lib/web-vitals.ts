@@ -58,7 +58,7 @@ export function markPerformance(
     });
   } catch (error) {
     // Performance API not available or mark failed
-    console.warn('Failed to create performance mark:', name, error);
+    console.error('Failed to create performance mark:', name, error);
   }
 }
 
@@ -89,7 +89,7 @@ export function measurePerformance(
 
     return measure.duration;
   } catch (error) {
-    console.warn('Failed to measure performance:', name, error);
+    console.error('Failed to measure performance:', name, error);
     return null;
   }
 }

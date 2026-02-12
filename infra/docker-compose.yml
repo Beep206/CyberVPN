@@ -2,8 +2,6 @@ name: remnawave-local
 
 x-common: &common
   restart: unless-stopped
-  networks:
-    - remnawave-network
 
 x-logging: &logging
   logging:
@@ -36,6 +34,9 @@ services:
         condition: service_healthy
       remnawave-redis:
         condition: service_healthy
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -65,6 +66,8 @@ services:
       interval: 3s
       timeout: 10s
       retries: 3
+    networks:
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -96,6 +99,8 @@ services:
       interval: 3s
       timeout: 3s
       retries: 3
+    networks:
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -131,6 +136,8 @@ services:
       timeout: 10s
       retries: 1
       start_period: 86400s
+    networks:
+      - cybervpn-data
 
   cybervpn-worker:
     build:
@@ -170,6 +177,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -212,6 +222,9 @@ services:
       options:
         max-size: 20m
         max-file: "3"
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -231,7 +244,8 @@ services:
       - "80:80"
       - "443:443"
     networks:
-      - remnawave-network
+      - cybervpn-frontend
+      - cybervpn-backend
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - caddy-ssl-data:/data
@@ -255,7 +269,8 @@ services:
     ports:
       - "127.0.0.1:3010:3010"
     networks:
-      - remnawave-network
+      - cybervpn-frontend
+      - cybervpn-backend
     depends_on:
       - remnawave
     healthcheck:
@@ -298,6 +313,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -329,7 +347,8 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - remnawave-network
+      - cybervpn-monitoring
+      - cybervpn-backend
 
   grafana:
     image: grafana/grafana:11.5.2
@@ -354,7 +373,7 @@ services:
       retries: 3
       start_period: 60s
     networks:
-      - remnawave-network
+      - cybervpn-monitoring
 
   alertmanager:
     image: prom/alertmanager:v0.28.1
@@ -381,7 +400,7 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - remnawave-network
+      - cybervpn-monitoring
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.121.0
@@ -407,6 +426,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    networks:
+      - cybervpn-monitoring
+      - cybervpn-backend
     deploy:
       resources:
         limits:
@@ -438,6 +460,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    networks:
+      - cybervpn-monitoring
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -466,6 +491,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    networks:
+      - cybervpn-monitoring
     deploy:
       resources:
         limits:
@@ -496,6 +523,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    networks:
+      - cybervpn-monitoring
     deploy:
       resources:
         limits:
@@ -526,6 +555,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - cybervpn-monitoring
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -555,6 +587,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - cybervpn-monitoring
+      - cybervpn-data
     deploy:
       resources:
         limits:
@@ -588,6 +623,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - cybervpn-monitoring
     deploy:
       resources:
         limits:
@@ -620,6 +657,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    networks:
+      - cybervpn-monitoring
     deploy:
       resources:
         limits:
@@ -631,9 +670,9 @@ services:
 
   # ============ MAILPIT CLUSTER (3 instances for OTP rotation testing) ============
   # Used for testing email provider rotation on OTP resend
-  # 1st OTP request → mailpit-1 (SMTP: 1025, Web: 8025)
-  # 2nd OTP request → mailpit-2 (SMTP: 1026, Web: 8026)
-  # 3rd OTP request → mailpit-3 (SMTP: 1027, Web: 8027)
+  # 1st OTP request -> mailpit-1 (SMTP: 1025, Web: 8025)
+  # 2nd OTP request -> mailpit-2 (SMTP: 1026, Web: 8026)
+  # 3rd OTP request -> mailpit-3 (SMTP: 1027, Web: 8027)
   # Then cycle repeats (round-robin)
   # Enable with: docker compose --profile email-test up -d
 
@@ -660,6 +699,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - cybervpn-backend
 
   mailpit-2:
     image: axllent/mailpit:v1.22
@@ -684,6 +725,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - cybervpn-backend
 
   mailpit-3:
     image: axllent/mailpit:v1.22
@@ -708,12 +751,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - cybervpn-backend
 
 networks:
-  remnawave-network:
-    name: remnawave-network
+  cybervpn-frontend:
+    name: cybervpn-frontend
     driver: bridge
-    external: false
+  cybervpn-backend:
+    name: cybervpn-backend
+    driver: bridge
+  cybervpn-data:
+    name: cybervpn-data
+    driver: bridge
+  cybervpn-monitoring:
+    name: cybervpn-monitoring
+    driver: bridge
 
 volumes:
   remnawave-db-data:

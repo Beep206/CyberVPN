@@ -1,4 +1,8 @@
+import logging
+
 from httpx import AsyncClient
+
+logger = logging.getLogger(__name__)
 
 
 class TelegramNotifier:
@@ -19,7 +23,8 @@ class TelegramNotifier:
                 json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode},
             )
             return response.is_success
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to send Telegram message to chat %s: %s", chat_id, e)
             return False
 
     async def close(self) -> None:

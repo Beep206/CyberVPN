@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from src.domain.enums import AdminRole
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
 from src.presentation.schemas.remnawave_responses import RemnawaveSettingResponse
@@ -15,7 +16,9 @@ async def get_settings(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """Get system settings (admin only)"""
-    return await client.get("/settings")
+    result = await client.get("/settings")
+    route_operations_total.labels(route="settings", action="list", status="success").inc()
+    return result
 
 
 @router.post("/", response_model=RemnawaveSettingResponse)
@@ -25,7 +28,9 @@ async def create_setting(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Create a new system setting (admin only)"""
-    return await client.post("/settings", json=setting_data.model_dump())
+    result = await client.post("/settings", json=setting_data.model_dump())
+    route_operations_total.labels(route="settings", action="create", status="success").inc()
+    return result
 
 
 @router.put("/{id}", response_model=RemnawaveSettingResponse)
@@ -36,4 +41,6 @@ async def update_setting(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Update system setting (admin only)"""
-    return await client.put(f"/settings/{id}", json=setting_data.model_dump(exclude_none=True))
+    result = await client.put(f"/settings/{id}", json=setting_data.model_dump(exclude_none=True))
+    route_operations_total.labels(route="settings", action="update", status="success").inc()
+    return result

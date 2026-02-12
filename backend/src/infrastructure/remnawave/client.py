@@ -176,7 +176,8 @@ class RemnawaveClient:
         try:
             await self.get("/api/health")
             return True
-        except Exception:
+        except Exception as e:
+            _ = e  # Expected when Remnawave is unreachable
             return False
 
 

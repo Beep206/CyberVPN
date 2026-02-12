@@ -2,7 +2,6 @@
 
 import { motion } from 'motion/react';
 import { Check, Zap, Shield, Globe } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 
 interface Plan {
   uuid: string;
@@ -23,8 +22,6 @@ interface PlanCardProps {
 }
 
 export function PlanCard({ plan, isCurrentPlan = false, onPurchase }: PlanCardProps) {
-  const t = useTranslations('Subscriptions');
-
   // Format duration
   const formatDuration = (days: number): string => {
     if (days === 1) return '1 day';
@@ -42,15 +39,6 @@ export function PlanCard({ plan, isCurrentPlan = false, onPurchase }: PlanCardPr
     if (gb >= 1000) return `${gb / 1000} TB`;
     return `${gb} GB`;
   };
-
-  // Icon for plan type (simple heuristic based on price)
-  const getPlanIcon = () => {
-    if (plan.price === 0) return Shield;
-    if (plan.price < 10) return Globe;
-    return Zap;
-  };
-
-  const Icon = getPlanIcon();
 
   return (
     <motion.div
@@ -73,7 +61,13 @@ export function PlanCard({ plan, isCurrentPlan = false, onPurchase }: PlanCardPr
       {/* Header */}
       <div className="text-center mb-6">
         <div className="inline-block p-3 bg-neon-cyan/10 border border-neon-cyan/30 rounded-lg mb-3">
-          <Icon className="h-8 w-8 text-neon-cyan" />
+          {plan.price === 0 ? (
+            <Shield className="h-8 w-8 text-neon-cyan" />
+          ) : plan.price < 10 ? (
+            <Globe className="h-8 w-8 text-neon-cyan" />
+          ) : (
+            <Zap className="h-8 w-8 text-neon-cyan" />
+          )}
         </div>
         <h3 className="text-2xl font-display text-neon-cyan mb-2">
           {plan.name}

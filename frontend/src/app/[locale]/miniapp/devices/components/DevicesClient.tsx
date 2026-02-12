@@ -13,6 +13,7 @@ import { useState } from 'react';
 export function DevicesClient() {
   const queryClient = useQueryClient();
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
 
   // Fetch active devices
   const { data: devicesData, isLoading } = useQuery({
@@ -112,7 +113,7 @@ export function DevicesClient() {
       {devices.map((device, index) => {
         const { browser, operatingSystem } = parseUserAgent(device.user_agent);
         const lastUsed = new Date(device.last_used_at);
-        const isRecent = Date.now() - lastUsed.getTime() < 5 * 60 * 1000; // Active in last 5 min
+        const isRecent = now - lastUsed.getTime() < 5 * 60 * 1000; // Active in last 5 min
 
         return (
           <motion.div
@@ -179,7 +180,7 @@ export function DevicesClient() {
 
       <div className="cyber-card p-4 bg-terminal-surface/50">
         <p className="text-xs text-muted-foreground">
-          <strong>Security tip:</strong> If you see a device you don't recognize, logout that
+          <strong>Security tip:</strong> If you see a device you don&apos;t recognize, logout that
           device immediately and change your password.
         </p>
       </div>

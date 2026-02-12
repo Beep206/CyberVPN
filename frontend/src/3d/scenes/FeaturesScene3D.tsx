@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Trail, MeshTransmissionMaterial } from '@react-three/drei';
+import { Float, Trail } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
 // Module-level factory — outside render, not analyzed by React Compiler
@@ -360,8 +360,6 @@ export function FeaturesScene3D() {
 
 // Wrapper for SSR compatibility
 export function FeaturesScene3DWrapper() {
-    const [mounted, setMounted] = useState(false);
-
     // Only render on client
     if (typeof window === 'undefined') return null;
 

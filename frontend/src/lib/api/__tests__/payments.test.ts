@@ -164,8 +164,9 @@ describe('paymentsApi.createInvoice', () => {
     // Act & Assert
     try {
       await paymentsApi.createInvoice({
+        user_uuid: 'user_001',
         plan_id: 'invalid_plan',
-        
+        currency: 'USD',
       });
       expect.fail('Expected 404');
     } catch (error: unknown) {
@@ -191,8 +192,9 @@ describe('paymentsApi.createInvoice', () => {
     // Act & Assert
     try {
       await paymentsApi.createInvoice({
+        user_uuid: 'user_001',
         plan_id: 'plan_monthly',
-        
+        currency: 'USD',
       });
       expect.fail('Expected 422');
     } catch (error: unknown) {
@@ -217,8 +219,9 @@ describe('paymentsApi.createInvoice', () => {
     // Act & Assert
     await expect(
       paymentsApi.createInvoice({
+        user_uuid: 'user_001',
         plan_id: 'plan_monthly',
-        
+        currency: 'USD',
       }),
     ).rejects.toThrow('No refresh token');
   });
@@ -284,7 +287,6 @@ describe('paymentsApi.getInvoiceStatus', () => {
         return HttpResponse.json({
           ...MOCK_INVOICE,
           status: 'completed',
-          status: '2025-02-10T10:15:00Z',
         });
       }),
     );
@@ -295,7 +297,6 @@ describe('paymentsApi.getInvoiceStatus', () => {
     // Assert
     expect(response.status).toBe(200);
     expect(response.data.status).toBe('completed');
-    expect(response.data.status).toBe('2025-02-10T10:15:00Z');
   });
 
   it('test_get_invoice_status_expired_shows_expired', async () => {
@@ -386,15 +387,16 @@ describe('paymentsApi.getInvoiceStatus', () => {
 describe('paymentsApi.getHistory', () => {
   it('test_get_history_success_returns_payment_list', async () => {
     // Arrange
-    const mockHistory = [
-      MOCK_PAYMENT_HISTORY.payments[0],
-      {
-        ...MOCK_PAYMENT_HISTORY.payments[0],
-        id: 'pay_002',
-        status: 'pending',
-        status: undefined,
-      },
-    ];
+    const mockHistory = {
+      payments: [
+        MOCK_PAYMENT_HISTORY.payments[0],
+        {
+          ...MOCK_PAYMENT_HISTORY.payments[0],
+          id: 'pay_002',
+          status: 'pending' as const,
+        },
+      ],
+    };
 
     server.use(
       http.get(`${API_BASE}/payments/history`, () => {
@@ -407,9 +409,9 @@ describe('paymentsApi.getHistory', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data).toHaveLength(2);
-    expect(response.data[0].status).toBe('completed');
-    expect(response.data[1].status).toBe('pending');
+    expect(response.data.payments).toHaveLength(2);
+    expect(response.data.payments[0].status).toBe('completed');
+    expect(response.data.payments[1].status).toBe('pending');
   });
 
   it('test_get_history_with_pagination_params', async () => {

@@ -165,7 +165,7 @@ export default function MiniAppPlansPage() {
             // Fallback 2: Standard window.open for external browser
             window.open(data.payment_url, '_blank');
           }
-        } catch (err) {
+        } catch {
           // Final fallback: window.open
           window.open(data.payment_url, '_blank');
         }

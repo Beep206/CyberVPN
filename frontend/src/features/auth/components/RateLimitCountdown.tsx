@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, startTransition } from 'react';
 import { useRateLimitUntil, useAuthStore } from '@/stores/auth-store';
 import { useTranslations } from 'next-intl';
 
@@ -13,7 +13,7 @@ export function RateLimitCountdown() {
 
   useEffect(() => {
     if (!rateLimitUntil) {
-      setSecondsRemaining(0);
+      startTransition(() => setSecondsRemaining(0));
       return;
     }
 
@@ -78,5 +78,6 @@ export function RateLimitCountdown() {
 
 export function useIsRateLimited(): boolean {
   const rateLimitUntil = useRateLimitUntil();
-  return rateLimitUntil !== null && rateLimitUntil > Date.now();
+  const [now] = useState(() => Date.now());
+  return rateLimitUntil !== null && rateLimitUntil > now;
 }

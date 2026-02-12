@@ -32,24 +32,28 @@ async def import_menu_handler(
         InlineKeyboardButton(
             text=i18n.get("admin-import-users"),
             callback_data="admin:import:users",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-import-subscriptions"),
             callback_data="admin:import:subscriptions",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-import-sync-remnawave"),
             callback_data="admin:import:sync:remnawave",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
+            style="primary",
         )
     )
 
@@ -224,12 +228,14 @@ async def import_status_handler(
             InlineKeyboardButton(
                 text="🔄 " + i18n.get("admin-import-refresh"),
                 callback_data="admin:import:status",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:import",
+                style="primary",
             )
         )
 

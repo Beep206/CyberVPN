@@ -19,9 +19,11 @@ export function AuthProvider({ children, skeleton }: AuthProviderProps) {
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
   // Handle hydration
+  /* eslint-disable react-hooks/set-state-in-effect -- Hydration guard pattern */
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Check session on mount
   useEffect(() => {
@@ -58,9 +60,11 @@ export function AuthProvider({ children, skeleton }: AuthProviderProps) {
 export function useAuthHydrated() {
   const [isHydrated, setIsHydrated] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Auth cookie check on mount */
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return isHydrated;
 }

@@ -1,8 +1,11 @@
+import logging
 from uuid import UUID
 
 from src.domain.entities.user import User
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.mappers.user_mapper import map_remnawave_user
+
+logger = logging.getLogger(__name__)
 
 
 class RemnawaveUserGateway:
@@ -13,21 +16,24 @@ class RemnawaveUserGateway:
         try:
             data = await self._client.get(f"/api/users/{uuid}")
             return map_remnawave_user(data)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to fetch user %s from Remnawave: %s", uuid, e)
             return None
 
     async def get_by_username(self, username: str) -> User | None:
         try:
             data = await self._client.get(f"/api/users/by-username/{username}")
             return map_remnawave_user(data)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to fetch user by username from Remnawave: %s", e)
             return None
 
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         try:
             data = await self._client.get(f"/api/users/by-telegram/{telegram_id}")
             return map_remnawave_user(data)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to fetch user by telegram_id %s from Remnawave: %s", telegram_id, e)
             return None
 
     async def get_all(self, offset: int = 0, limit: int = 100) -> list[User]:

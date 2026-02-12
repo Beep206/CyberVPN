@@ -51,24 +51,28 @@ async def referral_settings_handler(
             InlineKeyboardButton(
                 text=toggle_text,
                 callback_data="admin:referral:toggle",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text=i18n.get("admin-referral-edit-bonus"),
                 callback_data="admin:referral:edit:bonus",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text=i18n.get("admin-referral-edit-withdrawal"),
                 callback_data="admin:referral:edit:withdrawal",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:settings",
+                style="primary",
             )
         )
 

@@ -49,18 +49,21 @@ async def access_settings_handler(
             InlineKeyboardButton(
                 text="➕ " + i18n.get("admin-access-add"),
                 callback_data="admin:access:add",
+                style="success",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="➖ " + i18n.get("admin-access-remove"),
                 callback_data="admin:access:remove",
+                style="danger",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:settings",
+                style="primary",
             )
         )
 

@@ -158,8 +158,9 @@ async def login(
             password=request.password,
             client_fingerprint=fingerprint,
         )
-    except Exception:
+    except Exception as e:
         # Record failed attempt
+        logger.warning("Login attempt failed: %s", e)
         attempts = await protection.record_failed_attempt(identifier)
 
         # Track failed auth attempt metric
@@ -526,8 +527,8 @@ async def request_magic_link(
                     email=request.email,
                     token=token,
                 )
-            except Exception:
-                logger.exception("Failed to dispatch magic link email")
+            except Exception as e:
+                logger.exception("Failed to dispatch magic link email: %s", e)
     except RateLimitExceededError:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

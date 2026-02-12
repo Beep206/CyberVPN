@@ -6,7 +6,6 @@ import { CyberInput } from '@/features/auth/components/CyberInput';
 import { securityApi } from '@/lib/api/security';
 import { motion } from 'motion/react';
 import { Shield, Eye, EyeOff, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { AxiosError } from 'axios';
 
 interface AntiphishingModalProps {
@@ -18,8 +17,6 @@ interface AntiphishingModalProps {
 type ModalView = 'view' | 'edit' | 'delete-confirm' | 'success';
 
 export function AntiphishingModal({ isOpen, onClose, onSuccess }: AntiphishingModalProps) {
-  const t = useTranslations('Settings');
-
   const [view, setView] = useState<ModalView>('view');
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [newCode, setNewCode] = useState('');

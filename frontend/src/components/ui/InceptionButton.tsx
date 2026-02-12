@@ -6,7 +6,6 @@ import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { CrumbleEffect } from "@/components/effects/CrumbleEffect";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
-import { AnimatePresence, motion } from "framer-motion";
 
 interface InceptionButtonProps {
   children: React.ReactNode;

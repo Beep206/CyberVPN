@@ -88,13 +88,14 @@ export function useTelegramWebApp() {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [isReady, setIsReady] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Telegram SDK init requires setting state after expand */
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const tg = window.Telegram?.WebApp;
     if (!tg) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Telegram WebApp not available. Running outside Telegram Mini App context.');
+        console.error('Telegram WebApp not available. Running outside Telegram Mini App context.');
       }
       return;
     }
@@ -114,6 +115,7 @@ export function useTelegramWebApp() {
       document.documentElement.style.setProperty('--tg-text-color', tg.themeParams.text_color);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Haptic feedback helpers
   const haptic = useCallback(

@@ -8,6 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const tokenStorage = {
   getAccessToken: (): string | null => null,
   getRefreshToken: (): string | null => null,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setTokens: (_accessToken: string, _refreshToken: string): void => {
     // No-op: tokens are now managed via httpOnly cookies set by the backend.
   },

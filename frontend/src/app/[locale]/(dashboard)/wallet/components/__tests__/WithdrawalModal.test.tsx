@@ -117,7 +117,7 @@ describe('WithdrawalModal', () => {
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {
-          capturedRequest = await request.json();
+          capturedRequest = await request.json() as Record<string, unknown>;
           return HttpResponse.json({ id: 'wd_123', status: 'pending' }, { status: 201 });
         })
       );
@@ -143,8 +143,8 @@ describe('WithdrawalModal', () => {
 
       await waitFor(() => {
         expect(capturedRequest).not.toBeNull();
-        expect(capturedRequest.amount).toBe(50);
-        expect(capturedRequest.method).toBe('crypto');
+        expect(capturedRequest!.amount).toBe(50);
+        expect(capturedRequest!.method).toBe('crypto');
       });
     });
 
@@ -154,7 +154,7 @@ describe('WithdrawalModal', () => {
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {
-          capturedRequest = await request.json();
+          capturedRequest = await request.json() as Record<string, unknown>;
           return HttpResponse.json({ id: 'wd_method', status: 'pending' }, { status: 201 });
         })
       );
@@ -183,9 +183,9 @@ describe('WithdrawalModal', () => {
 
       await waitFor(() => {
         expect(capturedRequest).not.toBeNull();
-        expect(capturedRequest.amount).toBe(50);
-        expect(capturedRequest.method).toBe('bank');
-        expect(capturedRequest.bank_account).toBe('1234-5678-9012');
+        expect(capturedRequest!.amount).toBe(50);
+        expect(capturedRequest!.method).toBe('bank');
+        expect(capturedRequest!.bank_account).toBe('1234-5678-9012');
       });
     });
 
@@ -820,7 +820,7 @@ describe('WithdrawalModal', () => {
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {
-          capturedRequest = await request.json();
+          capturedRequest = await request.json() as Record<string, unknown>;
           return HttpResponse.json({ id: 'wd_method_test', status: 'pending' }, { status: 201 });
         })
       );
@@ -849,9 +849,9 @@ describe('WithdrawalModal', () => {
 
       await waitFor(() => {
         expect(capturedRequest).not.toBeNull();
-        expect(capturedRequest.method).toBe('paypal');
-        expect(capturedRequest.paypal_email).toBe('test@paypal.com');
-        expect(capturedRequest.amount).toBe(50);
+        expect(capturedRequest!.method).toBe('paypal');
+        expect(capturedRequest!.paypal_email).toBe('test@paypal.com');
+        expect(capturedRequest!.amount).toBe(50);
       });
     });
   });

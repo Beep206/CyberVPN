@@ -3,12 +3,15 @@
 Handles logout and token revocation for mobile app users.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from src.application.dto.mobile_auth import LogoutRequestDTO
 from src.application.services.auth_service import AuthService
 from src.domain.exceptions import InvalidTokenError
+
+logger = logging.getLogger(__name__)
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
@@ -39,7 +42,8 @@ class MobileLogoutUseCase:
         # Decode and validate refresh token
         try:
             payload = self.auth_service.decode_token(request.refresh_token)
-        except Exception:
+        except Exception as e:
+            logger.warning("Mobile logout token decode failed: %s", e)
             raise InvalidTokenError()
 
         # Verify token type

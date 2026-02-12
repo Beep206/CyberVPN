@@ -1,5 +1,4 @@
 import { OtpVerificationForm } from '@/features/auth/components';
-import { useTranslations } from 'next-intl';
 
 export default function VerifyPage() {
     return (

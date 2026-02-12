@@ -1,8 +1,11 @@
+import logging
 from uuid import UUID
 
 from src.domain.entities.server import Server
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.mappers.server_mapper import map_remnawave_server
+
+logger = logging.getLogger(__name__)
 
 
 class RemnawaveServerGateway:
@@ -13,7 +16,8 @@ class RemnawaveServerGateway:
         try:
             data = await self._client.get(f"/api/nodes/{uuid}")
             return map_remnawave_server(data)
-        except Exception:
+        except Exception as e:
+            logger.warning("Failed to fetch server %s from Remnawave: %s", uuid, e)
             return None
 
     async def get_all(self) -> list[Server]:

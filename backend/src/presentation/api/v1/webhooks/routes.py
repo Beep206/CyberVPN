@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
 from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.config.settings import settings
+from src.infrastructure.monitoring.metrics import webhook_operations_total
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
 from src.presentation.dependencies.database import get_db
@@ -25,7 +26,9 @@ async def remnawave_webhook(
     validator = RemnawaveWebhookValidator(settings.remnawave_token.get_secret_value())
     use_case = ProcessRemnawaveWebhookUseCase(validator=validator, session=db)
 
-    return await use_case.execute(body=body, signature=signature)
+    result = await use_case.execute(body=body, signature=signature)
+    webhook_operations_total.labels(provider="remnawave", status="success").inc()
+    return result
 
 
 @router.post("/cryptobot", status_code=status.HTTP_200_OK)
@@ -40,4 +43,6 @@ async def cryptobot_webhook(
     handler = CryptoBotWebhookHandler(settings.cryptobot_token.get_secret_value())
     use_case = ProcessPaymentWebhookUseCase(webhook_handler=handler, session=db)
 
-    return await use_case.execute(provider="cryptobot", body=body, signature=signature)
+    result = await use_case.execute(provider="cryptobot", body=body, signature=signature)
+    webhook_operations_total.labels(provider="cryptobot", status="success").inc()
+    return result

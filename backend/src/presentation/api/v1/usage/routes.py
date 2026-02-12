@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
@@ -54,6 +55,7 @@ async def get_usage(
         # Fetch real usage data from Remnawave
         usage_data = await use_case.execute(current_user.id)
 
+        route_operations_total.labels(route="usage", action="get_usage", status="success").inc()
         return UsageResponse(
             bandwidth_used_bytes=usage_data.bandwidth_used_bytes,
             bandwidth_limit_bytes=usage_data.bandwidth_limit_bytes,

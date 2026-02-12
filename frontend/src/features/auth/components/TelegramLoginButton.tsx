@@ -46,20 +46,21 @@ export function TelegramLoginButton({
       script.setAttribute('data-userpic', 'true');
     }
 
-    if (containerRef.current) {
+    const container = containerRef.current;
+    if (container) {
       // Clear previous content safely
-      while (containerRef.current.firstChild) {
-        containerRef.current.removeChild(containerRef.current.firstChild);
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
       }
-      containerRef.current.appendChild(script);
+      container.appendChild(script);
     }
 
     // Cleanup on unmount
     return () => {
       delete window.TelegramLoginCallback;
-      if (containerRef.current) {
-        while (containerRef.current.firstChild) {
-          containerRef.current.removeChild(containerRef.current.firstChild);
+      if (container) {
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
         }
       }
     };

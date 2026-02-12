@@ -1,16 +1,13 @@
 'use client';
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
-import Lenis from 'lenis';
-
 import { useTheme } from 'next-themes';
-import { Check, Shield, Zap, Play, Globe } from 'lucide-react';
+import { Check, Shield, Zap } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
@@ -106,7 +103,7 @@ function WarpStarfield({ speed = 2.0, color = "#00ffff" }: { speed?: number, col
     const points = useRef<THREE.Points>(null!);
     const count = 3000;
 
-    const [{ positions, initialZ }] = useState(() => generateStarfieldData(count));
+    const [{ positions }] = useState(() => generateStarfieldData(count));
 
     /* eslint-disable react-hooks/immutability -- Float32Array mutations in animation loop are intentional */
     useFrame((state, delta) => {
@@ -195,7 +192,6 @@ function SpeedTunnelScene() {
 }
 
 export function SpeedTunnel() {
-    const t = useTranslations('Landing.speed');
     const pathname = usePathname();
 
     return (

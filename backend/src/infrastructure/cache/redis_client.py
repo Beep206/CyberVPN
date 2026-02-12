@@ -1,8 +1,11 @@
 """Redis/Valkey client for caching and session management."""
 
+import logging
 from collections.abc import AsyncGenerator
 
 import redis.asyncio as redis
+
+logger = logging.getLogger(__name__)
 
 from src.config.settings import settings
 
@@ -55,7 +58,8 @@ async def check_redis_connection() -> tuple[bool, float | None]:
         await client.ping()
         response_time = (time.time() - start) * 1000  # Convert to ms
         return True, response_time
-    except Exception:
+    except Exception as e:
+        logger.warning("Redis health check ping failed: %s", e)
         return False, None
     finally:
         await client.aclose()

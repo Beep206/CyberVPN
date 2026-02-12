@@ -34,18 +34,21 @@ async def users_menu_handler(
         InlineKeyboardButton(
             text=i18n.get("admin-users-search"),
             callback_data="admin:users:search",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("admin-users-list-recent"),
             callback_data="admin:users:list",
+            style="primary",
         )
     )
     builder.row(
         InlineKeyboardButton(
             text="🔙 " + i18n.get("button-back"),
             callback_data="admin:menu",
+            style="primary",
         )
     )
 
@@ -107,6 +110,7 @@ async def users_search_handler(
                 InlineKeyboardButton(
                     text=f"👤 {username} (ID: {user_id})",
                     callback_data=f"admin:user:view:{user_id}",
+                    style="primary",
                 )
             )
 
@@ -114,6 +118,7 @@ async def users_search_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:users",
+                style="primary",
             )
         )
 
@@ -161,6 +166,7 @@ async def users_list_handler(
                 InlineKeyboardButton(
                     text=f"👤 {username} - {created_at}",
                     callback_data=f"admin:user:view:{user_id}",
+                    style="primary",
                 )
             )
 
@@ -168,6 +174,7 @@ async def users_list_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:users",
+                style="primary",
             )
         )
 
@@ -223,18 +230,21 @@ async def user_view_handler(
             InlineKeyboardButton(
                 text=i18n.get("admin-user-ban"),
                 callback_data=f"admin:user:ban:{user_id}",
+                style="danger",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text=i18n.get("admin-user-extend-sub"),
                 callback_data=f"admin:user:extend:{user_id}",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:users",
+                style="primary",
             )
         )
 

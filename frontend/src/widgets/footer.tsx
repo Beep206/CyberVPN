@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { motion } from 'motion/react';
 import Link from 'next/link';
 import {
     Github,
@@ -12,7 +11,6 @@ import {
     Shield,
     Terminal,
     Zap,
-    Globe,
     Cpu
 } from 'lucide-react';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
@@ -53,14 +51,13 @@ const footerLinks = {
 export function Footer() {
     const t = useTranslations('Footer'); // Assuming keys map, or fallback to defaults
     const [hoveredLink, setHoveredLink] = useState<string | null>(null);
-    const [dateStr, setDateStr] = useState('');
     const [year, setYear] = useState('');
 
+    /* eslint-disable react-hooks/set-state-in-effect -- Date hydration guard */
     useEffect(() => {
-        const now = new Date();
-        setDateStr(`${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`);
-        setYear(String(now.getFullYear()));
+        setYear(String(new Date().getFullYear()));
     }, []);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const tHeader = useTranslations('Header'); // Fetch Header translations for system status
 

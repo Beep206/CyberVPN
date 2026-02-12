@@ -51,12 +51,14 @@ async def show_stats_handler(
             InlineKeyboardButton(
                 text=i18n.get("admin-stats-detailed"),
                 callback_data="admin:stats:detailed",
+                style="primary",
             )
         )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:menu",
+                style="primary",
             )
         )
 
@@ -121,6 +123,7 @@ async def show_detailed_stats_handler(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
                 callback_data="admin:stats",
+                style="primary",
             )
         )
 

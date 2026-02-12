@@ -77,9 +77,10 @@ class RemnawaveSubscriptionClient:
                 RemnawaveUserResponse,
             )
             return self._map_to_dto(user)
-        except Exception:
+        except Exception as e:
             logger.exception(
-                "Failed to fetch subscription from Remnawave",
+                "Failed to fetch subscription from Remnawave: %s",
+                e,
                 extra={"remnawave_uuid": remnawave_uuid},
             )
             return SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
@@ -162,8 +163,8 @@ class CachedSubscriptionClient:
         if cached is not None:
             try:
                 return _deserialize_dto(cached) if isinstance(cached, str) else _deserialize_dto(json.dumps(cached))
-            except Exception:
-                logger.warning("Corrupt subscription cache entry, fetching fresh", extra={"key": key})
+            except Exception as e:
+                logger.warning("Corrupt subscription cache entry, fetching fresh: %s", e, extra={"key": key})
 
         # 2. Fetch from Remnawave.
         dto = await self._inner.get_subscription(remnawave_uuid)
@@ -171,8 +172,8 @@ class CachedSubscriptionClient:
         # 3. Cache the result (even NONE status, to avoid hammering on missing users).
         try:
             await self._cache.set(key, _serialize_dto(dto), ttl=SUBSCRIPTION_CACHE_TTL)
-        except Exception:
-            logger.warning("Failed to cache subscription", extra={"key": key})
+        except Exception as e:
+            logger.warning("Failed to cache subscription: %s", e, extra={"key": key})
 
         return dto
 

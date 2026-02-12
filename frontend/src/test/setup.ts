@@ -65,6 +65,7 @@ vi.mock('motion/react', () => ({
     {
       get: (_target, prop) => {
         // Return a component that renders the element type
+        /* eslint-disable @typescript-eslint/no-unused-vars */
         const Component = ({
           children,
           initial: _initial,
@@ -76,6 +77,7 @@ vi.mock('motion/react', () => ({
           variants: _variants,
           ...rest
         }: Record<string, unknown>) => {
+          /* eslint-enable @typescript-eslint/no-unused-vars */
           const Tag = prop as string;
           // Filter out motion-specific props
           const htmlProps: Record<string, unknown> = {};
@@ -85,6 +87,7 @@ vi.mock('motion/react', () => ({
             }
           }
           // Use createElement to handle dynamic tag names
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { createElement } = require('react');
           return createElement(Tag, htmlProps, children);
         };

@@ -39,18 +39,22 @@ def admin_stats_keyboard(
     builder.button(
         text=i18n("stats-overview"),
         callback_data="stats:overview",
+        style="primary",
     )
     builder.button(
         text=i18n("stats-users"),
         callback_data="stats:users",
+        style="primary",
     )
     builder.button(
         text=i18n("stats-revenue"),
         callback_data="stats:revenue",
+        style="primary",
     )
     builder.button(
         text=i18n("stats-traffic"),
         callback_data="stats:traffic",
+        style="primary",
     )
 
     # Pagination controls (if applicable)
@@ -61,6 +65,7 @@ def admin_stats_keyboard(
                 InlineKeyboardButton(
                     text=i18n("pagination-prev"),
                     callback_data=f"stats:page:{current_page - 1}",
+                    style="primary",
                 )
             )
 
@@ -77,6 +82,7 @@ def admin_stats_keyboard(
                 InlineKeyboardButton(
                     text=i18n("pagination-next"),
                     callback_data=f"stats:page:{current_page + 1}",
+                    style="primary",
                 )
             )
 
@@ -88,6 +94,7 @@ def admin_stats_keyboard(
     builder.button(
         text=i18n("button-back"),
         callback_data="admin:main",
+        style="primary",
     )
 
     # Layout: 2 stats per row, pagination in one row, back button alone

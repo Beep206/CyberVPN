@@ -165,5 +165,5 @@ export function setupTelegramWebAppMock(overrides?: Partial<TelegramWebAppMock>)
  * Clean up Telegram WebApp mock
  */
 export function cleanupTelegramWebAppMock() {
-  delete (window as any).Telegram;
+  delete (window as unknown as { Telegram?: unknown }).Telegram;
 }

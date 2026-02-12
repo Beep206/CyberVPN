@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.metrics import notification_operations_total
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 
@@ -44,6 +45,7 @@ async def get_notification_preferences(
     # Merge user prefs with defaults
     prefs = {**DEFAULT_PREFS, **(current_user.notification_prefs or {})}
 
+    notification_operations_total.labels(operation="get_preferences").inc()
     return NotificationPreferencesResponse(
         email_security=prefs.get("email_security", True),
         email_marketing=prefs.get("email_marketing", False),
@@ -97,6 +99,7 @@ async def update_notification_preferences(
         extra={"user_id": str(updated_user.id)},
     )
 
+    notification_operations_total.labels(operation="update_preferences").inc()
     return NotificationPreferencesResponse(
         email_security=merged_prefs.get("email_security", True),
         email_marketing=merged_prefs.get("email_marketing", False),

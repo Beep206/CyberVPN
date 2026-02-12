@@ -173,8 +173,8 @@ async def checkout(
 
             # Track completed payment
             track_payment(status="completed", currency=body.currency)
-        except Exception:
-            logger.exception("Zero-gateway completion failed")
+        except Exception as e:
+            logger.exception("Zero-gateway completion failed: %s", e)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Payment processing failed",

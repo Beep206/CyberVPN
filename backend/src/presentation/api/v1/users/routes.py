@@ -1,5 +1,6 @@
 """User management routes for Remnawave VPN users."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -12,6 +13,7 @@ from src.application.use_cases.users.get_user import GetUserUseCase
 from src.application.use_cases.users.list_users import ListUsersUseCase
 from src.application.use_cases.users.update_user import UpdateUserUseCase
 from src.domain.exceptions import UserNotFoundError
+from src.infrastructure.monitoring.metrics import user_management_total
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.users.schemas import (
     CreateUserRequest,
@@ -23,6 +25,8 @@ from src.presentation.dependencies.pagination import PaginationParams, get_pagin
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/users", tags=["users"])
 
 
@@ -33,39 +37,37 @@ async def list_users(
     _: None = Depends(require_permission(Permission.USER_READ)),
 ) -> UserListResponse:
     """List all VPN users with pagination."""
-    try:
-        gateway = RemnawaveUserGateway(client=client)
-        use_case = ListUsersUseCase(gateway=gateway)
+    gateway = RemnawaveUserGateway(client=client)
+    use_case = ListUsersUseCase(gateway=gateway)
 
-        users = await use_case.execute(
-            offset=pagination.page * pagination.page_size,
-            limit=pagination.page_size,
-        )
+    users = await use_case.execute(
+        offset=pagination.page * pagination.page_size,
+        limit=pagination.page_size,
+    )
 
-        return UserListResponse(
-            users=[
-                UserResponse(
-                    uuid=user.uuid,
-                    username=user.username,
-                    status=user.status,
-                    short_uuid=user.short_uuid,
-                    created_at=user.created_at,
-                    updated_at=user.updated_at,
-                    subscription_uuid=user.subscription_uuid,
-                    expire_at=user.expire_at,
-                    traffic_limit_bytes=user.traffic_limit_bytes,
-                    used_traffic_bytes=user.used_traffic_bytes,
-                    email=user.email,
-                    telegram_id=user.telegram_id,
-                )
-                for user in users
-            ],
-            total=len(users),
-            page=pagination.page,
-            page_size=pagination.page_size,
-        )
-    except Exception:
-        raise
+    user_management_total.labels(operation="list", status="success").inc()
+    return UserListResponse(
+        users=[
+            UserResponse(
+                uuid=user.uuid,
+                username=user.username,
+                status=user.status,
+                short_uuid=user.short_uuid,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                subscription_uuid=user.subscription_uuid,
+                expire_at=user.expire_at,
+                traffic_limit_bytes=user.traffic_limit_bytes,
+                used_traffic_bytes=user.used_traffic_bytes,
+                email=user.email,
+                telegram_id=user.telegram_id,
+            )
+            for user in users
+        ],
+        total=len(users),
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 @router.post(
@@ -83,37 +85,35 @@ async def create_user(
     _: None = Depends(require_permission(Permission.USER_CREATE)),
 ) -> UserResponse:
     """Create a new VPN user."""
-    try:
-        gateway = RemnawaveUserGateway(client=client)
+    gateway = RemnawaveUserGateway(client=client)
 
-        use_case = CreateUserUseCase(gateway=gateway)
+    use_case = CreateUserUseCase(gateway=gateway)
 
-        dto = CreateUserDTO(
-            username=request.username,
-            password=request.password,
-            email=request.email,
-            data_limit=request.data_limit,
-            expire_at=request.expire_at,
-        )
+    dto = CreateUserDTO(
+        username=request.username,
+        password=request.password,
+        email=request.email,
+        data_limit=request.data_limit,
+        expire_at=request.expire_at,
+    )
 
-        user = await use_case.execute(dto=dto)
+    user = await use_case.execute(dto=dto)
 
-        return UserResponse(
-            uuid=user.uuid,
-            username=user.username,
-            status=user.status,
-            short_uuid=user.short_uuid,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-            subscription_uuid=user.subscription_uuid,
-            expire_at=user.expire_at,
-            traffic_limit_bytes=user.traffic_limit_bytes,
-            used_traffic_bytes=user.used_traffic_bytes,
-            email=user.email,
-            telegram_id=user.telegram_id,
-        )
-    except Exception:
-        raise
+    user_management_total.labels(operation="create", status="success").inc()
+    return UserResponse(
+        uuid=user.uuid,
+        username=user.username,
+        status=user.status,
+        short_uuid=user.short_uuid,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        subscription_uuid=user.subscription_uuid,
+        expire_at=user.expire_at,
+        traffic_limit_bytes=user.traffic_limit_bytes,
+        used_traffic_bytes=user.used_traffic_bytes,
+        email=user.email,
+        telegram_id=user.telegram_id,
+    )
 
 
 @router.get(
@@ -127,31 +127,29 @@ async def get_user(
     _: None = Depends(require_permission(Permission.USER_READ)),
 ) -> UserResponse:
     """Get a specific VPN user by UUID."""
-    try:
-        gateway = RemnawaveUserGateway(client=client)
-        use_case = GetUserUseCase(gateway=gateway)
+    gateway = RemnawaveUserGateway(client=client)
+    use_case = GetUserUseCase(gateway=gateway)
 
-        user = await use_case.execute(uuid=user_id)
+    user = await use_case.execute(uuid=user_id)
 
-        if user is None:
-            raise UserNotFoundError(f"User with UUID {user_id} not found")
+    if user is None:
+        raise UserNotFoundError(f"User with UUID {user_id} not found")
 
-        return UserResponse(
-            uuid=user.uuid,
-            username=user.username,
-            status=user.status,
-            short_uuid=user.short_uuid,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-            subscription_uuid=user.subscription_uuid,
-            expire_at=user.expire_at,
-            traffic_limit_bytes=user.traffic_limit_bytes,
-            used_traffic_bytes=user.used_traffic_bytes,
-            email=user.email,
-            telegram_id=user.telegram_id,
-        )
-    except Exception:
-        raise
+    user_management_total.labels(operation="get", status="success").inc()
+    return UserResponse(
+        uuid=user.uuid,
+        username=user.username,
+        status=user.status,
+        short_uuid=user.short_uuid,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        subscription_uuid=user.subscription_uuid,
+        expire_at=user.expire_at,
+        traffic_limit_bytes=user.traffic_limit_bytes,
+        used_traffic_bytes=user.used_traffic_bytes,
+        email=user.email,
+        telegram_id=user.telegram_id,
+    )
 
 
 @router.put(
@@ -169,41 +167,39 @@ async def update_user(
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> UserResponse:
     """Update a VPN user."""
-    try:
-        gateway = RemnawaveUserGateway(client=client)
+    gateway = RemnawaveUserGateway(client=client)
 
-        use_case = UpdateUserUseCase(gateway=gateway)
+    use_case = UpdateUserUseCase(gateway=gateway)
 
-        update_data = {}
-        if request.username is not None:
-            update_data["username"] = request.username
-        if request.password is not None:
-            update_data["password"] = request.password
-        if request.email is not None:
-            update_data["email"] = request.email
-        if request.data_limit is not None:
-            update_data["data_limit"] = request.data_limit
-        if request.expire_at is not None:
-            update_data["expire_at"] = request.expire_at
+    update_data = {}
+    if request.username is not None:
+        update_data["username"] = request.username
+    if request.password is not None:
+        update_data["password"] = request.password
+    if request.email is not None:
+        update_data["email"] = request.email
+    if request.data_limit is not None:
+        update_data["data_limit"] = request.data_limit
+    if request.expire_at is not None:
+        update_data["expire_at"] = request.expire_at
 
-        user = await use_case.execute(uuid=user_id, **update_data)
+    user = await use_case.execute(uuid=user_id, **update_data)
 
-        return UserResponse(
-            uuid=user.uuid,
-            username=user.username,
-            status=user.status,
-            short_uuid=user.short_uuid,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-            subscription_uuid=user.subscription_uuid,
-            expire_at=user.expire_at,
-            traffic_limit_bytes=user.traffic_limit_bytes,
-            used_traffic_bytes=user.used_traffic_bytes,
-            email=user.email,
-            telegram_id=user.telegram_id,
-        )
-    except Exception:
-        raise
+    user_management_total.labels(operation="update", status="success").inc()
+    return UserResponse(
+        uuid=user.uuid,
+        username=user.username,
+        status=user.status,
+        short_uuid=user.short_uuid,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        subscription_uuid=user.subscription_uuid,
+        expire_at=user.expire_at,
+        traffic_limit_bytes=user.traffic_limit_bytes,
+        used_traffic_bytes=user.used_traffic_bytes,
+        email=user.email,
+        telegram_id=user.telegram_id,
+    )
 
 
 @router.delete(
@@ -217,11 +213,9 @@ async def delete_user(
     _: None = Depends(require_permission(Permission.USER_DELETE)),
 ):
     """Delete a VPN user."""
-    try:
-        gateway = RemnawaveUserGateway(client=client)
-        use_case = DeleteUserUseCase(gateway=gateway)
+    gateway = RemnawaveUserGateway(client=client)
+    use_case = DeleteUserUseCase(gateway=gateway)
 
-        await use_case.execute(uuid=user_id)
-        return None
-    except Exception:
-        raise
+    await use_case.execute(uuid=user_id)
+    user_management_total.labels(operation="delete", status="success").inc()
+    return None

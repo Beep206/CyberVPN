@@ -123,9 +123,10 @@ class TelegramMiniAppUseCase:
                         email="",
                         telegram_id=int(telegram_id),
                     )
-                except Exception:
+                except Exception as e:
                     logger.exception(
-                        "Failed to create Remnawave user for Mini App registration",
+                        "Failed to create Remnawave user for Mini App registration: %s",
+                        e,
                         extra={"user_id": str(user.id)},
                     )
         else:
