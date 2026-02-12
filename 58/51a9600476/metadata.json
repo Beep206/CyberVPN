@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "5851a9600476",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "frontend/eslint.config.mjs",
+    "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
+    "frontend/src/app/[locale]/(auth)/verify/page.tsx",
+    "frontend/src/app/[locale]/(dashboard)/partner/components/PartnerClient.tsx",
+    "frontend/src/app/[locale]/(dashboard)/settings/components/AntiphishingModal.tsx",
+    "frontend/src/app/[locale]/(dashboard)/settings/components/TwoFactorModal.tsx",
+    "frontend/src/app/[locale]/(dashboard)/settings/hooks/useSettings.ts",
+    "frontend/src/app/[locale]/(dashboard)/settings/sections/DevicesSection.tsx",
+    "frontend/src/app/[locale]/(dashboard)/subscriptions/components/CancelSubscriptionModal.tsx",
+    "frontend/src/app/[locale]/(dashboard)/subscriptions/components/CodesSection.tsx",
+    "frontend/src/app/[locale]/(dashboard)/subscriptions/components/PlanCard.tsx",
+    "frontend/src/app/[locale]/(dashboard)/subscriptions/components/TrialSection.tsx",
+    "frontend/src/app/[locale]/miniapp/hooks/useTelegramWebApp.ts",
+    "frontend/src/app/[locale]/miniapp/plans/page.tsx",
+    "frontend/src/components/effects/CrumbleEffect.tsx",
+    "frontend/src/components/ui/InceptionButton.tsx",
+    "frontend/src/features/auth/components/CyberOtpInput.tsx",
+    "frontend/src/features/auth/components/OtpVerificationForm.tsx",
+    "frontend/src/features/dev/dev-panel.tsx",
+    "frontend/src/features/theme-toggle.tsx",
+    "frontend/src/shared/lib/web-vitals.ts",
+    "frontend/src/shared/ui/magnetic-button.tsx",
+    "frontend/src/shared/ui/scramble-text.tsx",
+    "frontend/src/widgets/footer.tsx",
+    "frontend/src/widgets/terminal-header.tsx",
+    "frontend/vitest.config.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/58/51a9600476/0/metadata.json",
+      "transcript": "/58/51a9600476/0/full.jsonl",
+      "context": "/58/51a9600476/0/context.md",
+      "content_hash": "/58/51a9600476/0/content_hash.txt",
+      "prompt": "/58/51a9600476/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 144,
+    "cache_creation_tokens": 236139,
+    "cache_read_tokens": 14346881,
+    "output_tokens": 13970,
+    "api_call_count": 136
+  }
+}

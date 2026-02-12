@@ -1,0 +1,79 @@
+<teammate-message teammate_id="team-lead">
+You are frontend-lint on the CyberVPN team (Phase 8). You clean up ESLint warnings: unused imports, console.warn statements, and the triple-slash reference.
+Stack: Next.js 16, React 19, TypeScript 5.9, ESLint 9 (flat config).
+You work ONLY in /home/beep/projects/VPNBussiness/frontend/src/ and /home/beep/projects/VPNBussiness/frontend/vitest.config.ts. Do NOT touch 3d/ scenes or speed-tunnel.tsx (frontend-3d agent handles those). Do NOT touch test files in __tests__/ directories.
+
+CONTEXT — What needs fixing:
+- 74 @typescript-eslint/no-unused-vars warnings across ~20 files
+- 3 console.warn statements in production code
+- 1 triple-slash reference in vitest.config.ts
+
+STEP 1: Run ESLint to get the current list of unused vars:
+cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/ 2>&1 | grep "no-unused-vars"
+
+STEP 2: For each file with unused imports/variables (excluding 3d/ and speed-tunnel.tsx):
+1. Read the entire file
+2. Identify unused imports/variables from ESLint output
+3. Verify they're truly unused
+4. Remove them
+5. Move to next file
+
+Common patterns:
+A) Unused translation hooks: Remove both `import { useTranslations } from 'next-intl'` and `const t = useTranslations(...)` when t is never used
+B) Unused icon imports: Remove only the unused icons from lucide-react imports
+C) Unused React hooks: Remove unused hook imports (useEffect, useState, useRef)
+D) Unused function params: prefix with underscore
+
+NOTE: For GlobalNetwork.tsx — frontend-3d is modifying this file. Only remove imports that are clearly unused AND that frontend-3d won't need. Read the file fully first. If in doubt, skip GlobalNetwork.tsx.
+
+STEP 3: Fix console.warn:
+- /home/beep/projects/VPNBussiness/frontend/src/shared/lib/web-vitals.ts line 61: console.warn → console.error
+- /home/beep/projects/VPNBussiness/frontend/src/shared/lib/web-vitals.ts line 92: console.warn → console.error
+- /home/beep/projects/VPNBussiness/frontend/src/app/[locale]/miniapp/hooks/useTelegramWebApp.ts line 97: Remove console.warn entirely
+
+STEP 4: Fix triple-slash reference:
+- /home/beep/projects/VPNBussiness/frontend/vitest.config.ts: Replace `/// <reference types="vitest" />` with proper import
+
+RULES:
+- Do NOT remove imports that ARE used — verify each one
+- Do NOT touch 3D files (AuthScene3D, FeaturesScene3D, GlobalNetwork, speed-tunnel)
+- Do NOT touch test files
+- Do NOT add new imports or functionality
+- Do NOT modify component logic
+
+VERIFICATION:
+cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/ 2>&1 | grep "no-unused-vars" | grep -v __tests__ | grep -v ".test." | wc -l
+# Target: 0
+
+When done, update tasks #3, #4, #5 as completed using TaskUpdate.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="frontend-lint" color="green">
+{"type":"task_assignment","taskId":"3","subject":"FL-1: Remove 74 unused imports/variables across ~20 files","description":"Remove all @typescript-eslint/no-unused-vars warnings in frontend/src/ production code. Unused translations hooks, icon imports, React hooks, etc.","assignedBy":"frontend-lint","timestamp":"2026-02-11T18:15:08.938Z"}
+</teammate-message>
+
+<teammate-message teammate_id="frontend-lint" color="green">
+{"type":"task_assignment","taskId":"4","subject":"FL-2: Fix 3 console.warn statements","description":"web-vitals.ts: 2x console.warn → console.error. useTelegramWebApp.ts: remove console.warn entirely.","assignedBy":"frontend-lint","timestamp":"2026-02-11T18:15:11.499Z"}
+</teammate-message>
+
+<teammate-message teammate_id="frontend-lint" color="green">
+{"type":"task_assignment","taskId":"5","subject":"FL-3: Fix triple-slash reference in vitest.config.ts","description":"Replace /// reference types=\"vitest\" with proper import or tsconfig types.","assignedBy":"frontend-lint","timestamp":"2026-02-11T18:15:14.267Z"}
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Fix remaining 8 unused vars">
+Verify found 8 remaining no-unused-vars warnings outside 3D files and tests. Please find and fix them:
+
+Run: cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/ 2>&1 | grep "no-unused-vars" | grep -v __tests__ | grep -v ".test." | grep -v "3d/scenes" | grep -v "speed-tunnel"
+
+Remove the unused imports/variables in each file. Message me when done.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Test warnings out of scope, done">
+Leave the 6 test file warnings as-is — they're out of scope for Phase 8. Your work is complete. Thank you.
+</teammate-message>
