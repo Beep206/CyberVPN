@@ -1,6 +1,5 @@
 import 'package:cybervpn_mobile/features/vpn/data/datasources/widget_data_source.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:home_widget/home_widget.dart';
 
 void main() {
   group('WidgetDataSource', () {

@@ -15,11 +15,19 @@ class _MockLocalDatasource extends Mock implements NotificationLocalDatasource {
 
 class _MockApiClient extends Mock implements ApiClient {}
 
-class _FakeAppNotification extends Fake implements AppNotification {}
+// Use a real AppNotification instance as fallback value since
+// AppNotification is a freezed sealed class that cannot be faked.
+final _fallbackAppNotification = AppNotification(
+  id: 'fallback',
+  type: NotificationType.paymentConfirmed,
+  title: 'Fallback',
+  body: 'Fallback',
+  receivedAt: DateTime(2020),
+);
 
 void main() {
   setUpAll(() {
-    registerFallbackValue(_FakeAppNotification());
+    registerFallbackValue(_fallbackAppNotification);
   });
 
   late _MockFcmDatasource mockFcm;

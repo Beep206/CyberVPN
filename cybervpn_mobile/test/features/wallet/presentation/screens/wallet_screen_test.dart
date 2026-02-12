@@ -1,40 +1,10 @@
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/wallet/domain/entities/wallet.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-
-// ---------------------------------------------------------------------------
-// Mocks & Test Data
-// ---------------------------------------------------------------------------
-
-class MockWalletBalance extends WalletBalance {
-  MockWalletBalance({
-    required super.balance,
-    required super.pendingBalance,
-    required super.currency,
-  });
-}
-
-class MockWalletTransaction extends WalletTransaction {
-  MockWalletTransaction({
-    required super.id,
-    required super.amount,
-    required super.currency,
-    required super.description,
-    required super.type,
-    required super.status,
-    required super.createdAt,
-  });
-}
-
-class MockWalletTransactionList extends WalletTransactionList {
-  MockWalletTransactionList({required super.transactions});
-}
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -73,10 +43,21 @@ Widget buildTestableWalletScreen({
     overrides: [
       walletAvailabilityProvider.overrideWith((ref) async => walletAvailable),
       if (balanceOverride != null)
-        walletBalanceProvider.overrideWith((ref) => balanceOverride),
+        walletBalanceProvider.overrideWith((ref) async {
+          return balanceOverride.when(
+            data: (data) => data,
+            loading: () => throw StateError('loading'),
+            error: (e, st) => throw e,
+          );
+        }),
       if (transactionsOverride != null)
-        walletTransactionsProvider
-            .overrideWith((ref) => transactionsOverride),
+        walletTransactionsProvider.overrideWith((ref) async {
+          return transactionsOverride.when(
+            data: (data) => data,
+            loading: () => throw StateError('loading'),
+            error: (e, st) => throw e,
+          );
+        }),
     ],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -102,18 +83,18 @@ void main() {
 
   group('WalletScreen - Rendering', () {
     testWidgets('test_renders_wallet_title', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -122,18 +103,18 @@ void main() {
     });
 
     testWidgets('test_renders_balance_card', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 250.50,
         pendingBalance: 10.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -144,18 +125,18 @@ void main() {
     });
 
     testWidgets('test_renders_withdraw_button', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -164,18 +145,18 @@ void main() {
     });
 
     testWidgets('test_renders_transaction_history_header', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -210,18 +191,18 @@ void main() {
 
   group('WalletScreen - Balance Display', () {
     testWidgets('test_displays_zero_balance', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 0.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -231,18 +212,18 @@ void main() {
 
     testWidgets('test_displays_pending_balance_when_greater_than_zero',
         (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 25.50,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -252,12 +233,12 @@ void main() {
 
     testWidgets('test_loading_balance_shows_progress_indicator',
         (tester) async {
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
           balanceOverride: const AsyncValue.loading(),
-          transactionsOverride: AsyncValue.data(transactions),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pump();
@@ -266,13 +247,13 @@ void main() {
     });
 
     testWidgets('test_balance_error_shows_error_message', (tester) async {
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
           balanceOverride:
               AsyncValue.error(Exception('Failed'), StackTrace.current),
-          transactionsOverride: AsyncValue.data(transactions),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -283,15 +264,15 @@ void main() {
 
   group('WalletScreen - Transaction List', () {
     testWidgets('test_displays_transaction_list', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(
+      final transactions = WalletTransactionList(
         transactions: [
-          MockWalletTransaction(
+          WalletTransaction(
             id: 'tx1',
             amount: 50.0,
             currency: 'USD',
@@ -300,7 +281,7 @@ void main() {
             status: TransactionStatus.completed,
             createdAt: DateTime(2025, 1, 15),
           ),
-          MockWalletTransaction(
+          WalletTransaction(
             id: 'tx2',
             amount: -25.0,
             currency: 'USD',
@@ -310,11 +291,12 @@ void main() {
             createdAt: DateTime(2025, 2, 1),
           ),
         ],
+        total: 2,
       );
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
+          balanceOverride: const AsyncValue.data(balance),
           transactionsOverride: AsyncValue.data(transactions),
         ),
       );
@@ -326,18 +308,18 @@ void main() {
     });
 
     testWidgets('test_empty_transaction_list_shows_message', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -347,7 +329,7 @@ void main() {
 
     testWidgets('test_transaction_list_loading_shows_progress_indicator',
         (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
@@ -355,7 +337,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
+          balanceOverride: const AsyncValue.data(balance),
           transactionsOverride: const AsyncValue.loading(),
         ),
       );
@@ -366,7 +348,7 @@ void main() {
 
     testWidgets('test_transaction_list_error_shows_error_message',
         (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
@@ -374,7 +356,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
+          balanceOverride: const AsyncValue.data(balance),
           transactionsOverride:
               AsyncValue.error(Exception('Failed'), StackTrace.current),
         ),
@@ -387,18 +369,18 @@ void main() {
 
   group('WalletScreen - Withdraw Dialog', () {
     testWidgets('test_withdraw_button_opens_dialog', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
@@ -411,18 +393,18 @@ void main() {
     });
 
     testWidgets('test_withdraw_dialog_can_be_closed', (tester) async {
-      final balance = MockWalletBalance(
+      const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
         currency: 'USD',
       );
 
-      final transactions = MockWalletTransactionList(transactions: []);
+      const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride: AsyncValue.data(balance),
-          transactionsOverride: AsyncValue.data(transactions),
+          balanceOverride: const AsyncValue.data(balance),
+          transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();

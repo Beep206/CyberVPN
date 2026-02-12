@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
-import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
@@ -116,7 +116,6 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
     List<ServerEntity> servers,
   ) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
     final countryName =
         servers.isNotEmpty ? servers.first.countryName : countryCode;
 

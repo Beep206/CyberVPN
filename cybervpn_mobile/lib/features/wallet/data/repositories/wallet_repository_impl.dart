@@ -1,4 +1,5 @@
 import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/wallet/data/datasources/wallet_remote_ds.dart';
 import 'package:cybervpn_mobile/features/wallet/domain/entities/wallet.dart';
@@ -28,7 +29,7 @@ class WalletRepositoryImpl implements WalletRepository {
       final balance = await _remoteDataSource.getBalance();
       return Success(balance);
     } catch (e) {
-      return Failure.fromException(e);
+      return Failure(ServerFailure(message: e.toString()));
     }
   }
 
@@ -46,7 +47,7 @@ class WalletRepositoryImpl implements WalletRepository {
       );
       return Success(transactions);
     } catch (e) {
-      return Failure.fromException(e);
+      return Failure(ServerFailure(message: e.toString()));
     }
   }
 
@@ -64,7 +65,7 @@ class WalletRepositoryImpl implements WalletRepository {
       );
       return Success(withdrawalId);
     } catch (e) {
-      return Failure.fromException(e);
+      return Failure(ServerFailure(message: e.toString()));
     }
   }
 }

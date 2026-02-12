@@ -5,32 +5,13 @@ import 'package:cybervpn_mobile/features/subscription/presentation/screens/payme
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 
 // ---------------------------------------------------------------------------
 // Mocks & Test Data
 // ---------------------------------------------------------------------------
 
-class MockPaymentHistoryEntry extends PaymentHistoryEntry {
-  MockPaymentHistoryEntry({
-    required super.id,
-    required super.planName,
-    required super.amount,
-    required super.currency,
-    required super.status,
-    required super.provider,
-    required super.createdAt,
-  });
-}
-
-class MockPaginatedPaymentHistory extends PaginatedPaymentHistory {
-  MockPaginatedPaymentHistory({
-    required super.items,
-    required super.total,
-    required super.offset,
-    required super.limit,
-  });
-}
+// PaymentHistoryEntry and PaginatedPaymentHistory are plain classes (not sealed/freezed)
+// so we can construct them directly without mocks.
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -66,7 +47,13 @@ Widget buildTestablePaymentHistoryScreen({
   return ProviderScope(
     overrides: [
       if (historyOverride != null)
-        paymentHistoryProvider.overrideWith((ref) => historyOverride),
+        paymentHistoryProvider.overrideWith((ref) async {
+          return historyOverride.when(
+            data: (data) => data,
+            loading: () => throw StateError('loading'),
+            error: (e, st) => throw e,
+          );
+        }),
     ],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -91,7 +78,7 @@ void main() {
 
   group('PaymentHistoryScreen - Rendering', () {
     testWidgets('test_renders_payment_history_title', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      const history = PaginatedPaymentHistory(
         items: [],
         total: 0,
         offset: 0,
@@ -100,7 +87,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride: AsyncValue.data(history),
+          historyOverride: const AsyncValue.data(history),
         ),
       );
       await tester.pumpAndSettle();
@@ -109,7 +96,7 @@ void main() {
     });
 
     testWidgets('test_renders_refresh_indicator', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      const history = PaginatedPaymentHistory(
         items: [],
         total: 0,
         offset: 0,
@@ -118,7 +105,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride: AsyncValue.data(history),
+          historyOverride: const AsyncValue.data(history),
         ),
       );
       await tester.pumpAndSettle();
@@ -129,24 +116,24 @@ void main() {
 
   group('PaymentHistoryScreen - Payment List', () {
     testWidgets('test_displays_payment_list', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly Premium',
             amount: 9.99,
             currency: 'USD',
             status: 'completed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15, 10, 0),
           ),
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay2',
             planName: 'Annual Premium',
             amount: 99.99,
             currency: 'USD',
             status: 'pending',
-            provider: 'yookassa',
+
             createdAt: DateTime(2025, 2, 1, 14, 30),
           ),
         ],
@@ -170,33 +157,33 @@ void main() {
     });
 
     testWidgets('test_displays_payment_status_badges', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'completed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15),
           ),
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay2',
             planName: 'Annual',
             amount: 100.0,
             currency: 'USD',
             status: 'pending',
-            provider: 'yookassa',
+
             createdAt: DateTime(2025, 2, 1),
           ),
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay3',
             planName: 'Trial',
             amount: 5.0,
             currency: 'USD',
             status: 'failed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 2, 5),
           ),
         ],
@@ -218,15 +205,15 @@ void main() {
     });
 
     testWidgets('test_displays_payment_dates', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'completed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15, 10, 30),
           ),
         ],
@@ -246,15 +233,15 @@ void main() {
     });
 
     testWidgets('test_completed_payment_shows_green_amount', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'completed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15),
           ),
         ],
@@ -280,7 +267,7 @@ void main() {
 
   group('PaymentHistoryScreen - Empty State', () {
     testWidgets('test_empty_payment_list_shows_message', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      const history = PaginatedPaymentHistory(
         items: [],
         total: 0,
         offset: 0,
@@ -289,7 +276,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride: AsyncValue.data(history),
+          historyOverride: const AsyncValue.data(history),
         ),
       );
       await tester.pumpAndSettle();
@@ -299,7 +286,7 @@ void main() {
     });
 
     testWidgets('test_empty_state_shows_explanation', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      const history = PaginatedPaymentHistory(
         items: [],
         total: 0,
         offset: 0,
@@ -308,7 +295,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride: AsyncValue.data(history),
+          historyOverride: const AsyncValue.data(history),
         ),
       );
       await tester.pumpAndSettle();
@@ -362,15 +349,15 @@ void main() {
 
   group('PaymentHistoryScreen - Status Icons', () {
     testWidgets('test_completed_status_shows_check_icon', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'completed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15),
           ),
         ],
@@ -390,15 +377,15 @@ void main() {
     });
 
     testWidgets('test_pending_status_shows_schedule_icon', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'pending',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15),
           ),
         ],
@@ -418,15 +405,15 @@ void main() {
     });
 
     testWidgets('test_failed_status_shows_cancel_icon', (tester) async {
-      final history = MockPaginatedPaymentHistory(
+      final history = PaginatedPaymentHistory(
         items: [
-          MockPaymentHistoryEntry(
+          PaymentHistoryEntry(
             id: 'pay1',
             planName: 'Monthly',
             amount: 10.0,
             currency: 'USD',
             status: 'failed',
-            provider: 'cryptobot',
+
             createdAt: DateTime(2025, 1, 15),
           ),
         ],

@@ -5,8 +5,8 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/usecases/smart_server_selection.dart';
 
-import '../../helpers/mock_factories.dart';
-import '../../helpers/mock_repositories.dart';
+import '../../../helpers/mock_factories.dart';
+import '../../../helpers/mock_repositories.dart';
 
 void main() {
   late SmartServerSelection smartSelection;

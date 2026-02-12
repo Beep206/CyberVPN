@@ -2,7 +2,7 @@ import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.d
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/protocol_fallback.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../helpers/fakes/fake_secure_storage.dart';
+import '../../../helpers/fakes/fake_secure_storage.dart';
 
 void main() {
   late FakeSecureStorage fakeStorage;

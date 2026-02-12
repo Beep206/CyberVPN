@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart' show secureStorageProvider;
+import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 
 const _lastServerKey = 'last_connected_server';

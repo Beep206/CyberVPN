@@ -41,7 +41,7 @@ void main() {
         //   - URL contains accounts.google.com/o/oauth2/v2/auth
         //   - URL contains client_id, redirect_uri, state, code_challenge
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -53,7 +53,7 @@ void main() {
         //   - External browser opens to github.com/login/oauth/authorize
         //   - URL contains client_id, redirect_uri, state
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -64,7 +64,7 @@ void main() {
         // Assert:
         //   - External browser opens to discord.com/oauth2/authorize
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -76,7 +76,7 @@ void main() {
         //   - External browser opens to login.microsoftonline.com
         //   - URL contains PKCE params
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -88,7 +88,7 @@ void main() {
         //   - External browser opens to twitter.com/i/oauth2/authorize
         //   - URL contains PKCE params
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -100,7 +100,7 @@ void main() {
         //   - Telegram app opens (if installed) or browser fallback
         //   - Bot ID and redirect URI are correct
       },
-      skip: 'Requires real device and Telegram configuration',
+      skip: true, // Requires real device and Telegram configuration
     );
 
     testWidgets(
@@ -113,7 +113,7 @@ void main() {
         //   - Button is disabled (onPressed == null)
         //   - Semantics label includes "please wait"
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -123,7 +123,7 @@ void main() {
         // Act: Tap the same button again while loading
         // Assert: Only one authorize request is made
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
   });
 
@@ -142,7 +142,7 @@ void main() {
         //   - Tokens stored in secure storage
         //   - GoRouter navigates to home/dashboard route
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -154,7 +154,7 @@ void main() {
         //   - Error snackbar or dialog shown
         //   - User remains on login screen
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -164,7 +164,7 @@ void main() {
         // Act: Simulate deep link with expired state
         // Assert: Error message about expired session
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -176,7 +176,7 @@ void main() {
         //   - is_new_user == true in response
         //   - Navigate to onboarding or home (depending on app config)
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
 
     testWidgets(
@@ -188,7 +188,7 @@ void main() {
         //   - requires_2fa == true in response
         //   - Navigate to 2FA verification screen with tfa_token
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
   });
 
@@ -207,7 +207,7 @@ void main() {
         //   - Success message: "Check your email"
         //   - No indication whether email exists (anti-enumeration)
       },
-      skip: 'Requires real device and running backend',
+      skip: true, // Requires real device and running backend
     );
 
     testWidgets(
@@ -220,7 +220,7 @@ void main() {
         //   - Tokens stored in secure storage
         //   - GoRouter navigates to home
       },
-      skip: 'Requires real device and running backend',
+      skip: true, // Requires real device and running backend
     );
 
     testWidgets(
@@ -230,7 +230,7 @@ void main() {
         // Act: Simulate deep link with expired token
         // Assert: Error dialog shown, user stays on login screen
       },
-      skip: 'Requires real device and running backend',
+      skip: true, // Requires real device and running backend
     );
 
     testWidgets(
@@ -240,7 +240,7 @@ void main() {
         // Act: Simulate deep link with same token again
         // Assert: Error about token already used
       },
-      skip: 'Requires real device and running backend',
+      skip: true, // Requires real device and running backend
     );
 
     testWidgets(
@@ -250,7 +250,7 @@ void main() {
         // Act: Request multiple magic links rapidly
         // Assert: Rate limit error message displayed
       },
-      skip: 'Requires real device and running backend',
+      skip: true, // Requires real device and running backend
     );
   });
 
@@ -268,7 +268,7 @@ void main() {
         //   - Native Apple Sign-In sheet appears
         //   - Requests email and full name scopes
       },
-      skip: 'Requires iOS device with Apple Sign-In capability',
+      skip: true, // Requires iOS device with Apple Sign-In capability
     );
 
     testWidgets(
@@ -281,7 +281,7 @@ void main() {
         //   - JWT tokens received and stored
         //   - Navigate to home
       },
-      skip: 'Requires iOS device with Apple Sign-In capability',
+      skip: true, // Requires iOS device with Apple Sign-In capability
     );
 
     testWidgets(
@@ -291,7 +291,7 @@ void main() {
         // Act: Dialog dismissed
         // Assert: Login screen still visible, no error shown
       },
-      skip: 'Requires iOS device with Apple Sign-In capability',
+      skip: true, // Requires iOS device with Apple Sign-In capability
     );
 
     testWidgets(
@@ -301,7 +301,7 @@ void main() {
         // Act: Complete sign-in
         // Assert: Account created with relay email, login succeeds
       },
-      skip: 'Requires iOS device with Apple Sign-In capability',
+      skip: true, // Requires iOS device with Apple Sign-In capability
     );
 
     testWidgets(
@@ -310,7 +310,7 @@ void main() {
         // Arrange: Pump login screen on Android
         // Assert: Apple Sign-In button is not rendered or is hidden
       },
-      skip: 'Requires Android device to verify absence',
+      skip: true, // Requires Android device to verify absence
     );
   });
 
@@ -328,7 +328,7 @@ void main() {
         //   - GoogleSignInService triggers native account picker
         //   - Requests email and profile scopes
       },
-      skip: 'Requires real device with Google Play Services',
+      skip: true, // Requires real device with Google Play Services
     );
 
     testWidgets(
@@ -341,7 +341,7 @@ void main() {
         //   - JWT tokens received and stored
         //   - Navigate to home
       },
-      skip: 'Requires real device with Google Play Services',
+      skip: true, // Requires real device with Google Play Services
     );
 
     testWidgets(
@@ -351,7 +351,7 @@ void main() {
         // Act: Picker dismissed
         // Assert: Login screen visible, no error toast
       },
-      skip: 'Requires real device with Google Play Services',
+      skip: true, // Requires real device with Google Play Services
     );
 
     testWidgets(
@@ -361,7 +361,7 @@ void main() {
         // Act: Trigger sign-in
         // Assert: Error snackbar with actionable message
       },
-      skip: 'Requires real device with Google Play Services',
+      skip: true, // Requires real device with Google Play Services
     );
   });
 
@@ -379,7 +379,7 @@ void main() {
         //   - BiometricService.authenticate() called
         //   - Native fingerprint/face dialog shown
       },
-      skip: 'Requires real device with biometric sensor',
+      skip: true, // Requires real device with biometric sensor
     );
 
     testWidgets(
@@ -391,7 +391,7 @@ void main() {
         //   - Device-bound token used for authentication
         //   - Navigate to home without showing login screen
       },
-      skip: 'Requires real device with biometric sensor',
+      skip: true, // Requires real device with biometric sensor
     );
 
     testWidgets(
@@ -401,7 +401,7 @@ void main() {
         // Act: Biometric auth fails or is cancelled
         // Assert: Login screen shown with password field
       },
-      skip: 'Requires real device with biometric sensor',
+      skip: true, // Requires real device with biometric sensor
     );
 
     testWidgets(
@@ -411,7 +411,7 @@ void main() {
         // Act: Modify OAuth configuration
         // Assert: Biometric login still works independently
       },
-      skip: 'Requires real device with biometric sensor',
+      skip: true, // Requires real device with biometric sensor
     );
   });
 
@@ -429,7 +429,7 @@ void main() {
         //   - URL opened contains oauth.telegram.org/auth
         //   - Bot ID and redirect URI are correct
       },
-      skip: 'Requires Telegram bot configuration',
+      skip: true, // Requires Telegram bot configuration
     );
 
     testWidgets(
@@ -442,7 +442,7 @@ void main() {
         //   - Account linked or login completed
         //   - Navigate to home
       },
-      skip: 'Requires Telegram bot configuration',
+      skip: true, // Requires Telegram bot configuration
     );
 
     testWidgets(
@@ -452,7 +452,7 @@ void main() {
         // Act: Process callback
         // Assert: Error message about authentication failure
       },
-      skip: 'Requires Telegram bot configuration',
+      skip: true, // Requires Telegram bot configuration
     );
   });
 
@@ -468,7 +468,7 @@ void main() {
         // Act: App goes to background for longer than timeout
         // Assert: App lock overlay shown on resume
       },
-      skip: 'Requires real device for lifecycle testing',
+      skip: true, // Requires real device for lifecycle testing
     );
 
     testWidgets(
@@ -478,7 +478,7 @@ void main() {
         // Act: Enter correct PIN
         // Assert: Lock overlay dismissed, session continues
       },
-      skip: 'Requires real device for lifecycle testing',
+      skip: true, // Requires real device for lifecycle testing
     );
 
     testWidgets(
@@ -488,7 +488,7 @@ void main() {
         // Act: Biometric authentication succeeds
         // Assert: Lock overlay dismissed
       },
-      skip: 'Requires real device with biometric sensor',
+      skip: true, // Requires real device with biometric sensor
     );
   });
 
@@ -507,7 +507,7 @@ void main() {
         //   - Calls /api/v1/auth/refresh
         //   - Retries original request with new token
       },
-      skip: 'Requires running backend with token infrastructure',
+      skip: true, // Requires running backend with token infrastructure
     );
 
     testWidgets(
@@ -520,7 +520,7 @@ void main() {
         //   - Auth state cleared
         //   - GoRouter redirects to /login
       },
-      skip: 'Requires running backend',
+      skip: true, // Requires running backend
     );
 
     testWidgets(
@@ -533,7 +533,7 @@ void main() {
         //   - Cached data shown with "offline" indicator
         //   - Auth-requiring actions deferred until online
       },
-      skip: 'Requires real device with network control',
+      skip: true, // Requires real device with network control
     );
 
     testWidgets(
@@ -546,7 +546,7 @@ void main() {
         //   - Tokens refreshed if needed
         //   - Pending operations synced
       },
-      skip: 'Requires real device with network control',
+      skip: true, // Requires real device with network control
     );
 
     testWidgets(
@@ -560,7 +560,7 @@ void main() {
         //   - GoRouter navigates to /login
         //   - Back button does not return to authenticated screens
       },
-      skip: 'Requires running backend',
+      skip: true, // Requires running backend
     );
 
     testWidgets(
@@ -570,7 +570,7 @@ void main() {
         // Act: Before callback, start OAuth with GitHub
         // Assert: Second flow supersedes first, no crash
       },
-      skip: 'Requires real device and OAuth credentials',
+      skip: true, // Requires real device and OAuth credentials
     );
   });
 }

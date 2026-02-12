@@ -6,7 +6,6 @@ import 'package:cybervpn_mobile/app/theme/cyberpunk_theme.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_stats_entity.dart';
-import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_stats_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/screens/connection_screen.dart';
@@ -15,7 +14,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/widgets/connection_inf
 import 'package:cybervpn_mobile/features/vpn/presentation/widgets/speed_indicator.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 
-import '../helpers/mock_factories.dart';
+import '../../../../helpers/mock_factories.dart';
 
 // ---------------------------------------------------------------------------
 // Test data

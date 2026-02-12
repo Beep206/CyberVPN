@@ -73,7 +73,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'email': email,
         'password': password,
         'device': device.toJson(),
-        ?'referral_code': referralCode,
+        if (referralCode != null) 'referral_code': referralCode,
       },
     );
     final data = response.data;

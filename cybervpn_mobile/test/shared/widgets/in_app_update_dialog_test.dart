@@ -129,7 +129,7 @@ void main() {
 
       // Try to pop dialog (should be blocked by PopScope with canPop: false)
       final NavigatorState navigator = tester.state(find.byType(Navigator));
-      final bool didPop = await navigator.maybePop();
+      await navigator.maybePop();
 
       // Pop should succeed in closing the dialog but the dialog blocks back button internally
       // The dialog should still be there because PopScope prevents it
@@ -148,16 +148,13 @@ void main() {
 
     testWidgets('renders with dismiss option and snooze checkbox',
         (tester) async {
-      bool updateCalled = false;
-      bool dismissCalled = false;
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: InAppUpdateDialog(
               updateInfo: optionalUpdate,
-              onUpdate: () => updateCalled = true,
-              onDismiss: () => dismissCalled = true,
+              onUpdate: () {},
+              onDismiss: () {},
               prefs: prefs,
             ),
           ),

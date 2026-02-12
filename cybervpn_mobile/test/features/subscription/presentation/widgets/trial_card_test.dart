@@ -1,17 +1,15 @@
+import 'package:cybervpn_mobile/core/errors/failures.dart' as failures;
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/widgets/trial_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
-
-class MockSubscriptionRepository extends Mock {}
+import '../../../../helpers/mock_repositories.dart';
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -25,17 +23,29 @@ Widget buildTestableTrialCard({
 
   if (shouldSucceed && trialStatusData != null) {
     when(mockRepo.getTrialStatus)
-        .thenAnswer((_) async => Success(data: trialStatusData));
+        .thenAnswer((_) async => Success<Map<String, dynamic>>(trialStatusData));
   } else if (!shouldSucceed) {
     when(mockRepo.getTrialStatus).thenAnswer(
-      (_) async => Failure(failure: Exception('Failed to load trial status')),
+      (_) async => const Failure<Map<String, dynamic>>(
+          failures.ServerFailure(message: 'Failed to load trial status')),
     );
   }
 
   when(mockRepo.activateTrial).thenAnswer(
     (_) async => shouldSucceed
-        ? const Success(data: {})
-        : Failure(failure: Exception('Failed to activate trial')),
+        ? Success<SubscriptionEntity>(SubscriptionEntity(
+            id: 'trial-sub',
+            planId: 'trial-plan',
+            userId: 'user-1',
+            status: SubscriptionStatus.trial,
+            startDate: DateTime.now(),
+            endDate: DateTime.now().add(const Duration(days: 7)),
+            trafficUsedBytes: 0,
+            trafficLimitBytes: 100 * 1024 * 1024 * 1024,
+            maxDevices: 5,
+          ))
+        : const Failure<SubscriptionEntity>(
+            failures.ServerFailure(message: 'Failed to activate trial')),
   );
 
   return ProviderScope(

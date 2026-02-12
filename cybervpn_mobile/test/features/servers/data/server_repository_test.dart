@@ -6,8 +6,8 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 
-import '../../helpers/mock_factories.dart';
-import '../../helpers/mock_repositories.dart';
+import '../../../helpers/mock_factories.dart';
+import '../../../helpers/mock_repositories.dart';
 
 /// Tests for the [ServerRepository] contract.
 ///

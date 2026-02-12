@@ -5,7 +5,7 @@ import 'package:cybervpn_mobile/core/errors/failures.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/usecases/delete_account.dart';
 
-import '../../helpers/mock_repositories.dart';
+import '../../../../helpers/mock_repositories.dart';
 
 void main() {
   late MockProfileRepository mockRepository;

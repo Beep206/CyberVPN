@@ -24,10 +24,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('getProfile', () {
     test('calls GET /auth/me and maps response to Profile', () async {
-      when(() => mockApiClient.get(
+      when(() => mockApiClient.get<dynamic>(
             ApiConstants.me,
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
+            queryParameters: any<Map<String, dynamic>?>(named: 'queryParameters'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: {
               'id': 'user-1',
@@ -53,18 +53,18 @@ void main() {
       expect(profile.isEmailVerified, isTrue);
       expect(profile.is2FAEnabled, isFalse);
       expect(profile.linkedProviders, [OAuthProvider.github, OAuthProvider.google]);
-      verify(() => mockApiClient.get(
+      verify(() => mockApiClient.get<dynamic>(
             ApiConstants.me,
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
+            queryParameters: any<Map<String, dynamic>?>(named: 'queryParameters'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
 
     test('handles missing optional fields gracefully', () async {
-      when(() => mockApiClient.get(
+      when(() => mockApiClient.get<dynamic>(
             ApiConstants.me,
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
+            queryParameters: any<Map<String, dynamic>?>(named: 'queryParameters'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: {
               'id': 'user-2',
@@ -89,10 +89,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('setup2FA', () {
     test('calls POST /2fa/setup and returns Setup2FAResult', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             ApiConstants.setup2fa,
-            data: any(named: 'data'),
-            options: any(named: 'options'),
+            data: any<dynamic>(named: 'data'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: {
               'secret': 'JBSWY3DPEHPK3PXP',
@@ -114,10 +114,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('verify2FA', () {
     test('calls POST /2fa/verify with code and returns boolean', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             ApiConstants.verify2fa,
             data: {'code': '123456'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: {'verified': true},
             statusCode: 200,
@@ -130,10 +130,10 @@ void main() {
     });
 
     test('returns false when verified field is missing', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             ApiConstants.verify2fa,
             data: {'code': '000000'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: <String, dynamic>{},
             statusCode: 200,
@@ -151,10 +151,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('validate2FA', () {
     test('calls POST /2fa/validate with code and returns boolean', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             ApiConstants.validate2fa,
             data: {'code': '654321'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: {'valid': true},
             statusCode: 200,
@@ -172,10 +172,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('disable2FA', () {
     test('calls POST /2fa/disable with code', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             ApiConstants.disable2fa,
             data: {'code': '111111'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
@@ -184,10 +184,10 @@ void main() {
 
       await dataSource.disable2FA('111111');
 
-      verify(() => mockApiClient.post(
+      verify(() => mockApiClient.post<dynamic>(
             ApiConstants.disable2fa,
             data: {'code': '111111'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
   });
@@ -197,9 +197,9 @@ void main() {
   // ---------------------------------------------------------------------------
   group('unlinkOAuth', () {
     test('calls DELETE /oauth/{provider}', () async {
-      when(() => mockApiClient.delete(
+      when(() => mockApiClient.delete<dynamic>(
             '${ApiConstants.oauthUnlink}google',
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
@@ -208,9 +208,9 @@ void main() {
 
       await dataSource.unlinkOAuth(OAuthProvider.google);
 
-      verify(() => mockApiClient.delete(
+      verify(() => mockApiClient.delete<dynamic>(
             '${ApiConstants.oauthUnlink}google',
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
   });
@@ -220,10 +220,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('getDevices', () {
     test('calls GET /auth/me/devices and maps response to Device list', () async {
-      when(() => mockApiClient.get(
+      when(() => mockApiClient.get<dynamic>(
             '${ApiConstants.me}/devices',
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
+            queryParameters: any<Map<String, dynamic>?>(named: 'queryParameters'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: [
               {
@@ -261,9 +261,9 @@ void main() {
   // ---------------------------------------------------------------------------
   group('removeDevice', () {
     test('calls DELETE /auth/me/devices/{id}', () async {
-      when(() => mockApiClient.delete(
+      when(() => mockApiClient.delete<dynamic>(
             '${ApiConstants.me}/devices/dev-1',
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
@@ -272,9 +272,9 @@ void main() {
 
       await dataSource.removeDevice('dev-1');
 
-      verify(() => mockApiClient.delete(
+      verify(() => mockApiClient.delete<dynamic>(
             '${ApiConstants.me}/devices/dev-1',
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
   });
@@ -284,10 +284,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('deleteAccount', () {
     test('calls POST /auth/me/delete with password', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             '${ApiConstants.deleteAccount}/delete',
             data: {'password': 'secret123'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
@@ -296,18 +296,18 @@ void main() {
 
       await dataSource.deleteAccount('secret123');
 
-      verify(() => mockApiClient.post(
+      verify(() => mockApiClient.post<dynamic>(
             '${ApiConstants.deleteAccount}/delete',
             data: {'password': 'secret123'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
 
     test('includes totp_code when provided', () async {
-      when(() => mockApiClient.post(
+      when(() => mockApiClient.post<dynamic>(
             '${ApiConstants.deleteAccount}/delete',
             data: {'password': 'secret123', 'totp_code': '123456'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
@@ -316,10 +316,10 @@ void main() {
 
       await dataSource.deleteAccount('secret123', totpCode: '123456');
 
-      verify(() => mockApiClient.post(
+      verify(() => mockApiClient.post<dynamic>(
             '${ApiConstants.deleteAccount}/delete',
             data: {'password': 'secret123', 'totp_code': '123456'},
-            options: any(named: 'options'),
+            options: any<Options?>(named: 'options'),
           )).called(1);
     });
   });

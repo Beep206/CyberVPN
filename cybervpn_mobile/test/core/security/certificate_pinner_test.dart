@@ -39,12 +39,6 @@ void main() {
       // This test runs in debug mode by default (kDebugMode == true)
       // so validation should always return true regardless of fingerprint match
 
-      const pinner = CertificatePinner(
-        pinnedFingerprints: [
-          'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
-        ],
-      );
-
       // In debug mode, validation is bypassed
       // We can't create a real X509Certificate for testing, but we can verify
       // the debug bypass logic through integration testing

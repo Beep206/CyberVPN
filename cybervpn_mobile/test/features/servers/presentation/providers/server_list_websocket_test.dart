@@ -8,7 +8,7 @@ import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.d
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show serverRepositoryProvider, pingServiceProvider, favoritesLocalDatasourceProvider;
+    show serverRepositoryProvider, pingServiceProvider;
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

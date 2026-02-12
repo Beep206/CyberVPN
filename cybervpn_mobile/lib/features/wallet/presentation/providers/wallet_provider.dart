@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
-import 'package:cybervpn_mobile/core/network/api_client.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/wallet/data/datasources/wallet_remote_ds.dart';
 import 'package:cybervpn_mobile/features/wallet/data/repositories/wallet_repository_impl.dart';
 import 'package:cybervpn_mobile/features/wallet/domain/entities/wallet.dart';

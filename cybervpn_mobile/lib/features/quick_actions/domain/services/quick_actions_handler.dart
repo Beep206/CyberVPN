@@ -12,7 +12,7 @@ import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_act
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show serverRepositoryProvider;
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
+
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
 /// Provider that handles quick action taps.

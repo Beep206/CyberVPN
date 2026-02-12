@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/services/device_bound_token_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart'
-    show secureStorageProvider;
 
 /// State for biometric login flow.
 sealed class BiometricLoginState {
@@ -76,10 +73,8 @@ class BiometricLoginNotifier extends Notifier<BiometricLoginState> {
 
   BiometricService get _biometricService =>
       ref.read(biometricServiceProvider);
-  SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
   DeviceBoundTokenService get _deviceTokenService =>
       ref.read(deviceBoundTokenServiceProvider);
-  AuthNotifier get _authNotifier => ref.read(authProvider.notifier);
 
   /// Checks if biometric login should be available for the user.
   ///

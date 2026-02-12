@@ -81,19 +81,17 @@ void main() {
 
 // Mock SettingsNotifier for testing
 class _MockSettingsNotifier extends SettingsNotifier {
-  _MockSettingsNotifier({this.clipboardAutoDetect = true});
-
-  final bool clipboardAutoDetect;
+  _MockSettingsNotifier();
 
   @override
   Future<AppSettings> build() async {
-    return AppSettings(clipboardAutoDetect: clipboardAutoDetect);
+    return const AppSettings(clipboardAutoDetect: true);
   }
 
   @override
   Future<void> toggleClipboardAutoDetect() async {
     state = AsyncData(
-      state.value!.copyWith(clipboardAutoDetect: !clipboardAutoDetect),
+      state.value!.copyWith(clipboardAutoDetect: !state.value!.clipboardAutoDetect),
     );
   }
 }

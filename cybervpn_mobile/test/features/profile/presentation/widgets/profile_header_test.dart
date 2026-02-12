@@ -92,7 +92,7 @@ void main() {
 
     testWidgets('displays member since date when available', (tester) async {
       final createdAt = DateTime(2024, 1, 15);
-      const profile = Profile(
+      final profile = Profile(
         id: '1',
         email: 'test@example.com',
         createdAt: createdAt,

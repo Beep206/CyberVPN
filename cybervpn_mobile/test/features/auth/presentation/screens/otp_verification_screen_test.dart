@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
@@ -5,6 +7,7 @@ import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/otp_verification_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -18,9 +21,19 @@ import 'package:mocktail/mocktail.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
 
-class MockSecureStorage extends Mock implements SecureStorage {}
+class MockSecureStorage extends Mock implements SecureStorageWrapper {}
 
-class MockAuthNotifier extends Mock implements AuthNotifier {}
+class MockAuthNotifier extends AuthNotifier {
+  int checkAuthStatusCallCount = 0;
+
+  @override
+  FutureOr<AuthState> build() async => const AuthUnauthenticated();
+
+  @override
+  Future<void> checkAuthStatus() async {
+    checkAuthStatusCallCount++;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -61,7 +74,7 @@ Widget buildTestableOtpScreen({
     overrides: [
       apiClientProvider.overrideWithValue(mockApiClient),
       secureStorageProvider.overrideWithValue(mockSecureStorage),
-      authProvider.overrideWith((ref) => mockAuthNotifier),
+      authProvider.overrideWith(() => mockAuthNotifier),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -167,7 +180,7 @@ void main() {
     testWidgets('test_accepts_valid_6_digit_code', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {
@@ -180,12 +193,11 @@ void main() {
       );
 
       when(() => mockSecureStorage.setTokens(
-            accessToken: any(named: 'accessToken'),
-            refreshToken: any(named: 'refreshToken'),
+            accessToken: any<String>(named: 'accessToken'),
+            refreshToken: any<String>(named: 'refreshToken'),
           )).thenAnswer((_) async => {});
 
-      when(() => mockAuthNotifier.checkAuthStatus())
-          .thenAnswer((_) async => {});
+      // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
       await tester.pumpWidget(
         buildTestableOtpScreen(
@@ -209,7 +221,7 @@ void main() {
     testWidgets('test_successful_verification_stores_tokens', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {
@@ -226,8 +238,7 @@ void main() {
             refreshToken: 'new_refresh',
           )).thenAnswer((_) async => {});
 
-      when(() => mockAuthNotifier.checkAuthStatus())
-          .thenAnswer((_) async => {});
+      // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
       await tester.pumpWidget(
         buildTestableOtpScreen(
@@ -246,14 +257,14 @@ void main() {
             accessToken: 'new_access',
             refreshToken: 'new_refresh',
           )).called(1);
-      verify(() => mockAuthNotifier.checkAuthStatus()).called(1);
+      expect(mockAuthNotifier.checkAuthStatusCallCount, 1);
     });
 
     testWidgets('test_successful_verification_shows_success_state',
         (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {
@@ -266,12 +277,11 @@ void main() {
       );
 
       when(() => mockSecureStorage.setTokens(
-            accessToken: any(named: 'accessToken'),
-            refreshToken: any(named: 'refreshToken'),
+            accessToken: any<String>(named: 'accessToken'),
+            refreshToken: any<String>(named: 'refreshToken'),
           )).thenAnswer((_) async => {});
 
-      when(() => mockAuthNotifier.checkAuthStatus())
-          .thenAnswer((_) async => {});
+      // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
       await tester.pumpWidget(
         buildTestableOtpScreen(
@@ -295,7 +305,7 @@ void main() {
     testWidgets('test_invalid_code_shows_error', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Invalid verification code', code: 400),
       );
@@ -320,7 +330,7 @@ void main() {
     testWidgets('test_expired_code_shows_error', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Code expired', code: 422),
       );
@@ -345,7 +355,7 @@ void main() {
     testWidgets('test_network_error_shows_message', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const NetworkException(message: 'No internet connection'),
       );
@@ -372,7 +382,7 @@ void main() {
     testWidgets('test_rate_limit_429_shows_countdown', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.verifyEmail,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );
@@ -399,7 +409,7 @@ void main() {
     testWidgets('test_resend_otp_success_shows_snackbar', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.resendOtp,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {'message': 'Code sent'},
@@ -426,7 +436,7 @@ void main() {
     testWidgets('test_resend_shows_cooldown_timer', (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.resendOtp,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenAnswer(
         (_) async => Response(
           data: {'message': 'Code sent'},
@@ -455,7 +465,7 @@ void main() {
         (tester) async {
       when(() => mockApiClient.post<Map<String, dynamic>>(
             ApiConstants.resendOtp,
-            data: any(named: 'data'),
+            data: any<dynamic>(named: 'data'),
           )).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );

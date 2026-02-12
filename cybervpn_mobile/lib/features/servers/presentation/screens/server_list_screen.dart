@@ -24,7 +24,7 @@ import 'package:cybervpn_mobile/features/servers/presentation/widgets/server_min
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_refresh_indicator.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
-import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
+
 import 'package:cybervpn_mobile/shared/widgets/staggered_list_item.dart';
 
 /// Main server list screen.
@@ -386,44 +386,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     );
   }
 
-  /// Builds either a [SliverList] or a 2-column [SliverGrid] depending on
-  /// whether the device is in landscape orientation. This keeps server cards
-  /// readable while filling the extra horizontal space in landscape.
-  Widget _serverSliver({
-    required int childCount,
-    required Widget Function(BuildContext, int) itemBuilder,
-    required bool useTwoColumns,
-  }) {
-    final delegate = SliverChildBuilderDelegate(
-      itemBuilder,
-      childCount: childCount,
-    );
-
-    if (useTwoColumns) {
-      return SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 0,
-          crossAxisSpacing: Spacing.sm,
-          // ServerCard is compact; use a fixed main-axis extent so cards
-          // don't stretch awkwardly. 88 matches the typical card height.
-          mainAxisExtent: 88,
-        ),
-        delegate: delegate,
-      );
-    }
-
-    return SliverList(delegate: delegate);
-  }
-
   Widget _buildBody(BuildContext context, ServerListState state) {
     final theme = Theme.of(context);
     final favorites = ref.watch(favoriteServersProvider);
     final grouped = ref.watch(groupedByCountryProvider);
-    // Use a 2-column grid in landscape on compact (phone) screens.
-    final isLandscape = ResponsiveLayout.isLandscape(context);
-    final useTwoColumns = isLandscape && !_isWideLayout(context);
-
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollEndNotification &&
