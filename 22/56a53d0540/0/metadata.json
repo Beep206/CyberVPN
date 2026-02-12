@@ -1,0 +1,78 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "2256a53d0540",
+  "session_id": "25f41f3c-913c-424d-a0aa-c4963e43536a",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T13:38:45.954524837Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "frontend/src/3d/scenes/AuthScene3D.tsx",
+    "frontend/src/3d/scenes/FeaturesScene3D.tsx",
+    "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
+    "frontend/src/3d/scenes/GlobalNetwork.tsx",
+    "frontend/src/widgets/speed-tunnel.tsx"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 229120,
+    "cache_read_tokens": 4036328,
+    "output_tokens": 19171,
+    "api_call_count": 42
+  },
+  "summary": {
+    "intent": "Fix React Compiler purity violations caused by Math.random() in 3D scene components while maintaining identical visual output. Also delete an orphaned backup file and ensure all ESLint warnings are resolved.",
+    "outcome": "Successfully refactored all Math.random() usage from useMemo to useState lazy initializers with module-level factory functions. Fixed immutability violations by wrapping mutable typed arrays in refs. Removed 12 unused variable warnings and deleted the backup file. Achieved zero purity/immutability/unused-vars violations.",
+    "learnings": {
+      "repo": [
+        "React Compiler (Next.js 16 + React 19) auto-memoizes components and enforces purity in useMemo/useCallback via react-hooks/purity ESLint rule",
+        "Math.random() in useFrame callbacks is allowed (Three.js animation loop, not React render path) but not in useMemo/component bodies",
+        "Module-level factory functions are not analyzed by React Compiler, making them safe for non-deterministic operations",
+        "Mutating typed arrays from useState inside useFrame triggers react-hooks/immutability violations"
+      ],
+      "code": [
+        {
+          "path": "frontend/src/3d/scenes/AuthScene3D.tsx",
+          "line": 144,
+          "end_line": 144,
+          "finding": "useMemo containing Math.random() for particle generation violates purity - extract to module-level factory and use useState lazy initializer"
+        },
+        {
+          "path": "frontend/src/3d/scenes/GlobalNetwork.tsx",
+          "line": 234,
+          "end_line": 235,
+          "finding": "Math.random() directly in JSX (connection line opacity/pulse) violates purity - move to module-level factory"
+        },
+        {
+          "path": "frontend/src/widgets/speed-tunnel.tsx",
+          "line": 113,
+          "end_line": 113,
+          "finding": "Mutating positions typed array from useState in useFrame causes immutability violation - wrap in useRef to signal mutable intent to compiler"
+        }
+      ],
+      "workflow": [
+        "Pattern for React Compiler purity fixes: module-level factory → useState(() =\u003e factory(count)) instead of useMemo",
+        "For mutable data structures updated in animation loops: use useRef to wrap the data, keep useState for triggering initial creation if needed for JSX",
+        "Stale ESLint diagnostics can persist - always re-run full lint check after batch edits to verify actual state"
+      ]
+    },
+    "friction": [
+      "Initial verification showed 2 immutability violations after fixing purity issues - required second round of refactoring to use refs",
+      "ESLint diagnostics showed 12 unused-vars warnings but some were stale from previous file states",
+      "Had to balance two concerns: keeping typed arrays in state for JSX buffer attributes while accessing them mutably in useFrame via refs"
+    ],
+    "open_items": [
+      "One pre-existing @ts-ignore at GlobalNetwork.tsx:308 should be @ts-expect-error (atmosphere shader) - not related to current task"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T13:38:23.414583614Z",
+    "agent_lines": 92,
+    "human_added": 47447,
+    "human_modified": 30,
+    "human_removed": 0,
+    "total_committed": 47569,
+    "agent_percentage": 0.19340326683344194
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "2256a53d0540",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "frontend/src/3d/scenes/AuthScene3D.tsx",
+    "frontend/src/3d/scenes/FeaturesScene3D.tsx",
+    "frontend/src/3d/scenes/GlobalNetwork.backup.tsx",
+    "frontend/src/3d/scenes/GlobalNetwork.tsx",
+    "frontend/src/widgets/speed-tunnel.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/22/56a53d0540/0/metadata.json",
+      "transcript": "/22/56a53d0540/0/full.jsonl",
+      "context": "/22/56a53d0540/0/context.md",
+      "content_hash": "/22/56a53d0540/0/content_hash.txt",
+      "prompt": "/22/56a53d0540/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 229120,
+    "cache_read_tokens": 4036328,
+    "output_tokens": 19171,
+    "api_call_count": 42
+  }
+}

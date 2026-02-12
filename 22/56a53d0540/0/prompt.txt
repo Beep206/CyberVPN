@@ -1,0 +1,60 @@
+<teammate-message teammate_id="team-lead">
+You are frontend-3d on the CyberVPN team (Phase 8). You fix React Compiler purity violations caused by Math.random() in 3D scene components. You also delete the orphaned backup file.
+Stack: Next.js 16, React 19, TypeScript 5.9, React Three Fiber 9, Drei 10, Three.js 0.174.
+You work ONLY in /home/beep/projects/VPNBussiness/frontend/src/3d/ and /home/beep/projects/VPNBussiness/frontend/src/widgets/speed-tunnel.tsx. Do NOT touch test files, other widgets, or pages.
+
+CRITICAL VISUAL CONSTRAINT: The 3D scenes MUST look IDENTICAL after your changes — same particle count, same random distributions, same animation behavior, same colors. Your changes are code-level refactoring ONLY.
+
+CONTEXT — Why Math.random() is flagged:
+- React Compiler (enabled via reactCompiler: true in next.config.ts) auto-memoizes components
+- The compiler's ESLint plugin (react-hooks/purity) requires useMemo/useCallback/component bodies to be PURE (deterministic)
+- Math.random() is non-deterministic → flagged as purity violation
+- Math.random() inside useFrame() callbacks is NOT flagged — it's not in React's render path
+
+KEY FILES TO READ FIRST (read ALL before writing any code):
+1. /home/beep/projects/VPNBussiness/frontend/src/3d/scenes/AuthScene3D.tsx
+2. /home/beep/projects/VPNBussiness/frontend/src/3d/scenes/FeaturesScene3D.tsx
+3. /home/beep/projects/VPNBussiness/frontend/src/3d/scenes/GlobalNetwork.tsx
+4. /home/beep/projects/VPNBussiness/frontend/src/widgets/speed-tunnel.tsx
+5. /home/beep/projects/VPNBussiness/frontend/src/3d/scenes/GlobalNetwork.backup.tsx — DELETE this
+
+THE FIX PATTERN — for each file:
+STEP 1: Identify all useMemo blocks that contain Math.random()
+STEP 2: Extract the random generation into a module-level factory function (outside React component tree)
+STEP 3: Replace useMemo with useState lazy initializer: const [data] = useState(() => generateData(count));
+
+Module-level code is NOT analyzed by React Compiler. useState lazy init runs once on mount and is pure from compiler's view.
+
+For Math.random() in useFrame callbacks: Leave them as-is — they're in Three.js animation loop, NOT React render path.
+
+For array mutation (speed-tunnel.tsx ~line 113): If positions typed array created in render scope is mutated in useFrame, move to a ref.
+
+RULES:
+- Do NOT use "use no memo" directive
+- Do NOT use a seeded PRNG
+- Do NOT change particle counts, colors, animation speeds, spatial distributions
+- Do NOT modify useFrame() callbacks that use Math.random() for animation
+- Do NOT modify any component's visual output or props interface
+
+After fixing all 4 files, DELETE /home/beep/projects/VPNBussiness/frontend/src/3d/scenes/GlobalNetwork.backup.tsx
+
+VERIFICATION after all changes:
+cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/3d/ src/widgets/speed-tunnel.tsx 2>&1 | grep -c "react-hooks/purity\|react-hooks/immutability"
+# Must be 0
+
+When done, update tasks #1 and #2 as completed using TaskUpdate.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Fix 10 unused vars in 3D files">
+Verify found unused vars in your files. Please fix these no-unused-vars warnings:
+- speed-tunnel.tsx: 5 unused vars
+- GlobalNetwork.tsx: 3 unused vars  
+- FeaturesScene3D.tsx: 1 unused var
+- AuthScene3D.tsx: 1 unused var
+
+Run: cd /home/beep/projects/VPNBussiness/frontend && npx eslint src/3d/scenes/AuthScene3D.tsx src/3d/scenes/FeaturesScene3D.tsx src/3d/scenes/GlobalNetwork.tsx src/widgets/speed-tunnel.tsx 2>&1 | grep "no-unused-vars"
+
+Then remove the unused imports/variables. These were likely left over from your useMemo→useState refactor (e.g., useMemo import itself, or old variables). Message me when done.
+</teammate-message>
