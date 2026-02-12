@@ -90,7 +90,7 @@ ProviderContainer createContainer(ConfigImportRepository repository) {
 /// Waits for the [configImportProvider] to finish loading.
 Future<ConfigImportState> waitForState(ProviderContainer container) async {
   // Wait for the async notifier to build
-  final sub = container.listen(configImportProvider, (_, __) {});
+  final sub = container.listen(configImportProvider, (_, _) {});
   await container.read(configImportProvider.future);
   sub.close();
   return container.read(configImportProvider).requireValue;

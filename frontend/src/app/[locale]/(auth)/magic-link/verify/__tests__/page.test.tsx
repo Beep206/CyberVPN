@@ -38,36 +38,36 @@ vi.mock('@/stores/auth-store', () => ({
 }));
 
 // Mock @/components/ui/button
-vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('button', { onClick, ...props }, children);
-  },
-}));
+vi.mock('@/components/ui/button', async () => {
+  const React = await import('react');
+  return {
+    Button: ({ children, onClick, ...props }: Record<string, unknown>) => {
+      return React.createElement('button', { onClick, ...props }, children);
+    },
+  };
+});
 
 // Mock lucide-react
-vi.mock('lucide-react', () => ({
-  Loader2: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'loader-icon' });
-  },
-  AlertCircle: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'alert-icon' });
-  },
-  RotateCcw: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'retry-icon' });
-  },
-  Shield: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'shield-icon' });
-  },
-  CheckCircle: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'check-icon' });
-  },
-}));
+vi.mock('lucide-react', async () => {
+  const React = await import('react');
+  return {
+    Loader2: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'loader-icon' });
+    },
+    AlertCircle: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'alert-icon' });
+    },
+    RotateCcw: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'retry-icon' });
+    },
+    Shield: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'shield-icon' });
+    },
+    CheckCircle: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'check-icon' });
+    },
+  };
+});
 
 describe('MagicLinkVerifyPage', () => {
   beforeEach(() => {

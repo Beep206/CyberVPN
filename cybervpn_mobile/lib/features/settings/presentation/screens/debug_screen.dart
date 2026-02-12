@@ -253,24 +253,26 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         final dialogL10n = AppLocalizations.of(dialogCtx);
         return AlertDialog(
           title: Text(dialogL10n.settingsLogLevelLabel),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: LogLevel.values.map((level) {
-              return RadioListTile<LogLevel>(
-                title: Text(_logLevelLabel(level)),
-                subtitle: Text(_logLevelDescription(level)),
-                value: level,
-                groupValue: currentLevel,
-                onChanged: (LogLevel? newLevel) {
-                  if (newLevel != null) {
-                    unawaited(ref
-                        .read(settingsProvider.notifier)
-                        .updateLogLevel(newLevel));
-                    Navigator.pop(dialogCtx);
-                  }
-                },
-              );
-            }).toList(),
+          content: RadioGroup<LogLevel>(
+            groupValue: currentLevel,
+            onChanged: (LogLevel? newLevel) {
+              if (newLevel != null) {
+                unawaited(ref
+                    .read(settingsProvider.notifier)
+                    .updateLogLevel(newLevel));
+                Navigator.pop(dialogCtx);
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: LogLevel.values.map((level) {
+                return RadioListTile<LogLevel>(
+                  title: Text(_logLevelLabel(level)),
+                  subtitle: Text(_logLevelDescription(level)),
+                  value: level,
+                );
+              }).toList(),
+            ),
           ),
           actions: [
             TextButton(
@@ -310,11 +312,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
       final filename = 'cybervpn_logs_$timestamp.txt';
 
-      await Share.share(
-        logs,
+      await SharePlus.instance.share(ShareParams(
+        text: logs,
         subject: 'CyberVPN Logs',
         sharePositionOrigin: _getSharePositionOrigin(ctx),
-      );
+      ));
 
       AppLogger.info('Logs exported: $filename');
     } catch (e) {
@@ -538,11 +540,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
             ),
             FilledButton.tonal(
               onPressed: () async {
-                await Share.share(
-                  _getRawConfig(),
+                await SharePlus.instance.share(ShareParams(
+                  text: _getRawConfig(),
                   subject: 'VPN Configuration',
                   sharePositionOrigin: _getSharePositionOrigin(dialogCtx),
-                );
+                ));
               },
               child: Text(dl.commonShare),
             ),

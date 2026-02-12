@@ -109,10 +109,10 @@ void main() {
       expect(disabledButton, findsOneWidget);
       final disabledSemantics = tester.getSemantics(find.text('Disabled'));
       expect(
-        disabledSemantics.hasFlag(SemanticsFlag.hasEnabledState),
+        disabledSemantics.flagsCollection.contains(SemanticsFlag.hasEnabledState),
         isTrue,
       );
-      expect(disabledSemantics.hasFlag(SemanticsFlag.isEnabled), isFalse);
+      expect(disabledSemantics.flagsCollection.contains(SemanticsFlag.isEnabled), isFalse);
     });
   });
 }

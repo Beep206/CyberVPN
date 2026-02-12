@@ -99,7 +99,7 @@ Widget _buildTestWidget({
         supportedLocales: AppLocalizations.supportedLocales,
         home: const ServerListScreen(),
         navigatorObservers: [
-          if (navigatorObserver != null) navigatorObserver,
+          ?navigatorObserver,
         ],
         onGenerateRoute: (settings) {
           if (settings.name == '/server-detail') {
@@ -393,15 +393,15 @@ void main() {
           overrides: [
             serverListProvider.overrideWith(_LoadingNotifier.new),
           ],
-          child: MaterialApp(
-            localizationsDelegates: const [
+          child: const MaterialApp(
+            localizationsDelegates: [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const ServerListScreen(),
+            home: ServerListScreen(),
           ),
         ),
       );
@@ -418,15 +418,15 @@ void main() {
           overrides: [
             serverListProvider.overrideWith(_ErrorNotifier.new),
           ],
-          child: MaterialApp(
-            localizationsDelegates: const [
+          child: const MaterialApp(
+            localizationsDelegates: [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const ServerListScreen(),
+            home: ServerListScreen(),
           ),
         ),
       );

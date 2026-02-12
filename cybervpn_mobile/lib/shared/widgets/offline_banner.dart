@@ -34,7 +34,7 @@ class OfflineBanner extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -197,7 +197,7 @@ class OfflineDisabled extends ConsumerWidget {
         return disabledChild;
       },
       loading: () => child,
-      error: (_, __) => child,
+      error: (_, _) => child,
     );
   }
 }
@@ -229,7 +229,7 @@ class OfflineIndicatorIcon extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

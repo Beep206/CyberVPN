@@ -36,14 +36,14 @@ Widget buildTestableDialog({
 void main() {
   group('RedeemInviteCodeDialog - Rendering', () {
     testWidgets('test_renders_dialog_title', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -52,14 +52,14 @@ void main() {
     });
 
     testWidgets('test_renders_code_input_field', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -68,14 +68,14 @@ void main() {
     });
 
     testWidgets('test_renders_redeem_button', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -84,14 +84,14 @@ void main() {
     });
 
     testWidgets('test_renders_cancel_button', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -102,14 +102,14 @@ void main() {
 
   group('RedeemInviteCodeDialog - Input Validation', () {
     testWidgets('test_code_input_converts_to_uppercase', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -123,14 +123,14 @@ void main() {
     });
 
     testWidgets('test_shows_error_for_empty_code', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -145,14 +145,14 @@ void main() {
 
   group('RedeemInviteCodeDialog - Redemption Flow', () {
     testWidgets('test_shows_loading_state_during_redemption', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.loading,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pump();
@@ -161,14 +161,14 @@ void main() {
     });
 
     testWidgets('test_disables_button_during_loading', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.loading,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pump();
@@ -179,14 +179,14 @@ void main() {
     });
 
     testWidgets('test_closes_dialog_on_success', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.success,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -195,14 +195,14 @@ void main() {
     });
 
     testWidgets('test_shows_success_snackbar', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.success,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -212,7 +212,7 @@ void main() {
     });
 
     testWidgets('test_shows_error_snackbar_on_failure', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.error,
         purchaseError: 'Invalid invite code',
@@ -220,7 +220,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -232,14 +232,14 @@ void main() {
 
   group('RedeemInviteCodeDialog - Cancel Action', () {
     testWidgets('test_cancel_button_closes_dialog', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableDialog(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();

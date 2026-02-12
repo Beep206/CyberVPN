@@ -24,15 +24,15 @@ Widget buildTestableTrialCard({
   final mockRepo = MockSubscriptionRepository();
 
   if (shouldSucceed && trialStatusData != null) {
-    when(() => mockRepo.getTrialStatus())
+    when(mockRepo.getTrialStatus)
         .thenAnswer((_) async => Success(data: trialStatusData));
   } else if (!shouldSucceed) {
-    when(() => mockRepo.getTrialStatus()).thenAnswer(
+    when(mockRepo.getTrialStatus).thenAnswer(
       (_) async => Failure(failure: Exception('Failed to load trial status')),
     );
   }
 
-  when(() => mockRepo.activateTrial()).thenAnswer(
+  when(mockRepo.activateTrial).thenAnswer(
     (_) async => shouldSucceed
         ? const Success(data: {})
         : Failure(failure: Exception('Failed to activate trial')),

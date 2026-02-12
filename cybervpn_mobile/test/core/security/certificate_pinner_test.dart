@@ -10,7 +10,7 @@ void main() {
     // verify the API contract and behavior that can be tested.
 
     test('creates pinner with fingerprints', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
           'FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00',
@@ -21,7 +21,7 @@ void main() {
     });
 
     test('createHttpClient returns configured HttpClient', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -39,7 +39,7 @@ void main() {
       // This test runs in debug mode by default (kDebugMode == true)
       // so validation should always return true regardless of fingerprint match
 
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -54,7 +54,7 @@ void main() {
     });
 
     test('empty fingerprints list is valid', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [],
       );
 
@@ -67,7 +67,7 @@ void main() {
       const fingerprint2 =
           'FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00';
 
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [fingerprint1, fingerprint2],
       );
 
@@ -78,7 +78,7 @@ void main() {
 
   group('CertificatePinner integration', () {
     test('HttpClient with certificate validation can be created', () async {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -91,13 +91,13 @@ void main() {
     });
 
     test('multiple pinners can coexist', () {
-      final pinner1 = CertificatePinner(
+      const pinner1 = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
       );
 
-      final pinner2 = CertificatePinner(
+      const pinner2 = CertificatePinner(
         pinnedFingerprints: [
           'FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00',
         ],

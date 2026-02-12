@@ -241,7 +241,7 @@ class _BiometricSettingsScreenState
                   loading: () => const Center(
                     child: CircularProgressIndicator(),
                   ),
-                  error: (_, __) => _BiometricUnavailableCard(),
+                  error: (_, _) => _BiometricUnavailableCard(),
                 ),
                 const SizedBox(height: 24),
 
@@ -272,7 +272,7 @@ class _BiometricSettingsScreenState
                     onChanged: null,
                     disabled: true,
                   ),
-                  error: (_, __) => _SettingsTile(
+                  error: (_, _) => _SettingsTile(
                     icon: Icons.fingerprint,
                     title: AppLocalizations.of(context).biometricLoginLabel,
                     subtitle: AppLocalizations.of(context).biometricUnavailableState,
@@ -301,7 +301,7 @@ class _BiometricSettingsScreenState
                     onChanged: null,
                     disabled: true,
                   ),
-                  error: (_, __) => _SettingsTile(
+                  error: (_, _) => _SettingsTile(
                     icon: Icons.lock_outline,
                     title: AppLocalizations.of(context).biometricAppLockLabel,
                     subtitle: AppLocalizations.of(context).biometricUnavailableState,
@@ -463,7 +463,7 @@ class _BiometricInfoCard extends StatelessWidget {
           ),
         ),
       ),
-      error: (_, __) => _BiometricUnavailableCard(),
+      error: (_, _) => _BiometricUnavailableCard(),
     );
   }
 }

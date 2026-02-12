@@ -36,14 +36,14 @@ Widget buildTestableCancelSheet({
 void main() {
   group('CancelSubscriptionSheet - Rendering', () {
     testWidgets('test_renders_confirmation_title', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -52,14 +52,14 @@ void main() {
     });
 
     testWidgets('test_renders_warning_message', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -71,14 +71,14 @@ void main() {
     });
 
     testWidgets('test_renders_cancel_button', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -87,14 +87,14 @@ void main() {
     });
 
     testWidgets('test_renders_keep_subscription_button', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -105,14 +105,14 @@ void main() {
 
   group('CancelSubscriptionSheet - Cancel Flow', () {
     testWidgets('test_shows_loading_during_cancellation', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.loading,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pump();
@@ -121,14 +121,14 @@ void main() {
     });
 
     testWidgets('test_disables_buttons_during_loading', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.loading,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pump();
@@ -140,14 +140,14 @@ void main() {
     });
 
     testWidgets('test_closes_sheet_on_success', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.success,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -156,14 +156,14 @@ void main() {
     });
 
     testWidgets('test_shows_success_snackbar', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.success,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -173,7 +173,7 @@ void main() {
     });
 
     testWidgets('test_shows_error_snackbar_on_failure', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.error,
         purchaseError: 'Failed to cancel subscription',
@@ -181,7 +181,7 @@ void main() {
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();
@@ -193,14 +193,14 @@ void main() {
 
   group('CancelSubscriptionSheet - Keep Subscription Action', () {
     testWidgets('test_keep_button_closes_sheet', (tester) async {
-      final subscriptionState = SubscriptionState(
+      const subscriptionState = SubscriptionState(
         plans: [],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
         buildTestableCancelSheet(
-          subscriptionStateOverride: AsyncValue.data(subscriptionState),
+          subscriptionStateOverride: const AsyncValue.data(subscriptionState),
         ),
       );
       await tester.pumpAndSettle();

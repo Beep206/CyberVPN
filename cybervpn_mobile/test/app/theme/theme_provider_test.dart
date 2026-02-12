@@ -459,7 +459,7 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(),
+              _FakeSettingsNotifier.new,
             ),
           ],
           child: Consumer(

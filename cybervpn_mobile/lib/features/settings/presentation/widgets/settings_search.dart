@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -219,7 +221,7 @@ class SettingsSearchDelegate extends SearchDelegate<String?> {
           subtitle: Text(item.subtitle),
           onTap: () {
             close(context, null);
-            context.push(item.route);
+            unawaited(context.push(item.route));
           },
         );
       },

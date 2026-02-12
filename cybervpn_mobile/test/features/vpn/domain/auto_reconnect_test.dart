@@ -38,7 +38,7 @@ void main() {
 
   tearDown(() {
     service.dispose();
-    connectivityController.close();
+    unawaited(connectivityController.close());
   });
 
   // ---------------------------------------------------------------------------
@@ -154,7 +154,7 @@ void main() {
     test('backoff delay increases linearly with retry count', () {
       // AutoReconnectService uses: reconnectDelaySeconds * retryCount
       // Retry 1: 2s, Retry 2: 4s, Retry 3: 6s, Retry 4: 8s, Retry 5: 10s
-      final baseDelay = VpnConstants.reconnectDelaySeconds;
+      const baseDelay = VpnConstants.reconnectDelaySeconds;
       expect(baseDelay * 1, equals(2));
       expect(baseDelay * 2, equals(4));
       expect(baseDelay * 3, equals(6));

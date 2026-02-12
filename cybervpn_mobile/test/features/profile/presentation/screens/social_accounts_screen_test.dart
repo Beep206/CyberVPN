@@ -66,11 +66,11 @@ Widget _buildTestWidget({
     overrides: [
       profileProvider.overrideWith(() => notifier),
     ],
-    child: MaterialApp(
+    child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('en'),
-      home: const SocialAccountsScreen(),
+      locale: Locale('en'),
+      home: SocialAccountsScreen(),
     ),
   );
 }

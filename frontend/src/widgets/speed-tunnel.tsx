@@ -86,25 +86,29 @@ function ServerCard({ server, index }: { server: ServerInfo, index: number }) {
     );
 }
 
+// Module-level factory — outside render, not analyzed by React Compiler
+function generateStarfieldData(count: number) {
+    const positions = new Float32Array(count * 3);
+    const initialZ = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+        const x = (Math.random() - 0.5) * 50;
+        const y = (Math.random() - 0.5) * 50;
+        const zPos = Math.random() * 100;
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = zPos;
+        initialZ[i] = zPos;
+    }
+    return { positions, initialZ };
+}
+
 function WarpStarfield({ speed = 2.0, color = "#00ffff" }: { speed?: number, color?: string }) {
     const points = useRef<THREE.Points>(null!);
     const count = 3000;
 
-    const [positions, initialZ] = useMemo(() => {
-        const pos = new Float32Array(count * 3);
-        const z = new Float32Array(count);
-        for (let i = 0; i < count; i++) {
-            const x = (Math.random() - 0.5) * 50;
-            const y = (Math.random() - 0.5) * 50;
-            const zPos = Math.random() * 100; // Depth
-            pos[i * 3] = x;
-            pos[i * 3 + 1] = y;
-            pos[i * 3 + 2] = zPos;
-            z[i] = zPos;
-        }
-        return [pos, z];
-    }, []);
+    const [{ positions, initialZ }] = useState(() => generateStarfieldData(count));
 
+    /* eslint-disable react-hooks/immutability -- Float32Array mutations in animation loop are intentional */
     useFrame((state, delta) => {
         // Warp effect: Move stars towards camera
         for (let i = 0; i < count; i++) {
@@ -125,6 +129,7 @@ function WarpStarfield({ speed = 2.0, color = "#00ffff" }: { speed?: number, col
         // Slight rotation for dizziness/speed feel
         points.current.rotation.z += delta * 0.1;
     });
+    /* eslint-enable react-hooks/immutability */
 
     return (
         <points ref={points}>

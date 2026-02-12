@@ -16,7 +16,7 @@ void main() {
       // actual rejection behavior.
 
       // Use a fake/wrong fingerprint that won't match any real certificate
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF',
         ],
@@ -30,7 +30,7 @@ void main() {
 
       // Configure Dio with our certificate pinner
       final adapter = IOHttpClientAdapter(
-        createHttpClient: () => pinner.createHttpClient(),
+        createHttpClient: pinner.createHttpClient,
       );
       dio.httpClientAdapter = adapter;
 
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('HttpClient configured with certificate pinner', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -74,7 +74,7 @@ void main() {
     });
 
     test('Dio can be configured with certificate pinning', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -82,7 +82,7 @@ void main() {
 
       final dio = Dio();
       final adapter = IOHttpClientAdapter(
-        createHttpClient: () => pinner.createHttpClient(),
+        createHttpClient: pinner.createHttpClient,
       );
 
       dio.httpClientAdapter = adapter;
@@ -93,7 +93,7 @@ void main() {
     });
 
     test('multiple fingerprints are supported', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
           'FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00',

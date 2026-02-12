@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/scheduler.dart';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -31,9 +29,7 @@ class FrameRateMonitor {
     if (_active) return;
     _active = true;
     _timings.clear();
-    _callback = (List<FrameTiming> timings) {
-      _timings.addAll(timings);
-    };
+    _callback = _timings.addAll;
     SchedulerBinding.instance.addTimingsCallback(_callback!);
   }
 

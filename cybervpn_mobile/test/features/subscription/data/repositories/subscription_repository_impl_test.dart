@@ -199,7 +199,7 @@ void main() {
       expect(ds.fetchSubCallCount, equals(1));
 
       final second = await repo.getActiveSubscription();
-      expect((second as Success).data!.id, equals('sub-1'));
+      expect((second as Success<SubscriptionEntity?>).data!.id, equals('sub-1'));
       expect(ds.fetchSubCallCount, equals(1));
     });
   });
@@ -311,7 +311,7 @@ void main() {
 
       final result = await repoWithLocal.getActiveSubscription();
 
-      expect((result as Success).data!.id, equals('persisted-sub'));
+      expect((result as Success<SubscriptionEntity?>).data!.id, equals('persisted-sub'));
       // Network was NOT called.
       expect(ds.fetchSubCallCount, equals(0));
     });

@@ -174,7 +174,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                     decoration: InputDecoration(
                       labelText: l10n.formEmailLabel,
                       hintText: l10n.formEmailHint,
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.email_outlined,
                         semanticLabel:
                             '', // Hide from screen reader (label is sufficient)

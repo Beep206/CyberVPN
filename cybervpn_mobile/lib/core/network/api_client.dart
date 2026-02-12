@@ -86,7 +86,7 @@ class ApiClient {
       }
 
       // Allow debug/staging builds to run without pinning, with opt-in support.
-      final enableDebugPinning = const String.fromEnvironment(
+      const enableDebugPinning = String.fromEnvironment(
         'ENABLE_CERT_PINNING',
         defaultValue: 'false',
       );

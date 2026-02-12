@@ -20,64 +20,66 @@ vi.mock('@/stores/auth-store', () => ({
 }));
 
 // Mock auth feature components
-vi.mock('@/features/auth/components', () => ({
-  AuthFormCard: ({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) => {
-    const { createElement } = require('react');
-    return createElement('div', { 'data-testid': 'auth-form-card' },
-      createElement('h1', null, title),
-      createElement('p', null, subtitle),
-      children
-    );
-  },
-  CyberInput: ({
-    label,
-    type,
-    placeholder,
-    value,
-    onChange,
-    required,
-    disabled,
-    ..._rest
-  }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('div', null,
-      createElement('label', { htmlFor: 'cyber-input' }, label as string),
-      createElement('input', {
-        id: 'cyber-input',
-        type,
-        placeholder,
-        value,
-        onChange,
-        required,
-        disabled,
-        'aria-label': label as string,
-      })
-    );
-  },
-  RateLimitCountdown: () => null,
-  useIsRateLimited: () => false,
-}));
+vi.mock('@/features/auth/components', async () => {
+  const React = await import('react');
+  return {
+    AuthFormCard: ({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) => {
+      return React.createElement('div', { 'data-testid': 'auth-form-card' },
+        React.createElement('h1', null, title),
+        React.createElement('p', null, subtitle),
+        children
+      );
+    },
+    CyberInput: ({
+      label,
+      type,
+      placeholder,
+      value,
+      onChange,
+      required,
+      disabled,
+    }: Record<string, unknown>) => {
+      return React.createElement('div', null,
+        React.createElement('label', { htmlFor: 'cyber-input' }, label as string),
+        React.createElement('input', {
+          id: 'cyber-input',
+          type,
+          placeholder,
+          value,
+          onChange,
+          required,
+          disabled,
+          'aria-label': label as string,
+        })
+      );
+    },
+    RateLimitCountdown: () => null,
+    useIsRateLimited: () => false,
+  };
+});
 
 // Mock @/components/ui/button
-vi.mock('@/components/ui/button', () => ({
-  Button: ({
-    children,
-    onClick,
-    type,
-    disabled,
-    className,
-    ...props
-  }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('button', {
+vi.mock('@/components/ui/button', async () => {
+  const React = await import('react');
+  return {
+    Button: ({
+      children,
       onClick,
-      type: type || 'button',
+      type,
       disabled,
       className,
-      ...props,
-    }, children);
-  },
-}));
+      ...props
+    }: Record<string, unknown>) => {
+      return React.createElement('button', {
+        onClick,
+        type: type || 'button',
+        disabled,
+        className,
+        ...props,
+      }, children as React.ReactNode);
+    },
+  };
+});
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -88,32 +90,33 @@ vi.mock('next-intl', () => ({
 }));
 
 // Mock lucide-react
-vi.mock('lucide-react', () => ({
-  Mail: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'mail-icon' });
-  },
-  Loader2: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'loader-icon' });
-  },
-  CheckCircle: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'check-icon' });
-  },
-  AlertCircle: (props: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { ...props, 'data-testid': 'alert-icon' });
-  },
-}));
+vi.mock('lucide-react', async () => {
+  const React = await import('react');
+  return {
+    Mail: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'mail-icon' });
+    },
+    Loader2: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'loader-icon' });
+    },
+    CheckCircle: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'check-icon' });
+    },
+    AlertCircle: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'alert-icon' });
+    },
+  };
+});
 
 // Mock next/link
-vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('a', { href, ...props }, children);
-  },
-}));
+vi.mock('next/link', async () => {
+  const React = await import('react');
+  return {
+    default: ({ children, href, ...props }: Record<string, unknown>) => {
+      return React.createElement('a', { href, ...props }, children as React.ReactNode);
+    },
+  };
+});
 
 describe('MagicLinkPage', () => {
   beforeEach(() => {

@@ -98,7 +98,8 @@ import 'app_localizations_zh.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -106,7 +107,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -118,12 +120,13 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
@@ -164,7 +167,7 @@ abstract class AppLocalizations {
     Locale('uz'),
     Locale('vi'),
     Locale('yo'),
-    Locale('zh')
+    Locale('zh'),
   ];
 
   /// No description provided for @appName.
@@ -8442,7 +8445,8 @@ abstract class AppLocalizations {
   String get commonCreate;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -8451,61 +8455,136 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['am', 'ar', 'be', 'bn', 'cs', 'de', 'en', 'es', 'fa', 'fil', 'fr', 'ha', 'he', 'hi', 'hu', 'id', 'it', 'ja', 'kk', 'ko', 'ku', 'ms', 'my', 'nl', 'pl', 'pt', 'ro', 'ru', 'sv', 'th', 'tk', 'tr', 'uk', 'ur', 'uz', 'vi', 'yo', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'am',
+    'ar',
+    'be',
+    'bn',
+    'cs',
+    'de',
+    'en',
+    'es',
+    'fa',
+    'fil',
+    'fr',
+    'ha',
+    'he',
+    'hi',
+    'hu',
+    'id',
+    'it',
+    'ja',
+    'kk',
+    'ko',
+    'ku',
+    'ms',
+    'my',
+    'nl',
+    'pl',
+    'pt',
+    'ro',
+    'ru',
+    'sv',
+    'th',
+    'tk',
+    'tr',
+    'uk',
+    'ur',
+    'uz',
+    'vi',
+    'yo',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'am': return AppLocalizationsAm();
-    case 'ar': return AppLocalizationsAr();
-    case 'be': return AppLocalizationsBe();
-    case 'bn': return AppLocalizationsBn();
-    case 'cs': return AppLocalizationsCs();
-    case 'de': return AppLocalizationsDe();
-    case 'en': return AppLocalizationsEn();
-    case 'es': return AppLocalizationsEs();
-    case 'fa': return AppLocalizationsFa();
-    case 'fil': return AppLocalizationsFil();
-    case 'fr': return AppLocalizationsFr();
-    case 'ha': return AppLocalizationsHa();
-    case 'he': return AppLocalizationsHe();
-    case 'hi': return AppLocalizationsHi();
-    case 'hu': return AppLocalizationsHu();
-    case 'id': return AppLocalizationsId();
-    case 'it': return AppLocalizationsIt();
-    case 'ja': return AppLocalizationsJa();
-    case 'kk': return AppLocalizationsKk();
-    case 'ko': return AppLocalizationsKo();
-    case 'ku': return AppLocalizationsKu();
-    case 'ms': return AppLocalizationsMs();
-    case 'my': return AppLocalizationsMy();
-    case 'nl': return AppLocalizationsNl();
-    case 'pl': return AppLocalizationsPl();
-    case 'pt': return AppLocalizationsPt();
-    case 'ro': return AppLocalizationsRo();
-    case 'ru': return AppLocalizationsRu();
-    case 'sv': return AppLocalizationsSv();
-    case 'th': return AppLocalizationsTh();
-    case 'tk': return AppLocalizationsTk();
-    case 'tr': return AppLocalizationsTr();
-    case 'uk': return AppLocalizationsUk();
-    case 'ur': return AppLocalizationsUr();
-    case 'uz': return AppLocalizationsUz();
-    case 'vi': return AppLocalizationsVi();
-    case 'yo': return AppLocalizationsYo();
-    case 'zh': return AppLocalizationsZh();
+    case 'am':
+      return AppLocalizationsAm();
+    case 'ar':
+      return AppLocalizationsAr();
+    case 'be':
+      return AppLocalizationsBe();
+    case 'bn':
+      return AppLocalizationsBn();
+    case 'cs':
+      return AppLocalizationsCs();
+    case 'de':
+      return AppLocalizationsDe();
+    case 'en':
+      return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fa':
+      return AppLocalizationsFa();
+    case 'fil':
+      return AppLocalizationsFil();
+    case 'fr':
+      return AppLocalizationsFr();
+    case 'ha':
+      return AppLocalizationsHa();
+    case 'he':
+      return AppLocalizationsHe();
+    case 'hi':
+      return AppLocalizationsHi();
+    case 'hu':
+      return AppLocalizationsHu();
+    case 'id':
+      return AppLocalizationsId();
+    case 'it':
+      return AppLocalizationsIt();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'kk':
+      return AppLocalizationsKk();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'ku':
+      return AppLocalizationsKu();
+    case 'ms':
+      return AppLocalizationsMs();
+    case 'my':
+      return AppLocalizationsMy();
+    case 'nl':
+      return AppLocalizationsNl();
+    case 'pl':
+      return AppLocalizationsPl();
+    case 'pt':
+      return AppLocalizationsPt();
+    case 'ro':
+      return AppLocalizationsRo();
+    case 'ru':
+      return AppLocalizationsRu();
+    case 'sv':
+      return AppLocalizationsSv();
+    case 'th':
+      return AppLocalizationsTh();
+    case 'tk':
+      return AppLocalizationsTk();
+    case 'tr':
+      return AppLocalizationsTr();
+    case 'uk':
+      return AppLocalizationsUk();
+    case 'ur':
+      return AppLocalizationsUr();
+    case 'uz':
+      return AppLocalizationsUz();
+    case 'vi':
+      return AppLocalizationsVi();
+    case 'yo':
+      return AppLocalizationsYo();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
+    'that was used.',
   );
 }

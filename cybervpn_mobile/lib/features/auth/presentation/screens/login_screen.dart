@@ -403,7 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   LoginForm(
                     onSuccess: () => context.go('/connection'),
                     onForgotPassword: () {
-                      context.push('/forgot-password');
+                      unawaited(context.push('/forgot-password'));
                     },
                   ),
                   const SizedBox(height: Spacing.lg + Spacing.xs),

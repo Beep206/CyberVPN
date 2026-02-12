@@ -17,7 +17,7 @@ void main() {
     dataSource = ProfileRemoteDataSourceImpl(mockApiClient);
   });
 
-  RequestOptions _requestOptions() => RequestOptions(path: '');
+  RequestOptions requestOptions() => RequestOptions(path: '');
 
   // ---------------------------------------------------------------------------
   // getProfile
@@ -42,7 +42,7 @@ void main() {
               'last_login_at': '2025-06-15T12:00:00Z',
             },
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final profile = await dataSource.getProfile();
@@ -71,7 +71,7 @@ void main() {
               'email': 'minimal@example.com',
             },
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final profile = await dataSource.getProfile();
@@ -99,7 +99,7 @@ void main() {
               'qr_code_uri': 'otpauth://totp/CyberVPN:test@example.com?secret=JBSWY3DPEHPK3PXP',
             },
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final result = await dataSource.setup2FA();
@@ -121,7 +121,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: {'verified': true},
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final result = await dataSource.verify2FA('123456');
@@ -137,7 +137,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: <String, dynamic>{},
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final result = await dataSource.verify2FA('000000');
@@ -158,7 +158,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: {'valid': true},
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final result = await dataSource.validate2FA('654321');
@@ -179,7 +179,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       await dataSource.disable2FA('111111');
@@ -203,7 +203,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       await dataSource.unlinkOAuth(OAuthProvider.google);
@@ -243,7 +243,7 @@ void main() {
               },
             ],
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       final devices = await dataSource.getDevices();
@@ -267,7 +267,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       await dataSource.removeDevice('dev-1');
@@ -291,7 +291,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       await dataSource.deleteAccount('secret123');
@@ -311,7 +311,7 @@ void main() {
           )).thenAnswer((_) async => Response(
             data: null,
             statusCode: 200,
-            requestOptions: _requestOptions(),
+            requestOptions: requestOptions(),
           ));
 
       await dataSource.deleteAccount('secret123', totpCode: '123456');

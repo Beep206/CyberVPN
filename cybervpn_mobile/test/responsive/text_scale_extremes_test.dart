@@ -39,23 +39,23 @@ void main() {
 
     testWidgets('Row with two text items handles large text', (tester) async {
       await tester.pumpWidget(buildScaled(
-        Padding(
-          padding: const EdgeInsets.all(16),
+        const Padding(
+          padding: EdgeInsets.all(16),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   'Server Location',
-                  style: const TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Flexible(
                 child: Text(
                   'United States - New York',
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -70,23 +70,23 @@ void main() {
 
     testWidgets('Card with multiple lines handles large text', (tester) async {
       await tester.pumpWidget(buildScaled(
-        Card(
+        const Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Subscription Active',
-                  style: const TextStyle(fontSize: 18),
+                  style: TextStyle(fontSize: 18),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Premium Plan - 365 days remaining',
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

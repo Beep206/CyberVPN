@@ -31,7 +31,7 @@ class IsolateUtils {
     return compute(_encodeJsonIsolate, value);
   }
 
-  /// Parses a JSON list string into a List<Map<String, dynamic>>,
+  /// Parses a JSON list string into a `List<Map<String, dynamic>>`,
   /// always using an isolate (intended for server list responses).
   static Future<List<Map<String, dynamic>>> parseJsonList(
       String jsonString) async {

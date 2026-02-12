@@ -137,27 +137,29 @@ function PulsingRing({ radius, delay }: { radius: number; delay: number }) {
 // ============================================
 // SECURITY PARTICLES - Orbiting data points
 // ============================================
+function generateSecurityParticles(count: number) {
+    return Array.from({ length: count }, () => ({
+        position: new THREE.Vector3(
+            (Math.random() - 0.5) * 12,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 6
+        ),
+        velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.01,
+            (Math.random() - 0.5) * 0.01,
+            (Math.random() - 0.5) * 0.005
+        ),
+        scale: Math.random() * 0.4 + 0.1,
+        phase: Math.random() * Math.PI * 2,
+        color: Math.random() > 0.7 ? 1 : 0, // 30% purple, 70% cyan
+    }));
+}
+
 function SecurityParticles({ count = 500 }: { count?: number }) {
     const meshRef = useRef<THREE.InstancedMesh>(null!);
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    const particles = useMemo(() => {
-        return Array.from({ length: count }, () => ({
-            position: new THREE.Vector3(
-                (Math.random() - 0.5) * 12,
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 6
-            ),
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * 0.01,
-                (Math.random() - 0.5) * 0.01,
-                (Math.random() - 0.5) * 0.005
-            ),
-            scale: Math.random() * 0.4 + 0.1,
-            phase: Math.random() * Math.PI * 2,
-            color: Math.random() > 0.7 ? 1 : 0, // 30% purple, 70% cyan
-        }));
-    }, [count]);
+    const [particles] = useState(() => generateSecurityParticles(count));
 
     useFrame((state) => {
         if (!meshRef.current) return;
@@ -202,18 +204,20 @@ function SecurityParticles({ count = 500 }: { count?: number }) {
 // ============================================
 // DATA STREAMS - Matrix-style falling lines
 // ============================================
+function generateDataStreams(count: number) {
+    return Array.from({ length: count }, () => ({
+        x: (Math.random() - 0.5) * 10,
+        z: (Math.random() - 0.5) * 4 - 2,
+        speed: Math.random() * 0.03 + 0.02,
+        length: Math.random() * 1.5 + 0.5,
+        y: Math.random() * 8 - 4,
+    }));
+}
+
 function DataStreams({ count = 30 }: { count?: number }) {
     const groupRef = useRef<THREE.Group>(null!);
 
-    const streams = useMemo(() => {
-        return Array.from({ length: count }, () => ({
-            x: (Math.random() - 0.5) * 10,
-            z: (Math.random() - 0.5) * 4 - 2,
-            speed: Math.random() * 0.03 + 0.02,
-            length: Math.random() * 1.5 + 0.5,
-            y: Math.random() * 8 - 4,
-        }));
-    }, [count]);
+    const [streams] = useState(() => generateDataStreams(count));
 
     useFrame(() => {
         if (!groupRef.current) return;

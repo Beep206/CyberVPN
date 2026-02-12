@@ -57,9 +57,9 @@ describe('MonitoringClient', () => {
       const { monitoringApi } = await import('@/lib/api');
 
       // Set up pending promises to keep component in loading state
-      vi.mocked(monitoringApi.health).mockReturnValue(new Promise(() => {}) as any);
-      vi.mocked(monitoringApi.getStats).mockReturnValue(new Promise(() => {}) as any);
-      vi.mocked(monitoringApi.getBandwidth).mockReturnValue(new Promise(() => {}) as any);
+      vi.mocked(monitoringApi.health).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(monitoringApi.getStats).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(monitoringApi.getBandwidth).mockReturnValue(new Promise(() => {}) as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -70,9 +70,9 @@ describe('MonitoringClient', () => {
     it('test_renders_overall_status_banner', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -93,9 +93,9 @@ describe('MonitoringClient', () => {
           redis_status: 'healthy',
           worker_status: 'healthy',
         }
-      } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -110,15 +110,15 @@ describe('MonitoringClient', () => {
     it('test_renders_metrics_cards', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
       vi.mocked(monitoringApi.getStats).mockResolvedValue({
         data: {
           total_requests: 15420,
           avg_response_time: 125,
           error_rate: 0.05
         }
-      } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -133,9 +133,9 @@ describe('MonitoringClient', () => {
     it('test_renders_bandwidth_visualization', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 45, outbound_mbps: 62 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 45, outbound_mbps: 62 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -149,9 +149,9 @@ describe('MonitoringClient', () => {
     it('test_renders_active_connections', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000, active_connections: 145 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000, active_connections: 145 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -166,9 +166,9 @@ describe('MonitoringClient', () => {
     it('test_displays_healthy_status', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -180,9 +180,9 @@ describe('MonitoringClient', () => {
     it('test_displays_degraded_status', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'degraded' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'degraded' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -194,9 +194,9 @@ describe('MonitoringClient', () => {
     it('test_displays_down_status', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'down' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'down' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -212,9 +212,9 @@ describe('MonitoringClient', () => {
 
       vi.mocked(monitoringApi.health).mockResolvedValue({
         data: { status: 'healthy', api_status: 'healthy' }
-      } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -229,9 +229,9 @@ describe('MonitoringClient', () => {
 
       vi.mocked(monitoringApi.health).mockResolvedValue({
         data: { status: 'healthy', database_status: 'healthy' }
-      } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -246,9 +246,9 @@ describe('MonitoringClient', () => {
 
       vi.mocked(monitoringApi.health).mockResolvedValue({
         data: { status: 'degraded', redis_status: 'degraded' }
-      } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -263,9 +263,9 @@ describe('MonitoringClient', () => {
 
       vi.mocked(monitoringApi.health).mockResolvedValue({
         data: { status: 'down', worker_status: 'down' }
-      } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -280,9 +280,9 @@ describe('MonitoringClient', () => {
     it('test_displays_request_count_metric', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1234567 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1234567 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -294,9 +294,9 @@ describe('MonitoringClient', () => {
     it('test_displays_response_time_metric', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { avg_response_time: 87, total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { avg_response_time: 87, total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -309,9 +309,9 @@ describe('MonitoringClient', () => {
     it('test_displays_error_rate_metric', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { error_rate: 2.5, total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { error_rate: 2.5, total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -326,9 +326,9 @@ describe('MonitoringClient', () => {
     it('test_displays_inbound_bandwidth', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 256, outbound_mbps: 0 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 256, outbound_mbps: 0 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -341,9 +341,9 @@ describe('MonitoringClient', () => {
     it('test_displays_outbound_bandwidth', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 384 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 384 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -356,9 +356,9 @@ describe('MonitoringClient', () => {
     it('test_bandwidth_visualization_renders', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 100, outbound_mbps: 150 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 100, outbound_mbps: 150 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -374,8 +374,8 @@ describe('MonitoringClient', () => {
       const { monitoringApi } = await import('@/lib/api');
 
       vi.mocked(monitoringApi.health).mockRejectedValue(new Error('API Error'));
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -389,9 +389,9 @@ describe('MonitoringClient', () => {
     it('test_formats_large_numbers_with_commas', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 9876543 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 9876543 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 
@@ -403,9 +403,9 @@ describe('MonitoringClient', () => {
     it('test_handles_zero_values_gracefully', async () => {
       const { monitoringApi } = await import('@/lib/api');
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as any);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 0, error_rate: 0, avg_response_time: 0 } } as any);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 0 } } as any);
+      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
+      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 0, error_rate: 0, avg_response_time: 0 } } as never);
+      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 0 } } as never);
 
       renderWithQueryClient(<MonitoringClient />);
 

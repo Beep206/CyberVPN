@@ -112,9 +112,7 @@ void main() {
       // Suppress FlutterError.onError so the test framework does not treat
       // the deliberate exception as a test failure.
       final errors = <FlutterErrorDetails>[];
-      FlutterError.onError = (FlutterErrorDetails details) {
-        errors.add(details);
-      };
+      FlutterError.onError = errors.add;
 
       // Build a widget that throws during build.
       await tester.pumpWidget(

@@ -113,7 +113,7 @@ class SyncOnReconnectService {
           category: 'auth.sync',
         );
         _isSyncing = false;
-        final result = SyncResult.notNeeded;
+        const result = SyncResult.notNeeded;
         _syncResultController.add(result);
         return result;
       }
@@ -124,7 +124,7 @@ class SyncOnReconnectService {
           category: 'auth.sync',
         );
         _isSyncing = false;
-        final result = SyncResult.sessionExpired;
+        const result = SyncResult.sessionExpired;
         _syncResultController.add(result);
         return result;
       }
@@ -166,7 +166,7 @@ class SyncOnReconnectService {
 
       _isSyncing = false;
       AppLogger.info('Sync completed successfully', category: 'auth.sync');
-      final result = SyncResult.success;
+      const result = SyncResult.success;
       _syncResultController.add(result);
       return result;
     } catch (e, st) {
@@ -177,7 +177,7 @@ class SyncOnReconnectService {
         category: 'auth.sync',
       );
       _isSyncing = false;
-      final result = SyncResult.failed;
+      const result = SyncResult.failed;
       _syncResultController.add(result);
       return result;
     }

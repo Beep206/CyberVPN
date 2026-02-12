@@ -16,7 +16,7 @@ void main() {
   });
 
   /// Helper to create a [DioException] with a given status code.
-  DioException _makeDioException({
+  DioException makeDioException({
     required int statusCode,
     String? statusMessage,
     DioExceptionType type = DioExceptionType.badResponse,
@@ -36,7 +36,7 @@ void main() {
   }
 
   /// Helper to create a connection-type [DioException].
-  DioException _makeConnectionException(DioExceptionType type) {
+  DioException makeConnectionException(DioExceptionType type) {
     return DioException(
       requestOptions: RequestOptions(path: '/test'),
       type: type,
@@ -46,7 +46,7 @@ void main() {
   group('NetworkErrorHandler.handleNetworkError', () {
     group('401 Unauthorized', () {
       test('re-throws the DioException for auth interceptor to handle', () {
-        final exception = _makeDioException(statusCode: 401);
+        final exception = makeDioException(statusCode: 401);
 
         expect(
           () => handler.handleNetworkError(exception),
@@ -57,7 +57,7 @@ void main() {
 
     group('403 Forbidden', () {
       test('returns AccessDeniedFailure', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 403,
           statusMessage: 'Forbidden',
         );
@@ -70,7 +70,7 @@ void main() {
       });
 
       test('returns AccessDeniedFailure with default message when statusMessage is null', () async {
-        final exception = _makeDioException(statusCode: 403);
+        final exception = makeDioException(statusCode: 403);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -81,7 +81,7 @@ void main() {
 
     group('429 Too Many Requests', () {
       test('returns RateLimitFailure', () async {
-        final exception = _makeDioException(statusCode: 429);
+        final exception = makeDioException(statusCode: 429);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -91,7 +91,7 @@ void main() {
       });
 
       test('parses Retry-After header in seconds', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 429,
           headers: {
             'retry-after': ['30'],
@@ -106,7 +106,7 @@ void main() {
       });
 
       test('handles missing Retry-After header', () async {
-        final exception = _makeDioException(statusCode: 429);
+        final exception = makeDioException(statusCode: 429);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -116,7 +116,7 @@ void main() {
       });
 
       test('handles non-numeric Retry-After header', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 429,
           headers: {
             'retry-after': ['not-a-number'],
@@ -133,7 +133,7 @@ void main() {
 
     group('5xx Server Errors', () {
       test('returns ServerFailure when no Dio instance for retry', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 500,
           statusMessage: 'Internal Server Error',
         );
@@ -145,7 +145,7 @@ void main() {
       });
 
       test('returns ServerFailure for 502', () async {
-        final exception = _makeDioException(statusCode: 502);
+        final exception = makeDioException(statusCode: 502);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -154,7 +154,7 @@ void main() {
       });
 
       test('returns ServerFailure for 503', () async {
-        final exception = _makeDioException(statusCode: 503);
+        final exception = makeDioException(statusCode: 503);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -165,7 +165,7 @@ void main() {
 
     group('Other 4xx Client Errors', () {
       test('returns ServerFailure for 400', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 400,
           statusMessage: 'Bad Request',
         );
@@ -178,7 +178,7 @@ void main() {
       });
 
       test('returns ServerFailure for 404', () async {
-        final exception = _makeDioException(
+        final exception = makeDioException(
           statusCode: 404,
           statusMessage: 'Not Found',
         );
@@ -190,7 +190,7 @@ void main() {
       });
 
       test('returns ServerFailure for 422', () async {
-        final exception = _makeDioException(statusCode: 422);
+        final exception = makeDioException(statusCode: 422);
 
         final result = await handler.handleNetworkError(exception);
 
@@ -201,7 +201,7 @@ void main() {
 
     group('Connection Errors', () {
       test('returns NetworkFailure for connectionError', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.connectionError,
         );
 
@@ -212,7 +212,7 @@ void main() {
       });
 
       test('returns NetworkFailure for connectionTimeout', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.connectionTimeout,
         );
 
@@ -223,7 +223,7 @@ void main() {
       });
 
       test('returns NetworkFailure for sendTimeout', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.sendTimeout,
         );
 
@@ -234,7 +234,7 @@ void main() {
       });
 
       test('returns NetworkFailure for receiveTimeout', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.receiveTimeout,
         );
 
@@ -245,7 +245,7 @@ void main() {
       });
 
       test('returns NetworkFailure for cancel', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.cancel,
         );
 
@@ -258,7 +258,7 @@ void main() {
 
     group('Unknown Errors', () {
       test('returns UnknownFailure for unknown DioExceptionType', () async {
-        final exception = _makeConnectionException(
+        final exception = makeConnectionException(
           DioExceptionType.unknown,
         );
 
@@ -271,7 +271,7 @@ void main() {
 
   group('NetworkErrorHandler.mapExceptionToFailure', () {
     test('maps AuthException to AuthFailure', () {
-      final exception = const AuthException(message: 'Unauthorized', code: 401);
+      const exception = AuthException(message: 'Unauthorized', code: 401);
 
       final result = handler.mapExceptionToFailure(exception);
 
@@ -281,7 +281,7 @@ void main() {
     });
 
     test('maps NetworkException to NetworkFailure', () {
-      final exception = const NetworkException(message: 'No connection');
+      const exception = NetworkException(message: 'No connection');
 
       final result = handler.mapExceptionToFailure(exception);
 
@@ -290,7 +290,7 @@ void main() {
     });
 
     test('maps ServerException to ServerFailure', () {
-      final exception = const ServerException(message: 'Internal error', code: 500);
+      const exception = ServerException(message: 'Internal error', code: 500);
 
       final result = handler.mapExceptionToFailure(exception);
 
@@ -299,7 +299,7 @@ void main() {
     });
 
     test('maps ServerException with 403 to AccessDeniedFailure', () {
-      final exception = const ServerException(message: 'Forbidden', code: 403);
+      const exception = ServerException(message: 'Forbidden', code: 403);
 
       final result = handler.mapExceptionToFailure(exception);
 
@@ -308,7 +308,7 @@ void main() {
     });
 
     test('maps ServerException with 429 to RateLimitFailure', () {
-      final exception = const ServerException(message: 'Too Many Requests', code: 429);
+      const exception = ServerException(message: 'Too Many Requests', code: 429);
 
       final result = handler.mapExceptionToFailure(exception);
 
@@ -317,7 +317,7 @@ void main() {
     });
 
     test('maps CacheException to CacheFailure', () {
-      final exception = const CacheException(message: 'Cache miss');
+      const exception = CacheException(message: 'Cache miss');
 
       final result = handler.mapExceptionToFailure(exception);
 

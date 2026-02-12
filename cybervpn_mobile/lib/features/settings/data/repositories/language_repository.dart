@@ -222,7 +222,7 @@ class LanguageRepository {
     ),
     LanguageItem(
       localeCode: 'uz',
-      nativeName: "O\u02BBzbekcha",
+      nativeName: 'O\u02BBzbekcha',
       englishName: 'Uzbek',
       flagEmoji: '\u{1F1FA}\u{1F1FF}', // UZ flag
     ),

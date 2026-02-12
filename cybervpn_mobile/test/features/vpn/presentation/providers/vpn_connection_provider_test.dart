@@ -28,7 +28,6 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
-import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -312,7 +311,7 @@ ProviderContainer createContainer({
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
       if (isAuthenticated)
         authProvider.overrideWith(
-          () => _FakeAuthNotifier(AuthAuthenticated(_testUser)),
+          () => _FakeAuthNotifier(const AuthAuthenticated(_testUser)),
         ),
     ],
   );
@@ -1081,7 +1080,7 @@ void main() {
       final notifier = container.read(vpnConnectionProvider.notifier);
 
       expect(
-        () => notifier.connectToLastOrRecommended(),
+        notifier.connectToLastOrRecommended,
         throwsException,
       );
       container.dispose();

@@ -172,7 +172,7 @@ class ProtocolFallback {
     } finally {
       try {
         socket?.destroy();
-      } catch (e) {} // Swallowing socket.destroy() error intentionally
+      } catch (_) { /* intentionally ignored */ }
     }
   }
 

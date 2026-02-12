@@ -125,7 +125,7 @@ void main() {
 
     test('returns null for long valid password', () {
       expect(
-        InputValidators.validatePassword('A' * 50 + 'a' * 50 + '1'),
+        InputValidators.validatePassword('${'A' * 50}${'a' * 50}1'),
         isNull,
       );
     });

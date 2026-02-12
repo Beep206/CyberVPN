@@ -113,7 +113,7 @@ describe('WithdrawalModal', () => {
   describe('Withdrawal Flow', () => {
     it('test_withdrawal_button_calls_api_with_amount', async () => {
       const user = userEvent.setup({ delay: null });
-      let capturedRequest: any = null;
+      let capturedRequest: Record<string, unknown> | null = null;
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {
@@ -150,7 +150,7 @@ describe('WithdrawalModal', () => {
 
     it('test_withdrawal_includes_selected_method', async () => {
       const user = userEvent.setup({ delay: null });
-      let capturedRequest: any = null;
+      let capturedRequest: Record<string, unknown> | null = null;
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {
@@ -816,7 +816,7 @@ describe('WithdrawalModal', () => {
 
     it('test_withdrawal_method_affects_api_call', async () => {
       const user = userEvent.setup({ delay: null });
-      let capturedRequest: any = null;
+      let capturedRequest: Record<string, unknown> | null = null;
 
       server.use(
         http.post(`${API_BASE}/wallet/withdraw`, async ({ request }) => {

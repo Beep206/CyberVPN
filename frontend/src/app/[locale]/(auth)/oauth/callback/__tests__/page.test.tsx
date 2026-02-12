@@ -39,32 +39,33 @@ vi.mock('@/stores/auth-store', () => ({
 }));
 
 // Mock @/components/ui/button
-vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('button', { onClick, ...props }, children);
-  },
-}));
+vi.mock('@/components/ui/button', async () => {
+  const React = await import('react');
+  return {
+    Button: ({ children, onClick, ...props }: Record<string, unknown>) => {
+      return React.createElement('button', { onClick, ...props }, children);
+    },
+  };
+});
 
 // Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-  Loader2: ({ className, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { className, ...props, 'data-testid': 'loader-icon' });
-  },
-  AlertCircle: ({ className, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { className, ...props, 'data-testid': 'alert-icon' });
-  },
-  RotateCcw: ({ className, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { className, ...props, 'data-testid': 'retry-icon' });
-  },
-  Shield: ({ className, ...props }: Record<string, unknown>) => {
-    const { createElement } = require('react');
-    return createElement('span', { className, ...props, 'data-testid': 'shield-icon' });
-  },
-}));
+vi.mock('lucide-react', async () => {
+  const React = await import('react');
+  return {
+    Loader2: ({ className, ...props }: Record<string, unknown>) => {
+      return React.createElement('span', { className, ...props, 'data-testid': 'loader-icon' });
+    },
+    AlertCircle: ({ className, ...props }: Record<string, unknown>) => {
+      return React.createElement('span', { className, ...props, 'data-testid': 'alert-icon' });
+    },
+    RotateCcw: ({ className, ...props }: Record<string, unknown>) => {
+      return React.createElement('span', { className, ...props, 'data-testid': 'retry-icon' });
+    },
+    Shield: ({ className, ...props }: Record<string, unknown>) => {
+      return React.createElement('span', { className, ...props, 'data-testid': 'shield-icon' });
+    },
+  };
+});
 
 describe('OAuthCallbackPage', () => {
   beforeEach(() => {

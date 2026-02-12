@@ -57,6 +57,7 @@ class _MockVpnEngine implements VpnEngineDatasource {
   Stream<VlessStatus> get statusStream => _statusController.stream;
 
   void emitStatus(VlessStatus status) => _statusController.add(status);
+  @override
   void dispose() => _statusController.close();
 
   @override
@@ -229,7 +230,7 @@ void main() {
   group('deleteConfig', () {
     test('removes config data from SecureStorage', () async {
       // Manually seed a saved config.
-      final configId = 'cfg-to-delete';
+      const configId = 'cfg-to-delete';
       final metaList = [
         {
           'id': configId,

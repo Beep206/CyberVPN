@@ -38,7 +38,7 @@ vi.mock('next-intl', () => ({
 
 // Mock i18n navigation
 vi.mock('@/i18n/navigation', () => ({
-  Link: ({ children, href, ...props }: any) => (
+  Link: ({ children, href, ...props }: React.ComponentProps<'a'>) => (
     <a href={href} {...props}>{children}</a>
   ),
 }));
@@ -77,9 +77,9 @@ describe('MiniApp Home Page', () => {
     it('test_displays_loading_spinner', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockReturnValue(new Promise(() => {}) as any);
-      vi.mocked(trialApi.getStatus).mockReturnValue(new Promise(() => {}) as any);
-      vi.mocked(subscriptionsApi.list).mockReturnValue(new Promise(() => {}) as any);
+      vi.mocked(vpnApi.getUsage).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(trialApi.getStatus).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(subscriptionsApi.list).mockReturnValue(new Promise(() => {}) as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -92,11 +92,11 @@ describe('MiniApp Home Page', () => {
     it('test_displays_no_subscription_message', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -108,11 +108,11 @@ describe('MiniApp Home Page', () => {
     it('test_no_usage_stats_without_subscription', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -136,7 +136,7 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: {
           is_trial_active: true,
@@ -144,8 +144,8 @@ describe('MiniApp Home Page', () => {
           trial_end: '2025-01-30T23:59:59Z',
           days_remaining: 15,
         }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -165,11 +165,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -193,10 +193,10 @@ describe('MiniApp Home Page', () => {
           connections_limit: 10,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
-      } as any);
+      } as never);
       vi.mocked(subscriptionsApi.list).mockResolvedValue({
         data: [
           {
@@ -206,7 +206,7 @@ describe('MiniApp Home Page', () => {
             data_limit_gb: 100,
           },
         ]
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -229,11 +229,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -254,11 +254,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 10,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -278,11 +278,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -303,11 +303,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -322,14 +322,14 @@ describe('MiniApp Home Page', () => {
     it('test_shows_trial_available_card', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: {
           is_trial_active: false,
           is_eligible: true, // Can activate trial
         }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -342,14 +342,14 @@ describe('MiniApp Home Page', () => {
     it('test_no_trial_card_when_not_eligible', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: {
           is_trial_active: false,
           is_eligible: false, // Not eligible
         }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -365,11 +365,11 @@ describe('MiniApp Home Page', () => {
     it('test_displays_quick_actions', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -392,11 +392,11 @@ describe('MiniApp Home Page', () => {
           connections_limit: 5,
           last_connection_at: '2025-01-15T14:30:00Z',
         }
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: true, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -408,11 +408,11 @@ describe('MiniApp Home Page', () => {
     it('test_vpn_config_action_hidden_without_subscription', async () => {
       const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as any);
+      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
-      } as any);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as any);
+      } as never);
+      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
 
       renderWithProviders(<MiniAppHomePage />);
 

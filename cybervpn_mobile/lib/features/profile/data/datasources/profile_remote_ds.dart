@@ -195,7 +195,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       '${ApiConstants.deleteAccount}/delete',
       data: {
         'password': password,
-        if (totpCode != null) 'totp_code': totpCode,
+        ?'totp_code': totpCode,
       },
     );
   }

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/types/result.dart' show AppFailure;
 import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -81,7 +82,7 @@ class _WithdrawBottomSheetState extends ConsumerState<WithdrawBottomSheet> {
         );
         Navigator.of(context).pop(true);
       },
-      failure: (failure) {
+      failure: (AppFailure failure) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(failure.message),
@@ -176,7 +177,7 @@ class _WithdrawBottomSheetState extends ConsumerState<WithdrawBottomSheet> {
 
               // Method selection
               DropdownButtonFormField<String>(
-                value: _selectedMethod,
+                initialValue: _selectedMethod,
                 decoration: const InputDecoration(
                   labelText: 'Withdrawal Method',
                   prefixIcon: Icon(Icons.payment),

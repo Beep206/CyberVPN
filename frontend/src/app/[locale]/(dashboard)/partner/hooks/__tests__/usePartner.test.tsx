@@ -23,7 +23,7 @@ const createWrapper = () => {
       mutations: { retry: false },
     },
   });
-  return function Wrapper({ children }: any) {
+  return function Wrapper({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 };
@@ -114,7 +114,7 @@ describe('usePartnerDashboard', () => {
       },
     });
 
-    const wrapper = function Wrapper({ children }: any) {
+    const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     };
 
@@ -214,7 +214,7 @@ describe('usePartnerCodes', () => {
       },
     });
 
-    const wrapper = function Wrapper({ children }: any) {
+    const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     };
 
@@ -315,7 +315,7 @@ describe('usePartnerEarnings', () => {
       },
     });
 
-    const wrapper = function Wrapper({ children }: any) {
+    const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     };
 
@@ -339,7 +339,7 @@ describe('usePartnerEarnings', () => {
       },
     });
 
-    const wrapper = function Wrapper({ children }: any) {
+    const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     };
 

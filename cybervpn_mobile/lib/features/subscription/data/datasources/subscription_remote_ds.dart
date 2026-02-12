@@ -132,7 +132,7 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   @override
   Future<SubscriptionEntity> createSubscription(String planId, {String? paymentMethod}) async {
     final response = await _apiClient.post<Map<String, dynamic>>('/subscription', data: {
-      'plan_id': planId, if (paymentMethod != null) 'payment_method': paymentMethod,
+      'plan_id': planId, ?'payment_method': paymentMethod,
     });
     final data = response.data as Map<String, dynamic>;
     return SubscriptionEntity(

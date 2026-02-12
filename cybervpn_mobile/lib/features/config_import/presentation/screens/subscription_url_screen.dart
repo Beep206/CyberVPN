@@ -127,7 +127,7 @@ class _SubscriptionUrlScreenState extends ConsumerState<SubscriptionUrlScreen> {
           const Divider(height: 1),
 
           // Subscription list section
-          Expanded(
+          const Expanded(
             child: _SubscriptionUrlList(),
           ),
         ],
@@ -251,7 +251,7 @@ class _SubscriptionUrlList extends ConsumerWidget {
     if (subscriptions.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => _refreshAllSubscriptions(ref),
-        child: _EmptyState(),
+        child: const _EmptyState(),
       );
     }
 

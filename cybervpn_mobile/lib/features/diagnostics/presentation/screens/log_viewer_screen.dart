@@ -121,10 +121,10 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
       return;
     }
 
-    unawaited(share_plus.Share.share(
-      logs,
+    unawaited(share_plus.SharePlus.instance.share(share_plus.ShareParams(
+      text: logs,
       subject: 'CyberVPN Logs - ${DateTime.now().toIso8601String()}',
-    ));
+    )));
   }
 
   Future<void> _clearLogs() async {

@@ -7,7 +7,7 @@ void main() {
   late RetryInterceptor interceptor;
 
   /// Helper to create a [DioException] with given parameters.
-  DioException _makeDioError({
+  DioException makeDioError({
     required DioExceptionType type,
     int? statusCode,
     String method = 'GET',
@@ -42,7 +42,7 @@ void main() {
 
   group('RetryInterceptor._shouldRetry', () {
     test('retries on 500 server error', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 500,
       );
@@ -52,7 +52,7 @@ void main() {
     });
 
     test('retries on 503 server error', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 503,
       );
@@ -60,7 +60,7 @@ void main() {
     });
 
     test('does not retry on 400 client error', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 400,
       );
@@ -68,7 +68,7 @@ void main() {
     });
 
     test('does not retry on 401 unauthorized', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 401,
       );
@@ -76,14 +76,14 @@ void main() {
     });
 
     test('does not retry on cancel', () {
-      final err = _makeDioError(type: DioExceptionType.cancel);
+      final err = makeDioError(type: DioExceptionType.cancel);
       expect(err.type, DioExceptionType.cancel);
     });
   });
 
   group('RetryInterceptor method filtering', () {
     test('does not retry POST by default', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 500,
         method: 'POST',
@@ -92,7 +92,7 @@ void main() {
     });
 
     test('does not retry DELETE by default', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 500,
         method: 'DELETE',
@@ -101,7 +101,7 @@ void main() {
     });
 
     test('does not retry PATCH by default', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 500,
         method: 'PATCH',
@@ -130,7 +130,7 @@ void main() {
     });
 
     test('stops after maxRetries', () {
-      final err = _makeDioError(
+      final err = makeDioError(
         type: DioExceptionType.badResponse,
         statusCode: 500,
         retryAttempt: 3,
@@ -143,18 +143,18 @@ void main() {
 
   group('RetryInterceptor timeout handling', () {
     test('retries on connection timeout by default', () {
-      final err = _makeDioError(type: DioExceptionType.connectionTimeout);
+      final err = makeDioError(type: DioExceptionType.connectionTimeout);
       expect(err.type, DioExceptionType.connectionTimeout);
       expect(interceptor.retryOnTimeout, true);
     });
 
     test('retries on send timeout by default', () {
-      final err = _makeDioError(type: DioExceptionType.sendTimeout);
+      final err = makeDioError(type: DioExceptionType.sendTimeout);
       expect(err.type, DioExceptionType.sendTimeout);
     });
 
     test('retries on receive timeout by default', () {
-      final err = _makeDioError(type: DioExceptionType.receiveTimeout);
+      final err = makeDioError(type: DioExceptionType.receiveTimeout);
       expect(err.type, DioExceptionType.receiveTimeout);
     });
 
@@ -171,7 +171,7 @@ void main() {
 
   group('RetryInterceptor connection errors', () {
     test('retries on connection error', () {
-      final err = _makeDioError(type: DioExceptionType.connectionError);
+      final err = makeDioError(type: DioExceptionType.connectionError);
       expect(err.type, DioExceptionType.connectionError);
     });
   });

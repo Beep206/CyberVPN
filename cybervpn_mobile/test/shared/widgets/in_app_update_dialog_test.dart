@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,7 +103,7 @@ void main() {
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () {
-                  showDialog<void>(
+                  unawaited(showDialog<void>(
                     context: context,
                     barrierDismissible: false,
                     builder: (context) => InAppUpdateDialog(
@@ -109,7 +111,7 @@ void main() {
                       onUpdate: () {},
                       prefs: prefs,
                     ),
-                  );
+                  ));
                 },
                 child: const Text('Show Dialog'),
               ),

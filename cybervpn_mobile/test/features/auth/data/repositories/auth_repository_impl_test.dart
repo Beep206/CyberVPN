@@ -50,7 +50,7 @@ void main() {
     deviceModel: 'Test Device',
   );
 
-  final testTokenModel = TokenModel(
+  const testTokenModel = TokenModel(
     accessToken: 'access-token-abc',
     refreshToken: 'refresh-token-xyz',
     expiresIn: 3600,
@@ -300,7 +300,7 @@ void main() {
 
     group('refreshToken', () {
       test('returns new access token and caches new token model', () async {
-        final newTokenModel = TokenModel(
+        const newTokenModel = TokenModel(
           accessToken: 'new-access-token',
           refreshToken: 'new-refresh-token',
           expiresIn: 3600,
@@ -327,7 +327,7 @@ void main() {
       });
 
       test('does not check network connectivity', () async {
-        final newTokenModel = TokenModel(
+        const newTokenModel = TokenModel(
           accessToken: 'new-access-token',
           refreshToken: 'new-refresh-token',
           expiresIn: 3600,

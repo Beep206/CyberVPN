@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 // Test data
 // ---------------------------------------------------------------------------
 
-final _monthlyBasic = PlanEntity(
+const _monthlyBasic = PlanEntity(
   id: 'basic-m',
   name: 'Basic',
   description: 'Basic plan',
@@ -24,7 +24,7 @@ final _monthlyBasic = PlanEntity(
   trafficLimitGb: 100,
 );
 
-final _monthlyPro = PlanEntity(
+const _monthlyPro = PlanEntity(
   id: 'pro-m',
   name: 'Pro',
   description: 'Pro plan',
@@ -37,7 +37,7 @@ final _monthlyPro = PlanEntity(
   isPopular: true,
 );
 
-final _yearlyBasic = PlanEntity(
+const _yearlyBasic = PlanEntity(
   id: 'basic-y',
   name: 'Basic Annual',
   description: 'Basic yearly plan',
@@ -49,7 +49,7 @@ final _yearlyBasic = PlanEntity(
   trafficLimitGb: 100,
 );
 
-final _lifetimePlan = PlanEntity(
+const _lifetimePlan = PlanEntity(
   id: 'lifetime',
   name: 'Lifetime',
   description: 'Lifetime access',
@@ -113,7 +113,7 @@ void main() {
   group('PlansScreen - error state', () {
     testWidgets('renders error message', (tester) async {
       await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.error('Network error', StackTrace.empty),
+        asyncState: const AsyncValue.error('Network error', StackTrace.empty),
       ));
       await tester.pump();
 
@@ -122,7 +122,7 @@ void main() {
 
     testWidgets('renders retry button', (tester) async {
       await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.error('Server down', StackTrace.empty),
+        asyncState: const AsyncValue.error('Server down', StackTrace.empty),
       ));
       await tester.pump();
 
@@ -131,7 +131,7 @@ void main() {
 
     testWidgets('renders error icon', (tester) async {
       await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.error('Oops', StackTrace.empty),
+        asyncState: const AsyncValue.error('Oops', StackTrace.empty),
       ));
       await tester.pump();
 
@@ -202,7 +202,7 @@ void main() {
     testWidgets('empty duration shows empty message', (tester) async {
       // Only monthly plans — quarterly filter should be empty
       await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: [_monthlyBasic])),
+        asyncState: const AsyncValue.data(SubscriptionState(availablePlans: [_monthlyBasic])),
       ));
       await tester.pumpAndSettle();
 

@@ -29,7 +29,7 @@ void main() {
     testWidgets('displays not enabled UI with Enable button',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -54,7 +54,7 @@ void main() {
     testWidgets('calls setup2FA when Enable button is tapped',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -84,7 +84,7 @@ void main() {
     testWidgets('displays QR code and code input after enabling',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -125,7 +125,7 @@ void main() {
     testWidgets('verify button is disabled until 6-digit code is entered',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -168,7 +168,7 @@ void main() {
     testWidgets('calls verify2FA with entered code when Verify is tapped',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -204,7 +204,7 @@ void main() {
     testWidgets('shows backup codes dialog after successful verification',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -246,7 +246,7 @@ void main() {
     testWidgets('cancel button returns to not enabled state',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -280,7 +280,7 @@ void main() {
     testWidgets('displays enabled UI with Disable button',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -308,7 +308,7 @@ void main() {
     testWidgets('shows confirmation dialog when Disable is tapped',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -341,7 +341,7 @@ void main() {
     testWidgets('shows code input dialog after confirming disable',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -371,7 +371,7 @@ void main() {
     testWidgets('calls disable2FA with code when confirmed',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -410,7 +410,7 @@ void main() {
     testWidgets('transitions to not enabled state after successful disable',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',
@@ -450,7 +450,7 @@ void main() {
     testWidgets('shows error snackbar on disable failure',
         (WidgetTester tester) async {
       // Arrange
-      final profileState = ProfileState(
+      const profileState = ProfileState(
         profile: Profile(
           id: '1',
           email: 'test@example.com',

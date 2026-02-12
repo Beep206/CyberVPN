@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,7 +120,7 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
     final countryName =
         servers.isNotEmpty ? servers.first.countryName : countryCode;
 
-    showModalBottomSheet<void>(
+    unawaited(showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
@@ -197,9 +199,9 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
                         server: server,
                         onTap: () {
                           Navigator.of(context).pop();
-                          ref
+                          unawaited(ref
                               .read(vpnConnectionProvider.notifier)
-                              .connect(server);
+                              .connect(server));
                         },
                       );
                     },
@@ -210,7 +212,7 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
           },
         );
       },
-    );
+    ));
   }
 }
 
@@ -298,7 +300,7 @@ class _ServerSheetTile extends StatelessWidget {
         style: theme.textTheme.bodySmall?.copyWith(color: pingColor),
       ),
       trailing: server.isPremium
-          ? Icon(Icons.star, color: Colors.amber, size: 18)
+          ? const Icon(Icons.star, color: Colors.amber, size: 18)
           : null,
       onTap: server.isAvailable ? onTap : null,
       enabled: server.isAvailable,

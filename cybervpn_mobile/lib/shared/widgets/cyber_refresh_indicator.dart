@@ -188,7 +188,7 @@ class _CyberRefreshIndicatorBodyState extends State<_CyberRefreshIndicatorBody>
       _dragOffset = offset.clamp(0.0, _maxDragDistance);
       if (_dragOffset > 0 && _state == _RefreshState.idle) {
         _state = _RefreshState.drag;
-        _fadeController.forward();
+        unawaited(_fadeController.forward());
       }
       if (_dragOffset >= _triggerDistance && _state == _RefreshState.drag) {
         _state = _RefreshState.armed;
@@ -219,15 +219,15 @@ class _CyberRefreshIndicatorBodyState extends State<_CyberRefreshIndicatorBody>
     });
     unawaited(_spinController.repeat());
 
-    widget.onRefresh().whenComplete(() {
+    unawaited(widget.onRefresh().whenComplete(() {
       if (!mounted) return;
       _spinController.stop();
       setState(() => _state = _RefreshState.done);
-      _fadeController.reverse().whenComplete(() {
+      unawaited(_fadeController.reverse().whenComplete(() {
         if (!mounted) return;
         _resetDrag();
-      });
-    });
+      }));
+    }));
   }
 
   void _resetDrag() {

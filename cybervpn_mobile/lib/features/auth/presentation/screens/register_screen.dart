@@ -102,7 +102,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             content: Text(
               AppLocalizations.of(context).registerReferralFromLink,
             ),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -643,7 +643,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                               decoration: InputDecoration(
                                 labelText: l10n.formEmailLabel,
                                 hintText: l10n.formEmailHint,
-                                prefixIcon: Icon(
+                                prefixIcon: const Icon(
                                   Icons.email_outlined,
                                   semanticLabel: '', // Hide from screen reader
                                 ),
@@ -858,7 +858,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       ),
                                     ),
                                   ),
-                                  backgroundColor: Color(
+                                  backgroundColor: const Color(
                                     0xFFE8F5E9,
                                   ), // Green 50: soft bg
                                   side: const BorderSide(

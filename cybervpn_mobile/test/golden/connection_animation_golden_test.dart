@@ -145,7 +145,7 @@ Widget _buildConnectingState() {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 80,
             height: 80,
             child: CircularProgressIndicator(

@@ -168,7 +168,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (_isWide(context)) {
       setState(() => _selectedDetail = detail);
     } else {
-      context.push(route);
+      unawaited(context.push(route));
     }
   }
 

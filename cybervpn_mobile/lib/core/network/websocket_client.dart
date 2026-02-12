@@ -165,7 +165,7 @@ class ForceDisconnect extends WebSocketEvent {
 /// with automatic reconnection using exponential backoff.
 ///
 /// Uses ticket-based authentication: the client first requests a single-use
-/// ticket via POST /api/v1/ws/ticket, then connects with ?ticket=<uuid>.
+/// ticket via POST /api/v1/ws/ticket, then connects with `?ticket=<uuid>`.
 /// JWT tokens never appear in WebSocket URLs.
 ///
 /// Usage:

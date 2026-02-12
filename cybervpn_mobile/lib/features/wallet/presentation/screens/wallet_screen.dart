@@ -32,7 +32,7 @@ class WalletScreen extends ConsumerWidget {
           return _buildWalletContent(context, ref, l10n, theme);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildUnavailableState(context, l10n),
+        error: (_, _) => _buildUnavailableState(context, l10n),
       ),
     );
   }

@@ -41,7 +41,7 @@ vi.mock('@/lib/api', () => ({
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: Record<string, any>) => {
+  useTranslations: () => (key: string, values?: Record<string, unknown>) => {
     if (values) {
       return `${key}(${JSON.stringify(values)})`;
     }
@@ -78,10 +78,10 @@ describe('MiniApp Plans Page', () => {
     it('test_displays_loading_spinner', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockReturnValue(new Promise(() => {}) as any);
+      vi.mocked(plansApi.list).mockReturnValue(new Promise(() => {}) as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -119,10 +119,10 @@ describe('MiniApp Plans Page', () => {
             isActive: true,
           },
         ]
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -147,10 +147,10 @@ describe('MiniApp Plans Page', () => {
             isActive: true,
           },
         ]
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -163,10 +163,10 @@ describe('MiniApp Plans Page', () => {
     it('test_displays_no_plans_message', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -193,13 +193,13 @@ describe('MiniApp Plans Page', () => {
             isActive: true,
           },
         ]
-      } as any);
+      } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
       vi.mocked(paymentsApi.createInvoice).mockResolvedValue({
         data: { payment_url: 'https://payment.url' }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -225,10 +225,10 @@ describe('MiniApp Plans Page', () => {
     it('test_shows_trial_section_when_eligible', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: true, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -241,10 +241,10 @@ describe('MiniApp Plans Page', () => {
     it('test_hides_trial_section_when_not_eligible', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -259,11 +259,11 @@ describe('MiniApp Plans Page', () => {
       const user = userEvent.setup({ delay: null });
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: true, is_trial_active: false }
-      } as any);
-      vi.mocked(trialApi.activate).mockResolvedValue({ data: {} } as any);
+      } as never);
+      vi.mocked(trialApi.activate).mockResolvedValue({ data: {} } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -284,10 +284,10 @@ describe('MiniApp Plans Page', () => {
     it('test_displays_promo_code_input', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 
@@ -302,10 +302,10 @@ describe('MiniApp Plans Page', () => {
     it('test_displays_invite_code_input', async () => {
       const { plansApi, trialApi } = await import('@/lib/api');
 
-      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as any);
+      vi.mocked(plansApi.list).mockResolvedValue({ data: [] } as never);
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_eligible: false, is_trial_active: false }
-      } as any);
+      } as never);
 
       renderWithProviders(<MiniAppPlansPage />);
 

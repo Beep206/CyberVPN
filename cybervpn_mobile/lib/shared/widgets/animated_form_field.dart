@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
@@ -93,7 +95,7 @@ class _ShakeWidgetState extends State<ShakeWidget>
     super.didUpdateWidget(old);
     if (widget.shake && !old.shake) {
       if (!MediaQuery.of(context).disableAnimations) {
-        _controller.forward(from: 0);
+        unawaited(_controller.forward(from: 0));
       }
     }
   }
@@ -180,7 +182,7 @@ class _SuccessCheckmarkState extends State<SuccessCheckmark>
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 30),
     ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _controller.forward().whenComplete(() => widget.onComplete?.call());
+    unawaited(_controller.forward().whenComplete(() => widget.onComplete?.call()));
   }
 
   @override

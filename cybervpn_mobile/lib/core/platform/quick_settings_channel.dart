@@ -20,9 +20,7 @@ final quickSettingsChannelProvider = Provider<QuickSettingsChannel>((ref) {
   ref.listen<AsyncValue<VpnConnectionState>>(
     vpnConnectionProvider,
     (previous, next) {
-      next.whenData((state) {
-        channel.broadcastVpnState(state);
-      });
+      next.whenData(channel.broadcastVpnState);
     },
   );
 

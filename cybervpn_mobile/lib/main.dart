@@ -242,7 +242,8 @@ FutureOr<SentryEvent?> _sanitizeSentryEvent(SentryEvent event, Hint hint) {
     );
   }).toList();
 
-  return event.copyWith(exceptions: sanitizedExceptions);
+  event.exceptions = sanitizedExceptions;
+  return event;
 }
 
 /// Launches the application inside a [ProviderScope].

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' as failures;
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
@@ -38,7 +40,7 @@ Widget buildTestableCancelSheet({
         body: Builder(
           builder: (context) => ElevatedButton(
             onPressed: () {
-              CancelSubscriptionSheet.show(context, subscriptionId);
+              unawaited(CancelSubscriptionSheet.show(context, subscriptionId));
             },
             child: const Text('Open Sheet'),
           ),

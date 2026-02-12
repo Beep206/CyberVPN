@@ -74,15 +74,15 @@ class _MockRevenueCat implements RevenueCatDataSource {
     return _emptyCustomerInfo;
   }
 
-  static final _emptyCustomerInfo = CustomerInfo(
-    const EntitlementInfos({}, {}),
-    const {},
-    const [],
-    const [],
-    const [],
+  static const _emptyCustomerInfo = CustomerInfo(
+    EntitlementInfos({}, {}),
+    {},
+    [],
+    [],
+    [],
     '',
     '',
-    const {},
+    {},
     '',
   );
 
@@ -682,5 +682,5 @@ void main() {
 class _MockSubscriptionRepoWithFailRestore extends _MockSubscriptionRepo {
   @override
   Future<Result<void>> restorePurchases() async =>
-      Failure(ServerFailure(message: 'Restore sync failed'));
+      const Failure(ServerFailure(message: 'Restore sync failed'));
 }

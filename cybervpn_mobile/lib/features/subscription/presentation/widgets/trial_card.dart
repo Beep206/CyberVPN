@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,7 +34,7 @@ class _TrialCardState extends ConsumerState<TrialCard> {
   @override
   void initState() {
     super.initState();
-    _fetchTrialStatus();
+    unawaited(_fetchTrialStatus());
   }
 
   Future<void> _fetchTrialStatus() async {
@@ -119,7 +121,7 @@ class _TrialCardState extends ConsumerState<TrialCard> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.card_giftcard,
                 color: CyberColors.matrixGreen,
                 size: 32,

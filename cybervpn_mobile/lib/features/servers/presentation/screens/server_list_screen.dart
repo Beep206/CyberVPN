@@ -330,7 +330,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             return Row(
               children: [
                 ConstrainedBox(
-                  constraints: BoxConstraints(
+                  constraints: const BoxConstraints(
                     minWidth: 280,
                     maxWidth: 400,
                   ),
@@ -377,7 +377,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             icon: Icon(preferMap ? Icons.list : Icons.map_outlined),
             tooltip: preferMap ? 'List view' : 'Map view',
             onPressed: () {
-              ref.read(settingsProvider.notifier).updatePreferMapView(!preferMap);
+              unawaited(ref.read(settingsProvider.notifier).updatePreferMapView(!preferMap));
             },
           ),
         ],
@@ -635,7 +635,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
               final headerKey = _countryHeaderKeys.putIfAbsent(
                 countryCode,
-                () => GlobalKey(),
+                GlobalKey.new,
               );
 
               return [
@@ -656,13 +656,13 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           final ctx = headerKey.currentContext;
                           if (ctx != null) {
-                            Scrollable.ensureVisible(
+                            unawaited(Scrollable.ensureVisible(
                               ctx,
                               duration: AnimDurations.medium,
                               curve: Curves.easeInOut,
                               alignmentPolicy:
                                   ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-                            );
+                            ));
                           }
                         });
                       }
@@ -824,9 +824,9 @@ class _AnimatedExpandSectionState extends State<_AnimatedExpandSection>
     super.didUpdateWidget(oldWidget);
     if (widget.isExpanded != oldWidget.isExpanded) {
       if (widget.isExpanded) {
-        _controller.forward();
+        unawaited(_controller.forward());
       } else {
-        _controller.reverse();
+        unawaited(_controller.reverse());
       }
     }
   }
@@ -908,7 +908,7 @@ class _RecentServersCarousel extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               itemCount: recentServers.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(width: Spacing.sm),
               itemBuilder: (context, index) {
                 final server = recentServers[index];

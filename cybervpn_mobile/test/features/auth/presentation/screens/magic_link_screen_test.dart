@@ -18,11 +18,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/magic-link',
-          builder: (_, __) => const MagicLinkScreen(),
+          builder: (_, _) => const MagicLinkScreen(),
         ),
         GoRoute(
           path: '/login',
-          builder: (_, __) =>
+          builder: (_, _) =>
               const Scaffold(body: Text('Login Screen Route')),
         ),
       ],

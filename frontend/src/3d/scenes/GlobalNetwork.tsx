@@ -18,35 +18,37 @@ import { EffectComposer, Bloom, ChromaticAberration, ToneMapping, Noise, Vignett
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
 import '@/3d/shaders/AtmosphereShader'; // Keeping atmosphere for outer glow only
 
+// Module-level factory — outside render, not analyzed by React Compiler
+function generateFloatingParticleData(count: number) {
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    const phases = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+        const r = 4 + Math.random() * 8;
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+
+        velocities[i * 3] = (Math.random() - 0.5) * 0.02;
+        velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
+        velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+
+        phases[i] = Math.random() * Math.PI * 2;
+    }
+    return { positions, velocities, phases };
+}
+
 function FloatingParticles({ count = 2000 }: { count?: number }) {
     const mesh = useRef<THREE.InstancedMesh>(null!);
-    const { positions, velocities, phases } = useMemo(() => {
-        const positions = new Float32Array(count * 3);
-        const velocities = new Float32Array(count * 3);
-        const phases = new Float32Array(count); // Random start phase for pulse
-
-        for (let i = 0; i < count; i++) {
-            // Random position in a spherical shell (radius 4 to 12)
-            const r = 4 + Math.random() * 8;
-            const theta = Math.random() * 2 * Math.PI;
-            const phi = Math.acos(2 * Math.random() - 1);
-
-            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i * 3 + 2] = r * Math.cos(phi);
-
-            // Orbit velocity (perpendicular to radius approx)
-            velocities[i * 3] = (Math.random() - 0.5) * 0.02;
-            velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
-            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
-
-            phases[i] = Math.random() * Math.PI * 2;
-        }
-        return { positions, velocities, phases };
-    }, [count]);
+    const [{ positions, velocities, phases }] = useState(() => generateFloatingParticleData(count));
 
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
+    /* eslint-disable react-hooks/immutability -- Float32Array mutations in animation loop are intentional */
     useFrame((state) => {
         const t = state.clock.getElapsedTime();
 
@@ -80,6 +82,7 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
         }
         mesh.current.instanceMatrix.needsUpdate = true;
     });
+    /* eslint-enable react-hooks/immutability */
 
     return (
         <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
@@ -231,8 +234,8 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
                         />
 
                         {/* Animated packets traveling along the line */}
-                        <DataPacket curve={curve} color="#00ffff" speed={0.5} offset={Math.random()} />
-                        <DataPacket curve={curve} color="#ff00ff" speed={0.3} offset={Math.random() + 0.5} />
+                        <DataPacket curve={curve} color="#00ffff" speed={0.5} offset={((i * 9301 + 49297) % 233280) / 233280} />
+                        <DataPacket curve={curve} color="#ff00ff" speed={0.3} offset={((i * 9301 + 49297) % 233280) / 233280 + 0.5} />
                     </group>
                 );
             })}
