@@ -66,7 +66,7 @@ void main() {
 
     test('returns stored configs after import', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
 
       await repo.importFromUri(_validVlessUri, ImportSource.manual);
       final configs = await repo.getImportedConfigs();
@@ -91,7 +91,7 @@ void main() {
   group('importFromUri', () {
     test('saves parsed config to storage', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
 
       final imported =
           await repo.importFromUri(_validVlessUri, ImportSource.clipboard);
@@ -108,7 +108,7 @@ void main() {
 
     test('deduplicates by raw URI', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
 
       await repo.importFromUri(_validVlessUri, ImportSource.manual);
       await repo.importFromUri(_validVlessUri, ImportSource.clipboard);
@@ -192,9 +192,9 @@ void main() {
   group('deleteConfig', () {
     test('removes correct config by ID', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
       when(() => mockParseVpnUri.call(_validTrojanUri))
-          .thenReturn(ParseSuccess(_parsedTrojanConfig));
+          .thenReturn(const ParseSuccess(_parsedTrojanConfig));
 
       final vless =
           await repo.importFromUri(_validVlessUri, ImportSource.manual);
@@ -211,7 +211,7 @@ void main() {
   group('deleteAll', () {
     test('clears all configs', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
 
       await repo.importFromUri(_validVlessUri, ImportSource.manual);
       await repo.deleteAll();
@@ -257,7 +257,7 @@ void main() {
   group('JSON serialization roundtrip', () {
     test('config survives save and reload', () async {
       when(() => mockParseVpnUri.call(_validVlessUri))
-          .thenReturn(ParseSuccess(_parsedVlessConfig));
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
 
       final original =
           await repo.importFromUri(_validVlessUri, ImportSource.deepLink);

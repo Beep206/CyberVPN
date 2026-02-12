@@ -165,7 +165,7 @@ void main() {
   group('ParseVpnUri - custom parsers', () {
     test('accepts custom parser list', () {
       // Create use case with no parsers - everything should fail
-      final emptyUseCase = ParseVpnUri(parsers: []);
+      final emptyUseCase = ParseVpnUri(parsers: const []);
       final result = emptyUseCase.call(
         'vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@example.com:443'
         '?security=none&type=tcp',

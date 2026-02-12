@@ -75,7 +75,7 @@ class PartnerRepositoryImpl
   }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
-      return Failure(
+      return const Failure(
         UnknownFailure(message: 'Partner feature not available'),
       );
     }
@@ -108,7 +108,7 @@ class PartnerRepositoryImpl
   }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
-      return Failure(
+      return const Failure(
         UnknownFailure(message: 'Partner feature not available'),
       );
     }
@@ -132,7 +132,7 @@ class PartnerRepositoryImpl
   }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
-      return Failure(
+      return const Failure(
         UnknownFailure(message: 'Partner feature not available'),
       );
     }
@@ -156,7 +156,7 @@ class PartnerRepositoryImpl
   }) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
-      return Failure(
+      return const Failure(
         UnknownFailure(message: 'Partner feature not available'),
       );
     }
@@ -188,7 +188,7 @@ class PartnerRepositoryImpl
   Future<Result<BindCodeResult>> bindPartnerCode(String code) async {
     final isAvail = (await isAvailable()).dataOrNull ?? false;
     if (!isAvail) {
-      return Failure(
+      return const Failure(
         UnknownFailure(message: 'Partner feature not available'),
       );
     }

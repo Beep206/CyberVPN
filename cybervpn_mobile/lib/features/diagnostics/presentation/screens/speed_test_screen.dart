@@ -258,7 +258,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
       ..writeln(result.vpnActive ? l10n.speedTestShareVpnOn : l10n.speedTestShareVpnOff)
       ..writeln(l10n.speedTestShareTestedAt(result.testedAt.toLocal().toString()));
 
-    unawaited(share_plus.Share.share(text.toString()));
+    unawaited(share_plus.SharePlus.instance.share(share_plus.ShareParams(text: text.toString())));
   }
 }
 

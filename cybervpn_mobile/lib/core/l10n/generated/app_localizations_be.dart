@@ -174,25 +174,29 @@ class AppLocalizationsBe extends AppLocalizations {
   String get onboardingWelcomeTitle => 'Добро пожаловать в CyberVPN';
 
   @override
-  String get onboardingWelcomeDescription => 'Безопасный, быстрый и приватный доступ в интернет у вас под рукой.';
+  String get onboardingWelcomeDescription =>
+      'Безопасный, быстрый и приватный доступ в интернет у вас под рукой.';
 
   @override
   String get onboardingFeaturesTitle => 'Мощные возможности';
 
   @override
-  String get onboardingFeaturesDescription => 'Kill Switch, раздельное туннелирование и шифрование военного уровня для вашей защиты.';
+  String get onboardingFeaturesDescription =>
+      'Kill Switch, раздельное туннелирование и шифрование военного уровня для вашей защиты.';
 
   @override
   String get onboardingPrivacyTitle => 'Ваша приватность важна';
 
   @override
-  String get onboardingPrivacyDescription => 'Политика нулевых логов. Мы никогда не отслеживаем, не сохраняем и не передаём ваши данные.';
+  String get onboardingPrivacyDescription =>
+      'Политика нулевых логов. Мы никогда не отслеживаем, не сохраняем и не передаём ваши данные.';
 
   @override
   String get onboardingSpeedTitle => 'Молниеносная скорость';
 
   @override
-  String get onboardingSpeedDescription => 'Подключайтесь к оптимизированным серверам по всему миру для максимальной скорости.';
+  String get onboardingSpeedDescription =>
+      'Подключайтесь к оптимизированным серверам по всему миру для максимальной скорости.';
 
   @override
   String get onboardingSkip => 'Пропустить';
@@ -215,19 +219,22 @@ class AppLocalizationsBe extends AppLocalizations {
   String get onboardingConnectTitle => 'One Tap Connect';
 
   @override
-  String get onboardingConnectDescription => 'Connect to hundreds of servers worldwide with a single tap.';
+  String get onboardingConnectDescription =>
+      'Connect to hundreds of servers worldwide with a single tap.';
 
   @override
   String get onboardingGlobeTitle => 'Global Network';
 
   @override
-  String get onboardingGlobeDescription => 'Access content from anywhere with our worldwide server network.';
+  String get onboardingGlobeDescription =>
+      'Access content from anywhere with our worldwide server network.';
 
   @override
   String get onboardingGetStartedTitle => 'Ready to Go';
 
   @override
-  String get onboardingGetStartedDescription => 'Your secure connection is just one tap away.';
+  String get onboardingGetStartedDescription =>
+      'Your secure connection is just one tap away.';
 
   @override
   String get onboardingNoPages => 'No onboarding pages';
@@ -236,13 +243,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get permissionSetupTitle => 'Set Up Permissions';
 
   @override
-  String get permissionSetupSubtitle => 'CyberVPN needs a few permissions to keep you secure';
+  String get permissionSetupSubtitle =>
+      'CyberVPN needs a few permissions to keep you secure';
 
   @override
   String get permissionVpnTitle => 'VPN Connection';
 
   @override
-  String get permissionVpnDescription => 'CyberVPN creates a secure tunnel to protect your data';
+  String get permissionVpnDescription =>
+      'CyberVPN creates a secure tunnel to protect your data';
 
   @override
   String get permissionGrantButton => 'Grant Permissions';
@@ -257,7 +266,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get permissionAlmostReady => 'Almost Ready';
 
   @override
-  String get permissionEnableLater => 'You can enable these permissions later in Settings if needed';
+  String get permissionEnableLater =>
+      'You can enable these permissions later in Settings if needed';
 
   @override
   String get permissionAppReady => 'Your app is configured and ready to use';
@@ -266,7 +276,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get permissionOpenSettings => 'Open Settings';
 
   @override
-  String get permissionEnableInSettings => 'Please enable permissions in your device Settings';
+  String get permissionEnableInSettings =>
+      'Please enable permissions in your device Settings';
 
   @override
   String get settingsTitle => 'Настройки';
@@ -299,25 +310,29 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsVpnProtocolLabel => 'Протокол';
 
   @override
-  String get settingsVpnProtocolDescription => 'Выберите протокол VPN для подключения.';
+  String get settingsVpnProtocolDescription =>
+      'Выберите протокол VPN для подключения.';
 
   @override
   String get settingsAutoConnectLabel => 'Автоподключение';
 
   @override
-  String get settingsAutoConnectDescription => 'Автоматически подключаться при запуске приложения.';
+  String get settingsAutoConnectDescription =>
+      'Автоматически подключаться при запуске приложения.';
 
   @override
   String get settingsKillSwitchLabel => 'Kill Switch';
 
   @override
-  String get settingsKillSwitchDescription => 'Блокировать интернет при разрыве VPN-соединения.';
+  String get settingsKillSwitchDescription =>
+      'Блокировать интернет при разрыве VPN-соединения.';
 
   @override
   String get settingsDnsLabel => 'Пользовательский DNS';
 
   @override
-  String get settingsDnsDescription => 'Использовать пользовательский DNS-сервер.';
+  String get settingsDnsDescription =>
+      'Использовать пользовательский DNS-сервер.';
 
   @override
   String get settingsDnsPlaceholder => 'Введите адрес DNS';
@@ -326,13 +341,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsSplitTunnelingLabel => 'Раздельное туннелирование';
 
   @override
-  String get settingsSplitTunnelingDescription => 'Выберите, какие приложения используют VPN-соединение.';
+  String get settingsSplitTunnelingDescription =>
+      'Выберите, какие приложения используют VPN-соединение.';
 
   @override
   String get settingsThemeModeLabel => 'Тема оформления';
 
   @override
-  String get settingsThemeModeDescription => 'Выберите светлую, тёмную или системную тему.';
+  String get settingsThemeModeDescription =>
+      'Выберите светлую, тёмную или системную тему.';
 
   @override
   String get settingsLanguageLabel => 'Язык';
@@ -344,34 +361,40 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDebugLogsLabel => 'Журнал отладки';
 
   @override
-  String get settingsDebugLogsDescription => 'Включить подробное логирование для диагностики.';
+  String get settingsDebugLogsDescription =>
+      'Включить подробное логирование для диагностики.';
 
   @override
   String get settingsExportLogsLabel => 'Экспорт логов';
 
   @override
-  String get settingsExportLogsDescription => 'Экспортировать логи отладки для поддержки.';
+  String get settingsExportLogsDescription =>
+      'Экспортировать логи отладки для поддержки.';
 
   @override
   String get settingsResetLabel => 'Сбросить настройки';
 
   @override
-  String get settingsResetDescription => 'Восстановить все настройки по умолчанию.';
+  String get settingsResetDescription =>
+      'Восстановить все настройки по умолчанию.';
 
   @override
-  String get settingsResetConfirm => 'Вы уверены, что хотите сбросить все настройки?';
+  String get settingsResetConfirm =>
+      'Вы уверены, что хотите сбросить все настройки?';
 
   @override
   String get settingsStartOnBootLabel => 'Запуск при загрузке';
 
   @override
-  String get settingsStartOnBootDescription => 'Автоматически запускать CyberVPN при включении устройства.';
+  String get settingsStartOnBootDescription =>
+      'Автоматически запускать CyberVPN при включении устройства.';
 
   @override
   String get settingsConnectionTimeoutLabel => 'Тайм-аут подключения';
 
   @override
-  String get settingsConnectionTimeoutDescription => 'Максимальное время ожидания при попытке подключения.';
+  String get settingsConnectionTimeoutDescription =>
+      'Максимальное время ожидания при попытке подключения.';
 
   @override
   String settingsConnectionTimeoutSeconds(int count) {
@@ -414,7 +437,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get changePassword => 'Change Password';
 
   @override
-  String get changePasswordSubtitle => 'Update your account password to keep your account secure.';
+  String get changePasswordSubtitle =>
+      'Update your account password to keep your account secure.';
 
   @override
   String get changePasswordCurrent => 'Current Password';
@@ -432,25 +456,32 @@ class AppLocalizationsBe extends AppLocalizations {
   String get changePasswordSuccess => 'Password Changed';
 
   @override
-  String get changePasswordSuccessMessage => 'Your password has been changed successfully. Please use your new password when signing in.';
+  String get changePasswordSuccessMessage =>
+      'Your password has been changed successfully. Please use your new password when signing in.';
 
   @override
-  String get changePasswordInvalidPassword => 'The new password does not meet security requirements. Please ensure it\'s at least 12 characters long.';
+  String get changePasswordInvalidPassword =>
+      'The new password does not meet security requirements. Please ensure it\'s at least 12 characters long.';
 
   @override
-  String get changePasswordCurrentWrong => 'The current password is incorrect. Please try again.';
+  String get changePasswordCurrentWrong =>
+      'The current password is incorrect. Please try again.';
 
   @override
-  String get changePasswordOAuthOnly => 'Your account uses OAuth authentication (Google, GitHub, etc.). You cannot set a password for OAuth-only accounts.';
+  String get changePasswordOAuthOnly =>
+      'Your account uses OAuth authentication (Google, GitHub, etc.). You cannot set a password for OAuth-only accounts.';
 
   @override
-  String get changePasswordTooShort => 'Password must be at least 12 characters long.';
+  String get changePasswordTooShort =>
+      'Password must be at least 12 characters long.';
 
   @override
-  String get changePasswordSameAsOld => 'New password must be different from your current password.';
+  String get changePasswordSameAsOld =>
+      'New password must be different from your current password.';
 
   @override
-  String get changePasswordMismatch => 'Passwords do not match. Please try again.';
+  String get changePasswordMismatch =>
+      'Passwords do not match. Please try again.';
 
   @override
   String changePasswordRateLimit(String minutes) {
@@ -470,13 +501,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get antiphishingTitle => 'Antiphishing Code';
 
   @override
-  String get antiphishingDescription => 'This code will appear in all official emails from CyberVPN to help you verify their authenticity.';
+  String get antiphishingDescription =>
+      'This code will appear in all official emails from CyberVPN to help you verify their authenticity.';
 
   @override
   String get antiphishingNotSetTitle => 'No Antiphishing Code Set';
 
   @override
-  String get antiphishingNotSetMessage => 'Set a personal antiphishing code that will appear in all official emails from CyberVPN. This helps you identify legitimate emails and avoid phishing attempts.';
+  String get antiphishingNotSetMessage =>
+      'Set a personal antiphishing code that will appear in all official emails from CyberVPN. This helps you identify legitimate emails and avoid phishing attempts.';
 
   @override
   String get antiphishingSetCode => 'Set Antiphishing Code';
@@ -494,10 +527,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get antiphishingDeleteConfirmTitle => 'Delete Antiphishing Code?';
 
   @override
-  String get antiphishingDeleteConfirmMessage => 'Are you sure you want to delete your antiphishing code? You can set a new one later.';
+  String get antiphishingDeleteConfirmMessage =>
+      'Are you sure you want to delete your antiphishing code? You can set a new one later.';
 
   @override
-  String get antiphishingEditDescription => 'Enter a memorable code (max 50 characters) that will appear in all official emails from CyberVPN.';
+  String get antiphishingEditDescription =>
+      'Enter a memorable code (max 50 characters) that will appear in all official emails from CyberVPN.';
 
   @override
   String get antiphishingCodeLabel => 'Antiphishing Code';
@@ -506,13 +541,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get antiphishingCodeHint => 'Enter your personal code';
 
   @override
-  String get antiphishingCodeHelper => 'This code will be included in all official CyberVPN emails';
+  String get antiphishingCodeHelper =>
+      'This code will be included in all official CyberVPN emails';
 
   @override
   String get antiphishingCodeTooLong => 'Code must be 50 characters or less.';
 
   @override
-  String get antiphishingLoadError => 'Failed to load antiphishing code. Please try again.';
+  String get antiphishingLoadError =>
+      'Failed to load antiphishing code. Please try again.';
 
   @override
   String get save => 'Save';
@@ -524,7 +561,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorAuth => 'Двухфакторная аутентификация';
 
   @override
-  String get profileTwoFactorAuthDescription => 'Добавьте дополнительный уровень защиты вашей учётной записи.';
+  String get profileTwoFactorAuthDescription =>
+      'Добавьте дополнительный уровень защиты вашей учётной записи.';
 
   @override
   String get profileTwoFactorEnable => 'Включить 2FA';
@@ -536,22 +574,26 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorSetup => 'Настройка двухфакторной аутентификации';
 
   @override
-  String get profileTwoFactorScanQr => 'Отсканируйте этот QR-код в приложении-аутентификаторе.';
+  String get profileTwoFactorScanQr =>
+      'Отсканируйте этот QR-код в приложении-аутентификаторе.';
 
   @override
-  String get profileTwoFactorEnterCode => 'Введите 6-значный код из приложения-аутентификатора.';
+  String get profileTwoFactorEnterCode =>
+      'Введите 6-значный код из приложения-аутентификатора.';
 
   @override
   String get profileTwoFactorBackupCodes => 'Резервные коды';
 
   @override
-  String get profileTwoFactorBackupCodesDescription => 'Сохраните эти коды в надёжном месте. Вы сможете использовать их для входа, если потеряете доступ к приложению-аутентификатору.';
+  String get profileTwoFactorBackupCodesDescription =>
+      'Сохраните эти коды в надёжном месте. Вы сможете использовать их для входа, если потеряете доступ к приложению-аутентификатору.';
 
   @override
   String get profileOauthAccounts => 'Привязанные аккаунты';
 
   @override
-  String get profileOauthAccountsDescription => 'Управление привязанными аккаунтами социальных сетей.';
+  String get profileOauthAccountsDescription =>
+      'Управление привязанными аккаунтами социальных сетей.';
 
   @override
   String get profileOauthLink => 'Привязать аккаунт';
@@ -560,13 +602,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileOauthUnlink => 'Отвязать';
 
   @override
-  String get profileOauthUnlinkConfirm => 'Вы уверены, что хотите отвязать этот аккаунт?';
+  String get profileOauthUnlinkConfirm =>
+      'Вы уверены, что хотите отвязать этот аккаунт?';
 
   @override
   String get profileTrustedDevices => 'Доверенные устройства';
 
   @override
-  String get profileTrustedDevicesDescription => 'Управление устройствами с доступом к вашей учётной записи.';
+  String get profileTrustedDevicesDescription =>
+      'Управление устройствами с доступом к вашей учётной записи.';
 
   @override
   String get profileDeviceCurrent => 'Текущее устройство';
@@ -580,7 +624,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileDeviceRevoke => 'Отозвать доступ';
 
   @override
-  String get profileDeviceRevokeConfirm => 'Вы уверены, что хотите отозвать доступ для этого устройства?';
+  String get profileDeviceRevokeConfirm =>
+      'Вы уверены, что хотите отозвать доступ для этого устройства?';
 
   @override
   String get profileDeviceRevokeAll => 'Отозвать все устройства';
@@ -589,10 +634,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileDeleteAccount => 'Удалить аккаунт';
 
   @override
-  String get profileDeleteAccountDescription => 'Безвозвратно удалить вашу учётную запись и все связанные данные.';
+  String get profileDeleteAccountDescription =>
+      'Безвозвратно удалить вашу учётную запись и все связанные данные.';
 
   @override
-  String get profileDeleteAccountConfirm => 'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.';
+  String get profileDeleteAccountConfirm =>
+      'Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.';
 
   @override
   String get profileDeleteAccountButton => 'Удалить мой аккаунт';
@@ -612,7 +659,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportQrScanTitle => 'Сканирование QR-кода';
 
   @override
-  String get configImportQrScanDescription => 'Наведите камеру на QR-код конфигурации VPN.';
+  String get configImportQrScanDescription =>
+      'Наведите камеру на QR-код конфигурации VPN.';
 
   @override
   String get configImportScanQrButton => 'Сканировать QR-код';
@@ -624,13 +672,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportFromClipboard => 'Импорт из буфера обмена';
 
   @override
-  String get configImportFromClipboardDescription => 'Вставьте ссылку или текст конфигурации из буфера обмена.';
+  String get configImportFromClipboardDescription =>
+      'Вставьте ссылку или текст конфигурации из буфера обмена.';
 
   @override
   String get configImportFromFile => 'Импорт из файла';
 
   @override
-  String get configImportFromFileDescription => 'Выберите файл конфигурации на вашем устройстве.';
+  String get configImportFromFileDescription =>
+      'Выберите файл конфигурации на вашем устройстве.';
 
   @override
   String get configImportPreviewTitle => 'Предпросмотр конфигурации';
@@ -663,7 +713,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportDuplicate => 'Эта конфигурация уже существует.';
 
   @override
-  String get configImportCameraPermission => 'Для сканирования QR-кодов необходим доступ к камере.';
+  String get configImportCameraPermission =>
+      'Для сканирования QR-кодов необходим доступ к камере.';
 
   @override
   String get notificationCenterTitle => 'Уведомления';
@@ -678,7 +729,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get notificationCenterClearAll => 'Очистить все';
 
   @override
-  String get notificationCenterEmptyDescription => 'When you receive notifications, they will appear here.';
+  String get notificationCenterEmptyDescription =>
+      'When you receive notifications, they will appear here.';
 
   @override
   String get notificationCenterLoadError => 'Failed to load notifications';
@@ -759,7 +811,8 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get notificationSubscriptionExpired => 'Ваша подписка истекла. Продлите её для продолжения использования CyberVPN.';
+  String get notificationSubscriptionExpired =>
+      'Ваша подписка истекла. Продлите её для продолжения использования CyberVPN.';
 
   @override
   String notificationUnreadCount(int count) {
@@ -779,7 +832,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get referralDashboardTitle => 'Реферальная программа';
 
   @override
-  String get referralDashboardDescription => 'Приглашайте друзей и получайте награды.';
+  String get referralDashboardDescription =>
+      'Приглашайте друзей и получайте награды.';
 
   @override
   String get referralShareLink => 'Поделиться реферальной ссылкой';
@@ -788,7 +842,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get referralCopyLink => 'Копировать ссылку';
 
   @override
-  String get referralLinkCopied => 'Реферальная ссылка скопирована в буфер обмена.';
+  String get referralLinkCopied =>
+      'Реферальная ссылка скопирована в буфер обмена.';
 
   @override
   String get referralCodeLabel => 'Ваш реферальный код';
@@ -842,7 +897,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get diagnosticsTitle => 'Диагностика';
 
   @override
-  String get diagnosticsDescription => 'Проверьте подключение и устраните неполадки.';
+  String get diagnosticsDescription =>
+      'Проверьте подключение и устраните неполадки.';
 
   @override
   String get speedTestTitle => 'Тест скорости';
@@ -894,7 +950,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get speedTestStepComplete => 'Тест завершён.';
 
   @override
-  String get speedTestNoVpn => 'Подключитесь к VPN перед запуском теста скорости.';
+  String get speedTestNoVpn =>
+      'Подключитесь к VPN перед запуском теста скорости.';
 
   @override
   String get logViewerTitle => 'Просмотр логов';
@@ -909,7 +966,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get logViewerClearButton => 'Очистить логи';
 
   @override
-  String get logViewerClearConfirm => 'Вы уверены, что хотите очистить все логи?';
+  String get logViewerClearConfirm =>
+      'Вы уверены, что хотите очистить все логи?';
 
   @override
   String get logViewerFilterLabel => 'Фильтр';
@@ -966,31 +1024,39 @@ class AppLocalizationsBe extends AppLocalizations {
   String get quickActionSupport => 'Поддержка';
 
   @override
-  String get errorConnectionFailed => 'Не удалось подключиться. Попробуйте снова.';
+  String get errorConnectionFailed =>
+      'Не удалось подключиться. Попробуйте снова.';
 
   @override
-  String get errorConnectionTimeout => 'Время подключения истекло. Проверьте соединение с интернетом.';
+  String get errorConnectionTimeout =>
+      'Время подключения истекло. Проверьте соединение с интернетом.';
 
   @override
-  String get errorServerUnavailable => 'Сервер временно недоступен. Попробуйте другой сервер.';
+  String get errorServerUnavailable =>
+      'Сервер временно недоступен. Попробуйте другой сервер.';
 
   @override
-  String get errorInvalidConfig => 'Неверная конфигурация. Импортируйте настройки заново.';
+  String get errorInvalidConfig =>
+      'Неверная конфигурация. Импортируйте настройки заново.';
 
   @override
-  String get errorSubscriptionExpired => 'Ваша подписка истекла. Продлите её для продолжения работы.';
+  String get errorSubscriptionExpired =>
+      'Ваша подписка истекла. Продлите её для продолжения работы.';
 
   @override
-  String get errorSubscriptionRequired => 'Для использования этой функции необходима подписка.';
+  String get errorSubscriptionRequired =>
+      'Для использования этой функции необходима подписка.';
 
   @override
-  String get errorAuthenticationFailed => 'Ошибка аутентификации. Войдите в систему снова.';
+  String get errorAuthenticationFailed =>
+      'Ошибка аутентификации. Войдите в систему снова.';
 
   @override
   String get errorTokenExpired => 'Сессия истекла. Войдите в систему снова.';
 
   @override
-  String get errorNetworkUnreachable => 'Сеть недоступна. Проверьте подключение.';
+  String get errorNetworkUnreachable =>
+      'Сеть недоступна. Проверьте подключение.';
 
   @override
   String get errorPermissionDenied => 'Доступ запрещён.';
@@ -999,7 +1065,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get errorRateLimited => 'Слишком много запросов. Подождите немного.';
 
   @override
-  String get errorUnexpected => 'Произошла непредвиденная ошибка. Попробуйте снова.';
+  String get errorUnexpected =>
+      'Произошла непредвиденная ошибка. Попробуйте снова.';
 
   @override
   String get errorServerError => 'Ошибка сервера. Попробуйте позже.';
@@ -1008,13 +1075,16 @@ class AppLocalizationsBe extends AppLocalizations {
   String get errorInvalidCredentials => 'Неверный адрес эл. почты или пароль.';
 
   @override
-  String get errorAccountLocked => 'Ваш аккаунт заблокирован. Обратитесь в службу поддержки.';
+  String get errorAccountLocked =>
+      'Ваш аккаунт заблокирован. Обратитесь в службу поддержки.';
 
   @override
-  String get errorWeakPassword => 'Пароль слишком слабый. Используйте минимум 8 символов, включая буквы и цифры.';
+  String get errorWeakPassword =>
+      'Пароль слишком слабый. Используйте минимум 8 символов, включая буквы и цифры.';
 
   @override
-  String get errorEmailAlreadyInUse => 'Этот адрес эл. почты уже зарегистрирован.';
+  String get errorEmailAlreadyInUse =>
+      'Этот адрес эл. почты уже зарегистрирован.';
 
   @override
   String get errorInvalidEmail => 'Введите корректный адрес эл. почты.';
@@ -1023,43 +1093,55 @@ class AppLocalizationsBe extends AppLocalizations {
   String get errorFieldRequired => 'Это поле обязательно для заполнения.';
 
   @override
-  String get errorPaymentFailed => 'Ошибка оплаты. Попробуйте снова или используйте другой способ оплаты.';
+  String get errorPaymentFailed =>
+      'Ошибка оплаты. Попробуйте снова или используйте другой способ оплаты.';
 
   @override
-  String get errorQrScanFailed => 'Не удалось отсканировать QR-код. Попробуйте снова.';
+  String get errorQrScanFailed =>
+      'Не удалось отсканировать QR-код. Попробуйте снова.';
 
   @override
   String get errorTelegramAuthCancelled => 'Вход через Telegram был отменён.';
 
   @override
-  String get errorTelegramAuthFailed => 'Ошибка аутентификации через Telegram. Попробуйте снова.';
+  String get errorTelegramAuthFailed =>
+      'Ошибка аутентификации через Telegram. Попробуйте снова.';
 
   @override
-  String get errorTelegramAuthExpired => 'Время входа через Telegram истекло. Попробуйте снова.';
+  String get errorTelegramAuthExpired =>
+      'Время входа через Telegram истекло. Попробуйте снова.';
 
   @override
-  String get errorTelegramNotInstalled => 'Telegram не установлен на этом устройстве.';
+  String get errorTelegramNotInstalled =>
+      'Telegram не установлен на этом устройстве.';
 
   @override
-  String get errorTelegramAuthInvalid => 'Неверные данные аутентификации Telegram.';
+  String get errorTelegramAuthInvalid =>
+      'Неверные данные аутентификации Telegram.';
 
   @override
-  String get errorBiometricUnavailable => 'Биометрическая аутентификация недоступна на этом устройстве.';
+  String get errorBiometricUnavailable =>
+      'Биометрическая аутентификация недоступна на этом устройстве.';
 
   @override
-  String get errorBiometricNotEnrolled => 'Биометрические данные не зарегистрированы. Настройте отпечаток пальца или распознавание лица в настройках устройства.';
+  String get errorBiometricNotEnrolled =>
+      'Биометрические данные не зарегистрированы. Настройте отпечаток пальца или распознавание лица в настройках устройства.';
 
   @override
-  String get errorBiometricFailed => 'Ошибка биометрической аутентификации. Попробуйте снова.';
+  String get errorBiometricFailed =>
+      'Ошибка биометрической аутентификации. Попробуйте снова.';
 
   @override
-  String get errorBiometricLocked => 'Биометрическая аутентификация заблокирована. Попробуйте позже или используйте пароль.';
+  String get errorBiometricLocked =>
+      'Биометрическая аутентификация заблокирована. Попробуйте позже или используйте пароль.';
 
   @override
-  String get errorSessionExpired => 'Ваша сессия истекла. Войдите в систему снова.';
+  String get errorSessionExpired =>
+      'Ваша сессия истекла. Войдите в систему снова.';
 
   @override
-  String get errorAccountDisabled => 'Ваш аккаунт отключён. Обратитесь в службу поддержки.';
+  String get errorAccountDisabled =>
+      'Ваш аккаунт отключён. Обратитесь в службу поддержки.';
 
   @override
   String errorRateLimitedWithCountdown(int seconds) {
@@ -1075,10 +1157,12 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get errorOfflineLoginRequired => 'Для входа требуется подключение к интернету. Проверьте соединение.';
+  String get errorOfflineLoginRequired =>
+      'Для входа требуется подключение к интернету. Проверьте соединение.';
 
   @override
-  String get errorOfflineSessionExpired => 'Кэшированная сессия истекла. Подключитесь к интернету для входа.';
+  String get errorOfflineSessionExpired =>
+      'Кэшированная сессия истекла. Подключитесь к интернету для входа.';
 
   @override
   String get a11yConnectButton => 'Подключиться к VPN-серверу';
@@ -1208,7 +1292,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get loginBiometricGeneric => '[EN] Sign in with biometrics';
 
   @override
-  String get loginBiometricAuthenticating => '[EN] Authenticating with biometrics, please wait';
+  String get loginBiometricAuthenticating =>
+      '[EN] Authenticating with biometrics, please wait';
 
   @override
   String get registerTitle => 'Create Account';
@@ -1271,7 +1356,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get telegramNotInstalledTitle => 'Telegram Not Installed';
 
   @override
-  String get telegramNotInstalledMessage => 'The Telegram app is not installed on your device. You can install it from the app store or use the web version.';
+  String get telegramNotInstalledMessage =>
+      'The Telegram app is not installed on your device. You can install it from the app store or use the web version.';
 
   @override
   String get telegramUseWeb => 'Use Web';
@@ -1360,7 +1446,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get biometricEnterCredentialsTitle => 'Enter credentials';
 
   @override
-  String get biometricEnterCredentialsMessage => 'Enter your login credentials to enable quick sign-in with biometrics.';
+  String get biometricEnterCredentialsMessage =>
+      'Enter your login credentials to enable quick sign-in with biometrics.';
 
   @override
   String get biometricSave => 'Save';
@@ -1369,7 +1456,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get biometricAppLockLabel => 'App Lock';
 
   @override
-  String get biometricAppLockDescription => 'Require biometrics when returning to app (30+ seconds)';
+  String get biometricAppLockDescription =>
+      'Require biometrics when returning to app (30+ seconds)';
 
   @override
   String get biometricAppLockEnabled => 'App lock enabled';
@@ -1381,7 +1469,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get biometricUnavailableTitle => 'Biometrics Unavailable';
 
   @override
-  String get biometricUnavailableMessage => 'Your device does not support biometric authentication, or no biometrics are enrolled.';
+  String get biometricUnavailableMessage =>
+      'Your device does not support biometric authentication, or no biometrics are enrolled.';
 
   @override
   String get biometricLoadingState => 'Loading...';
@@ -1399,10 +1488,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get biometricAvailableOnDevice => 'Available on this device';
 
   @override
-  String get biometricSettingsChanged => 'Your biometric settings have changed. Please sign in with your password and re-enable biometric login in settings.';
+  String get biometricSettingsChanged =>
+      'Your biometric settings have changed. Please sign in with your password and re-enable biometric login in settings.';
 
   @override
-  String get biometricPasswordChanged => 'Your password has changed. Please sign in with your password.';
+  String get biometricPasswordChanged =>
+      'Your password has changed. Please sign in with your password.';
 
   @override
   String get biometricSignInReason => '[EN] Sign in to CyberVPN';
@@ -1411,16 +1502,20 @@ class AppLocalizationsBe extends AppLocalizations {
   String get biometricSignInHint => '[EN] Use biometrics to sign in quickly';
 
   @override
-  String get biometricDataChanged => 'Вашы біяметрычныя даныя змяніліся. Увайдзіце зноў для бяспекі.';
+  String get biometricDataChanged =>
+      'Вашы біяметрычныя даныя змяніліся. Увайдзіце зноў для бяспекі.';
 
   @override
-  String get biometricAuthenticateToContinue => 'Аўтэнтыфікуйцеся, каб працягнуць';
+  String get biometricAuthenticateToContinue =>
+      'Аўтэнтыфікуйцеся, каб працягнуць';
 
   @override
-  String get biometricVerifyToEnableLogin => 'Пацвердзіце для ўключэння біяметрычнага ўваходу';
+  String get biometricVerifyToEnableLogin =>
+      'Пацвердзіце для ўключэння біяметрычнага ўваходу';
 
   @override
-  String get biometricVerifyToEnableAppLock => 'Пацвердзіце для ўключэння блакіроўкі';
+  String get biometricVerifyToEnableAppLock =>
+      'Пацвердзіце для ўключэння блакіроўкі';
 
   @override
   String get biometricUnlockApp => 'Разблакіраваць CyberVPN';
@@ -1453,7 +1548,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get registerPasswordStrengthStrong => '[EN] Strong';
 
   @override
-  String get registerAcceptTermsA11y => '[EN] Accept Terms and Conditions and Privacy Policy';
+  String get registerAcceptTermsA11y =>
+      '[EN] Accept Terms and Conditions and Privacy Policy';
 
   @override
   String get registerAcceptTermsA11yHint => '[EN] Required to create account';
@@ -1462,7 +1558,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get registerReferralValidA11y => '[EN] Valid referral code';
 
   @override
-  String get registerReferralAppliedA11y => '[EN] Referral code applied successfully';
+  String get registerReferralAppliedA11y =>
+      '[EN] Referral code applied successfully';
 
   @override
   String get registerCreatingAccount => '[EN] Creating account, please wait';
@@ -1480,37 +1577,43 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsNotificationConnectionLabel => 'Connection Status';
 
   @override
-  String get settingsNotificationConnectionDescription => 'Get notified when VPN connects or disconnects';
+  String get settingsNotificationConnectionDescription =>
+      'Get notified when VPN connects or disconnects';
 
   @override
   String get settingsNotificationServerLabel => 'Server Changes';
 
   @override
-  String get settingsNotificationServerDescription => 'Get notified when server is switched';
+  String get settingsNotificationServerDescription =>
+      'Get notified when server is switched';
 
   @override
   String get settingsNotificationSubscriptionLabel => 'Subscription Alerts';
 
   @override
-  String get settingsNotificationSubscriptionDescription => 'Get notified about subscription expiry';
+  String get settingsNotificationSubscriptionDescription =>
+      'Get notified about subscription expiry';
 
   @override
   String get settingsNotificationSecurityLabel => 'Security Alerts';
 
   @override
-  String get settingsNotificationSecurityDescription => 'Get notified about security events';
+  String get settingsNotificationSecurityDescription =>
+      'Get notified about security events';
 
   @override
   String get settingsNotificationPromotionLabel => 'Promotions';
 
   @override
-  String get settingsNotificationPromotionDescription => 'Receive promotional notifications';
+  String get settingsNotificationPromotionDescription =>
+      'Receive promotional notifications';
 
   @override
   String get settingsNotificationUpdateLabel => 'System Updates';
 
   @override
-  String get settingsNotificationUpdateDescription => 'Get notified about app updates';
+  String get settingsNotificationUpdateDescription =>
+      'Get notified about app updates';
 
   @override
   String get settingsVpnProtocolWireGuard => 'WireGuard';
@@ -1580,7 +1683,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profilePasswordUpdated => 'Password updated successfully';
 
   @override
-  String get profilePasswordRequirements => 'Password must be at least 8 characters with letters and numbers';
+  String get profilePasswordRequirements =>
+      'Password must be at least 8 characters with letters and numbers';
 
   @override
   String get profileAccountInfo => 'Account Information';
@@ -1614,7 +1718,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportManualEntry => 'Manual Entry';
 
   @override
-  String get configImportManualDescription => 'Enter VPN configuration details manually.';
+  String get configImportManualDescription =>
+      'Enter VPN configuration details manually.';
 
   @override
   String get configImportServerAddress => 'Server Address';
@@ -1635,13 +1740,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportConfigName => 'Configuration Name';
 
   @override
-  String get configImportConfigNameHint => 'Enter a name for this configuration';
+  String get configImportConfigNameHint =>
+      'Enter a name for this configuration';
 
   @override
   String get configImportSaving => 'Saving configuration...';
 
   @override
-  String get configImportDeleteConfirm => 'Are you sure you want to delete this configuration?';
+  String get configImportDeleteConfirm =>
+      'Are you sure you want to delete this configuration?';
 
   @override
   String get configImportDeleteSuccess => 'Configuration deleted.';
@@ -1722,7 +1829,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subscriptionCancelButton => 'Cancel Subscription';
 
   @override
-  String get subscriptionCancelConfirm => 'Are you sure you want to cancel your subscription?';
+  String get subscriptionCancelConfirm =>
+      'Are you sure you want to cancel your subscription?';
 
   @override
   String get subscriptionCancelSuccess => 'Subscription cancelled';
@@ -1851,7 +1959,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get notificationEnablePush => 'Enable Push Notifications';
 
   @override
-  String get notificationEnablePushDescription => 'Receive important updates about your VPN connection';
+  String get notificationEnablePushDescription =>
+      'Receive important updates about your VPN connection';
 
   @override
   String get notificationSoundLabel => 'Notification Sound';
@@ -1863,7 +1972,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get notificationQuietHoursLabel => 'Quiet Hours';
 
   @override
-  String get notificationQuietHoursDescription => 'Mute notifications during specified hours';
+  String get notificationQuietHoursDescription =>
+      'Mute notifications during specified hours';
 
   @override
   String get diagnosticsNetworkCheck => 'Network Check';
@@ -1953,7 +2063,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get commonLearnMore => 'Learn More';
 
   @override
-  String get errorNoConnection => 'No internet connection. Please check your network.';
+  String get errorNoConnection =>
+      'No internet connection. Please check your network.';
 
   @override
   String get errorTimeout => 'Request timed out. Please try again.';
@@ -1968,7 +2079,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get errorSavingData => 'Failed to save data.';
 
   @override
-  String get errorSessionInvalid => 'Your session is invalid. Please log in again.';
+  String get errorSessionInvalid =>
+      'Your session is invalid. Please log in again.';
 
   @override
   String get a11yShowPassword => 'Show password';
@@ -2071,13 +2183,16 @@ class AppLocalizationsBe extends AppLocalizations {
   String get quickSetupConnectionSecure => 'Your connection is now secure';
 
   @override
-  String get quickSetupTakeYourTime => 'Take your time - you can connect anytime from the main screen';
+  String get quickSetupTakeYourTime =>
+      'Take your time - you can connect anytime from the main screen';
 
   @override
-  String get quickSetupNoServers => 'No available servers found. Please try again later.';
+  String get quickSetupNoServers =>
+      'No available servers found. Please try again later.';
 
   @override
-  String get quickSetupConnectionTimeout => 'Connection timeout. Please try selecting a different server.';
+  String get quickSetupConnectionTimeout =>
+      'Connection timeout. Please try selecting a different server.';
 
   @override
   String quickSetupConnectionFailed(String error) {
@@ -2108,7 +2223,8 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get profileDeviceLimitReached => 'Device limit reached. Remove a device to add new ones.';
+  String get profileDeviceLimitReached =>
+      'Device limit reached. Remove a device to add new ones.';
 
   @override
   String get profileRemoveDevice => 'Remove Device';
@@ -2146,7 +2262,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileNoDevicesConnected => 'No devices connected';
 
   @override
-  String get profileConnectToRegister => 'Connect to VPN to register this device';
+  String get profileConnectToRegister =>
+      'Connect to VPN to register this device';
 
   @override
   String get profileDeviceLastActiveNever => 'Never';
@@ -2179,31 +2296,37 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorDisabledStatus => '2FA Disabled';
 
   @override
-  String get profileTwoFactorProtected => 'Your account is protected with two-factor authentication';
+  String get profileTwoFactorProtected =>
+      'Your account is protected with two-factor authentication';
 
   @override
-  String get profileTwoFactorEnablePrompt => 'Enable 2FA to secure your account';
+  String get profileTwoFactorEnablePrompt =>
+      'Enable 2FA to secure your account';
 
   @override
   String get profileTwoFactorWhatIs => 'What is Two-Factor Authentication?';
 
   @override
-  String get profileTwoFactorFullDescription => 'Two-factor authentication (2FA) adds an extra layer of security to your account. You\'ll need both your password and a code from your authenticator app to sign in.';
+  String get profileTwoFactorFullDescription =>
+      'Two-factor authentication (2FA) adds an extra layer of security to your account. You\'ll need both your password and a code from your authenticator app to sign in.';
 
   @override
   String get profileTwoFactorEnhancedSecurity => 'Enhanced Security';
 
   @override
-  String get profileTwoFactorEnhancedSecurityDesc => 'Protects your account from unauthorized access';
+  String get profileTwoFactorEnhancedSecurityDesc =>
+      'Protects your account from unauthorized access';
 
   @override
   String get profileTwoFactorAuthenticatorApp => 'Authenticator App';
 
   @override
-  String get profileTwoFactorAuthenticatorAppDesc => 'Use any TOTP app like Google Authenticator or Authy';
+  String get profileTwoFactorAuthenticatorAppDesc =>
+      'Use any TOTP app like Google Authenticator or Authy';
 
   @override
-  String get profileTwoFactorBackupCodesDesc => 'Receive backup codes for account recovery';
+  String get profileTwoFactorBackupCodesDesc =>
+      'Receive backup codes for account recovery';
 
   @override
   String get profileTwoFactorStep1 => 'Step 1: Scan QR Code';
@@ -2212,7 +2335,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorStep2 => 'Step 2: Verify Code';
 
   @override
-  String get profileTwoFactorScanQrShort => 'Scan this QR code with your authenticator app';
+  String get profileTwoFactorScanQrShort =>
+      'Scan this QR code with your authenticator app';
 
   @override
   String get profileTwoFactorEnterManually => 'Enter manually';
@@ -2221,7 +2345,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorSecretKey => 'Secret Key:';
 
   @override
-  String get profileTwoFactorEnterCodeShort => 'Enter the 6-digit code from your authenticator app';
+  String get profileTwoFactorEnterCodeShort =>
+      'Enter the 6-digit code from your authenticator app';
 
   @override
   String get profileTwoFactorCodeLabel => '6-digit code';
@@ -2233,7 +2358,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorActive => 'Two-Factor Authentication is Active';
 
   @override
-  String get profileTwoFactorActiveDesc => 'Your account is protected with two-factor authentication. You\'ll need to enter a code from your authenticator app every time you sign in.';
+  String get profileTwoFactorActiveDesc =>
+      'Your account is protected with two-factor authentication. You\'ll need to enter a code from your authenticator app every time you sign in.';
 
   @override
   String get profileTwoFactorViewBackupCodes => 'View Backup Codes';
@@ -2242,13 +2368,16 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileTwoFactorCopyAll => 'Copy All';
 
   @override
-  String get profileTwoFactorBackupCodesInstructions => 'Save these backup codes in a safe place. Each code can only be used once to sign in if you lose access to your authenticator app.';
+  String get profileTwoFactorBackupCodesInstructions =>
+      'Save these backup codes in a safe place. Each code can only be used once to sign in if you lose access to your authenticator app.';
 
   @override
-  String get profileTwoFactorDisableConfirmTitle => 'Disable Two-Factor Authentication?';
+  String get profileTwoFactorDisableConfirmTitle =>
+      'Disable Two-Factor Authentication?';
 
   @override
-  String get profileTwoFactorDisableWarning => 'Disabling 2FA will make your account less secure. You\'ll only need your password to sign in.';
+  String get profileTwoFactorDisableWarning =>
+      'Disabling 2FA will make your account less secure. You\'ll only need your password to sign in.';
 
   @override
   String get profileTwoFactorDisableButton => 'Disable';
@@ -2263,7 +2392,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileSocialAccounts => 'Сацыяльныя акаўнты';
 
   @override
-  String get profileSocialAccountsDescription => 'Прывяжыце сацыяльныя акаўнты для хуткага ўваходу і аднаўлення доступу.';
+  String get profileSocialAccountsDescription =>
+      'Прывяжыце сацыяльныя акаўнты для хуткага ўваходу і аднаўлення доступу.';
 
   @override
   String get profileSocialLinked => 'Прывязаны';
@@ -2275,7 +2405,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileSocialLink => 'Прывязаць';
 
   @override
-  String get profileSocialCompleteAuth => 'Завяршыце аўтарызацыю ў браўзеры, потым вярніцеся ў праграму.';
+  String get profileSocialCompleteAuth =>
+      'Завяршыце аўтарызацыю ў браўзеры, потым вярніцеся ў праграму.';
 
   @override
   String profileSocialUnlinkConfirm(String provider) {
@@ -2348,40 +2479,48 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileDeleteWhatWillBeDeleted => 'What will be deleted?';
 
   @override
-  String get profileDeletePermanentlyDeleted => 'The following data will be permanently deleted:';
+  String get profileDeletePermanentlyDeleted =>
+      'The following data will be permanently deleted:';
 
   @override
   String get profileDeletePersonalInfo => 'Personal Information';
 
   @override
-  String get profileDeletePersonalInfoDesc => 'Email, username, and profile data';
+  String get profileDeletePersonalInfoDesc =>
+      'Email, username, and profile data';
 
   @override
-  String get profileDeleteSubscriptionHistory => 'Subscription & Payment History';
+  String get profileDeleteSubscriptionHistory =>
+      'Subscription & Payment History';
 
   @override
-  String get profileDeleteSubscriptionHistoryDesc => 'All active subscriptions and transaction records';
+  String get profileDeleteSubscriptionHistoryDesc =>
+      'All active subscriptions and transaction records';
 
   @override
   String get profileDeleteVpnConfigs => 'VPN Configurations';
 
   @override
-  String get profileDeleteVpnConfigsDesc => 'Server settings and connection preferences';
+  String get profileDeleteVpnConfigsDesc =>
+      'Server settings and connection preferences';
 
   @override
   String get profileDeleteAppSettings => 'App Settings';
 
   @override
-  String get profileDeleteAppSettingsDesc => 'All preferences and customizations';
+  String get profileDeleteAppSettingsDesc =>
+      'All preferences and customizations';
 
   @override
   String get profileDeleteGracePeriod => '30-Day Grace Period';
 
   @override
-  String get profileDeleteGracePeriodDesc => 'Your account will be scheduled for deletion. You can cancel this request within 30 days by logging back in. After this period, all data will be permanently deleted.';
+  String get profileDeleteGracePeriodDesc =>
+      'Your account will be scheduled for deletion. You can cancel this request within 30 days by logging back in. After this period, all data will be permanently deleted.';
 
   @override
-  String get profileDeleteStorePolicy => 'In compliance with App Store and Google Play data deletion policies, all personal data will be permanently removed from our servers.';
+  String get profileDeleteStorePolicy =>
+      'In compliance with App Store and Google Play data deletion policies, all personal data will be permanently removed from our servers.';
 
   @override
   String get profileDeleteContinue => 'Continue with Deletion';
@@ -2390,7 +2529,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileDeleteVerifyIdentity => 'Verify Your Identity';
 
   @override
-  String get profileDeleteVerifyIdentityDesc => 'For security reasons, please re-enter your credentials to confirm account deletion.';
+  String get profileDeleteVerifyIdentityDesc =>
+      'For security reasons, please re-enter your credentials to confirm account deletion.';
 
   @override
   String get profileDeletePasswordLabel => 'Password';
@@ -2405,16 +2545,19 @@ class AppLocalizationsBe extends AppLocalizations {
   String get profileDeleteFinalConfirmation => 'Final Confirmation';
 
   @override
-  String get profileDeleteFinalConfirmationDesc => 'This is your last chance to cancel. Once confirmed, your account will be scheduled for permanent deletion.';
+  String get profileDeleteFinalConfirmationDesc =>
+      'This is your last chance to cancel. Once confirmed, your account will be scheduled for permanent deletion.';
 
   @override
   String get profileDeleteIrreversible => 'This action is irreversible';
 
   @override
-  String get profileDeleteIrreversibleList => '• All data will be permanently deleted after 30 days\n• Active subscriptions will be cancelled\n• You will be immediately logged out\n• This cannot be undone';
+  String get profileDeleteIrreversibleList =>
+      '• All data will be permanently deleted after 30 days\n• Active subscriptions will be cancelled\n• You will be immediately logged out\n• This cannot be undone';
 
   @override
-  String get profileDeleteScheduledSuccess => 'Account deletion scheduled successfully';
+  String get profileDeleteScheduledSuccess =>
+      'Account deletion scheduled successfully';
 
   @override
   String get settingsVpnProtocolPreference => 'Protocol Preference';
@@ -2423,13 +2566,16 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsAutoConnectOnLaunchLabel => 'Auto-connect on launch';
 
   @override
-  String get settingsAutoConnectOnLaunchDescription => 'Connect to VPN when the app starts';
+  String get settingsAutoConnectOnLaunchDescription =>
+      'Connect to VPN when the app starts';
 
   @override
-  String get settingsAutoConnectUntrustedWifiLabel => 'Auto-connect on untrusted WiFi';
+  String get settingsAutoConnectUntrustedWifiLabel =>
+      'Auto-connect on untrusted WiFi';
 
   @override
-  String get settingsAutoConnectUntrustedWifiDescription => 'Automatically connect when joining open networks';
+  String get settingsAutoConnectUntrustedWifiDescription =>
+      'Automatically connect when joining open networks';
 
   @override
   String get settingsManageTrustedNetworks => 'Manage trusted networks';
@@ -2452,13 +2598,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsSecuritySection => 'Security';
 
   @override
-  String get settingsKillSwitchSubtitle => 'Block traffic if VPN disconnects unexpectedly';
+  String get settingsKillSwitchSubtitle =>
+      'Block traffic if VPN disconnects unexpectedly';
 
   @override
   String get settingsKillSwitchDialogTitle => 'Enable Kill Switch?';
 
   @override
-  String get settingsKillSwitchDialogContent => 'When enabled, all internet traffic will be blocked if the VPN connection drops unexpectedly. This protects your privacy but may temporarily prevent internet access.';
+  String get settingsKillSwitchDialogContent =>
+      'When enabled, all internet traffic will be blocked if the VPN connection drops unexpectedly. This protects your privacy but may temporarily prevent internet access.';
 
   @override
   String get settingsKillSwitchDialogEnable => 'Enable';
@@ -2482,7 +2630,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsMtuAutoLabel => 'MTU: Auto';
 
   @override
-  String get settingsMtuAutoDescription => 'Automatically determine optimal packet size';
+  String get settingsMtuAutoDescription =>
+      'Automatically determine optimal packet size';
 
   @override
   String get settingsMtuManualLabel => 'MTU: Manual';
@@ -2497,7 +2646,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsMtuValueHint => '1280-1500';
 
   @override
-  String get settingsChangesApplyOnNextConnection => 'Changes apply on next connection';
+  String get settingsChangesApplyOnNextConnection =>
+      'Changes apply on next connection';
 
   @override
   String get settingsLoadError => 'Failed to load settings';
@@ -2526,7 +2676,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDebugAbout => 'Debug & About';
 
   @override
-  String get settingsDebugAboutSubtitle => 'App version, logs, developer options';
+  String get settingsDebugAboutSubtitle =>
+      'App version, logs, developer options';
 
   @override
   String get settingsCouldNotOpenUrl => 'Could not open URL';
@@ -2546,7 +2697,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsClearCacheLabel => 'Clear Cache';
 
   @override
-  String get settingsClearCacheDescription => 'Remove cached server lists and configs';
+  String get settingsClearCacheDescription =>
+      'Remove cached server lists and configs';
 
   @override
   String get settingsResetSubtitle => 'Restore defaults';
@@ -2564,7 +2716,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDeveloperRawConfig => 'Raw VPN Config Viewer';
 
   @override
-  String get settingsDeveloperRawConfigSubtitle => 'View current Xray configuration';
+  String get settingsDeveloperRawConfigSubtitle =>
+      'View current Xray configuration';
 
   @override
   String get settingsDeveloperForceCrash => 'Force Crash (Sentry Test)';
@@ -2576,7 +2729,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDeveloperExperimental => 'Experimental Features';
 
   @override
-  String get settingsDeveloperExperimentalSubtitle => 'Enable unreleased features';
+  String get settingsDeveloperExperimentalSubtitle =>
+      'Enable unreleased features';
 
   @override
   String get settingsLogLevelLabel => 'Log Level';
@@ -2594,10 +2748,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsLogLevelError => 'Error';
 
   @override
-  String get settingsLogLevelDebugDescription => 'Detailed diagnostic information';
+  String get settingsLogLevelDebugDescription =>
+      'Detailed diagnostic information';
 
   @override
-  String get settingsLogLevelInfoDescription => 'General informational messages';
+  String get settingsLogLevelInfoDescription =>
+      'General informational messages';
 
   @override
   String get settingsLogLevelWarningDescription => 'Potential issues';
@@ -2612,7 +2768,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsClearCacheDialogTitle => 'Clear Cache?';
 
   @override
-  String get settingsClearCacheDialogContent => 'This will remove cached server lists and VPN configurations. Your settings will not be affected.';
+  String get settingsClearCacheDialogContent =>
+      'This will remove cached server lists and VPN configurations. Your settings will not be affected.';
 
   @override
   String get settingsClearCacheDialogConfirm => 'Clear';
@@ -2624,7 +2781,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsResetDialogTitle => 'Reset All Settings?';
 
   @override
-  String get settingsResetDialogContent => 'This will restore all settings to their default values. This action cannot be undone.';
+  String get settingsResetDialogContent =>
+      'This will restore all settings to their default values. This action cannot be undone.';
 
   @override
   String get settingsResetDialogConfirm => 'Reset';
@@ -2642,7 +2800,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDeveloperForceCrashDialogTitle => 'Force Crash';
 
   @override
-  String get settingsDeveloperForceCrashDialogContent => 'This will intentionally crash the app to test error reporting via Sentry. Only use this for debugging purposes.\n\nAre you sure you want to continue?';
+  String get settingsDeveloperForceCrashDialogContent =>
+      'This will intentionally crash the app to test error reporting via Sentry. Only use this for debugging purposes.\n\nAre you sure you want to continue?';
 
   @override
   String get settingsDeveloperCrashNow => 'Crash Now';
@@ -2663,13 +2822,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsTrustedDetectingNetwork => 'Detecting network...';
 
   @override
-  String get settingsTrustedInfoDescription => 'Trusted networks won\'t trigger auto-connect. Add your home or work WiFi networks here.';
+  String get settingsTrustedInfoDescription =>
+      'Trusted networks won\'t trigger auto-connect. Add your home or work WiFi networks here.';
 
   @override
   String get settingsTrustedEmptyTitle => 'No trusted networks';
 
   @override
-  String get settingsTrustedEmptyDescription => 'Add networks you trust, like your home WiFi, to prevent auto-connecting when on these networks.';
+  String get settingsTrustedEmptyDescription =>
+      'Add networks you trust, like your home WiFi, to prevent auto-connecting when on these networks.';
 
   @override
   String get settingsTrustedNetworkSubtitle => 'Trusted network';
@@ -2701,7 +2862,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsTrustedRemoveButton => 'Remove';
 
   @override
-  String get settingsTrustedNotConnected => 'Not connected to WiFi or SSID unavailable';
+  String get settingsTrustedNotConnected =>
+      'Not connected to WiFi or SSID unavailable';
 
   @override
   String settingsTrustedAddedNetwork(String ssid) {
@@ -2712,10 +2874,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsTrustedPermissionTitle => 'Permission Required';
 
   @override
-  String get settingsTrustedPermissionPermanent => 'Location permission is required to detect WiFi networks. Please enable it in your device settings.';
+  String get settingsTrustedPermissionPermanent =>
+      'Location permission is required to detect WiFi networks. Please enable it in your device settings.';
 
   @override
-  String get settingsTrustedPermissionRequired => 'Location permission is required to detect WiFi network names. This is a platform requirement for privacy reasons.';
+  String get settingsTrustedPermissionRequired =>
+      'Location permission is required to detect WiFi network names. This is a platform requirement for privacy reasons.';
 
   @override
   String get settingsTrustedOpenSettings => 'Open Settings';
@@ -2724,7 +2888,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsTrustedTryAgain => 'Try Again';
 
   @override
-  String get settingsAppearanceLoadError => 'Failed to load appearance settings';
+  String get settingsAppearanceLoadError =>
+      'Failed to load appearance settings';
 
   @override
   String get settingsBrightnessSection => 'Brightness';
@@ -2736,19 +2901,22 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsDynamicColorLabel => 'Dynamic Color';
 
   @override
-  String get settingsDynamicColorDescription => 'Use colors from your wallpaper';
+  String get settingsDynamicColorDescription =>
+      'Use colors from your wallpaper';
 
   @override
   String get settingsOledModeLabel => 'OLED цёмны рэжым';
 
   @override
-  String get settingsOledModeDescription => 'Выкарыстоўвайце чыста чорны фон для максімальнай эканоміі батарэі на OLED-дысплеях';
+  String get settingsOledModeDescription =>
+      'Выкарыстоўвайце чыста чорны фон для максімальнай эканоміі батарэі на OLED-дысплеях';
 
   @override
   String get settingsHighContrastLabel => 'Высокая кантраснасць';
 
   @override
-  String get settingsHighContrastDetected => 'Рэжым высокай кантраснасці ўключаны на сістэмным узроўні. Колеры аптымізаваны для максімальнай чытальнасці.';
+  String get settingsHighContrastDetected =>
+      'Рэжым высокай кантраснасці ўключаны на сістэмным узроўні. Колеры аптымізаваны для максімальнай чытальнасці.';
 
   @override
   String get settingsAnimationsSection => 'Animations';
@@ -2763,7 +2931,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsAnimationsEnabled => 'System animations are enabled';
 
   @override
-  String get settingsAnimationsSystemDisabled => 'Animations are disabled at the system level.';
+  String get settingsAnimationsSystemDisabled =>
+      'Animations are disabled at the system level.';
 
   @override
   String get settingsThemeMaterialYou => 'Material You';
@@ -2787,25 +2956,31 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsTextScaleExtraLarge => 'Extra Large';
 
   @override
-  String get settingsTextScaleSystemDescription => 'Uses your device accessibility settings';
+  String get settingsTextScaleSystemDescription =>
+      'Uses your device accessibility settings';
 
   @override
-  String get settingsTextScaleSmallDescription => 'Smaller text for more content on screen';
+  String get settingsTextScaleSmallDescription =>
+      'Smaller text for more content on screen';
 
   @override
   String get settingsTextScaleDefaultDescription => 'Default text size';
 
   @override
-  String get settingsTextScaleLargeDescription => 'Larger text for improved readability';
+  String get settingsTextScaleLargeDescription =>
+      'Larger text for improved readability';
 
   @override
-  String get settingsTextScaleExtraLargeDescription => 'Maximum text size for accessibility';
+  String get settingsTextScaleExtraLargeDescription =>
+      'Maximum text size for accessibility';
 
   @override
-  String get settingsTextSizePreview => 'Preview: The quick brown fox jumps over the lazy dog.';
+  String get settingsTextSizePreview =>
+      'Preview: The quick brown fox jumps over the lazy dog.';
 
   @override
-  String get settingsNotificationLoadError => 'Failed to load notification settings';
+  String get settingsNotificationLoadError =>
+      'Failed to load notification settings';
 
   @override
   String get settingsNotificationGeneralSection => 'General';
@@ -2814,37 +2989,45 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsNotificationExpiryLabel => 'Subscription expiry';
 
   @override
-  String get settingsNotificationExpiryDescription => 'Reminders before your subscription expires';
+  String get settingsNotificationExpiryDescription =>
+      'Reminders before your subscription expires';
 
   @override
-  String get settingsNotificationPromotionalDescription => 'Offers, discounts, and new features';
+  String get settingsNotificationPromotionalDescription =>
+      'Offers, discounts, and new features';
 
   @override
   String get settingsNotificationReferralLabel => 'Referral activity';
 
   @override
-  String get settingsNotificationReferralDescription => 'Updates on your referral rewards';
+  String get settingsNotificationReferralDescription =>
+      'Updates on your referral rewards';
 
   @override
   String get settingsNotificationSecuritySection => 'Security';
 
   @override
-  String get settingsNotificationSecurityRequired => 'Required for account security. Cannot be disabled.';
+  String get settingsNotificationSecurityRequired =>
+      'Required for account security. Cannot be disabled.';
 
   @override
   String get settingsNotificationVpnSection => 'VPN Notification';
 
   @override
-  String get settingsNotificationVpnSpeedLabel => 'Show speed in VPN notification';
+  String get settingsNotificationVpnSpeedLabel =>
+      'Show speed in VPN notification';
 
   @override
-  String get settingsNotificationVpnSpeedDescription => 'Display connection speed in persistent notification';
+  String get settingsNotificationVpnSpeedDescription =>
+      'Display connection speed in persistent notification';
 
   @override
-  String get settingsDeveloperExperimentalEnabled => 'Experimental features enabled';
+  String get settingsDeveloperExperimentalEnabled =>
+      'Experimental features enabled';
 
   @override
-  String get settingsDeveloperExperimentalDisabled => 'Experimental features disabled';
+  String get settingsDeveloperExperimentalDisabled =>
+      'Experimental features disabled';
 
   @override
   String get configImportSubscriptionUrlTitle => 'Subscription URL Import';
@@ -2864,7 +3047,8 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get configImportSubscriptionFailed => 'Failed to import subscription URL';
+  String get configImportSubscriptionFailed =>
+      'Failed to import subscription URL';
 
   @override
   String get configImportSubscriptionUrlLabel => 'Subscription URL';
@@ -2888,10 +3072,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportImportButton => 'Import';
 
   @override
-  String get configImportNoSubscriptionUrls => 'No subscription URLs imported yet';
+  String get configImportNoSubscriptionUrls =>
+      'No subscription URLs imported yet';
 
   @override
-  String get configImportNoSubscriptionUrlsHint => 'Enter a subscription URL above to import servers';
+  String get configImportNoSubscriptionUrlsHint =>
+      'Enter a subscription URL above to import servers';
 
   @override
   String get configImportDeleteSubscriptionTitle => 'Delete Subscription';
@@ -3010,7 +3196,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportClearAllTitle => 'Clear All Servers';
 
   @override
-  String get configImportClearAllContent => 'This will remove all custom servers. This action cannot be undone.';
+  String get configImportClearAllContent =>
+      'This will remove all custom servers. This action cannot be undone.';
 
   @override
   String get configImportAllServersRemoved => 'All custom servers removed';
@@ -3019,7 +3206,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportNoCustomServers => 'No Custom Servers';
 
   @override
-  String get configImportNoCustomServersHint => 'Import VPN configurations via QR code, clipboard, or subscription URL.';
+  String get configImportNoCustomServersHint =>
+      'Import VPN configurations via QR code, clipboard, or subscription URL.';
 
   @override
   String get configImportImportServerButton => 'Import Server';
@@ -3069,7 +3257,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportNoValidConfig => 'No valid VPN config in clipboard';
 
   @override
-  String get configImportNoConfigInClipboard => 'No VPN configuration found in clipboard';
+  String get configImportNoConfigInClipboard =>
+      'No VPN configuration found in clipboard';
 
   @override
   String get configImportSwitchCamera => 'Switch camera';
@@ -3102,10 +3291,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get configImportPointCamera => 'Point your camera at a VPN QR code';
 
   @override
-  String get configImportCameraPermissionRequired => 'Camera Permission Required';
+  String get configImportCameraPermissionRequired =>
+      'Camera Permission Required';
 
   @override
-  String get configImportCameraPermissionMessage => 'Please grant camera access in your device settings to scan QR codes.';
+  String get configImportCameraPermissionMessage =>
+      'Please grant camera access in your device settings to scan QR codes.';
 
   @override
   String get configImportCameraError => 'Camera Error';
@@ -3196,7 +3387,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subscriptionComparePlans => 'Compare Plans';
 
   @override
-  String get subscriptionNoPlansForDuration => 'No plans available for this duration.';
+  String get subscriptionNoPlansForDuration =>
+      'No plans available for this duration.';
 
   @override
   String get subscriptionFeatureLabel => 'Feature';
@@ -3290,7 +3482,8 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get subscriptionSelectPaymentMethodSnack => 'Please select a payment method';
+  String get subscriptionSelectPaymentMethodSnack =>
+      'Please select a payment method';
 
   @override
   String get subscriptionPopular => 'Popular';
@@ -3395,7 +3588,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get serverRecentServers => 'Апошнія серверы';
 
   @override
-  String get serverNoRecentServers => 'Падключыцеся да сервера, каб убачыць гісторыю';
+  String get serverNoRecentServers =>
+      'Падключыцеся да сервера, каб убачыць гісторыю';
 
   @override
   String get serverFailedToLoad => 'Failed to load servers';
@@ -3474,7 +3668,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get serverNoFavoritesTitle => 'No favorites yet';
 
   @override
-  String get serverNoFavoritesDescription => 'Tap the star icon on any server to add it here.';
+  String get serverNoFavoritesDescription =>
+      'Tap the star icon on any server to add it here.';
 
   @override
   String get serverPingUnknown => '-- ms';
@@ -3488,7 +3683,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get a11ySelectFastestServer => 'Select fastest server';
 
   @override
-  String get a11ySelectFastestServerHint => 'Tap to automatically connect to the fastest available server';
+  String get a11ySelectFastestServerHint =>
+      'Tap to automatically connect to the fastest available server';
 
   @override
   String get a11yServerCardHint => 'Tap to view server details and connect';
@@ -3564,16 +3760,19 @@ class AppLocalizationsBe extends AppLocalizations {
   String get referralNoReferralsYet => 'No referrals yet';
 
   @override
-  String get referralShareCodePrompt => 'Share your code to start earning rewards!';
+  String get referralShareCodePrompt =>
+      'Share your code to start earning rewards!';
 
   @override
   String get referralComingSoonTitle => 'Referral Program Coming Soon';
 
   @override
-  String get referralComingSoonDescription => 'Invite friends and earn rewards when they subscribe. Stay tuned for our upcoming referral program!';
+  String get referralComingSoonDescription =>
+      'Invite friends and earn rewards when they subscribe. Stay tuned for our upcoming referral program!';
 
   @override
-  String get referralNotifyMeConfirmation => 'We\'ll notify you when referrals launch!';
+  String get referralNotifyMeConfirmation =>
+      'We\'ll notify you when referrals launch!';
 
   @override
   String get referralNotifyMe => 'Notify Me';
@@ -3817,7 +4016,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get connectionDuration => 'Duration';
 
   @override
-  String get connectionMonitorSpeedTooltip => 'Monitor your real-time speed here';
+  String get connectionMonitorSpeedTooltip =>
+      'Monitor your real-time speed here';
 
   @override
   String get a11yConnectToVpn => 'Connect to VPN';
@@ -3847,7 +4047,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get a11yTapToRetry => 'Tap to retry the connection';
 
   @override
-  String get a11yPleaseWaitConnectionInProgress => 'Please wait, connection in progress';
+  String get a11yPleaseWaitConnectionInProgress =>
+      'Please wait, connection in progress';
 
   @override
   String get a11yPremiumSubscriptionActive => 'Premium subscription active';
@@ -3881,7 +4082,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get errorSomethingWentWrong => 'Something went wrong';
 
   @override
-  String get errorUnexpectedDescription => 'An unexpected error occurred. You can report this issue or restart the app.';
+  String get errorUnexpectedDescription =>
+      'An unexpected error occurred. You can report this issue or restart the app.';
 
   @override
   String errorFeatureCrashed(String feature) {
@@ -3934,10 +4136,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get updateAvailable => 'Update Available';
 
   @override
-  String get updateMandatoryDescription => 'A mandatory update is required to continue using CyberVPN.';
+  String get updateMandatoryDescription =>
+      'A mandatory update is required to continue using CyberVPN.';
 
   @override
-  String get updateOptionalDescription => 'A new version of CyberVPN is available with improvements and bug fixes.';
+  String get updateOptionalDescription =>
+      'A new version of CyberVPN is available with improvements and bug fixes.';
 
   @override
   String get updateCurrentVersion => 'Current Version:';
@@ -3985,13 +4189,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get settingsScanlineLabel => 'Эфект сканліній';
 
   @override
-  String get settingsScanlineDescription => 'Далікатны CRT-эфект сканліній для кіберпанк-эстэтыкі';
+  String get settingsScanlineDescription =>
+      'Далікатны CRT-эфект сканліній для кіберпанк-эстэтыкі';
 
   @override
   String get forceDisconnectTitle => 'Злучэнне перапынена';
 
   @override
-  String get forceDisconnectMessage => 'Ваша VPN-злучэнне было перапынена серверам. Гэта можа быць звязана з абмежаваннем сесіі або адміністрацыйнымі дзеяннямі.';
+  String get forceDisconnectMessage =>
+      'Ваша VPN-злучэнне было перапынена серверам. Гэта можа быць звязана з абмежаваннем сесіі або адміністрацыйнымі дзеяннямі.';
 
   @override
   String get serverQuickConnect => 'Падключыцца';
@@ -4015,22 +4221,26 @@ class AppLocalizationsBe extends AppLocalizations {
   String get serverAddressCopied => 'Адрас сервера скапіраваны';
 
   @override
-  String get serverReportSubmitted => 'Праблема паведамлена. Дзякуй за ваш водгук.';
+  String get serverReportSubmitted =>
+      'Праблема паведамлена. Дзякуй за ваш водгук.';
 
   @override
   String get deleteAccountTitle => 'Выдаленне акаўнта';
 
   @override
-  String get deleteAccountWarning => 'Гэта дзеянне нельга адмяніць. Усе вашы даныя будуць назаўжды выдалены.';
+  String get deleteAccountWarning =>
+      'Гэта дзеянне нельга адмяніць. Усе вашы даныя будуць назаўжды выдалены.';
 
   @override
   String get deleteAccountConsequence1 => 'Ваша падпіска будзе скасавана';
 
   @override
-  String get deleteAccountConsequence2 => 'Усе канфігурацыі VPN будуць выдалены';
+  String get deleteAccountConsequence2 =>
+      'Усе канфігурацыі VPN будуць выдалены';
 
   @override
-  String get deleteAccountConsequence3 => 'Даныя вашага акаўнта будуць незваротна сцёрты';
+  String get deleteAccountConsequence3 =>
+      'Даныя вашага акаўнта будуць незваротна сцёрты';
 
   @override
   String get deleteAccountConfirm => 'Я разумею, выдаліць мой акаўнт';
@@ -4056,10 +4266,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get deleteAccountPasswordHint => 'Увядзіце ваш пароль';
 
   @override
-  String get deleteAccountOrBiometric => 'Або выкарыстайце біяметрычную аўтэнтыфікацыю';
+  String get deleteAccountOrBiometric =>
+      'Або выкарыстайце біяметрычную аўтэнтыфікацыю';
 
   @override
-  String get deleteAccountBiometricReason => 'Пацвердзіце асобу для выдалення акаўнта';
+  String get deleteAccountBiometricReason =>
+      'Пацвердзіце асобу для выдалення акаўнта';
 
   @override
   String get relativeJustNow => 'только что';
@@ -4224,7 +4436,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get magicLinkTitle => 'Уваход па спасылцы';
 
   @override
-  String get magicLinkSubtitle => 'Увядзіце email, і мы дашлём вам аднаразовую спасылку для ўваходу. Пароль не патрэбен.';
+  String get magicLinkSubtitle =>
+      'Увядзіце email, і мы дашлём вам аднаразовую спасылку для ўваходу. Пароль не патрэбен.';
 
   @override
   String get magicLinkSendButton => 'Даслаць спасылку';
@@ -4255,7 +4468,8 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get unknownError => 'Адбылася невядомая памылка. Паспрабуйце яшчэ раз.';
+  String get unknownError =>
+      'Адбылася невядомая памылка. Паспрабуйце яшчэ раз.';
 
   @override
   String get registerModeEmail => 'Email';
@@ -4270,10 +4484,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get registerUsernameHint => 'cyberpunk_hacker';
 
   @override
-  String get registerUsernameOnlyWarning => 'Без email вы не зможаце аднавіць пароль і атрымліваць апавяшчэнні бяспекі.';
+  String get registerUsernameOnlyWarning =>
+      'Без email вы не зможаце аднавіць пароль і атрымліваць апавяшчэнні бяспекі.';
 
   @override
-  String get registerUsernameValidationError => 'Імя карыстальніка: 3-32 сімвалы — літары, лічбы, падкрэсліванні';
+  String get registerUsernameValidationError =>
+      'Імя карыстальніка: 3-32 сімвалы — літары, лічбы, падкрэсліванні';
 
   @override
   String get loginMagicLinkOption => 'Увайсці па спасылцы';
@@ -4291,7 +4507,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get registerWithTelegram => 'Рэгістрацыя праз Telegram';
 
   @override
-  String get registerWithTelegramHint => 'Хуткая рэгістрацыя праз ваш акаўнт Telegram';
+  String get registerWithTelegramHint =>
+      'Хуткая рэгістрацыя праз ваш акаўнт Telegram';
 
   @override
   String get loginWelcomeNewUser => 'Сардэчна запрашаем у CyberVPN!';
@@ -4320,13 +4537,16 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get unlinkConfirmMessage => 'Are you sure you want to unlink Telegram?';
+  String get unlinkConfirmMessage =>
+      'Are you sure you want to unlink Telegram?';
 
   @override
-  String get cantUnlinkOnlyMethod => 'Cannot unlink — this is your only login method';
+  String get cantUnlinkOnlyMethod =>
+      'Cannot unlink — this is your only login method';
 
   @override
-  String get forgotPasswordSubtitle => 'Enter your email and we\'ll send you a code to reset your password';
+  String get forgotPasswordSubtitle =>
+      'Enter your email and we\'ll send you a code to reset your password';
 
   @override
   String get forgotPasswordSendButton => 'Send Reset Code';
@@ -4346,7 +4566,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get resetPasswordTitle => 'Reset Password';
 
   @override
-  String get resetPasswordSubtitle => 'Enter the 6-digit code and your new password';
+  String get resetPasswordSubtitle =>
+      'Enter the 6-digit code and your new password';
 
   @override
   String get resetPasswordCodeLabel => '6-Digit Code';
@@ -4367,19 +4588,22 @@ class AppLocalizationsBe extends AppLocalizations {
   String get resetPasswordSuccess => 'Password Reset!';
 
   @override
-  String get resetPasswordSuccessMessage => 'Your password has been reset successfully. Please login with your new password.';
+  String get resetPasswordSuccessMessage =>
+      'Your password has been reset successfully. Please login with your new password.';
 
   @override
   String get resetPasswordGoToLogin => 'Go to Login';
 
   @override
-  String get resetPasswordInvalidCode => 'Invalid or expired code. Please try again.';
+  String get resetPasswordInvalidCode =>
+      'Invalid or expired code. Please try again.';
 
   @override
   String get resetPasswordPasswordMismatch => 'Passwords do not match';
 
   @override
-  String get resetPasswordPasswordTooShort => 'Password must be at least 12 characters';
+  String get resetPasswordPasswordTooShort =>
+      'Password must be at least 12 characters';
 
   @override
   String get otpVerificationTitle => 'Verify Email';
@@ -4396,7 +4620,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get otpVerificationCodeHint => '000000';
 
   @override
-  String get otpVerificationInvalidCode => 'Invalid or expired code. Please try again.';
+  String get otpVerificationInvalidCode =>
+      'Invalid or expired code. Please try again.';
 
   @override
   String get otpVerificationSubmit => 'Verify Email';
@@ -4405,7 +4630,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get otpVerificationResend => 'Resend Code';
 
   @override
-  String get otpVerificationResendSuccess => 'Verification code sent successfully';
+  String get otpVerificationResendSuccess =>
+      'Verification code sent successfully';
 
   @override
   String otpVerificationResendCooldown(String seconds) {
@@ -4416,7 +4642,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get otpVerificationSuccess => 'Email Verified!';
 
   @override
-  String get otpVerificationSuccessMessage => 'Your email has been verified successfully. Logging you in...';
+  String get otpVerificationSuccessMessage =>
+      'Your email has been verified successfully. Logging you in...';
 
   @override
   String get wallet => 'Wallet';
@@ -4440,10 +4667,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get walletUnavailable => 'Wallet Unavailable';
 
   @override
-  String get walletUnavailableMessage => 'The wallet feature is not available yet. Please check back later.';
+  String get walletUnavailableMessage =>
+      'The wallet feature is not available yet. Please check back later.';
 
   @override
-  String get walletWithdrawNotImplemented => 'Withdraw functionality coming soon.';
+  String get walletWithdrawNotImplemented =>
+      'Withdraw functionality coming soon.';
 
   @override
   String get errorLoadingBalance => 'Error loading balance';
@@ -4461,16 +4690,19 @@ class AppLocalizationsBe extends AppLocalizations {
   String get paymentHistoryEmpty => 'No payments yet';
 
   @override
-  String get paymentHistoryEmptyMessage => 'Your payment history will appear here once you make a subscription payment.';
+  String get paymentHistoryEmptyMessage =>
+      'Your payment history will appear here once you make a subscription payment.';
 
   @override
-  String get paymentHistoryError => 'Failed to load payment history. Please try again.';
+  String get paymentHistoryError =>
+      'Failed to load payment history. Please try again.';
 
   @override
   String get subscriptionRedeemInviteCode => 'Redeem Invite Code';
 
   @override
-  String get subscriptionEnterInviteCodePrompt => 'Enter your invite code to activate subscription benefits.';
+  String get subscriptionEnterInviteCodePrompt =>
+      'Enter your invite code to activate subscription benefits.';
 
   @override
   String get subscriptionInviteCode => 'Invite Code';
@@ -4482,7 +4714,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subscriptionRedeem => 'Redeem';
 
   @override
-  String get subscriptionInviteCodeRedeemed => 'Invite code redeemed successfully!';
+  String get subscriptionInviteCodeRedeemed =>
+      'Invite code redeemed successfully!';
 
   @override
   String get subscriptionHavePromoCode => 'Have a promo code?';
@@ -4505,7 +4738,8 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subscriptionTrialTitle => '7-Day Free Trial';
 
   @override
-  String get subscriptionTrialDescription => 'Try CyberVPN free for 7 days with full access to all features.';
+  String get subscriptionTrialDescription =>
+      'Try CyberVPN free for 7 days with full access to all features.';
 
   @override
   String get subscriptionStartTrial => 'Start Trial';
@@ -4525,10 +4759,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subscriptionCancelTitle => 'Cancel Subscription?';
 
   @override
-  String get subscriptionCancelWarning => 'Are you sure you want to cancel your subscription?';
+  String get subscriptionCancelWarning =>
+      'Are you sure you want to cancel your subscription?';
 
   @override
-  String get subscriptionCancelDetails => 'Your subscription will remain active until the end of the current billing period.';
+  String get subscriptionCancelDetails =>
+      'Your subscription will remain active until the end of the current billing period.';
 
   @override
   String get subscriptionKeepButton => 'Keep Subscription';
@@ -4656,13 +4892,15 @@ class AppLocalizationsBe extends AppLocalizations {
   String get partnerBecomePartnerTitle => 'Become a Partner';
 
   @override
-  String get partnerBecomePartnerDescription => 'Enter a partner code to join the CyberVPN partner program and start earning commissions.';
+  String get partnerBecomePartnerDescription =>
+      'Enter a partner code to join the CyberVPN partner program and start earning commissions.';
 
   @override
   String get partnerComingSoonTitle => 'Partner Program Coming Soon';
 
   @override
-  String get partnerComingSoonDescription => 'Join our partner program and earn commissions. Stay tuned for more details!';
+  String get partnerComingSoonDescription =>
+      'Join our partner program and earn commissions. Stay tuned for more details!';
 
   @override
   String get commonCreate => 'Create';

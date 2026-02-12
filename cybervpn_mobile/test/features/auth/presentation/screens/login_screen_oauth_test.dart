@@ -44,15 +44,15 @@ Widget buildTestableLoginScreen({
     routes: [
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        builder: (_, _) => const LoginScreen(),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, __) => const Scaffold(body: Text('Home Screen')),
+        builder: (_, _) => const Scaffold(body: Text('Home Screen')),
       ),
       GoRoute(
         path: '/connection',
-        builder: (_, __) => const Scaffold(body: Text('Connection Screen')),
+        builder: (_, _) => const Scaffold(body: Text('Connection Screen')),
       ),
     ],
   );

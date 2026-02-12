@@ -38,18 +38,18 @@ void main() {
     when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
   }
 
-  final tProfile = Profile(
+  const tProfile = Profile(
     id: 'user-1',
     email: 'test@example.com',
   );
 
-  final tSetup2FA = Setup2FAResult(
+  const tSetup2FA = Setup2FAResult(
     secret: 'SECRET',
     qrCodeUri: 'otpauth://totp/test',
   );
 
   final tDevices = [
-    Device(id: 'dev-1', name: 'Phone', platform: 'iOS'),
+    const Device(id: 'dev-1', name: 'Phone', platform: 'iOS'),
   ];
 
   // ---------------------------------------------------------------------------

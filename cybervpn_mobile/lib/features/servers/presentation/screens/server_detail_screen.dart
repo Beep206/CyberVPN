@@ -318,7 +318,7 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        if (trailing != null) trailing!,
+        ?trailing,
         if (value != null)
           Flexible(
             child: Text(

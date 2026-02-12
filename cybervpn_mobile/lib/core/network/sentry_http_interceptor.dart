@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:dio/dio.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -93,7 +95,7 @@ class SentryHttpInterceptor extends Interceptor {
       span.setData('http.response.headers', sanitizedHeaders);
 
       // Finish the span successfully.
-      span.finish(status: span.status);
+      unawaited(span.finish(status: span.status));
     }
 
     handler.next(response);
@@ -109,7 +111,7 @@ class SentryHttpInterceptor extends Interceptor {
         span.setTag('http.status_code', statusCode.toString());
         span.status = _getSpanStatusFromHttpCode(statusCode);
       } else {
-        span.status = SpanStatus.internalError();
+        span.status = const SpanStatus.internalError();
       }
 
       // Add error type to span data.
@@ -117,7 +119,7 @@ class SentryHttpInterceptor extends Interceptor {
       span.setData('http.error.message', _redactPii(err.message ?? 'Unknown error'));
 
       // Finish the span with error status.
-      span.finish(status: span.status);
+      unawaited(span.finish(status: span.status));
     }
 
     handler.next(err);
@@ -129,33 +131,33 @@ class SentryHttpInterceptor extends Interceptor {
   /// https://develop.sentry.dev/sdk/event-payloads/span/
   static SpanStatus _getSpanStatusFromHttpCode(int statusCode) {
     if (statusCode >= 200 && statusCode < 300) {
-      return SpanStatus.ok();
+      return const SpanStatus.ok();
     } else if (statusCode == 400) {
-      return SpanStatus.invalidArgument();
+      return const SpanStatus.invalidArgument();
     } else if (statusCode == 401) {
-      return SpanStatus.unauthenticated();
+      return const SpanStatus.unauthenticated();
     } else if (statusCode == 403) {
-      return SpanStatus.permissionDenied();
+      return const SpanStatus.permissionDenied();
     } else if (statusCode == 404) {
-      return SpanStatus.notFound();
+      return const SpanStatus.notFound();
     } else if (statusCode == 409) {
-      return SpanStatus.aborted();
+      return const SpanStatus.aborted();
     } else if (statusCode == 429) {
-      return SpanStatus.resourceExhausted();
+      return const SpanStatus.resourceExhausted();
     } else if (statusCode >= 400 && statusCode < 500) {
-      return SpanStatus.failedPrecondition();
+      return const SpanStatus.failedPrecondition();
     } else if (statusCode == 500) {
-      return SpanStatus.internalError();
+      return const SpanStatus.internalError();
     } else if (statusCode == 501) {
-      return SpanStatus.unimplemented();
+      return const SpanStatus.unimplemented();
     } else if (statusCode == 503) {
-      return SpanStatus.unavailable();
+      return const SpanStatus.unavailable();
     } else if (statusCode == 504) {
-      return SpanStatus.deadlineExceeded();
+      return const SpanStatus.deadlineExceeded();
     } else if (statusCode >= 500 && statusCode < 600) {
-      return SpanStatus.internalError();
+      return const SpanStatus.internalError();
     } else {
-      return SpanStatus.unknownError();
+      return const SpanStatus.unknownError();
     }
   }
 }

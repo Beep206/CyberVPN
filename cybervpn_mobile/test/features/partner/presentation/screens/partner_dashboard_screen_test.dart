@@ -26,7 +26,7 @@ Widget buildTestablePartnerDashboard({
   final mockRepo = MockPartnerRepository();
 
   if (isPartner) {
-    when(() => mockRepo.getDashboard()).thenAnswer(
+    when(mockRepo.getDashboard).thenAnswer(
       (_) async => Success(
         data: dashboardData ??
             {
@@ -37,7 +37,7 @@ Widget buildTestablePartnerDashboard({
       ),
     );
 
-    when(() => mockRepo.getCodes()).thenAnswer(
+    when(mockRepo.getCodes).thenAnswer(
       (_) async => Success(
         data: codes ??
             [
@@ -51,7 +51,7 @@ Widget buildTestablePartnerDashboard({
       ),
     );
 
-    when(() => mockRepo.getEarnings()).thenAnswer(
+    when(mockRepo.getEarnings).thenAnswer(
       (_) async => Success(
         data: earnings ??
             [
@@ -64,7 +64,7 @@ Widget buildTestablePartnerDashboard({
       ),
     );
   } else {
-    when(() => mockRepo.getDashboard()).thenAnswer(
+    when(mockRepo.getDashboard).thenAnswer(
       (_) async => Failure(failure: Exception('Not a partner')),
     );
   }

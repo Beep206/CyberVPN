@@ -142,7 +142,7 @@ class _ServerCardState extends ConsumerState<ServerCard>
             onLongPress: () {
               final haptics = ref.read(hapticServiceProvider);
               unawaited(haptics.impact());
-              ServerQuickActionsSheet.show(context, widget.server);
+              unawaited(ServerQuickActionsSheet.show(context, widget.server));
             },
             borderRadius: BorderRadius.circular(16),
             child: Padding(

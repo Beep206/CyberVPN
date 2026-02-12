@@ -58,7 +58,7 @@ describe('DevicesClient', () => {
       const { authApi } = await import('@/lib/api');
 
       // Set up pending promise to keep component in loading state
-      vi.mocked(authApi.listDevices).mockReturnValue(new Promise(() => {}) as any);
+      vi.mocked(authApi.listDevices).mockReturnValue(new Promise(() => {}) as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -72,7 +72,7 @@ describe('DevicesClient', () => {
 
       vi.mocked(authApi.listDevices).mockResolvedValue({
         data: { devices: [] }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -103,7 +103,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -128,7 +128,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -152,7 +152,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -177,7 +177,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -201,7 +201,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -227,7 +227,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -252,7 +252,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -277,7 +277,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -304,7 +304,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -328,7 +328,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -352,7 +352,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -376,7 +376,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -400,7 +400,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -424,7 +424,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -440,7 +440,7 @@ describe('DevicesClient', () => {
 
       vi.mocked(authApi.listDevices).mockResolvedValue({
         data: { devices: [] }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -454,7 +454,7 @@ describe('DevicesClient', () => {
 
       vi.mocked(authApi.listDevices).mockResolvedValue({
         data: { devices: [] }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -481,7 +481,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -506,7 +506,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -534,9 +534,9 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
-      vi.mocked(authApi.logoutDevice).mockResolvedValue({} as any);
+      vi.mocked(authApi.logoutDevice).mockResolvedValue({} as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -571,10 +571,10 @@ describe('DevicesClient', () => {
               },
             ] : []
           }
-        } as any;
+        } as never;
       });
 
-      vi.mocked(authApi.logoutDevice).mockResolvedValue({} as any);
+      vi.mocked(authApi.logoutDevice).mockResolvedValue({} as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -608,7 +608,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       vi.mocked(authApi.logoutDevice).mockRejectedValue({
         response: {
@@ -616,7 +616,7 @@ describe('DevicesClient', () => {
             detail: 'Device not found'
           }
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -648,9 +648,9 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
-      vi.mocked(authApi.logoutDevice).mockRejectedValue(new Error('Network error') as any);
+      vi.mocked(authApi.logoutDevice).mockRejectedValue(new Error('Network error') as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -682,14 +682,14 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       // Slow mutation to test disabled state
-      let resolveLogout: (value: any) => void;
+      let resolveLogout: (value: unknown) => void;
       const logoutPromise = new Promise(resolve => {
         resolveLogout = resolve;
       });
-      vi.mocked(authApi.logoutDevice).mockReturnValue(logoutPromise as any);
+      vi.mocked(authApi.logoutDevice).mockReturnValue(logoutPromise as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -709,7 +709,7 @@ describe('DevicesClient', () => {
       });
 
       // Resolve the mutation to clean up
-      resolveLogout!({} as any);
+      resolveLogout!({} as never);
     });
   });
 
@@ -732,7 +732,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -761,7 +761,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -791,7 +791,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 
@@ -835,7 +835,7 @@ describe('DevicesClient', () => {
             },
           ]
         }
-      } as any);
+      } as never);
 
       renderWithProviders(<DevicesClient />);
 

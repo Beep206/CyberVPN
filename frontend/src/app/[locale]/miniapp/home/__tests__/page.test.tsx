@@ -25,7 +25,7 @@ vi.mock('next-intl', () => ({
 
 // Mock next/navigation
 vi.mock('@/i18n/navigation', () => ({
-  Link: ({ href, onClick, children, className }: any) => (
+  Link: ({ href, onClick, children, className }: React.ComponentProps<'a'>) => (
     <a href={href} onClick={onClick} className={className}>
       {children}
     </a>
@@ -34,7 +34,7 @@ vi.mock('@/i18n/navigation', () => ({
 
 // Mock VpnConfigCard to simplify testing
 vi.mock('../../components/VpnConfigCard', () => ({
-  VpnConfigCard: ({ colorScheme }: any) => (
+  VpnConfigCard: ({ colorScheme }: { colorScheme?: string }) => (
     <div data-testid="vpn-config-card" data-colorscheme={colorScheme}>
       VPN Config Card
     </div>
@@ -50,9 +50,9 @@ const createWrapper = () => {
       mutations: { retry: false },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
 };
 
 const mockUsageData = {

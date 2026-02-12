@@ -2,7 +2,6 @@ import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart'
 import 'package:cybervpn_mobile/features/quick_setup/presentation/screens/quick_setup_screen.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
-import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,7 +40,7 @@ void main() {
   testWidgets(
     'displays auto-selected server with country flag and server name',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',
@@ -82,7 +81,7 @@ void main() {
   testWidgets(
     'taps Connect and calls VPN provider connect',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',
@@ -127,7 +126,7 @@ void main() {
   testWidgets(
     'shows celebration animation and navigates to connection screen on success',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',
@@ -163,7 +162,7 @@ void main() {
 
       // Simulate successful connection.
       vpnNotifier.setState(
-        VpnConnected(
+        const VpnConnected(
           server: server,
           protocol: VpnProtocol.vless,
         ),
@@ -208,7 +207,7 @@ void main() {
   testWidgets(
     'shows error SnackBar on connection failure',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',
@@ -257,7 +256,7 @@ void main() {
   testWidgets(
     'marks setup as abandoned when skip button is tapped',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',
@@ -293,7 +292,7 @@ void main() {
   testWidgets(
     'shows loading indicator during connection attempt',
     (WidgetTester tester) async {
-      final server = ServerEntity(
+      const server = ServerEntity(
         id: 'server-1',
         name: 'US East 1',
         countryCode: 'US',

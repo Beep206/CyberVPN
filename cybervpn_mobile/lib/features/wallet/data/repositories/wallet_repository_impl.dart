@@ -16,7 +16,7 @@ class WalletRepositoryImpl implements WalletRepository {
       final available = await _remoteDataSource.checkAvailability();
       return Success(available);
     } catch (e) {
-      return Success(false);
+      return const Success(false);
     }
   }
 

@@ -15,7 +15,7 @@ void main() {
 
   group('DiagnosticStep', () {
     test('creates step with required fields only', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'Check Connectivity',
         status: DiagnosticStepStatus.pending,
       );
@@ -28,10 +28,10 @@ void main() {
     });
 
     test('creates step with all optional fields', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'DNS Resolution',
         status: DiagnosticStepStatus.failed,
-        duration: const Duration(milliseconds: 500),
+        duration: Duration(milliseconds: 500),
         message: 'DNS lookup timed out',
         suggestion: 'Check your DNS settings or try a different DNS provider',
       );
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('copyWith updates specified fields', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'API Reachability',
         status: DiagnosticStepStatus.running,
       );
@@ -63,15 +63,15 @@ void main() {
     });
 
     test('equality for identical steps', () {
-      final step1 = DiagnosticStep(
+      const step1 = DiagnosticStep(
         name: 'Test Step',
         status: DiagnosticStepStatus.success,
-        duration: const Duration(seconds: 1),
+        duration: Duration(seconds: 1),
       );
-      final step2 = DiagnosticStep(
+      const step2 = DiagnosticStep(
         name: 'Test Step',
         status: DiagnosticStepStatus.success,
-        duration: const Duration(seconds: 1),
+        duration: Duration(seconds: 1),
       );
 
       expect(step1, equals(step2));
@@ -79,11 +79,11 @@ void main() {
     });
 
     test('inequality for different steps', () {
-      final step1 = DiagnosticStep(
+      const step1 = DiagnosticStep(
         name: 'Test Step',
         status: DiagnosticStepStatus.success,
       );
-      final step2 = DiagnosticStep(
+      const step2 = DiagnosticStep(
         name: 'Test Step',
         status: DiagnosticStepStatus.failed,
       );
@@ -100,21 +100,21 @@ void main() {
     setUp(() {
       ranAt = DateTime(2026, 1, 31, 12, 0, 0);
       steps = [
-        DiagnosticStep(
+        const DiagnosticStep(
           name: 'Internet Connectivity',
           status: DiagnosticStepStatus.success,
-          duration: const Duration(milliseconds: 200),
+          duration: Duration(milliseconds: 200),
           message: 'Connected via WiFi',
         ),
-        DiagnosticStep(
+        const DiagnosticStep(
           name: 'DNS Resolution',
           status: DiagnosticStepStatus.success,
-          duration: const Duration(milliseconds: 150),
+          duration: Duration(milliseconds: 150),
         ),
-        DiagnosticStep(
+        const DiagnosticStep(
           name: 'VPN Connection',
           status: DiagnosticStepStatus.warning,
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
           message: 'High latency detected',
           suggestion: 'Try connecting to a closer server',
         ),
@@ -150,21 +150,21 @@ void main() {
     test('equality for identical results', () {
       final result2 = DiagnosticResult(
         steps: [
-          DiagnosticStep(
+          const DiagnosticStep(
             name: 'Internet Connectivity',
             status: DiagnosticStepStatus.success,
-            duration: const Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 200),
             message: 'Connected via WiFi',
           ),
-          DiagnosticStep(
+          const DiagnosticStep(
             name: 'DNS Resolution',
             status: DiagnosticStepStatus.success,
-            duration: const Duration(milliseconds: 150),
+            duration: Duration(milliseconds: 150),
           ),
-          DiagnosticStep(
+          const DiagnosticStep(
             name: 'VPN Connection',
             status: DiagnosticStepStatus.warning,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
             message: 'High latency detected',
             suggestion: 'Try connecting to a closer server',
           ),

@@ -133,7 +133,7 @@ describe('PurchaseConfirmModal', () => {
   describe('Purchase Flow', () => {
     it('test_purchase_button_calls_api_with_correct_params', async () => {
       const user = userEvent.setup({ delay: null });
-      let capturedRequest: any = null;
+      let capturedRequest: Record<string, unknown> | null = null;
 
       server.use(
         http.post(`${API_BASE}/payments/crypto/invoice`, async ({ request }) => {

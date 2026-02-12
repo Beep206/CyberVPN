@@ -31,10 +31,10 @@ vi.mock('three', () => {
   };
 });
 
-vi.mock('@react-three/fiber', () => {
-  const { createElement } = require('react');
+vi.mock('@react-three/fiber', async () => {
+  const React = await import('react');
   return {
-    Canvas: () => createElement('div', { 'data-testid': 'r3f-canvas' }),
+    Canvas: () => React.createElement('div', { 'data-testid': 'r3f-canvas' }),
     useFrame: () => {},
     useThree: () => ({ pointer: { x: 0, y: 0 }, size: { width: 800, height: 600 } }),
     extend: () => {},

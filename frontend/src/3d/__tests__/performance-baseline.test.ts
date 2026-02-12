@@ -11,7 +11,7 @@
  *
  * Note: These are static/structural tests. WebGL rendering tests belong in E2E.
  */
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks (inline for hoisting)
@@ -71,11 +71,11 @@ vi.mock('three', () => {
   };
 });
 
-vi.mock('@react-three/fiber', () => {
-  const { createElement } = require('react');
+vi.mock('@react-three/fiber', async () => {
+  const React = await import('react');
   return {
     Canvas: ({ children, ...props }: Record<string, unknown>) =>
-      createElement('div', { 'data-testid': 'r3f-canvas', ...props }, children),
+      React.createElement('div', { 'data-testid': 'r3f-canvas', ...props }, children),
     useFrame: () => {},
     useThree: () => ({
       pointer: { x: 0, y: 0 },
@@ -160,20 +160,20 @@ const PERFORMANCE_BASELINES = {
 describe('3D Performance Regression Tests', () => {
   describe('Module Exports', () => {
     it('GlobalNetworkScene exports a function', async () => {
-      const module = await import('@/3d/scenes/GlobalNetwork');
-      expect(typeof module.default).toBe('function');
-      expect(module.default.name).toBe('GlobalNetworkScene');
+      const globalNetworkModule = await import('@/3d/scenes/GlobalNetwork');
+      expect(typeof globalNetworkModule.default).toBe('function');
+      expect(globalNetworkModule.default.name).toBe('GlobalNetworkScene');
     });
 
     it('AuthScene3D exports a function', async () => {
-      const module = await import('@/3d/scenes/AuthScene3D');
-      expect(typeof module.AuthScene3D).toBe('function');
+      const authSceneModule = await import('@/3d/scenes/AuthScene3D');
+      expect(typeof authSceneModule.AuthScene3D).toBe('function');
     });
 
     it('FeaturesScene3D exports functions', async () => {
-      const module = await import('@/3d/scenes/FeaturesScene3D');
-      expect(typeof module.FeaturesScene3D).toBe('function');
-      expect(typeof module.FeaturesScene3DWrapper).toBe('function');
+      const featuresModule = await import('@/3d/scenes/FeaturesScene3D');
+      expect(typeof featuresModule.FeaturesScene3D).toBe('function');
+      expect(typeof featuresModule.FeaturesScene3DWrapper).toBe('function');
     });
   });
 

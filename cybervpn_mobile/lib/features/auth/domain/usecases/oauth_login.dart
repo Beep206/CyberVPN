@@ -268,7 +268,7 @@ class OAuthLoginUseCase {
         category: _logCategory,
       );
       await _cleanup();
-      return Failure(AuthFailure(
+      return const Failure(AuthFailure(
         message: 'Login failed. Please try again.',
       ));
     }

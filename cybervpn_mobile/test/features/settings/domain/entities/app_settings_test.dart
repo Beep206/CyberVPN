@@ -69,7 +69,7 @@ void main() {
     });
 
     test('creates entity with all fields specified', () {
-      final custom = AppSettings(
+      const custom = AppSettings(
         themeMode: AppThemeMode.materialYou,
         brightness: AppBrightness.dark,
         dynamicColor: true,

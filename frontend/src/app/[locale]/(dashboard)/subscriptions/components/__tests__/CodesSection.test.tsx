@@ -23,7 +23,7 @@ vi.mock('next-intl', () => ({
 
 // Mock CyberInput component
 vi.mock('@/features/auth/components/CyberInput', () => ({
-  CyberInput: ({ label, value, onChange, error, placeholder, onKeyDown, disabled }: any) => (
+  CyberInput: ({ label, value, onChange, error, placeholder, onKeyDown, disabled }: { label?: string; value?: string; onChange?: React.ChangeEventHandler<HTMLInputElement>; error?: string; placeholder?: string; onKeyDown?: React.KeyboardEventHandler; disabled?: boolean }) => (
     <div>
       <label>{label}</label>
       <input
@@ -55,9 +55,9 @@ const createWrapper = () => {
       mutations: { retry: false },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
 };
 
 describe('CodesSection', () => {

@@ -71,7 +71,7 @@ class DnsLeakProtectionService {
         'DNS leak test timed out',
         category: 'dns_leak',
       );
-      return DnsLeakTestResult(hasLeak: false, error: 'timeout');
+      return const DnsLeakTestResult(hasLeak: false, error: 'timeout');
     } catch (e) {
       AppLogger.error(
         'DNS leak test error',

@@ -124,19 +124,19 @@ GoRouter buildTestRouter({
     routes: [
       GoRoute(
         path: '/login',
-        builder: (_, __) => initialPath == '/login'
+        builder: (_, _) => initialPath == '/login'
             ? initialWidget
             : const Scaffold(body: Text('Login Screen Route')),
       ),
       GoRoute(
         path: '/register',
-        builder: (_, __) => initialPath == '/register'
+        builder: (_, _) => initialPath == '/register'
             ? initialWidget
             : const Scaffold(body: Text('Register Screen Route')),
       ),
       GoRoute(
         path: '/connection',
-        builder: (_, __) =>
+        builder: (_, _) =>
             const Scaffold(body: Text('Connection Screen')),
       ),
     ],

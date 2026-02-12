@@ -28,7 +28,7 @@ void main() {
   // getSettings - default values
   // ---------------------------------------------------------------------------
   group('getSettings - default values when no keys present', () {
-    setUp(() => initRepo());
+    setUp(initRepo);
 
     test('returns AppSettings with all defaults', () async {
       final settings = await getSettings();

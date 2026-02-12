@@ -19,7 +19,7 @@ void main() {
     }
 
     testWidgets('displays user initials from username', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         username: 'John Doe',
@@ -32,7 +32,7 @@ void main() {
 
     testWidgets('displays user initials from email when no username',
         (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'john.doe@example.com',
       );
@@ -43,7 +43,7 @@ void main() {
     });
 
     testWidgets('displays single initial for single name', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         username: 'John',
@@ -55,7 +55,7 @@ void main() {
     });
 
     testWidgets('displays username', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         username: 'JohnDoe',
@@ -68,7 +68,7 @@ void main() {
 
     testWidgets('displays email username when no username provided',
         (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
       );
@@ -79,7 +79,7 @@ void main() {
     });
 
     testWidgets('displays full email', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         username: 'JohnDoe',
@@ -92,7 +92,7 @@ void main() {
 
     testWidgets('displays member since date when available', (tester) async {
       final createdAt = DateTime(2024, 1, 15);
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         createdAt: createdAt,
@@ -106,7 +106,7 @@ void main() {
 
     testWidgets('does not display member since when date is null',
         (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
       );
@@ -117,7 +117,7 @@ void main() {
     });
 
     testWidgets('uses custom avatar radius', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
       );
@@ -125,7 +125,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: cyberpunkDarkTheme(),
-          home: Scaffold(
+          home: const Scaffold(
             body: ProfileHeader(profile: profile, avatarRadius: 50),
           ),
         ),
@@ -136,7 +136,7 @@ void main() {
     });
 
     testWidgets('has CircleAvatar with initials', (tester) async {
-      final profile = Profile(
+      const profile = Profile(
         id: '1',
         email: 'test@example.com',
         username: 'Alice',

@@ -167,7 +167,7 @@ void main() {
       expect(received.first.id, 'n1');
       verify(() => mockLocal.save(testNotification)).called(1);
 
-      controller.close();
+      await controller.close();
     });
 
     test('pipes background tap messages to local storage', () async {
@@ -189,7 +189,7 @@ void main() {
 
       verify(() => mockLocal.save(testNotification)).called(1);
 
-      controller.close();
+      await controller.close();
     });
   });
 }

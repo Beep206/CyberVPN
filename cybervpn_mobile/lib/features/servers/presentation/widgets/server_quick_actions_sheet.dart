@@ -174,7 +174,7 @@ class ServerQuickActionsSheet extends ConsumerWidget {
 
   void _handleCopyAddress(BuildContext context, WidgetRef ref) {
     final address = '${server.address}:${server.port}';
-    Clipboard.setData(ClipboardData(text: address));
+    unawaited(Clipboard.setData(ClipboardData(text: address)));
     Navigator.of(context).pop('copy');
     final haptics = ref.read(hapticServiceProvider);
     unawaited(haptics.selection());
@@ -191,7 +191,7 @@ class ServerQuickActionsSheet extends ConsumerWidget {
     Navigator.of(context).pop('details');
     final haptics = ref.read(hapticServiceProvider);
     unawaited(haptics.selection());
-    context.pushNamed('server-detail', pathParameters: {'id': server.id});
+    unawaited(context.pushNamed('server-detail', pathParameters: {'id': server.id}));
   }
 
   void _handleReport(BuildContext context, WidgetRef ref) {

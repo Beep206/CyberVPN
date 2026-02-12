@@ -164,7 +164,7 @@ void main() {
 
     test('MockServerRepository can be stubbed', () {
       final mock = MockServerRepository();
-      when(() => mock.getServers()).thenAnswer(
+      when(mock.getServers).thenAnswer(
         (_) async => Success(createMockServerList()),
       );
 
@@ -173,7 +173,7 @@ void main() {
 
     test('MockSubscriptionRepository can be stubbed', () {
       final mock = MockSubscriptionRepository();
-      when(() => mock.getPlans()).thenAnswer(
+      when(mock.getPlans).thenAnswer(
         (_) async => Success(createMockPlanList()),
       );
 
@@ -323,8 +323,9 @@ void main() {
       final data = await loadFixture('user_fixture.json');
       expect(data, isA<List<dynamic>>());
       expect((data as List<dynamic>).length, greaterThanOrEqualTo(5));
-      expect(data.first['id'], isNotEmpty);
-      expect(data.first['email'], isNotEmpty);
+      final firstUser = (data as List<dynamic>).first as Map<String, dynamic>;
+      expect(firstUser['id'], isNotEmpty);
+      expect(firstUser['email'], isNotEmpty);
     });
 
     test('loads servers fixture', () async {
@@ -354,7 +355,7 @@ void main() {
     test('subscriptions fixture contains all statuses', () async {
       final data =
           await loadFixture('subscriptions_fixture.json') as List<dynamic>;
-      final statuses = data.map((s) => s['status'] as String).toSet();
+      final statuses = data.map((s) => (s as Map<String, dynamic>)['status'] as String).toSet();
 
       expect(statuses, contains('active'));
       expect(statuses, contains('expired'));
@@ -366,7 +367,7 @@ void main() {
     test('servers fixture contains offline servers', () async {
       final data =
           await loadFixture('servers_fixture.json') as List<dynamic>;
-      final unavailable = data.where((s) => s['isAvailable'] == false);
+      final unavailable = data.where((s) => (s as Map<String, dynamic>)['isAvailable'] == false);
       expect(unavailable, isNotEmpty);
     });
   });

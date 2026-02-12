@@ -12,7 +12,7 @@ void main() {
       expect(kDebugMode, isTrue,
           reason: 'Tests run in debug mode; pinning should be bypassed');
 
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -30,7 +30,7 @@ void main() {
       const invalidFingerprint =
           'FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF';
 
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [invalidFingerprint],
       );
 
@@ -44,12 +44,12 @@ void main() {
     });
 
     test('empty fingerprint list disables pinning', () {
-      final pinner = CertificatePinner(pinnedFingerprints: []);
+      const pinner = CertificatePinner(pinnedFingerprints: []);
       expect(pinner.pinnedFingerprints, isEmpty);
     });
 
     test('multiple fingerprints support certificate rotation', () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
           'FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00',
@@ -61,7 +61,7 @@ void main() {
 
     test('HttpClient with pinning can be used with Dio IOHttpClientAdapter',
         () {
-      final pinner = CertificatePinner(
+      const pinner = CertificatePinner(
         pinnedFingerprints: [
           'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99',
         ],
@@ -69,7 +69,7 @@ void main() {
 
       final dio = Dio();
       final adapter = IOHttpClientAdapter(
-        createHttpClient: () => pinner.createHttpClient(),
+        createHttpClient: pinner.createHttpClient,
       );
 
       dio.httpClientAdapter = adapter;

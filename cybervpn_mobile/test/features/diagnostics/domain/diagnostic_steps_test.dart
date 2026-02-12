@@ -29,10 +29,10 @@ void main() {
 
   group('DiagnosticStep', () {
     test('creates a success step', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'Network Connectivity',
         status: DiagnosticStepStatus.success,
-        duration: const Duration(milliseconds: 150),
+        duration: Duration(milliseconds: 150),
         message: 'Device is connected to the network',
       );
 
@@ -44,10 +44,10 @@ void main() {
     });
 
     test('creates a failed step with suggestion', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'DNS Resolution',
         status: DiagnosticStepStatus.failed,
-        duration: const Duration(seconds: 5),
+        duration: Duration(seconds: 5),
         message: 'DNS lookup failed',
         suggestion: 'Check DNS settings or try a different network',
       );
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('creates a warning step', () {
-      final step = DiagnosticStep(
+      const step = DiagnosticStep(
         name: 'VPN Server TCP Handshake',
         status: DiagnosticStepStatus.warning,
         message: 'No server target provided, skipping TCP handshake',

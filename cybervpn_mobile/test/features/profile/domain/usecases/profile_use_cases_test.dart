@@ -44,7 +44,7 @@ void main() {
         secret: 'JBSWY3DPEHPK3PXP',
         qrCodeUri: 'otpauth://totp/CyberVPN:user@example.com?secret=JBSWY3DPEHPK3PXP',
       );
-      when(() => mockRepository.setup2FA()).thenAnswer((_) async => Success(result));
+      when(() => mockRepository.setup2FA()).thenAnswer((_) async => const Success(result));
 
       final actual = await useCase();
 

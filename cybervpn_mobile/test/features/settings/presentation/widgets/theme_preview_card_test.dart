@@ -158,7 +158,7 @@ void main() {
       final border = decoration.border as Border;
 
       // Unselected uses grey with opacity
-      expect(border.top.color.alpha, lessThan(255));
+      expect((border.top.color.a * 255.0).round().clamp(0, 255), lessThan(255));
     });
 
     testWidgets('onTap callback is invoked when tapped', (tester) async {

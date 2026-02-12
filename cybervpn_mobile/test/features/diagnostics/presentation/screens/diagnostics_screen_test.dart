@@ -107,14 +107,12 @@ Widget _buildApp(DiagnosticsState state) {
 // ---------------------------------------------------------------------------
 
 void main() {
-  setUp(() {
-    _ignoreOverflowErrors();
-  });
+  setUp(_ignoreOverflowErrors);
 
   group('DiagnosticsScreen', () {
     testWidgets('renders 6 steps in pending state when not running',
         (WidgetTester tester) async {
-      final state = DiagnosticsState(
+      const state = DiagnosticsState(
         isRunningDiagnostics: false,
       );
 
@@ -127,7 +125,7 @@ void main() {
 
     testWidgets('shows 6 pending steps when running',
         (WidgetTester tester) async {
-      final state = DiagnosticsState(
+      const state = DiagnosticsState(
         isRunningDiagnostics: true,
       );
 
@@ -219,7 +217,7 @@ void main() {
 
     testWidgets('triggers runDiagnostics on init',
         (WidgetTester tester) async {
-      final state = DiagnosticsState(
+      const state = DiagnosticsState(
         isRunningDiagnostics: false,
       );
 
@@ -292,7 +290,7 @@ void main() {
 
     testWidgets('Export Report button hidden when no result',
         (WidgetTester tester) async {
-      final state = DiagnosticsState(
+      const state = DiagnosticsState(
         isRunningDiagnostics: false,
       );
 
@@ -305,7 +303,7 @@ void main() {
 
     testWidgets('displays all 6 step names correctly when running',
         (WidgetTester tester) async {
-      final state = DiagnosticsState(
+      const state = DiagnosticsState(
         isRunningDiagnostics: true,
       );
 

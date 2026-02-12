@@ -34,16 +34,16 @@ void main() {
       final sub2 = client.events.listen((_) {});
 
       // No error means broadcast works.
-      sub1.cancel();
-      sub2.cancel();
+      unawaited(sub1.cancel());
+      unawaited(sub2.cancel());
     });
 
     test('connectionStateStream is broadcast', () {
       final sub1 = client.connectionStateStream.listen((_) {});
       final sub2 = client.connectionStateStream.listen((_) {});
 
-      sub1.cancel();
-      sub2.cancel();
+      unawaited(sub1.cancel());
+      unawaited(sub2.cancel());
     });
 
     test('connect with null token stays disconnected', () async {
@@ -222,7 +222,7 @@ void main() {
       // Instead we verify the client constructs properly and the
       // baseUrl is stored correctly.
       expect(client.baseUrl, 'https://api.cybervpn.com');
-      client.dispose();
+      unawaited(client.dispose());
     });
 
     test('accepts custom path', () {
@@ -233,7 +233,7 @@ void main() {
       );
 
       expect(client.path, '/ws/custom');
-      client.dispose();
+      unawaited(client.dispose());
     });
   });
 

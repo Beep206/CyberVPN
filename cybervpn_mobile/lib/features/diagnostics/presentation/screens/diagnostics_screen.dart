@@ -263,7 +263,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
       }
     }
 
-    unawaited(share_plus.Share.share(buffer.toString()));
+    unawaited(share_plus.SharePlus.instance.share(share_plus.ShareParams(text: buffer.toString())));
   }
 
   String _formatStatus(DiagnosticStepStatus status) {

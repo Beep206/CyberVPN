@@ -26,7 +26,8 @@ void main() {
           (config['outbounds'] as List).first as Map<String, dynamic>;
       expect(outbound['protocol'], 'vless');
 
-      final vnext = (outbound['settings']['vnext'] as List).first
+      final settings = outbound['settings'] as Map<String, dynamic>;
+      final vnext = (settings['vnext'] as List).first
           as Map<String, dynamic>;
       expect(vnext['address'], '203.0.113.1');
       expect(vnext['port'], 443);
@@ -50,9 +51,10 @@ void main() {
       final outbound =
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
+      final tlsSettings = stream['tlsSettings'] as Map<String, dynamic>;
 
       expect(stream['security'], 'tls');
-      expect(stream['tlsSettings']['serverName'], 'cdn.example.com');
+      expect(tlsSettings['serverName'], 'cdn.example.com');
     });
 
     test('uses address as SNI when sni is null', () {
@@ -67,8 +69,9 @@ void main() {
       final outbound =
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
+      final tlsSettings = stream['tlsSettings'] as Map<String, dynamic>;
 
-      expect(stream['tlsSettings']['serverName'], 'my-server.com');
+      expect(tlsSettings['serverName'], 'my-server.com');
     });
 
     test('includes WebSocket settings when network is ws', () {
@@ -84,9 +87,10 @@ void main() {
       final outbound =
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
+      final wsSettings = stream['wsSettings'] as Map<String, dynamic>;
 
       expect(stream['network'], 'ws');
-      expect(stream['wsSettings']['path'], '/ws-path');
+      expect(wsSettings['path'], '/ws-path');
     });
 
     test('uses default path "/" when path is null with ws network', () {
@@ -101,8 +105,9 @@ void main() {
       final outbound =
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
+      final wsSettings = stream['wsSettings'] as Map<String, dynamic>;
 
-      expect(stream['wsSettings']['path'], '/');
+      expect(wsSettings['path'], '/');
     });
 
     test('omits TLS settings when security is not tls', () {
@@ -145,9 +150,11 @@ void main() {
       );
 
       final config = jsonDecode(json) as Map<String, dynamic>;
-      final vnext = ((config['outbounds'] as List).first
-              as Map<String, dynamic>)['settings']['vnext'][0]
-          as Map<String, dynamic>;
+      final outbound =
+          (config['outbounds'] as List).first as Map<String, dynamic>;
+      final settings = outbound['settings'] as Map<String, dynamic>;
+      final vnext =
+          (settings['vnext'] as List)[0] as Map<String, dynamic>;
 
       expect(vnext['port'], 8443);
     });
@@ -174,7 +181,8 @@ void main() {
           (config['outbounds'] as List).first as Map<String, dynamic>;
       expect(outbound['protocol'], 'vmess');
 
-      final vnext = (outbound['settings']['vnext'] as List).first
+      final vmessSettings = outbound['settings'] as Map<String, dynamic>;
+      final vnext = (vmessSettings['vnext'] as List).first
           as Map<String, dynamic>;
       expect(vnext['address'], '203.0.113.2');
       expect(vnext['port'], 443);
@@ -196,9 +204,11 @@ void main() {
       );
 
       final config = jsonDecode(json) as Map<String, dynamic>;
-      final vnext = ((config['outbounds'] as List).first
-              as Map<String, dynamic>)['settings']['vnext'][0]
-          as Map<String, dynamic>;
+      final outbound =
+          (config['outbounds'] as List).first as Map<String, dynamic>;
+      final settings = outbound['settings'] as Map<String, dynamic>;
+      final vnext =
+          (settings['vnext'] as List)[0] as Map<String, dynamic>;
       final user = (vnext['users'] as List).first as Map<String, dynamic>;
 
       expect(user['alterId'], 64);
@@ -219,8 +229,9 @@ void main() {
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
 
+      final vmessWsSettings = stream['wsSettings'] as Map<String, dynamic>;
       expect(stream['network'], 'ws');
-      expect(stream['wsSettings']['path'], '/vmess-ws');
+      expect(vmessWsSettings['path'], '/vmess-ws');
     });
 
     test('uses default path "/" when path is null with ws', () {
@@ -235,8 +246,9 @@ void main() {
       final outbound =
           (config['outbounds'] as List).first as Map<String, dynamic>;
       final stream = outbound['streamSettings'] as Map<String, dynamic>;
+      final vmessWsDefSettings = stream['wsSettings'] as Map<String, dynamic>;
 
-      expect(stream['wsSettings']['path'], '/');
+      expect(vmessWsDefSettings['path'], '/');
     });
 
     test('omits wsSettings when network is not ws', () {
@@ -343,10 +355,12 @@ void main() {
         uuid: 'test-uuid',
       );
 
-      final vlessOutbound = (jsonDecode(vlessJson)['outbounds'] as List).first
-          as Map<String, dynamic>;
-      final vmessOutbound = (jsonDecode(vmessJson)['outbounds'] as List).first
-          as Map<String, dynamic>;
+      final vlessConfig = jsonDecode(vlessJson) as Map<String, dynamic>;
+      final vmessConfig = jsonDecode(vmessJson) as Map<String, dynamic>;
+      final vlessOutbound =
+          (vlessConfig['outbounds'] as List).first as Map<String, dynamic>;
+      final vmessOutbound =
+          (vmessConfig['outbounds'] as List).first as Map<String, dynamic>;
 
       expect(vlessOutbound['protocol'], 'vless');
       expect(vmessOutbound['protocol'], 'vmess');
@@ -364,12 +378,25 @@ void main() {
         uuid: 'test-uuid',
       );
 
-      final vlessUser = ((jsonDecode(vlessJson)['outbounds'] as List).first
-              as Map<String, dynamic>)['settings']['vnext'][0]['users'][0]
-          as Map<String, dynamic>;
-      final vmessUser = ((jsonDecode(vmessJson)['outbounds'] as List).first
-              as Map<String, dynamic>)['settings']['vnext'][0]['users'][0]
-          as Map<String, dynamic>;
+      final vlessConfig = jsonDecode(vlessJson) as Map<String, dynamic>;
+      final vlessOutbound =
+          (vlessConfig['outbounds'] as List).first as Map<String, dynamic>;
+      final vlessSettings =
+          vlessOutbound['settings'] as Map<String, dynamic>;
+      final vlessVnext =
+          (vlessSettings['vnext'] as List)[0] as Map<String, dynamic>;
+      final vlessUser =
+          (vlessVnext['users'] as List)[0] as Map<String, dynamic>;
+
+      final vmessConfig = jsonDecode(vmessJson) as Map<String, dynamic>;
+      final vmessOutbound =
+          (vmessConfig['outbounds'] as List).first as Map<String, dynamic>;
+      final vmessSettings =
+          vmessOutbound['settings'] as Map<String, dynamic>;
+      final vmessVnext =
+          (vmessSettings['vnext'] as List)[0] as Map<String, dynamic>;
+      final vmessUser =
+          (vmessVnext['users'] as List)[0] as Map<String, dynamic>;
 
       expect(vlessUser['encryption'], 'none');
       expect(vmessUser['security'], 'auto');

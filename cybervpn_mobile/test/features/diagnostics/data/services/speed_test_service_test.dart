@@ -23,12 +23,12 @@ class MockDio extends Mock implements Dio {}
 /// Creates a [ResponseBody] that emits [chunks] of bytes.
 ResponseBody _streamedResponse(List<List<int>> chunks) {
   final controller = StreamController<Uint8List>();
-  Future.microtask(() async {
+  unawaited(Future.microtask(() async {
     for (final chunk in chunks) {
       controller.add(Uint8List.fromList(chunk));
     }
     await controller.close();
-  });
+  }));
   return ResponseBody(controller.stream, 200);
 }
 
@@ -69,12 +69,12 @@ void main() {
       // But we can verify the formula: (bytes * 8) / (ms * 1000)
       const bytes = 10485760; // 10 MB
       const elapsedMs = 10000;
-      final mbps = (bytes * 8) / (elapsedMs * 1000);
+      const mbps = (bytes * 8) / (elapsedMs * 1000);
       expect(mbps, closeTo(8.39, 0.01));
     });
 
     test('zero elapsed returns 0', () {
-      final mbps = (1000 * 8) / (0 * 1000);
+      const mbps = (1000 * 8) / (0 * 1000);
       // Division by zero -> infinity; the service guards this.
       expect(mbps.isInfinite, isTrue);
     });
@@ -87,7 +87,7 @@ void main() {
   group('Download speed test', () {
     test('calculates throughput from streamed response', () async {
       // Simulate 5 chunks of 100 KB each = 500 KB total.
-      final chunkSize = 100 * 1024; // 100 KB
+      const chunkSize = 100 * 1024; // 100 KB
       final chunks = List.generate(5, (_) => List.filled(chunkSize, 0));
 
       when(() => mockDio.get<ResponseBody>(
@@ -318,7 +318,7 @@ void main() {
   // ====================================================================
 
   group('Result persistence', () {
-    SpeedTestResult _makeResult({
+    SpeedTestResult makeResult({
       required DateTime testedAt,
       double download = 50.0,
     }) {
@@ -334,7 +334,7 @@ void main() {
     }
 
     test('saves and retrieves a result', () async {
-      final result = _makeResult(testedAt: DateTime(2026, 1, 31));
+      final result = makeResult(testedAt: DateTime(2026, 1, 31));
       await service.saveResult(result);
 
       final history = await service.getHistory();
@@ -346,7 +346,7 @@ void main() {
     test('maintains max history size of 20', () async {
       // Save 25 results.
       for (var i = 0; i < 25; i++) {
-        final result = _makeResult(
+        final result = makeResult(
           testedAt: DateTime(2026, 1, 1, 0, i),
           download: i.toDouble(),
         );
@@ -362,7 +362,7 @@ void main() {
 
     test('clears history', () async {
       await service.saveResult(
-        _makeResult(testedAt: DateTime(2026, 1, 1)),
+        makeResult(testedAt: DateTime(2026, 1, 1)),
       );
 
       await service.clearHistory();

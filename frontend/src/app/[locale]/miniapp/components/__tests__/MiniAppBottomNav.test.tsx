@@ -14,6 +14,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MiniAppBottomNav } from '../MiniAppBottomNav';
 import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import { usePathname } from '@/i18n/navigation';
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -23,7 +24,7 @@ vi.mock('next-intl', () => ({
 // Mock next/navigation
 vi.mock('@/i18n/navigation', () => ({
   usePathname: vi.fn(() => '/home'),
-  Link: ({ href, onClick, children, className, 'aria-label': ariaLabel, 'aria-current': ariaCurrent }: any) => (
+  Link: ({ href, onClick, children, className, 'aria-label': ariaLabel, 'aria-current': ariaCurrent }: { href: string; onClick?: React.MouseEventHandler<HTMLAnchorElement>; children: React.ReactNode; className?: string; 'aria-label'?: string; 'aria-current'?: 'page' | 'step' | 'location' | 'date' | 'time' | boolean }) => (
     <a
       href={href}
       onClick={onClick}
@@ -86,8 +87,7 @@ describe('MiniAppBottomNav', () => {
 
   describe('Active State', () => {
     it('test_marks_home_as_active_when_on_home_route', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/home');
+      vi.mocked(usePathname).mockReturnValue('/home');
 
       render(<MiniAppBottomNav />);
 
@@ -96,8 +96,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_root_as_home_route', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/');
+      vi.mocked(usePathname).mockReturnValue('/');
 
       render(<MiniAppBottomNav />);
 
@@ -106,8 +105,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_plans_as_active_when_on_plans_route', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/plans');
+      vi.mocked(usePathname).mockReturnValue('/plans');
 
       render(<MiniAppBottomNav />);
 
@@ -119,8 +117,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_wallet_as_active_when_on_wallet_route', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/miniapp/wallet');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/wallet');
 
       render(<MiniAppBottomNav />);
 
@@ -129,8 +126,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_profile_as_active_when_on_profile_route', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/miniapp/profile');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/profile');
 
       render(<MiniAppBottomNav />);
 
@@ -139,8 +135,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_matches_subroutes_for_plans', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/miniapp/plans/premium');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/plans/premium');
 
       render(<MiniAppBottomNav />);
 
@@ -149,8 +144,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_matches_subroutes_for_wallet', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/miniapp/wallet/transactions');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/wallet/transactions');
 
       render(<MiniAppBottomNav />);
 
@@ -159,8 +153,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_matches_subroutes_for_profile', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/profile/settings');
+      vi.mocked(usePathname).mockReturnValue('/profile/settings');
 
       render(<MiniAppBottomNav />);
 
@@ -284,8 +277,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_active_link_has_aria_current_page', () => {
-      const { usePathname } = require('@/i18n/navigation');
-      usePathname.mockReturnValue('/miniapp/wallet');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/wallet');
 
       render(<MiniAppBottomNav />);
 

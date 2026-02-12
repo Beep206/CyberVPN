@@ -64,7 +64,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
 
   void _showForceDisconnectDialog(BuildContext context, String reason) {
     final l10n = AppLocalizations.of(context);
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -79,7 +79,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   Future<void> _showTooltipIfNeeded() async {

@@ -9,7 +9,7 @@
  * 5. MSW intercepts API calls and returns mock data
  */
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from './mocks/server';
 import { MOCK_USER, MOCK_SERVERS } from './mocks/handlers';

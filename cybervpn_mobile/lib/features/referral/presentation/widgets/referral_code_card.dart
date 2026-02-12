@@ -57,9 +57,9 @@ class ReferralCodeCard extends ConsumerWidget {
     unawaited(haptics.impact());
 
     final l10n = AppLocalizations.of(context);
-    await share_plus.Share.share(
-      l10n.referralShareMessage(referralLink),
-    );
+    await share_plus.SharePlus.instance.share(share_plus.ShareParams(
+      text: l10n.referralShareMessage(referralLink),
+    ));
   }
 
   // ---- Build --------------------------------------------------------------

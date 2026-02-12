@@ -234,7 +234,7 @@ class _StatsCardsGrid extends StatelessWidget {
 
     // If no subscription, show "Get Started" CTA card instead of empty stats
     if (sub == null) {
-      return _NoSubscriptionCard(key: const Key('no_subscription_card'));
+      return const _NoSubscriptionCard(key: Key('no_subscription_card'));
     }
 
     final daysRemaining = subState?.daysRemaining ?? 0;
@@ -567,7 +567,7 @@ class _NoSubscriptionCard extends ConsumerWidget {
                 color: CyberColors.matrixGreen.withAlpha(25),
                 borderRadius: BorderRadius.circular(Radii.md),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.rocket_launch_outlined,
                 size: 32,
                 color: CyberColors.matrixGreen,

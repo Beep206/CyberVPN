@@ -84,7 +84,7 @@ class MockNotificationRepositoryImpl extends MockNotificationRepository
 
   @override
   void dispose() {
-    _incomingController.close();
+    unawaited(_incomingController.close());
   }
 
   @override
@@ -120,7 +120,7 @@ class MockFcmDatasource implements FcmDatasource {
 
   @override
   void dispose() {
-    _tokenRefreshController.close();
+    unawaited(_tokenRefreshController.close());
   }
 }
 

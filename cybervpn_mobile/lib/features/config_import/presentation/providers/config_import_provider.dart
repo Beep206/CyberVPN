@@ -122,7 +122,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
       state = AsyncData(
         current.copyWith(
           isImporting: false,
-          lastError: () => e.toString(),
+          lastError: e.toString,
         ),
       );
       return null;
@@ -167,7 +167,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
       state = AsyncData(
         current.copyWith(
           isImporting: false,
-          lastError: () => e.toString(),
+          lastError: e.toString,
         ),
       );
       return [];
@@ -191,7 +191,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
     } catch (e, st) {
       AppLogger.error('Failed to delete config', error: e, stackTrace: st);
       state = AsyncData(
-        current.copyWith(lastError: () => e.toString()),
+        current.copyWith(lastError: e.toString),
       );
     }
   }
@@ -238,7 +238,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
     } catch (e, st) {
       AppLogger.error('Failed to delete all configs', error: e, stackTrace: st);
       state = AsyncData(
-        current.copyWith(lastError: () => e.toString()),
+        current.copyWith(lastError: e.toString),
       );
     }
   }
@@ -296,7 +296,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
     } catch (e, st) {
       AppLogger.error('Failed to rename config', error: e, stackTrace: st);
       state = AsyncData(
-        current.copyWith(lastError: () => e.toString()),
+        current.copyWith(lastError: e.toString),
       );
     }
   }
@@ -353,7 +353,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
       state = AsyncData(
         current.copyWith(
           isImporting: false,
-          lastError: () => e.toString(),
+          lastError: e.toString,
         ),
       );
     }
@@ -392,7 +392,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
       state = AsyncData(
         current.copyWith(
           isImporting: false,
-          lastError: () => e.toString(),
+          lastError: e.toString,
         ),
       );
     }
@@ -437,7 +437,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
         stackTrace: st,
       );
       state = AsyncData(
-        current.copyWith(lastError: () => e.toString()),
+        current.copyWith(lastError: e.toString),
       );
     }
   }

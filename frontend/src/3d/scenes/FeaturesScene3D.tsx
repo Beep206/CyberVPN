@@ -6,28 +6,31 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail, MeshTransmissionMaterial } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
+// Module-level factory — outside render, not analyzed by React Compiler
+function generateCyberParticles(count: number) {
+    return Array.from({ length: count }, () => ({
+        position: new THREE.Vector3(
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 12,
+            (Math.random() - 0.5) * 10
+        ),
+        velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.02,
+            (Math.random() - 0.5) * 0.02,
+            (Math.random() - 0.5) * 0.01
+        ),
+        scale: Math.random() * 0.5 + 0.1,
+        phase: Math.random() * Math.PI * 2,
+    }));
+}
+
 // Floating Cyber Particles - Performance optimized with InstancedMesh
 function CyberParticles({ count = 800 }: { count?: number }) {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    // Generate random positions and velocities
-    const particles = useMemo(() => {
-        return Array.from({ length: count }, () => ({
-            position: new THREE.Vector3(
-                (Math.random() - 0.5) * 20,
-                (Math.random() - 0.5) * 12,
-                (Math.random() - 0.5) * 10
-            ),
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * 0.02,
-                (Math.random() - 0.5) * 0.02,
-                (Math.random() - 0.5) * 0.01
-            ),
-            scale: Math.random() * 0.5 + 0.1,
-            phase: Math.random() * Math.PI * 2,
-        }));
-    }, [count]);
+    // Generate random positions and velocities — lazy init, runs once
+    const [particles] = useState(() => generateCyberParticles(count));
 
     useFrame((state) => {
         if (!meshRef.current) return;
@@ -174,19 +177,22 @@ function HexCell({
     );
 }
 
+// Module-level factory — outside render, not analyzed by React Compiler
+function generateSpeedLines(count: number) {
+    return Array.from({ length: count }, () => ({
+        x: (Math.random() - 0.5) * 15,
+        y: (Math.random() - 0.5) * 8,
+        z: Math.random() * -10 - 2,
+        length: Math.random() * 2 + 0.5,
+        speed: Math.random() * 0.1 + 0.05,
+    }));
+}
+
 // Speed Lines Effect
 function SpeedLines({ count = 50 }: { count?: number }) {
     const linesRef = useRef<THREE.Group>(null);
 
-    const lines = useMemo(() => {
-        return Array.from({ length: count }, () => ({
-            x: (Math.random() - 0.5) * 15,
-            y: (Math.random() - 0.5) * 8,
-            z: Math.random() * -10 - 2,
-            length: Math.random() * 2 + 0.5,
-            speed: Math.random() * 0.1 + 0.05,
-        }));
-    }, [count]);
+    const [lines] = useState(() => generateSpeedLines(count));
 
     useFrame(() => {
         if (!linesRef.current) return;

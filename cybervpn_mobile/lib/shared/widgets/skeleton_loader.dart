@@ -192,7 +192,7 @@ class ServerCardSkeleton extends StatelessWidget {
                         borderRadius: 4,
                       ),
                       const SizedBox(width: 8),
-                      SkeletonLine(
+                      const SkeletonLine(
                         width: 50,
                         height: 14,
                         borderRadius: 6,
@@ -204,7 +204,7 @@ class ServerCardSkeleton extends StatelessWidget {
             ),
 
             // Trailing section: latency + load
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -214,7 +214,7 @@ class ServerCardSkeleton extends StatelessWidget {
                   height: 24,
                   borderRadius: 12,
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
 
                 // Load bar placeholder
                 SkeletonLine(
@@ -280,7 +280,7 @@ class ProfileCardSkeleton extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Badge/status placeholder
-                  SkeletonLine(
+                  const SkeletonLine(
                     width: 80,
                     height: 20,
                     borderRadius: 10,
@@ -326,7 +326,7 @@ class PlanCardSkeleton extends StatelessWidget {
                     borderRadius: 4,
                   ),
                 ),
-                SkeletonLine(
+                const SkeletonLine(
                   width: 70,
                   height: 24,
                   borderRadius: 12,
@@ -364,7 +364,7 @@ class PlanCardSkeleton extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Price display placeholder
-            Row(
+            const Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 SkeletonLine(
@@ -372,7 +372,7 @@ class PlanCardSkeleton extends StatelessWidget {
                   height: 28,
                   borderRadius: 4,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 SkeletonLine(
                   width: 60,
                   height: 14,
@@ -383,7 +383,7 @@ class PlanCardSkeleton extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Duration pill placeholder
-            SkeletonLine(
+            const SkeletonLine(
               width: 50,
               height: 24,
               borderRadius: 12,
@@ -391,7 +391,7 @@ class PlanCardSkeleton extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Action button placeholder
-            SkeletonLine(
+            const SkeletonLine(
               width: double.infinity,
               height: 48,
               borderRadius: 8,

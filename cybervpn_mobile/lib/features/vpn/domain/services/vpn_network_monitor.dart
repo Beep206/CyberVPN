@@ -15,7 +15,7 @@ class VpnNetworkMonitor {
       : _networkInfo = networkInfo;
 
   void start(void Function(bool isOnline) onNetworkChange) {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = _networkInfo.onConnectivityChanged.listen(
       onNetworkChange,
       onError: (Object e) {
@@ -25,7 +25,7 @@ class VpnNetworkMonitor {
   }
 
   void stop() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = null;
   }
 

@@ -55,7 +55,7 @@ class MockVpnRepository implements VpnRepository {
   }
 
   void dispose() {
-    _stateController.close();
+    unawaited(_stateController.close());
   }
 
   @override
@@ -77,7 +77,7 @@ class MockNetworkInfo implements NetworkInfo {
   Future<bool> get isConnected async => true;
 
   void dispose() {
-    _connectivityController.close();
+    unawaited(_connectivityController.close());
   }
 
   @override

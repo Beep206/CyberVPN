@@ -234,7 +234,7 @@ void main() {
 
     testWidgets('displays speed value text in center', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: SpeedometerGauge(speed: 50.0, size: 200),
@@ -250,13 +250,13 @@ void main() {
 
     testWidgets('animates needle when speed changes', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: SpeedometerGauge(
                 speed: 0.0,
                 size: 200,
-                animationDuration: const Duration(milliseconds: 300),
+                animationDuration: Duration(milliseconds: 300),
               ),
             ),
           ),
@@ -265,13 +265,13 @@ void main() {
       await tester.pump();
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: SpeedometerGauge(
                 speed: 80.0,
                 size: 200,
-                animationDuration: const Duration(milliseconds: 300),
+                animationDuration: Duration(milliseconds: 300),
               ),
             ),
           ),

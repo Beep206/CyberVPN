@@ -15,8 +15,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provid
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart'
-    show secureStorageProvider, networkInfoProvider;
+// secureStorageProvider and networkInfoProvider already imported via providers.dart above.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -146,7 +145,7 @@ final testUser = UserEntity(
   createdAt: DateTime.now(),
 );
 
-final testDeviceInfo = DeviceInfo(
+const testDeviceInfo = DeviceInfo(
   deviceId: testDeviceId,
   platform: DevicePlatform.android,
   platformId: 'android-test-id',
@@ -666,7 +665,7 @@ void main() {
 
         // Auth check should work with cached data
         when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => Success(true));
+            .thenAnswer((_) async => const Success(true));
         when(() => mockAuthRepo.getCurrentUser())
             .thenAnswer((_) async => Success(testUser));
 
@@ -728,7 +727,7 @@ void main() {
         });
 
         when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => Success(true));
+            .thenAnswer((_) async => const Success(true));
         when(() => mockAuthRepo.getCurrentUser())
             .thenAnswer((_) async => Success(testUser));
 
@@ -781,8 +780,8 @@ void _setupDefaultMockBehaviors({
       .thenAnswer((_) async {});
 
   // Auth defaults
-  when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async => Success(false));
-  when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async => Success(null));
+  when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async => const Success(false));
+  when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async => const Success(null));
 
   // Biometric defaults
   when(() => mockBiometricService.isBiometricAvailable())

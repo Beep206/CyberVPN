@@ -161,7 +161,7 @@ class _PlansBodyState extends State<_PlansBody> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: plans.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final plan = plans[index];
                         return PlanCard(

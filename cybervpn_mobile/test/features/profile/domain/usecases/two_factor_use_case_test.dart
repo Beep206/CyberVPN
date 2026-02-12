@@ -33,7 +33,7 @@ void main() {
         qrCodeUri:
             'otpauth://totp/CyberVPN:user@example.com?secret=JBSWY3DPEHPK3PXP',
       );
-      when(() => mockRepository.setup2FA()).thenAnswer((_) async => Success(result));
+      when(() => mockRepository.setup2FA()).thenAnswer((_) async => const Success(result));
 
       // Act
       final actual = await useCase();
@@ -213,7 +213,7 @@ void main() {
         qrCodeUri: 'otpauth://totp/Test?secret=SECRET123',
       );
       when(() => mockRepository.setup2FA())
-          .thenAnswer((_) async => Success(setupResult));
+          .thenAnswer((_) async => const Success(setupResult));
       when(() => mockRepository.verify2FA('111111'))
           .thenAnswer((_) async => const Success(true));
 
@@ -239,7 +239,7 @@ void main() {
         qrCodeUri: 'otpauth://totp/Test?secret=SECRET456',
       );
       when(() => mockRepository.setup2FA())
-          .thenAnswer((_) async => Success(setupResult));
+          .thenAnswer((_) async => const Success(setupResult));
       when(() => mockRepository.verify2FA('111111'))
           .thenAnswer((_) async => const Success(false));
       when(() => mockRepository.verify2FA('222222'))

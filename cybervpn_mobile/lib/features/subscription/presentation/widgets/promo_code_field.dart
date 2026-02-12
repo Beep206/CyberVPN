@@ -126,7 +126,7 @@ class _PromoCodeFieldState extends ConsumerState<PromoCodeField> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle,
                       color: CyberColors.matrixGreen,
                       size: 16,

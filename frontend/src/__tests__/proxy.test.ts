@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 // Mock next-intl/middleware to pass through
 vi.mock('next-intl/middleware', () => ({
-  default: () => (_request: NextRequest) => new Response(null, { status: 200 }),
+  default: () => () => new Response(null, { status: 200 }),
 }));
 
 vi.mock('@/i18n/config', () => ({

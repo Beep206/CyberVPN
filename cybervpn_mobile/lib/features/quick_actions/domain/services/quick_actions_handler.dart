@@ -21,7 +21,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connecti
 /// (navigation or VPN operation) when a user taps a quick action shortcut.
 final quickActionsHandlerProvider = Provider<QuickActionsHandler>((ref) {
   final handler = QuickActionsHandler(ref);
-  ref.onDispose(() => handler.dispose());
+  ref.onDispose(handler.dispose);
   return handler;
 });
 

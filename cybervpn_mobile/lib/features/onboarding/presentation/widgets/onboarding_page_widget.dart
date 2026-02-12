@@ -59,7 +59,7 @@ class OnboardingPageWidget extends StatelessWidget {
                     height: 200,
                     fit: BoxFit.contain,
                     animate: isVisible && !disableAnimations,
-                    errorBuilder: (_, __, ___) =>
+                    errorBuilder: (_, _, _) =>
                         _buildFallbackIcon(colorScheme),
                   )
                 : _buildFallbackIcon(colorScheme),

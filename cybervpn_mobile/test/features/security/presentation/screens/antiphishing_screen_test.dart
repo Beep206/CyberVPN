@@ -37,10 +37,10 @@ void ignoreOverflowErrors(
   final exception = details.exception;
   if (exception is FlutterError) {
     ifIsOverflowError = !exception.diagnostics.any(
-      (e) => e.value.toString().startsWith("A RenderFlex overflowed by"),
+      (e) => e.value.toString().startsWith('A RenderFlex overflowed by'),
     );
     isUnableToLoadAsset = !exception.diagnostics.any(
-      (e) => e.value.toString().startsWith("Unable to load asset"),
+      (e) => e.value.toString().startsWith('Unable to load asset'),
     );
   }
 

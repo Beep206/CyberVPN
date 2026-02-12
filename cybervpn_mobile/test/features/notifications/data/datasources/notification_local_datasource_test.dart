@@ -36,7 +36,7 @@ void main() {
         .thenAnswer((_) async {});
   }
 
-  AppNotification _notification({
+  AppNotification notification({
     required String id,
     DateTime? receivedAt,
     bool isRead = false,
@@ -54,7 +54,7 @@ void main() {
     test('saves a notification to empty storage', () async {
       stubEmpty();
 
-      await datasource.save(_notification(id: 'n1'));
+      await datasource.save(notification(id: 'n1'));
 
       final captured =
           verify(() => mockStorage.setString('notifications_data', captureAny()))
@@ -72,7 +72,7 @@ void main() {
       });
       stubWithJson('[${items.join(",")}]');
 
-      await datasource.save(_notification(id: 'new'));
+      await datasource.save(notification(id: 'new'));
 
       final captured =
           verify(() => mockStorage.setString('notifications_data', captureAny()))
@@ -89,7 +89,7 @@ void main() {
         '[{"id":"n1","type":"promotional","title":"Old","body":"B","receivedAt":"${fixedNow.toIso8601String()}","isRead":false}]',
       );
 
-      await datasource.save(_notification(id: 'n1'));
+      await datasource.save(notification(id: 'n1'));
 
       final captured =
           verify(() => mockStorage.setString('notifications_data', captureAny()))

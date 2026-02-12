@@ -1,4 +1,5 @@
 #!/usr/bin/env dart
+// ignore_for_file: avoid_print
 // Script to check WCAG AA color contrast compliance for all theme variants
 // WCAG AA requires: 4.5:1 for normal text, 3:1 for large text (18pt+ or 14pt+ bold)
 
