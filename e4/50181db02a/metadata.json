@@ -3,8 +3,13 @@
   "checkpoint_id": "e450181db02a",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
+    "backend/src/infrastructure/cache/response_cache.py",
+    "backend/src/main.py",
+    "backend/src/presentation/api/v1/monitoring/routes.py",
+    "backend/src/presentation/api/v1/servers/routes.py",
+    "backend/src/presentation/api/v1/usage/routes.py",
     "frontend/next.config.ts",
     "frontend/src/lib/api/client.ts"
   ],
@@ -22,13 +27,20 @@
       "context": "/e4/50181db02a/1/context.md",
       "content_hash": "/e4/50181db02a/1/content_hash.txt",
       "prompt": "/e4/50181db02a/1/prompt.txt"
+    },
+    {
+      "metadata": "/e4/50181db02a/2/metadata.json",
+      "transcript": "/e4/50181db02a/2/full.jsonl",
+      "context": "/e4/50181db02a/2/context.md",
+      "content_hash": "/e4/50181db02a/2/content_hash.txt",
+      "prompt": "/e4/50181db02a/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 16,
-    "cache_creation_tokens": 163544,
-    "cache_read_tokens": 448850,
-    "output_tokens": 1998,
-    "api_call_count": 12
+    "input_tokens": 29,
+    "cache_creation_tokens": 269679,
+    "cache_read_tokens": 1134202,
+    "output_tokens": 7875,
+    "api_call_count": 23
   }
 }
