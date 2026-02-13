@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -18,7 +18,9 @@ class AdminUserRepository:
         return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str) -> AdminUserModel | None:
-        result = await self._session.execute(select(AdminUserModel).where(AdminUserModel.email == email))
+        result = await self._session.execute(
+            select(AdminUserModel).where(func.lower(AdminUserModel.email) == email.lower())
+        )
         return result.scalar_one_or_none()
 
     async def get_by_login_or_email(self, login_or_email: str) -> AdminUserModel | None:

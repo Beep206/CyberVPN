@@ -8,24 +8,20 @@ import type { Server } from "@/entities/server/model/types";
 
 interface ServerCardProps {
     server: Pick<Server, 'id' | 'name' | 'location' | 'status' | 'ip' | 'load' | 'protocol'>;
-    index: number;
 }
 
-export function ServerCard({ server, index }: ServerCardProps) {
+export function ServerCard({ server }: ServerCardProps) {
     const t = useTranslations('ServerCard');
     return (
         <motion.div
             initial={{ opacity: 0, y: 20, rotateX: -10 }}
             animate={{ opacity: 1, y: 0, rotateX: 0 }}
             transition={{
-                delay: index * 0.1,
+                delay: 0,
                 type: "spring",
                 stiffness: 100
             }}
-            whileHover={{
-                scale: 1.02,
-                boxShadow: "0 0 30px oklch(0.85 0.25 195 / 0.3)"
-            }}
+            whileHover={{ scale: 1.02 }}
             className={cn(
                 "cyber-card relative overflow-hidden rounded-xl p-6",
                 "transform-3d perspective-1000 rotate-x-2 hover:rotate-x-0 hover:translate-z-10 transition-transform duration-500 ease-cyber"
@@ -63,7 +59,7 @@ export function ServerCard({ server, index }: ServerCardProps) {
                             )}
                             initial={{ width: 0 }}
                             animate={{ width: `${server.load}%` }}
-                            transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
+                            transition={{ duration: 1, delay: 0.2 }}
                         />
                     </div>
                 </div>

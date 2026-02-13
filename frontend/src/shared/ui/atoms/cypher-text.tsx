@@ -78,13 +78,17 @@ export function CypherText({
     }, [text, characters, speed, revealSpeed, loop, loopDelay]);
 
     useEffect(() => {
-        animate();
+        if (trigger !== undefined) {
+            animate();
+        } else {
+            setDisplayText(text);
+        }
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             timeoutsRef.current.forEach(clearTimeout);
             if (loopTimeoutRef.current) clearTimeout(loopTimeoutRef.current);
         };
-    }, [animate, trigger]);
+    }, [text, trigger, animate]);
 
     return (
         <span

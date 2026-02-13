@@ -1,5 +1,6 @@
 """Server management routes."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.servers.manage_servers import ManageServersUseCase
 from src.application.use_cases.servers.server_stats import ServerStatsUseCase
+from src.infrastructure.cache.response_cache import response_cache
 from src.infrastructure.monitoring.instrumentation.routes import track_server_query
 from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 from src.presentation.api.v1.servers.schemas import (
@@ -20,6 +22,8 @@ from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/servers", tags=["servers"])
 
 
@@ -30,30 +34,38 @@ async def list_servers(
     _: None = Depends(require_permission(Permission.SERVER_READ)),
 ) -> list[ServerResponse]:
     """List all Remnawave VPN servers."""
-    gateway = RemnawaveServerGateway(client=client)
-    use_case = ManageServersUseCase(gateway=gateway)
 
-    servers = await use_case.get_all()
-    track_server_query(operation="list")
+    async def _fetch() -> list[dict]:
+        gateway = RemnawaveServerGateway(client=client)
+        use_case = ManageServersUseCase(gateway=gateway)
 
+        try:
+            servers = await use_case.get_all()
+        except Exception:
+            logger.warning("Remnawave unavailable for server list, returning empty list")
+            return []
 
-    return [
-        ServerResponse(
-            uuid=server.uuid,
-            name=server.name,
-            address=server.address,
-            port=server.port,
-            status=server.status,
-            is_connected=server.is_connected,
-            is_disabled=server.is_disabled,
-            created_at=server.created_at,
-            updated_at=server.updated_at,
-            traffic_used_bytes=server.used_traffic_bytes or 0,
-            inbound_count=server.inbound_count or 0,
-            users_online=server.users_online or 0,
-        )
-        for server in servers
-    ]
+        track_server_query(operation="list")
+
+        return [
+            ServerResponse(
+                uuid=server.uuid,
+                name=server.name,
+                address=server.address,
+                port=server.port,
+                status=server.status,
+                is_connected=server.is_connected,
+                is_disabled=server.is_disabled,
+                created_at=server.created_at,
+                updated_at=server.updated_at,
+                traffic_used_bytes=server.used_traffic_bytes or 0,
+                inbound_count=server.inbound_count or 0,
+                users_online=server.users_online or 0,
+            ).model_dump(mode="json")
+            for server in servers
+        ]
+
+    return await response_cache.get_or_fetch("servers:list", 30, _fetch)
 
 
 @router.post("/", response_model=ServerResponse, status_code=status.HTTP_201_CREATED)
@@ -72,6 +84,8 @@ async def create_server(
         address=request.address,
         port=request.port,
     )
+
+    await response_cache.invalidate("servers:list", "servers:stats")
 
     return ServerResponse(
         uuid=server.uuid,
@@ -96,12 +110,20 @@ async def get_server_stats(
     _: None = Depends(require_permission(Permission.SERVER_READ)),
 ) -> ServerStatsResponse:
     """Get Remnawave server statistics by status."""
-    gateway = RemnawaveServerGateway(client=client)
-    use_case = ServerStatsUseCase(gateway=gateway)
 
-    stats = await use_case.execute()
+    async def _fetch() -> dict:
+        gateway = RemnawaveServerGateway(client=client)
+        use_case = ServerStatsUseCase(gateway=gateway)
 
-    return ServerStatsResponse(**stats)
+        try:
+            stats = await use_case.execute()
+        except Exception:
+            logger.warning("Remnawave unavailable for server stats, returning zeros")
+            return ServerStatsResponse(total=0, online=0, offline=0, maintenance=0, warning=0).model_dump()
+
+        return ServerStatsResponse(**stats).model_dump()
+
+    return await response_cache.get_or_fetch("servers:stats", 15, _fetch)
 
 
 @router.get("/{server_id}", response_model=ServerResponse)
@@ -161,6 +183,8 @@ async def update_server(
 
     server = await use_case.update(uuid=server_id, **update_kwargs)
 
+    await response_cache.invalidate("servers:list", "servers:stats")
+
     return ServerResponse(
         uuid=server.uuid,
         name=server.name,
@@ -189,4 +213,7 @@ async def delete_server(
     use_case = ManageServersUseCase(gateway=gateway)
 
     await use_case.delete(uuid=server_id)
+
+    await response_cache.invalidate("servers:list", "servers:stats")
+
     return None

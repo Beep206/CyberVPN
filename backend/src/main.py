@@ -236,6 +236,7 @@ app = FastAPI(
     version=__version__,
     description="Backend API for CyberVPN admin dashboard",
     lifespan=lifespan,
+    redirect_slashes=False,
     openapi_tags=tags_metadata,
     servers=[{"url": "/", "description": "Current server"}],
     swagger_ui_parameters={"persistAuthorization": True},

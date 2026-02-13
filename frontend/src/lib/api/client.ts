@@ -75,9 +75,17 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor - add X-Request-ID (SEC-01: auth via httpOnly cookies now)
+// Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
+    // Queue requests while a token refresh is in progress
+    // (except the refresh request itself and session-check requests)
+    if (isRefreshing && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/me')) {
+      await new Promise<void>((resolve, reject) => {
+        failedQueue.push({ resolve: () => resolve(), reject: (err) => reject(err) });
+      });
+    }
+
     // Add X-Request-ID for request correlation (DX-02)
     if (config.headers) {
       config.headers['X-Request-ID'] = crypto.randomUUID();
