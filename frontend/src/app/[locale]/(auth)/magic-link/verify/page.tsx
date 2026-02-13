@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, startTransition } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
@@ -9,6 +9,10 @@ import { Loader2, AlertCircle, RotateCcw, Shield, CheckCircle } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 
+// Module-level guard: survives React Strict Mode unmount/remount cycles
+// (useRef is re-initialized on remount, so it can't prevent double-fire)
+const PROCESSED_TOKENS = new Set<string>();
+
 export default function MagicLinkVerifyPage() {
     const t = useTranslations('Auth.magicLink.verify');
     const searchParams = useSearchParams();
@@ -16,12 +20,17 @@ export default function MagicLinkVerifyPage() {
     const { verifyMagicLink, isAuthenticated } = useAuthStore();
     const [error, setError] = useState<string | null>(null);
     const [verifying, setVerifying] = useState(true);
-    const hasProcessed = useRef(false);
+    const [verified, setVerified] = useState(false);
+
+    // Clear stale auth state on mount to prevent AuthProvider race condition.
+    // AuthProvider reads localStorage on hydration and may call fetchUser()
+    // concurrently, which can overwrite the verify result.
+    useEffect(() => {
+        localStorage.removeItem('auth-storage');
+        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+    }, []);
 
     useEffect(() => {
-        if (hasProcessed.current) return;
-        hasProcessed.current = true;
-
         const token = searchParams.get('token');
 
         if (!token) {
@@ -32,11 +41,14 @@ export default function MagicLinkVerifyPage() {
             return;
         }
 
+        if (PROCESSED_TOKENS.has(token)) return;
+        PROCESSED_TOKENS.add(token);
+
         const verify = async () => {
             try {
                 await verifyMagicLink(token);
                 setVerifying(false);
-                // Success - redirect handled by isAuthenticated effect
+                setVerified(true);
             } catch (err: unknown) {
                 const axiosError = err as { response?: { data?: { detail?: string } } };
                 setError(
@@ -51,10 +63,10 @@ export default function MagicLinkVerifyPage() {
     }, [searchParams, verifyMagicLink, t]);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (verified && isAuthenticated) {
             router.push('/dashboard');
         }
-    }, [isAuthenticated, router]);
+    }, [verified, isAuthenticated, router]);
 
     return (
         <div className="flex flex-col items-center justify-center gap-6 text-center">

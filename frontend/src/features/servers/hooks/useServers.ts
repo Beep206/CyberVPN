@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { serversApi } from '@/lib/api';
 import type { Server, VpnProtocol, ServerStatus } from '@/entities/server/model/types';
 
 interface ServerApiResponse {
@@ -12,7 +12,6 @@ interface ServerApiResponse {
   is_disabled: boolean;
   country_code?: string;
   city?: string;
-  // Additional fields the backend may return
   traffic_used_bytes?: number;
   users_online?: number;
   created_at?: string;
@@ -31,7 +30,7 @@ function mapServerResponse(raw: ServerApiResponse): Server {
     name: raw.name,
     location: [raw.city, raw.country_code].filter(Boolean).join(', ') || raw.address,
     ip: `${raw.address}:${raw.port}`,
-    protocol: 'wireguard' as VpnProtocol, // Backend doesn't expose protocol yet
+    protocol: 'wireguard' as VpnProtocol,
     status: statusMap[raw.status] ?? 'offline',
     load: raw.users_online ? Math.min(Math.round((raw.users_online / 100) * 100), 100) : 0,
     uptime: raw.created_at ? formatUptime(raw.created_at) : '—',
@@ -49,19 +48,20 @@ function formatUptime(createdAt: string): string {
 
 /**
  * Fetches servers from the API using TanStack Query.
- *
- * Pattern for migrating other data grids:
- * 1. Create a similar hook with useQuery + queryKey + queryFn
- * 2. Map the API response to the frontend display model
- * 3. Replace mock data in the widget with the hook's data/isPending/error
+ * Uses serversApi.list() and `select` to share cache with dashboard hooks
+ * (both use ['servers'] query key with raw API data in cache).
  */
 export function useServers() {
   return useQuery({
     queryKey: ['servers'],
-    queryFn: async (): Promise<Server[]> => {
-      const { data } = await apiClient.get<ServerApiResponse[]>('/api/v1/servers/');
-      return data.map(mapServerResponse);
+    queryFn: async () => {
+      const response = await serversApi.list();
+      return response.data;
     },
-    staleTime: 30_000, // 30s — servers change frequently
+    select: (data) => (data as unknown as ServerApiResponse[]).map(mapServerResponse),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 }

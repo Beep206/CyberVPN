@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { DashboardStats } from "./components/DashboardStats";
 import { ServerGrid } from "./components/ServerGrid";
+import { DashboardGlobe } from "./components/DashboardGlobe";
 
 export default async function Dashboard({
     params,
@@ -12,6 +14,7 @@ export default async function Dashboard({
 
     return (
         <div className="min-h-screen bg-terminal-bg text-foreground relative overflow-hidden p-4 md:p-8">
+            <DashboardGlobe />
             {/* Background Grid */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,136,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,136,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
@@ -48,7 +51,9 @@ export default async function Dashboard({
                 {/* Main Content Area */}
                 <div className="grid gap-8">
                     {/* Stats Grid */}
-                    <DashboardStats />
+                    <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">{[...Array(4)].map((_, i) => <div key={i} className="cyber-card p-6 rounded-xl animate-pulse h-32" />)}</div>}>
+                        <DashboardStats />
+                    </Suspense>
 
                     {/* Server Section */}
                     <div className="space-y-4">
@@ -58,7 +63,9 @@ export default async function Dashboard({
                                 {t('serverMatrix')}
                             </h2>
                         </div>
-                        <ServerGrid />
+                        <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">{[...Array(4)].map((_, i) => <div key={i} className="cyber-card p-6 rounded-xl animate-pulse h-40" />)}</div>}>
+                            <ServerGrid />
+                        </Suspense>
                     </div>
                 </div>
             </div>

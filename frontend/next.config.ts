@@ -27,7 +27,7 @@ const config: NextConfigWithCompiler = {
   experimental: {},
   cacheComponents: true,
   reactCompiler: true,
-  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
   async headers() {
     return [
       {

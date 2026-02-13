@@ -349,7 +349,8 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     return (
         <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
-                frameloop="demand"
+                frameloop="always"
+                performance={{ min: 0.5 }}
                 camera={{ position: [0, 2, 7], fov: 40 }}
                 gl={{
                     antialias: false,
@@ -358,7 +359,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     stencil: false,
                     depth: true
                 }}
-                dpr={[1, 2]}
+                dpr={[1, 1.5]}
             >
                 {/* Reduced fog density to ensure stars are visible */}
                 <fog attach="fog" args={['#050510', 5, 25]} />
@@ -379,7 +380,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     </group>
                 </ParallaxGroup>
 
-                <FloatingParticles count={2000} />
+                <FloatingParticles count={800} />
 
                 {/* OrbitControls for auto-rotation, but disable user interaction to not fight parallax */}
                 <OrbitControls

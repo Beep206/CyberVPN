@@ -25,23 +25,27 @@ export function TerminalHeader() {
     useEffect(() => {
         let frameCount = 0;
         let lastTime = performance.now();
-        let rafId = 0;
 
-        const loop = (now: number) => {
-            frameCount += 1;
-            const delta = now - lastTime;
-
-            if (delta >= 1000) {
-                if (fpsRef.current) fpsRef.current.textContent = String(Math.round((frameCount * 1000) / delta));
-                frameCount = 0;
-                lastTime = now;
-            }
-
-            rafId = requestAnimationFrame(loop);
+        const countFrame = () => {
+            frameCount++;
+            rafId = requestAnimationFrame(countFrame);
         };
+        let rafId = requestAnimationFrame(countFrame);
 
-        rafId = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(rafId);
+        const display = setInterval(() => {
+            const now = performance.now();
+            const delta = now - lastTime;
+            if (delta > 0 && fpsRef.current) {
+                fpsRef.current.textContent = String(Math.round((frameCount * 1000) / delta));
+            }
+            frameCount = 0;
+            lastTime = now;
+        }, 1000);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            clearInterval(display);
+        };
     }, []);
 
     useEffect(() => {
@@ -62,7 +66,7 @@ export function TerminalHeader() {
         };
 
         measurePing();
-        const interval = setInterval(measurePing, 5000);
+        const interval = setInterval(measurePing, 15000);
         return () => {
             active = false;
             clearInterval(interval);

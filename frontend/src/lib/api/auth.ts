@@ -170,6 +170,11 @@ export interface MagicLinkVerifyRequest {
   token: string;
 }
 
+export interface MagicLinkVerifyOtpRequest {
+  email: string;
+  code: string;
+}
+
 // Account linking types
 export interface LinkedAccount {
   provider: string;
@@ -301,6 +306,13 @@ export const authApi = {
    */
   verifyMagicLink: (data: MagicLinkVerifyRequest) =>
     apiClient.post<TokenResponse>('/auth/magic-link/verify', data),
+
+  /**
+   * Verify magic link OTP code and get JWT tokens
+   * POST /api/v1/auth/magic-link/verify-otp
+   */
+  verifyMagicLinkOtp: (data: MagicLinkVerifyOtpRequest) =>
+    apiClient.post<TokenResponse>('/auth/magic-link/verify-otp', data),
 
   /**
    * Get Telegram OAuth authorize URL for account linking (authenticated)

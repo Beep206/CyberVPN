@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { ServerCard } from '@/shared/ui/molecules/server-card';
-import { useServers } from '../hooks/useDashboardData';
+import { useServers } from '@/features/servers/hooks/useServers';
 
 /**
  * Server grid component
@@ -10,7 +10,7 @@ import { useServers } from '../hooks/useDashboardData';
  */
 export function ServerGrid() {
   const t = useTranslations('Dashboard');
-  const { data: servers, isLoading, error } = useServers();
+  const { data: servers, isPending, error } = useServers();
 
   if (error) {
     return (
@@ -25,7 +25,7 @@ export function ServerGrid() {
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
@@ -49,21 +49,21 @@ export function ServerGrid() {
     );
   }
 
-  // Transform API response to match ServerCard expected format
+  // Map canonical Server type to ServerCard format
   const transformedServers = servers.map((server) => ({
-    id: server.uuid,
+    id: server.id,
     name: server.name,
-    location: server.address || 'Unknown',
+    location: server.location,
     status: server.status,
-    ip: server.address,
-    load: server.users_online || 0,
-    protocol: 'vless' as const,
+    ip: server.ip,
+    load: server.load,
+    protocol: server.protocol,
   }));
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {transformedServers.map((server, index) => (
-        <ServerCard key={server.id} server={server} index={index} />
+      {transformedServers.map((server) => (
+        <ServerCard key={server.id} server={server} />
       ))}
     </div>
   );

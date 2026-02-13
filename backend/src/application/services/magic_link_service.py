@@ -1,10 +1,12 @@
 """Magic link service for passwordless authentication.
 
 Generates and validates single-use magic link tokens with rate limiting.
+Also generates a 6-digit OTP code that can be used as an alternative to clicking the link.
 """
 
 import json
 import logging
+import random
 import secrets
 from datetime import UTC, datetime
 
@@ -28,13 +30,18 @@ class MagicLinkService:
     Magic link tokens are:
     - Cryptographically random (288 bits / 64 URL-safe characters)
     - Single-use (deleted on validation)
-    - Time-limited (15-minute TTL)
+    - Time-limited (1-hour TTL)
     - Rate-limited (max 5 requests per hour per email)
+
+    Each magic link also has a companion 6-digit OTP code that the user
+    can enter instead of clicking the link.
     """
 
     PREFIX = "magic_link:"
+    EMAIL_TOKEN_PREFIX = "magic_link_email:"  # Reverse lookup: email -> token
+    OTP_PREFIX = "magic_link_otp:"  # Reverse lookup: email -> 6-digit OTP code
     RATE_LIMIT_PREFIX = "magic_link_rate:"
-    TTL_SECONDS = 900  # 15 minutes
+    TTL_SECONDS = 3600  # 1 hour
     MAX_REQUESTS_PER_HOUR = 5
     RATE_LIMIT_WINDOW = 3600  # 1 hour
 
@@ -45,15 +52,16 @@ class MagicLinkService:
         self,
         email: str,
         ip_address: str | None = None,
-    ) -> str:
-        """Generate a new magic link token.
+    ) -> tuple[str, str]:
+        """Generate a new magic link token and companion OTP code.
 
         Args:
             email: Email address to associate with the token.
             ip_address: Optional IP address of the requester.
 
         Returns:
-            The generated magic link token.
+            A tuple of (token, otp_code) where token is the magic link
+            URL token and otp_code is the 6-digit numeric code.
 
         Raises:
             RateLimitExceededError: If the email has exceeded the hourly
@@ -82,8 +90,29 @@ class MagicLinkService:
             )
             raise RateLimitExceededError(email, retry_after_seconds=retry_after)
 
-        # Generate token: 48 bytes -> 64 URL-safe characters, 288 bits entropy
+        # Reuse existing token and OTP code if still valid (so old emails keep working)
+        email_key = f"{self.EMAIL_TOKEN_PREFIX}{email}"
+        otp_key = f"{self.OTP_PREFIX}{email}"
+        existing_token = await self._redis.get(email_key)
+        if existing_token:
+            existing_token = existing_token.decode() if isinstance(existing_token, bytes) else existing_token
+            # Verify the token data still exists in Redis
+            token_key = f"{self.PREFIX}{existing_token}"
+            if await self._redis.exists(token_key):
+                # Also retrieve the existing OTP code
+                existing_otp = await self._redis.get(otp_key)
+                if existing_otp:
+                    existing_otp = existing_otp.decode() if isinstance(existing_otp, bytes) else existing_otp
+                    logger.debug(
+                        "Reusing existing magic link token and OTP code",
+                        extra={"email": email, "token_prefix": existing_token[:8]},
+                    )
+                    return existing_token, existing_otp
+
+        # Generate new token: 48 bytes -> 64 URL-safe characters, 288 bits entropy
         token = secrets.token_urlsafe(48)
+        # Generate 6-digit OTP code
+        otp_code = str(random.randint(100000, 999999))  # noqa: S311
         key = f"{self.PREFIX}{token}"
         data = {
             "email": email,
@@ -91,14 +120,19 @@ class MagicLinkService:
             "created_at": datetime.now(UTC).isoformat(),
         }
 
-        await self._redis.setex(key, self.TTL_SECONDS, json.dumps(data))
+        # Store token data, reverse lookups (email -> token, email -> otp) with same TTL
+        pipe = self._redis.pipeline()
+        pipe.setex(key, self.TTL_SECONDS, json.dumps(data))
+        pipe.setex(email_key, self.TTL_SECONDS, token)
+        pipe.setex(otp_key, self.TTL_SECONDS, otp_code)
+        await pipe.execute()
 
         logger.debug(
-            "Magic link token generated",
+            "Magic link token and OTP code generated",
             extra={"email": email, "token_prefix": token[:8]},
         )
 
-        return token
+        return token, otp_code
 
     async def validate_and_consume(self, token: str) -> dict | None:
         """Validate and consume a magic link token.
@@ -133,12 +167,73 @@ class MagicLinkService:
 
         payload = json.loads(data)
 
+        # Clean up reverse lookups (email -> token and email -> otp)
+        email = payload.get("email")
+        if email:
+            email_key = f"{self.EMAIL_TOKEN_PREFIX}{email}"
+            otp_key = f"{self.OTP_PREFIX}{email}"
+            pipe = self._redis.pipeline()
+            pipe.delete(email_key)
+            pipe.delete(otp_key)
+            await pipe.execute()
+
         logger.info(
             "Magic link token validated and consumed",
             extra={
-                "email": payload.get("email"),
+                "email": email,
                 "token_prefix": token[:8],
             },
         )
 
         return payload
+
+    async def validate_otp(self, email: str, code: str) -> dict | None:
+        """Validate a 6-digit OTP code for magic link authentication.
+
+        Looks up the OTP code stored for the given email. If it matches,
+        retrieves the associated token and delegates to validate_and_consume()
+        to atomically consume the magic link.
+
+        Args:
+            email: The email address the OTP was sent to.
+            code: The 6-digit OTP code entered by the user.
+
+        Returns:
+            The payload dict (email, ip_address, created_at) if the OTP
+            is valid, or None if the code doesn't match or has expired.
+        """
+        otp_key = f"{self.OTP_PREFIX}{email}"
+        stored_otp = await self._redis.get(otp_key)
+
+        if not stored_otp:
+            logger.warning(
+                "Magic link OTP lookup failed: no OTP found",
+                extra={"email": email},
+            )
+            return None
+
+        stored_otp = stored_otp.decode() if isinstance(stored_otp, bytes) else stored_otp
+
+        if stored_otp != code:
+            logger.warning(
+                "Magic link OTP code mismatch",
+                extra={"email": email},
+            )
+            return None
+
+        # OTP matches -- get the token from the email->token reverse lookup
+        email_key = f"{self.EMAIL_TOKEN_PREFIX}{email}"
+        token = await self._redis.get(email_key)
+
+        if not token:
+            logger.warning(
+                "Magic link OTP valid but token not found",
+                extra={"email": email},
+            )
+            return None
+
+        token = token.decode() if isinstance(token, bytes) else token
+
+        # Delegate to validate_and_consume which handles atomic consumption
+        # and cleanup of all related keys (token data, email->token, email->otp)
+        return await self.validate_and_consume(token)

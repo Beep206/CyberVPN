@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     brevo_api_key: SecretStr | None = None
     brevo_from_email: str = "CyberVPN <noreply@cybervpn.io>"
 
+    # Magic Link
+    magic_link_base_url: str = "http://localhost:9001"  # Frontend URL for magic link emails
+
     # Dev/Test environment: Use Mailpit cluster for email testing
     # Set EMAIL_DEV_MODE=true to use SMTP instead of API providers
     email_dev_mode: bool = False

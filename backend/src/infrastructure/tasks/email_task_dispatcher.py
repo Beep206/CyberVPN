@@ -119,14 +119,18 @@ class EmailTaskDispatcher:
         self,
         email: str,
         token: str,
+        otp_code: str = "",
         locale: str = "en-EN",
+        is_resend: bool = False,
     ) -> str:
         """Dispatch magic link email task to task-worker.
 
         Args:
             email: Recipient email address
             token: Magic link token
+            otp_code: 6-digit OTP code (alternative to clicking the link)
             locale: User's locale for email template
+            is_resend: If True, task-worker uses Brevo (secondary provider)
 
         Returns:
             Task ID for tracking
@@ -140,6 +144,7 @@ class EmailTaskDispatcher:
             task_id=task_id,
             email=email,
             locale=locale,
+            is_resend=is_resend,
         )
 
         full_message = {
@@ -150,7 +155,9 @@ class EmailTaskDispatcher:
             "kwargs": {
                 "email": email,
                 "token": token,
+                "otp_code": otp_code,
                 "locale": locale,
+                "is_resend": is_resend,
             },
         }
         message_bytes = self._serializer.dumpb(full_message)

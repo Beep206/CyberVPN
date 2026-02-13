@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import {
@@ -64,37 +64,43 @@ export function MonitoringClient() {
 
     return () => clearInterval(interval);
   }, []);
-  // Fetch system health
+  // Fetch system health — uses shared key pattern ['monitoring', *]
   const { data: healthData, isLoading: healthLoading } = useQuery({
-    queryKey: ['system-health'],
+    queryKey: ['monitoring', 'health'],
     queryFn: async () => {
       const response = await monitoringApi.health();
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000, // Refresh every 30 seconds
+    refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch system stats
+  // Fetch system stats — shared cache with dashboard via ['monitoring', 'stats']
   const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['system-stats'],
+    queryKey: ['monitoring', 'stats'],
     queryFn: async () => {
       const response = await monitoringApi.getStats();
       return response.data;
     },
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 
-  // Fetch bandwidth analytics
+  // Fetch bandwidth analytics — shared cache with dashboard via ['monitoring', 'bandwidth']
   const { data: bandwidthData, isLoading: bandwidthLoading } = useQuery({
-    queryKey: ['bandwidth-analytics'],
+    queryKey: ['monitoring', 'bandwidth'],
     queryFn: async () => {
       const response = await monitoringApi.getBandwidth();
       return response.data;
     },
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 
   const isLoading = healthLoading || statsLoading || bandwidthLoading;
@@ -225,7 +231,7 @@ export function MonitoringClient() {
             key={service.name}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + index * 0.1 }}
+            transition={{ delay: 0 }}
             className={`cyber-card p-6 border ${getStatusColor(service.status)}`}
           >
             <div className="flex items-start justify-between mb-4">
@@ -259,7 +265,7 @@ export function MonitoringClient() {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${service.uptime}%` }}
-                  transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
+                  transition={{ delay: 0, duration: 0.5 }}
                   className={`h-full ${
                     service.status === 'healthy' ? 'bg-matrix-green' : 'bg-neon-pink'
                   }`}
@@ -276,7 +282,7 @@ export function MonitoringClient() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0 }}
           className="cyber-card p-6"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -292,7 +298,7 @@ export function MonitoringClient() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0 }}
           className="cyber-card p-6"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -309,7 +315,7 @@ export function MonitoringClient() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0 }}
           className="cyber-card p-6"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -328,7 +334,7 @@ export function MonitoringClient() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0 }}
           className="cyber-card p-6"
         >
           <div className="flex items-center gap-2 mb-6">
@@ -348,7 +354,7 @@ export function MonitoringClient() {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: '65%' }}
-                  transition={{ delay: 0.9, duration: 0.5 }}
+                  transition={{ delay: 0, duration: 0.5 }}
                   className="h-full bg-gradient-to-r from-neon-cyan/50 to-neon-cyan"
                 />
               </div>
@@ -365,7 +371,7 @@ export function MonitoringClient() {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: '85%' }}
-                  transition={{ delay: 1, duration: 0.5 }}
+                  transition={{ delay: 0, duration: 0.5 }}
                   className="h-full bg-gradient-to-r from-neon-purple/50 to-neon-purple"
                 />
               </div>
@@ -377,7 +383,7 @@ export function MonitoringClient() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
+          transition={{ delay: 0 }}
           className="cyber-card p-6"
         >
           <div className="flex items-center gap-2 mb-6">

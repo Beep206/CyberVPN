@@ -2,30 +2,50 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
-import { Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Loader2, CheckCircle, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AuthFormCard,
     CyberInput,
+    CyberOtpInput,
     RateLimitCountdown,
     useIsRateLimited,
 } from '@/features/auth/components';
 import { useAuthStore } from '@/stores/auth-store';
+import { useRouter } from '@/i18n/navigation';
+
+const RESEND_COOLDOWN_SECONDS = 60;
+const OTP_LENGTH = 6;
 
 export default function MagicLinkPage() {
     const t = useTranslations('Auth.magicLink');
-    const { requestMagicLink, isLoading, error, clearError } = useAuthStore();
+    const router = useRouter();
+    const { requestMagicLink, verifyMagicLinkOtp, isLoading, error, clearError, isAuthenticated } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
     const [email, setEmail] = useState('');
     const [sent, setSent] = useState(false);
+    const [resendTimeLeft, setResendTimeLeft] = useState(0);
+    const [isResending, setIsResending] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+    const [otpError, setOtpError] = useState<string | null>(null);
+    const canResend = resendTimeLeft === 0 && !isResending;
     const errorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         clearError();
     }, [clearError]);
+
+    // Resend cooldown timer
+    useEffect(() => {
+        if (resendTimeLeft > 0) {
+            const timer = setTimeout(() => setResendTimeLeft(resendTimeLeft - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resendTimeLeft]);
 
     // Focus management for errors
     useEffect(() => {
@@ -34,13 +54,53 @@ export default function MagicLinkPage() {
         }
     }, [error, isRateLimited]);
 
+    // Redirect to dashboard when authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push('/dashboard');
+        }
+    }, [isAuthenticated, router]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await requestMagicLink(email);
             setSent(true);
+            setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
         } catch {
             // Error handled by store
+        }
+    };
+
+    const handleResend = async () => {
+        if (!canResend) return;
+        setIsResending(true);
+        try {
+            await requestMagicLink(email);
+            setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
+        } catch {
+            // Error handled by store
+        } finally {
+            setIsResending(false);
+        }
+    };
+
+    const handleVerifyCode = async (code?: string) => {
+        const codeToVerify = code ?? otpCode;
+        if (codeToVerify.length !== OTP_LENGTH || !email) return;
+
+        setIsVerifyingCode(true);
+        setOtpError(null);
+        try {
+            await verifyMagicLinkOtp(email, codeToVerify);
+            // Redirect handled by useEffect on isAuthenticated change
+        } catch (err: unknown) {
+            const axiosError = err as { response?: { data?: { detail?: string } } };
+            const message = axiosError?.response?.data?.detail || 'Code verification failed';
+            setOtpError(message);
+            setOtpCode('');
+        } finally {
+            setIsVerifyingCode(false);
         }
     };
 
@@ -92,14 +152,76 @@ export default function MagicLinkPage() {
                             {t('expiresIn')}
                         </p>
                     </div>
-                    <Button
-                        onClick={() => setSent(false)}
-                        variant="outline"
-                        className="mt-2 font-mono text-sm cursor-pointer border-grid-line/30 hover:border-neon-cyan/50"
+
+                    {/* OTP Code Entry Section */}
+                    <div className="w-full mt-4 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-grid-line/30" />
+                            <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                                <ShieldCheck className="h-3.5 w-3.5 text-neon-cyan" aria-hidden="true" />
+                                {t('orEnterCode')}
+                            </p>
+                            <div className="flex-1 h-px bg-grid-line/30" />
+                        </div>
+
+                        <div className="space-y-4">
+                            <CyberOtpInput
+                                value={otpCode}
+                                onChange={(val) => {
+                                    setOtpCode(val);
+                                    if (otpError) setOtpError(null);
+                                }}
+                                onComplete={handleVerifyCode}
+                                error={!!otpError}
+                            />
+
+                            <AnimatePresence>
+                                {otpError && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        className="text-center text-red-500 font-mono text-sm"
+                                    >
+                                        {otpError}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+
+                            {isVerifyingCode && (
+                                <div className="flex items-center justify-center gap-2 text-neon-cyan font-mono text-sm">
+                                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                                    {t('verifyingCode')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Resend button */}
+                    <button
+                        onClick={handleResend}
+                        disabled={!canResend || isResending}
+                        className={`mt-2 text-sm font-mono transition-colors flex items-center justify-center mx-auto gap-2 ${
+                            canResend && !isResending
+                                ? 'text-neon-cyan hover:text-white underline underline-offset-4 cursor-pointer'
+                                : 'text-muted-foreground cursor-default'
+                        }`}
                         aria-label={t('sendAgain')}
                     >
-                        {t('sendAgain')}
-                    </Button>
+                        {isResending ? (
+                            <>
+                                <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                                {t('submitting')}
+                            </>
+                        ) : canResend ? (
+                            <>
+                                <RefreshCw className="w-3 h-3" aria-hidden="true" />
+                                {t('sendAgain')}
+                            </>
+                        ) : (
+                            <span>{t('sendAgain')} ({resendTimeLeft}s)</span>
+                        )}
+                    </button>
                 </motion.div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isLoading}>

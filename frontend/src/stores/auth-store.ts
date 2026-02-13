@@ -26,6 +26,7 @@ interface AuthState {
   oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
   requestMagicLink: (email: string) => Promise<void>;
   verifyMagicLink: (token: string) => Promise<void>;
+  verifyMagicLinkOtp: (email: string, code: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
   clearRateLimit: () => void;
@@ -398,6 +399,24 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Magic link verification failed';
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      verifyMagicLinkOtp: async (email, code) => {
+        set({ isLoading: true, error: null });
+        try {
+          // SEC-01: backend sets httpOnly cookies
+          await authApi.verifyMagicLinkOtp({ email, code });
+
+          // Fetch full user info
+          const { data: user } = await authApi.me();
+          set({ user, isAuthenticated: true, isLoading: false });
+          authAnalytics.loginSuccess(user.id, 'magic_link_otp');
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'Code verification failed';
           set({ error: message, isLoading: false });
           throw error;
         }

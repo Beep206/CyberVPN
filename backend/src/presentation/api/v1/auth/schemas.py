@@ -132,6 +132,13 @@ class MagicLinkVerifyRequest(BaseModel):
     token: str = Field(..., min_length=1, max_length=200)
 
 
+class MagicLinkVerifyOtpRequest(BaseModel):
+    """Request to verify magic link via 6-digit OTP code."""
+
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
 class MagicLinkResponse(BaseModel):
     """Response for magic link request (always same to prevent email enumeration)."""
 

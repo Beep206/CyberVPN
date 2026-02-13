@@ -64,6 +64,7 @@ from src.presentation.api.v1.auth.schemas import (
     LogoutRequest,
     MagicLinkRequest,
     MagicLinkResponse,
+    MagicLinkVerifyOtpRequest,
     MagicLinkVerifyRequest,
     RefreshTokenRequest,
     ResendOtpRequest,
@@ -523,33 +524,39 @@ async def resend_otp(
 async def request_magic_link(
     request: MagicLinkRequest,
     http_request: Request,
-    db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
 ) -> MagicLinkResponse:
     """Request a magic link for passwordless login.
 
-    Always returns success to prevent email enumeration.
+    Sends a magic link to any email address. If the user doesn't exist,
+    a new account will be created when the link is verified.
     """
     service = MagicLinkService(redis_client)
-    user_repo = AdminUserRepository(db)
+
+    # Normalize email to lowercase
+    email = request.email.strip().lower()
 
     try:
-        # Check if email is registered (but always return same response)
-        user = await user_repo.get_by_email(request.email)
-        if user:
-            token = await service.generate(
-                email=request.email,
-                ip_address=_get_client_ip(http_request),
+        # Detect resend: if rate counter > 0, this is not the first request
+        rate_key = f"{MagicLinkService.RATE_LIMIT_PREFIX}{email}"
+        current_count = await redis_client.get(rate_key)
+        is_resend = current_count is not None and int(current_count) > 0
+
+        token, otp_code = await service.generate(
+            email=email,
+            ip_address=_get_client_ip(http_request),
+        )
+        # Dispatch magic link email
+        try:
+            await email_dispatcher.dispatch_magic_link_email(
+                email=email,
+                token=token,
+                otp_code=otp_code,
+                is_resend=is_resend,
             )
-            # Dispatch magic link email
-            try:
-                await email_dispatcher.dispatch_magic_link_email(
-                    email=request.email,
-                    token=token,
-                )
-            except Exception as e:
-                logger.exception("Failed to dispatch magic link email: %s", e)
+        except Exception as e:
+            logger.exception("Failed to dispatch magic link email: %s", e)
     except RateLimitExceededError:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -616,6 +623,76 @@ async def verify_magic_link(
 
     # Track successful magic link auth
     track_auth_attempt(method="magic_link", success=True)
+
+    set_auth_cookies(response, access_token, refresh_token)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=expires_in,
+    )
+
+
+@router.post(
+    "/magic-link/verify-otp",
+    response_model=TokenResponse,
+    responses={400: {"description": "Invalid or expired OTP code"}},
+)
+async def verify_magic_link_otp(
+    request: MagicLinkVerifyOtpRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> TokenResponse:
+    """Verify magic link via 6-digit OTP code and return JWT tokens.
+
+    Alternative to clicking the magic link URL. The user enters the OTP code
+    from the email instead.
+
+    If user doesn't exist, creates a new account with verified email.
+    """
+    service = MagicLinkService(redis_client)
+    email = request.email.strip().lower()
+    payload = await service.validate_otp(email=email, code=request.code)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP code.",
+        )
+
+    payload_email = payload["email"]
+    user_repo = AdminUserRepository(db)
+    user = await user_repo.get_by_email(payload_email)
+
+    if not user:
+        # Auto-register: create user with verified email
+        password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
+        user = AdminUserModel(
+            login=payload_email.split("@")[0],
+            email=payload_email,
+            password_hash=password_hash,
+            role="viewer",
+            is_active=True,
+            is_email_verified=True,
+        )
+        user = await user_repo.create(user)
+
+        # Track registration for new users
+        track_registration(method="email")
+
+    # Issue JWT tokens
+    access_token, _, access_exp = auth_service.create_access_token(
+        subject=str(user.id),
+        role=user.role if isinstance(user.role, str) else user.role.value,
+    )
+    refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
+    expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+
+    # Track successful magic link OTP auth
+    track_auth_attempt(method="magic_link_otp", success=True)
 
     set_auth_cookies(response, access_token, refresh_token)
 
@@ -1001,13 +1078,10 @@ async def revoke_device(
     from src.infrastructure.database.models.refresh_token_model import RefreshToken
 
     # Find tokens for this device
-    stmt = (
-        select(RefreshToken)
-        .where(
-            RefreshToken.user_id == current_user.id,
-            RefreshToken.device_id == device_id,
-            RefreshToken.revoked_at.is_(None),
-        )
+    stmt = select(RefreshToken).where(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.device_id == device_id,
+        RefreshToken.revoked_at.is_(None),
     )
 
     result = await db.execute(stmt)
