@@ -3,7 +3,7 @@
   "checkpoint_id": "e450181db02a",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 7,
   "files_touched": [
     "backend/.env",
     "backend/alembic/versions/20260210_add_codes_tables.py",
@@ -23,8 +23,10 @@
     "frontend/next.config.ts",
     "frontend/src/3d/scenes/GlobalNetwork.tsx",
     "frontend/src/app/[locale]/(dashboard)/dashboard/components/ServerGrid.tsx",
+    "frontend/src/app/[locale]/(dashboard)/dashboard/hooks/useDashboardData.ts",
     "frontend/src/app/[locale]/(dashboard)/dashboard/page.tsx",
     "frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx",
+    "frontend/src/features/servers/hooks/useServers.ts",
     "frontend/src/lib/api/client.ts",
     "frontend/src/shared/ui/atoms/cypher-text.tsx",
     "frontend/src/shared/ui/molecules/server-card.tsx",
@@ -78,13 +80,20 @@
       "context": "/e4/50181db02a/5/context.md",
       "content_hash": "/e4/50181db02a/5/content_hash.txt",
       "prompt": "/e4/50181db02a/5/prompt.txt"
+    },
+    {
+      "metadata": "/e4/50181db02a/6/metadata.json",
+      "transcript": "/e4/50181db02a/6/full.jsonl",
+      "context": "/e4/50181db02a/6/context.md",
+      "content_hash": "/e4/50181db02a/6/content_hash.txt",
+      "prompt": "/e4/50181db02a/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 150,
-    "cache_creation_tokens": 673240,
-    "cache_read_tokens": 10369435,
-    "output_tokens": 30932,
-    "api_call_count": 99
+    "input_tokens": 159,
+    "cache_creation_tokens": 791577,
+    "cache_read_tokens": 10663492,
+    "output_tokens": 35095,
+    "api_call_count": 106
   }
 }

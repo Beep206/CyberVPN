@@ -1,0 +1,97 @@
+<teammate-message teammate_id="team-lead">
+You are the query-dedup agent. Your task is to deduplicate React Query hooks and optimize polling intervals.
+
+## Task from TaskList: #3 — Frontend: Query deduplication + polling optimization
+
+## Problem
+
+Two `useServers()` hooks with the same queryKey `['servers']` but different configs:
+1. `frontend/src/features/servers/hooks/useServers.ts` — canonical, has `select` transform, staleTime 30s, NO refetchInterval
+2. `frontend/src/app/[locale]/(dashboard)/dashboard/hooks/useDashboardData.ts` — duplicate, returns raw data, has refetchInterval 30s
+
+ServerGrid.tsx imports from the dashboard duplicate. This causes cache collision/double fetch.
+
+Also: bandwidth polling at 10s is too aggressive.
+
+## What to do
+
+### 1. Edit `frontend/src/app/[locale]/(dashboard)/dashboard/hooks/useDashboardData.ts`:
+
+Remove the `useServers()` function entirely. Keep only: useServerStats, useSystemStats, useBandwidthAnalytics.
+
+Update polling intervals:
+- `useBandwidthAnalytics`: change staleTime from `10 * 1000` to `30 * 1000`, refetchInterval from `10 * 1000` to `30 * 1000`
+- `useServerStats`: change staleTime from `30 * 1000` to `60 * 1000`, refetchInterval from `30 * 1000` to `60 * 1000`
+- `useSystemStats`: change staleTime from `30 * 1000` to `60 * 1000`, refetchInterval from `30 * 1000` to `60 * 1000`
+
+### 2. Edit `frontend/src/app/[locale]/(dashboard)/dashboard/components/ServerGrid.tsx`:
+
+Change the import from:
+```typescript
+import { useServers } from '../hooks/useDashboardData';
+```
+To:
+```typescript
+import { useServers } from '@/features/servers/hooks/useServers';
+```
+
+The ServerGrid component currently does its own data transformation (lines 53-61) because the dashboard's useServers returned raw API data. The canonical useServers uses `select` to transform already. So after switching imports, the `servers` data will be `Server[]` type (already mapped), not raw API response.
+
+Update the ServerGrid component to use the mapped data directly:
+- Remove the `transformedServers` mapping (lines 53-61)
+- Use `servers` directly but map to ServerCard format:
+```typescript
+const transformedServers = servers.map((server) => ({
+    id: server.id,
+    name: server.name,
+    location: server.location,
+    status: server.status,
+    ip: server.ip,
+    load: server.load,
+    protocol: server.protocol,
+}));
+```
+
+### 3. Edit `frontend/src/features/servers/hooks/useServers.ts`:
+
+Add missing options:
+```typescript
+export function useServers() {
+  return useQuery({
+    queryKey: ['servers'],
+    queryFn: async () => {
+      const response = await serversApi.list();
+      return response.data;
+    },
+    select: (data) => (data as unknown as ServerApiResponse[]).map(mapServerResponse),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+  });
+}
+```
+
+Add import: `import { keepPreviousData } from '@tanstack/react-query';`
+
+### 4. Edit `frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx`:
+
+Add to ALL three useQuery calls:
+- `placeholderData: keepPreviousData` (import from @tanstack/react-query)
+- `refetchOnWindowFocus: false`
+
+Change the import line to include keepPreviousData:
+```typescript
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+```
+
+## Important Rules
+- Read each file before editing
+- Don't change any component's visual output
+- Only modify query hooks and their options
+- Import keepPreviousData from '@tanstack/react-query'
+- The `useDashboardData.ts` exports are used by DashboardStats.tsx — verify the remaining hooks (useServerStats, useSystemStats, useBandwidthAnalytics) still export correctly
+
+## When Done
+Mark task #3 as completed via TaskUpdate.
+</teammate-message>
