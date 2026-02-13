@@ -1,0 +1,635 @@
+Implement the following plan:
+
+# Performance Optimization Plan: CyberVPN Dashboard
+
+## Context
+
+HAR-анализ (`localhost.har`, 103 entries) + deep-dive в код выявили критические проблемы:
+
+**Backend/Network:**
+- **~2000ms TTFB** на ВСЕХ API через Next.js proxy (порт 9001), прямой запрос = 15ms
+- **Нет серверного кеширования** — каждый запрос бьёт в Remnawave API
+- **307 редиректы** на `/servers/` (trailing slash)
+- **ListUsersUseCase** загружает ВСЕХ пользователей в память
+
+**Frontend Dashboard:**
+- **5 дублей** `/monitoring/bandwidth/`, **2 дубля** `/servers/stats/`
+- **Два useServers hooks** с одинаковым queryKey но разными select → cache collision → double fetch
+- **Race condition**: 401 до завершения auth refresh → retry → +2s
+- **3D Globe**: `frameloop="demand"` но never invalidates; 2000 particles; `dpr=[1,2]`
+- **ServerCard stagger**: 4 карты × 100ms delay = 400ms до responsive
+- **CypherText sidebar**: 11 items × N setInterval/setTimeout = jank на hover
+- **FPS/Ping RAF loop** в terminal-header конкурирует с Canvas RAF
+- **Нет Suspense boundaries** — блокирует rendering пока все queries не загрузятся
+- **bandwidth polling 10s** — слишком агрессивно
+
+**Ограничения:** нельзя менять дизайн, нельзя понижать версии библиотек.
+
+---
+
+## Team: 8 агентов, 6 параллельных направлений
+
+| # | Name | Agent Type | Skills | Focus |
+|---|------|-----------|--------|-------|
+| 1 | `backend-cache` | `backend-lead` | `caching-strategy`, `redis-best-practices`, `fastapi-expert` | Redis cache layer + pagination fix |
+| 2 | `proxy-fix` | `frontend-lead` | `nextjs-senior-dev`, `next-best-practices` | Next.js proxy 2000ms TTFB fix |
+| 3 | `query-dedup` | `ui-engineer` | `tanstack-query`, `react-performance-optimization` | Query dedup + polling intervals |
+| 4 | `dashboard-perf` | `frontend-lead` | `react-performance-optimization`, `threejs`, `framer-motion-animator` | 3D globe, animations, Suspense, RAF |
+| 5 | `auth-fix` | `backend-dev` | `api-authentication`, `fastapi` | Auth race condition fix |
+| 6 | `infra-tune` | `devops-engineer` | `docker-expert`, `postgresql-expert`, `redis-expert` | Docker/Redis/PG tuning |
+| 7 | `reviewer` | `superpowers:code-reviewer` | — | Final cross-cutting review |
+| 8 | `perf-test` | `performance-engineer` | `monitoring-observability` | HAR comparison + validation |
+
+---
+
+## Phase 1: Backend Cache Layer (Agent `backend-cache`)
+
+### Problem
+Каждый API запрос идёт в Remnawave API без кеширования.
+
+### Files to modify
+- `backend/src/infrastructure/cache/response_cache.py` — **NEW**: generic async cache
+- `backend/src/infrastructure/remnawave/client.py` — добавить cache layer
+- `backend/src/infrastructure/cache/redis_client.py` — cache helpers
+- `backend/src/presentation/api/v1/monitoring/routes.py` — cached calls
+- `backend/src/presentation/api/v1/servers/routes.py` — cached calls
+- `backend/src/presentation/api/v1/usage/routes.py` — cached calls
+- `backend/src/application/use_cases/users/list_users.py` — pagination fix
+- `backend/src/main.py` (or app factory) — `redirect_slashes=False`
+
+### Implementation
+
+1. **Создать `response_cache.py`** — Redis-backed cache с TTL:
+   ```python
+   class ResponseCache:
+       async def get_or_fetch(self, key: str, ttl: int, fetch_fn: Callable) -> Any:
+           cached = await self.redis.get(f"cache:{key}")
+           if cached:
+               return json.loads(cached)
+           result = await fetch_fn()
+           await self.redis.setex(f"cache:{key}", ttl, json.dumps(result, default=str))
+           return result
+   ```
+
+2. **Cache TTLs:**
+   | Endpoint | TTL | Key pattern |
+   |----------|-----|-------------|
+   | `/servers/` | 30s | `servers:list` |
+   | `/servers/stats` | 15s | `servers:stats` |
+   | `/monitoring/stats` | 15s | `monitoring:stats` |
+   | `/monitoring/bandwidth` | 10s | `monitoring:bandwidth:{period}` |
+   | `/monitoring/health` | 10s | `monitoring:health` |
+   | `/users/me/usage` | 30s | `usage:{user_id}` |
+
+3. **Inject cache в RemnawaveClient** через optional dependency
+4. **Fix ListUsersUseCase** — pass offset/limit to gateway вместо Python slice
+5. **`redirect_slashes=False`** в FastAPI — убрать 307 редиректы
+
+---
+
+## Phase 2: Next.js Proxy Fix (Agent `proxy-fix`)
+
+### Problem
+**Root cause #1**: Next.js proxy добавляет ~2000ms. Прямой запрос = 15ms.
+
+### Files to modify
+- `frontend/src/proxy.ts` — оптимизировать или bypass API proxy
+- `frontend/next.config.ts` — добавить rewrites
+- `frontend/src/lib/api/client.ts` — verify baseURL
+
+### Implementation
+
+1. **Next.js rewrites** (предпочтительно) в `next.config.ts`:
+   ```typescript
+   async rewrites() {
+     return [{
+       source: '/api/v1/:path*',
+       destination: `${process.env.BACKEND_URL || 'http://localhost:8000'}/api/v1/:path*`,
+     }];
+   }
+   ```
+2. **Или оптимизировать proxy.ts**: streaming без буферизации body, минимальные header transformations
+3. **Verify**: proxy.ts не добавляет redirects на API paths
+
+---
+
+## Phase 3: Query Deduplication (Agent `query-dedup`)
+
+### Problem
+- 2 разных `useServers()` hook с одинаковым queryKey → double fetch
+- bandwidth polling 10s, другие 30s → mixed intervals → render storms
+- `MonitoringClient` + `DashboardStats` fetch одни данные
+
+### Files to modify
+- `frontend/src/app/[locale]/(dashboard)/dashboard/hooks/useDashboardData.ts` — унифицировать hooks
+- `frontend/src/features/servers/hooks/useServers.ts` — canonical source
+- `frontend/src/app/[locale]/(dashboard)/dashboard/components/DashboardStats.tsx` — use unified hooks
+- `frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx` — use unified hooks
+
+### Implementation
+
+1. **Удалить `useServers()` из `useDashboardData.ts`** — использовать только `features/servers/hooks/useServers.ts`
+2. **Обновить `ServerGrid.tsx`** — import из `features/servers/hooks`
+3. **Унифицировать polling intervals:**
+   | Hook | Было | Станет |
+   |------|------|--------|
+   | `useBandwidthAnalytics` | 10s/10s | 30s/30s |
+   | `useServerStats` | 30s/30s | 60s/60s |
+   | `useSystemStats` | 30s/30s | 60s/60s |
+   | `useServers` | 30s/30s | 30s/30s |
+4. **Добавить `placeholderData: keepPreviousData`** — нет loading spinner при refetch
+5. **Добавить `refetchOnWindowFocus: false`** — нет refetch при tab switch
+
+---
+
+## Phase 4: Dashboard Rendering Performance (Agent `dashboard-perf`)
+
+### Problem
+3D globe, motion animations, RAF loops, отсутствие Suspense — всё вместе делает dashboard тяжёлым.
+
+### Files to modify
+- `frontend/src/3d/scenes/GlobalNetwork.tsx` — optimize 3D rendering
+- `frontend/src/shared/ui/molecules/server-card.tsx` — reduce animation cost
+- `frontend/src/shared/ui/atoms/cypher-text.tsx` — debounce animation
+- `frontend/src/widgets/terminal-header.tsx` — optimize FPS/ping measurement
+- `frontend/src/app/[locale]/(dashboard)/dashboard/page.tsx` — add Suspense
+- `frontend/src/app/[locale]/(dashboard)/dashboard/components/DashboardGlobe.tsx` — optimize wrapper
+
+### Implementation
+
+#### 4a. 3D Globe optimization (`GlobalNetwork.tsx`)
+1. **Снизить DPR**: `dpr={[1, 1.5]}` вместо `[1, 2]` — 44% меньше пикселей на retina
+2. **Уменьшить particles**: 2000 → 800–1000 (визуально почти нет разницы)
+3. **Fix frameloop**: использовать `frameloop="demand"` с manual `invalidate()` при смене данных, ИЛИ переключить на `"always"` с `performance.min=0.5` для адаптивного FPS
+4. **`depth: false`** в gl config если depth testing не нужен
+
+#### 4b. ServerCard animation fix (`server-card.tsx`)
+1. **Убрать stagger delay**: `delay: index * 0.1` → `delay: 0` — все карты появляются сразу
+2. **Упростить hover shadow**: `boxShadow: "0 0 30px ..."` → использовать `outline` или упрощённую тень
+3. **Обернуть в `React.memo`** если нет: предотвратить ре-рендер при обновлении соседних карт
+
+#### 4c. CypherText optimization (`cypher-text.tsx`)
+1. **Animate only on hover**, не при mount: `if (!isHovered) return` в animate()
+2. **`requestAnimationFrame` вместо `setInterval`** для scramble — нативный vsync
+3. **Убрать лишние DOM nodes** для glitch overlay если не hovered
+
+#### 4d. Terminal header RAF fix (`terminal-header.tsx`)
+1. **Заменить continuous RAF на `setInterval(1000)`** для FPS counter — не нужен каждый frame
+2. **Ping: увеличить интервал** с 5s до 15–30s — ping меняется редко
+3. **Или: убрать FPS counter** в production build
+
+#### 4e. Suspense boundaries (`page.tsx`)
+1. **Обернуть каждый блок dashboard в `<Suspense fallback={<Skeleton />}>`:**
+   ```tsx
+   <Suspense fallback={<StatsSkeletons />}>
+     <DashboardStats />
+   </Suspense>
+   <Suspense fallback={<GridSkeleton />}>
+     <ServerGrid />
+   </Suspense>
+   ```
+2. Компоненты стримятся по мере загрузки данных — нет блокировки на самый медленный
+
+---
+
+## Phase 5: Auth Race Condition (Agent `auth-fix`)
+
+### Problem
+HAR: bandwidth request fires → 401 → refresh → retry = +2s wasted.
+
+### Files to modify
+- `frontend/src/lib/api/client.ts` — improve interceptor
+- `frontend/src/app/[locale]/(dashboard)/layout.tsx` — auth gate
+
+### Implementation
+1. **Auth gate в layout**: не рендерить queries пока auth не ready (useAuth enabled flag)
+2. **Pre-emptive refresh**: проверять expiry в request interceptor, refresh если <60s до expiry
+3. **Verify `isRefreshing` queue**: убедиться что ВСЕ запросы ждут refresh, не только retries
+
+---
+
+## Phase 6: Infrastructure (Agent `infra-tune`)
+
+### Files to modify
+- `infra/docker-compose.yml` — Redis LRU policy, PG tuning
+
+### Implementation
+1. **Redis `maxmemory-policy allkeys-lru`** — критично для cache eviction
+2. **PostgreSQL `shared_buffers=256MB`** + `effective_cache_size=512MB`
+3. Connection pool — текущие 10+20=30 адекватны, не трогаем
+
+---
+
+## Execution Diagram
+
+```
+Parallel execution (6 agents):
+├── Agent backend-cache:  Redis cache + pagination + redirect_slashes
+├── Agent proxy-fix:      Next.js rewrites / proxy optimization
+├── Agent query-dedup:    Unified hooks + polling intervals
+├── Agent dashboard-perf: 3D globe, animations, Suspense, RAF
+├── Agent auth-fix:       Auth gate + pre-emptive refresh
+└── Agent infra-tune:     Redis LRU + PG tuning
+
+After all complete:
+├── Agent reviewer:       Cross-cutting code review
+└── Agent perf-test:      HAR comparison + build verification
+```
+
+---
+
+## Verification
+
+### Build checks
+```bash
+cd frontend && npm run lint && npm run build  # No regressions
+cd backend && pytest                           # Tests pass
+```
+
+### Performance targets (HAR comparison)
+| Metric | Before | Target |
+|--------|--------|--------|
+| API TTFB | 2000ms | < 200ms |
+| Duplicate API calls | 5x bandwidth | 1x each |
+| 401 before auth | Yes | No |
+| 307 redirects | 2x servers | 0 |
+| Total dashboard load | 46s+ | < 5s |
+| 3D globe initial render | jank | smooth |
+| Card animation delay | 400ms stagger | instant |
+
+### Manual test
+1. Clear cache, DevTools Network → reload dashboard
+2. Verify no duplicate requests, no 401/307, TTFB < 200ms
+3. Hover sidebar — no jank
+4. Check FPS counter — stable 60fps
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/beep/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+Base directory for this skill: /home/beep/.claude/plugins/cache/claude-plugins-official/superpowers/4.3.0/skills/dispatching-parallel-agents
+
+# Dispatching Parallel Agents
+
+## Overview
+
+When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
+
+**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
+
+## When to Use
+
+```dot
+digraph when_to_use {
+    "Multiple failures?" [shape=diamond];
+    "Are they independent?" [shape=diamond];
+    "Single agent investigates all" [shape=box];
+    "One agent per problem domain" [shape=box];
+    "Can they work in parallel?" [shape=diamond];
+    "Sequential agents" [shape=box];
+    "Parallel dispatch" [shape=box];
+
+    "Multiple failures?" -> "Are they independent?" [label="yes"];
+    "Are they independent?" -> "Single agent investigates all" [label="no - related"];
+    "Are they independent?" -> "Can they work in parallel?" [label="yes"];
+    "Can they work in parallel?" -> "Parallel dispatch" [label="yes"];
+    "Can they work in parallel?" -> "Sequential agents" [label="no - shared state"];
+}
+```
+
+**Use when:**
+- 3+ test files failing with different root causes
+- Multiple subsystems broken independently
+- Each problem can be understood without context from others
+- No shared state between investigations
+
+**Don't use when:**
+- Failures are related (fix one might fix others)
+- Need to understand full system state
+- Agents would interfere with each other
+
+## The Pattern
+
+### 1. Identify Independent Domains
+
+Group failures by what's broken:
+- File A tests: Tool approval flow
+- File B tests: Batch completion behavior
+- File C tests: Abort functionality
+
+Each domain is independent - fixing tool approval doesn't affect abort tests.
+
+### 2. Create Focused Agent Tasks
+
+Each agent gets:
+- **Specific scope:** One test file or subsystem
+- **Clear goal:** Make these tests pass
+- **Constraints:** Don't change other code
+- **Expected output:** Summary of what you found and fixed
+
+### 3. Dispatch in Parallel
+
+```typescript
+// In Claude Code / AI environment
+Task("Fix agent-tool-abort.test.ts failures")
+Task("Fix batch-completion-behavior.test.ts failures")
+Task("Fix tool-approval-race-conditions.test.ts failures")
+// All three run concurrently
+```
+
+### 4. Review and Integrate
+
+When agents return:
+- Read each summary
+- Verify fixes don't conflict
+- Run full test suite
+- Integrate all changes
+
+## Agent Prompt Structure
+
+Good agent prompts are:
+1. **Focused** - One clear problem domain
+2. **Self-contained** - All context needed to understand the problem
+3. **Specific about output** - What should the agent return?
+
+```markdown
+Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:
+
+1. "should abort tool with partial output capture" - expects 'interrupted at' in message
+2. "should handle mixed completed and aborted tools" - fast tool aborted instead of completed
+3. "should properly track pendingToolCount" - expects 3 results but gets 0
+
+These are timing/race condition issues. Your task:
+
+1. Read the test file and understand what each test verifies
+2. Identify root cause - timing issues or actual bugs?
+3. Fix by:
+   - Replacing arbitrary timeouts with event-based waiting
+   - Fixing bugs in abort implementation if found
+   - Adjusting test expectations if testing changed behavior
+
+Do NOT just increase timeouts - find the real issue.
+
+Return: Summary of what you found and what you fixed.
+```
+
+## Common Mistakes
+
+**❌ Too broad:** "Fix all the tests" - agent gets lost
+**✅ Specific:** "Fix agent-tool-abort.test.ts" - focused scope
+
+**❌ No context:** "Fix the race condition" - agent doesn't know where
+**✅ Context:** Paste the error messages and test names
+
+**❌ No constraints:** Agent might refactor everything
+**✅ Constraints:** "Do NOT change production code" or "Fix tests only"
+
+**❌ Vague output:** "Fix it" - you don't know what changed
+**✅ Specific:** "Return summary of root cause and changes"
+
+## When NOT to Use
+
+**Related failures:** Fixing one might fix others - investigate together first
+**Need full context:** Understanding requires seeing entire system
+**Exploratory debugging:** You don't know what's broken yet
+**Shared state:** Agents would interfere (editing same files, using same resources)
+
+## Real Example from Session
+
+**Scenario:** 6 test failures across 3 files after major refactoring
+
+**Failures:**
+- agent-tool-abort.test.ts: 3 failures (timing issues)
+- batch-completion-behavior.test.ts: 2 failures (tools not executing)
+- tool-approval-race-conditions.test.ts: 1 failure (execution count = 0)
+
+**Decision:** Independent domains - abort logic separate from batch completion separate from race conditions
+
+**Dispatch:**
+```
+Agent 1 → Fix agent-tool-abort.test.ts
+Agent 2 → Fix batch-completion-behavior.test.ts
+Agent 3 → Fix tool-approval-race-conditions.test.ts
+```
+
+**Results:**
+- Agent 1: Replaced timeouts with event-based waiting
+- Agent 2: Fixed event structure bug (threadId in wrong place)
+- Agent 3: Added wait for async tool execution to complete
+
+**Integration:** All fixes independent, no conflicts, full suite green
+
+**Time saved:** 3 problems solved in parallel vs sequentially
+
+## Key Benefits
+
+1. **Parallelization** - Multiple investigations happen simultaneously
+2. **Focus** - Each agent has narrow scope, less context to track
+3. **Independence** - Agents don't interfere with each other
+4. **Speed** - 3 problems solved in time of 1
+
+## Verification
+
+After agents return:
+1. **Review each summary** - Understand what changed
+2. **Check for conflicts** - Did agents edit same code?
+3. **Run full suite** - Verify all fixes work together
+4. **Spot check** - Agents can make systematic errors
+
+## Real-World Impact
+
+From debugging session (2025-10-03):
+- 6 failures across 3 files
+- 3 agents dispatched in parallel
+- All investigations completed concurrently
+- All fixes integrated successfully
+- Zero conflicts between agent changes
+
+---
+
+<teammate-message teammate_id="proxy-fix" color="green" summary="Task #2 done: removed trailingSlash config">
+Task #2 done. Removed `trailingSlash: true` from `frontend/next.config.ts` (was line 30). 
+
+**What changed:**
+- Removed `trailingSlash: true` from Next.js config — this was causing 307/308 redirects on API paths (`/api/v1/...`), adding ~2000ms TTFB due to redirect round-trips.
+
+**What stays:**
+- The axios interceptor in `client.ts:82` still adds trailing slashes to API requests (needed for FastAPI routes).
+- `proxy.ts` matcher already excludes `/api` paths — no changes needed.
+- Rewrites config untouched.
+
+API calls now go directly through the rewrite without a redirect detour.
+</teammate-message>
+
+<teammate-message teammate_id="proxy-fix" color="green">
+{"type":"idle_notification","from":"proxy-fix","timestamp":"2026-02-13T13:21:49.865Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="query-dedup" color="yellow" summary="Task #3 query dedup complete, all 4 files edited">
+Task #3 (Query deduplication + polling optimization) is complete. Changes made:
+
+1. **useDashboardData.ts** — Removed duplicate `useServers()` hook. Updated polling: bandwidth 10s→30s, serverStats/systemStats 30s→60s.
+
+2. **ServerGrid.tsx** — Switched import to canonical `@/features/servers/hooks/useServers`. Updated data transform to use pre-mapped `Server` fields (`server.id`, `server.location`, etc.) instead of raw API fields (`server.uuid`, `server.address`).
+
+3. **useServers.ts** (canonical) — Added `refetchInterval: 30_000`, `refetchOnWindowFocus: false`, `placeholderData: keepPreviousData`.
+
+4. **MonitoringClient.tsx** — Added `keepPreviousData` import, plus `refetchOnWindowFocus: false` and `placeholderData: keepPreviousData` to all 3 useQuery calls.
+
+No visual output changes. Verified DashboardStats.tsx only imports `useServerStats`, `useSystemStats`, `useBandwidthAnalytics` — unaffected by the removal.
+</teammate-message>
+
+<teammate-message teammate_id="query-dedup" color="yellow">
+{"type":"idle_notification","from":"query-dedup","timestamp":"2026-02-13T13:22:45.671Z","idleReason":"available"}
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="auth-fix" color="orange" summary="Task #5 auth race condition fix completed">
+Task #5 (auth race condition fix) is done.
+
+**What I changed** in `frontend/src/lib/api/client.ts` (lines 78-97):
+
+- Made the request interceptor `async`
+- Added a guard at the top: when `isRefreshing` is true, new requests (except `/auth/refresh` and `/auth/me`) are queued in `failedQueue` via a Promise
+- When `processQueue(null)` is called after refresh completes, queued requests proceed automatically
+- All existing functionality (trailing slash, X-Request-ID) preserved
+- Response interceptor untouched
+
+This prevents the wasted 401 round-trips: requests are held before being sent rather than after getting rejected.
+</teammate-message>
+
+<teammate-message teammate_id="auth-fix" color="orange">
+{"type":"idle_notification","from":"auth-fix","timestamp":"2026-02-13T13:22:59.795Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"proxy-fix has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="proxy-fix" color="green">
+{"type":"shutdown_approved","requestId":"shutdown-1770988979350@proxy-fix","from":"proxy-fix","timestamp":"2026-02-13T13:23:03.469Z","paneId":"%34","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="proxy-fix" color="green">
+{"type":"idle_notification","from":"proxy-fix","timestamp":"2026-02-13T13:23:05.564Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="infra-tune" color="pink" summary="Task #6 done: Redis LRU + PostgreSQL tuning">
+Task #6 done. Both infra changes applied to `infra/docker-compose.yml`:
+
+1. **Redis/Valkey**: Added `--maxmemory 128mb` and switched `--maxmemory-policy` from `noeviction` → `allkeys-lru`. This ensures cache entries get evicted automatically before hitting the 256M container limit.
+
+2. **PostgreSQL**: Added `command` block with tuning params for the 1G container:
+   - `shared_buffers=256MB` (25% of container memory)
+   - `effective_cache_size=512MB` (planner hint)
+   - `work_mem=4MB` (per-sort memory)
+   - `maintenance_work_mem=64MB` (VACUUM/index builds)
+
+All existing config preserved (healthchecks, networks, volumes, ports, YAML anchors, INFRA-04 comment).
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"query-dedup has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="query-dedup" color="yellow">
+{"type":"shutdown_approved","requestId":"shutdown-1770988979704@query-dedup","from":"query-dedup","timestamp":"2026-02-13T13:23:15.527Z","paneId":"%35","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="infra-tune" color="pink">
+{"type":"idle_notification","from":"infra-tune","timestamp":"2026-02-13T13:23:16.198Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="query-dedup" color="yellow">
+{"type":"idle_notification","from":"query-dedup","timestamp":"2026-02-13T13:23:17.790Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"auth-fix has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="auth-fix" color="orange">
+{"type":"shutdown_approved","requestId":"shutdown-1770988980081@auth-fix","from":"auth-fix","timestamp":"2026-02-13T13:23:20.024Z","paneId":"%37","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="auth-fix" color="orange">
+{"type":"idle_notification","from":"auth-fix","timestamp":"2026-02-13T13:23:22.174Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"infra-tune has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="infra-tune" color="pink">
+{"type":"shutdown_approved","requestId":"shutdown-1770988998276@infra-tune","from":"infra-tune","timestamp":"2026-02-13T13:23:25.976Z"}
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="dashboard-perf" color="purple" summary="Task #4 complete: 6 components optimized">
+Task #4 (Frontend: Dashboard rendering performance) is complete. All 6 components optimized:
+
+1. **GlobalNetwork.tsx** — `frameloop="always"` (fixes broken rendering with OrbitControls autoRotate), `performance={{ min: 0.5 }}`, DPR capped at 1.5 (44% fewer pixels on retina), particles 2000→800
+2. **ServerCard** — removed stagger delay (`index * 0.1` → `0`), removed expensive `boxShadow` from whileHover, load bar delay fixed to 0.2s
+3. **CypherText** — no mount animation (instant text display), animate only on hover or trigger change — eliminates sidebar jank from 11 simultaneous scramble animations
+4. **TerminalHeader** — FPS counter decoupled: RAF counts frames, setInterval(1s) updates DOM. Ping interval 5s→15s (fewer network requests)
+5. **Dashboard page** — Added `<Suspense>` boundaries around `<DashboardStats>` and `<ServerGrid>` with skeleton fallbacks
+6. **MonitoringClient** — All 9 stagger delays set to 0 (service cards, metrics cards, bandwidth bars, connections card)
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="dashboard-perf" color="purple">
+{"type":"idle_notification","from":"dashboard-perf","timestamp":"2026-02-13T13:24:27.061Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="backend-cache" color="blue" summary="Task #1 backend cache + redirect_slashes done">
+Task #1 (Backend: Redis response cache + redirect_slashes fix) is complete. Here's what was done:
+
+1. **Created `backend/src/infrastructure/cache/response_cache.py`** — generic async Redis cache helper with `get_or_fetch(key, ttl, fetch_fn)` using the existing `redis_client` pool. Uses `cache:` key prefix and handles read/write failures gracefully with fallthrough.
+
+2. **Monitoring routes** — wrapped all 3 endpoints:
+   - `health_check`: key `monitoring:health`, TTL 10s
+   - `get_system_stats`: key `monitoring:stats`, TTL 15s
+   - `get_bandwidth_analytics`: key `monitoring:bandwidth:{period}`, TTL 10s
+
+3. **Servers routes** — wrapped 2 GET endpoints:
+   - `list_servers`: key `servers:list`, TTL 30s
+   - `get_server_stats`: key `servers:stats`, TTL 15s
+   - Pydantic models are serialized via `model_dump(mode="json")` before caching
+
+4. **Usage routes** — wrapped 1 endpoint:
+   - `get_usage`: key `usage:{user_id}`, TTL 30s
+
+5. **`redirect_slashes=False`** added to FastAPI constructor in `main.py` (line 239)
+
+All lint/format checks pass. No function signatures were changed.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"dashboard-perf has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="dashboard-perf" color="purple">
+{"type":"shutdown_approved","requestId":"shutdown-1770989068865@dashboard-perf","from":"dashboard-perf","timestamp":"2026-02-13T13:24:36.292Z","paneId":"%36","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="backend-cache" color="blue">
+{"type":"idle_notification","from":"backend-cache","timestamp":"2026-02-13T13:24:37.304Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"backend-cache has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="backend-cache" color="blue">
+{"type":"shutdown_approved","requestId":"shutdown-1770989078560@backend-cache","from":"backend-cache","timestamp":"2026-02-13T13:24:47.922Z","paneId":"%33","backendType":"tmux"}
+</teammate-message>
