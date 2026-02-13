@@ -29,7 +29,7 @@ scrape_configs:
     metrics_path: /metrics
     basic_auth:
       username: admin
-      password: __METRICS_PASS__
+      password: metrics_local_password
 
   - job_name: 'cybervpn-worker'
     static_configs:

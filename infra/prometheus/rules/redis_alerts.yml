@@ -154,7 +154,7 @@ groups:
 
       # Persistence issues (if using RDB/AOF)
       - alert: RedisLastSaveFailed
-        expr: redis_rdb_last_save_timestamp_seconds > 7200 and redis_config_save != ""
+        expr: (time() - redis_rdb_last_save_timestamp_seconds) > 7200
         for: 10m
         labels:
           severity: warning

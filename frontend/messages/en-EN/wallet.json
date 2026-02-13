@@ -1,3 +1,11 @@
 {
-  "title": "Wallet"
+  "title": "WALLET",
+  "subtitle": "Manage your balance and transactions",
+  "balance": "Available Balance",
+  "withdraw": "Withdraw",
+  "transactions": "Transaction History",
+  "noTransactions": "No transactions yet",
+  "previous": "Previous",
+  "page": "Page",
+  "next": "Next"
 }

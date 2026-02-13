@@ -48,13 +48,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <button
                 className={cn(buttonVariants({ variant, size, className }))}
                 ref={ref}
+                onClick={onClick}
                 {...props}
             />
         )
 
         if (magnetic) {
             return (
-                <InceptionButton onClick={onClick} wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
+                <InceptionButton wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
                     <MagneticButton className="inline-block w-full" strength={20}>
                         {button}
                     </MagneticButton>
@@ -63,7 +64,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         }
 
         return (
-            <InceptionButton onClick={onClick} wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
+            <InceptionButton wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
                 {button}
             </InceptionButton>
         )

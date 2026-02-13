@@ -1,3 +1,26 @@
 {
-  "title": "Settings"
+  "title": "SETTINGS",
+  "subtitle": "Manage your account preferences and security",
+  "linkedAccounts": "Linked Accounts",
+  "profile": "Profile",
+  "email": "Email",
+  "displayName": "Display Name",
+  "save": "Save",
+  "cancel": "Cancel",
+  "edit": "Edit",
+  "language": "Language",
+  "timezone": "Timezone",
+  "security": "Security",
+  "twoFactor": "Two-Factor Authentication",
+  "tfaEnabled": "Your account is protected with 2FA",
+  "tfaDisabled": "Add an extra layer of security",
+  "enable": "Enable",
+  "disable": "Disable",
+  "password": "Password",
+  "passwordDesc": "Change your account password",
+  "change": "Change",
+  "antiphishing": "Antiphishing Code",
+  "antiphishingDesc": "Protect yourself from phishing emails",
+  "manage": "Manage",
+  "devices": "Active Devices"
 }

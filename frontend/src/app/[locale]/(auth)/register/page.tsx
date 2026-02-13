@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation'; // Switching to native router to prevent double-locale issues
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { UserPlus, Loader2, Check, AlertCircle } from 'lucide-react';
@@ -22,8 +22,9 @@ import { useAuthStore } from '@/stores/auth-store';
 export default function RegisterPage() {
     const t = useTranslations('Auth.register');
     const router = useRouter();
+    const locale = useLocale();
 
-    const { register, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+    const { register, login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
     const [usernameOnly, setUsernameOnly] = useState(false);
@@ -42,9 +43,9 @@ export default function RegisterPage() {
     // Redirect if already authenticated (auto-login after registration)
     useEffect(() => {
         if (isAuthenticated) {
-            router.push('/dashboard');
+            router.push(`/${locale}/dashboard`);
         }
-    }, [isAuthenticated, router]);
+    }, [isAuthenticated, router, locale]);
 
     // Clear error on mount
     useEffect(() => {
@@ -69,11 +70,12 @@ export default function RegisterPage() {
         try {
             if (usernameOnly) {
                 await register(username, password);
-                // Username-only: immediately active, redirect to dashboard
-                router.push('/dashboard');
+                // Backend requires verification/activation even for username-only
+                // Redirect to login with a success message
+                router.push(`/${locale}/login?registered=true`);
             } else {
                 await register(email, password);
-                router.push(`/verify?email=${encodeURIComponent(email)}`);
+                router.push(`/${locale}/verify?email=${encodeURIComponent(email)}`);
             }
         } catch {
             // Error is already set in the store

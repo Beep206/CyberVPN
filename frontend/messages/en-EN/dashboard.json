@@ -14,5 +14,9 @@
     "currentConnections": "Current connections",
     "networkLoad": "NETWORK LOAD",
     "aggregateThroughput": "Aggregate throughput",
-    "serverMatrix": "SERVER MATRIX"
+    "serverMatrix": "SERVER MATRIX",
+    "vpnUsage": "VPN USAGE",
+    "activeConnections": "Active Connections",
+    "errorLoadingServers": "Error loading servers",
+    "noServers": "No servers available"
 }

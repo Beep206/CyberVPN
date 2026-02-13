@@ -1,3 +1,14 @@
 {
-  "title": "Referral"
+  "title": "REFERRAL PROGRAM",
+  "subtitle": "Earn commissions by referring friends",
+  "yourCode": "Your Referral Code",
+  "copied": "Copied!",
+  "copy": "Copy",
+  "shareDescription": "Share this code with friends to earn commissions on their subscriptions",
+  "totalReferrals": "Total Referrals",
+  "totalEarnings": "Total Earnings",
+  "commissionRate": "Commission Rate",
+  "recentCommissions": "Recent Commissions",
+  "noCommissions": "No commissions yet",
+  "startReferring": "Start referring friends to earn commissions!"
 }

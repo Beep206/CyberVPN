@@ -212,8 +212,19 @@ async def refresh_token(
 ) -> TokenResponse:
     """Refresh access token using refresh token.
 
+    SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
     MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
     """
+    # SEC-01: Resolve refresh token from body or cookie
+    token = request.refresh_token
+    if not token:
+        token = http_request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not provided",
+        )
+
     # MED-002: Generate client fingerprint for token binding validation
     fingerprint = generate_client_fingerprint(http_request)
 
@@ -223,7 +234,7 @@ async def refresh_token(
     )
 
     result = await use_case.execute(
-        refresh_token=request.refresh_token,
+        refresh_token=token,
         client_fingerprint=fingerprint,
     )
 
@@ -240,13 +251,23 @@ async def refresh_token(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: LogoutRequest,
+    http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Logout user by invalidating refresh token and clearing auth cookies."""
-    use_case = LogoutUseCase(session=db)
+    """Logout user by invalidating refresh token and clearing auth cookies.
 
-    await use_case.execute(refresh_token=request.refresh_token)
+    SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
+    """
+    # SEC-01: Resolve refresh token from body or cookie
+    token = request.refresh_token
+    if not token:
+        token = http_request.cookies.get("refresh_token")
+
+    if token:
+        use_case = LogoutUseCase(session=db)
+        await use_case.execute(refresh_token=token)
+
     clear_auth_cookies(response)
     return None
 

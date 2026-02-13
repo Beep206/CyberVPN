@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from '@/i18n/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { useSearchParams, useRouter } from 'next/navigation'; // Switching to native router
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { LogIn, Loader2, AlertCircle } from 'lucide-react';
@@ -21,8 +20,9 @@ import { useAuthStore } from '@/stores/auth-store';
 export default function LoginPage() {
     const t = useTranslations('Auth.login');
     const router = useRouter();
+    const locale = useLocale();
     const searchParams = useSearchParams();
-    const redirectPath = searchParams.get('redirect') || '/dashboard';
+    const redirectPath = searchParams.get('redirect') || `/${locale}/dashboard`;
 
     const { login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
@@ -37,9 +37,9 @@ export default function LoginPage() {
         if (isAuthenticated) {
             // Validate redirect URL for security - only allow relative paths
             const isValidRedirect = redirectPath.startsWith('/') && !redirectPath.startsWith('//');
-            router.push(isValidRedirect ? redirectPath : '/dashboard');
+            router.push(isValidRedirect ? redirectPath : `/${locale}/dashboard`);
         }
-    }, [isAuthenticated, redirectPath, router]);
+    }, [isAuthenticated, redirectPath, router, locale]);
 
     // Clear error on mount
     useEffect(() => {
@@ -96,6 +96,18 @@ export default function LoginPage() {
                     >
                         <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{error}</span>
+                    </motion.div>
+                )}
+                {/* Success message for registration */}
+                {searchParams.get('registered') === 'true' && !error && (
+                    <motion.div
+                        role="status"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-mono"
+                    >
+                        <Loader2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span>Registration successful! Please check your email for activation instructions.</span>
                     </motion.div>
                 )}
             </div>

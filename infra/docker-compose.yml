@@ -21,7 +21,7 @@ services:
     hostname: remnawave
     <<: [*common, *logging, *env]
     ports:
-      - "127.0.0.1:3000:${APP_PORT:-3000}"
+      - "127.0.0.1:3005:${APP_PORT:-3000}"
       - "127.0.0.1:3001:${METRICS_PORT:-3001}"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${METRICS_PORT:-3001}/health"]
@@ -450,7 +450,7 @@ services:
       - "127.0.0.1:9095:9095"   # Tempo gRPC
     volumes:
       - ./tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
-      - tempo_data:/tempo
+      - tempo_data:/var/tempo
     depends_on:
       remnawave-redis:
         condition: service_healthy
@@ -612,11 +612,11 @@ services:
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
       - "--collector.netclass.ignored-devices=^(veth.*|docker.*|br-.*)"
     ports:
-      - "127.0.0.1:9100:9100"
+      - "127.0.0.1:9101:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/host:ro,rslave
+      - /:/host:ro
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9100/metrics"]
       interval: 30s
@@ -642,7 +642,7 @@ services:
     <<: [*common, *logging]
     privileged: true
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:18080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

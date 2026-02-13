@@ -1,3 +1,6 @@
 {
-  "title": "Payment History"
+  "title": "PAYMENT HISTORY",
+  "subtitle": "View all your payment transactions",
+  "history": "Payment History",
+  "noPayments": "No payment history yet"
 }

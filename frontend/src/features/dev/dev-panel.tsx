@@ -173,6 +173,7 @@ function NavigationTab({ onClose, isDark }: { onClose: () => void, isDark: boole
         { label: "Registration Page", path: "/register" },
         { label: "OTP Verification", path: "/verify" },
         { label: "Inception Test", path: "/test-animation" },
+        { label: "Error Test", path: "/test-error" },
     ];
 
     return (

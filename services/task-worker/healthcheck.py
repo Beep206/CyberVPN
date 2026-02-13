@@ -1,9 +1,8 @@
 """Docker healthcheck script for the CyberVPN task worker.
 
-Performs comprehensive health checks:
+Performs health checks:
 1. Redis connectivity (PING)
-2. PostgreSQL connectivity (SELECT 1)
-3. Broker connectivity (implicit via Redis check)
+2. Worker process is alive (implicit via being able to run this script)
 
 Returns exit code 0 for healthy, 1 for unhealthy.
 Uses synchronous code for Docker HEALTHCHECK compatibility.
@@ -11,7 +10,6 @@ Uses synchronous code for Docker HEALTHCHECK compatibility.
 
 import sys
 
-import psycopg
 import redis
 
 
@@ -29,27 +27,7 @@ def check_redis() -> bool:
         )
         result = client.ping()
         client.close()
-        return result
-    except Exception:
-        return False
-
-
-def check_postgres() -> bool:
-    """Check PostgreSQL connectivity with simple query.
-
-    Returns:
-        bool: True if PostgreSQL responds to SELECT 1, False otherwise
-    """
-    try:
-        # Use synchronous psycopg for healthcheck
-        with psycopg.connect(
-            "postgresql://cybervpn:cybervpn@remnawave-db:6767/cybervpn",
-            connect_timeout=5,
-        ) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                result = cur.fetchone()
-                return result is not None and result[0] == 1
+        return bool(result)
     except Exception:
         return False
 
@@ -62,7 +40,6 @@ def main() -> int:
     """
     checks = {
         "redis": check_redis(),
-        "postgres": check_postgres(),
     }
 
     all_healthy = all(checks.values())

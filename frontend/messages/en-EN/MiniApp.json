@@ -42,7 +42,8 @@
     "configQRTitle": "VPN Config QR Code",
     "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
     "noConfigAvailable": "No VPN config available",
-    "noConfigDescription": "Activate a subscription to get your VPN configuration"
+    "noConfigDescription": "Activate a subscription to get your VPN configuration",
+    "trafficLimit": "Traffic"
   },
   "wallet": {
     "balance": "Wallet Balance",
@@ -107,7 +108,18 @@
     "processing": "Processing...",
     "paymentError": "Payment failed. Please try again.",
     "contactForPrice": "Contact",
-    "planNote": "This is a VPN configuration template. Contact support for pricing and activation."
+    "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+    "oneDay": "1 day",
+    "oneWeek": "1 week",
+    "oneMonth": "1 month",
+    "threeMonths": "3 months",
+    "sixMonths": "6 months",
+    "oneYear": "1 year",
+    "days": "days",
+    "unlimited": "Unlimited",
+    "paymentSuccess": "Payment successful! Your subscription is now active.",
+    "paymentCancelled": "Payment was cancelled.",
+    "paymentFailed": "Payment failed. Please try again."
   },
   "profile": {
     "guest": "Guest User",
@@ -126,6 +138,7 @@
     "disabled": "Disabled",
     "changePassword": "Change Password",
     "antiphishingCode": "Antiphishing Code",
+    "activeDevices": "Active Devices",
     "securityNote": "Manage your password and 2FA settings in the full dashboard",
     "paymentHistory": "Payment History",
     "viewAll": "View All",

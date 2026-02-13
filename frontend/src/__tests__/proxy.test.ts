@@ -25,18 +25,16 @@ function createRequest(path: string, cookies?: Record<string, string>): NextRequ
   return req;
 }
 
-describe('proxy auth redirect', () => {
-  it('redirects dashboard route without auth cookie to login', () => {
+describe('proxy routing', () => {
+  it('passes dashboard route through to intlMiddleware (auth handled by AuthGuard)', () => {
     const req = createRequest('/en-EN/dashboard/servers');
     const res = proxy(req);
 
-    expect(res.status).toBe(307);
-    const location = res.headers.get('location');
-    expect(location).toContain('/en-EN/login');
-    expect(location).toContain('redirect=%2Fen-EN%2Fdashboard%2Fservers');
+    // No redirect — AuthGuard in the (dashboard) layout handles auth
+    expect(res.status).toBe(200);
   });
 
-  it('passes through dashboard route with auth cookie', () => {
+  it('passes dashboard route with auth cookie through', () => {
     const req = createRequest('/en-EN/dashboard/servers', {
       access_token: 'some-token-value',
     });
@@ -45,29 +43,25 @@ describe('proxy auth redirect', () => {
     expect(res.status).toBe(200);
   });
 
-  it('does not redirect public login route without cookie', () => {
+  it('passes public login route through', () => {
     const req = createRequest('/en-EN/login');
     const res = proxy(req);
 
     expect(res.status).toBe(200);
   });
 
-  it('redirects ru-RU dashboard route without cookie', () => {
+  it('passes ru-RU dashboard route through without redirect', () => {
     const req = createRequest('/ru-RU/dashboard/analytics');
     const res = proxy(req);
 
-    expect(res.status).toBe(307);
-    const location = res.headers.get('location');
-    expect(location).toContain('/ru-RU/login');
+    // No redirect — auth is handled client-side by AuthGuard
+    expect(res.status).toBe(200);
   });
 
-  it('includes redirect query param with original path', () => {
-    const req = createRequest('/en-EN/dashboard/users');
+  it('passes register route through', () => {
+    const req = createRequest('/en-EN/register');
     const res = proxy(req);
 
-    const location = new URL(res.headers.get('location')!);
-    expect(location.searchParams.get('redirect')).toBe(
-      '/en-EN/dashboard/users',
-    );
+    expect(res.status).toBe(200);
   });
 });

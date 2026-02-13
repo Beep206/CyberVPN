@@ -32,11 +32,11 @@ class RegisterRequest(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str = Field(..., min_length=1, max_length=1000)
+    refresh_token: str | None = Field(None, min_length=1, max_length=1000)
 
 
 class LogoutRequest(BaseModel):
-    refresh_token: str = Field(..., min_length=1, max_length=1000)
+    refresh_token: str | None = Field(None, min_length=1, max_length=1000)
 
 
 class TokenResponse(BaseModel):

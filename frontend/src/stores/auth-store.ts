@@ -63,8 +63,18 @@ export const useAuthStore = create<AuthState>()(
             });
             throw error;
           }
-          const axiosError = error as { response?: { data?: { detail?: string } } };
-          const message = axiosError.response?.data?.detail || 'Login failed';
+          const axiosError = error as { response?: { data?: { detail?: unknown } } };
+          const detail = axiosError.response?.data?.detail;
+          let message = 'Login failed';
+
+          if (typeof detail === 'string') {
+            message = detail;
+          } else if (Array.isArray(detail)) {
+            message = detail.map((err: { msg?: string }) => err.msg || JSON.stringify(err)).join(', ');
+          } else if (typeof detail === 'object' && detail !== null) {
+            message = JSON.stringify(detail);
+          }
+
           authAnalytics.loginError(message);
           set({ error: message, isLoading: false });
           throw error;
@@ -104,8 +114,20 @@ export const useAuthStore = create<AuthState>()(
             });
             throw error;
           }
-          const axiosError = error as { response?: { data?: { detail?: string } } };
-          const message = axiosError.response?.data?.detail || 'Registration failed';
+
+          const axiosError = error as { response?: { data?: { detail?: unknown } } };
+          const detail = axiosError.response?.data?.detail;
+          let message = 'Registration failed';
+
+          if (typeof detail === 'string') {
+            message = detail;
+          } else if (Array.isArray(detail)) {
+            // Handle Pydantic validation errors (array of objects)
+            message = detail.map((err: { msg?: string }) => err.msg || JSON.stringify(err)).join(', ');
+          } else if (typeof detail === 'object' && detail !== null) {
+            message = JSON.stringify(detail);
+          }
+
           authAnalytics.registerError(message);
           set({ error: message, isLoading: false });
           throw error;
@@ -136,13 +158,19 @@ export const useAuthStore = create<AuthState>()(
           authAnalytics.loginSuccess(data.user.id, 'email');
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: unknown } } };
-          const errorDetail = axiosError.response?.data?.detail;
+          const detail = axiosError.response?.data?.detail;
           let message = 'Verification failed';
 
-          if (typeof errorDetail === 'object' && errorDetail !== null && 'detail' in errorDetail) {
-            message = (errorDetail as { detail: string }).detail;
-          } else if (typeof errorDetail === 'string') {
-            message = errorDetail;
+          if (typeof detail === 'string') {
+            message = detail;
+          } else if (Array.isArray(detail)) {
+            message = detail.map((err: { msg?: string }) => err.msg || JSON.stringify(err)).join(', ');
+          } else if (typeof detail === 'object' && detail !== null) {
+            if ('detail' in detail) {
+              message = (detail as { detail: string }).detail;
+            } else {
+              message = JSON.stringify(detail);
+            }
           }
 
           set({ error: message, isLoading: false });

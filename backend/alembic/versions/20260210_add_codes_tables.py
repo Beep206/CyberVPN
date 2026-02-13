@@ -38,12 +38,7 @@ def upgrade() -> None:
         sa.Column("free_days", sa.Integer, nullable=False),
         sa.Column("plan_id", sa.Uuid(as_uuid=True), nullable=True),
         sa.Column("source", sa.String(20), nullable=False),
-        sa.Column(
-            "source_payment_id",
-            sa.Uuid(as_uuid=True),
-            sa.ForeignKey("payments.id", ondelete="SET NULL"),
-            nullable=True,
-        ),
+        sa.Column("source_payment_id", sa.Uuid(as_uuid=True), nullable=True),
         sa.Column("is_used", sa.Boolean, nullable=False, server_default="false"),
         sa.Column(
             "used_by_user_id",
@@ -125,12 +120,7 @@ def upgrade() -> None:
             sa.ForeignKey("mobile_users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "payment_id",
-            sa.Uuid(as_uuid=True),
-            sa.ForeignKey("payments.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
+        sa.Column("payment_id", sa.Uuid(as_uuid=True), nullable=False),
         sa.Column("discount_applied", sa.Numeric(20, 8), nullable=False),
         sa.Column(
             "created_at",
@@ -192,12 +182,7 @@ def upgrade() -> None:
             sa.ForeignKey("mobile_users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "payment_id",
-            sa.Uuid(as_uuid=True),
-            sa.ForeignKey("payments.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
+        sa.Column("payment_id", sa.Uuid(as_uuid=True), nullable=False),
         sa.Column(
             "partner_code_id",
             sa.Uuid(as_uuid=True),
@@ -244,12 +229,7 @@ def upgrade() -> None:
             sa.ForeignKey("mobile_users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "payment_id",
-            sa.Uuid(as_uuid=True),
-            sa.ForeignKey("payments.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
+        sa.Column("payment_id", sa.Uuid(as_uuid=True), nullable=False),
         sa.Column("commission_rate", sa.Numeric(5, 4), nullable=False),
         sa.Column("base_amount", sa.Numeric(20, 8), nullable=False),
         sa.Column("commission_amount", sa.Numeric(20, 8), nullable=False),

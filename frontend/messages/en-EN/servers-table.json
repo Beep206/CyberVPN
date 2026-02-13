@@ -20,5 +20,6 @@
         "offline": "OFFLINE",
         "warning": "WARNING",
         "maintenance": "MAINTENANCE"
-    }
+    },
+    "error": "Failed to load server data. Please try again."
 }

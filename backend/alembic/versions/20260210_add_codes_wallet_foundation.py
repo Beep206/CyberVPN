@@ -158,31 +158,36 @@ def upgrade() -> None:
     )
     op.create_index("ix_mobile_users_referral_code", "mobile_users", ["referral_code"])
 
-    # --- payments: add codes & wallet columns ---
-    op.add_column(
-        "payments",
-        sa.Column("plan_id", sa.Uuid(as_uuid=True), nullable=True),
-    )
-    op.add_column(
-        "payments",
-        sa.Column("promo_code_id", sa.Uuid(as_uuid=True), nullable=True),
-    )
-    op.add_column(
-        "payments",
-        sa.Column("partner_code_id", sa.Uuid(as_uuid=True), nullable=True),
-    )
-    op.add_column(
-        "payments",
-        sa.Column("discount_amount", sa.Numeric(20, 8), nullable=False, server_default="0"),
-    )
-    op.add_column(
-        "payments",
-        sa.Column("wallet_amount_used", sa.Numeric(20, 8), nullable=False, server_default="0"),
-    )
-    op.add_column(
-        "payments",
-        sa.Column("final_amount", sa.Numeric(20, 8), nullable=True),
-    )
+    # --- payments: add codes & wallet columns (skip if table doesn't exist yet) ---
+    conn = op.get_bind()
+    has_payments = conn.execute(
+        sa.text("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'payments')")
+    ).scalar()
+    if has_payments:
+        op.add_column(
+            "payments",
+            sa.Column("plan_id", sa.Uuid(as_uuid=True), nullable=True),
+        )
+        op.add_column(
+            "payments",
+            sa.Column("promo_code_id", sa.Uuid(as_uuid=True), nullable=True),
+        )
+        op.add_column(
+            "payments",
+            sa.Column("partner_code_id", sa.Uuid(as_uuid=True), nullable=True),
+        )
+        op.add_column(
+            "payments",
+            sa.Column("discount_amount", sa.Numeric(20, 8), nullable=False, server_default="0"),
+        )
+        op.add_column(
+            "payments",
+            sa.Column("wallet_amount_used", sa.Numeric(20, 8), nullable=False, server_default="0"),
+        )
+        op.add_column(
+            "payments",
+            sa.Column("final_amount", sa.Numeric(20, 8), nullable=True),
+        )
 
     # --- Seed default system_config values ---
     op.execute(

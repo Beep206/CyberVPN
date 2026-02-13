@@ -8,6 +8,8 @@ CyberVPN is a VPN business management platform with a cyberpunk-themed admin das
 
 **Stack**: Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, Three.js (React Three Fiber)
 
+**IMPORTANT**: In Next.js 16.1+ for this project, you MUST use `src/proxy.ts` instead of `src/middleware.ts` for middleware configuration.
+
 ## Commands
 
 ```bash

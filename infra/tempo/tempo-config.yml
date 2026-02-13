@@ -29,9 +29,9 @@ storage:
   trace:
     backend: local
     local:
-      path: /tempo/traces
+      path: /var/tempo/traces
     wal:
-      path: /tempo/wal
+      path: /var/tempo/wal
     cache: redis
     redis:
       endpoint: remnawave-redis:6379
@@ -39,15 +39,10 @@ storage:
 
 querier:
   max_concurrent_queries: 20
-  search:
-    max_duration: 0s  # unlimited
-    query_timeout: 30s
 
 query_frontend:
   search:
-    max_duration: 0s
-  trace_by_id:
-    query_timeout: 30s
+    max_result_limit: 20
 
 metrics_generator:
   registry:
@@ -55,7 +50,7 @@ metrics_generator:
       source: tempo
       cluster: local
   storage:
-    path: /tempo/generator/wal
+    path: /var/tempo/generator/wal
     remote_write:
       - url: http://prometheus:9090/api/v1/write
         send_exemplars: true
