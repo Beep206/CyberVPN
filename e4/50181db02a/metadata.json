@@ -3,7 +3,7 @@
   "checkpoint_id": "e450181db02a",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "backend/.env",
     "backend/alembic/versions/20260210_add_codes_tables.py",
@@ -21,9 +21,14 @@
     "frontend/messages/en-EN/dashboard.json",
     "frontend/messages/en-EN/navigation.json",
     "frontend/next.config.ts",
+    "frontend/src/3d/scenes/GlobalNetwork.tsx",
     "frontend/src/app/[locale]/(dashboard)/dashboard/components/ServerGrid.tsx",
+    "frontend/src/app/[locale]/(dashboard)/dashboard/page.tsx",
+    "frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx",
     "frontend/src/lib/api/client.ts",
+    "frontend/src/shared/ui/atoms/cypher-text.tsx",
     "frontend/src/shared/ui/molecules/server-card.tsx",
+    "frontend/src/widgets/terminal-header.tsx",
     "infra/docker-compose.yml",
     "infra/otel/otel-collector-config.yml",
     "infra/prometheus/prometheus.yml",
@@ -66,13 +71,20 @@
       "context": "/e4/50181db02a/4/context.md",
       "content_hash": "/e4/50181db02a/4/content_hash.txt",
       "prompt": "/e4/50181db02a/4/prompt.txt"
+    },
+    {
+      "metadata": "/e4/50181db02a/5/metadata.json",
+      "transcript": "/e4/50181db02a/5/full.jsonl",
+      "context": "/e4/50181db02a/5/context.md",
+      "content_hash": "/e4/50181db02a/5/content_hash.txt",
+      "prompt": "/e4/50181db02a/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 137,
-    "cache_creation_tokens": 550902,
-    "cache_read_tokens": 9616864,
-    "output_tokens": 25334,
-    "api_call_count": 88
+    "input_tokens": 150,
+    "cache_creation_tokens": 673240,
+    "cache_read_tokens": 10369435,
+    "output_tokens": 30932,
+    "api_call_count": 99
   }
 }
