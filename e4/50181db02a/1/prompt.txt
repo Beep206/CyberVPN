@@ -1,0 +1,70 @@
+<teammate-message teammate_id="team-lead">
+You are the auth-fix agent. Your task is to fix the auth race condition where API requests fire before auth refresh completes.
+
+## Task from TaskList: #5 — Frontend: Auth race condition fix
+
+## Problem
+HAR analysis shows: API request fires → gets 401 → triggers token refresh → retries → adds ~2s latency. The issue is that during a refresh cycle, other requests still fire and get 401s.
+
+## File to edit: `frontend/src/lib/api/client.ts`
+
+## Current state (read the file first)
+- Lines 95-110: `isRefreshing` flag and `failedQueue` for response-level 401 handling
+- Lines 112-166: Response interceptor that handles 401 by refreshing then retrying
+- Lines 79-92: Request interceptor that only adds trailing slash and X-Request-ID
+
+## Fix: Queue requests during refresh in the REQUEST interceptor
+
+The current code only queues requests AFTER they get a 401 response. By then, the round-trip is wasted. Instead, prevent requests from going out at all during refresh.
+
+Modify the REQUEST interceptor (lines 79-92) to check `isRefreshing`:
+
+```typescript
+// Request interceptor - trailing slash + X-Request-ID + queue during refresh
+apiClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    // Queue requests while a token refresh is in progress
+    // (except the refresh request itself)
+    if (isRefreshing && !config.url?.includes('/auth/refresh')) {
+      await new Promise<void>((resolve, reject) => {
+        failedQueue.push({ resolve: () => resolve(), reject: (err) => reject(err) });
+      });
+    }
+    
+    // Ensure trailing slash on API paths to prevent 308 redirects from FastAPI
+    if (config.url && !config.url.endsWith('/')) {
+      config.url += '/';
+    }
+    // Add X-Request-ID for request correlation (DX-02)
+    if (config.headers) {
+      config.headers['X-Request-ID'] = crypto.randomUUID();
+    }
+    return config;
+  },
+  (error: AxiosError) => Promise.reject(error)
+);
+```
+
+This way, when a 401 triggers a refresh:
+1. `isRefreshing = true` is set
+2. Any NEW requests see `isRefreshing` and wait in the queue
+3. Refresh completes → `processQueue(null)` → queued requests proceed
+4. No wasted round-trips
+
+Also, the `/auth/me` check request (used by AuthGuard to verify auth state) should also be excluded from queuing. Update the condition:
+
+```typescript
+if (isRefreshing && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/me')) {
+```
+
+## Important Rules
+- Read the file FULLY before editing
+- Only modify the request interceptor
+- Don't change the response interceptor logic (it's correct)
+- Don't change any other files
+- Keep all existing functionality
+- The `isRefreshing` flag and `failedQueue` are already defined — reuse them
+
+## When Done
+Mark task #5 as completed via TaskUpdate.
+</teammate-message>
