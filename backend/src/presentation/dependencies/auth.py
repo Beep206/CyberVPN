@@ -1,6 +1,7 @@
 """Authentication dependencies for FastAPI.
 
 LOW-007: All auth dependencies now include JWT revocation checks.
+SEC-01: Supports both Bearer header (mobile) and httpOnly cookie (web) auth.
 """
 
 import logging
@@ -8,7 +9,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 import redis.asyncio as redis
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import PyJWTError as JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +23,10 @@ from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer()
+# auto_error=False so we can fall back to cookie when no Authorization header
+security = HTTPBearer(auto_error=False)
+# Strict variant that requires Authorization header (used by mobile endpoints)
+security_strict = HTTPBearer()
 
 
 @dataclass
@@ -82,22 +86,39 @@ async def _validate_token(
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> AdminUserModel:
     """Get current authenticated user from JWT token.
 
+    SEC-01: Accepts token from Authorization Bearer header (mobile/API) OR
+    from the httpOnly ``access_token`` cookie (web frontend).
     SEC-003: Includes JWT revocation check to ensure logout invalidates tokens.
     LOW-007: Uses shared _validate_token() helper for consistent validation.
 
     Raises:
         HTTPException: 401 if token is invalid, expired, revoked, or user not found
     """
+    # Resolve the raw JWT token: prefer Authorization header, fall back to cookie
+    token: str | None = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         result = await _validate_token(
-            credentials.credentials,
+            token,
             auth_service,
             redis_client,
             check_revocation=True,
@@ -125,6 +146,7 @@ async def get_current_active_user(
 
 
 async def optional_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
@@ -132,11 +154,13 @@ async def optional_user(
 ) -> AdminUserModel | None:
     """Get user from JWT token if present and valid, None otherwise.
 
+    SEC-01: Accepts token from Authorization header or httpOnly cookie.
     LOW-007: Now includes JWT revocation check for consistency with get_current_user.
     Revoked tokens will return None (not authenticated) rather than the user.
 
     Args:
-        credentials: Optional Bearer token
+        request: HTTP request (for cookie fallback)
+        credentials: Optional Bearer token from Authorization header
         db: Database session
         auth_service: Auth service for token decoding
         redis_client: Redis client for revocation check
@@ -144,11 +168,19 @@ async def optional_user(
     Returns:
         AdminUserModel if token is valid and not revoked, None otherwise
     """
-    if not credentials:
+    # Resolve the raw JWT token: prefer Authorization header, fall back to cookie
+    token: str | None = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+
+    if not token:
         return None
+
     try:
         result = await _validate_token(
-            credentials.credentials,
+            token,
             auth_service,
             redis_client,
             check_revocation=True,
@@ -166,7 +198,7 @@ async def optional_user(
 
 
 async def get_current_mobile_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(security_strict),
     auth_service: AuthService = Depends(get_auth_service),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),

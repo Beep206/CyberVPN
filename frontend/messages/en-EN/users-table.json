@@ -13,6 +13,8 @@
         "active": "ACTIVE",
         "expired": "EXPIRED",
         "banned": "BANNED",
-        "trial": "TRIAL"
+        "trial": "TRIAL",
+        "disabled": "DISABLED",
+        "limited": "LIMITED"
     }
 }

@@ -19,7 +19,6 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
 )
 
 
-@dataclass
 logger = logging.getLogger(__name__)
 
 

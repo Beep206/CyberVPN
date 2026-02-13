@@ -1,3 +1,20 @@
 {
-  "title": "Subscriptions"
+  "title": "SUBSCRIPTIONS",
+  "subtitle": "Manage your VPN subscription plans",
+  "errorLoading": "Error loading subscriptions",
+  "currentSubscription": "Current Subscription",
+  "status": "Status",
+  "expiresAt": "Expires",
+  "startedAt": "Started",
+  "autoRenew": "Auto-Renew",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "cancelSubscription": "Cancel Subscription",
+  "noActiveSubscription": "No active subscription",
+  "choosePlanBelow": "Choose a plan below to get started",
+  "availablePlans": "Available Plans",
+  "errorLoadingPlans": "Error loading plans",
+  "noPlansAvailable": "No plans available at the moment",
+  "codesAndRewards": "Codes & Rewards",
+  "subscriptionHistory": "Subscription History"
 }

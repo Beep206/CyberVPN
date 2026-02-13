@@ -8,6 +8,7 @@
   --color-neon-cyan: var(--color-neon-cyan);
   --color-neon-pink: var(--color-neon-pink);
   --color-neon-purple: var(--color-neon-purple);
+  --color-neon-red: var(--color-neon-red);
 
   /* AAA+ Theme Bases (Dynamic) */
   --color-terminal-bg: var(--color-terminal-bg);
@@ -157,6 +158,7 @@
   --color-neon-cyan: oklch(0.40 0.15 210);
   --color-neon-pink: oklch(0.40 0.18 320);
   --color-neon-purple: oklch(0.38 0.18 300);
+  --color-neon-red: #ff004c;
 }
 
 .dark {
@@ -233,6 +235,7 @@
   --color-neon-cyan: #00ffff;
   --color-neon-pink: #ff00ff;
   --color-neon-purple: #9d00ff;
+  --color-neon-red: #ff004c;
 }
 
 /* Force dark mode code block removed, relying on class strategy */
