@@ -1,0 +1,68 @@
+<teammate-message teammate_id="team-lead">
+You are the infra-tune agent. Your task is to tune Redis and PostgreSQL in docker-compose.yml.
+
+## Task from TaskList: #6 — Infrastructure: Redis LRU eviction policy
+
+## File to edit: `infra/docker-compose.yml`
+
+## Changes
+
+### 1. Redis/Valkey (lines 80-111, service `remnawave-redis`)
+
+Current command (lines 91-96):
+```yaml
+command: >
+  valkey-server
+  --save ""
+  --appendonly no
+  --maxmemory-policy noeviction
+  --loglevel warning
+```
+
+Change to:
+```yaml
+command: >
+  valkey-server
+  --save ""
+  --appendonly no
+  --maxmemory 128mb
+  --maxmemory-policy allkeys-lru
+  --loglevel warning
+```
+
+Why: `noeviction` means SET commands fail when memory is full. Since we're adding a response cache layer, we need `allkeys-lru` to evict old cache entries automatically. The 128mb limit ensures LRU kicks in before the container hits its 256M memory limit.
+
+### 2. PostgreSQL (lines 49-78, service `remnawave-db`)
+
+Add a command override to tune PostgreSQL settings. Add after the `environment` block:
+
+```yaml
+command:
+  - "postgres"
+  - "-c"
+  - "shared_buffers=256MB"
+  - "-c"
+  - "effective_cache_size=512MB"
+  - "-c"
+  - "work_mem=4MB"
+  - "-c"
+  - "maintenance_work_mem=64MB"
+```
+
+These are standard PostgreSQL tuning parameters for a 1GB memory limit container:
+- `shared_buffers=256MB` — 25% of available memory for buffer cache
+- `effective_cache_size=512MB` — hint for planner about OS cache
+- `work_mem=4MB` — per-sort/hash memory (default 4MB is fine)
+- `maintenance_work_mem=64MB` — for VACUUM, CREATE INDEX
+
+## Important Rules
+- Read the file FULLY before editing
+- Only modify the two services listed
+- Keep all existing configuration (restart policy, healthchecks, networks, etc.)
+- Don't change any ports or volume mounts
+- Preserve the YAML anchors and aliases (&common, *common, etc.)
+- Keep the existing INFRA-04 comment about persistence
+
+## When Done
+Mark task #6 as completed via TaskUpdate.
+</teammate-message>
