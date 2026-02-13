@@ -3,16 +3,21 @@
   "checkpoint_id": "e450181db02a",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 8,
+  "checkpoints_count": 25,
   "files_touched": [
     "backend/.env",
     "backend/alembic/versions/20260210_add_codes_tables.py",
     "backend/alembic/versions/20260210_add_codes_wallet_foundation.py",
     "backend/alembic/versions/20260213_add_audit_logs_table.py",
+    "backend/src/application/services/magic_link_service.py",
     "backend/src/application/use_cases/mobile_auth/refresh.py",
     "backend/src/infrastructure/cache/response_cache.py",
     "backend/src/infrastructure/database/models/audit_log_model.py",
+    "backend/src/infrastructure/database/repositories/admin_user_repo.py",
+    "backend/src/infrastructure/tasks/email_task_dispatcher.py",
     "backend/src/main.py",
+    "backend/src/presentation/api/v1/auth/routes.py",
+    "backend/src/presentation/api/v1/auth/schemas.py",
     "backend/src/presentation/api/v1/monitoring/routes.py",
     "backend/src/presentation/api/v1/servers/routes.py",
     "backend/src/presentation/api/v1/usage/routes.py",
@@ -22,21 +27,35 @@
     "frontend/messages/en-EN/navigation.json",
     "frontend/next.config.ts",
     "frontend/src/3d/scenes/GlobalNetwork.tsx",
+    "frontend/src/app/[locale]/(auth)/magic-link/page.tsx",
+    "frontend/src/app/[locale]/(auth)/magic-link/verify/page.tsx",
     "frontend/src/app/[locale]/(dashboard)/dashboard/components/ServerGrid.tsx",
     "frontend/src/app/[locale]/(dashboard)/dashboard/hooks/useDashboardData.ts",
     "frontend/src/app/[locale]/(dashboard)/dashboard/page.tsx",
     "frontend/src/app/[locale]/(dashboard)/monitoring/components/MonitoringClient.tsx",
     "frontend/src/features/servers/hooks/useServers.ts",
+    "frontend/src/lib/api/auth.ts",
     "frontend/src/lib/api/client.ts",
     "frontend/src/shared/ui/atoms/cypher-text.tsx",
     "frontend/src/shared/ui/molecules/server-card.tsx",
+    "frontend/src/stores/auth-store.ts",
     "frontend/src/widgets/terminal-header.tsx",
     "infra/docker-compose.yml",
     "infra/otel/otel-collector-config.yml",
     "infra/prometheus/prometheus.yml",
     "infra/prometheus/rules/redis_alerts.yml",
     "infra/tempo/tempo-config.yml",
-    "services/task-worker/healthcheck.py"
+    "services/task-worker/.env",
+    "services/task-worker/AGENTS.md",
+    "services/task-worker/CLAUDE.md",
+    "services/task-worker/healthcheck.py",
+    "services/task-worker/src/config.py",
+    "services/task-worker/src/services/email/brevo_client.py",
+    "services/task-worker/src/services/email/resend_client.py",
+    "services/task-worker/src/services/email/smtp_client.py",
+    "services/task-worker/src/services/email/templates.py",
+    "services/task-worker/src/tasks/email/__init__.py",
+    "services/task-worker/src/tasks/email/send_magic_link.py"
   ],
   "sessions": [
     {
@@ -94,13 +113,20 @@
       "context": "/e4/50181db02a/7/context.md",
       "content_hash": "/e4/50181db02a/7/content_hash.txt",
       "prompt": "/e4/50181db02a/7/prompt.txt"
+    },
+    {
+      "metadata": "/e4/50181db02a/8/metadata.json",
+      "transcript": "/e4/50181db02a/8/full.jsonl",
+      "context": "/e4/50181db02a/8/context.md",
+      "content_hash": "/e4/50181db02a/8/content_hash.txt",
+      "prompt": "/e4/50181db02a/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 310,
-    "cache_creation_tokens": 908637,
-    "cache_read_tokens": 10860654,
-    "output_tokens": 36339,
-    "api_call_count": 112
+    "input_tokens": 5203,
+    "cache_creation_tokens": 1959254,
+    "cache_read_tokens": 65611002,
+    "output_tokens": 140329,
+    "api_call_count": 588
   }
 }
