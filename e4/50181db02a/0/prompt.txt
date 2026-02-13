@@ -1,0 +1,42 @@
+<teammate-message teammate_id="team-lead">
+You are the proxy-fix agent. Your task is to fix the ~2000ms TTFB issue on API calls going through Next.js.
+
+## Task from TaskList: #2 — Frontend: Fix Next.js proxy TTFB + trailing slash
+
+## Analysis
+
+The next.config.ts already has rewrites configured:
+```typescript
+async rewrites() {
+    return [{
+        source: "/api/v1/:path*",
+        destination: "http://localhost:8000/api/v1/:path*",
+    }];
+}
+```
+
+BUT there's `trailingSlash: true` on line 30 of next.config.ts. This causes Next.js to add 307/308 redirects to add trailing slashes to ALL paths, including API paths. Combined with the API client interceptor that ALSO adds trailing slashes (line 82 of client.ts), this creates double-redirect issues.
+
+## What to do
+
+### 1. In `frontend/next.config.ts`:
+- REMOVE `trailingSlash: true` (line 30) — this is causing 307 redirects on API paths and adding latency. The i18n routing doesn't need it.
+
+### 2. In `frontend/src/lib/api/client.ts`:
+- The trailing slash interceptor on line 82 should STAY — FastAPI routes are defined with trailing slashes and we need them
+- No changes needed here
+
+### 3. Verify `frontend/src/proxy.ts`:
+- Should NOT be touching API paths — check the matcher excludes `/api`
+- Current matcher: `'/((?!api|_next|_vercel|.*\\..*).*)'` — this already excludes api paths, good
+
+## Important
+- Read each file FULLY before making changes
+- Only remove `trailingSlash: true` from next.config.ts
+- Don't change the rewrites config
+- Don't touch proxy.ts (it's already correct)
+- Don't downgrade any library versions
+
+## When Done
+Mark task #2 as completed via TaskUpdate.
+</teammate-message>
