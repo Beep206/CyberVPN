@@ -17,12 +17,36 @@ import {
 } from '@/features/auth/components';
 import { useAuthStore } from '@/stores/auth-store';
 
+const AUTH_REDIRECT_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
+
+function getSafeRedirectPath(rawRedirect: string | null, locale: string): string {
+    const fallback = `/${locale}/dashboard`;
+
+    if (!rawRedirect) return fallback;
+
+    let candidate = rawRedirect;
+    try {
+        candidate = decodeURIComponent(rawRedirect);
+    } catch {
+        return fallback;
+    }
+
+    const isRelativePath = candidate.startsWith('/') && !candidate.startsWith('//');
+    if (!isRelativePath) return fallback;
+
+    if (AUTH_REDIRECT_RE.test(candidate)) {
+        return fallback;
+    }
+
+    return candidate;
+}
+
 export default function LoginPage() {
     const t = useTranslations('Auth.login');
     const router = useRouter();
     const locale = useLocale();
     const searchParams = useSearchParams();
-    const redirectPath = searchParams.get('redirect') || `/${locale}/dashboard`;
+    const redirectPath = getSafeRedirectPath(searchParams.get('redirect'), locale);
 
     const { login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
@@ -35,9 +59,7 @@ export default function LoginPage() {
     // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
-            // Validate redirect URL for security - only allow relative paths
-            const isValidRedirect = redirectPath.startsWith('/') && !redirectPath.startsWith('//');
-            router.push(isValidRedirect ? redirectPath : `/${locale}/dashboard`);
+            router.push(redirectPath);
         }
     }, [isAuthenticated, redirectPath, router, locale]);
 

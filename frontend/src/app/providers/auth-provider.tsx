@@ -11,7 +11,7 @@ interface AuthProviderProps {
 
 /**
  * AuthProvider handles session persistence on app load.
- * It checks for existing session by calling /auth/me on mount.
+ * It checks for existing session by calling /auth/session on mount.
  * Handles hydration mismatch by deferring auth state to client.
  */
 export function AuthProvider({ children, skeleton }: AuthProviderProps) {
@@ -28,20 +28,9 @@ export function AuthProvider({ children, skeleton }: AuthProviderProps) {
   // Check session on mount
   useEffect(() => {
     if (isHydrated) {
-      // Only fetch if we think we might be authenticated (persisted state)
-      // This prevents unnecessary API calls for new visitors
-      const storedAuth = localStorage.getItem('auth-storage');
-      if (storedAuth) {
-        try {
-          const parsed = JSON.parse(storedAuth);
-          if (parsed.state?.isAuthenticated) {
-            fetchUser();
-          }
-        } catch {
-          // Invalid stored data, clear it
-          localStorage.removeItem('auth-storage');
-        }
-      }
+      // SEC-01: httpOnly cookies are source of truth and cannot be inspected
+      // from JS, so always ask the backend for current session.
+      fetchUser();
     }
   }, [isHydrated, fetchUser]);
 

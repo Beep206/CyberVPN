@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { AxiosResponse } from 'axios';
 
 // Request interfaces
 export interface LoginRequest {
@@ -80,6 +81,20 @@ export interface OtpErrorResponse {
   code?: string;
   attempts_remaining?: number;
   next_resend_available_at?: string;
+}
+
+let sessionRequest: Promise<AxiosResponse<User>> | null = null;
+
+function fetchSessionOnce(): Promise<AxiosResponse<User>> {
+  if (!sessionRequest) {
+    sessionRequest = apiClient
+      .get<User>('/auth/session')
+      .finally(() => {
+        sessionRequest = null;
+      });
+  }
+
+  return sessionRequest;
 }
 
 export type OAuthProvider = 'google' | 'github' | 'discord' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
@@ -170,6 +185,10 @@ export interface MagicLinkVerifyRequest {
   token: string;
 }
 
+export interface MagicLinkVerifyResponse extends TokenResponse {
+  user: User;
+}
+
 export interface MagicLinkVerifyOtpRequest {
   email: string;
   code: string;
@@ -239,7 +258,14 @@ export const authApi = {
    * GET /api/v1/auth/me
    */
   me: () =>
-    apiClient.get<User>('/auth/me'),
+    apiClient.get<User>('/auth/me/'),
+
+  /**
+   * Get current authenticated session (redirect-loop-safe alias)
+   * GET /api/v1/auth/session
+   */
+  session: () =>
+    fetchSessionOnce(),
 
   /**
    * Authenticate via Telegram Login Widget
@@ -301,18 +327,18 @@ export const authApi = {
     apiClient.post<MagicLinkResponse>('/auth/magic-link', data),
 
   /**
-   * Verify magic link token and get JWT tokens
+   * Verify magic link token and get JWT tokens + user data
    * POST /api/v1/auth/magic-link/verify
    */
   verifyMagicLink: (data: MagicLinkVerifyRequest) =>
-    apiClient.post<TokenResponse>('/auth/magic-link/verify', data),
+    apiClient.post<MagicLinkVerifyResponse>('/auth/magic-link/verify', data),
 
   /**
-   * Verify magic link OTP code and get JWT tokens
+   * Verify magic link OTP code and get JWT tokens + user data
    * POST /api/v1/auth/magic-link/verify-otp
    */
   verifyMagicLinkOtp: (data: MagicLinkVerifyOtpRequest) =>
-    apiClient.post<TokenResponse>('/auth/magic-link/verify-otp', data),
+    apiClient.post<MagicLinkVerifyResponse>('/auth/magic-link/verify-otp', data),
 
   /**
    * Get Telegram OAuth authorize URL for account linking (authenticated)

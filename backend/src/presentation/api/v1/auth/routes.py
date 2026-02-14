@@ -8,6 +8,7 @@ import logging
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
@@ -66,6 +68,7 @@ from src.presentation.api.v1.auth.schemas import (
     MagicLinkResponse,
     MagicLinkVerifyOtpRequest,
     MagicLinkVerifyRequest,
+    MagicLinkVerifyResponse,
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
@@ -308,6 +311,21 @@ async def logout_all_devices(
     response_model=AdminUserResponse,
     responses={401: {"description": "Not authenticated"}},
 )
+@router.get(
+    "/session",
+    response_model=AdminUserResponse,
+    include_in_schema=False,
+)
+@router.get(
+    "/me/",
+    response_model=AdminUserResponse,
+    include_in_schema=False,
+)
+@router.get(
+    "/session/",
+    response_model=AdminUserResponse,
+    include_in_schema=False,
+)
 async def get_me(
     current_user=Depends(get_current_active_user),
 ) -> AdminUserResponse:
@@ -331,6 +349,11 @@ async def get_me(
         401: {"description": "Not authenticated"},
         404: {"description": "User not found"},
     },
+)
+@router.delete(
+    "/me/",
+    response_model=DeleteAccountResponse,
+    include_in_schema=False,
 )
 async def delete_account(
     current_user=Depends(get_current_active_user),
@@ -568,7 +591,7 @@ async def request_magic_link(
 
 @router.post(
     "/magic-link/verify",
-    response_model=TokenResponse,
+    response_model=MagicLinkVerifyResponse,
     responses={400: {"description": "Invalid or expired token"}},
 )
 async def verify_magic_link(
@@ -577,8 +600,8 @@ async def verify_magic_link(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
-) -> TokenResponse:
-    """Verify magic link token and return JWT tokens.
+) -> MagicLinkVerifyResponse:
+    """Verify magic link token and return JWT tokens with user data.
 
     If user doesn't exist, creates a new account with verified email.
     """
@@ -595,7 +618,6 @@ async def verify_magic_link(
     user_repo = AdminUserRepository(db)
     user = await user_repo.get_by_email(email)
 
-    is_new_user = False
     if not user:
         # Auto-register: create user with verified email
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
@@ -608,8 +630,6 @@ async def verify_magic_link(
             is_email_verified=True,
         )
         user = await user_repo.create(user)
-        is_new_user = True
-
         # Track registration for new users
         track_registration(method="email")
 
@@ -618,25 +638,35 @@ async def verify_magic_link(
         subject=str(user.id),
         role=user.role if isinstance(user.role, str) else user.role.value,
     )
-    refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
+    refresh_token, _, refresh_exp = auth_service.create_refresh_token(subject=str(user.id))
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+
+    refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
+    refresh_token_record = RefreshToken(
+        user_id=user.id,
+        token_hash=refresh_token_hash,
+        expires_at=refresh_exp,
+    )
+    db.add(refresh_token_record)
+    await db.flush()
 
     # Track successful magic link auth
     track_auth_attempt(method="magic_link", success=True)
 
     set_auth_cookies(response, access_token, refresh_token)
 
-    return TokenResponse(
+    return MagicLinkVerifyResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=expires_in,
+        user=AdminUserResponse.model_validate(user),
     )
 
 
 @router.post(
     "/magic-link/verify-otp",
-    response_model=TokenResponse,
+    response_model=MagicLinkVerifyResponse,
     responses={400: {"description": "Invalid or expired OTP code"}},
 )
 async def verify_magic_link_otp(
@@ -645,8 +675,8 @@ async def verify_magic_link_otp(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
-) -> TokenResponse:
-    """Verify magic link via 6-digit OTP code and return JWT tokens.
+) -> MagicLinkVerifyResponse:
+    """Verify magic link via 6-digit OTP code and return JWT tokens with user data.
 
     Alternative to clicking the magic link URL. The user enters the OTP code
     from the email instead.
@@ -688,19 +718,29 @@ async def verify_magic_link_otp(
         subject=str(user.id),
         role=user.role if isinstance(user.role, str) else user.role.value,
     )
-    refresh_token, _, _ = auth_service.create_refresh_token(subject=str(user.id))
+    refresh_token, _, refresh_exp = auth_service.create_refresh_token(subject=str(user.id))
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+
+    refresh_token_hash = sha256(refresh_token.encode()).hexdigest()
+    refresh_token_record = RefreshToken(
+        user_id=user.id,
+        token_hash=refresh_token_hash,
+        expires_at=refresh_exp,
+    )
+    db.add(refresh_token_record)
+    await db.flush()
 
     # Track successful magic link OTP auth
     track_auth_attempt(method="magic_link_otp", success=True)
 
     set_auth_cookies(response, access_token, refresh_token)
 
-    return TokenResponse(
+    return MagicLinkVerifyResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=expires_in,
+        user=AdminUserResponse.model_validate(user),
     )
 
 

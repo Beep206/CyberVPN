@@ -34,6 +34,7 @@ export default function MagicLinkPage() {
     const [otpError, setOtpError] = useState<string | null>(null);
     const canResend = resendTimeLeft === 0 && !isResending;
     const errorRef = useRef<HTMLDivElement>(null);
+    const otpVerificationLockRef = useRef<string | null>(null);
 
     useEffect(() => {
         clearError();
@@ -67,6 +68,9 @@ export default function MagicLinkPage() {
             await requestMagicLink(email);
             setSent(true);
             setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
+            setOtpCode('');
+            setOtpError(null);
+            otpVerificationLockRef.current = null;
         } catch {
             // Error handled by store
         }
@@ -78,6 +82,9 @@ export default function MagicLinkPage() {
         try {
             await requestMagicLink(email);
             setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
+            setOtpCode('');
+            setOtpError(null);
+            otpVerificationLockRef.current = null;
         } catch {
             // Error handled by store
         } finally {
@@ -86,8 +93,13 @@ export default function MagicLinkPage() {
     };
 
     const handleVerifyCode = async (code?: string) => {
-        const codeToVerify = code ?? otpCode;
+        const codeToVerify = (code ?? otpCode).trim();
         if (codeToVerify.length !== OTP_LENGTH || !email) return;
+
+        // input-otp can fire onComplete more than once with the same value.
+        // Lock by code to avoid duplicate verify requests consuming the token.
+        if (otpVerificationLockRef.current === codeToVerify || isVerifyingCode) return;
+        otpVerificationLockRef.current = codeToVerify;
 
         setIsVerifyingCode(true);
         setOtpError(null);
@@ -99,6 +111,7 @@ export default function MagicLinkPage() {
             const message = axiosError?.response?.data?.detail || 'Code verification failed';
             setOtpError(message);
             setOtpCode('');
+            otpVerificationLockRef.current = null;
         } finally {
             setIsVerifyingCode(false);
         }
