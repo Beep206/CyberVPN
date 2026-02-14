@@ -139,6 +139,16 @@ class MagicLinkVerifyOtpRequest(BaseModel):
     code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
+class MagicLinkVerifyResponse(BaseModel):
+    """Response for successful magic link verification with auto-login."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 0
+    user: AdminUserResponse
+
+
 class MagicLinkResponse(BaseModel):
     """Response for magic link request (always same to prevent email enumeration)."""
 

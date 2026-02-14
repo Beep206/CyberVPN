@@ -38,10 +38,13 @@ class MagicLinkService:
     """
 
     PREFIX = "magic_link:"
+    CONSUMED_PREFIX = "magic_link_consumed:"
+    CONSUMED_REPLAY_PREFIX = "magic_link_consumed_replay:"
     EMAIL_TOKEN_PREFIX = "magic_link_email:"  # Reverse lookup: email -> token
     OTP_PREFIX = "magic_link_otp:"  # Reverse lookup: email -> 6-digit OTP code
     RATE_LIMIT_PREFIX = "magic_link_rate:"
     TTL_SECONDS = 3600  # 1 hour
+    CONSUMED_TTL_SECONDS = 120  # Allow one replay to tolerate duplicate requests
     MAX_REQUESTS_PER_HOUR = 5
     RATE_LIMIT_WINDOW = 3600  # 1 hour
 
@@ -148,6 +151,8 @@ class MagicLinkService:
             is valid, or None if the token is invalid or expired.
         """
         key = f"{self.PREFIX}{token}"
+        consumed_key = f"{self.CONSUMED_PREFIX}{token}"
+        replay_key = f"{self.CONSUMED_REPLAY_PREFIX}{token}"
 
         # Atomic get+delete using pipeline
         pipe = self._redis.pipeline()
@@ -157,6 +162,25 @@ class MagicLinkService:
 
         data = results[0]
         if not data:
+            consumed_payload = await self._redis.get(consumed_key)
+            payload = self._deserialize_payload(consumed_payload)
+            if payload:
+                replay_granted = await self._redis.set(
+                    replay_key,
+                    "1",
+                    ex=self.CONSUMED_TTL_SECONDS,
+                    nx=True,
+                )
+                if replay_granted:
+                    logger.info(
+                        "Magic link token replay accepted",
+                        extra={
+                            "email": payload.get("email"),
+                            "token_prefix": token[:8] if len(token) >= 8 else token,
+                        },
+                    )
+                    return payload
+
             logger.warning(
                 "Invalid or expired magic link token used",
                 extra={
@@ -165,7 +189,15 @@ class MagicLinkService:
             )
             return None
 
-        payload = json.loads(data)
+        payload = self._deserialize_payload(data)
+        if not payload:
+            logger.warning(
+                "Magic link token payload is malformed",
+                extra={
+                    "token_prefix": token[:8] if len(token) >= 8 else token,
+                },
+            )
+            return None
 
         # Clean up reverse lookups (email -> token and email -> otp)
         email = payload.get("email")
@@ -175,7 +207,13 @@ class MagicLinkService:
             pipe = self._redis.pipeline()
             pipe.delete(email_key)
             pipe.delete(otp_key)
+            pipe.setex(consumed_key, self.CONSUMED_TTL_SECONDS, json.dumps(payload))
+            pipe.delete(replay_key)
             await pipe.execute()
+        else:
+            # Keep a short replay window even for malformed/missing email payloads.
+            await self._redis.setex(consumed_key, self.CONSUMED_TTL_SECONDS, json.dumps(payload))
+            await self._redis.delete(replay_key)
 
         logger.info(
             "Magic link token validated and consumed",
@@ -186,6 +224,41 @@ class MagicLinkService:
         )
 
         return payload
+
+    @staticmethod
+    def _deserialize_payload(data: str | bytes | None) -> dict | None:
+        """Deserialize token payload from Redis.
+
+        Supports both the current JSON object format and legacy plain email
+        string values to avoid hard failures during rolling updates.
+        """
+        if data is None:
+            return None
+
+        decoded = data.decode() if isinstance(data, bytes) else data
+
+        try:
+            payload = json.loads(decoded)
+        except json.JSONDecodeError:
+            if isinstance(decoded, str) and "@" in decoded:
+                return {
+                    "email": decoded,
+                    "ip_address": None,
+                    "created_at": None,
+                }
+            return None
+
+        if isinstance(payload, dict):
+            return payload
+
+        if isinstance(payload, str) and "@" in payload:
+            return {
+                "email": payload,
+                "ip_address": None,
+                "created_at": None,
+            }
+
+        return None
 
     async def validate_otp(self, email: str, code: str) -> dict | None:
         """Validate a 6-digit OTP code for magic link authentication.

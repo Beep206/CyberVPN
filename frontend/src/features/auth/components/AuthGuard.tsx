@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from '@/i18n/navigation';
+import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import { Loader2 } from 'lucide-react';
 
@@ -9,52 +10,82 @@ interface AuthGuardProps {
     children: React.ReactNode;
 }
 
+const AUTH_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify)(?:\/|$)/;
+
 /**
- * Client-side auth guard that redirects to login if not authenticated.
- * SEC-01: Auth is via httpOnly cookies — always attempt /auth/me to check session.
+ * Client-side auth guard that validates session via backend cookies.
+ *
+ * The source of truth is /auth/me (httpOnly cookie auth), not persisted
+ * client flags. This avoids race conditions between hydration and redirects.
  */
 export function AuthGuard({ children }: AuthGuardProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const { isAuthenticated, isLoading, fetchUser } = useAuthStore();
     const [isChecking, setIsChecking] = useState(true);
-    const fetchAttempted = useRef(false);
+    const [isAuthorized, setIsAuthorized] = useState(false);
 
     useEffect(() => {
+        let isMounted = true;
+
         const checkAuth = async () => {
-            if (isAuthenticated) {
-                setIsChecking(false);
-                return;
-            }
-
-            // Guard against double-fetch (AuthProvider may have already called fetchUser)
-            if (isLoading || fetchAttempted.current) {
-                return;
-            }
-
-            fetchAttempted.current = true;
-
-            // SEC-01: httpOnly cookies are invisible to JS — always try /auth/me
             try {
-                await fetchUser();
-            } catch {
-                // Session invalid or expired — redirect will happen below
-            }
+                const { data } = await authApi.session();
+                if (!isMounted) return;
 
-            setIsChecking(false);
+                useAuthStore.setState({
+                    user: data,
+                    isAuthenticated: true,
+                    isLoading: false,
+                    error: null,
+                });
+                setIsAuthorized(true);
+            } catch (error: unknown) {
+                if (!isMounted) return;
+
+                const currentState = useAuthStore.getState();
+
+                useAuthStore.setState({
+                    user: null,
+                    isAuthenticated: false,
+                    isLoading: false,
+                });
+                setIsAuthorized(false);
+
+                const status = (error as { response?: { status?: number } }).response?.status;
+                if (status !== 401 && status !== 403) {
+                    if (currentState.isAuthenticated && currentState.user) {
+                        useAuthStore.setState({
+                            user: currentState.user,
+                            isAuthenticated: true,
+                            isLoading: false,
+                            error: null,
+                        });
+                        setIsAuthorized(true);
+                    }
+                }
+            } finally {
+                if (isMounted) {
+                    setIsChecking(false);
+                }
+            }
         };
 
         checkAuth();
-    }, [isAuthenticated, isLoading, fetchUser]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
-        if (!isChecking && !isLoading && !isAuthenticated) {
-            const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+        if (!isChecking && !isAuthorized) {
+            const redirectTarget = AUTH_ROUTE_RE.test(pathname) ? '/dashboard' : pathname;
+            const redirectUrl = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
             router.push(redirectUrl);
         }
-    }, [isChecking, isLoading, isAuthenticated, pathname, router]);
+    }, [isChecking, isAuthorized, pathname, router]);
 
-    if (isChecking || isLoading) {
+    if (isChecking) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-terminal-bg">
                 <div className="flex flex-col items-center gap-4">
@@ -67,7 +98,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         );
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthorized) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-terminal-bg">
                 <div className="flex flex-col items-center gap-4">

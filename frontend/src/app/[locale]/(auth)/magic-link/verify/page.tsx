@@ -22,14 +22,6 @@ export default function MagicLinkVerifyPage() {
     const [verifying, setVerifying] = useState(true);
     const [verified, setVerified] = useState(false);
 
-    // Clear stale auth state on mount to prevent AuthProvider race condition.
-    // AuthProvider reads localStorage on hydration and may call fetchUser()
-    // concurrently, which can overwrite the verify result.
-    useEffect(() => {
-        localStorage.removeItem('auth-storage');
-        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
-    }, []);
-
     useEffect(() => {
         const token = searchParams.get('token');
 
@@ -50,6 +42,12 @@ export default function MagicLinkVerifyPage() {
                 setVerifying(false);
                 setVerified(true);
             } catch (err: unknown) {
+                if (useAuthStore.getState().isAuthenticated) {
+                    setVerifying(false);
+                    setVerified(true);
+                    return;
+                }
+
                 const axiosError = err as { response?: { data?: { detail?: string } } };
                 setError(
                     axiosError.response?.data?.detail ||

@@ -25,8 +25,6 @@ from src.presentation.dependencies.services import get_auth_service
 logger = logging.getLogger(__name__)
 # auto_error=False so we can fall back to cookie when no Authorization header
 security = HTTPBearer(auto_error=False)
-# Strict variant that requires Authorization header (used by mobile endpoints)
-security_strict = HTTPBearer()
 
 
 @dataclass
@@ -198,7 +196,8 @@ async def optional_user(
 
 
 async def get_current_mobile_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security_strict),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     auth_service: AuthService = Depends(get_auth_service),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
@@ -207,14 +206,23 @@ async def get_current_mobile_user_id(
 
     SEC-006: Verifies user is active before returning ID.
 
-    Used for mobile app authentication endpoints.
+    Used for endpoints that return data scoped to the current user.
+    Accepts Bearer token first (mobile), then falls back to httpOnly cookie
+    (web dashboard).
     Returns the user UUID after verifying user is active.
 
     Raises:
         HTTPException: 401 if token is invalid, expired, revoked, or user inactive.
     """
+    token: str | None = credentials.credentials if credentials else request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+        )
+
     try:
-        payload = auth_service.decode_token(credentials.credentials)
+        payload = auth_service.decode_token(token)
         if payload.get("type") != "access":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

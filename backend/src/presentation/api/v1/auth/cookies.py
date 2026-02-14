@@ -6,6 +6,9 @@ from src.config.settings import settings
 
 ACCESS_COOKIE = "access_token"
 REFRESH_COOKIE = "refresh_token"
+ACCESS_COOKIE_PATH = "/api"
+REFRESH_COOKIE_PATH = "/api"
+LEGACY_REFRESH_COOKIE_PATH = "/api/v1/auth/refresh"
 
 
 def set_auth_cookies(
@@ -30,7 +33,7 @@ def set_auth_cookies(
         httponly=True,
         secure=secure,
         samesite="lax",
-        path="/api",
+        path=ACCESS_COOKIE_PATH,
         max_age=access_max_age,
         domain=domain,
     )
@@ -40,8 +43,20 @@ def set_auth_cookies(
         httponly=True,
         secure=secure,
         samesite="lax",
-        path="/api/v1/auth/refresh",
+        path=REFRESH_COOKIE_PATH,
         max_age=refresh_max_age,
+        domain=domain,
+    )
+    # Remove legacy refresh cookie scoped to /api/v1/auth/refresh to avoid
+    # duplicate-cookie ambiguity during rollout.
+    response.set_cookie(
+        key=REFRESH_COOKIE,
+        value="",
+        httponly=True,
+        secure=secure,
+        samesite="lax",
+        path=LEGACY_REFRESH_COOKIE_PATH,
+        max_age=0,
         domain=domain,
     )
 
@@ -57,7 +72,7 @@ def clear_auth_cookies(response: Response) -> None:
         httponly=True,
         secure=secure,
         samesite="lax",
-        path="/api",
+        path=ACCESS_COOKIE_PATH,
         max_age=0,
         domain=domain,
     )
@@ -67,7 +82,17 @@ def clear_auth_cookies(response: Response) -> None:
         httponly=True,
         secure=secure,
         samesite="lax",
-        path="/api/v1/auth/refresh",
+        path=REFRESH_COOKIE_PATH,
+        max_age=0,
+        domain=domain,
+    )
+    response.set_cookie(
+        key=REFRESH_COOKIE,
+        value="",
+        httponly=True,
+        secure=secure,
+        samesite="lax",
+        path=LEGACY_REFRESH_COOKIE_PATH,
         max_age=0,
         domain=domain,
     )

@@ -100,6 +100,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     # Shared circuit breaker across all middleware instances
     _circuit_breaker: CircuitBreaker | None = None
     _circuit_lock = Lock()
+    _EXEMPT_PATHS = {
+        "/api/v1/auth/me",
+        "/api/v1/auth/me/",
+        "/api/v1/auth/session",
+        "/api/v1/auth/session/",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/refresh/",
+    }
 
     def __init__(
         self,
@@ -114,7 +122,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = 60
         # Default to fail-closed in production, configurable via settings
         if fail_open is None:
-            self.fail_open = getattr(settings, "rate_limit_fail_open", False)
+            configured_fail_open = getattr(settings, "rate_limit_fail_open", False)
+            # Development/staging should fail-open by default to avoid auth lockouts
+            # during transient Redis issues. Production remains fail-closed unless
+            # explicitly overridden.
+            self.fail_open = configured_fail_open or settings.environment != "production"
         else:
             self.fail_open = fail_open
 
@@ -128,6 +140,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.circuit = RateLimitMiddleware._circuit_breaker
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if request.url.path in self._EXEMPT_PATHS:
+            return await call_next(request)
+
         client_ip = self._get_client_ip(request)
         key = f"cybervpn:rate_limit:{client_ip}:{request.url.path}"
 

@@ -59,11 +59,16 @@ function parseRetryAfter(header: string | null): number {
 // SEC-04: Extract locale prefix from current pathname for locale-aware redirects.
 const LOCALE_RE = /^\/([a-z]{2,3}-[A-Z]{2})\//;
 const DEFAULT_LOCALE = 'en-EN';
+const AUTH_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
 
 function getLocaleFromPath(): string {
   if (typeof window === 'undefined') return DEFAULT_LOCALE;
   const match = window.location.pathname.match(LOCALE_RE);
   return match ? match[1] : DEFAULT_LOCALE;
+}
+
+function isAuthRoute(pathname: string): boolean {
+  return AUTH_ROUTE_RE.test(pathname);
 }
 
 export const apiClient = axios.create({
@@ -80,7 +85,12 @@ apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Queue requests while a token refresh is in progress
     // (except the refresh request itself and session-check requests)
-    if (isRefreshing && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/me')) {
+    if (
+      isRefreshing
+      && !config.url?.includes('/auth/refresh')
+      && !config.url?.includes('/auth/me')
+      && !config.url?.includes('/auth/session')
+    ) {
       await new Promise<void>((resolve, reject) => {
         failedQueue.push({ resolve: () => resolve(), reject: (err) => reject(err) });
       });
@@ -126,8 +136,10 @@ apiClient.interceptors.response.use(
 
     // 401 handling
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't redirect/refresh if checking session status fails
-      if (originalRequest.url?.includes('/auth/me')) {
+      const requestUrl = originalRequest.url || '';
+
+      // Never retry refresh endpoint itself to avoid interceptor loops
+      if (requestUrl.includes('/auth/refresh')) {
         return Promise.reject(error);
       }
 
@@ -154,7 +166,15 @@ apiClient.interceptors.response.use(
         processQueue(refreshError as AxiosError);
         // Clear any legacy localStorage tokens
         tokenStorage.clearTokens();
-        if (typeof window !== 'undefined') {
+        const isNonBlockingAuthRequest =
+          requestUrl.includes('/auth/me') ||
+          requestUrl.includes('/auth/session') ||
+          requestUrl.includes('/auth/magic-link/verify') ||
+          requestUrl.includes('/auth/magic-link/verify-otp');
+
+        // Session probe and magic-link verification can run on public pages;
+        // don't force redirect here or we can interrupt in-flight login flows.
+        if (typeof window !== 'undefined' && !isNonBlockingAuthRequest && !isAuthRoute(window.location.pathname)) {
           // SEC-04: locale-aware redirect
           const locale = getLocaleFromPath();
           window.location.href = `/${locale}/login?redirect=${encodeURIComponent(window.location.pathname)}`;

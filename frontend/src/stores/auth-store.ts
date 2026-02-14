@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, type User, type TelegramWidgetData, type OAuthProvider, type OAuthLoginResponse } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { authAnalytics } from '@/lib/analytics';
+
+let fetchUserInFlight: Promise<void> | null = null;
 
 interface AuthState {
   user: User | null;
@@ -33,7 +34,6 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
     (set) => ({
       user: null,
       isLoading: false,
@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
           await authApi.login({ email, password, remember_me: rememberMe });
 
           // Fetch user info (auth via httpOnly cookie)
-          const { data: user } = await authApi.me();
+          const { data: user } = await authApi.session();
           set({ user, isAuthenticated: true, isLoading: false });
           authAnalytics.loginSuccess(user.id, 'email');
         } catch (error: unknown) {
@@ -192,14 +192,24 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchUser: async () => {
-        set({ isLoading: true });
-        try {
-          const { data } = await authApi.me();
-          set({ user: data, isAuthenticated: true, isLoading: false });
-          authAnalytics.sessionRestored(data.id);
-        } catch {
-          set({ user: null, isAuthenticated: false, isLoading: false });
+        if (fetchUserInFlight) {
+          await fetchUserInFlight;
+          return;
         }
+
+        fetchUserInFlight = (async () => {
+          try {
+            const { data } = await authApi.session();
+            set({ user: data, isAuthenticated: true, isLoading: false });
+            authAnalytics.sessionRestored(data.id);
+          } catch {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+          } finally {
+            fetchUserInFlight = null;
+          }
+        })();
+
+        await fetchUserInFlight;
       },
 
       telegramAuth: async (widgetData) => {
@@ -389,13 +399,23 @@ export const useAuthStore = create<AuthState>()(
       verifyMagicLink: async (token) => {
         set({ isLoading: true, error: null });
         try {
-          // SEC-01: backend sets httpOnly cookies
-          await authApi.verifyMagicLink({ token });
-
-          // Fetch full user info
-          const { data: user } = await authApi.me();
-          set({ user, isAuthenticated: true, isLoading: false });
-          authAnalytics.loginSuccess(user.id, 'magic_link');
+          // Backend returns user data directly — no separate /auth/me call needed
+          const { data } = await authApi.verifyMagicLink({ token });
+          set({
+            user: {
+              id: data.user.id,
+              email: data.user.email || '',
+              login: data.user.login,
+              is_active: data.user.is_active,
+              is_email_verified: data.user.is_email_verified,
+              role: data.user.role,
+              created_at: data.user.created_at,
+              telegram_id: data.user.telegram_id,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authAnalytics.loginSuccess(data.user.id, 'magic_link');
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Magic link verification failed';
@@ -407,13 +427,23 @@ export const useAuthStore = create<AuthState>()(
       verifyMagicLinkOtp: async (email, code) => {
         set({ isLoading: true, error: null });
         try {
-          // SEC-01: backend sets httpOnly cookies
-          await authApi.verifyMagicLinkOtp({ email, code });
-
-          // Fetch full user info
-          const { data: user } = await authApi.me();
-          set({ user, isAuthenticated: true, isLoading: false });
-          authAnalytics.loginSuccess(user.id, 'magic_link_otp');
+          // Backend returns user data directly — no separate /auth/me call needed
+          const { data } = await authApi.verifyMagicLinkOtp({ email, code });
+          set({
+            user: {
+              id: data.user.id,
+              email: data.user.email || '',
+              login: data.user.login,
+              is_active: data.user.is_active,
+              is_email_verified: data.user.is_email_verified,
+              role: data.user.role,
+              created_at: data.user.created_at,
+              telegram_id: data.user.telegram_id,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          authAnalytics.loginSuccess(data.user.id, 'magic_link_otp');
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Code verification failed';
@@ -440,13 +470,7 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => set({ error: null }),
       clearRateLimit: () => set({ rateLimitUntil: null }),
-    }),
-    {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-    }
-  )
+    })
 );
 
 // Selector hooks for optimized re-renders

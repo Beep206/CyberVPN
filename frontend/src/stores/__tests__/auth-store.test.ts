@@ -79,6 +79,7 @@ vi.mock('@/lib/api/auth', () => ({
     verifyOtp: (...args: unknown[]) => mockVerifyOtp(...args),
     logout: (...args: unknown[]) => mockLogout(...args),
     me: (...args: unknown[]) => mockMe(...args),
+    session: (...args: unknown[]) => mockMe(...args),
     telegramWidget: (...args: unknown[]) => mockTelegramWidget(...args),
     telegramMiniApp: (...args: unknown[]) => mockTelegramMiniApp(...args),
     telegramBotLink: (...args: unknown[]) => mockTelegramBotLink(...args),
@@ -799,8 +800,9 @@ describe('Auth Store', () => {
       // Act
       const promise = useAuthStore.getState().fetchUser();
 
-      // Assert
-      expect(useAuthStore.getState().isLoading).toBe(true);
+      // Assert: session checks are silent and should not put login forms
+      // into a submitting/loading state.
+      expect(useAuthStore.getState().isLoading).toBe(false);
 
       // Cleanup
       resolvePromise!({ data: createMockUser() });
@@ -1487,24 +1489,23 @@ describe('Auth Store', () => {
 
   describe('verifyMagicLink', () => {
     it('test_verifyMagicLink_authenticates_user_on_success', async () => {
+      const mockUser = {
+        id: 'u4',
+        email: 'magic@example.com',
+        login: 'magicuser',
+        role: 'user',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2024-01-01',
+      };
+
       mockVerifyMagicLink.mockResolvedValue({
         data: {
           access_token: 'ml_access_tok',
           refresh_token: 'ml_refresh_tok',
           token_type: 'bearer',
           expires_in: 3600,
-        },
-      });
-
-      mockMe.mockResolvedValue({
-        data: {
-          id: 'u4',
-          email: 'magic@example.com',
-          login: 'magicuser',
-          role: 'user',
-          is_active: true,
-          is_email_verified: true,
-          created_at: '2024-01-01',
+          user: mockUser,
         },
       });
 
@@ -1512,9 +1513,6 @@ describe('Auth Store', () => {
 
       // SEC-01: tokens delivered via httpOnly cookies, not localStorage
       expect(mockSetTokens).not.toHaveBeenCalled();
-
-      // API should fetch user info
-      expect(mockMe).toHaveBeenCalled();
 
       // User should be set and authenticated
       const state = useAuthStore.getState();
@@ -1525,11 +1523,13 @@ describe('Auth Store', () => {
     });
 
     it('test_verifyMagicLink_calls_login_analytics_with_magic_link_method', async () => {
-      mockVerifyMagicLink.mockResolvedValue({
-        data: createMockTokenResponse(),
-      });
       const mockUser = createMockUser({ id: 'ml_analytics_user' });
-      mockMe.mockResolvedValue({ data: mockUser });
+      mockVerifyMagicLink.mockResolvedValue({
+        data: {
+          ...createMockTokenResponse(),
+          user: mockUser,
+        },
+      });
 
       await useAuthStore.getState().verifyMagicLink('tok');
 
