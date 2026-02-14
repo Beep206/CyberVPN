@@ -1,0 +1,85 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "c3e0ec97b0ca",
+  "session_id": "44bef833-39e1-4fc7-a2e6-ad4106ed563a",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-14T09:07:23.394760187Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/project-audit-2026-02-14.md"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "0f4a5c3f-bd72-4d57-bbc9-6d7943bf3960",
+  "token_usage": {
+    "input_tokens": 34,
+    "cache_creation_tokens": 81794,
+    "cache_read_tokens": 588952,
+    "output_tokens": 75,
+    "api_call_count": 12
+  },
+  "summary": {
+    "intent": "User requested a comprehensive audit of the VPNBussiness project's authentication implementation across all components (backend, frontend, mobile, Telegram bot, and infrastructure).",
+    "outcome": "Successfully generated a detailed markdown audit document covering backend auth architecture (JWT, OAuth, OTP, magic links), frontend token storage (httpOnly cookies), mobile app (Flutter with secure storage), Telegram bot integration (aiogram with auto-registration), and infrastructure setup (Docker, Redis, PostgreSQL). All findings compiled into docs/project-audit-2026-02-14.md.",
+    "learnings": {
+      "repo": [
+        "Project uses enterprise-grade security: Argon2id password hashing (OWASP 2025), httpOnly cookies for web tokens, flutter_secure_storage for mobile",
+        "Multi-service architecture: FastAPI backend, Next.js frontend, Flutter mobile, aiogram Telegram bot, all orchestrated via Docker Compose",
+        "Authentication supports 7 OAuth providers (GitHub, Google, Discord, Microsoft, Apple, Twitter, Telegram) plus email/password, magic links, and OTP",
+        "Telegram is the primary authentication channel with telegram_id linked to mobile_users table (BigInteger, unique, indexed)",
+        "Redis/Valkey configured as ephemeral (zero persistence, 128mb LRU) for caching, rate limiting, and JWT revocation",
+        "Token refresh strategy: 15-min access tokens, 7-day refresh tokens with proactive refresh (5 min before expiry on mobile)",
+        "RBAC implementation has 5 admin roles (SUPER_ADMIN to VIEWER) with 22 granular permissions",
+        "No multi-tenancy - single-tenant architecture with user isolation via subscription plans",
+        "Email service uses TaskIQ + Redis Streams with dual provider strategy (Resend primary, Brevo fallback)"
+      ],
+      "code": [
+        {
+          "path": "backend/src/application/services/auth_service.py",
+          "finding": "JWT tokens include unique JTI claims for individual token revocation, supports issuer/audience validation, algorithm allowlist includes HS256/384/512 and RS256/384/512"
+        },
+        {
+          "path": "backend/src/infrastructure/database/models/admin_user_model.py",
+          "finding": "User model supports soft-delete via is_active flag, includes TOTP 2FA fields (totp_secret, totp_enabled, backup_codes_hash), anti-phishing code field, and trial tracking"
+        },
+        {
+          "path": "frontend/src/lib/api/client.ts",
+          "finding": "Token storage is a no-op shim - tokens never touched by JavaScript, relying entirely on httpOnly cookies sent via withCredentials: true. 401 interceptor uses queue pattern to prevent duplicate refresh calls."
+        },
+        {
+          "path": "cybervpn_mobile/lib/core/network/auth_interceptor.dart",
+          "finding": "Mobile uses Completer-based mutex for concurrent 401 handling, queues requests during token refresh, atomic token updates via Future.wait"
+        },
+        {
+          "path": "services/telegram-bot/src/middlewares/auth.py",
+          "finding": "AuthMiddleware auto-registers users on first /start command, caches user data in Redis (300s TTL), parses referral links and promo codes from start payload"
+        },
+        {
+          "path": "backend/src/presentation/dependencies/auth.py",
+          "finding": "get_current_user() accepts JWT from both Authorization Bearer header (mobile/API) and httpOnly access_token cookie (web), checks JWT revocation list in Redis"
+        }
+      ],
+      "workflow": [
+        "Used parallel Task agent invocations to research 5 different system components simultaneously, significantly reducing total research time",
+        "Each specialized agent performed deep codebase exploration with 30+ tool uses (Glob, Grep, Read) before compiling findings",
+        "Comprehensive documentation requires exploring multiple layers: presentation (routes), application (use cases), domain (entities), and infrastructure (models, services)"
+      ]
+    },
+    "friction": [],
+    "open_items": [
+      "Telegram-first onboarding (skip email verification for Telegram registrations) is documented in PRD but not yet implemented",
+      "Remember-me feature (extends refresh token from 7 to 30 days) exists in frontend but not yet integrated with backend per PRD status",
+      "Anti-phishing code field exists in admin_user_model but implementation not yet complete",
+      "Frontend still has legacy localStorage token cleanup code despite full migration to httpOnly cookies"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-14T09:06:49.366168262Z",
+    "agent_lines": 249,
+    "human_added": 352,
+    "human_modified": 155,
+    "human_removed": 0,
+    "total_committed": 756,
+    "agent_percentage": 32.93650793650794
+  }
+}

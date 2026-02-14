@@ -1,0 +1,2513 @@
+Привет! Твоя задача выяснить что сделано в текущем проекте по этим вопросам, записать это в .md файл 1. Backend (самое важное)
+
+Текущая структура auth-сервиса (модели User, Session, токены) — скинь основные файлы/схемы
+Как сейчас выдаются и валидируются JWT (middleware, endpoints)
+Какая БД (PostgreSQL?) и ORM (SQLAlchemy?)
+Есть ли уже OAuth провайдеры или только email/password?
+Как устроен email-сервис (отправка писем) — есть ли уже?
+
+2. Frontend
+
+Текущие страницы auth (login, register, reset password) — какие есть?
+Как хранятся токены (localStorage, httpOnly cookies, memory?)
+Как работает interceptor для refresh токенов?
+
+3. Telegram Bot
+
+Как сейчас авторизуется пользователь в боте?
+Привязан ли Telegram ID к User в БД?
+
+4. Mobile App
+
+Фреймворк (React Native, Flutter?)
+Как сейчас хранятся токены и работает auth flow?
+
+5. Infra
+
+Есть ли Redis (для refresh токенов / rate limiting)?
+Как деплоится (Docker, K8s?) — для понимания session management
+
+6. Бизнес-требования
+
+Какие OAuth провайдеры нужны (Google, Apple, GitHub, Telegram Login)?
+Нужна ли 2FA (TOTP, SMS)?
+Нужна ли верификация email при регистрации?
+Какие роли/permissions (admin, user, и т.д.)?
+Мультитенантность нужна?
+
+---
+
+<task-notification>
+<task-id>a5a0533</task-id>
+<status>completed</status>
+<summary>Agent "Research backend auth service" completed</summary>
+<result>Perfect! Now I have comprehensive information about the backend auth system. Let me compile a thorough summary report.
+
+## Backend Auth Service Architecture - Comprehensive Research
+
+I've conducted a thorough exploration of the CyberVPN backend authentication system. Here's a detailed summary of the architecture:
+
+### 1. AUTH SERVICE STRUCTURE
+
+**Core Auth Service** (`/home/beep/projects/VPNBussiness/backend/src/application/services/auth_service.py`)
+- JWT token management with unique JTI (JWT ID) claims for revocation
+- Password hashing using **Argon2id** (OWASP 2025 standard)
+  - Memory cost: 19 MiB
+  - Time cost: 2 iterations
+  - Hash length: 32 bytes
+- Two token types:
+  - **Access tokens**: 15 minutes TTL (configurable via `access_token_expire_minutes`)
+  - **Refresh tokens**: 7 days TTL (configurable via `refresh_token_expire_days`)
+- Algorithm allowlist: `{HS256, HS384, HS512, RS256, RS384, RS512, ES256}`
+- Supports issuer and audience validation claims
+
+**Magic Link Service** (`/home/beep/projects/VPNBussiness/backend/src/application/services/magic_link_service.py`)
+- Passwordless authentication via single-use tokens
+- **Token specs**: 288-bit entropy (48 bytes → 64 URL-safe characters)
+- **Companion 6-digit OTP** for alternative verification (email or URL link)
+- Rate limiting: 5 requests per hour per email
+- TTL: 1 hour
+- Supports token replay window (120 seconds) to tolerate duplicate requests
+- Stores data in Redis with reverse lookups (`email → token`, `email → OTP`)
+- Auto-creates user with verified email on first magic link verify
+
+**OTP Service** (`/home/beep/projects/VPNBussiness/backend/src/application/services/otp_service.py`)
+- 6-digit cryptographically secure codes via `secrets.randbelow()`
+- Configurable expiration (default: 3 hours)
+- Max verification attempts: 5 (configurable)
+- Max resends: 3 per hour with 30-second cooldown
+- Supports multiple purposes: `email_verification`, `password_reset`, `login_2fa`
+- Tracks attempt counts and resend history
+
+### 2. JWT HANDLING
+
+**Token Validation Dependency** (`/home/beep/projects/VPNBussiness/backend/src/presentation/dependencies/auth.py`)
+
+**`get_current_user()`** - Required authentication
+- Accepts JWT from:
+  - Authorization Bearer header (mobile/API)
+  - httpOnly `access_token` cookie (web)
+- Validates token signature, expiration, type
+- **Checks JWT revocation list** (redis) via `JWTRevocationService`
+- Returns 401 if token invalid, expired, revoked, or user inactive
+
+**`get_current_active_user()`** - Requires active account
+- Wraps `get_current_user()`, additionally checks `is_active` flag
+- Returns 403 if user soft-deleted
+
+**`optional_user()`** - Optional authentication
+- Returns user if valid & active, None otherwise
+- Does not raise exceptions for missing/invalid tokens
+
+**`get_current_mobile_user_id()`** - Mobile-specific
+- Returns UUID instead of user object
+- Checks revocation and active status
+- Uses JSON error format for mobile
+
+**Revocation Mechanism** (`JWTRevocationService`)
+- Stores revoked JTI claims in Redis
+- Each token has unique `jti` UUID for individual revocation
+- Supports:
+  - Single token logout (via refresh_token)
+  - Logout-all (revoke all user's tokens)
+
+### 3. DATABASE & ORM
+
+**Stack**: PostgreSQL 17.7 + SQLAlchemy 2.0 async + asyncpg
+
+**Connection**: 
+```
+postgresql+asyncpg://cybervpn:cybervpn@localhost:6767/cybervpn
+```
+
+**Core Models**:
+
+**AdminUserModel** (`/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/admin_user_model.py`)
+- UUID primary key (auto-generated)
+- `login`: unique username (50 chars, alphanumeric + underscore)
+- `email`: unique, optional, indexed
+- `password_hash`: nullable (supports passwordless auth)
+- `role`: enum `{admin, moderator, viewer}` (default: viewer)
+- `is_active`: soft-delete via `is_active=False` and `deleted_at` timestamp
+- `is_email_verified`: email verification flag
+- Telegram integration:
+  - `telegram_id`: unique, indexed
+  - Links to OAuth accounts
+- 2FA support:
+  - `totp_secret`: encrypted TOTP secret
+  - `totp_enabled`: flag
+  - `backup_codes_hash`: array of hashed backup codes
+- Security:
+  - `anti_phishing_code`: custom anti-phishing code
+  - `last_login_at`, `last_login_ip`: audit trail
+- Profile fields (BF2-3):
+  - `display_name`, `language`, `timezone`
+  - `notification_prefs`: JSON field
+- Trial tracking: `trial_activated_at`, `trial_expires_at`
+
+**RefreshToken** (`/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/refresh_token_model.py`)
+- UUID primary key
+- FK to `admin_users` (cascade delete)
+- `token_hash`: SHA-256 hash of JWT (never store plaintext)
+- `expires_at`: token expiration
+- Session tracking (BF2-4):
+  - `device_id`: unique device fingerprint
+  - `ip_address`: last known IP
+  - `user_agent`: browser/device string
+  - `last_used_at`: auto-updated on refresh
+  - `revoked_at`: soft-delete for revocation
+
+**OAuthAccount** (`/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/oauth_account_model.py`)
+- UUID primary key
+- FK to `admin_users` (cascade delete)
+- `provider`: GitHub, Google, Discord, Microsoft, Apple, Twitter, Telegram
+- `provider_user_id`: unique provider ID
+- `provider_username`, `provider_email`, `provider_avatar_url`
+- `access_token`, `refresh_token`: OAuth provider tokens (encrypted)
+- `token_expires_at`: provider token expiration
+- Unique constraints: `(provider, provider_user_id)` and `(user_id, provider)`
+
+**OtpCodeModel**
+- FK to `admin_users`
+- 6-digit code, purpose, expiration
+- Attempt tracking, resend history
+
+### 4. OAUTH PROVIDERS
+
+**Configured OAuth providers** in `/home/beep/projects/VPNBussiness/backend/src/infrastructure/oauth/`:
+
+1. **GitHub** (`github.py`)
+   - OAuth 2.0 auth code flow
+   - Scopes: `read:user user:email`
+   - Config: `github_client_id`, `github_client_secret`
+
+2. **Google** (`google.py`)
+   - OAuth 2.0 with PKCE support
+   - Scopes: `openid email profile`
+   - Access type: `offline` (refresh token)
+   - Prompt: `consent`
+   - Config: `google_client_id`, `google_client_secret`
+
+3. **Discord** (`discord.py`)
+   - OAuth 2.0 auth code flow
+   - Config: `discord_client_id`, `discord_client_secret`
+
+4. **Microsoft** (`microsoft.py`)
+   - Azure AD OAuth
+   - Config: `microsoft_client_id`, `microsoft_client_secret`, `microsoft_tenant_id`
+
+5. **Apple Sign In** (`apple.py`)
+   - JWT-based (not traditional OAuth)
+   - Config: `apple_client_id`, `apple_team_id`, `apple_key_id`, `apple_private_key`
+
+6. **Twitter/X** (`twitter.py`)
+   - OAuth 2.0 auth code flow
+   - Config: `twitter_client_id`, `twitter_client_secret`
+
+7. **Telegram** (`telegram.py`)
+   - Two auth methods:
+     - **Mini App**: Direct HMAC-SHA256 validation of `initData`
+     - **Bot Link**: One-time token from Telegram bot deep link
+
+All OAuth implementations:
+- Store provider tokens in encrypted `OAuthAccount` records
+- Support account linking
+- Auto-create user on first OAuth login
+
+### 5. EMAIL SERVICE
+
+**EmailTaskDispatcher** (`/home/beep/projects/VPNBussiness/backend/src/infrastructure/tasks/email_task_dispatcher.py`)
+- Fire-and-forget async pattern via **TaskIQ + Redis Streams**
+- Dispatches to `task-worker` service (separate microservice)
+- Message format includes:
+  - `task_id`, `task_name` ("send_otp_email")
+  - `labels`: queue, retry_policy
+  - `kwargs`: email, otp_code, locale, is_resend
+- Supports dual provider strategy:
+  - **Resend** (primary) - for initial sends
+  - **Brevo** (secondary) - for resends (fallback)
+
+**Magic Link Email Flow**:
+```
+POST /auth/magic-link → MagicLinkService.generate() 
+→ EmailTaskDispatcher.dispatch_magic_link_email()
+→ Redis stream → task-worker → send_otp_email task
+→ Resend/Brevo API → email sent
+```
+
+### 6. AUTHENTICATION ENDPOINTS
+
+**Core Routes** (`/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/auth/routes.py`):
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/auth/login` | POST | Username/email + password → access + refresh tokens |
+| `/auth/refresh` | POST | Refresh token → new access token (with device binding) |
+| `/auth/logout` | POST | Logout (invalidate refresh token) |
+| `/auth/logout-all` | POST | Logout all devices (revoke all tokens) |
+| `/auth/me` | GET | Get current user info |
+| `/auth/me` | DELETE | Soft-delete account (sets is_active=False) |
+| `/auth/verify-otp` | POST | Email verification OTP → auto-login |
+| `/auth/verify-email` | POST | Alias for verify-otp (mobile) |
+| `/auth/resend-otp` | POST | Resend OTP code (rate limited) |
+| `/auth/resend-verification` | POST | Alias for resend-otp |
+| `/auth/magic-link` | POST | Request magic link (passwordless) |
+| `/auth/magic-link/verify` | POST | Click magic link → auto-login + auto-register |
+| `/auth/magic-link/verify-otp` | POST | Enter OTP from magic link email |
+| `/auth/telegram/miniapp` | POST | Telegram Mini App authentication |
+| `/auth/telegram/bot-link` | POST | Telegram bot one-time link login |
+| `/auth/telegram/generate-login-link` | POST | Admin: generate Telegram login link |
+| `/auth/forgot-password` | POST | Request password reset OTP |
+| `/auth/reset-password` | POST | Reset password with OTP |
+| `/auth/change-password` | POST | Change password (requires current password) |
+| `/auth/devices` | GET | List active sessions |
+| `/auth/devices/{device_id}` | DELETE | Revoke specific device |
+
+### 7. SECURITY FEATURES
+
+**Session & Device Management** (BF2-4):
+- Device fingerprint via `generate_client_fingerprint()` (headers + user agent)
+- Per-device token tracking in `RefreshToken.device_id`
+- Remote logout: revoke all tokens for a device
+- List active sessions with IP, user agent, last used time
+
+**Password Security**:
+- Argon2id hashing (OWASP 2025)
+- Rate limiting: 3 password changes per hour per user
+- Strong password policy: ≥12 chars, uppercase, lowercase, digits, symbols
+
+**Brute Force Protection** (HIGH-1):
+- `LoginProtectionService` with progressive lockout
+- Redis-based attempt tracking
+- Constant-time response (min 100ms base delay + random jitter)
+- Prevents user enumeration
+
+**Magic Link Specific**:
+- 5 requests per hour per email
+- 1 hour token TTL
+- Single-use tokens (atomic get+delete)
+- Replay window: 120 seconds for duplicate requests
+
+**OTP Specific**:
+- 5 max attempts per code
+- 3 hour expiration
+- 30-second resend cooldown
+- Rate limiting: 3 resends per hour
+- Prevents brute force & DOS
+
+**Token Binding** (MED-002):
+- Optional device fingerprint in refresh tokens (`fgp` claim)
+- Strict validation on token refresh if `ENFORCE_TOKEN_BINDING=true`
+- Prevents token theft across devices
+
+**Cookie Security** (SEC-01):
+- httpOnly cookies (no JS access)
+- Secure flag (HTTPS only in production)
+- SameSite=Lax (CSRF protection)
+- Configurable domain
+- Separate paths for access vs refresh tokens
+
+### 8. CONFIGURATION
+
+**Settings** (`/home/beep/projects/VPNBussiness/backend/src/config/settings.py`):
+
+```python
+# JWT
+jwt_secret: SecretStr                           # HS256 signing key
+jwt_algorithm: str = "HS256"                    # Allowed: HS256, RS256, etc
+access_token_expire_minutes: int = 15
+refresh_token_expire_days: int = 7
+jwt_issuer: str | None = None                   # Optional claim
+jwt_audience: str | None = None                 # Optional claim
+
+# OTP
+otp_expiration_hours: int = 3
+otp_max_attempts: int = 5
+otp_max_resends: int = 3
+otp_resend_window_hours: int = 1
+otp_resend_cooldown_seconds: int = 30
+
+# Magic Link
+magic_link_ttl_seconds: int = 900               # 15 minutes
+magic_link_rate_limit: int = 5                  # per hour
+
+# Registration (CRIT-1)
+registration_enabled: bool = False              # Disabled by default
+registration_invite_required: bool = True       # Require invite token
+
+# Security
+enforce_token_binding: bool = False             # MED-002
+debug: bool = False
+cookie_secure: bool = True
+cookie_domain: str = ""
+
+# OAuth providers (all optional)
+github_client_id, github_client_secret
+google_client_id, google_client_secret
+discord_client_id, discord_client_secret
+microsoft_client_id, microsoft_client_secret
+apple_client_id, apple_team_id, apple_key_id, apple_private_key
+twitter_client_id, twitter_client_secret
+telegram_bot_token, telegram_bot_username
+```
+
+### 9. KEY USE CASES
+
+**Login** (`/home/beep/projects/VPNBussiness/backend/src/application/use_cases/auth/login.py`)
+- Find user by login or email
+- Verify active + email verified
+- Argon2 password check
+- Create access + refresh tokens
+- Hash refresh token, store in DB
+
+**Register** (`/home/beep/projects/VPNBussiness/backend/src/application/use_cases/auth/register.py`)
+- Validate login + email uniqueness
+- Hash password with Argon2
+- Create user as inactive (if email)
+- Generate OTP and dispatch email via TaskIQ
+- Support username-only registration (active immediately)
+
+**Verify OTP**
+- Lookup OTP by user + code
+- Check expiration, attempt count
+- Mark verified
+- Activate user + create Remnawave VPN account
+- Issue auto-login tokens
+
+**Magic Link Verify**
+- Validate token atomically (get+delete)
+- Extract email from token
+- Auto-create user if new (with verified email)
+- Issue auto-login tokens
+
+**Token Refresh**
+- Decode refresh token
+- Validate JTI not revoked
+- Check device fingerprint (if enabled)
+- Issue new access token (same refresh token)
+
+**Logout All**
+- Revoke all user's JWT tokens via `JWTRevocationService`
+- Delete all refresh tokens for user
+- Clear auth cookies
+
+### 10. ARCHITECTURE DIAGRAM
+
+```
+Presentation Layer (FastAPI)
+├── POST /auth/login                           → LoginUseCase
+├── POST /auth/verify-otp                      → VerifyOtpUseCase
+├── POST /auth/magic-link                      → MagicLinkService.generate()
+├── POST /auth/magic-link/verify               → MagicLinkService.validate()
+├── POST /auth/refresh                         → RefreshTokenUseCase
+├── POST /auth/logout                          → LogoutUseCase
+├── DELETE /auth/me                            → DeleteAccountUseCase
+└── GET /auth/devices                          → Query RefreshToken table
+
+Dependencies (JWT validation)
+├── get_current_user()                         → Bearer header or cookie
+├── get_current_active_user()                  → + is_active check
+└── optional_user()                            → Returns None if no token
+
+Application Layer (Use Cases)
+├── LoginUseCase                               → AuthService + AdminUserRepository
+├── RegisterUseCase                            → AuthService + OtpService + EmailDispatcher
+├── VerifyOtpUseCase                           → OtpService + AdminUserRepository
+├── RefreshTokenUseCase                        → AuthService + JWTRevocationService
+├── LogoutUseCase                              → RefreshTokenRepository
+└── DeleteAccountUseCase                       → AdminUserRepository + JWTRevocationService
+
+Domain Layer (Business Logic)
+├── User (VPN domain model)                    → Immutable, from Remnawave
+├── AdminUser (User domain)                    → Authentication & authorization
+└── Exceptions: InvalidCredentialsError, DuplicateUsernameError, etc
+
+Infrastructure Layer
+├── SQLAlchemy Models
+│   ├── AdminUserModel                         → admin_users table
+│   ├── RefreshToken                           → refresh_tokens table
+│   ├── OAuthAccount                           → oauth_accounts table
+│   └── OtpCodeModel                           → otp_codes table
+├── Repositories
+│   ├── AdminUserRepository                    → CRUD for users
+│   ├── RefreshTokenRepository                 → CRUD for tokens
+│   └── OtpCodeRepository                      → CRUD for OTP codes
+├── Services
+│   ├── AuthService                            → JWT creation/validation, password hashing
+│   ├── MagicLinkService                       → Redis-backed magic link tokens
+│   ├── OtpService                             → OTP generation & validation
+│   ├── JWTRevocationService                   → Redis revocation list
+│   └── LoginProtectionService                 → Redis brute force tracking
+├── OAuth Providers
+│   ├── GitHubOAuthProvider
+│   ├── GoogleOAuthProvider
+│   ├── DiscordOAuthProvider
+│   ├── MicrosoftOAuthProvider
+│   ├── AppleOAuthProvider
+│   ├── TwitterOAuthProvider
+│   └── TelegramOAuthProvider
+├── Email
+│   └── EmailTaskDispatcher                    → TaskIQ + Redis Streams
+└── Cache
+    └── Redis/Valkey                           → Magic links, OTP, JWT revocation, brute force
+
+Database (PostgreSQL 17.7)
+├── admin_users                                → User accounts
+├── refresh_tokens                             → JWT rotation + sessions
+├── oauth_accounts                             → OAuth provider links
+├── otp_codes                                  → Verification codes
+└── (Remnawave managed)                        → VPN user configs
+```
+
+### 11. KEY FILES SUMMARY
+
+| File Path | Purpose |
+|-----------|---------|
+| `backend/src/application/services/auth_service.py` | JWT & password handling |
+| `backend/src/application/services/magic_link_service.py` | Passwordless tokens |
+| `backend/src/application/services/otp_service.py` | 6-digit verification codes |
+| `backend/src/presentation/api/v1/auth/routes.py` | All auth endpoints |
+| `backend/src/presentation/dependencies/auth.py` | JWT validation dependencies |
+| `backend/src/presentation/api/v1/auth/schemas.py` | Request/response models |
+| `backend/src/presentation/api/v1/auth/cookies.py` | httpOnly cookie helpers |
+| `backend/src/infrastructure/database/models/admin_user_model.py` | User ORM model |
+| `backend/src/infrastructure/database/models/refresh_token_model.py` | Session ORM model |
+| `backend/src/infrastructure/database/models/oauth_account_model.py` | OAuth ORM model |
+| `backend/src/infrastructure/oauth/github.py, google.py, etc.` | OAuth providers |
+| `backend/src/infrastructure/tasks/email_task_dispatcher.py` | Email via TaskIQ |
+| `backend/src/config/settings.py` | Configuration & secrets |
+
+This is a **enterprise-grade, security-hardened authentication system** with comprehensive support for email/password, OAuth, passwordless (magic links), 2FA (TOTP), Telegram integration, and robust session management.</result>
+<usage>total_tokens: 86485
+tool_uses: 35
+duration_ms: 76744</usage>
+</task-notification>
+Full transcript available at: /tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/a5a0533.output
+
+---
+
+<task-notification>
+<task-id>ae9fbe1</task-id>
+<status>completed</status>
+<summary>Agent "Research frontend auth pages" completed</summary>
+<result>Perfect! Now I have comprehensive information. Let me compile the complete research findings:
+
+## Frontend Auth Implementation Research
+
+Based on my thorough search of the codebase, here's a comprehensive analysis of the frontend auth system:
+
+---
+
+### 1. Auth Pages Located
+
+All auth pages are in `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/`:
+
+- **`login/page.tsx`** - Email/password login with OAuth buttons
+- **`register/page.tsx`** - Registration (email or username-only modes)
+- **`verify/page.tsx`** - OTP verification form after registration
+- **`magic-link/page.tsx`** - Passwordless magic link request + OTP entry
+- **`magic-link/verify/page.tsx`** - Magic link token verification
+- **`forgot-password/page.tsx`** - Password reset request
+- **`reset-password/page.tsx`** - Reset password with OTP code
+- **`oauth/callback/page.tsx`** - OAuth provider callback handler
+- **`telegram-link/page.tsx`** - Telegram account linking
+
+---
+
+### 2. Token Storage Strategy
+
+**SEC-01 Implementation: HTTP-Only Cookies (Server-Controlled)**
+
+**Backend Sets Tokens** (`/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/auth/cookies.py`):
+```python
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    """Attach httpOnly auth cookies to the response."""
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,  # Cannot be accessed from JavaScript
+        secure=True,
+        samesite="lax",
+        path="/api",
+        max_age=15 * 60,  # 15 minutes
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/api",
+        max_age=7 * 86400,  # 7 days
+    )
+```
+
+**Frontend API Client** (`/home/beep/projects/VPNBussiness/frontend/src/lib/api/client.ts`):
+- **No JavaScript token access**: The `tokenStorage` object is a **no-op shim** for backward compatibility
+- **Cookies sent automatically**: Axios configured with `withCredentials: true` sends httpOnly cookies automatically on every API request
+- **No token persistence needed**: Tokens are never stored in localStorage or memory
+
+```typescript
+export const tokenStorage = {
+  getAccessToken: (): string | null => null,
+  getRefreshToken: (): string | null => null,
+  setTokens: (_accessToken: string, _refreshToken: string): void => {
+    // No-op: tokens are now managed via httpOnly cookies
+  },
+  clearTokens: (): void => {
+    // Clean up any legacy localStorage tokens from before migration
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  },
+  hasTokens: (): boolean => {
+    // Cannot inspect httpOnly cookies from JS — rely on /auth/me
+    return false;
+  },
+};
+
+export const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}/api/v1`,
+  timeout: 10000,
+  withCredentials: true, // Required for httpOnly cookies
+});
+```
+
+---
+
+### 3. Token Refresh Interceptor
+
+**401 Refresh Flow** (`/home/beep/projects/VPNBussiness/frontend/src/lib/api/client.ts` lines 116-179):
+
+The axios response interceptor handles token refresh automatically:
+
+```typescript
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // 429 Rate Limit handling
+    if (error.response?.status === 429) {
+      const retryAfter = parseRetryAfter(error.response.headers['retry-after'] as string | null);
+      return Promise.reject(new RateLimitError(retryAfter));
+    }
+
+    // 401 handling with queue
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue requests while refresh is in progress
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => apiClient(originalRequest));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // SEC-01: refresh token is sent via httpOnly cookie automatically
+        const refreshResponse = await apiClient.post('/auth/refresh', {});
+        
+        // Backend sets new cookies; just check response was OK
+        if (refreshResponse.status === 200) {
+          processQueue(null);
+          return apiClient(originalRequest);  // Retry original request
+        }
+      } catch (refreshError) {
+        processQueue(refreshError as AxiosError);
+        tokenStorage.clearTokens();  // Clean legacy localStorage
+        
+        // Locale-aware redirect to login
+        const locale = getLocaleFromPath();
+        window.location.href = `/${locale}/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+**Key Flow:**
+1. Request fails with 401 (access token expired)
+2. Interceptor calls `POST /auth/refresh` with httpOnly refresh cookie
+3. Backend validates refresh token, sets new access/refresh cookies
+4. Original failed request is retried with new access cookie
+5. Multiple 401s during refresh are queued and retried after refresh completes
+6. If refresh fails → clear cookies → redirect to `/login?redirect=...`
+
+---
+
+### 4. Auth Store (Zustand)
+
+**File**: `/home/beep/projects/VPNBussiness/frontend/src/stores/auth-store.ts` (472 lines)
+
+**State Management**:
+```typescript
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  isNewTelegramUser: boolean;
+  isMiniApp: boolean;
+  error: string | null;
+  rateLimitUntil: number | null;  // Timestamp when rate limit expires
+
+  // Actions (async)
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchUser: () => Promise<void>;
+  telegramAuth: (data: TelegramWidgetData) => Promise<void>;
+  telegramMiniAppAuth: () => Promise<void>;
+  loginWithBotLink: (token: string) => Promise<void>;
+  oauthLogin: (provider: OAuthProvider) => Promise<void>;
+  oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
+  requestMagicLink: (email: string) => Promise<void>;
+  verifyMagicLink: (token: string) => Promise<void>;
+  verifyMagicLinkOtp: (email: string, code: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
+  clearError: () => void;
+  clearRateLimit: () => void;
+}
+```
+
+**Auth Flows in Store**:
+
+1. **Login** (lines 44-81):
+   - Calls `authApi.login()` (backend sets httpOnly cookies)
+   - Calls `authApi.me()` to fetch user data
+   - Sets `isAuthenticated = true`
+
+2. **Registration** (lines 83-134):
+   - Calls `authApi.register()`
+   - User NOT authenticated yet (`isAuthenticated = false`)
+   - Stores minimal user data for OTP flow
+   - Frontend redirects to `/verify?email=...` for OTP entry
+
+3. **Verify OTP & Login** (lines 136-178):
+   - Calls `authApi.verifyOtp({ email, code })`
+   - Backend returns user data + auto-sets httpOnly cookies
+   - Sets `isAuthenticated = true`
+   - Redirects to dashboard
+
+4. **Logout** (lines 180-190):
+   - Calls `authApi.logout()`
+   - Clears legacy localStorage tokens
+   - Resets state to unauthenticated
+
+5. **Fetch User (Session Restore)** (lines 192-201):
+   - Calls `authApi.me()`
+   - Updates user state from backend (via httpOnly cookie auth)
+   - Used on app load to restore sessions
+
+6. **OAuth Login** (lines 296-312):
+   - Calls `authApi.oauthLoginAuthorize(provider, redirectUri)`
+   - Stores state + provider in `sessionStorage` (CSRF validation)
+   - Redirects to provider authorize URL
+
+7. **OAuth Callback** (lines 314-364):
+   - Validates state against sessionStorage
+   - Calls `authApi.oauthLoginCallback(provider, code, state, redirectUri)`
+   - Backend sets httpOnly cookies
+   - Handles 2FA requirement (stores `tfa_token` for later use)
+   - Sets `isAuthenticated = true`
+
+8. **Magic Link** (lines 366-413):
+   - Request: `authApi.requestMagicLink({ email })`
+   - Verify: `authApi.verifyMagicLink({ token })`
+   - Backend returns user + auto-sets cookies
+   - Sets `isAuthenticated = true`
+
+**Selector Hooks** (lines 464-471):
+```typescript
+export const useUser = () => useAuthStore((s) => s.user);
+export const useIsAuthenticated = () => useAuthStore((s) => s.isAuthenticated);
+export const useAuthLoading = () => useAuthStore((s) => s.isLoading);
+export const useAuthError = () => useAuthStore((s) => s.error);
+export const useRateLimitUntil = () => useAuthStore((s) => s.rateLimitUntil);
+export const useIsNewTelegramUser = () => useAuthStore((s) => s.isNewTelegramUser);
+export const useIsMiniApp = () => useAuthStore((s) => s.isMiniApp);
+```
+
+---
+
+### 5. Auth Provider
+
+**File**: `/home/beep/projects/VPNBussiness/frontend/src/app/providers/auth-provider.tsx`
+
+**Purpose**: Session persistence on app load
+
+```typescript
+export function AuthProvider({ children, skeleton }: AuthProviderProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+
+  // Hydration guard
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Check session on mount
+  useEffect(() => {
+    if (isHydrated) {
+      // SEC-01: httpOnly cookies are source of truth and cannot be inspected
+      // from JS, so always ask the backend for current session.
+      fetchUser();
+    }
+  }, [isHydrated, fetchUser]);
+
+  // Show skeleton until hydrated to prevent flash of unauthenticated state
+  if (!isHydrated) {
+    return skeleton ?? null;
+  }
+
+  return <>{children}</>;
+}
+
+// Hook to check if auth state is hydrated
+export function useAuthHydrated() {
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+  return isHydrated;
+}
+```
+
+**Key Points**:
+- Prevents hydration mismatch by deferring auth state to client
+- Calls `fetchUser()` (which calls `/auth/me`) on mount
+- Returns httpOnly cookie auth via `withCredentials: true`
+- Shows optional skeleton while loading
+
+---
+
+### 6. API Client & Auth API
+
+**API Client** (`/home/beep/projects/VPNBussiness/frontend/src/lib/api/client.ts`):
+- Axios configured with `withCredentials: true` for cookie support
+- Rate limit error class: `RateLimitError` extracts `Retry-After` header
+- Refresh interceptor queues requests during token refresh
+- Non-blocking auth errors (like `/auth/me`) don't trigger redirects
+
+**Auth API** (`/home/beep/projects/VPNBussiness/frontend/src/lib/api/auth.ts`):
+
+```typescript
+export const authApi = {
+  login: (data: LoginRequest) => 
+    apiClient.post<TokenResponse>('/auth/login', data),
+  
+  register: (data: RegisterRequest) => 
+    apiClient.post<RegisterResponse>('/auth/register', data),
+  
+  verifyOtp: (data: VerifyOtpRequest) => 
+    apiClient.post<VerifyOtpResponse>('/auth/verify-otp', data),
+  
+  resendOtp: (data: ResendOtpRequest) => 
+    apiClient.post<ResendOtpResponse>('/auth/resend-otp', data),
+  
+  logout: () => 
+    apiClient.post('/auth/logout'),
+  
+  refresh: () => 
+    apiClient.post('/auth/refresh'),
+  
+  me: () => 
+    apiClient.get<User>('/auth/me/'),
+  
+  telegramWidget: (data: TelegramWidgetData) => 
+    apiClient.post<AuthResponse>('/auth/oauth2/telegram/callback', data),
+  
+  telegramMiniApp: (initData: string) => 
+    apiClient.post<TelegramMiniAppResponse>('/auth/telegram/miniapp', { init_data: initData }),
+  
+  telegramBotLink: (data: BotLinkRequest) => 
+    apiClient.post<BotLinkResponse>('/auth/telegram/bot-link', data),
+  
+  oauthLoginAuthorize: (provider: OAuthProvider, redirectUri: string) => 
+    apiClient.get<OAuthAuthorizeResponse>(`/oauth/${provider}/login`, {
+      params: { redirect_uri: redirectUri },
+    }),
+  
+  oauthLoginCallback: (provider: OAuthProvider, data: OAuthCallbackRequest) => 
+    apiClient.post<OAuthLoginResponse>(`/oauth/${provider}/login/callback`, data),
+  
+  requestMagicLink: (data: MagicLinkRequest) => 
+    apiClient.post<MagicLinkResponse>('/auth/magic-link', data),
+  
+  verifyMagicLink: (data: MagicLinkVerifyRequest) => 
+    apiClient.post<MagicLinkVerifyResponse>('/auth/magic-link/verify', data),
+  
+  verifyMagicLinkOtp: (data: MagicLinkVerifyOtpRequest) => 
+    apiClient.post<MagicLinkVerifyResponse>('/auth/magic-link/verify-otp', data),
+  
+  forgotPassword: (data: ForgotPasswordRequest) => 
+    apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', data),
+  
+  resetPassword: (data: ResetPasswordRequest) => 
+    apiClient.post<ResetPasswordResponse>('/auth/reset-password', data),
+  
+  deleteAccount: () => 
+    apiClient.delete<DeleteAccountResponse>('/auth/me'),
+  
+  listDevices: () => 
+    apiClient.get<DeviceSessionListResponse>('/auth/devices'),
+  
+  logoutDevice: (deviceId: string) => 
+    apiClient.delete<{ message: string }>(`/auth/devices/${deviceId}`),
+};
+```
+
+---
+
+### 7. AuthGuard Component
+
+**File**: `/home/beep/projects/VPNBussiness/frontend/src/features/auth/components/AuthGuard.tsx`
+
+**Purpose**: Client-side route protection for authenticated pages
+
+```typescript
+export function AuthGuard({ children }: AuthGuardProps) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const [isChecking, setIsChecking] = useState(true);
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const checkAuth = async () => {
+            try {
+                // Validate session via /auth/me (httpOnly cookie)
+                const { data } = await authApi.me();
+                if (!isMounted) return;
+
+                useAuthStore.setState({
+                    user: data,
+                    isAuthenticated: true,
+                    isLoading: false,
+                    error: null,
+                });
+                setIsAuthorized(true);
+            } catch {
+                if (!isMounted) return;
+                useAuthStore.setState({
+                    user: null,
+                    isAuthenticated: false,
+                    isLoading: false,
+                });
+                setIsAuthorized(false);
+            } finally {
+                if (isMounted) {
+                    setIsChecking(false);
+                }
+            }
+        };
+
+        checkAuth();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isChecking && !isAuthorized) {
+            const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
+            router.push(redirectUrl);
+        }
+    }, [isChecking, isAuthorized, pathname, router]);
+
+    if (isChecking || !isAuthorized) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-terminal-bg">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-neon-cyan" />
+                    <p className="font-mono text-sm text-muted-foreground">
+                        AUTHENTICATING...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+}
+```
+
+**Usage Pattern**:
+- Wraps protected route segments
+- Calls `/auth/me` on mount to validate httpOnly cookies
+- Redirects unauthenticated users to login with return URL
+- Shows loading spinner during check
+
+---
+
+### 8. Additional Auth Components
+
+**Login Page** (`frontend/src/app/[locale]/(auth)/login/page.tsx`):
+- Email + password form
+- Social auth buttons (OAuth)
+- Magic link alternative
+- Rate limit countdown display
+- Remember me checkbox
+- Error handling with `aria-live` for accessibility
+
+**Registration Page** (`frontend/src/app/[locale]/(auth)/register/page.tsx`):
+- Email or username-only toggle
+- Password strength meter
+- Terms acceptance checkbox
+- Password confirmation validation
+- Social auth integration
+
+**Magic Link Page** (`frontend/src/app/[locale]/(auth)/magic-link/page.tsx`):
+- Email input
+- OTP code entry (6 digits)
+- 60-second resend cooldown
+- Auto-verification on complete code
+- Duplicate-fire protection via `otpVerificationLockRef`
+
+**OTP Verification** (`frontend/src/app/[locale]/(auth)/verify/page.tsx`):
+- Used after registration
+- Custom OTP input component
+- Resend capability
+- Error/success feedback
+
+**Rate Limiting** (`frontend/src/features/auth/components/RateLimitCountdown.tsx`):
+```typescript
+export function RateLimitCountdown() {
+  const rateLimitUntil = useRateLimitUntil();
+  const clearRateLimit = useAuthStore((s) => s.clearRateLimit);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!rateLimitUntil) return;
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((rateLimitUntil - Date.now()) / 1000));
+      setSecondsRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearRateLimit();
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [rateLimitUntil, clearRateLimit]);
+
+  if (!rateLimitUntil || secondsRemaining <= 0) return null;
+
+  return (
+    <div role="status" aria-live="polite" className="...">
+      {/* Display: "2:45" or "45 seconds" */}
+    </div>
+  );
+}
+
+export function useIsRateLimited(): boolean {
+  const rateLimitUntil = useRateLimitUntil();
+  const [now] = useState(() => Date.now());
+  return rateLimitUntil !== null && rateLimitUntil > now;
+}
+```
+
+---
+
+### 9. Backend Auth Endpoints
+
+**Key Routes** (`backend/src/presentation/api/v1/auth/routes.py`):
+
+```
+POST /auth/login                    → Sets httpOnly cookies, returns TokenResponse
+POST /auth/refresh                  → Refreshes tokens, sets new httpOnly cookies
+GET  /auth/me                       → Returns current user (httpOnly cookie auth)
+POST /auth/logout                   → Clears cookies, revokes refresh token
+POST /auth/register                 → Creates user (NOT authenticated), OTP sent
+POST /auth/verify-otp               → Verifies OTP, auto-login, sets cookies
+POST /auth/resend-otp               → Resends OTP code
+POST /auth/magic-link               → Requests magic link email
+POST /auth/magic-link/verify        → Verifies magic link token
+POST /auth/magic-link/verify-otp    → Verifies magic link OTP code
+POST /oauth/{provider}/login        → Gets authorize URL + state
+POST /oauth/{provider}/login/callback → Completes OAuth, sets cookies
+POST /auth/telegram/miniapp         → Authenticates via Telegram Mini App
+POST /auth/telegram/bot-link        → Authenticates via bot deep-link token
+POST /auth/forgot-password          → Sends password reset email
+POST /auth/reset-password           → Resets password with OTP
+DELETE /auth/me                     → Deletes user account
+GET  /auth/devices                  → Lists active sessions
+DELETE /auth/devices/{device_id}    → Remote logout for device
+```
+
+**Token Binding** (MED-002):
+- Access token: 15 minutes
+- Refresh token: 7 days
+- Device fingerprint validation (client UA + IP hash)
+
+**Session Auth** (SEC-01):
+```python
+async def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> AdminUserModel:
+    """Get current authenticated user from JWT token.
+    
+    SEC-01: Accepts token from Authorization Bearer header (mobile/API) OR
+    from the httpOnly ``access_token`` cookie (web frontend).
+    SEC-003: Includes JWT revocation check to ensure logout invalidates tokens.
+    """
+    # Resolve token: prefer Authorization header, fall back to cookie
+    token: str | None = None
+    if credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Validate token + check revocation list
+    result = await _validate_token(token, auth_service, redis_client, check_revocation=True)
+    
+    # Load user from database
+    repo = AdminUserRepository(db)
+    user = await repo.get_by_id(UUID(result.user_id))
+    return user
+```
+
+---
+
+### Summary Table
+
+| Aspect | Implementation |
+|--------|-----------------|
+| **Token Storage** | HTTP-only cookies (server-set, secure, samesite=lax) |
+| **Token Refresh** | 401 interceptor → `POST /auth/refresh` → queue requests → retry |
+| **Session Validation** | `GET /auth/me` on app load + AuthGuard component |
+| **Auth State** | Zustand store with selectors (useUser, useIsAuthenticated, etc.) |
+| **Rate Limiting** | Store timestamp in `rateLimitUntil`, countdown timer component |
+| **OAuth Flow** | CSRF state validation via sessionStorage, callback handler page |
+| **Magic Links** | Token + OTP support, auto-login on verify |
+| **Device Sessions** | Fingerprint validation, remote logout per device |
+| **Token Revocation** | Redis-backed JWT blacklist (jti checking) |
+| **Locale-Aware Redirects** | Regex extract locale from pathname, preserve on login redirect |
+| **Accessibility** | aria-live regions, aria-busy forms, role="alert" for errors |
+
+---
+
+### Key Security Features
+
+1. **SEC-01** - HTTP-only cookie tokens (XSS-safe, automatic credential forwarding)
+2. **SEC-03** - JWT revocation via Redis blacklist (logout invalidates tokens)
+3. **HIGH-1** - Brute force protection (progressive lockout, constant-time responses)
+4. **MED-002** - Device fingerprint token binding (UA + IP hash validation)
+5. **CSRF** - OAuth state validation (sessionStorage for CSRF protection)
+6. **Rate Limiting** - Per-endpoint 429 responses with Retry-After header
+7. **Account Lockout** - 423 status after failed attempts
+8. **Email Enumeration** - Forgot password always returns success (prevents user enumeration)
+
+---
+
+### File Paths (Absolute)
+
+**Frontend**:
+- `/home/beep/projects/VPNBussiness/frontend/src/stores/auth-store.ts`
+- `/home/beep/projects/VPNBussiness/frontend/src/lib/api/client.ts`
+- `/home/beep/projects/VPNBussiness/frontend/src/lib/api/auth.ts`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/providers/auth-provider.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/features/auth/components/AuthGuard.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/features/auth/components/RateLimitCountdown.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/login/page.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/register/page.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/magic-link/page.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/magic-link/verify/page.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/verify/page.tsx`
+- `/home/beep/projects/VPNBussiness/frontend/src/app/[locale]/(auth)/oauth/callback/page.tsx`
+
+**Backend**:
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/auth/routes.py`
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/auth/cookies.py`
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/auth/schemas.py`
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/dependencies/auth.py`</result>
+<usage>total_tokens: 84067
+tool_uses: 33
+duration_ms: 75505</usage>
+</task-notification>
+Full transcript available at: /tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/ae9fbe1.output
+
+---
+
+<task-notification>
+<task-id>a50e3d7</task-id>
+<status>completed</status>
+<summary>Agent "Research mobile app auth" completed</summary>
+<result>Perfect! Now I have comprehensive information about the mobile app. Let me compile the research findings:
+
+## Mobile App Implementation Research Summary
+
+Based on my thorough exploration of the CyberVPN mobile application codebase, here is a comprehensive breakdown of the mobile app architecture and authentication implementation:
+
+---
+
+## 1. **Framework**
+
+**Flutter** - The mobile app is built using **Flutter** (not React Native). Key indicators:
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/pubspec.yaml` - Flutter project manifest
+- Directory structure: `cybervpn_mobile/lib/` with Dart files
+- Target platforms: iOS and Android with Windows/macOS support
+
+**Key Dependencies:**
+- **Flutter 3.x** with Dart 3.10.8+
+- **flutter_riverpod 3.2.1** - State management (Riverpod, not Provider)
+- **go_router 17.0.0** - Navigation/routing
+- **dio 5.9.0** - HTTP client
+- **freezed 3.2.5** - Code generation for immutable models
+
+---
+
+## 2. **Authentication Flow**
+
+The mobile app supports **multiple authentication methods**:
+
+### A. **Email/Password Authentication**
+```
+Register/Login → Device Info → Backend API → Token Response → Cache Tokens
+```
+
+**Flow Path:**
+- User provides email/password
+- `LoginUseCase` validates input (email format, password strength)
+- `AuthRepositoryImpl` calls `AuthRemoteDataSource.login()`
+- Backend returns `(UserModel, TokenModel)`
+- Tokens cached in `SecureStorage`, user cached in `SharedPreferences`
+
+**Key Files:**
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/domain/usecases/login.dart`
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/repositories/auth_repository_impl.dart` (lines 29-53)
+
+### B. **OAuth Login (Google, Apple)**
+```
+OAuth Authorization → Browser Callback → Backend Token Exchange → Cache
+```
+
+**Implementation:**
+- Uses `OAuthRemoteDataSource` to handle provider authorization
+- Endpoints: `/api/v1/oauth/{provider}/login` and `/api/v1/oauth/{provider}/login/callback`
+- Supports: Google Sign-In, Apple Sign-In
+- Returns access token, refresh token, and user data
+
+**Key File:**
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/datasources/oauth_remote_ds.dart`
+
+### C. **Telegram Bot Authentication**
+```
+Telegram Bot Link → Deep Link Callback → Token Validation → Cache
+```
+
+**Implementation:**
+- Supports both in-app Telegram and web fallback (t.me)
+- Uses deep links to capture authentication: `cybervpn://telegram/callback?auth_data={base64}`
+- `TelegramAuthService` handles launch and validation
+
+**Key File:**
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/services/telegram_auth_service.dart`
+
+### D. **Biometric Authentication (Fingerprint/Face)**
+- Device-bound token approach (replaces plaintext credential storage)
+- Post-login biometric re-authentication via app lock
+
+---
+
+## 3. **Token Storage**
+
+**Sensitive Data: `flutter_secure_storage`**
+
+Tokens are **encrypted at rest** using platform-specific mechanisms:
+
+```dart
+// Access & Refresh tokens stored in SecureStorage
+static const String accessTokenKey = 'access_token';
+static const String refreshTokenKey = 'refresh_token';
+
+// iOS: Keychain Services with Secure Enclave, accessible after first unlock
+// Android: EncryptedSharedPreferences with AES256-GCM, keys in Android Keystore
+```
+
+**Public Data: `SharedPreferences`**
+
+User profile and subscription info stored in plaintext SharedPreferences (non-sensitive).
+
+**Implementation Details:**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/storage/secure_storage.dart`
+
+```dart
+class SecureStorageWrapper {
+  // In-memory cache for fast access (< 50ms target)
+  final Map<String, String?> _cache = {};
+  final Map<String, DateTime> _cacheTimestamps = {};
+  
+  // TTL for tokens: CacheConstants.authTokenCacheTtl (typically 5 minutes)
+  // Cache invalidated on write/delete
+  
+  // Atomic token operations
+  Future<void> setTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await Future.wait([
+      write(key: 'access_token', value: accessToken),
+      write(key: 'refresh_token', value: refreshToken),
+    ]);
+  }
+  
+  Future<void> clearTokens() async {
+    await delete(key: 'access_token');
+    await delete(key: 'refresh_token');
+  }
+}
+```
+
+---
+
+## 4. **Auth State Management**
+
+**Riverpod 3.x** with **AsyncNotifier** pattern (not autoDispose for auth - app-scoped):
+
+```dart
+// File: lib/features/auth/presentation/providers/auth_provider.dart
+
+class AuthNotifier extends AsyncNotifier<AuthState> {
+  @override
+  FutureOr<AuthState> build() async {
+    // Auto-login from cached tokens on app start
+    return _checkCachedAuth();
+  }
+  
+  Future<void> login(String email, String password, {bool rememberMe = false}) async {
+    state = const AsyncValue.data(AuthLoading());
+    // ... login logic
+    state = AsyncValue.data(AuthAuthenticated(user));
+    _scheduleTokenRefresh();  // Non-blocking
+    _connectWebSocket();       // Non-blocking
+  }
+  
+  Future<void> logout() async {
+    state = const AsyncValue.data(AuthLoading());
+    _refreshScheduler.cancel();
+    await _disconnectWebSocket();
+    // ... logout logic
+    state = const AsyncValue.data(AuthUnauthenticated());
+  }
+}
+
+// Provider definition
+final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
+
+// Derived providers with .select() to minimize rebuilds
+final currentUserProvider = Provider<UserEntity?>((ref) {
+  return ref.watch(authProvider.select((s) {
+    final value = s.value;
+    return value is AuthAuthenticated ? value.user : null;
+  }));
+});
+
+final isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider.select((s) => s.value is AuthAuthenticated));
+});
+```
+
+**Auth State Union Type:**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/presentation/providers/auth_state.dart`
+
+```dart
+@freezed
+sealed class AuthState with _$AuthState {
+  const factory AuthState.loading() = AuthLoading;
+  const factory AuthState.authenticated(UserEntity user) = AuthAuthenticated;
+  const factory AuthState.unauthenticated() = AuthUnauthenticated;
+  const factory AuthState.error(String message) = AuthError;
+}
+```
+
+---
+
+## 5. **API Client Implementation**
+
+**Dio HTTP Client with Interceptors:**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/network/api_client.dart`
+
+```dart
+class ApiClient {
+  late final Dio _dio;
+  
+  ApiClient({Dio? dio, String? baseUrl, CertificatePinner? certificatePinner}) {
+    _dio = dio ?? Dio();
+    
+    // HTTPS enforcement in production
+    if (EnvironmentConfig.isProd && !baseUrl.startsWith('https://')) {
+      throw SecurityException('Production API must use HTTPS');
+    }
+    
+    // Certificate pinning for MITM prevention
+    if (fingerprints.isNotEmpty) {
+      _configureCertificatePinning(pinner);
+    }
+    
+    // Interceptors (order matters!)
+    _dio.interceptors.add(RequestDeduplicator());  // Dedup GET requests
+    _dio.interceptors.add(SentryHttpInterceptor()); // Performance tracing
+    if (kDebugMode) {
+      _dio.interceptors.add(_RedactedLogInterceptor());  // Debug logs (redacted)
+    }
+  }
+  
+  // All HTTP methods are async and handle DioExceptions
+  Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) async {
+    try {
+      return await _dio.post<T>(path, data: data, options: options);
+    } on DioException catch (e) {
+      throw _handleDioError(e);  // Maps to AppException
+    }
+  }
+}
+```
+
+**AuthInterceptor for Token Management:**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/network/auth_interceptor.dart`
+
+```dart
+class AuthInterceptor extends Interceptor {
+  @override
+  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    final token = await _secureStorage.read(key: 'access_token');
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+  
+  @override
+  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
+    
+    // 401 handling with Completer-based mutex for concurrent requests
+    if (_refreshCompleter != null) {
+      // Refresh already in progress - queue this request
+      await _queueRequest(err, handler);
+      return;
+    }
+    
+    _refreshCompleter = Completer<String?>();
+    try {
+      final refreshToken = await _secureStorage.read(key: 'refresh_token');
+      final (newAccessToken, newRefreshToken) = await _performRefreshWithRetry(refreshToken);
+      
+      // Atomic token update
+      await Future.wait([
+        _secureStorage.write(key: 'access_token', value: newAccessToken),
+        if (newRefreshToken != null)
+          _secureStorage.write(key: 'refresh_token', value: newRefreshToken),
+      ]);
+      
+      // Retry original request + all queued requests
+      final retryResponse = await _retryRequest(err.requestOptions, newAccessToken);
+      handler.resolve(retryResponse);
+      await _retryAllQueuedRequests(newAccessToken);
+    } catch (e) {
+      // Permanent failure (401, 403) - clear tokens
+      if (_isPermanentRefreshError(e)) {
+        await _secureStorage.delete(key: 'access_token');
+        await _secureStorage.delete(key: 'refresh_token');
+      }
+      _failAllQueuedRequests(err);
+      handler.next(err);
+    } finally {
+      _refreshCompleter = null;
+    }
+  }
+}
+```
+
+---
+
+## 6. **Models & Data Types**
+
+### **User Model**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/models/user_model.dart`
+
+```dart
+@freezed
+sealed class UserModel with _$UserModel {
+  const UserModel._();
+  
+  const factory UserModel({
+    required String id,
+    required String email,
+    String? username,
+    String? avatarUrl,
+    String? telegramId,
+    @Default(false) bool isEmailVerified,
+    @Default(false) bool isPremium,
+    String? referralCode,
+    DateTime? createdAt,
+    DateTime? lastLoginAt,
+  }) = _UserModel;
+  
+  factory UserModel.fromJson(Map<String, dynamic> json) => 
+    _$UserModelFromJson(json);
+  
+  // Convert to domain entity
+  UserEntity toEntity() => UserEntity(
+    id: id,
+    email: email,
+    // ... map all fields
+  );
+}
+```
+
+### **Token Model**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/models/token_model.dart`
+
+```dart
+@freezed
+sealed class TokenModel with _$TokenModel {
+  const factory TokenModel({
+    required String accessToken,
+    required String refreshToken,
+    required int expiresIn,
+    String? tokenType,
+  }) = _TokenModel;
+  
+  factory TokenModel.fromJson(Map<String, dynamic> json) =>
+    _$TokenModelFromJson(json);
+}
+```
+
+### **User Entity (Domain)**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/domain/entities/user_entity.dart`
+
+```dart
+@freezed
+sealed class UserEntity with _$UserEntity {
+  const factory UserEntity({
+    required String id,
+    required String email,
+    String? username,
+    String? avatarUrl,
+    String? telegramId,
+    @Default(false) bool isEmailVerified,
+    @Default(false) bool isPremium,
+    String? referralCode,
+    DateTime? createdAt,
+    DateTime? lastLoginAt,
+  }) = _UserEntity;
+}
+```
+
+---
+
+## 7. **Proactive Token Refresh**
+
+File: `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/auth/token_refresh_scheduler.dart`
+
+```dart
+class TokenRefreshScheduler {
+  Future<void> scheduleRefresh() async {
+    final accessToken = await _storage.getAccessToken();
+    
+    // Parse JWT to extract expiry
+    final payload = JwtParser.parse(accessToken);
+    
+    // Schedule refresh 5 minutes before expiry
+    final refreshAt = payload.expiresAt.subtract(Duration(minutes: 5));
+    final delay = refreshAt.difference(DateTime.now());
+    
+    _refreshTimer = Timer(delay, _triggerRefresh);
+  }
+  
+  Future<void> _triggerRefresh() async {
+    final refreshToken = await _storage.getRefreshToken();
+    final newAccessToken = await _repo.refreshToken(refreshToken, deviceId);
+    await _storage.setTokens(newAccessToken, newRefreshToken);
+    
+    // Reschedule for next token expiry
+    await scheduleRefresh();
+  }
+  
+  void cancel() {
+    _refreshTimer?.cancel();
+  }
+}
+```
+
+---
+
+## 8. **Backend Mobile Auth API**
+
+File: `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/mobile_auth/routes.py`
+
+```python
+router = APIRouter(prefix="/mobile/auth", tags=["mobile-auth"])
+
+@router.post("/register", response_model=AuthResponse)
+async def register(
+    request: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AuthResponse:
+    # Use case: MobileRegisterUseCase
+    # Returns: user + tokens
+    
+@router.post("/login", response_model=AuthResponse)
+async def login(
+    request: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AuthResponse:
+    # Validates email/password
+    # Device info included in request
+    # Remember-me flag extends refresh token TTL to 30 days
+    
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(request: RefreshTokenRequest) -> TokenResponse:
+    # Returns new access token (and optionally refresh token rotation)
+    
+@router.post("/logout", response_model=dict)
+async def logout(
+    request: LogoutRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+) -> dict:
+    # Invalidates refresh token, clears device session
+    
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(
+    user_id: UUID = Depends(get_current_mobile_user_id),
+) -> UserResponse:
+    # Returns user profile + subscription info
+    
+@router.post("/telegram/bot-link", response_model=AuthResponse)
+async def telegram_bot_link(request: TelegramAuthRequest) -> AuthResponse:
+    # Telegram bot link authentication via token
+```
+
+---
+
+## 9. **Local Data Storage Strategy**
+
+**SecureStorage (Encrypted):**
+- Access token
+- Refresh token
+- Device token (biometric)
+- App lock enabled flag
+- Cached user data (JSON)
+
+**SharedPreferences (Plaintext):**
+- User profile (non-sensitive)
+- Subscription info
+- Settings/preferences
+- Last updated timestamp
+
+**File Example:** `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/datasources/auth_local_ds.dart`
+
+---
+
+## 10. **Directory Structure**
+
+```
+cybervpn_mobile/
+├── lib/
+│   ├── main.dart                           # App entry point, initialization
+│   ├── app/
+│   │   ├── app.dart                       # Root MaterialApp with router
+│   │   ├── router/                        # go_router configuration
+│   │   └── theme/                         # Theme providers
+│   ├── core/
+│   │   ├── auth/                          # JWT parser, token scheduler
+│   │   ├── network/
+│   │   │   ├── api_client.dart           # Dio HTTP client
+│   │   │   ├── auth_interceptor.dart     # Token refresh logic
+│   │   │   ├── websocket_client.dart     # Real-time WebSocket
+│   │   │   └── retry_interceptor.dart    # Retry logic
+│   │   ├── storage/
+│   │   │   ├── secure_storage.dart       # Encrypted storage wrapper
+│   │   │   └── local_storage.dart        # SharedPreferences wrapper
+│   │   ├── di/                            # providers.dart - dependency injection
+│   │   ├── device/                        # Device info service
+│   │   ├── security/                      # Certificate pinning, attestation
+│   │   └── analytics/                     # Firebase, Sentry
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/user_entity.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   ├── usecases/login.dart
+│   │   │   │   ├── usecases/register.dart
+│   │   │   │   ├── usecases/oauth_login.dart
+│   │   │   │   ├── services/              # Biometric, app lock, Telegram
+│   │   │   ├── data/
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── user_model.dart
+│   │   │   │   │   └── token_model.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── auth_local_ds.dart
+│   │   │   │   │   ├── auth_remote_ds.dart
+│   │   │   │   │   └── oauth_remote_ds.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── auth_repository_impl.dart
+│   │   │   └── presentation/
+│   │   │       ├── providers/
+│   │   │       │   ├── auth_provider.dart    # AsyncNotifier
+│   │   │       │   ├── auth_state.dart       # Sealed union type
+│   │   │       │   ├── telegram_auth_provider.dart
+│   │   │       │   └── biometric_login_provider.dart
+│   │   │       ├── screens/
+│   │   │       │   ├── login_screen.dart
+│   │   │       │   ├── register_screen.dart
+│   │   │       │   ├── magic_link_screen.dart
+│   │   │       │   └── app_lock_screen.dart
+│   │   │       └── widgets/
+│   │   ├── vpn/
+│   │   ├── servers/
+│   │   ├── subscription/
+│   │   ├── profile/
+│   │   └── [other features]
+│   └── shared/                            # Reusable widgets
+├── pubspec.yaml                           # Dependencies
+└── test/                                  # Tests
+```
+
+---
+
+## 11. **Security Highlights**
+
+1. **Token Encryption:** Secrets in flutter_secure_storage (platform keystore)
+2. **Certificate Pinning:** Via CertificatePinner for MITM prevention
+3. **HTTPS Enforcement:** Production only (dev allows localhost HTTP)
+4. **Device ID Persistence:** UUID stored persistently for analytics/device tracking
+5. **Biometric Re-auth:** Device-bound token (not plaintext email/password)
+6. **Concurrent Request Handling:** Completer-based mutex prevents multiple token refresh calls
+7. **Proactive Token Refresh:** 5 minutes before expiry
+8. **Clean Logout:** WebSocket disconnection + token clearing
+9. **Sentry PII Redaction:** JWTs, emails, UUIDs redacted in error reports
+
+---
+
+## 12. **Summary Table**
+
+| Aspect | Details |
+|--------|---------|
+| **Framework** | Flutter 3.x with Dart 3.10.8+ |
+| **State Management** | Riverpod 3.x (AsyncNotifier, no autoDispose for auth) |
+| **HTTP Client** | Dio 5.9.0 with custom interceptors |
+| **Token Storage** | flutter_secure_storage (encrypted) + SharedPreferences |
+| **Auth Methods** | Email/password, Google OAuth, Apple OAuth, Telegram, Biometric |
+| **Token Refresh** | Proactive (5 min before expiry) + reactive (401 response) |
+| **API Endpoints** | `/mobile/auth/{register,login,refresh,logout,me,telegram/bot-link}` |
+| **Models** | Freezed unions for type safety (UserModel, TokenModel, AuthState) |
+| **Real-time** | WebSocket for server-to-client notifications |
+| **Security** | Certificate pinning, HTTPS enforcement, device-bound biometric tokens |
+| **Analytics** | Firebase + Sentry (with PII redaction) |
+
+---
+
+## File Paths Reference
+
+**Authentication Files:**
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/presentation/providers/auth_provider.dart` - Notifier
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/presentation/providers/auth_state.dart` - State union
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/features/auth/data/repositories/auth_repository_impl.dart` - Repository
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/network/auth_interceptor.dart` - Token refresh
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/storage/secure_storage.dart` - Encrypted storage
+- `/home/beep/projects/VPNBussiness/cybervpn_mobile/lib/core/auth/token_refresh_scheduler.dart` - Proactive refresh
+
+**Backend APIs:**
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/mobile_auth/routes.py` - Mobile auth endpoints
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/mobile_auth/schemas.py` - Request/response schemas
+
+This comprehensive mobile implementation demonstrates enterprise-grade patterns: clean architecture, secure token handling, offline-first caching, and multiple auth flows.</result>
+<usage>total_tokens: 84938
+tool_uses: 32
+duration_ms: 71796</usage>
+</task-notification>
+Full transcript available at: /tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/a50e3d7.output
+
+---
+
+<task-notification>
+<task-id>aa45f94</task-id>
+<status>completed</status>
+<summary>Agent "Research infra and business reqs" completed</summary>
+<result>Perfect. Now let me compile my findings with a comprehensive summary.
+
+## COMPREHENSIVE INFRASTRUCTURE & BUSINESS REQUIREMENTS ANALYSIS
+
+Based on my thorough research of the VPNBussiness codebase, here are the findings:
+
+---
+
+### INFRASTRUCTURE
+
+#### 1. Redis Usage
+**File**: `/home/beep/projects/VPNBussiness/infra/docker-compose.yml` (lines 90-122)
+
+Redis is extensively used as **Valkey/Redis 8.1-alpine** (Redis-compatible):
+
+- **Primary uses:**
+  - Cache for rate limiting (configurable via `RATE_LIMIT_ENABLED`, `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW`)
+  - Task queue backend for **TaskIQ** (asynchronous task workers)
+  - Session state management (refresh token validation, 2FA temporary secrets)
+  - 2FA rate limiting (in-memory attempt tracking)
+  
+- **Configuration:**
+  - Port: `6379` (localhost only in dev: `127.0.0.1:6379:6379`)
+  - Zero persistence by design: `--save "" --appendonly no` (INFRA-04 documented trade-off)
+  - Max memory: `128mb` with LRU eviction policy (`--maxmemory-policy allkeys-lru`)
+  - All data is ephemeral; reconstructed on restart
+  
+- **TaskIQ Integration:**
+  - Worker processes consume from Redis streams
+  - Scheduler coordinates task execution
+  - Environment: `REDIS_URL=redis://remnawave-redis:6379/0`
+
+#### 2. Deployment Architecture
+**Files**: `/home/beep/projects/VPNBussiness/infra/docker-compose.yml`, `/home/beep/projects/VPNBussiness/infra/.env.example`
+
+**Docker Compose Stack** (production-ready local development):
+
+| Service | Purpose | Port | Status |
+|---------|---------|------|--------|
+| **remnawave** (Backend API) | FastAPI 0.128.0 | 3005 → 3000 | Primary |
+| **remnawave-db** | PostgreSQL 17.7 | 6767 → 5432 | Primary |
+| **remnawave-redis** | Valkey 8.1 | 6379 | Primary |
+| **db-backup** | Daily PostgreSQL backups | - | Daily @UTC |
+| **cybervpn-worker** | TaskIQ worker (email, OTP) | 9091 metrics | Profile: worker |
+| **cybervpn-scheduler** | TaskIQ scheduler | - | Profile: worker |
+| **cybervpn-telegram-bot** | Telegram bot service | 9092 metrics | Profile: bot |
+| **Caddy** | SSL/TLS reverse proxy | 80, 443 | Profile: proxy |
+| **remnawave-subscription-page** | Subscription portal | 3010 | Profile: subscription |
+| **Prometheus/Grafana/Loki** | Observability stack | 9090-9121 | Profile: monitoring |
+| **mailpit (3 instances)** | Email testing cluster | 8025-8027, 1025-1027 | Profile: email-test |
+
+**Scaling notes:**
+- Resource limits defined per container (memory: 256M-1G, CPU: 0.25-1.0)
+- Healthchecks on all services with `service_healthy` dependencies
+- Networks: `cybervpn-frontend`, `cybervpn-backend`, `cybervpn-data`, `cybervpn-monitoring`
+
+#### 3. Session Management
+**Files**: 
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/refresh_token_model.py`
+- `/home/beep/projects/VPNBussiness/backend/src/config/settings.py` (lines 26-31)
+- `.taskmaster/docs/prds/auth-integration-v1.0-prd.md` (US-2: Remember me)
+
+**JWT Token Strategy:**
+- **Access Token**: 15 minutes (configurable: `ACCESS_TOKEN_EXPIRE_MINUTES`)
+- **Refresh Token**: 7 days (configurable: `REFRESH_TOKEN_EXPIRE_DAYS`)
+- **Storage**: 
+  - **Backend**: Hashed in PostgreSQL `refresh_tokens` table
+  - **Frontend**: httpOnly cookies (per SEC-01 security hardening requirement)
+  - **Fallback**: localStorage (current state, deprecated)
+
+**Session Tracking** (`RefreshToken` model):
+- Device ID tracking (`device_id`, `ip_address`, `user_agent`)
+- Session revocation via `revoked_at` timestamp
+- Last used tracking for activity monitoring
+- Cascade delete on user deletion (FK: `admin_users.id`)
+
+**"Remember Me" Feature**:
+- Extends refresh token duration from 7 to 30 days when checkbox enabled
+- Implemented in frontend login form (not yet integrated per PRD status)
+
+---
+
+### BUSINESS REQUIREMENTS
+
+#### 4. OAuth Providers & Social Login
+**Files**:
+- `/home/beep/projects/VPNBussiness/backend/src/config/settings.py` (lines 37-67)
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/oauth/routes.py`
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/oauth/` (8 providers)
+- `.taskmaster/docs/prds/telegram-auth-primary-v1.0-prd.md`
+
+**Implemented OAuth Providers** (6 configured):
+
+| Provider | Status | Implementation | Requires |
+|----------|--------|-----------------|----------|
+| **Telegram** | Primary | Signature validation (HMAC-SHA256), auth_date check | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` |
+| **Google** | Implemented | PKCE OAuth 2.0 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| **GitHub** | Implemented | Code-to-token exchange | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
+| **Discord** | Implemented | OAuth 2.0 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` |
+| **Apple** | Implemented | PKCE + JWT signing | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` |
+| **Microsoft** | Implemented | PKCE + tenant support | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` |
+| **X/Twitter** | Implemented | PKCE OAuth | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET` |
+
+**Telegram as Primary (In Progress)**:
+- **Feature**: Telegram-first onboarding (skip email verification on Telegram registration)
+- **Auto-registration**: Register via Telegram bot with auto-account creation
+- **Mini App support**: Auto-auth via `initData` without extra clicks
+- **Bot deep links**: One-time login links from bot to web/mobile
+- **Status**: PRD v1.1.0 ready for implementation (Feb 2026)
+
+**OAuth Flow Security**:
+- CSRF protection via state parameter validation (`OAuthStateService`)
+- Provider enum validation (`OAuthProvider` schema)
+- Account linking/unlinking UI endpoints
+- Unique constraints: `(provider, provider_user_id)` and `(user_id, provider)`
+
+#### 5. 2FA / Multi-Factor Authentication
+**Files**:
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/two_factor/routes.py`
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/totp/` (TOTP service + encryption)
+- `/home/beep/projects/VPNBussiness/backend/.env.example` (lines 117-119)
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/admin_user_model.py` (lines 41-47)
+
+**TOTP 2FA Implemented** (not SMS):
+
+| Feature | Implementation |
+|---------|-----------------|
+| **Setup Flow** | 1. Re-authenticate with password → 2. Generate pending secret (Redis, not DB) → 3. QR code + secret display → 4. Verify code → 5. Persist to DB |
+| **Verification** | Rate-limited to 5 attempts per 15 minutes (Redis-backed) |
+| **Backup Codes** | 8 recovery codes (plaintext) on disable for emergency access |
+| **Disabling** | Requires password + current TOTP code verification |
+| **Storage** | `totp_secret` (32-char string), `totp_enabled` boolean, `backup_codes_hash` (array) |
+| **Security** | Password re-authentication required before setup/disable (CRIT-3) |
+| **Anti-phishing** | `anti_phishing_code` field (not yet implemented) |
+
+**No SMS 2FA** (TOTP only via authenticator apps like Google Authenticator, Authy)
+
+#### 6. Email Verification
+**Files**:
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/admin_user_model.py` (line 60)
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/otp_code_model.py`
+- `/home/beep/projects/VPNBussiness/backend/.env.example` (lines 74-80)
+- `/home/beep/projects/VPNBussiness/.taskmaster/docs/prds/auth-integration-v1.0-prd.md` (US-2.1)
+
+**Email Verification Implemented**:
+
+- **Standard Registration**: Email OTP verification required
+  - OTP expires in 3 hours (`OTP_EXPIRATION_HOURS=3`)
+  - Max 5 attempts (`OTP_MAX_ATTEMPTS=5`)
+  - Max 3 resends (`OTP_MAX_RESENDS=3`)
+  - 30-second cooldown between resends (`OTP_RESEND_COOLDOWN_SECONDS=30`)
+  - 1-hour window for all resends (`OTP_RESEND_WINDOW_HOURS=1`)
+
+- **Telegram Registration**: Email verification **skipped** (planned)
+  - When registering via Telegram OAuth: `is_email_verified=true` automatically
+  - `is_active=true` (no waiting for OTP)
+  - Rationale: Telegram account is already phone-verified
+
+- **Database Model** (`AdminUserModel`):
+  - `email: str | None` (nullable, unique if set)
+  - `is_email_verified: bool` (default=false)
+  - `is_active: bool` (default=true) — separate from email verification
+
+#### 7. Roles & Permissions (RBAC)
+**Files**:
+- `/home/beep/projects/VPNBussiness/backend/src/domain/enums/enums.py` (lines 31-36)
+- `/home/beep/projects/VPNBussiness/backend/src/application/use_cases/auth/permissions.py`
+- `/home/beep/projects/VPNBussiness/backend/src/presentation/dependencies/roles.py`
+
+**Admin Role Hierarchy** (5 roles):
+
+| Role | Permissions | Hierarchy |
+|------|-------------|-----------|
+| **SUPER_ADMIN** | All 22 permissions (unrestricted) | Level 5 (highest) |
+| **ADMIN** | 17/22 permissions (all except MANAGE_ADMINS) | Level 4 |
+| **OPERATOR** | 12/22 (user, server, payment, subscription, analytics) | Level 3 |
+| **SUPPORT** | 4/22 (user read/update, server read, monitoring) | Level 2 |
+| **VIEWER** | 4/22 (read-only: user, server, monitoring, analytics) | Level 1 (lowest) |
+
+**Permission Set** (22 total):
+```
+USER_READ, USER_CREATE, USER_UPDATE, USER_DELETE,
+SERVER_READ, SERVER_CREATE, SERVER_UPDATE, SERVER_DELETE,
+PAYMENT_READ, PAYMENT_CREATE, MONITORING_READ, AUDIT_READ,
+WEBHOOK_READ, MANAGE_ADMINS, MANAGE_PLANS, MANAGE_INVITES,
+SUBSCRIPTION_CREATE, VIEW_ANALYTICS
+```
+
+**Key Security Features**:
+- Role-based access control via `require_role()` and `require_permission()` dependency injectors
+- Hierarchical role checking: lower roles inherit from higher (VIEWER < SUPPORT < OPERATOR < ADMIN < SUPER_ADMIN)
+- CRIT-1: Invite token management restricted to ADMIN+ (MANAGE_INVITES permission)
+
+**User Roles (Not Admin)**:
+- End users have no explicit role field (implicitly "user")
+- Status tracked via `UserStatus` enum: `ACTIVE`, `DISABLED`, `LIMITED`, `EXPIRED`
+
+#### 8. Multi-Tenancy
+**Files**: Grep search returned no multi-tenancy models or middleware
+
+**Status: NOT IMPLEMENTED**
+
+- No `tenant_id`, `workspace_id`, or `organization_id` fields in any models
+- No tenant isolation middleware
+- Single-tenant architecture (entire VPN business for one organization)
+- Users are isolated by subscription/plan, not by organizational tenant
+
+---
+
+### ADDITIONAL BUSINESS MODEL INSIGHTS
+
+**User Types** (3 separate models):
+1. **AdminUserModel** (`admin_users` table) — Dashboard administrators
+   - Supports: email/password, OAuth, Telegram, TOTP 2FA
+   - Roles: SUPER_ADMIN through VIEWER
+   
+2. **MobileUserModel** (`mobile_users` table) — VPN app users
+   - Simplified: email, password, Telegram linking
+   - Referral support via `referral_code`, `referred_by_user_id`
+   - Partner program: `is_partner`, `partner_user_id`, `partner_promoted_at`
+   
+3. **OAuthAccount** (`oauth_accounts` table) — OAuth provider linkage
+   - Supports account linking/unlinking
+   - Stores provider tokens for future API calls
+
+**Payment & Monetization**:
+- **Provider**: Cryptobot (Telegram payments), Yookassa, Stripe
+- **Status enum**: PENDING, COMPLETED, FAILED, REFUNDED
+- **Plan tiers**: BASIC, PRO, ULTRA, CYBER
+
+**Referral & Partner System**:
+- Mobile users can be referred and become partners
+- Commission tracking via `referral_commission_model.py`
+- Wallet system for payouts (`wallet_model.py`, `WalletTxReason` enum)
+- Withdrawal methods: Cryptobot, Manual
+
+---
+
+### KEY FILES REFERENCE
+
+| Category | Files |
+|----------|-------|
+| **Infrastructure Config** | `/home/beep/projects/VPNBussiness/infra/docker-compose.yml`, `/home/beep/projects/VPNBussiness/infra/.env.example` |
+| **Backend Auth Models** | `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/admin_user_model.py`, `refresh_token_model.py`, `oauth_account_model.py` |
+| **Roles & Permissions** | `/home/beep/projects/VPNBussiness/backend/src/application/use_cases/auth/permissions.py`, `/home/beep/projects/VPNBussiness/backend/src/presentation/dependencies/roles.py` |
+| **2FA Implementation** | `/home/beep/projects/VPNBussiness/backend/src/presentation/api/v1/two_factor/routes.py`, `/home/beep/projects/VPNBussiness/backend/src/infrastructure/totp/` |
+| **OAuth Providers** | `/home/beep/projects/VPNBussiness/backend/src/infrastructure/oauth/` (8 files) |
+| **Business PRDs** | `/home/beep/projects/VPNBussiness/.taskmaster/docs/prds/auth-integration-v1.0-prd.md`, `telegram-auth-primary-v1.0-prd.md`, `/home/beep/projects/VPNBussiness/plan/prd-hardening-quality.md` |
+| **Enums** | `/home/beep/projects/VPNBussiness/backend/src/domain/enums/enums.py` (user status, plan tiers, payment, wallet, roles) |
+
+---
+
+### SUMMARY
+
+**CyberVPN** is a production-grade VPN business platform with:
+- **Robust OAuth ecosystem** (Telegram primary, 6 providers total)
+- **Enterprise-grade RBAC** (5 roles, 22 permissions)
+- **Secure auth flows** (TOTP 2FA, httpOnly cookies, JWT refresh tokens)
+- **Single-tenant architecture** (no multi-tenancy; isolation via subscription plans)
+- **Containerized deployment** (Docker Compose with monitoring, backups, task workers)
+- **Multi-user support** (admins, mobile app users, end customers)
+- **Referral/partner monetization** (wallet system, commission tracking)
+
+No SMS 2FA, no multi-tenancy. Email verification implemented but planned to skip for Telegram signups (ongoing work).</result>
+<usage>total_tokens: 71891
+tool_uses: 31
+duration_ms: 59118</usage>
+</task-notification>
+Full transcript available at: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>a61506c</task-id>
+<status>completed</status>
+<summary>Agent "Research telegram bot auth" completed</summary>
+<result>Perfect! Now I have comprehensive information. Let me compile a detailed research report.
+
+## Comprehensive Telegram Bot Implementation Research
+
+Based on my thorough exploration of the codebase, here is a complete analysis of the CyberVPN Telegram bot implementation:
+
+---
+
+### 1. **Bot Framework**
+
+**Framework: aiogram 3.25+** (modern async Telegram Bot API wrapper for Python)
+
+**Key Technologies:**
+- **aiogram 3.25** - Telegram Bot framework with FSM support
+- **pydantic 2.10+** - Configuration and validation
+- **httpx 0.28.1+** - Async HTTP client for Backend API calls
+- **redis 7.1+** - FSM storage and caching (Valkey compatible)
+- **structlog 25.5** - Structured logging
+- **tenacity 9.0** - Retry logic with exponential backoff
+- **prometheus-client 0.24.1** - Metrics export
+- **qrcode 8.0** - QR code generation for VPN configs
+- **fluent.runtime 0.4** - i18n localization
+
+**Service Location:** `/home/beep/projects/VPNBussiness/services/telegram-bot/`
+
+---
+
+### 2. **User Authentication in Bot**
+
+**Authentication Flow:**
+
+1. **User Registration (Automatic)**:
+   - When user sends `/start`, the `AuthMiddleware` extracts the Telegram user info
+   - Calls `/telegram/users` endpoint via the Backend API to get or register user
+   - If user doesn't exist (404), calls `/telegram/users` POST with telegram_id, username, language
+
+2. **AuthMiddleware** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/middlewares/auth.py`):
+   - Extracts `telegram_id` from Telegram User object
+   - Tries to load user from Redis cache (5-minute TTL)
+   - On cache miss, calls API to get or register user
+   - Caches user data for future requests
+   - Injects `data['user']` into handler context
+
+3. **User Resolution Method**:
+   ```python
+   # Attempts to get user (returns 404 if not exists)
+   user_data = await api_client.get_user(telegram_id)
+   
+   # If 404, registers new user
+   user_data = await api_client.register_user(
+       telegram_id=telegram_id,
+       username=username,
+       language=language_code,
+       referrer_id=referrer_id  # Optional for referral tracking
+   )
+   ```
+
+4. **Deep Link Support**:
+   - `/start ref_{referrer_id}` - Referral link with bonus tracking
+   - `/start promo_{code}` - Promo code auto-activation on start
+
+---
+
+### 3. **Telegram ID Linking to Database**
+
+**Database Model: MobileUserModel** (`/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/mobile_user_model.py`)
+
+**Telegram-related Fields:**
+```python
+class MobileUserModel(Base):
+    __tablename__ = "mobile_users"
+    
+    # Telegram OAuth linking
+    telegram_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        unique=True,           # Unique constraint
+        nullable=True,
+        index=True,           # Indexed for fast lookups
+    )
+    telegram_username: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+```
+
+**Domain Entity** (`/home/beep/projects/VPNBussiness/backend/src/domain/entities/user.py`):
+```python
+@dataclass(frozen=True)
+class User:
+    telegram_id: int | None = None
+    # ... other fields
+```
+
+**Key Features:**
+- Telegram ID is unique and indexed for fast lookups
+- Stored as BigInteger (64-bit to support Telegram's large IDs)
+- Optional (can be NULL for non-Telegram users)
+- Linked to referral system, partner system, and subscription tracking
+
+---
+
+### 4. **Bot Commands and Handlers**
+
+**Command Structure** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/handlers/`):
+
+**User-Facing Commands:**
+- `/start` - Registration and welcome (`start.py`)
+- Main menu navigation with callbacks (`menu.py`)
+- Subscription management (`subscription.py`)
+- Payment processing (`payment.py`)
+- VPN configuration delivery with QR codes (`config.py`)
+- Referral link generation (`referral.py`)
+- Trial activation (`trial.py`)
+- Promo code activation (`promocode.py`)
+- Account/profile management (`account.py`)
+- Support/help (`support.py`)
+
+**Admin Commands** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/handlers/admin/`):
+- User management (`users.py`)
+- Broadcast messages (`broadcast.py`)
+- Statistics dashboard (`stats.py`)
+- Subscription plan management (`plans.py`)
+- Promo code management (`promos.py`)
+- Access control settings (`access.py`)
+- Gateway configuration (`gateways.py`)
+- Referral settings (`referral_settings.py`)
+- Admin panel main menu (`main.py`)
+- Notification settings (`notifications.py`)
+- Logs export (`logs.py`)
+- System health checks (`system.py`)
+- Remnawave integration (`remnawave.py`)
+- Import/sync operations (`import_sync.py`)
+
+**Handler Registration** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/handlers/__init__.py`):
+- Admin router with `IsAdmin()` filter (most restrictive first)
+- User routers in order: start → menu → subscription → payment → config → trial → referral → promocode → account → support
+
+**Filters:**
+- `IsAdmin()` filter checks if telegram_id is in `ADMIN_IDS` config list
+
+---
+
+### 5. **Bot Configuration and Deployment**
+
+**Configuration File:** `/home/beep/projects/VPNBussiness/services/telegram-bot/src/config.py`
+
+**Configuration Classes:**
+
+```python
+class BotSettings(BaseSettings):
+    # Bot core
+    bot_token: SecretStr                    # Required
+    bot_username: str | None = None
+    bot_mode: Literal["webhook", "polling"] = "polling"
+    environment: Literal["development", "staging", "production"] = "production"
+    
+    # Admin
+    admin_ids: list[int] = Field(default_factory=list)
+    support_username: str = "CyberVPNSupport"
+    
+    # i18n (27 locales)
+    default_language: str = "ru"
+    available_languages: list[str] = [
+        "am", "ar", "be", "bn", "cs", "de", "en", "es", "fa", "fil",
+        "fr", "ha", "he", "hi", "hu", "id", "it", "ja", "kk", "ko",
+        "ku", "ms", "my", "nl", "pl", "pt", "ro", "ru", "sv", "th",
+        "tk", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zh-Hant"
+    ]
+    
+    # Nested configs
+    webhook: WebhookSettings
+    backend: BackendSettings
+    redis: RedisSettings
+    cryptobot: CryptoBotSettings
+    yookassa: YooKassaSettings
+    telegram_stars: TelegramStarsSettings
+    trial: TrialSettings
+    referral: ReferralSettings
+    logging: LoggingSettings
+    prometheus: PrometheusSettings
+```
+
+**Bot Modes:**
+
+1. **Polling Mode** (Development):
+   - `BOT_MODE=polling`
+   - Uses long-polling to fetch updates
+   - Default, simple setup for development
+
+2. **Webhook Mode** (Production):
+   - `BOT_MODE=webhook`
+   - Requires `WEBHOOK_URL` and `WEBHOOK_SECRET_TOKEN`
+   - Uses aiohttp web server with `SimpleRequestHandler`
+   - Integrates health check endpoint (`/health`)
+   - Optional Prometheus metrics endpoint
+
+**Docker Compose Configuration** (`/home/beep/projects/VPNBussiness/infra/docker-compose.yml`):
+
+```yaml
+cybervpn-telegram-bot:
+    build:
+      context: ../services/telegram-bot
+      dockerfile: Dockerfile
+    container_name: cybervpn-telegram-bot
+    hostname: cybervpn-telegram-bot
+    profiles: ["bot"]  # Requires --profile bot flag
+    env_file:
+      - ../services/telegram-bot/.env
+    environment:
+      - BOT_MODE=${BOT_MODE:-polling}
+      - BACKEND_API_URL=http://remnawave:${APP_PORT:-3000}/api
+      - BACKEND_API_KEY=${BACKEND_API_KEY:-}
+      - REDIS_URL=redis://remnawave-redis:6379
+      - REDIS_DB=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_JSON_FORMAT=true
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - PROMETHEUS_PORT=9092
+    ports:
+      - "127.0.0.1:${BOT_METRICS_PORT:-9092}:9092"
+    depends_on:
+      remnawave:
+        condition: service_healthy
+      remnawave-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+```
+
+**Startup Flow** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/main.py`):
+
+1. Initialize logging (structlog with optional JSON format)
+2. Create Bot instance with HTML parse mode and link preview disabled
+3. Create Dispatcher with:
+   - Redis FSM storage (`redis://localhost:6379/1`)
+   - Middleware stack (logging → metrics → throttling → auth → access control → i18n)
+   - Router registration (admin first, then user routers)
+4. Register startup/shutdown handlers
+5. Start Prometheus metrics server (if enabled)
+6. Run in polling or webhook mode
+
+---
+
+### 6. **Backend API Integration**
+
+**API Client** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/services/api_client.py`)
+
+**Key Endpoints** (all require `Bearer {BACKEND_API_KEY}` auth):
+
+**User Management:**
+- `GET /telegram/users/{telegram_id}` - Get user info
+- `POST /telegram/users` - Register new user
+- `PATCH /telegram/users/{telegram_id}` - Update user info
+- `GET /telegram/admin/users` - Admin: list all users
+
+**Subscriptions:**
+- `GET /telegram/users/{telegram_id}/subscriptions` - Get user subscriptions
+- `POST /telegram/subscriptions` - Create subscription
+- `GET /telegram/users/{telegram_id}/config` - Get VPN config with QR
+
+**Plans:**
+- `GET /telegram/plans` - List subscription plans
+- `GET /telegram/admin/plans` - Admin: list plans
+
+**Payments:**
+- `POST /telegram/payments/crypto` - CryptoBot payment
+- `POST /telegram/payments/yookassa` - YooKassa payment
+- `POST /telegram/payments/stars` - Telegram Stars payment
+- `GET /telegram/payments/{invoice_id}` - Check payment status
+
+**Trial:**
+- `POST /telegram/trial/eligibility` - Check trial eligibility
+- `POST /telegram/trial/activate` - Activate trial
+
+**Referral:**
+- `GET /telegram/referrals/{telegram_id}` - Get referral stats
+- `POST /telegram/referrals/{telegram_id}/withdraw` - Withdraw bonus
+
+**Promo Codes:**
+- `POST /telegram/promocodes/activate` - Activate promo code
+
+**Admin Operations:**
+- `GET /telegram/admin/statistics` - Stats dashboard
+- `POST /telegram/admin/broadcast` - Broadcast message
+- `GET /telegram/admin/admins` - List admins
+- `POST /telegram/admin/admins` - Add admin
+- `DELETE /telegram/admin/admins/{telegram_id}` - Remove admin
+- `GET /telegram/admin/settings/*` - Settings (access, referral, gateways, notifications)
+- `POST /telegram/admin/import/*` - Import/sync from Remnawave
+- `GET /telegram/admin/logs` - Export logs
+
+**Resilience Features:**
+- Circuit breaker pattern (opens after 5 consecutive failures, recovers after 30 seconds)
+- Automatic retry with exponential backoff (up to 3 attempts, 1-8 second delay)
+- Timeout handling (connect: 5s, read: 30s, write: 10s, pool: 5s)
+
+---
+
+### 7. **Middleware Stack**
+
+**Execution Order** (`/home/beep/projects/VPNBussiness/services/telegram-bot/src/middlewares/`):
+
+1. **Logging** - Captures every incoming update
+2. **Metrics** - Collects Prometheus counters (requests, latency, errors)
+3. **Throttling** - Rate-limits users before expensive operations
+4. **Auth** (AuthMiddleware) - Loads/registers user, injects `data['user']`
+5. **Access Control** - Checks maintenance mode, rules, channel subscription
+6. **i18n** - Sets locale from user preferences for downstream handlers
+
+**Key Middleware: AuthMiddleware**
+- Extracts telegram_id from Message or CallbackQuery
+- Parses start payload for referral links and promo codes
+- Loads user from Redis cache (TTL: 300s)
+- On cache miss: calls API to get/register user
+- Caches result for future requests
+- Handles both new and existing users transparently
+
+---
+
+### 8. **Key Code Snippets**
+
+**Bot Creation** (`bot.py`):
+```python
+def create_bot(settings: BotSettings) -> Bot:
+    return Bot(
+        token=settings.bot_token.get_secret_value(),
+        default=DefaultBotProperties(
+            parse_mode=ParseMode.HTML,
+            link_preview_is_disabled=True,
+        ),
+    )
+
+def create_dispatcher(settings: BotSettings, bot: Bot) -> Dispatcher:
+    storage = create_redis_storage(settings)
+    dp = Dispatcher(storage=storage)
+    
+    # Inject dependencies
+    dp["settings"] = settings
+    dp["api_client"] = api_client
+    dp["cache"] = cache
+    dp["redis"] = redis
+    
+    # Register middleware and routers
+    register_middlewares(dp, settings, ...)
+    register_routers(dp)
+    
+    return dp
+```
+
+**User Registration** (`start.py`):
+```python
+@router.message(CommandStart())
+async def start_handler(
+    message: Message,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    user: dict[str, Any] | None = None,
+    referrer_id: int | None = None,
+) -> None:
+    if user is None:
+        user = await api_client.register_user(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            language=message.from_user.language_code or "en",
+            referrer_id=referrer_id,
+        )
+    
+    await message.answer(
+        text=i18n.get("welcome-message"),
+        reply_markup=main_menu_keyboard(i18n),
+    )
+```
+
+**Authentication Middleware** (`middlewares/auth.py`):
+```python
+class AuthMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        telegram_user = self._get_telegram_user(event)
+        telegram_id = telegram_user.id
+        
+        # Try cache first
+        user_data = await self._cache.get_user(telegram_id)
+        
+        if user_data is None:
+            # Cache miss: load or register via API
+            user_data = await self._load_or_register_user(telegram_user)
+            await self._cache.set_user(telegram_id, user_data, ttl=300)
+        
+        data["user"] = user_data
+        return await handler(event, data)
+```
+
+---
+
+### 9. **Deployment Commands**
+
+**Development (Polling):**
+```bash
+cd services/telegram-bot
+pip install -e ".[dev]"
+BOT_MODE=polling python -m src.main
+```
+
+**Production (Docker with Webhook):**
+```bash
+# With bot profile
+cd infra
+docker compose --profile bot up -d
+
+# With monitoring
+docker compose --profile bot --profile monitoring up -d
+```
+
+**Configuration via Environment:**
+```bash
+export BOT_TOKEN="123456789:REDACTED"
+export BOT_MODE=webhook
+export WEBHOOK_URL="https://yourdomain.com"
+export WEBHOOK_SECRET_TOKEN="your-secret"
+export BACKEND_API_URL="http://remnawave:3000/api"
+export BACKEND_API_KEY="api-key"
+export REDIS_URL="redis://remnawave-redis:6379"
+export ADMIN_IDS="123456789,987654321"
+```
+
+---
+
+### Summary
+
+The CyberVPN Telegram bot is a **production-ready microservice** built with **aiogram 3** featuring:
+
+- **Automatic user registration** via Telegram ID linking to backend database
+- **Multi-mode deployment** (polling for dev, webhook for production)
+- **Redis-backed FSM** for conversation state management
+- **Circuit breaker + retry logic** for API resilience
+- **27-language support** with Fluent i18n
+- **Multi-payment gateway** support (Telegram Stars, CryptoBot, YooKassa)
+- **Admin panel** with user management and broadcasting
+- **Referral system** with deep-link tracking
+- **Prometheus metrics** for monitoring
+- **Clean Architecture** with clear separation of concerns
+
+**Key Files:**
+- `/home/beep/projects/VPNBussiness/services/telegram-bot/src/main.py` - Entry point
+- `/home/beep/projects/VPNBussiness/services/telegram-bot/src/config.py` - Configuration
+- `/home/beep/projects/VPNBussiness/services/telegram-bot/src/bot.py` - Bot/Dispatcher creation
+- `/home/beep/projects/VPNBussiness/services/telegram-bot/src/middlewares/auth.py` - Authentication
+- `/home/beep/projects/VPNBussiness/services/telegram-bot/src/services/api_client.py` - Backend API client
+- `/home/beep/projects/VPNBussiness/backend/src/infrastructure/database/models/mobile_user_model.py` - User model with telegram_id</result>
+<usage>total_tokens: 73419
+tool_uses: 40
+duration_ms: 134301</usage>
+</task-notification>
+Full transcript available at: /tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/a61506c.output

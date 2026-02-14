@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "c3e0ec97b0ca",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/project-audit-2026-02-14.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c3/e0ec97b0ca/0/metadata.json",
+      "transcript": "/c3/e0ec97b0ca/0/full.jsonl",
+      "context": "/c3/e0ec97b0ca/0/context.md",
+      "content_hash": "/c3/e0ec97b0ca/0/content_hash.txt",
+      "prompt": "/c3/e0ec97b0ca/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 34,
+    "cache_creation_tokens": 81794,
+    "cache_read_tokens": 588952,
+    "output_tokens": 75,
+    "api_call_count": 12
+  }
+}
