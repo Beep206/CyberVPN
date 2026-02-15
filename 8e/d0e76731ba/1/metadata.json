@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "8ed0e76731ba",
+  "session_id": "731f2a26-c96f-42a3-9c51-315bd0b7d8d3",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T15:58:11.392557276Z",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "cybervpn_mobile/lib/core/data/database/app_database.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/profile_server.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/subscription_info.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/vpn_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/repositories/profile_repository.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/add_local_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/add_remote_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/delete_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/migrate_legacy_profiles.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/switch_active_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/update_subscriptions.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_card.dart"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 2361,
+    "cache_creation_tokens": 205129,
+    "cache_read_tokens": 4536060,
+    "output_tokens": 9379,
+    "api_call_count": 58
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T15:58:11.209646705Z",
+    "agent_lines": 1112,
+    "human_added": 15910,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 17022,
+    "agent_percentage": 6.532722359299729
+  }
+}

@@ -1,0 +1,202 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"7","subject":"DOM-1: Create VpnProfile + ProfileServer + SubscriptionInfo domain entities","description":"Create Freezed entities in lib/features/vpn_profiles/domain/entities/: VpnProfile (sealed: .remote, .local), ProfileServer, SubscriptionInfo with computed props (isExpired, consumedBytes, usageRatio, remaining). Create full directory structure. Run build_runner. P0, no dependencies.","assignedBy":"team-lead","timestamp":"2026-02-15T14:37:15.403Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"8","subject":"DOM-2: Create ProfileRepository abstract interface","description":"Create lib/features/vpn_profiles/domain/repositories/profile_repository.dart: abstract class with watchAll, watchActiveProfile, getById, getBySubscriptionUrl, addRemoteProfile, addLocalProfile, setActive, update, updateSubscription, delete, reorder, updateAllDueSubscriptions, migrateFromLegacy, count. Pure Dart. P0, depends on DOM-1.","assignedBy":"team-lead","timestamp":"2026-02-15T14:37:18.047Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are domain-dev on the CyberVPN team (Multi-Profile). You build domain entities, repository interfaces, and use cases.
+Stack: Flutter, Dart 3.10+, Freezed 3.x, Riverpod 3.x, Clean Architecture.
+You work ONLY in cybervpn_mobile/.
+
+CONTEXT — What already exists:
+- Core domain types: lib/core/domain/vpn_protocol.dart (VpnProtocol enum: v2ray, wireguard, openvpn)
+- Core types: lib/core/types/ (Result<T> type for error handling)
+- Existing repositories follow pattern: abstract class in domain/repositories/, impl in data/repositories/
+- Existing use cases follow pattern: single-method classes in domain/usecases/
+- Riverpod providers for DI in lib/core/di/
+
+KEY FILES TO READ FIRST:
+- cybervpn_mobile/lib/core/domain/vpn_protocol.dart
+- cybervpn_mobile/lib/core/types/ (Result type)
+- cybervpn_mobile/lib/features/vpn/domain/repositories/vpn_repository.dart (pattern reference)
+- cybervpn_mobile/lib/features/subscription/domain/entities/subscription_entity.dart
+- cybervpn_mobile/lib/features/config_import/domain/repositories/config_import_repository.dart
+- cybervpn_mobile/lib/core/di/providers.dart (existing DI setup)
+
+RULES:
+- Use Context7 MCP to look up Riverpod 3.x docs before writing providers.
+- Do NOT modify existing entity files or repositories.
+- Domain layer must have ZERO Flutter imports — pure Dart only.
+- All repository methods return Result<T> (existing pattern) — check what Result looks like first.
+- Use cases are single-responsibility: one public method per class.
+- Providers: autoDispose for screen-scoped, plain NotifierProvider for app-scoped.
+- Profile list and active profile are APP-SCOPED (no autoDispose) — they persist across screens.
+
+TASK TRACKING: Use TaskList, TaskGet, TaskUpdate tools. Your assigned tasks are #7 (DOM-1, in_progress) and #8 (DOM-2, pending, blocked by #7). After completing those, check TaskList for newly unblocked tasks (#9 DOM-3, #10 DOM-4, #11 DOM-5).
+
+YOUR TASKS:
+
+DOM-1 (Task #7): Create VpnProfile + ProfileServer + SubscriptionInfo domain entities (P0)
+  - Create feature directory structure:
+    lib/features/vpn_profiles/
+    ├── domain/
+    │   ├── entities/
+    │   │   ├── vpn_profile.dart         ← VpnProfile (sealed: .remote, .local)
+    │   │   ├── profile_server.dart      ← ProfileServer
+    │   │   └── subscription_info.dart   ← SubscriptionInfo with computed props
+    │   ├── repositories/
+    │   └── usecases/
+    ├── data/
+    │   ├── datasources/
+    │   ├── mappers/
+    │   ├── repositories/
+    │   └── security/
+    └── presentation/
+        ├── providers/
+        ├── screens/
+        └── widgets/
+  - Implement all three Freezed entities exactly as specified:
+
+  VpnProfile (sealed with .remote and .local):
+    .remote: id, name, subscriptionUrl, isActive, sortOrder, createdAt, lastUpdatedAt?, uploadBytes(0), downloadBytes(0), totalBytes(0), expiresAt?, updateIntervalMinutes(60), supportUrl?, testUrl?, servers(List<ProfileServer>[])
+    .local: id, name, isActive, sortOrder, createdAt, lastUpdatedAt?, servers(List<ProfileServer>[])
+
+  ProfileServer: id, profileId, name, serverAddress, port, protocol(VpnProtocol), configData, remark?, isFavorite(false), sortOrder, latencyMs?, createdAt
+
+  SubscriptionInfo: title?, uploadBytes(0), downloadBytes(0), totalBytes(0), expiresAt?, updateIntervalMinutes(60), supportUrl?
+    Computed: isExpired, consumedBytes, usageRatio, remaining
+
+  - Run build_runner after creating entities
+
+DOM-2 (Task #8): Create ProfileRepository abstract interface (P0, after DOM-1)
+  - Create lib/features/vpn_profiles/domain/repositories/profile_repository.dart:
+    abstract class ProfileRepository {
+      Stream<List<VpnProfile>> watchAll();
+      Stream<VpnProfile?> watchActiveProfile();
+      Future<Result<VpnProfile>> getById(String id);
+      Future<Result<VpnProfile?>> getBySubscriptionUrl(String url);
+      Future<Result<VpnProfile>> addRemoteProfile(String url, {String? name});
+      Future<Result<VpnProfile>> addLocalProfile(String name, List<ProfileServer> servers);
+      Future<Result<void>> setActive(String profileId);
+      Future<Result<void>> update(VpnProfile profile);
+      Future<Result<void>> updateSubscription(String profileId);
+      Future<Result<void>> delete(String profileId);
+      Future<Result<void>> reorder(List<String> profileIds);
+      Future<Result<int>> updateAllDueSubscriptions();
+      Future<Result<void>> migrateFromLegacy();
+      Future<Result<int>> count();
+    }
+
+After DOM-1 + DOM-2, proceed to:
+DOM-4 (Task #10): Create use cases (6 classes) — depends only on DOM-2
+DOM-3 (Task #9): Create ProfileRepositoryImpl — BLOCKED until data-layer-dev finishes DL-2, DL-4, DL-5
+DOM-5 (Task #11): Create Riverpod providers — BLOCKED until DL-2 + DOM-3
+
+MESSAGE ui-dev when DOM-1 is done ("Entities ready, build_runner done"). Message integration-dev when DOM-3 + DOM-5 are done ("Repository + providers ready for wiring").
+
+DONE CRITERIA: All entities generate via build_runner. Repository interface compiles. flutter analyze passes.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="data-layer-dev" color="blue" summary="DL-1 and DL-4 complete, starting DL-2">
+DL-4 (SubscriptionFetcher) is complete. Created:
+- `lib/features/vpn_profiles/data/models/parsed_server.dart` — Freezed model for parsed server entries
+- `lib/features/vpn_profiles/data/models/fetch_result.dart` — Freezed model wrapping SubscriptionInfo + List<ParsedServer>
+- `lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart` — HTTP fetcher with header parsing (subscription-userinfo, profile-title, etc.) and body decoding (Base64 → V2Ray URI parsing via existing parsers)
+
+All files compile clean (zero analyzer errors). Freezed codegen succeeded.
+
+Also: DL-1 is done — Drift 2.31.0, sqlite3_flutter_libs, path_provider, drift_dev all resolved in pubspec.yaml. I'm now starting DL-2 (Drift DB tables).
+</teammate-message>
+
+<teammate-message teammate_id="domain-dev" color="green">
+{"type":"task_assignment","taskId":"10","subject":"DOM-4: Create use cases (6 classes)","description":"Create in lib/features/vpn_profiles/domain/usecases/: AddRemoteProfile, AddLocalProfile, SwitchActiveProfile, DeleteProfile, UpdateSubscriptions, MigrateLegacyProfiles. Each single-responsibility with call() method. P1, depends on DOM-2.","assignedBy":"domain-dev","timestamp":"2026-02-15T14:53:14.171Z"}
+</teammate-message>
+
+---
+
+<task-notification>
+<task-id>bd08eb3</task-id>
+<output-file>/tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/bd08eb3.output</output-file>
+<status>completed</status>
+<summary>Background command "Run build_runner to generate Freezed files" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /tmp/claude-1000/-home-beep-projects-VPNBussiness/tasks/bd08eb3.output
+
+---
+
+<teammate-message teammate_id="team-lead" summary="Wait for DL-2, don't take test tasks">
+Great work on DOM-1, DOM-2, DOM-4! Don't take the test tasks — test-eng owns those and is now working on TST-1 + TST-3.
+
+Your remaining tasks DOM-3 (#9) and DOM-5 (#11) are blocked on DL-2 (data-layer-dev is actively building the Drift DB now). Stay idle until DL-2 lands — I'll notify you immediately. DL-5 (mappers) also needs your DOM-1 entities which are done, so once DL-2 completes, data-layer-dev can do DL-5, and then DOM-3 unblocks.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="data-layer-dev" color="blue" summary="Drift DB ready, starting DL-3/5/6">
+Drift DB is ready! DL-2 complete. Created:
+- `lib/core/data/database/app_database.dart` — Profiles + ProfileConfigs tables, AppDatabase with lazy singleton, schemaVersion=1, FK enforcement, LazyDatabase connection
+- `lib/core/data/database/database_provider.dart` — Riverpod provider for DI
+- Generated `app_database.g.dart` (87KB) — all Drift companions, typed query helpers
+
+Tables: Profiles (id, name, type enum, subscriptionUrl, isActive, sortOrder, createdAt, lastUpdatedAt, upload/download/totalBytes, expiresAt, updateIntervalMinutes, supportUrl, testUrl) and ProfileConfigs (id, profileId FK→Profiles, name, serverAddress, port, protocol, configData JSON, remark, isFavorite, sortOrder, latencyMs, createdAt).
+
+Now working on DL-3, DL-5, and DL-6.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"9","subject":"DOM-3: Create ProfileRepositoryImpl","description":"Create lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart: full CRUD + subscription updates + migration. Takes ProfileLocalDataSource, SubscriptionFetcher, ProfileMapper, SecureStorage. Error handling with Result type. P0, depends on DL-2, DL-4, DL-5, DOM-2.","assignedBy":"team-lead","timestamp":"2026-02-15T14:58:58.628Z"}
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead" summary="All DL done, start DOM-3 now!">
+All data-layer tasks are done! DOM-3 (#9) is now fully unblocked — all its dependencies are complete:
+- DL-2: Drift DB with Profiles + ProfileConfigs tables ✓
+- DL-4: SubscriptionFetcher ✓
+- DL-5: ProfileMapper (toDomain, toCompanion, serverToCompanion, toVpnConfigEntity) ✓
+- DOM-2: ProfileRepository interface ✓
+- DL-6: EncryptedFieldService for URL encryption ✓
+
+Start DOM-3 (#9) now: Create ProfileRepositoryImpl. Key files:
+- lib/core/data/database/app_database.dart (Drift DB)
+- lib/features/vpn_profiles/data/datasources/profile_local_ds.dart (data source)
+- lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart (HTTP fetcher)
+- lib/features/vpn_profiles/data/mappers/profile_mapper.dart (mappers)
+- lib/features/vpn_profiles/data/security/encrypted_field.dart (encryption)
+- lib/features/vpn_profiles/domain/repositories/profile_repository.dart (interface)
+
+After DOM-3, proceed immediately to DOM-5 (#11) — Riverpod providers.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"11","subject":"DOM-5: Create Riverpod providers for DI wiring","description":"Create lib/features/vpn_profiles/di/profile_providers.dart: providers for data sources, repository, use cases, profileListProvider (app-scoped StreamProvider), activeProfileProvider (app-scoped). Update core/di/providers.dart import. P1, depends on DL-2, DOM-3.","assignedBy":"team-lead","timestamp":"2026-02-15T15:01:51.000Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead" summary="DOM-5 is yours, start now — last task">
+Correction: DOM-5 (#11) is YOUR task, not data-layer-dev's. It's now unblocked (DL-2 + DOM-3 both done). Please start it now:
+
+Task #11 (DOM-5): Create Riverpod providers for DI wiring
+- lib/features/vpn_profiles/di/profile_providers.dart
+- Providers for: ProfileLocalDataSource, SubscriptionFetcher, ProfileRepository, all 6 use cases
+- App-scoped StreamProviders: profileListProvider, activeProfileProvider
+- Add import to lib/core/di/providers.dart
+
+This is your last task — once done it unblocks UI-4/5/7 for ui-dev and INT-3 for integration-dev.
+
+Good note on migrateFromLegacy() being a stub — integration-dev will handle the real migration logic in INT-2.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"shutdown_request","requestId":"shutdown-1771167800041@domain-dev","from":"team-lead","reason":"All domain tasks are complete (DOM-1/2/4 by you, DOM-3/5 by data-layer-dev). Great work on the entities and use cases. Shutting down.","timestamp":"2026-02-15T15:03:20.041Z"}
+</teammate-message>

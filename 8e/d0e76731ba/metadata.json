@@ -3,10 +3,22 @@
   "checkpoint_id": "8ed0e76731ba",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 12,
   "files_touched": [
+    "cybervpn_mobile/lib/core/data/database/app_database.dart",
     "cybervpn_mobile/lib/core/l10n/arb/app_en.arb",
     "cybervpn_mobile/lib/features/vpn/presentation/screens/connection_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/profile_server.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/subscription_info.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/vpn_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/repositories/profile_repository.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/add_local_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/add_remote_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/delete_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/migrate_legacy_profiles.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/switch_active_profile.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/usecases/update_subscriptions.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/add_profile_notifier.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/profile_list_notifier.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/profile_update_notifier.dart",
@@ -24,13 +36,20 @@
       "context": "/8e/d0e76731ba/0/context.md",
       "content_hash": "/8e/d0e76731ba/0/content_hash.txt",
       "prompt": "/8e/d0e76731ba/0/prompt.txt"
+    },
+    {
+      "metadata": "/8e/d0e76731ba/1/metadata.json",
+      "transcript": "/8e/d0e76731ba/1/full.jsonl",
+      "context": "/8e/d0e76731ba/1/context.md",
+      "content_hash": "/8e/d0e76731ba/1/content_hash.txt",
+      "prompt": "/8e/d0e76731ba/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 121,
-    "cache_creation_tokens": 268073,
-    "cache_read_tokens": 11151872,
-    "output_tokens": 23800,
-    "api_call_count": 109
+    "input_tokens": 2482,
+    "cache_creation_tokens": 473202,
+    "cache_read_tokens": 15687932,
+    "output_tokens": 33179,
+    "api_call_count": 167
   }
 }
