@@ -1,10 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show configImportRepositoryProvider;
 
@@ -116,6 +120,10 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
         ),
       );
       AppLogger.info('Config imported: ${imported.name}');
+
+      // Also create a local VPN profile for the imported config.
+      await _createLocalProfileFromConfig(imported);
+
       return imported;
     } catch (e, st) {
       AppLogger.error('Failed to import URI', error: e, stackTrace: st);
@@ -157,6 +165,10 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
       AppLogger.info(
         'Subscription imported: ${newConfigs.length} configs from $url',
       );
+
+      // Also create a remote VPN profile for the subscription URL.
+      await _createRemoteProfileFromSubscription(url);
+
       return newConfigs;
     } catch (e, st) {
       AppLogger.error(
@@ -399,6 +411,88 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
   }
 
   // ---- Delete subscription URL -------------------------------------------
+
+  // ---- Profile creation bridge -----------------------------------------------
+
+  /// Creates a local VPN profile from a single imported config.
+  ///
+  /// Fire-and-forget: failures are logged but do not affect the import flow.
+  Future<void> _createLocalProfileFromConfig(ImportedConfig config) async {
+    try {
+      final useCase = ref.read(addLocalProfileUseCaseProvider);
+      final server = ProfileServer(
+        id: 'import-${config.id}',
+        profileId: '',
+        name: config.name,
+        serverAddress: config.serverAddress,
+        port: config.port,
+        protocol: _mapProtocol(config.protocol),
+        configData: config.rawUri,
+        sortOrder: 0,
+        createdAt: config.importedAt,
+      );
+      final result = await useCase(config.name, [server]);
+      switch (result) {
+        case Success(:final data):
+          AppLogger.info(
+            'Created local profile "${data.name}" from import',
+            category: 'config-import',
+          );
+        case Failure(:final failure):
+          AppLogger.warning(
+            'Failed to create profile from import: ${failure.message}',
+            category: 'config-import',
+          );
+      }
+    } catch (e, st) {
+      AppLogger.warning(
+        'Profile creation from import failed',
+        error: e,
+        stackTrace: st,
+        category: 'config-import',
+      );
+    }
+  }
+
+  /// Creates a remote VPN profile from a subscription URL.
+  ///
+  /// Fire-and-forget: failures are logged but do not affect the import flow.
+  Future<void> _createRemoteProfileFromSubscription(String url) async {
+    try {
+      final useCase = ref.read(addRemoteProfileUseCaseProvider);
+      final result = await useCase(url);
+      switch (result) {
+        case Success(:final data):
+          AppLogger.info(
+            'Created remote profile "${data.name}" from subscription',
+            category: 'config-import',
+          );
+        case Failure(:final failure):
+          AppLogger.warning(
+            'Failed to create profile from subscription: ${failure.message}',
+            category: 'config-import',
+          );
+      }
+    } catch (e, st) {
+      AppLogger.warning(
+        'Profile creation from subscription failed',
+        error: e,
+        stackTrace: st,
+        category: 'config-import',
+      );
+    }
+  }
+
+  /// Maps a protocol string to [VpnProtocol].
+  VpnProtocol _mapProtocol(String protocol) {
+    return switch (protocol.toLowerCase()) {
+      'vless' => VpnProtocol.vless,
+      'vmess' => VpnProtocol.vmess,
+      'trojan' => VpnProtocol.trojan,
+      'ss' || 'shadowsocks' => VpnProtocol.shadowsocks,
+      _ => VpnProtocol.vless,
+    };
+  }
 
   /// Delete all configurations imported from a specific subscription URL.
   ///

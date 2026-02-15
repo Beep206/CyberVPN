@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
 
 /// Key used for persisting recent server IDs in SharedPreferences.
 const _kRecentServerIds = 'recent_server_ids';
@@ -49,7 +49,7 @@ final recentServerIdsProvider =
 final recentServersProvider = Provider<List<ServerEntity>>((ref) {
   final ids = ref.watch(recentServerIdsProvider);
   final allServers = ref.watch(
-    serverListProvider.select((s) => s.value?.servers ?? []),
+    profileAwareServerListProvider.select((s) => s.value?.servers ?? []),
   );
 
   final serverMap = {for (final s in allServers) s.id: s};

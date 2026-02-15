@@ -4860,4 +4860,144 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonCreate => 'Create';
+
+  @override
+  String get profiles => 'Profiles';
+
+  @override
+  String get profilesSubtitle => 'Manage your VPN subscriptions';
+
+  @override
+  String get addProfile => 'Add Profile';
+
+  @override
+  String get addProfileByUrl => 'Subscription URL';
+
+  @override
+  String get addProfileByUrlDesc => 'Add a VPN subscription by pasting its URL';
+
+  @override
+  String get addProfileByQr => 'QR Code';
+
+  @override
+  String get addProfileByQrDesc =>
+      'Scan a QR code containing a VPN configuration';
+
+  @override
+  String get addProfileByClipboard => 'Clipboard';
+
+  @override
+  String get addProfileByClipboardDesc => 'Import from clipboard content';
+
+  @override
+  String get profileRemote => 'Remote';
+
+  @override
+  String get profileLocal => 'Local';
+
+  @override
+  String get profileActive => 'Active';
+
+  @override
+  String get profileExpired => 'Expired';
+
+  @override
+  String profileServers(int count) {
+    return '$count servers';
+  }
+
+  @override
+  String profileLastUpdated(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String profileTrafficUsed(String used, String total) {
+    return '$used / $total';
+  }
+
+  @override
+  String profileExpiresIn(int days) {
+    return 'Expires in $days days';
+  }
+
+  @override
+  String profileExpiredOn(String date) {
+    return 'Expired on $date';
+  }
+
+  @override
+  String get profileUpdateNow => 'Update Now';
+
+  @override
+  String get profileTestUrl => 'Test URL';
+
+  @override
+  String get profileSetActive => 'Set as Active';
+
+  @override
+  String get profileDelete => 'Delete Profile';
+
+  @override
+  String profileDeleteConfirm(String name) {
+    return 'Delete \"$name\"? This will remove the profile and all its server configurations. This action cannot be undone.';
+  }
+
+  @override
+  String get profileDeleteLastError =>
+      'Cannot delete the last profile. At least one profile is required.';
+
+  @override
+  String get profileDeleteActiveError =>
+      'Cannot delete the active profile. Switch to another profile first.';
+
+  @override
+  String get profileSwitchDisconnect =>
+      'Switching profiles will disconnect your current VPN session. Continue?';
+
+  @override
+  String profileFetchSuccess(int count) {
+    return 'Found $count servers from subscription';
+  }
+
+  @override
+  String profileFetchError(String error) {
+    return 'Failed to fetch subscription: $error';
+  }
+
+  @override
+  String get profileUrlHint => 'Enter subscription URL (https://...)';
+
+  @override
+  String get profileNameHint => 'Profile name (optional)';
+
+  @override
+  String get profileSaved => 'Profile saved successfully';
+
+  @override
+  String profileUpdated(int count) {
+    return 'Profile updated with $count new servers';
+  }
+
+  @override
+  String get profileNoServers => 'No servers found in subscription';
+
+  @override
+  String get profileDuplicateUrl => 'A profile with this URL already exists';
+
+  @override
+  String get profileMigrated =>
+      'Your existing subscription has been imported as a profile';
+
+  @override
+  String profileUpdateInterval(int hours) {
+    return 'Updates every $hours hours';
+  }
+
+  @override
+  String get profileEmpty => 'No profiles yet';
+
+  @override
+  String get profileEmptySubtitle =>
+      'Add your first VPN subscription to get started';
 }

@@ -13,6 +13,7 @@ import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
 
 part 'server_list_provider.freezed.dart';
 
@@ -445,12 +446,12 @@ final serverListProvider =
 // Derived providers
 // ---------------------------------------------------------------------------
 
-/// Filtered + sorted server list, derived from [serverListProvider].
+/// Filtered + sorted server list, derived from [profileAwareServerListProvider].
 ///
 /// Riverpod auto-memoizes: downstream widgets only rebuild when the
 /// filtered list actually changes.
 final filteredServersProvider = Provider<List<ServerEntity>>((ref) {
-  final asyncState = ref.watch(serverListProvider);
+  final asyncState = ref.watch(profileAwareServerListProvider);
   final serverState = asyncState.value;
   if (serverState == null) return [];
   return serverState.filteredServers;
@@ -470,7 +471,7 @@ final groupedByCountryProvider =
 
 /// Only favorite servers, ordered by the persisted favorite order.
 final favoriteServersProvider = Provider<List<ServerEntity>>((ref) {
-  final asyncState = ref.watch(serverListProvider);
+  final asyncState = ref.watch(profileAwareServerListProvider);
   final serverState = asyncState.value;
   if (serverState == null) return [];
 
@@ -493,7 +494,7 @@ final favoriteServersProvider = Provider<List<ServerEntity>>((ref) {
 
 /// The single best recommended server (lowest ping, available, non-premium).
 final recommendedServerProvider = Provider<ServerEntity?>((ref) {
-  final asyncState = ref.watch(serverListProvider);
+  final asyncState = ref.watch(profileAwareServerListProvider);
   final serverState = asyncState.value;
   if (serverState == null) return null;
 
@@ -514,7 +515,7 @@ final recommendedServerProvider = Provider<ServerEntity?>((ref) {
 /// Look up a single server by ID.
 final serverByIdProvider =
     Provider.family<ServerEntity?, String>((ref, String id) {
-  final asyncState = ref.watch(serverListProvider);
+  final asyncState = ref.watch(profileAwareServerListProvider);
   final serverState = asyncState.value;
   if (serverState == null) return null;
 

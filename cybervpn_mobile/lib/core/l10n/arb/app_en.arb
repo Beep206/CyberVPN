@@ -2977,5 +2977,117 @@
   "partnerComingSoonTitle": "Partner Program Coming Soon",
   "partnerComingSoonDescription": "Join our partner program and earn commissions. Stay tuned for more details!",
   "commonCreate": "Create",
-  "commonSave": "Save"
+  "commonSave": "Save",
+
+  "profiles": "Profiles",
+  "profilesSubtitle": "Manage your VPN subscriptions",
+  "addProfile": "Add Profile",
+  "addProfileByUrl": "Subscription URL",
+  "addProfileByUrlDesc": "Add a VPN subscription by pasting its URL",
+  "addProfileByQr": "QR Code",
+  "addProfileByQrDesc": "Scan a QR code containing a VPN configuration",
+  "addProfileByClipboard": "Clipboard",
+  "addProfileByClipboardDesc": "Import from clipboard content",
+  "profileRemote": "Remote",
+  "profileLocal": "Local",
+  "profileActive": "Active",
+  "profileExpired": "Expired",
+  "profileServers": "{count} servers",
+  "@profileServers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileLastUpdated": "Updated {time}",
+  "@profileLastUpdated": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTrafficUsed": "{used} / {total}",
+  "@profileTrafficUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "profileExpiresIn": "Expires in {days} days",
+  "@profileExpiresIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "profileExpiredOn": "Expired on {date}",
+  "@profileExpiredOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileUpdateNow": "Update Now",
+  "profileTestUrl": "Test URL",
+  "profileSetActive": "Set as Active",
+  "profileDelete": "Delete Profile",
+  "profileDeleteConfirm": "Delete \"{name}\"? This will remove the profile and all its server configurations. This action cannot be undone.",
+  "@profileDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "profileDeleteLastError": "Cannot delete the last profile. At least one profile is required.",
+  "profileDeleteActiveError": "Cannot delete the active profile. Switch to another profile first.",
+  "profileSwitchDisconnect": "Switching profiles will disconnect your current VPN session. Continue?",
+  "profileFetchSuccess": "Found {count} servers from subscription",
+  "@profileFetchSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileFetchError": "Failed to fetch subscription: {error}",
+  "@profileFetchError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "profileUrlHint": "Enter subscription URL (https://...)",
+  "profileNameHint": "Profile name (optional)",
+  "profileSaved": "Profile saved successfully",
+  "profileUpdated": "Profile updated with {count} new servers",
+  "@profileUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileNoServers": "No servers found in subscription",
+  "profileDuplicateUrl": "A profile with this URL already exists",
+  "profileMigrated": "Your existing subscription has been imported as a profile",
+  "profileUpdateInterval": "Updates every {hours} hours",
+  "@profileUpdateInterval": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "profileEmpty": "No profiles yet",
+  "profileEmptySubtitle": "Add your first VPN subscription to get started"
 }

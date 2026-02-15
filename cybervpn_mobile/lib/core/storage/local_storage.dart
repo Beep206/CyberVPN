@@ -73,4 +73,8 @@ class LocalStorageWrapper {
 
   // NON-SENSITIVE: Auto-connect preference - SharedPreferences is sufficient
   static const String autoConnectKey = 'auto_connect';
+
+  // NON-SENSITIVE: Profile migration v1 completion flag - SharedPreferences is sufficient
+  static const String profileMigrationV1CompleteKey =
+      'profile_migration_v1_complete';
 }
