@@ -3,7 +3,7 @@
   "checkpoint_id": "8ed0e76731ba",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 17,
+  "checkpoints_count": 18,
   "files_touched": [
     "cybervpn_mobile/lib/app/router/app_router.dart",
     "cybervpn_mobile/lib/core/data/database/app_database.dart",
@@ -96,13 +96,20 @@
       "context": "/8e/d0e76731ba/4/context.md",
       "content_hash": "/8e/d0e76731ba/4/content_hash.txt",
       "prompt": "/8e/d0e76731ba/4/prompt.txt"
+    },
+    {
+      "metadata": "/8e/d0e76731ba/5/metadata.json",
+      "transcript": "/8e/d0e76731ba/5/full.jsonl",
+      "context": "/8e/d0e76731ba/5/context.md",
+      "content_hash": "/8e/d0e76731ba/5/content_hash.txt",
+      "prompt": "/8e/d0e76731ba/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 17939,
-    "cache_creation_tokens": 1616677,
-    "cache_read_tokens": 51995076,
-    "output_tokens": 105373,
-    "api_call_count": 495
+    "input_tokens": 18221,
+    "cache_creation_tokens": 1868066,
+    "cache_read_tokens": 73518613,
+    "output_tokens": 126211,
+    "api_call_count": 714
   }
 }

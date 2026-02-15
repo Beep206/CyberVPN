@@ -1,0 +1,106 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "8ed0e76731ba",
+  "session_id": "67edd8f2-55ee-4d9a-955e-539aa39b3972",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T15:59:23.66298041Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/fetch_result.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/parsed_server.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/profile_server.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/subscription_info.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/vpn_profile.dart"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 282,
+    "cache_creation_tokens": 251389,
+    "cache_read_tokens": 21523537,
+    "output_tokens": 20838,
+    "api_call_count": 219
+  },
+  "summary": {
+    "intent": "Implement Hiddify-style multi-profile (multi-subscription) VPN support in CyberVPN mobile app using a 5-agent team, allowing users to manage multiple VPN subscriptions with local Drift database storage, subscription URL parsing, profile switching, and auto-updates.",
+    "outcome": "Successfully implemented complete multi-profile feature across 29 tasks: Drift SQLite database with profiles/configs tables, domain entities (VpnProfile sealed class), repository layer, 4 UI screens with cyberpunk theme, subscription URL fetcher with HTTP header parsing, legacy migration integrated into router, 136 passing tests, and 5-tab navigation. All code committed and pushed.",
+    "learnings": {
+      "repo": [
+        "CyberVPN uses Riverpod 3.x with app-scoped StreamProviders for global state and autoDispose for screen-scoped state",
+        "Router-based initialization pattern: migration logic triggered via FutureProvider in GoRouter redirect guard, not in splash screen files directly",
+        "Existing codebase has separate user Profile (account) vs VPN profiles - required namespacing providers as vpnProfileRepositoryProvider",
+        "Cyberpunk theme tokens defined in lib/app/theme/tokens.dart: Orbitron for headings, JetBrains Mono for body, neon colors (matrixGreen, neonCyan, neonPink)",
+        "Config import system already had parsers for vmess/vless/trojan/shadowsocks URIs - reused for subscription URL parsing",
+        "path_provider ^2.1.6 doesn't exist, resolved to ^2.1.5 successfully"
+      ],
+      "code": [
+        {
+          "path": "cybervpn_mobile/lib/app/router/app_router.dart",
+          "line": 252,
+          "end_line": 267,
+          "finding": "Migration integrated via profileMigrationProvider read + isMigrationLoading flag in redirect guard - blocks navigation from splash until migration completes"
+        },
+        {
+          "path": "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart",
+          "line": 1,
+          "end_line": 150,
+          "finding": "Subscription URL headers: profile-title, subscription-userinfo (upload=X; download=Y; total=Z; expire=T format), profile-update-interval (hours), support-url - Base64 body decode to V2Ray URIs"
+        },
+        {
+          "path": "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/vpn_profile.dart",
+          "line": 1,
+          "end_line": 50,
+          "finding": "Sealed union type VpnProfile.remote() and VpnProfile.local() - pattern matching via .when() for type-specific logic"
+        },
+        {
+          "path": "cybervpn_mobile/lib/core/data/database/app_database.dart",
+          "line": 1,
+          "end_line": 80,
+          "finding": "Drift schemaVersion=1 with lazy singleton pattern, DB path at ${appDocDir}/cybervpn_profiles.db, field-level encryption for subscriptionUrl using SecureStorage master key"
+        },
+        {
+          "path": "cybervpn_mobile/lib/features/servers/presentation/providers/profile_aware_server_list.dart",
+          "line": 1,
+          "end_line": 100,
+          "finding": "Decorator pattern for server list: watches activeVpnProfileProvider, delegates to backend API for CyberVPN native profiles, maps ProfileServer from Drift for third-party profiles"
+        }
+      ],
+      "workflow": [
+        "5-agent parallel team execution: data-layer-dev + domain-dev started independent tasks (DL-1/DL-4 + DOM-1/DOM-2) immediately while ui-dev did i18n strings with no dependencies",
+        "Wave-based task assignment: Wave 1 (no deps) → Wave 2 (after DL-2, DOM-1) → Wave 3 (after DOM-3) maximized parallelism",
+        "data-layer-dev carried extra load: completed 9 tasks including DOM-3, DOM-5, TST-2 beyond their original 6 assignments",
+        "build_runner coordination: only one agent runs dart run build_runner at a time to prevent file lock conflicts",
+        "Agent idle notifications are normal between turns - not a blocker, just waiting for input",
+        "TeamCreate + TaskCreate/TaskUpdate for shared task list avoided bead conflicts with parallel agents",
+        "Riverpod 3.x API: class extends AsyncNotifier, provider uses AsyncNotifierProvider.autoDispose (not AutoDisposeAsyncNotifier class name)",
+        "flutter test hangs on full suite run - run profile-specific tests with --plain-name for faster feedback"
+      ]
+    },
+    "friction": [
+      "Initial assessment incorrectly concluded migration not wired (93% complete) - migration was integrated via router provider pattern, not splash file modification",
+      "flutter test full suite run hung - had to run profile-specific tests only",
+      "path_provider ^2.1.6 doesn't exist in pub.dev - auto-resolved to ^2.1.5",
+      "Multiple idle notifications from agents caused noise - normal Riverpod behavior but looked like blocking",
+      "Task status updates lagged behind actual completion - agents finished tasks before lead could update status"
+    ],
+    "open_items": [
+      "Phase B future work: Profile groups/folders, per-profile DNS settings, per-profile split tunnel rules",
+      "Phase C future work: Cloud sync via backend API (requires new endpoints), profile sharing/export",
+      "WireGuard/OpenVPN profile import not implemented - only V2Ray-based protocols (vmess, vless, trojan, shadowsocks)",
+      "Only app_en.arb has new i18n strings - other 26 locales will use English fallback until translated",
+      "Profile export/backup intentionally excluded from Android Auto Backup (subscription URLs are auth-scoped, not portable)",
+      "Manual config entry option in AddProfileScreen disabled (future enhancement)",
+      "Subscription URL fetch doesn't support proxy-through-connected-VPN yet (future: support network restrictions)"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T15:58:38.278190362Z",
+    "agent_lines": 459,
+    "human_added": 16563,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 17022,
+    "agent_percentage": 2.696510398308072
+  }
+}
