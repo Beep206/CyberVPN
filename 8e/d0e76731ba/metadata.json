@@ -3,12 +3,20 @@
   "checkpoint_id": "8ed0e76731ba",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 12,
+  "checkpoints_count": 13,
   "files_touched": [
     "cybervpn_mobile/lib/core/data/database/app_database.dart",
+    "cybervpn_mobile/lib/core/data/database/database_provider.dart",
     "cybervpn_mobile/lib/core/l10n/arb/app_en.arb",
     "cybervpn_mobile/lib/features/vpn/presentation/screens/connection_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/profile_local_ds.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/mappers/profile_mapper.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/fetch_result.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/parsed_server.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/security/encrypted_field.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/di/profile_providers.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/profile_server.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/subscription_info.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/vpn_profile.dart",
@@ -27,7 +35,9 @@
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_detail_screen.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_list_screen.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_card.dart",
-    "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart"
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart",
+    "cybervpn_mobile/pubspec.yaml",
+    "cybervpn_mobile/test/features/vpn_profiles/data/repositories/profile_repository_impl_test.dart"
   ],
   "sessions": [
     {
@@ -43,13 +53,20 @@
       "context": "/8e/d0e76731ba/1/context.md",
       "content_hash": "/8e/d0e76731ba/1/content_hash.txt",
       "prompt": "/8e/d0e76731ba/1/prompt.txt"
+    },
+    {
+      "metadata": "/8e/d0e76731ba/2/metadata.json",
+      "transcript": "/8e/d0e76731ba/2/full.jsonl",
+      "context": "/8e/d0e76731ba/2/context.md",
+      "content_hash": "/8e/d0e76731ba/2/content_hash.txt",
+      "prompt": "/8e/d0e76731ba/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2482,
-    "cache_creation_tokens": 473202,
-    "cache_read_tokens": 15687932,
-    "output_tokens": 33179,
-    "api_call_count": 167
+    "input_tokens": 5629,
+    "cache_creation_tokens": 776276,
+    "cache_read_tokens": 27602329,
+    "output_tokens": 60197,
+    "api_call_count": 279
   }
 }

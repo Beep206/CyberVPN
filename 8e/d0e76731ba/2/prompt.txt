@@ -1,0 +1,146 @@
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"1","subject":"DL-1: Add Drift + sqlite3_flutter_libs dependencies to pubspec.yaml","description":"Add to pubspec.yaml dependencies: drift ^2.27.0, sqlite3_flutter_libs ^0.5.30, path_provider ^2.1.6, path ^1.9.1. Add to dev_dependencies: drift_dev ^2.27.0. Run flutter pub get. Verify NO version conflicts. P0, no dependencies.","assignedBy":"team-lead","timestamp":"2026-02-15T14:37:07.286Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"4","subject":"DL-4: Create SubscriptionFetcher HTTP parser","description":"Create lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart: HTTP GET with header parsing (profile-title, subscription-userinfo, profile-update-interval, support-url), Base64 body decoding, V2Ray URI parsing using existing parsers. Create fetch_result.dart Freezed model. Handle timeouts, errors. P0, no dependencies.","assignedBy":"team-lead","timestamp":"2026-02-15T14:37:09.809Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+You are data-layer-dev on the CyberVPN team (Multi-Profile). You build the Drift database, data sources, and data models.
+Stack: Flutter, Dart 3.10+, Drift 2.27+, Freezed 3.x, Riverpod 3.x, Clean Architecture.
+You work ONLY in cybervpn_mobile/.
+
+CONTEXT — What already exists:
+- No local database — app uses SecureStorage (encrypted) + SharedPreferences (plaintext) only
+- VpnConfigEntity: id, name, serverAddress, port, protocol, configData, remark, isFavorite (Freezed)
+- SubscriptionEntity: id, planId, userId, status, startDate, endDate, trafficUsed/Limit, devices, subscriptionLink (Freezed)
+- ImportedConfig: id, name, rawUri, protocol, serverAddress, port, source, subscriptionUrl (Freezed)
+- Existing parsers: vmess_parser, vless_parser, trojan_parser, shadowsocks_parser, subscription_url_parser
+- pubspec.yaml at cybervpn_mobile/pubspec.yaml
+- Core data utilities at lib/core/data/
+- Core storage at lib/core/storage/ (secure_storage.dart, local_storage.dart)
+
+KEY FILES TO READ FIRST:
+- cybervpn_mobile/pubspec.yaml (current dependencies)
+- cybervpn_mobile/lib/features/vpn/domain/entities/vpn_config_entity.dart
+- cybervpn_mobile/lib/features/subscription/domain/entities/subscription_entity.dart
+- cybervpn_mobile/lib/features/config_import/domain/entities/imported_config.dart
+- cybervpn_mobile/lib/features/config_import/data/parsers/subscription_url_parser.dart
+- cybervpn_mobile/lib/core/storage/secure_storage.dart
+
+RULES:
+- Use Context7 MCP to look up Drift documentation before writing any Drift code.
+- Do NOT downgrade any existing package version.
+- Do NOT modify existing entity files — create new entities in the new feature module.
+- Follow existing file naming conventions: snake_case.dart.
+- All Drift tables must have explicit primary keys.
+- Subscription URLs must be encrypted at rest — use SecureStorage master key for field-level encryption.
+- Run `dart run build_runner build --delete-conflicting-outputs` after creating Drift/Freezed files.
+- Write comprehensive dartdoc comments on all public APIs.
+
+TASK TRACKING: Use TaskList, TaskGet, TaskUpdate tools. Your assigned tasks are #1 (DL-1) and #4 (DL-4) — both in_progress. After completing those, check TaskList for newly unblocked tasks (#2 DL-2, #3 DL-3, #5 DL-5, #6 DL-6).
+
+YOUR TASKS:
+
+DL-1 (Task #1): Add Drift + sqlite3_flutter_libs + path_provider dependencies (P0)
+  - Add to pubspec.yaml dependencies:
+    drift: ^2.27.0
+    sqlite3_flutter_libs: ^0.5.30
+    path_provider: ^2.1.6
+    path: ^1.9.1
+  - Add to dev_dependencies:
+    drift_dev: ^2.27.0
+  - Run `flutter pub get` to verify resolution
+  - Verify NO version conflicts with existing packages
+  - File: cybervpn_mobile/pubspec.yaml
+
+DL-4 (Task #4): Create SubscriptionFetcher — HTTP-based subscription URL parser (P0)
+  - Create lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart:
+    - Constructor takes `Dio` (existing DI)
+    - Method: `Future<FetchResult> fetch(String url)`:
+      1. GET url with headers: User-Agent: "CyberVPN/1.0", Accept: "*/*"
+      2. Parse response headers:
+         - `profile-title` → display name
+         - `subscription-userinfo` → parse "upload=X; download=Y; total=Z; expire=T" format
+         - `profile-update-interval` → update interval in hours (convert to minutes)
+         - `support-url` → support/help link
+         - `profile-web-page-url` → provider web page
+      3. Parse response body:
+         - Try Base64 decode
+         - Split by newline
+         - Each line is a V2Ray URI (vmess://, vless://, trojan://, ss://)
+         - Use EXISTING parsers from config_import to parse each URI
+         - If body is JSON (Sing-box format) → extract outbounds
+         - If body is YAML (Clash format) → extract proxies
+      4. Return FetchResult(subscriptionInfo, List<ParsedServer>)
+    - Handle errors: timeout (10s), HTTP errors, parse errors
+    - Log errors via existing Logger utility
+  - Create lib/features/vpn_profiles/data/models/fetch_result.dart (Freezed):
+    @freezed
+    sealed class FetchResult with _$FetchResult {
+      const factory FetchResult({
+        required SubscriptionInfo info,
+        required List<ParsedServer> servers,
+      }) = _FetchResult;
+    }
+  - File: subscription_fetcher.dart (NEW), fetch_result.dart (NEW)
+
+After DL-1 is complete, proceed to:
+DL-2 (Task #2): Create Drift DB with profiles + profile_configs tables (P0)
+DL-3 (Task #3): Create ProfileLocalDataSource with Drift queries (P0)
+DL-5 (Task #5): Create data mappers Drift ↔ Domain (P1, needs DOM-1 from domain-dev)
+DL-6 (Task #6): Create encrypted URL storage wrapper (P1)
+
+MESSAGE domain-dev (via SendMessage) when DL-2 is done ("Drift DB ready"). Message domain-dev when DL-4 is done ("SubscriptionFetcher ready").
+
+DONE CRITERIA: `flutter pub get` succeeds. `dart run build_runner build --delete-conflicting-outputs` generates all files. All data source methods compile. No analyzer errors.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"2","subject":"DL-2: Create Drift DB with profiles + profile_configs tables","description":"Create lib/core/data/database/app_database.dart with Profiles + ProfileConfigs tables, ProfileType enum, AppDatabase class, schemaVersion=1, migration strategy, lazy singleton, DB path. Create database_provider.dart with Riverpod provider. Run build_runner. P0, depends on DL-1.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T14:52:57.232Z"}
+</teammate-message>
+
+<teammate-message teammate_id="domain-dev" color="green" summary="Domain layer done, waiting on DL-2/DL-5">
+Great progress! I see you're starting DL-2 now. My DOM-3 (ProfileRepositoryImpl) and DOM-5 (Riverpod providers) are blocked on DL-2 + DL-5, so let me know when those land. 
+
+FYI the domain entities and repository interface are all done and stable — you can reference them for the mappers (DL-5):
+- `VpnProfile.remote` / `VpnProfile.local` (sealed union)
+- `ProfileServer` 
+- `SubscriptionInfo`
+- `ProfileRepository` abstract interface
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"3","subject":"DL-3: Create ProfileLocalDataSource with Drift queries","description":"Create lib/features/vpn_profiles/data/datasources/profile_local_ds.dart with all CRUD operations: watchAll, watchActiveProfile, getById, getBySubscriptionUrl, insert, insertConfigs, update, setActive, delete, deleteConfigsByProfileId, updateSortOrders, count. Use Drift transactions and .watch() for reactive streams. P0, depends on DL-2.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T14:56:18.804Z"}
+</teammate-message>
+
+<teammate-message teammate_id="domain-dev" color="green" summary="Ready to start DOM-3 once DL-5 lands">
+Nice — DL-2 looks solid. DOM-3 is now only blocked by DL-5 (mappers). Ping me when DL-5 lands and I'll start the repository implementation immediately.
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"5","subject":"DL-5: Create data mappers (Drift ↔ Domain)","description":"Create lib/features/vpn_profiles/data/mappers/profile_mapper.dart: toDomain, toCompanion, serverToCompanion, toVpnConfigEntity (adapter for VPN engine). Handle null-safety. P1, depends on DL-2 + DOM-1.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T14:56:24.453Z"}
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"6","subject":"DL-6: Create encrypted URL storage wrapper","description":"Create lib/features/vpn_profiles/data/security/encrypted_field.dart: AES-256 encryption using SecureStorage master key for subscription URLs. Prefer Drift TypeConverter approach. P1, depends on DL-2.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T14:56:24.706Z"}
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"9","subject":"DOM-3: Create ProfileRepositoryImpl","description":"Create lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart: full CRUD + subscription updates + migration. Takes ProfileLocalDataSource, SubscriptionFetcher, ProfileMapper, SecureStorage. Error handling with Result type. P0, depends on DL-2, DL-4, DL-5, DOM-2.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T14:58:49.237Z"}
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"11","subject":"DOM-5: Create Riverpod providers for DI wiring","description":"Create lib/features/vpn_profiles/di/profile_providers.dart: providers for data sources, repository, use cases, profileListProvider (app-scoped StreamProvider), activeProfileProvider (app-scoped). Update core/di/providers.dart import. P1, depends on DL-2, DOM-3.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T15:00:44.280Z"}
+</teammate-message>
+
+<teammate-message teammate_id="data-layer-dev" color="blue">
+{"type":"task_assignment","taskId":"25","subject":"TST-2: Unit tests for repository implementation","description":"Test ProfileRepositoryImpl with mocktail: addRemoteProfile (success, duplicate, failure), addLocalProfile, setActive, delete (success, last, active), updateSubscription (new servers, failures), updateAllDueSubscriptions. P1, depends on DOM-3.","assignedBy":"data-layer-dev","timestamp":"2026-02-15T15:02:10.136Z"}
+</teammate-message>
+
+<teammate-message teammate_id="team-lead">
+{"type":"shutdown_request","requestId":"shutdown-1771167796508@data-layer-dev","from":"team-lead","reason":"All data-layer and bonus DOM-3/DOM-5 tasks are complete. Great work — you delivered 8 tasks with zero errors. Shutting down.","timestamp":"2026-02-15T15:03:16.508Z"}
+</teammate-message>

@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "8ed0e76731ba",
+  "session_id": "77b4cd7d-8a0c-453e-94a1-bea170c97ba4",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T15:58:11.760150609Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cybervpn_mobile/lib/core/data/database/app_database.dart",
+    "cybervpn_mobile/lib/core/data/database/database_provider.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/profile_local_ds.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/mappers/profile_mapper.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/fetch_result.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/models/parsed_server.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/security/encrypted_field.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/di/profile_providers.dart",
+    "cybervpn_mobile/pubspec.yaml",
+    "cybervpn_mobile/test/features/vpn_profiles/data/repositories/profile_repository_impl_test.dart"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 3147,
+    "cache_creation_tokens": 303074,
+    "cache_read_tokens": 11914397,
+    "output_tokens": 27018,
+    "api_call_count": 112
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T15:58:11.575379359Z",
+    "agent_lines": 1992,
+    "human_added": 15030,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 17022,
+    "agent_percentage": 11.702502643637645
+  }
+}
