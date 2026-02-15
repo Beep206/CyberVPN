@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "8ed0e76731ba",
+  "session_id": "3399979a-d8ad-4301-9e02-3d5f9cec051f",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T15:58:10.855285165Z",
+  "branch": "main",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "cybervpn_mobile/lib/core/l10n/arb/app_en.arb",
+    "cybervpn_mobile/lib/features/vpn/presentation/screens/connection_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/add_profile_notifier.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/profile_list_notifier.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/providers/profile_update_notifier.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/add_by_url_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/add_profile_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_detail_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_list_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_card.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 121,
+    "cache_creation_tokens": 268073,
+    "cache_read_tokens": 11151872,
+    "output_tokens": 23800,
+    "api_call_count": 109
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T15:58:10.625107046Z",
+    "agent_lines": 2320,
+    "human_added": 14702,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 17022,
+    "agent_percentage": 13.62942074961814
+  }
+}
