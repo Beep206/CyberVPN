@@ -3,11 +3,19 @@
   "checkpoint_id": "8ed0e76731ba",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 13,
+  "checkpoints_count": 16,
   "files_touched": [
+    "cybervpn_mobile/lib/app/router/app_router.dart",
     "cybervpn_mobile/lib/core/data/database/app_database.dart",
     "cybervpn_mobile/lib/core/data/database/database_provider.dart",
     "cybervpn_mobile/lib/core/l10n/arb/app_en.arb",
+    "cybervpn_mobile/lib/core/storage/local_storage.dart",
+    "cybervpn_mobile/lib/features/config_import/presentation/providers/config_import_provider.dart",
+    "cybervpn_mobile/lib/features/navigation/presentation/screens/main_shell_screen.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/providers/profile_aware_server_list.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/providers/recent_servers_provider.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/providers/server_list_provider.dart",
+    "cybervpn_mobile/lib/features/servers/presentation/screens/server_list_screen.dart",
     "cybervpn_mobile/lib/features/vpn/presentation/screens/connection_screen.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/profile_local_ds.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/data/datasources/subscription_fetcher.dart",
@@ -16,6 +24,7 @@
     "cybervpn_mobile/lib/features/vpn_profiles/data/models/parsed_server.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/data/repositories/profile_repository_impl.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/data/security/encrypted_field.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/data/services/legacy_profile_migration.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/di/profile_providers.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/profile_server.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/domain/entities/subscription_info.dart",
@@ -34,6 +43,7 @@
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/add_profile_screen.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_detail_screen.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/screens/profile_list_screen.dart",
+    "cybervpn_mobile/lib/features/vpn_profiles/presentation/services/profile_switch_handler.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_card.dart",
     "cybervpn_mobile/lib/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart",
     "cybervpn_mobile/pubspec.yaml",
@@ -60,13 +70,20 @@
       "context": "/8e/d0e76731ba/2/context.md",
       "content_hash": "/8e/d0e76731ba/2/content_hash.txt",
       "prompt": "/8e/d0e76731ba/2/prompt.txt"
+    },
+    {
+      "metadata": "/8e/d0e76731ba/3/metadata.json",
+      "transcript": "/8e/d0e76731ba/3/full.jsonl",
+      "context": "/8e/d0e76731ba/3/context.md",
+      "content_hash": "/8e/d0e76731ba/3/content_hash.txt",
+      "prompt": "/8e/d0e76731ba/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5629,
-    "cache_creation_tokens": 776276,
-    "cache_read_tokens": 27602329,
-    "output_tokens": 60197,
-    "api_call_count": 279
+    "input_tokens": 12110,
+    "cache_creation_tokens": 1301086,
+    "cache_read_tokens": 43444601,
+    "output_tokens": 89900,
+    "api_call_count": 413
   }
 }
