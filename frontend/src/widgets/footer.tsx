@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useTime } from '@/shared/hooks/use-time';
 
 const socialLinks = [
     { icon: Twitter, href: '#', label: 'Twitter' },
@@ -52,6 +53,7 @@ export function Footer() {
     const t = useTranslations('Footer'); // Assuming keys map, or fallback to defaults
     const [hoveredLink, setHoveredLink] = useState<string | null>(null);
     const [year, setYear] = useState('');
+    const time = useTime(); // Use shared time hook
 
     /* eslint-disable react-hooks/set-state-in-effect -- Date hydration guard */
     useEffect(() => {
@@ -216,6 +218,11 @@ export function Footer() {
                         <span className="mx-2">|</span>
                         <span className="mr-1">{tHeader('encryptionLabel')}:</span>
                         <CypherText text={tHeader('encryptionValue')} className="text-neon-purple" loop loopDelay={2500} />
+                    </div>
+
+                    {/* Central Time Display */}
+                    <div className="hidden md:block absolute left-1/2 -translate-x-1/2 font-cyber text-sm text-neon-cyan/80">
+                        {time || "--:--:--"}
                     </div>
 
                     <p className="text-xs font-mono text-muted-foreground-low text-center md:text-right">
