@@ -5,7 +5,7 @@
  * redirect helper from src/lib/api/client.ts.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tokenStorage, RateLimitError } from '../client';
+import { tokenStorage, RateLimitError, normalizeApiRequestPath } from '../client';
 
 // ---------------------------------------------------------------------------
 // tokenStorage (SEC-01: now a no-op shim)
@@ -75,6 +75,28 @@ describe('RateLimitError', () => {
     const error = new RateLimitError(60);
     expect(error.message).toContain('1 minutes');
     expect(error.retryAfter).toBe(60);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Request path normalization (slash canonicalization)
+// ---------------------------------------------------------------------------
+
+describe('normalizeApiRequestPath', () => {
+  it('strips trailing slash for nested paths', () => {
+    expect(normalizeApiRequestPath('/servers/stats/')).toBe('/servers/stats');
+  });
+
+  it('keeps collection root trailing slash intact', () => {
+    expect(normalizeApiRequestPath('/servers/')).toBe('/servers/');
+  });
+
+  it('preserves query strings while normalizing', () => {
+    expect(normalizeApiRequestPath('/monitoring/stats/?period=today')).toBe('/monitoring/stats?period=today');
+  });
+
+  it('preserves absolute URLs', () => {
+    expect(normalizeApiRequestPath('https://api.example.com/api/v1/servers/stats/')).toBe('https://api.example.com/api/v1/servers/stats');
   });
 });
 

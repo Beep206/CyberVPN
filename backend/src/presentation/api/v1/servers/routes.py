@@ -28,6 +28,7 @@ router = APIRouter(prefix="/servers", tags=["servers"])
 
 
 @router.get("/", response_model=list[ServerResponse])
+@router.get("", response_model=list[ServerResponse], include_in_schema=False)
 async def list_servers(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
@@ -104,6 +105,7 @@ async def create_server(
 
 
 @router.get("/stats", response_model=ServerStatsResponse)
+@router.get("/stats/", response_model=ServerStatsResponse, include_in_schema=False)
 async def get_server_stats(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),

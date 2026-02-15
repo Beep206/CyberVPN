@@ -3,6 +3,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionsApi, paymentsApi } from '@/lib/api';
 
+function shouldPausePolling(): boolean {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return true;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  return false;
+}
+
 /**
  * Hook to fetch user's subscription list
  */
@@ -70,6 +76,10 @@ export function useInvoiceStatus(invoiceId: string | null) {
     },
     enabled: !!invoiceId,
     refetchInterval: (query) => {
+      if (shouldPausePolling()) {
+        return false;
+      }
+
       // Stop polling if payment is completed or failed
       const status = query.state.data?.status;
       if (status && (status === 'paid' || status === 'failed' || status === 'expired')) {
@@ -77,5 +87,6 @@ export function useInvoiceStatus(invoiceId: string | null) {
       }
       return 5000; // Poll every 5 seconds while pending
     },
+    refetchIntervalInBackground: false,
   });
 }

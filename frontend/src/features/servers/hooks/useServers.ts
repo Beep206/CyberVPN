@@ -2,6 +2,15 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { serversApi } from '@/lib/api';
 import type { Server, VpnProtocol, ServerStatus } from '@/entities/server/model/types';
 
+function pollingInterval(intervalMs: number) {
+  return (query: { state: { error: unknown } }) => {
+    if (query.state.error) return false;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+    return intervalMs;
+  };
+}
+
 interface ServerApiResponse {
   uuid: string;
   name: string;
@@ -60,7 +69,8 @@ export function useServers() {
     },
     select: (data) => (data as unknown as ServerApiResponse[]).map(mapServerResponse),
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval: pollingInterval(30_000),
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });
