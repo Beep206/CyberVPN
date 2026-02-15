@@ -1,0 +1,235 @@
+<teammate-message teammate_id="team-lead">
+You are test-eng on the CyberVPN team (Multi-Profile). You write tests for all new profile features.
+Stack: Flutter, Dart 3.10+, flutter_test, mocktail, golden_toolkit, Riverpod 3.x.
+You work ONLY in cybervpn_mobile/test/.
+
+CONTEXT — What already exists:
+- Test directory: cybervpn_mobile/test/
+- Existing test patterns: test/features/{feature}/presentation/screens/{screen}_test.dart
+- Mock patterns: mocktail Mock classes, ProviderScope overrides
+- Golden test setup: golden_toolkit with custom pump
+- Existing mocks: may exist for Dio, SecureStorage, SharedPreferences, VpnRepository
+- Important: CircularProgressIndicator without `value:` causes golden test timeouts — always set fixed value for snapshots
+
+KEY FILES TO READ FIRST:
+- cybervpn_mobile/test/ (existing test structure)
+- cybervpn_mobile/test/features/ (test file patterns)
+- Any existing *_test.dart file for pattern reference
+
+RULES:
+- Use Context7 MCP to look up flutter_test and mocktail docs.
+- Follow existing test patterns EXACTLY.
+- Every mock must use `Mock` from mocktail, registered with `registerFallbackValue` where needed.
+- Golden tests: set fixed `value:` on any CircularProgressIndicator to prevent timeout.
+- Widget tests: wrap in `ProviderScope(overrides: [...])` for Riverpod.
+- Do NOT modify production code — only test/ directory.
+- Test file naming: {source_file}_test.dart.
+- Wait for implementation agents to finish before writing tests for their code.
+
+TASK TRACKING: Use TaskList, TaskGet, TaskUpdate tools. ALL your tasks are currently blocked:
+- Task #24 (TST-1): blocked by DOM-1 (#7) — wait for domain-dev
+- Task #25 (TST-2): blocked by DOM-3 (#9)
+- Task #26 (TST-3): blocked by DOM-4 (#10)
+- Task #27 (TST-4): blocked by UI-1 (#12)
+- Task #28 (TST-5): blocked by UI-3 (#14)
+- Task #29 (TST-6): blocked by INT-2 (#20)
+
+WHILE WAITING: Start by reading the existing test directory structure and any existing test files to understand the project's testing patterns — mock setup, ProviderScope usage, assertion patterns, file organization. This research will prepare you to write tests quickly when they unblock.
+
+YOUR TASKS (all blocked initially):
+
+TST-1 (Task #24): Unit tests for domain entities (P0, after DOM-1)
+  - vpn_profile_test.dart: .remote/.local creation, copyWith, equality
+  - subscription_info_test.dart: isExpired, consumedBytes, usageRatio, remaining
+  - profile_server_test.dart: creation, copyWith, equality
+
+TST-2 (Task #25): Unit tests for repository implementation (P1, after DOM-3)
+  - Mock ProfileLocalDataSource, SubscriptionFetcher, ProfileMapper, SecureStorage
+  - Test addRemoteProfile, addLocalProfile, setActive, delete, updateSubscription, updateAllDueSubscriptions
+
+TST-3 (Task #26): Unit tests for use cases (P1, after DOM-4)
+  - Test AddRemoteProfile, SwitchActiveProfile, DeleteProfile, MigrateLegacyProfiles
+
+TST-4 (Task #27): Widget tests for ProfileListScreen (P2, after UI-1)
+TST-5 (Task #28): Widget tests for AddByUrlScreen (P2, after UI-3)
+TST-6 (Task #29): Integration test for migration flow (P2, after INT-2)
+
+DONE CRITERIA: All tests pass with `flutter test`. Zero skipped tests.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"24","subject":"TST-1: Unit tests for domain entities","description":"Create tests for VpnProfile (remote/local creation, copyWith, equality), SubscriptionInfo (isExpired, consumedBytes, usageRatio, remaining), ProfileServer (creation, equality). P0, depends on DOM-1.","assignedBy":"team-lead","timestamp":"2026-02-15T14:54:43.321Z"}
+</teammate-message>
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial Assignment**: The user (team-lead) assigned the test-eng role on the CyberVPN team for the Multi-Profile feature. All 6 test tasks were initially blocked.
+
+2. **Research Phase**: While blocked, I explored the existing test infrastructure:
+   - Read test helper files: `test_utils.dart`, `mock_factories.dart`, `mock_repositories.dart`, `test_app.dart`, `fake_secure_storage.dart`, `fake_local_storage.dart`, `platform_channel_mocks.dart`, `fixture_loader.dart`
+   - Read representative test files for patterns: `imported_config_test.dart`, `login_usecase_test.dart`, `onboarding_repository_impl_test.dart`, `settings_screen_test.dart`, `language_screen_test.dart`
+   - Read domain entities being built: `vpn_profile.dart`, `profile_server.dart`, `subscription_info.dart`
+   - Read data layer files: `subscription_fetcher.dart`, `fetch_result.dart`, `parsed_server.dart`
+
+3. **TST-1 (Task #24)**: Domain entity tests - COMPLETED
+   - Created 3 test files with 54 total tests, all passing
+   - Files: `vpn_profile_test.dart`, `subscription_info_test.dart`, `profile_server_test.dart`
+
+4. **TST-3 (Task #26)**: Use case tests - COMPLETED
+   - Created 6 test files with 23 total tests
+   - Hit `Failure` name collision between `core/errors/failures.dart` and `core/types/result.dart`
+   - Fixed with `hide Failure` on the errors import
+   - All 23 tests pass
+
+5. **TST-4 (Task #27)**: Widget tests for ProfileListScreen - COMPLETED
+   - Read `profile_list_screen.dart` and `profile_card.dart`
+   - First attempt: `pumpAndSettle()` timed out due to looping animations (Lottie, GlitchText, CyberCard)
+   - Fixed by switching to `pump()` + `pump(Duration(milliseconds: 500))`
+   - 13 tests pass
+
+6. **TST-5 (Task #28)**: Widget tests for AddByUrlScreen - COMPLETED
+   - Read `add_by_url_screen.dart`
+   - Applied same pump pattern to avoid animation timeout
+   - 10 tests pass
+
+7. **Remaining tasks**: TST-2 (#25) blocked by DOM-3 (#9), TST-6 (#29) blocked by INT-2 (#20)
+
+Key errors and fixes:
+- `Failure` import collision: Used `hide Failure` on the errors import
+- `pumpAndSettle` timeout: Switched to manual `pump()` with duration for screens with looping animations
+
+The task list tools were used extensively for coordination. Messages were sent to team-lead for status updates.
+
+Summary:
+1. Primary Request and Intent:
+   The team-lead assigned the test-eng role on the CyberVPN Multi-Profile team. The role is to write tests for all new VPN profile features in `cybervpn_mobile/test/`. Stack: Flutter, Dart 3.10+, flutter_test, mocktail, golden_toolkit, Riverpod 3.x. Six test tasks were assigned (TST-1 through TST-6), all initially blocked by implementation tasks. The agent was instructed to research existing test patterns while waiting, then write tests as blockers cleared.
+
+2. Key Technical Concepts:
+   - **Freezed sealed classes**: `VpnProfile` uses freezed union types (`.remote()` / `.local()`), `ProfileServer` and `SubscriptionInfo` are standard freezed classes
+   - **Mocktail mocking**: `extends Mock implements <Interface>` pattern, `registerFallbackValue` for custom types
+   - **Riverpod 3.x testing**: `ProviderScope(overrides: [...])` wrapping, fake notifiers extending real ones
+   - **Result type pattern**: `sealed class Result<T>` with `Success<T>` and `Failure<T>` variants; `AppFailure` typedef for base error class
+   - **Import collision**: `Failure` exists in both `core/errors/failures.dart` (base error class) and `core/types/result.dart` (Result variant) — resolved with `hide Failure`
+   - **Animation timeout in widget tests**: Lottie, GlitchText, CyberCard with `isAnimated: true` cause `pumpAndSettle()` to never complete — use `pump()` + `pump(Duration)` instead
+   - **Localization in widget tests**: Screens using `AppLocalizations.of(context)` require `localizationsDelegates` and `supportedLocales` in the `MaterialApp` wrapper
+
+3. Files and Code Sections:
+
+   - **`test/helpers/test_app.dart`** — TestApp wrapper with ProviderScope, MaterialApp, locale, textDirection. Uses `overrides.cast()` for provider overrides. Has `TestAppPumper` extension on WidgetTester with `pumpTestApp` / `pumpAndSettleTestApp`.
+
+   - **`test/helpers/mock_repositories.dart`** — Mocktail mocks for all repositories. Note: `MockProfileRepository` imports from `features/profile/` (user profile), NOT `features/vpn_profiles/`. VPN profile tests need their own mock.
+
+   - **`test/helpers/mock_factories.dart`** — Factory methods for test entities: `createMockUser`, `createMockServer`, `createMockPlan`, `createMockSubscription`, `createMockImportedConfig`, `createMockVpnConfig`, `createMockConnectionState`, `createMockConnectionStats`.
+
+   - **`test/helpers/fakes/fake_secure_storage.dart`** — In-memory `FakeSecureStorage extends SecureStorageWrapper` with `seed()`, `reset()`, `store` getter.
+
+   - **`test/helpers/fakes/fake_local_storage.dart`** — In-memory `FakeLocalStorage extends LocalStorageWrapper` with `reset()`, `store` getter.
+
+   - **`test/helpers/platform_channel_mocks.dart`** — Mocks for VPN, kill switch, split tunnel platform channels.
+
+   - **`lib/features/vpn_profiles/domain/entities/vpn_profile.dart`** — Freezed sealed class with `VpnProfile.remote()` (RemoteVpnProfile) and `VpnProfile.local()` (LocalVpnProfile). Remote has subscriptionUrl, traffic bytes, expiresAt, updateIntervalMinutes, supportUrl, testUrl, servers. Local has id, name, isActive, sortOrder, createdAt, lastUpdatedAt, servers.
+
+   - **`lib/features/vpn_profiles/domain/entities/profile_server.dart`** — Freezed class with id, profileId, name, serverAddress, port, protocol (VpnProtocol enum), configData, remark, isFavorite, sortOrder, latencyMs, createdAt.
+
+   - **`lib/features/vpn_profiles/domain/entities/subscription_info.dart`** — Freezed class with custom getters: `consumedBytes` (upload+download), `usageRatio` (clamped 0.0-1.0, 0 if unlimited), `isExpired` (compares expiresAt to now), `remaining` (Duration.zero if null/expired).
+
+   - **`lib/core/domain/vpn_protocol.dart`** — `enum VpnProtocol { vless, vmess, trojan, shadowsocks }`
+
+   - **`lib/core/types/result.dart`** — `sealed class Result<T>` with `Success<T>` and `Failure<T>`. Extensions: `dataOrNull`, `failureOrNull`, `isSuccess`, `isFailure`, `when`, `map`, `flatMap`. `typedef AppFailure = errors.Failure`.
+
+   - **`lib/core/errors/failures.dart`** — `sealed class Failure` with subtypes: ServerFailure, CacheFailure, NetworkFailure, AuthFailure, VpnFailure, SubscriptionFailure, ValidationFailure, TimeoutFailure, AccessDeniedFailure, RateLimitFailure, UnknownFailure.
+
+   - **`lib/features/vpn_profiles/domain/repositories/profile_repository.dart`** — Abstract interface with: watchAll, watchActiveProfile, getById, getBySubscriptionUrl, addRemoteProfile, addLocalProfile, setActive, update, updateSubscription, delete, reorder, updateAllDueSubscriptions, migrateFromLegacy, count.
+
+   - **`lib/features/vpn_profiles/domain/usecases/`** — 6 thin use cases, all delegating to ProfileRepository:
+     - `AddRemoteProfileUseCase` → `addRemoteProfile(url, name:)`
+     - `AddLocalProfileUseCase` → `addLocalProfile(name, servers)`
+     - `SwitchActiveProfileUseCase` → `setActive(profileId)`
+     - `DeleteProfileUseCase` → `delete(profileId)`
+     - `MigrateLegacyProfilesUseCase` → `migrateFromLegacy()`
+     - `UpdateSubscriptionsUseCase` → `updateAllDueSubscriptions()`
+
+   - **CREATED: `test/features/vpn_profiles/domain/entities/vpn_profile_test.dart`** — 22 tests covering VpnProfile.remote (creation, defaults, optional fields, copyWith, equality, inequality, type checking, toString, pattern matching) and VpnProfile.local (same categories).
+
+   - **CREATED: `test/features/vpn_profiles/domain/entities/subscription_info_test.dart`** — 21 tests covering creation, copyWith, equality, consumedBytes (sum, zero, large values), usageRatio (correct ratio, unlimited, zero traffic, overuse clamp, exact limit, small ratios), isExpired (null, past, future), remaining (null, expired, future, non-negative).
+
+   - **CREATED: `test/features/vpn_profiles/domain/entities/profile_server_test.dart`** — 11 tests covering creation, defaults, optional fields, copyWith, equality, inequality, all VpnProtocol values, toString.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/add_remote_profile_test.dart`** — 4 tests: success, optional name, failure, NetworkFailure propagation. Uses local `MockVpnProfileRepository`.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/add_local_profile_test.dart`** — 3 tests: success, empty servers, failure. Uses `registerFallbackValue(<ProfileServer>[])`.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/switch_active_profile_test.dart`** — 3 tests: success, failure, exact profileId delegation.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/delete_profile_test.dart`** — 4 tests: success, not found, DB error, exact profileId delegation.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/migrate_legacy_profiles_test.dart`** — 4 tests: success, failure, ServerFailure propagation, exactly-once verification.
+
+   - **CREATED: `test/features/vpn_profiles/domain/usecases/update_subscriptions_test.dart`** — 5 tests: success with count, zero count, NetworkFailure, ServerFailure with code, exactly-once verification.
+
+   - **`lib/features/vpn_profiles/presentation/screens/profile_list_screen.dart`** — ConsumerWidget with mock data. Uses AppLocalizations, GlitchText, CyberRefreshIndicator, ProfileCard, StaggeredListItem, Lottie for empty state, ProfileListSkeleton. Has _mockProfiles() returning 3 profiles (2 remote, 1 local).
+
+   - **`lib/features/vpn_profiles/presentation/widgets/profile_card.dart`** — Shows profile name, type badge (Remote/Local), status chips (Active/Expired), server count, traffic usage bar (remote only), expiry info. Uses CyberCard, CyberBadge, CyberProgressBar, DataFormatters.
+
+   - **CREATED: `test/features/vpn_profiles/presentation/screens/profile_list_screen_test.dart`** — 13 tests: Scaffold/AppBar, FAB, 3 profile cards, profile names, Remote/Local badges, Active/Expired chips, server count, subtitle, cloud/folder icons, skeleton. Uses `_pumpScreen` helper with `pump()` + `pump(Duration)` to avoid animation timeouts.
+
+   - **`lib/features/vpn_profiles/presentation/screens/add_by_url_screen.dart`** — ConsumerStatefulWidget with URL field, name field, paste button, fetch button with loading state (CircularProgressIndicator), success state showing server count, save button. Uses Form with validation.
+
+   - **CREATED: `test/features/vpn_profiles/presentation/screens/add_by_url_screen_test.dart`** — 10 tests: Scaffold/AppBar, URL field, paste button, name field, fetch button, validation, text entry, Form widget, ScrollView.
+
+   All use case test files use this critical import pattern:
+   ```dart
+   import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
+   import 'package:cybervpn_mobile/core/types/result.dart';
+   ```
+
+4. Errors and fixes:
+   - **`Failure` import name collision**: `Failure` is defined in both `core/errors/failures.dart` (sealed base error class) and `core/types/result.dart` (Result variant class). All 6 use case test files failed compilation. Fixed by adding `hide Failure` to the failures import: `import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;`. This lets `Failure` refer to the Result variant while still accessing concrete subtypes like `ServerFailure`, `CacheFailure`, etc.
+   
+   - **`pumpAndSettle` timeout in widget tests**: ProfileListScreen uses Lottie.asset animation, GlitchText (continuous animation), CyberCard with `isAnimated: true` — these never settle. All 12 widget tests timed out at ~5 seconds each. Fixed by replacing `pumpAndSettle()` with a `_pumpScreen` helper that uses `pump()` + `pump(const Duration(milliseconds: 500))` to advance enough frames for layout without waiting for infinite animation loops. This is consistent with the memory note about CircularProgressIndicator without `value:` causing golden test timeouts.
+
+5. Problem Solving:
+   - Identified that `MockProfileRepository` in `mock_repositories.dart` imports from `features/profile/` (user profile feature), not `features/vpn_profiles/`. Created local `MockVpnProfileRepository` classes in each use case test file instead of modifying shared helpers.
+   - Figured out that widget tests for screens using `AppLocalizations.of(context)` need full localization setup: `localizationsDelegates: AppLocalizations.localizationsDelegates, supportedLocales: AppLocalizations.supportedLocales, locale: const Locale('en')` in the MaterialApp wrapper.
+   - Applied the `registerFallbackValue` pattern for `List<ProfileServer>` in `add_local_profile_test.dart`.
+
+6. All user messages:
+   - **Message 1 (team-lead initial assignment)**: Detailed role assignment as test-eng on CyberVPN Multi-Profile team. Defined stack (Flutter, Dart 3.10+, flutter_test, mocktail, golden_toolkit, Riverpod 3.x), rules (only modify test/ directory, follow existing patterns, use Context7 MCP for docs), 6 tasks with dependencies, and instructions to research existing patterns while blocked.
+   - **Message 2 (team-lead task assignment)**: JSON task assignment for Task #24 (TST-1): "Create tests for VpnProfile (remote/local creation, copyWith, equality), SubscriptionInfo (isExpired, consumedBytes, usageRatio, remaining), ProfileServer (creation, equality). P0, depends on DOM-1."
+
+7. Pending Tasks:
+   - **TST-2 (Task #25)**: Unit tests for repository implementation — blocked by DOM-3 (#9, now completed per task list). Should check if unblocked.
+   - **TST-6 (Task #29)**: Integration test for migration flow — blocked by INT-2 (#20, was blocked by #9).
+   - **Session close protocol NOT YET RUN**: git status, git add, bd sync, git commit, git push have not been executed.
+
+8. Current Work:
+   Just completed TST-5 (Task #28) — Widget tests for AddByUrlScreen. 10 tests all passing. Task marked as completed. The last test run output was:
+   ```
+   00:03 +10: All tests passed!
+   ```
+   
+   Total test output across all completed tasks:
+   - TST-1: 54 tests (3 entity test files)
+   - TST-3: 23 tests (6 use case test files)
+   - TST-4: 13 tests (1 widget test file)
+   - TST-5: 10 tests (1 widget test file)
+   = **100 tests total, all passing, zero skipped**
+
+   Completed tasks: #24 (TST-1), #26 (TST-3), #27 (TST-4), #28 (TST-5)
+   
+   Per the latest task list, DOM-3 (#9) is now completed, which may unblock TST-2 (#25).
+
+9. Optional Next Step:
+   Check if TST-2 (Task #25, unit tests for repository implementation) is now unblocked since DOM-3 (#9) shows as completed in the latest task list. If unblocked, read the `ProfileRepositoryImpl` source and write tests for `addRemoteProfile`, `addLocalProfile`, `setActive`, `delete`, `updateSubscription`, `updateAllDueSubscriptions`. Also need to send completion status to team-lead for TST-5.
+   
+   Note: The session close protocol (git add, bd sync, git commit, git push) has NOT been run yet and must be done before considering work complete.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/beep/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
