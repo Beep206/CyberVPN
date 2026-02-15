@@ -20,14 +20,18 @@ import 'package:cybervpn_mobile/features/auth/presentation/screens/register_scre
 import 'package:cybervpn_mobile/features/auth/presentation/screens/otp_verification_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/qr_scanner_screen.dart';
-import 'package:cybervpn_mobile/features/config_import/presentation/screens/subscription_url_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/diagnostics_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/log_viewer_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/speed_test_screen.dart';
 import 'package:cybervpn_mobile/features/navigation/presentation/screens/main_shell_screen.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/screens/notification_center_screen.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/profile_list_screen.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/profile_detail_screen.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/add_profile_screen.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/add_by_url_screen.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/permission_request_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/change_password_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/delete_account_screen.dart';
@@ -70,6 +74,8 @@ final _connectionNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'connection');
 final _serversNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'servers');
+final _profilesNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'profiles');
 final _profileNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'profile');
 final _settingsNavigatorKey =
@@ -214,6 +220,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.listen(authProvider, (_, _) => refreshNotifier.notify());
   ref.listen(shouldShowOnboardingProvider, (_, _) => refreshNotifier.notify());
   ref.listen(quickSetupProvider, (_, _) => refreshNotifier.notify());
+  ref.listen(profileMigrationProvider, (_, _) => refreshNotifier.notify());
 
   // Initialize quick actions handler (keeps it alive)
   ref.watch(quickActionsHandlerProvider);
@@ -242,6 +249,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final quickSetupAsync = ref.read(quickSetupProvider);
       final isQuickSetupLoading = quickSetupAsync.isLoading;
       final shouldShowQuickSetup = !(quickSetupAsync.value?.completed ?? false);
+      final migrationAsync = ref.read(profileMigrationProvider);
+      final isMigrationLoading = migrationAsync.isLoading;
 
       final uri = state.uri;
       final path = uri.path;
@@ -255,7 +264,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Once both resolve, redirect from splash into the normal guard chain.
       // Safety net: force navigation after _maxSplashSeconds to prevent
       // indefinite splash on any provider hang.
-      if (isSplashRoute && (isAuthLoading || isOnboardingLoading || isQuickSetupLoading)) {
+      if (isSplashRoute && (isAuthLoading || isOnboardingLoading || isQuickSetupLoading || isMigrationLoading)) {
         final elapsed = DateTime.now().difference(splashStartTime).inSeconds;
         if (elapsed >= _maxSplashSeconds) {
           AppLogger.warning(
@@ -483,17 +492,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ),
           ),
+          // Subscription URL import redirects to the new AddByUrlScreen
+          // in the multi-profile system. Preserves the route name for deep
+          // links and backward compatibility.
           GoRoute(
             path: 'subscription-url',
             name: 'config-import-subscription-url',
             parentNavigatorKey: rootNavigatorKey,
-            pageBuilder: (context, state) => _buildAdaptiveTransition(
-              state: state,
-              child: const FeatureErrorBoundary(
-                featureName: 'Subscription URL',
-                child: SubscriptionUrlScreen(),
-              ),
-            ),
+            redirect: (_, _) => '/profiles/add/url',
           ),
           GoRoute(
             path: 'custom-servers',
@@ -654,6 +660,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // -- Profile detail (root navigator, full-screen modal) ---------------
+      // Outside the Profiles branch so tapping the Profiles tab always
+      // returns to the profile list, not to a lingering detail page.
+      GoRoute(
+        path: '/profiles/:id',
+        name: 'profile-detail',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: FeatureErrorBoundary(
+            featureName: 'Profile Detail',
+            child: ProfileDetailScreen(
+              profileId: state.pathParameters['id']!,
+            ),
+          ),
+        ),
+      ),
+
       // -- Main shell with stateful bottom navigation -----------------------
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -690,7 +714,54 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 2: Profile
+          // Branch 2: Profiles
+          StatefulShellBranch(
+            navigatorKey: _profilesNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/profiles',
+                name: 'profiles',
+                builder: (context, state) => const FeatureErrorBoundary(
+                  featureName: 'Profiles',
+                  child: ProfileListScreen(),
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'add',
+                    name: 'profiles-add',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
+                      state: state,
+                      child: const FeatureErrorBoundary(
+                        featureName: 'Add Profile',
+                        child: AddProfileScreen(),
+                      ),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'url',
+                        name: 'profiles-add-url',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                          state: state,
+                          child: const FeatureErrorBoundary(
+                            featureName: 'Add Profile URL',
+                            child: AddByUrlScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Profile detail pushed to root navigator (full screen, like server detail)
+          // is registered as a top-level route below the shell.
+
+          // Branch 3: Account (user profile)
           StatefulShellBranch(
             navigatorKey: _profileNavigatorKey,
             routes: [
@@ -780,7 +851,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 3: Settings
+          // Branch 4: Settings
           StatefulShellBranch(
             navigatorKey: _settingsNavigatorKey,
             routes: [

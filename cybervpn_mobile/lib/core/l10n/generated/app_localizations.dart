@@ -168,6 +168,7 @@ abstract class AppLocalizations {
     Locale('vi'),
     Locale('yo'),
     Locale('zh'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// No description provided for @appName.
@@ -8443,6 +8444,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create'**
   String get commonCreate;
+
+  /// No description provided for @profiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get profiles;
+
+  /// No description provided for @profilesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your VPN subscriptions'**
+  String get profilesSubtitle;
+
+  /// No description provided for @addProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Profile'**
+  String get addProfile;
+
+  /// No description provided for @addProfileByUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription URL'**
+  String get addProfileByUrl;
+
+  /// No description provided for @addProfileByUrlDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a VPN subscription by pasting its URL'**
+  String get addProfileByUrlDesc;
+
+  /// No description provided for @addProfileByQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR Code'**
+  String get addProfileByQr;
+
+  /// No description provided for @addProfileByQrDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code containing a VPN configuration'**
+  String get addProfileByQrDesc;
+
+  /// No description provided for @addProfileByClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard'**
+  String get addProfileByClipboard;
+
+  /// No description provided for @addProfileByClipboardDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from clipboard content'**
+  String get addProfileByClipboardDesc;
+
+  /// No description provided for @profileRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote'**
+  String get profileRemote;
+
+  /// No description provided for @profileLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local'**
+  String get profileLocal;
+
+  /// No description provided for @profileActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get profileActive;
+
+  /// No description provided for @profileExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get profileExpired;
+
+  /// No description provided for @profileServers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} servers'**
+  String profileServers(int count);
+
+  /// No description provided for @profileLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String profileLastUpdated(String time);
+
+  /// No description provided for @profileTrafficUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {total}'**
+  String profileTrafficUsed(String used, String total);
+
+  /// No description provided for @profileExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {days} days'**
+  String profileExpiresIn(int days);
+
+  /// No description provided for @profileExpiredOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired on {date}'**
+  String profileExpiredOn(String date);
+
+  /// No description provided for @profileUpdateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Now'**
+  String get profileUpdateNow;
+
+  /// No description provided for @profileTestUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Test URL'**
+  String get profileTestUrl;
+
+  /// No description provided for @profileSetActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Active'**
+  String get profileSetActive;
+
+  /// No description provided for @profileDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Profile'**
+  String get profileDelete;
+
+  /// No description provided for @profileDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This will remove the profile and all its server configurations. This action cannot be undone.'**
+  String profileDeleteConfirm(String name);
+
+  /// No description provided for @profileDeleteLastError.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete the last profile. At least one profile is required.'**
+  String get profileDeleteLastError;
+
+  /// No description provided for @profileDeleteActiveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete the active profile. Switch to another profile first.'**
+  String get profileDeleteActiveError;
+
+  /// No description provided for @profileSwitchDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching profiles will disconnect your current VPN session. Continue?'**
+  String get profileSwitchDisconnect;
+
+  /// No description provided for @profileFetchSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} servers from subscription'**
+  String profileFetchSuccess(int count);
+
+  /// No description provided for @profileFetchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to fetch subscription: {error}'**
+  String profileFetchError(String error);
+
+  /// No description provided for @profileUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter subscription URL (https://...)'**
+  String get profileUrlHint;
+
+  /// No description provided for @profileNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile name (optional)'**
+  String get profileNameHint;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved successfully'**
+  String get profileSaved;
+
+  /// No description provided for @profileUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated with {count} new servers'**
+  String profileUpdated(int count);
+
+  /// No description provided for @profileNoServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No servers found in subscription'**
+  String get profileNoServers;
+
+  /// No description provided for @profileDuplicateUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'A profile with this URL already exists'**
+  String get profileDuplicateUrl;
+
+  /// No description provided for @profileMigrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing subscription has been imported as a profile'**
+  String get profileMigrated;
+
+  /// No description provided for @profileUpdateInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates every {hours} hours'**
+  String profileUpdateInterval(int hours);
+
+  /// No description provided for @profileEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No profiles yet'**
+  String get profileEmpty;
+
+  /// No description provided for @profileEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first VPN subscription to get started'**
+  String get profileEmptySubtitle;
 }
 
 class _AppLocalizationsDelegate
@@ -8501,6 +8730,18 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  switch (locale.languageCode) {
+    case 'zh':
+      {
+        switch (locale.scriptCode) {
+          case 'Hant':
+            return AppLocalizationsZhHant();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'am':

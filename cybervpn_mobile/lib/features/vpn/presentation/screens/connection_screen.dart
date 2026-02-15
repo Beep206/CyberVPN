@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/shared/services/tooltip_preferences_service.dart
 import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart';
 
 /// Main VPN connection screen.
 ///
@@ -339,6 +340,9 @@ class _TopBar extends StatelessWidget {
                   ),
           ),
           const Spacer(),
+          // Active profile selector
+          const ProfileSelectorWidget(),
+          const SizedBox(width: Spacing.sm),
           // Subscription badge
           const _SubscriptionBadge(),
         ],

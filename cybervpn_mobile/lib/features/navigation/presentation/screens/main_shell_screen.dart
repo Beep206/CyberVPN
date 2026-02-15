@@ -98,6 +98,14 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                             label: Text(l10n.servers),
                           ),
                           NavigationRailDestination(
+                            icon: const Icon(Icons.layers_outlined),
+                            selectedIcon: Icon(
+                              Icons.layers,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(l10n.profiles),
+                          ),
+                          NavigationRailDestination(
                             icon: const Icon(Icons.person),
                             selectedIcon: Icon(
                               Icons.person,
@@ -154,8 +162,19 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               ),
               NavigationDestination(
                 icon: Icon(
-                  Icons.person,
+                  Icons.layers_outlined,
                   color: _iconColor(context, 2),
+                ),
+                selectedIcon: Icon(
+                  Icons.layers,
+                  color: theme.colorScheme.primary,
+                ),
+                label: l10n.profiles,
+              ),
+              NavigationDestination(
+                icon: Icon(
+                  Icons.person,
+                  color: _iconColor(context, 3),
                 ),
                 selectedIcon: Icon(
                   Icons.person,
@@ -166,7 +185,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               NavigationDestination(
                 icon: Icon(
                   Icons.settings,
-                  color: _iconColor(context, 3),
+                  color: _iconColor(context, 4),
                 ),
                 selectedIcon: Icon(
                   Icons.settings,

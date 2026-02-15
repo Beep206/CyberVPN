@@ -11,6 +11,7 @@ import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
+import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/widgets/country_group_header.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_detail_screen.dart';
@@ -285,7 +286,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncState = ref.watch(serverListProvider);
+    final asyncState = ref.watch(profileAwareServerListProvider);
     final theme = Theme.of(context);
     final isWide = _isWideLayout(context);
 
