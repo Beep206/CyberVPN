@@ -29,6 +29,11 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
     response_model=HealthResponse,
     responses={503: {"description": "One or more components unhealthy"}},
 )
+@router.get(
+    "/health/",
+    response_model=HealthResponse,
+    include_in_schema=False,
+)
 async def health_check(
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
@@ -66,6 +71,11 @@ async def health_check(
     response_model=StatsResponse,
     responses={200: {"model": StatsResponse, "description": "Server bandwidth statistics"}},
 )
+@router.get(
+    "/stats/",
+    response_model=StatsResponse,
+    include_in_schema=False,
+)
 async def get_system_stats(
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.MONITORING_READ)),
@@ -101,6 +111,11 @@ async def get_system_stats(
     "/bandwidth",
     response_model=BandwidthResponse,
     responses={200: {"model": BandwidthResponse, "description": "Bandwidth analytics data"}},
+)
+@router.get(
+    "/bandwidth/",
+    response_model=BandwidthResponse,
+    include_in_schema=False,
 )
 async def get_bandwidth_analytics(
     client=Depends(get_remnawave_client),

@@ -359,7 +359,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     stencil: false,
                     depth: true
                 }}
-                dpr={[1, 1.5]}
+                dpr={[1, 1.25]}
             >
                 {/* Reduced fog density to ensure stars are visible */}
                 <fog attach="fog" args={['#050510', 5, 25]} />
@@ -380,16 +380,10 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     </group>
                 </ParallaxGroup>
 
-                <FloatingParticles count={800} />
+                <FloatingParticles count={400} />
 
-                {/* OrbitControls for auto-rotation, but disable user interaction to not fight parallax */}
-                <OrbitControls
-                    enableZoom={false}
-                    enablePan={false}
-                    enableRotate={false}
-                    autoRotate
-                    autoRotateSpeed={0.5}
-                />
+                {/* Keep controls disabled; scene animates itself via useFrame. */}
+                <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
 
                 <EffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} />

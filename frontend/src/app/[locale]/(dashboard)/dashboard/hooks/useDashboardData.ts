@@ -3,6 +3,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { serversApi, monitoringApi } from '@/lib/api';
 
+function pollingInterval(intervalMs: number) {
+  return (query: { state: { error: unknown } }) => {
+    if (query.state.error) return false;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+    return intervalMs;
+  };
+}
+
 /**
  * Hook to fetch server statistics
  * Includes online/offline counts, average load, total bandwidth
@@ -15,7 +24,9 @@ export function useServerStats() {
       return response.data;
     },
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: pollingInterval(60_000),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -31,7 +42,9 @@ export function useSystemStats() {
       return response.data;
     },
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: pollingInterval(60_000),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -47,6 +60,8 @@ export function useBandwidthAnalytics() {
       return response.data;
     },
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval: pollingInterval(30_000),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
   });
 }

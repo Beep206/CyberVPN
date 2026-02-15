@@ -46,6 +46,15 @@ interface BandwidthData {
   outbound_mbps?: number;
 }
 
+function pollingInterval(intervalMs: number) {
+  return (query: { state: { error: unknown } }) => {
+    if (query.state.error) return false;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+    return intervalMs;
+  };
+}
+
 /**
  * Monitoring Client Component
  * Displays system health dashboard with API, DB, Redis, Worker status
@@ -72,7 +81,8 @@ export function MonitoringClient() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: pollingInterval(30 * 1000),
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });
@@ -85,7 +95,8 @@ export function MonitoringClient() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: pollingInterval(30 * 1000),
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });
@@ -98,7 +109,8 @@ export function MonitoringClient() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: pollingInterval(30 * 1000),
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });

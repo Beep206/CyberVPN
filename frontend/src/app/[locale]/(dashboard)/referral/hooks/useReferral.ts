@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { referralApi } from '@/lib/api';
 
+function pollingInterval(intervalMs: number) {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+  return intervalMs;
+}
+
 /**
  * Fetch referral program status
  */
@@ -40,7 +46,8 @@ export function useReferralStats() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: () => pollingInterval(30 * 1000),
+    refetchIntervalInBackground: false,
   });
 }
 

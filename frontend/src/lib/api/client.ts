@@ -2,6 +2,32 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
+
+/**
+ * Normalizes API request URLs to avoid mixed trailing-slash variants.
+ *
+ * Rule: strip trailing slash only for nested API paths (2+ segments),
+ * while keeping collection-root paths like `/servers/` untouched.
+ */
+export function normalizeApiRequestPath(rawUrl: string): string {
+  if (!rawUrl) return rawUrl;
+
+  const isAbsolute = ABSOLUTE_URL_RE.test(rawUrl);
+  const parsed = new URL(rawUrl, 'http://localhost');
+  const segments = parsed.pathname.split('/').filter(Boolean);
+
+  if (parsed.pathname.endsWith('/') && segments.length > 1) {
+    parsed.pathname = parsed.pathname.slice(0, -1);
+  }
+
+  if (isAbsolute) {
+    return parsed.toString();
+  }
+
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
 // SEC-01: Token storage migrated to httpOnly cookies.
 // tokenStorage is kept as a no-op shim so existing callers don't break during
 // the transition.  The backend now sets/clears httpOnly cookies automatically.
@@ -83,6 +109,10 @@ export const apiClient = axios.create({
 // Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    if (config.url) {
+      config.url = normalizeApiRequestPath(config.url);
+    }
+
     // Queue requests while a token refresh is in progress
     // (except the refresh request itself and session-check requests)
     if (

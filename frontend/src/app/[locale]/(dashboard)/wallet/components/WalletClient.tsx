@@ -7,6 +7,12 @@ import { walletApi } from '@/lib/api';
 import { Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { WithdrawalModal } from './WithdrawalModal';
 
+function pollingInterval(intervalMs: number) {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+  return intervalMs;
+}
+
 export function WalletClient() {
   const t = useTranslations('Wallet');
   const [page, setPage] = useState(0);
@@ -20,7 +26,8 @@ export function WalletClient() {
       return response.data;
     },
     staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    refetchInterval: () => pollingInterval(30 * 1000),
+    refetchIntervalInBackground: false,
   });
 
   const { data: transactions, isLoading: txLoading } = useQuery({
