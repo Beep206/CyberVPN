@@ -83,7 +83,7 @@ dependencies:
   intl: ^0.20.2
 
   # Error Monitoring
-  sentry_flutter: ^9.0.0
+  sentry_flutter: ^9.13.0
 
   # Environment Configuration
   flutter_dotenv: ^6.0.0
