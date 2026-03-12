@@ -3,66 +3,58 @@
 import * as THREE from 'three';
 
 const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
-import { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
     Line,
     Sphere,
     OrbitControls,
-    Environment
+    Environment,
+    PerformanceMonitor
 } from '@react-three/drei';
+import { useInView } from 'motion/react';
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
 import '@/3d/shaders/AtmosphereShader'; // Keeping atmosphere for outer glow only
 
-// Module-level factory — outside render, not analyzed by React Compiler
-function generateFloatingParticleData(count: number) {
-    const positions = new Float32Array(count * 3);
-    const velocities = new Float32Array(count * 3);
-    const phases = new Float32Array(count);
-
-    for (let i = 0; i < count; i++) {
-        const r = 4 + Math.random() * 8;
-        const theta = Math.random() * 2 * Math.PI;
-        const phi = Math.acos(2 * Math.random() - 1);
-
-        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        positions[i * 3 + 2] = r * Math.cos(phi);
-
-        velocities[i * 3] = (Math.random() - 0.5) * 0.02;
-        velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
-        velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
-
-        phases[i] = Math.random() * Math.PI * 2;
-    }
-    return { positions, velocities, phases };
-}
-
 function FloatingParticles({ count = 2000 }: { count?: number }) {
     const mesh = useRef<THREE.InstancedMesh>(null!);
-    const [{ positions, velocities, phases }] = useState(() => generateFloatingParticleData(count));
+    const [particleData, setParticleData] = useState<{ positions: Float32Array; velocities: Float32Array; phases: Float32Array; count: number } | null>(null);
+
+    React.useEffect(() => {
+        const worker = new Worker(new URL('../workers/particle-generator.worker', import.meta.url));
+        worker.postMessage({ count });
+
+        worker.onmessage = (e) => {
+            setParticleData({
+                positions: e.data.positions,
+                velocities: e.data.velocities,
+                phases: e.data.phases,
+                count
+            });
+            worker.terminate();
+        };
+
+        return () => worker.terminate();
+    }, [count]);
 
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    /* eslint-disable react-hooks/immutability -- Float32Array mutations in animation loop are intentional */
     useFrame((state) => {
+        if (!particleData) return;
         const t = state.clock.getElapsedTime();
+        const { positions, velocities, phases, count: currentCount } = particleData;
 
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < currentCount; i++) {
             const i3 = i * 3;
 
-            // Orbital rotation (simple axis rotation for flow effect)
-            // Apply rotation around Y
             const x = positions[i3];
             const z = positions[i3 + 2];
             const speed = 0.005 + Math.abs(velocities[i3 + 1]) * 0.5;
 
             positions[i3] = x * Math.cos(speed) - z * Math.sin(speed);
             positions[i3 + 2] = x * Math.sin(speed) + z * Math.cos(speed);
-
-            // Tiny floaty vertical movement
             positions[i3 + 1] += Math.sin(t * 0.5 + phases[i]) * 0.01;
 
             dummy.position.set(
@@ -71,7 +63,6 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
                 positions[i3 + 2]
             );
 
-            // Scale pulse
             const s = 0.5 + Math.sin(t * 2 + phases[i]) * 0.5;
             dummy.scale.setScalar(s);
 
@@ -80,10 +71,11 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
         }
         mesh.current.instanceMatrix.needsUpdate = true;
     });
-    /* eslint-enable react-hooks/immutability */
+
+    if (!particleData) return null;
 
     return (
-        <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
+        <instancedMesh ref={mesh} args={[undefined, undefined, particleData.count]}>
             <icosahedronGeometry args={[0.03, 0]} />
             <meshBasicMaterial
                 color="#00ffff"
@@ -278,12 +270,10 @@ function ObsidianSphere() {
             {/* 1. THE CORE: Black, Glossy, Solid (Obsidian) */}
             <mesh renderOrder={0}>
                 <icosahedronGeometry args={[2, 20]} />
-                <meshPhysicalMaterial
+                <meshStandardMaterial
                     color="#000000"
                     roughness={0.1}
                     metalness={0.8}
-                    clearcoat={1.0}
-                    clearcoatRoughness={0.1}
                     side={THREE.FrontSide}
                 />
             </mesh>
@@ -346,10 +336,14 @@ function ParallaxGroup({ children }: { children: React.ReactNode }) {
 }
 
 export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS }: GlobalNetworkSceneProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "100px" });
+    const [dpr, setDpr] = useState(1);
+
     return (
-        <div className="absolute inset-0 -z-10 bg-terminal-bg/0">
+        <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
-                frameloop="always"
+                frameloop={isInView ? 'always' : 'never'}
                 performance={{ min: 0.5 }}
                 camera={{ position: [0, 2, 7], fov: 40 }}
                 gl={{
@@ -359,8 +353,12 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                     stencil: false,
                     depth: true
                 }}
-                dpr={[1, 1.25]}
+                dpr={dpr}
             >
+                <PerformanceMonitor 
+                    onDecline={() => setDpr(1)} 
+                    onIncline={() => setDpr(1.25)} 
+                />
                 {/* Reduced fog density to ensure stars are visible */}
                 <fog attach="fog" args={['#050510', 5, 25]} />
 

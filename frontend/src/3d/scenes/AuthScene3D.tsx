@@ -5,7 +5,8 @@ import * as THREE from 'three';
 const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Trail } from '@react-three/drei';
+import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
+import { useInView } from 'motion/react';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 
@@ -345,22 +346,30 @@ import { usePathname } from 'next/navigation';
 // ============================================
 export function AuthScene3D() {
     const pathname = usePathname();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "100px" });
+    const [dpr, setDpr] = useState(1);
 
     // Use pathname as key to force full R3F/WebGL context recreation on navigation
     // This fixes "Cannot read properties of null" errors when switching languages
     return (
-        <div key={pathname} className="absolute inset-0 z-0 pointer-events-none">
+        <div ref={containerRef} key={pathname} className="absolute inset-0 z-0 pointer-events-none">
             <ErrorBoundary label="Auth 3D Scene">
                 <Canvas
                     camera={{ position: [0, 0, 5], fov: 50 }}
-                    dpr={[1, 1.5]}
+                    dpr={dpr}
+                    frameloop={isInView ? 'always' : 'never'}
                     gl={{
-                        antialias: true,
+                        antialias: false,
                         alpha: true,
                         powerPreference: 'high-performance',
                     }}
                     style={{ background: 'transparent' }}
                 >
+                    <PerformanceMonitor 
+                        onDecline={() => setDpr(1)} 
+                        onIncline={() => setDpr(1.5)} 
+                    />
                     <AuthSceneContent />
                 </Canvas>
             </ErrorBoundary>

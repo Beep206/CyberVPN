@@ -82,7 +82,7 @@ export function FeatureCard3D({
         >
             <InceptionButton wrapperClassName="h-full w-full">
                 <motion.div
-                    className="group relative h-full rounded-2xl border border-grid-line/40 bg-terminal-surface/80 dark:bg-black/30 backdrop-blur-xl overflow-hidden shadow-lg dark:shadow-none cursor-pointer"
+                    className="group relative h-full rounded-2xl border border-grid-line/40 bg-terminal-surface/90 dark:bg-black/80 md:bg-terminal-surface/80 md:dark:bg-black/30 md:backdrop-blur-xl overflow-hidden shadow-lg dark:shadow-none cursor-pointer will-change-transform"
                     onMouseMove={onMouseMove}
                     onMouseLeave={onMouseLeave}
                     style={{
@@ -94,19 +94,21 @@ export function FeatureCard3D({
                     whileHover={{ scale: 1.02 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
-                    {/* Hover glow effect */}
-                    <motion.div
-                        className="pointer-events-none absolute -inset-px opacity-0 transition duration-500 group-hover:opacity-100 z-10"
-                        style={{
-                            background: useMotionTemplate`
-                                radial-gradient(
-                                    600px circle at ${mouseX}px ${mouseY}px,
-                                    var(--glow-color, rgba(0, 255, 255, 0.15)),
-                                    transparent 70%
-                                )
-                            `
-                        }}
-                    />
+                    {/* Hover glow effect (Disabled on touch devices for performance) */}
+                    <div className="hidden md:block">
+                        <motion.div
+                            className="pointer-events-none absolute -inset-px opacity-0 transition duration-500 group-hover:opacity-100 z-10 will-change-opacity"
+                            style={{
+                                background: useMotionTemplate`
+                                    radial-gradient(
+                                        600px circle at ${mouseX}px ${mouseY}px,
+                                        var(--glow-color, rgba(0, 255, 255, 0.15)),
+                                        transparent 70%
+                                    )
+                                `
+                            }}
+                        />
+                    </div>
 
                     {/* Animated border on hover */}
                     <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
