@@ -10,7 +10,6 @@ import {
     Trash2,
     CheckCheck,
     X,
-    MessageSquare,
     Activity,
     Clock,
     ChevronRight,
@@ -69,7 +68,6 @@ export function NotificationDropdown() {
     const [notifications, setNotifications] = useState(initialNotifications);
     const [activeTab, setActiveTab] = useState<Tab>('all');
     const [isScanning, setIsScanning] = useState(false);
-    const notificationContainerRef = useRef<HTMLDivElement>(null);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Close on click outside
@@ -86,6 +84,7 @@ export function NotificationDropdown() {
     // Trigger scan effect on open
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsScanning(true);
             const timer = setTimeout(() => setIsScanning(false), 2000);
             return () => clearTimeout(timer);

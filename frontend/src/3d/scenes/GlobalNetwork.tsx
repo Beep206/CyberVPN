@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 
 const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
     Line,
@@ -53,9 +53,11 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
             const z = positions[i3 + 2];
             const speed = 0.005 + Math.abs(velocities[i3 + 1]) * 0.5;
 
+            /* eslint-disable react-hooks/immutability */
             positions[i3] = x * Math.cos(speed) - z * Math.sin(speed);
             positions[i3 + 2] = x * Math.sin(speed) + z * Math.cos(speed);
             positions[i3 + 1] += Math.sin(t * 0.5 + phases[i]) * 0.01;
+            /* eslint-enable react-hooks/immutability */
 
             dummy.position.set(
                 positions[i3],
