@@ -3,8 +3,9 @@
 import * as THREE from 'three';
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Trail } from '@react-three/drei';
+import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
+import { useInView } from 'motion/react';
 
 // Module-level factory — outside render, not analyzed by React Compiler
 function generateCyberParticles(count: number) {
@@ -338,19 +339,28 @@ function FeaturesSceneContent() {
 
 // Exported wrapper component
 export function FeaturesScene3D() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "100px" });
+    const [dpr, setDpr] = useState(1);
+
     return (
-        <div className="absolute inset-0 z-0 pointer-events-none">
+        <div ref={containerRef} className="absolute inset-0 z-0 pointer-events-none">
             <ErrorBoundary label="Features 3D Scene">
                 <Canvas
                     camera={{ position: [0, 0, 6], fov: 60 }}
-                    dpr={[1, 1.5]}
+                    dpr={dpr}
+                    frameloop={isInView ? 'always' : 'never'}
                     gl={{
-                        antialias: true,
+                        antialias: false,
                         alpha: true,
                         powerPreference: 'high-performance'
                     }}
                     style={{ background: 'transparent' }}
                 >
+                    <PerformanceMonitor 
+                        onDecline={() => setDpr(1)} 
+                        onIncline={() => setDpr(1.5)} 
+                    />
                     <FeaturesSceneContent />
                 </Canvas>
             </ErrorBoundary>

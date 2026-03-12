@@ -174,7 +174,7 @@ export function CypherText({
     return (
         <span
             aria-label={text}
-            className={cn("font-mono inline-block", className)}
+            className={cn("font-mono inline-block will-change-transform", className)}
             onMouseEnter={animate} // Replay on hover
         >
             <span aria-hidden="true">{displayText}</span>
