@@ -91,7 +91,7 @@ dependencies:
   # Security
   device_info_plus: ^12.3.0
   equatable: ^2.0.8
-  flutter_local_notifications: ^20.0.0
+  flutter_local_notifications: ^20.1.0
 
 dev_dependencies:
   flutter_test:
