@@ -386,7 +386,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                 <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
 
                 <EffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} />
+                    <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />
                     <Noise opacity={0.05} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />

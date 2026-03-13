@@ -359,7 +359,7 @@ export function FeaturesScene3D() {
                 >
                     <PerformanceMonitor 
                         onDecline={() => setDpr(1)} 
-                        onIncline={() => setDpr(1.5)} 
+                        onIncline={() => setDpr(1)} 
                     />
                     <FeaturesSceneContent />
                 </Canvas>

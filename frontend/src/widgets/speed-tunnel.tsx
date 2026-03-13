@@ -10,6 +10,7 @@ import { useTheme } from 'next-themes';
 import { Check, Shield, Zap } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
+import { useInView } from 'motion/react';
 
 // Types
 interface ServerInfo {
@@ -153,6 +154,10 @@ function WarpStarfield({ speed = 2.0, color = "#00ffff" }: { speed?: number, col
 function SpeedTunnelScene() {
     const { resolvedTheme } = useTheme();
     const isDark = resolvedTheme === 'dark';
+    
+    // Performance: only render when in view
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "100px" });
 
     // Theme Colors
     const bgColor = isDark ? '#000000' : '#a1a1aa'; // Significantly darker grey for light mode
@@ -161,9 +166,10 @@ function SpeedTunnelScene() {
     const starColor2 = isDark ? '#ff00ff' : '#9333ea'; // Purple (Neon vs Darker for contrast)
 
     return (
-        <div className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
+        <div ref={containerRef} className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
             <ErrorBoundary fallback={<div className="w-full h-full bg-background flex items-center justify-center text-xs text-muted-foreground">Speed Tunnel Disabled (Extension Conflict)</div>}>
                 <Canvas
+                    frameloop={isInView ? 'always' : 'never'}
                     camera={{ position: [0, 0, 5], fov: 60 }}
                     gl={{ antialias: false }} // Performance
                     dpr={[1, 1.5]}
@@ -177,12 +183,12 @@ function SpeedTunnelScene() {
                     {/* Only enable intensive bloom in dark mode to avoid "blinding white" effect */}
                     {isDark ? (
                         <EffectComposer enableNormalPass={false}>
-                            <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} />
+                            <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} resolutionScale={0.5} />
                         </EffectComposer>
                     ) : (
                         // Minimal or no bloom for light mode
                         <EffectComposer enableNormalPass={false}>
-                            <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} />
+                            <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} resolutionScale={0.5} />
                         </EffectComposer>
                     )}
                 </Canvas>
