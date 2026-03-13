@@ -64,7 +64,7 @@ dependencies:
 
   # Firebase
   firebase_core: ^4.4.0
-  firebase_analytics: ^12.1.1
+  firebase_analytics: ^12.1.2
   firebase_messaging: ^16.1.1
 
   # Platform Features
