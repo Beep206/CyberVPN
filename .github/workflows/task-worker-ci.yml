@@ -68,7 +68,7 @@ jobs:
           pytest services/task-worker/tests/integration/ -v --tb=short -m integration
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: matrix.python-version == '3.13'
         with:
           file: ./coverage.xml
