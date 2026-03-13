@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { cn } from '@/lib/utils';
-import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
+
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 
 type Tab = 'ios' | 'android';
 

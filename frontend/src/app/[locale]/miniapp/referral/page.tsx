@@ -16,7 +16,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
-import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
+
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 
 /**
  * Mini App Referral Program page

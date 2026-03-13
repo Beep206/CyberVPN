@@ -1,0 +1,54 @@
+﻿
+> vpn-frontend@0.1.0 lint
+> eslint
+
+
+C:\work\CyberVPN\frontend\src\3d\scenes\GlobalNetwork.tsx
+   6:44  warning  'useEffect' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  56:13  error    Error: This value cannot be modified
+
+Modifying a value returned from 'useState()', which should not be modified directly. Use the setter function to update instead.
+
+C:\work\CyberVPN\frontend\src\3d\scenes\GlobalNetwork.tsx:56:13
+  54 |             const speed = 0.005 + Math.abs(velocities[i3 + 1]) * 0.5;
+  55 |
+> 56 |             positions[i3] = x * Math.cos(speed) - z * Math.sin(speed);
+     |             ^^^^^^^^^ `particleData` cannot be modified
+  57 |             positions[i3 + 2] = x * Math.sin(speed) + z * Math.cos(speed);
+  58 |             positions[i3 + 1] += Math.sin(t * 0.5 + phases[i]) * 0.01;
+  59 |  react-hooks/immutability
+
+C:\work\CyberVPN\frontend\src\app\[locale]\(auth)\register\page.tsx
+  27:23  warning  'login' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\work\CyberVPN\frontend\src\features\header\qr-code-dropdown.tsx
+  21:11  warning  't' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\work\CyberVPN\frontend\src\features\header\user-menu.tsx
+  13:8  warning  'NextLink' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\work\CyberVPN\frontend\src\features\notifications\notification-dropdown.tsx
+  13:5   warning  'MessageSquare' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  72:11  warning  'notificationContainerRef' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  89:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\work\CyberVPN\frontend\src\features\notifications\notification-dropdown.tsx:89:13
+  87 |     useEffect(() => {
+  88 |         if (isOpen) {
+> 89 |             setIsScanning(true);
+     |             ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  90 |             const timer = setTimeout(() => setIsScanning(false), 2000);
+  91 |             return () => clearTimeout(timer);
+  92 |         }  react-hooks/set-state-in-effect
+
+C:\work\CyberVPN\frontend\src\widgets\terminal-header.tsx
+  14:10  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+тЬЦ 9 problems (2 errors, 7 warnings)
+

@@ -8,7 +8,6 @@ import { motion } from 'motion/react';
 import { ShieldCheck, Key, Copy, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { RateLimitError } from '@/lib/api/client';
-import QRCode from 'qrcode';
 
 interface TwoFactorModalProps {
   isOpen: boolean;
@@ -118,7 +117,8 @@ export function TwoFactorModal({ isOpen, onClose, isEnabled, onSuccess }: TwoFac
       setQrCodeUri(data.qr_uri);
       setBackupCodes((data as Record<string, unknown>).backup_codes as string[] ?? []);
 
-      // Generate QR code data URL
+      // Generate QR code data URL dynamically
+      const QRCode = (await import('qrcode')).default;
       const dataUrl = await QRCode.toDataURL(data.qr_uri, {
         width: 256,
         margin: 2,
