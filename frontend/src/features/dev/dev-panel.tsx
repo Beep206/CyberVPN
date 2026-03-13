@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Shield, Navigation, Monitor, Settings, Globe } from "lucide-react";
+import { X, Shield, Navigation, Monitor, Settings, Globe, Wrench, Trash2, Layout } from "lucide-react";
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { useTheme } from "next-themes";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance">("nav");
+    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "tools">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -111,6 +111,7 @@ export function DevPanel() {
                                     { id: "browser", icon: Globe, label: "Browser" },
                                     { id: "system", icon: Settings, label: "System" },
                                     { id: "performance", icon: Monitor, label: "Perf" },
+                                    { id: "tools", icon: Wrench, label: "Tools" },
                                 ] as const).map((tab) => (
                                     <button
                                         key={tab.id}
@@ -153,6 +154,7 @@ export function DevPanel() {
                                         {activeTab === "browser" && <BrowserTab isDark={isDark} />}
                                         {activeTab === "system" && <SystemTab isDark={isDark} />}
                                         {activeTab === "performance" && <PerformanceTab isDark={isDark} />}
+                                        {activeTab === "tools" && <ToolsTab isDark={isDark} />}
                                     </motion.div>
                                 </AnimatePresence>
                             </div>
@@ -281,26 +283,53 @@ function BrowserTab({ isDark }: { isDark: boolean }) {
         language: "",
         time: "",
         screen: "",
+        viewport: "",
+        breakpoint: "",
         cores: 0,
         memory: 0,
     });
 
+    const getBreakpoint = (width: number) => {
+        if (width < 640) return "xs";
+        if (width < 768) return "sm";
+        if (width < 1024) return "md";
+        if (width < 1280) return "lg";
+        if (width < 1536) return "xl";
+        return "2xl";
+    };
+
     /* eslint-disable react-hooks/set-state-in-effect -- Dev-only browser info collection on mount */
     useEffect(() => {
         if (typeof window !== "undefined") {
+            const updateInfo = () => {
+                setInfo(prev => ({
+                    ...prev,
+                    screen: `${window.screen.width}x${window.screen.height}`,
+                    viewport: `${window.innerWidth}x${window.innerHeight}`,
+                    breakpoint: getBreakpoint(window.innerWidth),
+                    time: new Date().toLocaleTimeString()
+                }));
+            };
+
             setInfo({
                 language: navigator.language,
                 time: new Date().toLocaleTimeString(),
                 screen: `${window.screen.width}x${window.screen.height}`,
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                breakpoint: getBreakpoint(window.innerWidth),
                 cores: navigator.hardwareConcurrency || 0,
                 memory: (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0,
             });
 
+            window.addEventListener('resize', updateInfo);
             const interval = setInterval(() => {
                 setInfo(prev => ({ ...prev, time: new Date().toLocaleTimeString() }));
             }, 1000);
 
-            return () => clearInterval(interval);
+            return () => {
+                clearInterval(interval);
+                window.removeEventListener('resize', updateInfo);
+            };
         }
     }, []);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -313,7 +342,8 @@ function BrowserTab({ isDark }: { isDark: boolean }) {
                 {[
                     { label: "Language", value: info.language },
                     { label: "Local Time", value: info.time, highlight: true },
-                    { label: "Resolution", value: info.screen },
+                    { label: "Screen Res", value: info.screen },
+                    { label: "Viewport", value: `${info.viewport} (${info.breakpoint})` },
                     { label: "CPU Cores", value: info.cores },
                 ].map((item) => (
                     <div key={item.label} className={cn("p-3 border rounded group transition-all", isDark ? "bg-black border-gray-800 hover:border-neon-cyan/50" : "bg-white border-slate-200 shadow-sm")}>
@@ -480,6 +510,132 @@ function PerformanceTab({ isDark }: { isDark: boolean }) {
                         <span className={cn("text-[10px] uppercase font-bold block mb-0.5", isDark ? "text-gray-400" : "text-slate-500")}>Network Uplink</span>
                         <span className={cn("text-xs font-bold block", isDark ? "text-white" : "text-slate-800")}>{connection}</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ToolsTab({ isDark }: { isDark: boolean }) {
+    const [outlines, setOutlines] = useState(false);
+
+    useEffect(() => {
+        if (outlines) {
+            const style = document.createElement('style');
+            style.id = 'dev-outlines-style';
+            style.innerHTML = `* { outline: 1px solid ${isDark ? 'rgba(0, 255, 255, 0.4)' : 'rgba(0, 0, 255, 0.4)'} !important; }`;
+            document.head.appendChild(style);
+            return () => {
+                document.getElementById('dev-outlines-style')?.remove();
+            };
+        } else {
+            document.getElementById('dev-outlines-style')?.remove();
+        }
+    }, [outlines, isDark]);
+
+    const handleClearStorage = (type: 'local' | 'session' | 'cookies') => {
+        if (typeof window !== 'undefined') {
+            if (type === 'local') localStorage.clear();
+            if (type === 'session') sessionStorage.clear();
+            if (type === 'cookies') {
+                document.cookie.split(";").forEach((c) => {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+            }
+            alert(`${type.toUpperCase()} Storage & Cookies cleared successfully.`);
+        }
+    };
+
+    return (
+        <div className="space-y-4 relative z-20">
+            <h3 className={cn("font-extrabold text-sm uppercase tracking-widest mb-4 border-b pb-2", isDark ? "text-transparent bg-clip-text bg-gradient-to-r from-neon-pink to-neon-purple border-neon-pink/50 drop-shadow-[0_0_8px_rgba(255,0,255,0.8)]" : "text-slate-800 border-slate-200")}>Developer Tools</h3>
+
+            {/* Layout Debugger */}
+            <div className={cn(
+                "flex items-center justify-between p-4 border rounded transition-colors",
+                isDark
+                    ? "border-neon-cyan/40 bg-black hover:border-neon-cyan/60"
+                    : "border-slate-200 bg-white hover:border-blue-300"
+            )}>
+                <div className="flex gap-3 items-center">
+                    <div className={cn("p-2 rounded", isDark ? "bg-neon-cyan/10" : "bg-blue-50")}>
+                        <Layout className={cn("w-5 h-5", isDark ? "text-neon-cyan" : "text-blue-500")} />
+                    </div>
+                    <div>
+                        <h4 className={cn("text-base font-extrabold", isDark ? "text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.9)]" : "text-slate-800")}>CSS Layout Debugger</h4>
+                        <p className={cn("text-xs mt-1 font-semibold transition-colors", isDark ? "text-gray-300" : "text-slate-500")}>Highlights all DOM elements with outlines.</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setOutlines(!outlines)}
+                    className={cn(
+                        "relative w-14 h-7 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2",
+                        outlines
+                            ? (isDark ? "bg-neon-cyan/30 border-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.5)]" : "bg-blue-100 border-blue-500")
+                            : (isDark ? "bg-gray-800 border-gray-500 shadow-[0_0_15px_rgba(0,0,0,0.5)]" : "bg-slate-200 border-slate-300")
+                    )}
+                >
+                    <motion.div
+                        className={cn(
+                            "absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md transition-transform duration-300",
+                            outlines
+                                ? (isDark ? "translate-x-7 bg-neon-cyan shadow-[0_0_15px_#00ffff]" : "translate-x-7 bg-blue-500")
+                                : (isDark ? "translate-x-0 bg-gray-400" : "translate-x-0 bg-white")
+                        )}
+                        layout
+                    />
+                </button>
+            </div>
+
+            {/* Storage Wipe */}
+            <div className={cn(
+                "p-4 border rounded transition-colors space-y-3",
+                isDark ? "border-red-900/50 bg-black hover:border-red-500/50" : "border-red-200 bg-red-50/30 hover:border-red-300"
+            )}>
+                <div className="flex gap-3 items-center mb-2">
+                    <div className={cn("p-2 rounded", isDark ? "bg-red-500/10" : "bg-red-100")}>
+                        <Trash2 className={cn("w-5 h-5", isDark ? "text-red-400" : "text-red-500")} />
+                    </div>
+                    <div>
+                        <h4 className={cn("text-base font-extrabold", isDark ? "text-red-400 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]" : "text-red-700")}>State Management Nuke</h4>
+                        <p className={cn("text-xs mt-1 font-semibold", isDark ? "text-gray-400" : "text-slate-500")}>Clear client-side storage to re-test scenarios.</p>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2">
+                    <button
+                        onClick={() => handleClearStorage('local')}
+                        className={cn(
+                            "py-2 px-2 rounded text-[10px] md:text-xs font-bold transition-all border text-center",
+                            isDark 
+                                ? "bg-black border-red-900 text-red-400 hover:bg-red-950 hover:border-red-500" 
+                                : "bg-white border-red-200 text-red-600 hover:bg-red-50"
+                        )}
+                    >
+                        Local
+                    </button>
+                    <button
+                        onClick={() => handleClearStorage('session')}
+                        className={cn(
+                            "py-2 px-2 rounded text-[10px] md:text-xs font-bold transition-all border text-center",
+                            isDark 
+                                ? "bg-black border-orange-900 text-orange-400 hover:bg-orange-950 hover:border-orange-500" 
+                                : "bg-white border-orange-200 text-orange-600 hover:bg-orange-50"
+                        )}
+                    >
+                        Session
+                    </button>
+                    <button
+                        onClick={() => handleClearStorage('cookies')}
+                        className={cn(
+                            "py-2 px-2 rounded text-[10px] md:text-xs font-bold transition-all border text-center",
+                            isDark 
+                                ? "bg-black border-yellow-900 text-yellow-400 hover:bg-yellow-950 hover:border-yellow-500" 
+                                : "bg-white border-yellow-200 text-yellow-600 hover:bg-yellow-50"
+                        )}
+                    >
+                        Cookies
+                    </button>
                 </div>
             </div>
         </div>
