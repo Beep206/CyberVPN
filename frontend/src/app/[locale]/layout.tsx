@@ -49,6 +49,7 @@ import { ThemeProvider } from "@/app/providers/theme-provider";
 import { AuthProvider } from "@/app/providers/auth-provider";
 import { QueryProvider } from "@/app/providers/query-provider";
 import { SmoothScrollProvider } from "@/app/providers/smooth-scroll-provider";
+import { MotionProvider } from "@/app/providers/motion-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
 import { SkipNavLink } from "@/shared/ui/atoms/skip-nav-link";
 import { WebVitalsReporter } from "@/shared/ui/atoms/web-vitals-reporter";
@@ -84,10 +85,12 @@ export default async function RootLayout({
                         <AuthProvider>
                           <QueryProvider>
                             <SmoothScrollProvider>
-                                <SkipNavLink />
-                                <div className="relative z-10 h-full w-full">
-                                    {children}
-                                </div>
+                                <MotionProvider>
+                                    <SkipNavLink />
+                                    <div className="relative z-10 h-full w-full">
+                                        {children}
+                                    </div>
+                                </MotionProvider>
                             </SmoothScrollProvider>
                           </QueryProvider>
                         </AuthProvider>

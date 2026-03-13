@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from './MiniAppBottomSheet';
-import QRCodeComponent from 'react-qr-code';
+import dynamic from 'next/dynamic';
+
+const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
 
 interface VpnConfigCardProps {
   colorScheme?: 'light' | 'dark';

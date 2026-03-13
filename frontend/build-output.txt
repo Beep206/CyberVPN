@@ -1,0 +1,199 @@
+﻿
+> vpn-frontend@0.1.0 build
+> next build
+
+тЦ▓ Next.js 16.1.6 (Turbopack, Cache Components)
+- Experiments (use with caution):
+  ┬╖ clientTraceMetadata
+
+  Creating an optimized production build ...
+тЬУ Compiled successfully in 25.6s
+  Running next.config.js provided runAfterProductionCompile ...
+тЬУ Completed runAfterProductionCompile in 984ms
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/1325) ...
+  Generating static pages using 11 workers (331/1325) 
+  Generating static pages using 11 workers (662/1325) 
+  Generating static pages using 11 workers (993/1325) 
+тЬУ Generating static pages using 11 workers (1325/1325) in 20.8s
+  Finalizing page optimization ...
+
+Route (app)
+тФМ тЧЛ /_not-found
+тФЬ тЧР /[locale]
+тФВ тФЬ /[locale]
+тФВ тФЬ /en-EN
+тФВ тФЬ /hi-IN
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/analytics
+тФВ тФЬ /[locale]/analytics
+тФВ тФЬ /en-EN/analytics
+тФВ тФЬ /hi-IN/analytics
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/dashboard
+тФВ тФЬ /[locale]/dashboard
+тФВ тФЬ /en-EN/dashboard
+тФВ тФЬ /hi-IN/dashboard
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/delete-account
+тФВ тФЬ /[locale]/delete-account
+тФВ тФЬ /en-EN/delete-account
+тФВ тФЬ /hi-IN/delete-account
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/forgot-password
+тФВ тФЬ /[locale]/forgot-password
+тФВ тФЬ /en-EN/forgot-password
+тФВ тФЬ /hi-IN/forgot-password
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/login
+тФВ тФЬ /[locale]/login
+тФВ тФЬ /en-EN/login
+тФВ тФЬ /hi-IN/login
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/magic-link
+тФВ тФЬ /[locale]/magic-link
+тФВ тФЬ /en-EN/magic-link
+тФВ тФЬ /hi-IN/magic-link
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/magic-link/verify
+тФВ тФЬ /[locale]/magic-link/verify
+тФВ тФЬ /en-EN/magic-link/verify
+тФВ тФЬ /hi-IN/magic-link/verify
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp
+тФВ тФЬ /[locale]/miniapp
+тФВ тФЬ /en-EN/miniapp
+тФВ тФЬ /hi-IN/miniapp
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/devices
+тФВ тФЬ /[locale]/miniapp/devices
+тФВ тФЬ /en-EN/miniapp/devices
+тФВ тФЬ /hi-IN/miniapp/devices
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/home
+тФВ тФЬ /[locale]/miniapp/home
+тФВ тФЬ /en-EN/miniapp/home
+тФВ тФЬ /hi-IN/miniapp/home
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/payments
+тФВ тФЬ /[locale]/miniapp/payments
+тФВ тФЬ /en-EN/miniapp/payments
+тФВ тФЬ /hi-IN/miniapp/payments
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/plans
+тФВ тФЬ /[locale]/miniapp/plans
+тФВ тФЬ /en-EN/miniapp/plans
+тФВ тФЬ /hi-IN/miniapp/plans
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/profile
+тФВ тФЬ /[locale]/miniapp/profile
+тФВ тФЬ /en-EN/miniapp/profile
+тФВ тФЬ /hi-IN/miniapp/profile
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/referral
+тФВ тФЬ /[locale]/miniapp/referral
+тФВ тФЬ /en-EN/miniapp/referral
+тФВ тФЬ /hi-IN/miniapp/referral
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/miniapp/wallet
+тФВ тФЬ /[locale]/miniapp/wallet
+тФВ тФЬ /en-EN/miniapp/wallet
+тФВ тФЬ /hi-IN/miniapp/wallet
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/monitoring
+тФВ тФЬ /[locale]/monitoring
+тФВ тФЬ /en-EN/monitoring
+тФВ тФЬ /hi-IN/monitoring
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/oauth/callback
+тФВ тФЬ /[locale]/oauth/callback
+тФВ тФЬ /en-EN/oauth/callback
+тФВ тФЬ /hi-IN/oauth/callback
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/partner
+тФВ тФЬ /[locale]/partner
+тФВ тФЬ /en-EN/partner
+тФВ тФЬ /hi-IN/partner
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/payment-history
+тФВ тФЬ /[locale]/payment-history
+тФВ тФЬ /en-EN/payment-history
+тФВ тФЬ /hi-IN/payment-history
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/privacy-policy
+тФВ тФЬ /[locale]/privacy-policy
+тФВ тФЬ /en-EN/privacy-policy
+тФВ тФЬ /hi-IN/privacy-policy
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/referral
+тФВ тФЬ /[locale]/referral
+тФВ тФЬ /en-EN/referral
+тФВ тФЬ /hi-IN/referral
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/register
+тФВ тФЬ /[locale]/register
+тФВ тФЬ /en-EN/register
+тФВ тФЬ /hi-IN/register
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/reset-password
+тФВ тФЬ /[locale]/reset-password
+тФВ тФЬ /en-EN/reset-password
+тФВ тФЬ /hi-IN/reset-password
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/servers
+тФВ тФЬ /[locale]/servers
+тФВ тФЬ /en-EN/servers
+тФВ тФЬ /hi-IN/servers
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/settings
+тФВ тФЬ /[locale]/settings
+тФВ тФЬ /en-EN/settings
+тФВ тФЬ /hi-IN/settings
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/subscriptions
+тФВ тФЬ /[locale]/subscriptions
+тФВ тФЬ /en-EN/subscriptions
+тФВ тФЬ /hi-IN/subscriptions
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/telegram-link
+тФВ тФЬ /[locale]/telegram-link
+тФВ тФЬ /en-EN/telegram-link
+тФВ тФЬ /hi-IN/telegram-link
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/test-animation
+тФВ тФЬ /[locale]/test-animation
+тФВ тФЬ /en-EN/test-animation
+тФВ тФЬ /hi-IN/test-animation
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/test-error
+тФВ тФЬ /[locale]/test-error
+тФВ тФЬ /en-EN/test-error
+тФВ тФЬ /hi-IN/test-error
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/users
+тФВ тФЬ /[locale]/users
+тФВ тФЬ /en-EN/users
+тФВ тФЬ /hi-IN/users
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/verify
+тФВ тФЬ /[locale]/verify
+тФВ тФЬ /en-EN/verify
+тФВ тФЬ /hi-IN/verify
+тФВ тФФ [+37 more paths]
+тФЬ тЧР /[locale]/wallet
+тФВ тФЬ /[locale]/wallet
+тФВ тФЬ /en-EN/wallet
+тФВ тФЬ /hi-IN/wallet
+тФВ тФФ [+37 more paths]
+тФЬ ╞Т /opengraph-image
+тФЬ тЧЛ /robots.txt
+тФФ ╞Т /sitemap.xml
+
+
+╞Т Proxy (Middleware)
+
+тЧЛ  (Static)             prerendered as static content
+тЧР  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+╞Т  (Dynamic)            server-rendered on demand
+

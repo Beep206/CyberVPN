@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { toPng } from "html-to-image";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { CrumbleEffect } from "@/components/effects/CrumbleEffect";
@@ -26,6 +25,7 @@ export function InceptionButton({ children, onClick, className = "", wrapperClas
     // Capture the element
     try {
       // html-to-image is much better at modern CSS (like oklch/lab)
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(elementRef.current, {
         cacheBust: true,
         pixelRatio: 1, // Keep it light
