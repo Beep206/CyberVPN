@@ -23,5 +23,10 @@ Husky hooks (e.g., `pre-commit`) often lack a proper interactive TTY session on 
 Next.js telemetry prompts can hang the background process.
 - **MANDATORY**: Disable telemetry: `$env:NEXT_TELEMETRY_DISABLED=1; npm run dev`
 
-## 5. IDE Settings (User Hint)
+## 5. Linting and Large Outputs
+Linting tools like ESLint often produce large amounts of output or complex terminal escape sequences (colors/formatting) that can hang the Antigravity output buffer.
+- **MANDATORY**: When running linting, use the `--quiet` flag (or equivalent) to only show errors and reduce terminal noise.
+  Example: `cmd /c npm run lint -- --quiet`
+
+## 6. IDE Settings (User Hint)
 If hangs persist, ensure that **Terminal > Integrated > Shell Integration** is **DISABLED** in your IDE (Antigravity/VS Code) settings to prevent escape sequence conflicts.
