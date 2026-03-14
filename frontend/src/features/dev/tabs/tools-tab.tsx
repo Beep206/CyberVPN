@@ -6,17 +6,35 @@ import { cn } from "@/lib/utils";
 export function ToolsTab({ isDark }: { isDark: boolean }) {
     const [outlines, setOutlines] = useState(false);
 
+    /* eslint-disable react-hooks/set-state-in-effect -- Restore dev outlines on mount */
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('DEV_OUTLINES');
+            if (saved === 'true') {
+                setOutlines(true);
+            }
+        }
+    }, []);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    // Sync to localStorage and inject styles
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        
+        const styleId = 'dev-outlines-style';
+        let style = document.getElementById(styleId);
+
         if (outlines) {
-            const style = document.createElement('style');
-            style.id = 'dev-outlines-style';
+            localStorage.setItem('DEV_OUTLINES', 'true');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = styleId;
+                document.head.appendChild(style);
+            }
             style.innerHTML = `* { outline: 1px solid ${isDark ? 'rgba(0, 255, 255, 0.4)' : 'rgba(0, 0, 255, 0.4)'} !important; }`;
-            document.head.appendChild(style);
-            return () => {
-                document.getElementById('dev-outlines-style')?.remove();
-            };
         } else {
-            document.getElementById('dev-outlines-style')?.remove();
+            localStorage.removeItem('DEV_OUTLINES');
+            style?.remove();
         }
     }, [outlines, isDark]);
 
