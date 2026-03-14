@@ -358,7 +358,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                 dpr={dpr}
             >
                 <PerformanceMonitor 
-                    onDecline={() => setDpr(1)} 
+                    onDecline={() => setDpr(0.75)} 
                     onIncline={() => setDpr(1.25)} 
                 />
                 {/* Reduced fog density to ensure stars are visible */}

@@ -5,6 +5,9 @@ import { motion, type Variants } from 'motion/react';
 import { Terminal, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import { TiltCard } from '@/shared/ui/tilt-card';
+import dynamic from 'next/dynamic';
+
+const FastTrackScene3D = dynamic(() => import('@/3d/scenes/FastTrackScene3D'), { ssr: false });
 
 export function QuickStart() {
     const t = useTranslations('Landing.quick_start');
@@ -31,11 +34,11 @@ export function QuickStart() {
 
     return (
         <section className="relative py-32 bg-terminal-bg border-t border-grid-line/20 overflow-hidden">
-            {/* Dark Matrix Grid Background */}
+            {/* Dark Matrix Grid Background & FastTrackScene3D */}
             <div className="absolute inset-0 z-0 pointer-events-none">
+                <FastTrackScene3D />
                 <div className="absolute inset-0 bg-grid-white/[0.015] bg-[size:50px_50px]" />
                 <div className="absolute inset-0 scanline opacity-30" />
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-matrix-green/5 dark:bg-matrix-green/10 rounded-full blur-[150px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10 max-w-5xl flex flex-col items-center">

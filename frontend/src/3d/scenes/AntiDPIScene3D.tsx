@@ -1,0 +1,152 @@
+'use client';
+
+import React, { useRef, useMemo, useState } from 'react';
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Environment, PerformanceMonitor } from '@react-three/drei';
+import { useInView } from 'motion/react';
+import { EffectComposer, Bloom, Noise } from '@react-three/postprocessing';
+import '@/3d/shaders/AntiDPIShader';
+
+const SCANNER_POS = 0.0;
+const BOUND_MIN_X = -5.0; 
+const BOUND_MAX_X = 5.0;
+
+function InstancedPackets({ count = 800 }: { count?: number }) {
+    const mesh = useRef<THREE.InstancedMesh>(null!);
+    const materialRef = useRef<THREE.ShaderMaterial>(null!);
+
+    const [offsets, speeds] = useMemo(() => {
+        const off = new Float32Array(count * 3);
+        const spd = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            off[i * 3 + 0] = BOUND_MIN_X + Math.random() * (BOUND_MAX_X - BOUND_MIN_X);
+            off[i * 3 + 1] = (Math.random() - 0.5) * 2.2;
+            off[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
+            
+            spd[i * 3 + 0] = 0.8 + Math.random() * 1.5; 
+            spd[i * 3 + 1] = 0.4 + Math.random() * 0.4; // Small scale for elegance
+            spd[i * 3 + 2] = Math.random() * Math.PI * 2; 
+        }
+        return [off, spd];
+    }, [count]);
+
+    useFrame((state) => {
+        if (materialRef.current) {
+            materialRef.current.uniforms.time.value = state.clock.getElapsedTime();
+        }
+    });
+
+    return (
+        <instancedMesh 
+            ref={mesh} 
+            args={[null as any, null as any, count]} 
+            renderOrder={5} 
+            frustumCulled={false}
+        >
+            <sphereGeometry args={[0.04, 16, 16]}>
+                <instancedBufferAttribute attach="attributes-aOffset" args={[offsets, 3]} />
+                <instancedBufferAttribute attach="attributes-aSpeed" args={[speeds, 3]} />
+            </sphereGeometry>
+            <antiDPIShader 
+                ref={materialRef} 
+                transparent 
+                depthWrite={false}
+                uScannerPos={SCANNER_POS}
+                uBoundMinX={BOUND_MIN_X}
+                uBoundMaxX={BOUND_MAX_X}
+                displacementRaw={0.06} // Subtle organic wobble
+            />
+        </instancedMesh>
+    );
+}
+
+function ScannerAndShield() {
+    const scannerRef = useRef<THREE.Mesh>(null!);
+
+    useFrame((state) => {
+        const t = state.clock.getElapsedTime();
+        if (scannerRef.current) {
+            const mat = scannerRef.current.material as THREE.MeshBasicMaterial;
+            mat.opacity = 0.3 + Math.sin(t * 8) * 0.1;
+        }
+    });
+
+    return (
+        <group>
+            {/* Scanner Line */}
+            <mesh ref={scannerRef} position={[SCANNER_POS, 0, 0]} renderOrder={10}>
+                <planeGeometry args={[0.06, 5]} />
+                <meshBasicMaterial color="#00ffff" transparent opacity={0.4} blending={THREE.AdditiveBlending} depthWrite={false} />
+            </mesh>
+            
+            {/* The Shield Tunnel */}
+            <group position={[2.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <mesh renderOrder={1}>
+                    <cylinderGeometry args={[1.5, 1.5, 6, 32, 1, true]} />
+                    <meshStandardMaterial
+                        color="#002222"
+                        emissive="#004444"
+                        emissiveIntensity={0.6}
+                        transparent
+                        opacity={0.15}
+                        side={THREE.DoubleSide}
+                        depthWrite={false}
+                    />
+                </mesh>
+                
+                <mesh renderOrder={2}>
+                   <cylinderGeometry args={[1.52, 1.52, 6, 16, 8, true]} />
+                   <meshBasicMaterial 
+                        color="#00ffff" 
+                        wireframe 
+                        transparent 
+                        opacity={0.1} 
+                        blending={THREE.AdditiveBlending}
+                        depthWrite={false}
+                   />
+                </mesh>
+            </group>
+        </group>
+    );
+}
+
+export default function AntiDPIScene3D() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(containerRef, { margin: "200px" });
+    const [dpr, setDpr] = useState(1); // Added DPR state
+
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-none">
+            <Canvas
+                frameloop={isInView ? 'always' : 'never'}
+                camera={{ position: [0, 0, 8], fov: 40 }}
+                gl={{
+                    antialias: false,
+                    alpha: true,
+                    powerPreference: "high-performance",
+                    depth: true
+                }}
+                dpr={dpr} // Bound to state
+            >
+                {/* Dynamically scale DPR down for low-end GPUs, up for high-end */}
+                <PerformanceMonitor 
+                    onDecline={() => setDpr(0.75)} 
+                    onIncline={() => setDpr(1.2)} 
+                />
+                
+                <ambientLight intensity={0.5} />
+                <pointLight position={[-4, 2, 4]} intensity={1.5} color="#ff0088" />
+                <pointLight position={[4, -2, 4]} intensity={1.5} color="#00ffff" />
+
+                <InstancedPackets count={800} />
+                <ScannerAndShield />
+
+                <EffectComposer multisampling={0}>
+                    <Bloom luminanceThreshold={0.2} intensity={1.2} radius={0.4} />
+                    <Noise opacity={0.05} />
+                </EffectComposer>
+            </Canvas>
+        </div>
+    );
+}
