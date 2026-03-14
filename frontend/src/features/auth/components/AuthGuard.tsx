@@ -28,6 +28,31 @@ export function AuthGuard({ children }: AuthGuardProps) {
         let isMounted = true;
 
         const checkAuth = async () => {
+            // [DEV PANEL ONLY] Auth Bypass Interceptor
+            if (process.env.NODE_ENV === 'development' && typeof document !== 'undefined') {
+                const isBypassed = document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH=true'));
+                if (isBypassed) {
+                    const mockRole = (typeof localStorage !== 'undefined' ? localStorage.getItem('USER_ROLE') : 'admin') || 'admin';
+                    useAuthStore.setState({
+                        user: {
+                            id: 'dev-bypass-id',
+                            email: 'dev@cybervpn.local',
+                            login: 'DevUser',
+                            role: mockRole as 'viewer' | 'user' | 'admin' | 'super_admin',
+                            is_active: true,
+                            is_email_verified: true,
+                            created_at: new Date().toISOString()
+                        },
+                        isAuthenticated: true,
+                        isLoading: false,
+                        error: null,
+                    });
+                    setIsAuthorized(true);
+                    setIsChecking(false);
+                    return;
+                }
+            }
+
             try {
                 const { data } = await authApi.session();
                 if (!isMounted) return;
