@@ -125,6 +125,38 @@ cybervpn auth --token=YOUR_NEURAL_ID`}
                 </div>
             </section>
 
+            {/* SECTION 4: API */}
+            <section id="api" data-anchor className="scroll-mt-32 relative">
+                <div className="absolute -left-8 top-0 bottom-0 w-[1px] bg-gradient-to-b from-warning/50 to-transparent" />
+                <h2 className="text-3xl font-display font-bold text-warning mb-6 flex items-center gap-4">
+                    <span className="text-sm font-mono opacity-50">04.</span>
+                    {t('section_api')}
+                </h2>
+                
+                <div className="space-y-6 text-muted-foreground font-mono leading-relaxed">
+                    <h3 className="text-xl text-foreground mt-8 mb-4">Neural API Interface</h3>
+                    <p>Integrate directly with the VPN core using our high-performance gRPC or REST endpoints. Authentication is handled via bearer tokens generated in the dashboard.</p>
+                    
+                    <CodeBlock 
+                        language="typescript"
+                        code={`import { CyberVPN } from '@cybervpn/sdk';
+
+const client = new CyberVPN({
+  token: process.env.CYBER_NEURAL_TOKEN,
+  endpoint: 'api.cybervpn.net/v1'
+});
+
+// Connect to the fastest node in standard stealth mode
+const session = await client.connect({
+  mode: 'stealth',
+  region: 'EU-West'
+});
+
+console.log('Neural Link Active:', session.ip);`}
+                    />
+                </div>
+            </section>
+
         </div>
     );
 }

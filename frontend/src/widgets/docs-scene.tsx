@@ -40,7 +40,6 @@ export function DocsScene({ activeSection }: DocsSceneProps) {
                     {/* Glowing label below */}
                     <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5} position={[0, -1.8, 0]}>
                         <Text
-                            font="/fonts/Orbitron-Bold.ttf"
                             fontSize={0.2}
                             color={config.color}
                             anchorX="center"
