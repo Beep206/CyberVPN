@@ -7,9 +7,10 @@ import Link from 'next/link';
 
 interface DocsSidebarProps {
     activeSection: string;
+    onSectionChange?: (id: string) => void;
 }
 
-export function DocsSidebar({ activeSection }: DocsSidebarProps) {
+export function DocsSidebar({ activeSection, onSectionChange }: DocsSidebarProps) {
     const t = useTranslations('Docs');
 
     const sections = [
@@ -53,6 +54,7 @@ export function DocsSidebar({ activeSection }: DocsSidebarProps) {
                                             href={`#${item.id}`}
                                             onClick={(e) => {
                                                 e.preventDefault();
+                                                if (onSectionChange) onSectionChange(item.id);
                                                 const element = document.getElementById(item.id);
                                                 if (element) {
                                                     const headerOffset = 100;
