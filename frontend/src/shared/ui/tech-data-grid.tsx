@@ -1,5 +1,9 @@
+'use client';
+
 import * as React from 'react';
+import { motion, type Variants } from 'motion/react';
 import { ScrambleText } from './scramble-text';
+import { TiltCard } from './tilt-card';
 
 export interface TechDataItem {
     id: string;
@@ -23,32 +27,55 @@ export function TechDataGrid({ title, items, className = '', columns = 3 }: Tech
         4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
     };
 
+    const containerVariants: Variants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants: Variants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+    };
+
     return (
-        <div className={`w-full ${className}`}>
+        <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            className={`w-full ${className}`}
+        >
             {title && (
-                <h4 className="text-sm font-mono text-muted-foreground uppercase tracking-widest mb-4 border-b border-grid-line/30 pb-2">
+                <motion.h4 
+                    variants={itemVariants} 
+                    className="text-sm font-mono text-muted-foreground uppercase tracking-widest mb-4 border-b border-grid-line/30 pb-2 relative"
+                >
                     {title}
-                </h4>
+                    <div className="absolute bottom-0 left-0 w-1/3 h-px bg-neon-cyan/50 shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
+                </motion.h4>
             )}
             <div className={`grid gap-4 ${gridCols[columns]}`}>
                 {items.map((item) => (
-                    <div 
-                        key={item.id} 
-                        className="flex flex-col gap-1 p-4 border border-grid-line/20 bg-terminal-surface/30 rounded-md backdrop-blur-sm"
-                    >
-                        <span className="text-xs font-mono text-muted-foreground/70 uppercase">
-                            {item.label}
-                        </span>
-                        <span className="text-sm md:text-base font-mono text-neon-cyan/90 break-words">
-                            {item.scramble ? (
-                                <ScrambleText text={item.value} />
-                            ) : (
-                                item.value
-                            )}
-                        </span>
-                    </div>
+                    <motion.div variants={itemVariants} key={item.id} className="h-full">
+                        <TiltCard className="flex flex-col gap-2 p-5 rounded-lg h-full border-grid-line/20 bg-terminal-surface/30">
+                            <span className="text-xs font-mono text-muted-foreground/70 uppercase flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full" />
+                                {item.label}
+                            </span>
+                            <span className="text-sm md:text-base font-mono text-neon-cyan/90 break-words drop-shadow-[0_0_5px_rgba(0,255,255,0.3)]">
+                                {item.scramble ? (
+                                    <ScrambleText text={item.value} triggerOnHover />
+                                ) : (
+                                    item.value
+                                )}
+                            </span>
+                        </TiltCard>
+                    </motion.div>
                 ))}
             </div>
-        </div>
+        </motion.div>
     );
 }
