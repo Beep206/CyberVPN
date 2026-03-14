@@ -145,10 +145,19 @@ export function LandingTechnical() {
                         viewport={{ once: true, margin: '-50px' }}
                         className="lg:col-span-5 cyber-card p-6 md:p-8 rounded-2xl"
                     >
-                        <h3 className="text-2xl font-display text-neon-cyan mb-8 uppercase flex items-center gap-3">
-                            <span className="w-3 h-3 bg-neon-cyan rounded-sm shadow-[0_0_10px_rgba(0,255,255,0.8)] animate-pulse" />
-                            {t('status_board.title')}
-                        </h3>
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-2xl font-display text-neon-cyan uppercase flex items-center gap-3 m-0">
+                                <span className="w-3 h-3 bg-neon-cyan rounded-sm shadow-[0_0_10px_rgba(0,255,255,0.8)] animate-pulse" />
+                                {t('status_board.title')}
+                            </h3>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-mono tracking-widest">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                                </span>
+                                LIVE
+                            </div>
+                        </div>
                         <div className="grid gap-5">
                             <StatusBadgeLive 
                                 protocol={t('status_board.protocols.reality') || 'Reality'} 
