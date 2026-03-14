@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Trash2, RefreshCw, Key, HardDrive, Activity } from 'lucide-react';
+import { Database, Trash2, RefreshCw, Key, HardDrive, Activity, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 
@@ -13,9 +13,35 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
     const [localData, setLocalData] = useState<StorageItem[]>([]);
     const [sessionData, setSessionData] = useState<StorageItem[]>([]);
     const [cookieData, setCookieData] = useState<StorageItem[]>([]);
-    const [activeView, setActiveView] = useState<'local' | 'session' | 'cookies'>('local');
+    const [indexedData, setIndexedData] = useState<StorageItem[]>([]);
+    const [activeView, setActiveView] = useState<'local' | 'session' | 'cookies' | 'indexed'>('local');
 
-    const loadData = () => {
+    const loadIndexedDB = async () => {
+        if (!window.indexedDB || !window.indexedDB.databases) return [];
+        try {
+            const dbs = await window.indexedDB.databases();
+            const results: StorageItem[] = [];
+            
+            // Note: In Chrome/Edge, databases() returns {name, version}.
+            // We can't trivially dump all object stores without opening them.
+            // For a dev panel, we'll list the database names as keys.
+            for (const db of dbs) {
+                if (db.name) {
+                    results.push({
+                        key: db.name,
+                        value: `Version: ${db.version}`,
+                        size: 0 // Cannot easily calculate IDB size synchronously
+                    });
+                }
+            }
+            return results;
+        } catch (e) {
+            console.error("[Dev] IDB access error", e);
+            return [];
+        }
+    };
+
+    const loadData = async () => {
         if (typeof window === 'undefined') return;
 
         // Local Storage
@@ -51,21 +77,31 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
             }
         });
         setCookieData(cData.filter(c => c.key).sort((a, b) => a.key.localeCompare(b.key)));
+
+        // IndexedDB
+        const idbData = await loadIndexedDB();
+        setIndexedData(idbData.sort((a, b) => a.key.localeCompare(b.key)));
     };
 
     useEffect(() => {
         loadData();
     }, []);
 
-    const handleDelete = (key: string, type: 'local' | 'session' | 'cookies') => {
+    const handleDelete = (key: string, type: 'local' | 'session' | 'cookies' | 'indexed') => {
         if (type === 'local') localStorage.removeItem(key);
         if (type === 'session') sessionStorage.removeItem(key);
         if (type === 'cookies') document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        if (type === 'indexed') {
+            const req = window.indexedDB.deleteDatabase(key);
+            req.onsuccess = () => loadData();
+            req.onerror = () => alert(`Failed to delete IDB: ${key}`);
+            return; // loadData is called in onsuccess
+        }
         loadData();
     };
 
     const handleNukeAll = () => {
-        if (confirm("WARNING: This will delete ALL localStorage, sessionStorage, and cookies for this domain. You will be logged out and all dev panel settings will reset. Continue?")) {
+        if (confirm("WARNING: This will delete ALL localStorage, sessionStorage, cookies, and IndexedDBs for this domain. You will be logged out and all dev panel settings will reset. Continue?")) {
             localStorage.clear();
             sessionStorage.clear();
             const cookies = document.cookie.split(";");
@@ -75,11 +111,33 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
                 const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
                 document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
             }
-            window.location.reload();
+            indexedData.forEach(db => window.indexedDB.deleteDatabase(db.key));
+            setTimeout(() => window.location.reload(), 500);
         }
     };
 
+    const exportStateDump = () => {
+        const dump = {
+            localStorage: Object.fromEntries(localData.map(i => [i.key, i.value])),
+            sessionStorage: Object.fromEntries(sessionData.map(i => [i.key, i.value])),
+            cookies: Object.fromEntries(cookieData.map(i => [i.key, i.value])),
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        };
+        
+        const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cybervpn-state-dump-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     const formatSize = (bytes: number) => {
+        if (bytes === 0) return '---'; // IDB size unknown usually
         if (bytes < 1024) return bytes + ' B';
         return (bytes / 1024).toFixed(1) + ' KB';
     };
@@ -87,6 +145,7 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
     const getCurrentData = () => {
         if (activeView === 'local') return localData;
         if (activeView === 'session') return sessionData;
+        if (activeView === 'indexed') return indexedData;
         return cookieData;
     };
 
@@ -97,6 +156,16 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
                     <Database className="w-5 h-5" /> Storage Manager
                 </h3>
                 <div className="flex gap-2">
+                    <button
+                        onClick={exportStateDump}
+                        className={cn(
+                            "p-1.5 rounded transition-all flex items-center gap-1 text-[10px] font-bold uppercase",
+                            isDark ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 border border-emerald-500/30" : "bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+                        )}
+                        title="Export State JSON"
+                    >
+                        <Download className="w-3.5 h-3.5" /> Export Dump
+                    </button>
                     <button
                         onClick={loadData}
                         className={cn(
@@ -120,13 +189,13 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
             </div>
 
             {/* Sub-tabs */}
-            <div className="flex border-b border-gray-700/50 mb-4">
-                {(['local', 'session', 'cookies'] as const).map(view => (
+            <div className="flex border-b border-gray-700/50 mb-4 overflow-x-auto">
+                {(['local', 'session', 'cookies', 'indexed'] as const).map(view => (
                     <button
                         key={view}
                         onClick={() => setActiveView(view)}
                         className={cn(
-                            "px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors relative",
+                            "px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors relative shrink-0",
                             activeView === view
                                 ? (isDark ? "text-neon-cyan" : "text-blue-600")
                                 : (isDark ? "text-gray-500 hover:text-gray-300" : "text-slate-500 hover:text-slate-700")
@@ -135,6 +204,7 @@ export function StorageTab({ isDark }: { isDark: boolean }) {
                         {view === 'local' && <HardDrive className="inline w-3 h-3 mr-1" />}
                         {view === 'session' && <Activity className="inline w-3 h-3 mr-1" />}
                         {view === 'cookies' && <Key className="inline w-3 h-3 mr-1" />}
+                        {view === 'indexed' && <Database className="inline w-3 h-3 mr-1" />}
                         {view}
                         {activeView === view && (
                             <motion.div
