@@ -30,7 +30,7 @@ export function DocsContent({ onSectionChange }: { onSectionChange: (id: string)
     }, [onSectionChange]);
 
     return (
-        <div className="w-full flex-1 max-w-3xl space-y-32">
+        <div className="w-full flex-1 max-w-3xl space-y-32 pb-[50vh]">
             
             {/* Header Area */}
             <div className="pt-8 pb-16 border-b border-terminal-border/30">
