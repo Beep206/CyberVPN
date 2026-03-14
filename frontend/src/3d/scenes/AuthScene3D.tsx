@@ -367,7 +367,7 @@ export function AuthScene3D() {
                     style={{ background: 'transparent' }}
                 >
                     <PerformanceMonitor 
-                        onDecline={() => setDpr(1)} 
+                        onDecline={() => setDpr(0.75)} 
                         onIncline={() => setDpr(1.5)} 
                     />
                     <AuthSceneContent />

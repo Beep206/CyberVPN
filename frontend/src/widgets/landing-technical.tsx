@@ -5,6 +5,9 @@ import { motion } from 'motion/react';
 import { ComparisonTable, ComparisonTableRow } from '@/shared/ui/comparison-table';
 import { TechDataGrid, TechDataItem } from '@/shared/ui/tech-data-grid';
 import { StatusBadgeLive } from '@/shared/ui/status-badge-live';
+import dynamic from 'next/dynamic';
+
+const AntiDPIScene3D = dynamic(() => import('@/3d/scenes/AntiDPIScene3D'), { ssr: false });
 
 export function LandingTechnical() {
     const t = useTranslations('Landing');
@@ -83,6 +86,10 @@ export function LandingTechnical() {
 
     return (
         <section className="relative py-32 bg-terminal-bg/80 border-y border-grid-line/20 overflow-hidden">
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <AntiDPIScene3D />
+            </div>
+            
             {/* Background Grid & Scanlines */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px]" />

@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { usePathname } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
+import { PerformanceMonitor } from '@react-three/drei';
 import { Check, Shield, Zap } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
@@ -158,6 +159,7 @@ function SpeedTunnelScene() {
     // Performance: only render when in view
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "100px" });
+    const [dpr, setDpr] = useState(1);
 
     // Theme Colors
     const bgColor = isDark ? '#000000' : '#a1a1aa'; // Significantly darker grey for light mode
@@ -171,9 +173,13 @@ function SpeedTunnelScene() {
                 <Canvas
                     frameloop={isInView ? 'always' : 'never'}
                     camera={{ position: [0, 0, 5], fov: 60 }}
-                    gl={{ antialias: false }} // Performance
-                    dpr={[1, 1.5]}
+                    gl={{ antialias: false, powerPreference: "high-performance" }} // Performance
+                    dpr={dpr}
                 >
+                    <PerformanceMonitor 
+                        onDecline={() => setDpr(0.75)} 
+                        onIncline={() => setDpr(1.5)} 
+                    />
                     <color attach="background" args={[bgColor]} />
                     <fog attach="fog" args={[fogColor, 5, 20]} />
 
@@ -182,12 +188,12 @@ function SpeedTunnelScene() {
 
                     {/* Only enable intensive bloom in dark mode to avoid "blinding white" effect */}
                     {isDark ? (
-                        <EffectComposer enableNormalPass={false}>
+                        <EffectComposer multisampling={0} enableNormalPass={false}>
                             <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} resolutionScale={0.5} />
                         </EffectComposer>
                     ) : (
                         // Minimal or no bloom for light mode
-                        <EffectComposer enableNormalPass={false}>
+                        <EffectComposer multisampling={0} enableNormalPass={false}>
                             <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} resolutionScale={0.5} />
                         </EffectComposer>
                     )}
