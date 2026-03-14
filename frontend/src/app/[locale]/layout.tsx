@@ -94,11 +94,11 @@ export default async function RootLayout({
                             </SmoothScrollProvider>
                           </QueryProvider>
                         </AuthProvider>
-                    </NextIntlClientProvider>
                     {/* Background scanline effect and glow can be global or part of specific layouts */}
                     <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
                     <DevPanel />
                     <WebVitalsReporter />
+                </NextIntlClientProvider>
                 </ThemeProvider>
                 <JsonLd<Organization>
                     data={{
