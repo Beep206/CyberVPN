@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useTranslations } from 'next-intl';
 import { ServerCard } from '@/shared/ui/molecules/server-card';
 import { useServers } from '@/features/servers/hooks/useServers';
@@ -49,8 +50,8 @@ export function ServerGrid() {
     );
   }
 
-  // Map canonical Server type to ServerCard format
-  const transformedServers = servers.map((server) => ({
+  // Map canonical Server type to ServerCard format, memoized to prevent recreating array unnecessarily
+  const transformedServers = React.useMemo(() => servers.map((server) => ({
     id: server.id,
     name: server.name,
     location: server.location,
@@ -58,7 +59,7 @@ export function ServerGrid() {
     ip: server.ip,
     load: server.load,
     protocol: server.protocol,
-  }));
+  })), [servers]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

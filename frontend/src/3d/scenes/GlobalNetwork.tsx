@@ -13,76 +13,96 @@ import {
     PerformanceMonitor
 } from '@react-three/drei';
 import { useInView } from 'motion/react';
-import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
 import '@/3d/shaders/AtmosphereShader'; // Keeping atmosphere for outer glow only
 
+const particleVertexShader = `
+    uniform float uTime;
+    attribute float aPhase;
+    attribute float aSpeed;
+    varying vec3 vColor;
+    void main() {
+        vec3 pos = position;
+        
+        // Orbital rotation around Y axis
+        float currentAngle = aSpeed * uTime;
+        float x = instanceMatrix[3][0];
+        float z = instanceMatrix[3][2];
+        
+        float finalX = x * cos(currentAngle) - z * sin(currentAngle);
+        float finalZ = x * sin(currentAngle) + z * cos(currentAngle);
+        
+        // Vertical hover oscillation
+        float finalY = instanceMatrix[3][1] + sin(uTime * 0.5 + aPhase) * 0.5; // Scaled up oscillation to match scale effect
+        
+        // Dynamic scale
+        float scale = 0.5 + sin(uTime * 2.0 + aPhase) * 0.5;
+        pos *= scale;
+
+        // Apply instance transformation
+        vec4 mvPosition = viewMatrix * modelMatrix * vec4(finalX + pos.x, finalY + pos.y, finalZ + pos.z, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+    }
+`;
+
+const particleFragmentShader = `
+    void main() {
+        gl_FragColor = vec4(0.0, 1.0, 1.0, 0.6); // Cyan transparent
+    }
+`;
+
 function FloatingParticles({ count = 2000 }: { count?: number }) {
     const mesh = useRef<THREE.InstancedMesh>(null!);
-    const [particleData, setParticleData] = useState<{ positions: Float32Array; velocities: Float32Array; phases: Float32Array; count: number } | null>(null);
-
-    React.useEffect(() => {
-        const worker = new Worker(new URL('../workers/particle-generator.worker', import.meta.url));
-        worker.postMessage({ count });
-
-        worker.onmessage = (e) => {
-            setParticleData({
-                positions: e.data.positions,
-                velocities: e.data.velocities,
-                phases: e.data.phases,
-                count
-            });
-            worker.terminate();
-        };
-
-        return () => worker.terminate();
+    const materialRef = useRef<THREE.ShaderMaterial>(null!);
+    
+    // Generate initial state once
+    const { instanceMatrix, phases, speeds } = useMemo(() => {
+        const matrix = new THREE.InstancedBufferAttribute(new Float32Array(count * 16), 16);
+        const p = new Float32Array(count);
+        const s = new Float32Array(count);
+        const dummy = new THREE.Object3D();
+        
+        for (let i = 0; i < count; i++) {
+            // Give them random starting positions (similar to worker, simplified here for speed)
+            const radius = 2 + Math.random() * 4;
+            const theta = Math.random() * Math.PI * 2;
+            const y = (Math.random() - 0.5) * 4;
+            
+            dummy.position.set(radius * Math.cos(theta), y, radius * Math.sin(theta));
+            dummy.updateMatrix();
+            dummy.matrix.toArray(matrix.array, i * 16);
+            
+            p[i] = Math.random() * Math.PI * 2;
+            s[i] = 0.005 + Math.random() * 0.05; // speed base
+        }
+        return { instanceMatrix: matrix, phases: p, speeds: s };
     }, [count]);
 
-    const dummy = useMemo(() => new THREE.Object3D(), []);
+    // Add attributes to geometry
+    const geometry = useMemo(() => {
+        const geo = new THREE.IcosahedronGeometry(0.03, 0);
+        geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 1));
+        geo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(speeds, 1));
+        return geo;
+    }, [phases, speeds]);
 
     useFrame((state) => {
-        if (!particleData) return;
-        const t = state.clock.getElapsedTime();
-        const { positions, velocities, phases, count: currentCount } = particleData;
-
-        for (let i = 0; i < currentCount; i++) {
-            const i3 = i * 3;
-
-            const x = positions[i3];
-            const z = positions[i3 + 2];
-            const speed = 0.005 + Math.abs(velocities[i3 + 1]) * 0.5;
-
-            /* eslint-disable react-hooks/immutability */
-            positions[i3] = x * Math.cos(speed) - z * Math.sin(speed);
-            positions[i3 + 2] = x * Math.sin(speed) + z * Math.cos(speed);
-            positions[i3 + 1] += Math.sin(t * 0.5 + phases[i]) * 0.01;
-            /* eslint-enable react-hooks/immutability */
-
-            dummy.position.set(
-                positions[i3],
-                positions[i3 + 1],
-                positions[i3 + 2]
-            );
-
-            const s = 0.5 + Math.sin(t * 2 + phases[i]) * 0.5;
-            dummy.scale.setScalar(s);
-
-            dummy.updateMatrix();
-            mesh.current.setMatrixAt(i, dummy.matrix);
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
         }
-        mesh.current.instanceMatrix.needsUpdate = true;
     });
 
-    if (!particleData) return null;
-
     return (
-        <instancedMesh ref={mesh} args={[undefined, undefined, particleData.count]}>
-            <icosahedronGeometry args={[0.03, 0]} />
-            <meshBasicMaterial
-                color="#00ffff"
+        <instancedMesh ref={mesh} args={[geometry, undefined, count]} instanceMatrix={instanceMatrix}>
+            <shaderMaterial
+                ref={materialRef}
+                vertexShader={particleVertexShader}
+                fragmentShader={particleFragmentShader}
+                uniforms={{ uTime: { value: 0 } }}
                 transparent
-                opacity={0.6}
+                depthWrite={false}
                 blending={THREE.AdditiveBlending}
             />
         </instancedMesh>
@@ -120,74 +140,192 @@ function latLngToVector3(lat: number, lng: number, radius: number) {
     );
 }
 
-// Pulsing Glow Mesh for Servers
-function PulsingGlow({ color }: { color: string }) {
-    const mesh = useRef<THREE.Mesh>(null!);
+function ServerNodes({ servers }: { servers: NetworkServer[] }) {
+    const coreRef = useRef<THREE.InstancedMesh>(null!);
+    const ringRef = useRef<THREE.InstancedMesh>(null!);
+    const glowRef = useRef<THREE.InstancedMesh>(null!);
+    
+    // Memoize static geometry to reuse
+    const coreGeo = useMemo(() => new THREE.SphereGeometry(0.04, 16, 16), []);
+    const ringGeo = useMemo(() => new THREE.RingGeometry(0.06, 0.07, 32), []);
+    const glowGeo = useMemo(() => new THREE.SphereGeometry(0.1, 16, 16), []);
+
+    React.useEffect(() => {
+        if (!coreRef.current || !ringRef.current || !glowRef.current) return;
+        
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+        
+        servers.forEach((server, i) => {
+            const pos = latLngToVector3(server.lat, server.lng, 2);
+            dummy.position.copy(pos);
+            dummy.rotation.set(0, 0, 0);
+            dummy.scale.setScalar(1);
+            dummy.updateMatrix();
+            
+            const cStr = server.status === 'online' ? '#00ff88' :
+                         server.status === 'offline' ? '#ff4444' :
+                         server.status === 'warning' ? '#ffcc00' : '#bd00ff';
+            color.set(cStr);
+            
+            coreRef.current.setMatrixAt(i, dummy.matrix);
+            coreRef.current.setColorAt(i, color);
+            
+            if (server.status === 'online') {
+                dummy.rotation.x = Math.PI / 2;
+                dummy.updateMatrix();
+                ringRef.current.setMatrixAt(i, dummy.matrix);
+                ringRef.current.setColorAt(i, color);
+                
+                dummy.rotation.set(0,0,0);
+                dummy.updateMatrix();
+                glowRef.current.setMatrixAt(i, dummy.matrix);
+                glowRef.current.setColorAt(i, color);
+            } else {
+                // Hide offline rings/glows by scaling to 0
+                dummy.scale.setScalar(0);
+                dummy.updateMatrix();
+                ringRef.current.setMatrixAt(i, dummy.matrix);
+                glowRef.current.setMatrixAt(i, dummy.matrix);
+            }
+        });
+        
+        coreRef.current.instanceMatrix.needsUpdate = true;
+        if(coreRef.current.instanceColor) coreRef.current.instanceColor.needsUpdate = true;
+        ringRef.current.instanceMatrix.needsUpdate = true;
+        if(ringRef.current.instanceColor) ringRef.current.instanceColor.needsUpdate = true;
+        glowRef.current.instanceMatrix.needsUpdate = true;
+        if(glowRef.current.instanceColor) glowRef.current.instanceColor.needsUpdate = true;
+    }, [servers]);
+
     useFrame((state) => {
+        if (!glowRef.current) return;
+        // Global pulsing effect in vertex shader or basic material override would be better,
+        // but simple global scale adjustment here for instanced mesh:
         const t = state.clock.getElapsedTime();
-        mesh.current.scale.setScalar(1 + Math.sin(t * 3) * 0.3);
-        (mesh.current.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(t * 3) * 0.2;
+        const scale = 1 + Math.sin(t * 3) * 0.3;
+        // In a perfect world we'd update instance matrices for scale, but standard material doesn't support global scale easily
+        // Workaround: we can update all matrices each frame, though still CPU work, it's 1 draw call instead of N.
+        const dummy = new THREE.Object3D();
+        servers.forEach((s, i) => {
+            if (s.status === 'online') {
+               const pos = latLngToVector3(s.lat, s.lng, 2);
+               dummy.position.copy(pos);
+               dummy.scale.setScalar(scale);
+               dummy.updateMatrix();
+               glowRef.current.setMatrixAt(i, dummy.matrix);
+            }
+        });
+        glowRef.current.instanceMatrix.needsUpdate = true;
+        // opacity trick applied to material globally
+        (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(t * 3) * 0.2;
     });
 
     return (
-        <mesh ref={mesh}>
-            <sphereGeometry args={[0.1, 16, 16]} />
-            <meshBasicMaterial color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-    );
-}
-
-// Server Nodes Component
-function ServerNodes({ servers }: { servers: NetworkServer[] }) {
-    return (
         <group>
-            {servers.map((server) => {
-                const position = latLngToVector3(server.lat, server.lng, 2);
-                const color =
-                    server.status === 'online' ? '#00ff88' :
-                        server.status === 'offline' ? '#ff4444' :
-                            server.status === 'warning' ? '#ffcc00' : '#bd00ff';
-
-                return (
-                    <group key={server.id} position={position}>
-                        {/* Core Server Node */}
-                        <Sphere args={[0.04, 16, 16]}>
-                            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} />
-                        </Sphere>
-
-                        {/* Outer Ring */}
-                        {server.status === 'online' && (
-                            <mesh rotation-x={Math.PI / 2}>
-                                <ringGeometry args={[0.06, 0.07, 32]} />
-                                <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
-                            </mesh>
-                        )}
-
-                        {server.status === 'online' && (
-                            <PulsingGlow color={color} />
-                        )}
-                    </group>
-                );
-            })}
+            <instancedMesh ref={coreRef} args={[coreGeo, undefined, servers.length]}>
+                <meshStandardMaterial toneMapped={false} />
+            </instancedMesh>
+            <instancedMesh ref={ringRef} args={[ringGeo, undefined, servers.length]}>
+                <meshBasicMaterial side={THREE.DoubleSide} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
+            </instancedMesh>
+            <instancedMesh ref={glowRef} args={[glowGeo, undefined, servers.length]}>
+                <meshBasicMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+            </instancedMesh>
         </group>
     );
 }
 
-// Animated Data Packet
-function DataPacket({ curve, color, speed, offset }: { curve: THREE.QuadraticBezierCurve3, color: string, speed: number, offset: number }) {
-    const mesh = useRef<THREE.Mesh>(null!);
+const packetVertexShader = `
+    uniform float uTime;
+    attribute vec3 aStart;
+    attribute vec3 aMid;
+    attribute vec3 aEnd;
+    attribute float aOffset;
+    attribute float aSpeed;
+    
+    // Quadratic Bezier Interpolation
+    vec3 getBezierPoint(float t, vec3 p0, vec3 p1, vec3 p2) {
+        float u = 1.0 - t;
+        float tt = t * t;
+        float uu = u * u;
+        vec3 p = uu * p0; 
+        p += 2.0 * u * t * p1; 
+        p += tt * p2; 
+        return p;
+    }
+
+    void main() {
+        // Calculate progress normalized 0 to 1
+        float t = fract(uTime * aSpeed + aOffset);
+        
+        vec3 pos = getBezierPoint(t, aStart, aMid, aEnd);
+        
+        vec4 mvPosition = viewMatrix * modelMatrix * vec4(pos + position, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+    }
+`;
+
+const packetFragmentShader = `
+    uniform vec3 uColor;
+    void main() {
+        gl_FragColor = vec4(uColor, 1.0);
+    }
+`;
+
+function DataPackets({ curves, color, speedBase, offsetBase }: { curves: THREE.QuadraticBezierCurve3[], color: string, speedBase: number, offsetBase: number }) {
+    const meshRef = useRef<THREE.InstancedMesh>(null!);
+    const materialRef = useRef<THREE.ShaderMaterial>(null!);
+    
+    const count = curves.length;
+    
+    const { startArr, midArr, endArr, offsetArr, speedArr } = useMemo(() => {
+        const _s = new Float32Array(count * 3);
+        const _m = new Float32Array(count * 3);
+        const _e = new Float32Array(count * 3);
+        const _o = new Float32Array(count);
+        const _sp = new Float32Array(count);
+        
+        curves.forEach((curve, i) => {
+            _s[i*3] = curve.v0.x; _s[i*3+1] = curve.v0.y; _s[i*3+2] = curve.v0.z;
+            _m[i*3] = curve.v1.x; _m[i*3+1] = curve.v1.y; _m[i*3+2] = curve.v1.z;
+            _e[i*3] = curve.v2.x; _e[i*3+1] = curve.v2.y; _e[i*3+2] = curve.v2.z;
+            
+            _o[i] = ((i * 9301 + 49297) % 233280) / 233280 + offsetBase;
+            _sp[i] = speedBase;
+        });
+        return { startArr: _s, midArr: _m, endArr: _e, offsetArr: _o, speedArr: _sp };
+    }, [curves, count, offsetBase, speedBase]);
+
+    const geometry = useMemo(() => {
+        const geo = new THREE.SphereGeometry(0.015, 8, 8);
+        geo.setAttribute('aStart', new THREE.InstancedBufferAttribute(startArr, 3));
+        geo.setAttribute('aMid', new THREE.InstancedBufferAttribute(midArr, 3));
+        geo.setAttribute('aEnd', new THREE.InstancedBufferAttribute(endArr, 3));
+        geo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offsetArr, 1));
+        geo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(speedArr, 1));
+        return geo;
+    }, [startArr, midArr, endArr, offsetArr, speedArr]);
 
     useFrame((state) => {
-        const t = (state.clock.getElapsedTime() * speed + offset) % 1;
-        const point = curve.getPoint(t);
-        mesh.current.position.copy(point);
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+        }
     });
 
     return (
-        <mesh ref={mesh}>
-            <sphereGeometry args={[0.015, 8, 8]} />
-            <meshBasicMaterial color={color} toneMapped={false} />
-        </mesh>
+        <instancedMesh ref={meshRef} args={[geometry, undefined, count]}>
+            <shaderMaterial
+                ref={materialRef}
+                vertexShader={packetVertexShader}
+                fragmentShader={packetFragmentShader}
+                uniforms={{
+                    uTime: { value: 0 },
+                    uColor: { value: new THREE.Color(color) }
+                }}
+                toneMapped={false}
+            />
+        </instancedMesh>
     );
 }
 
@@ -215,22 +353,21 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
                 const conn = connections[i];
                 const key = `${conn.from.lat},${conn.from.lng}-${conn.to.lat},${conn.to.lng}`;
                 return (
-                    <group key={key}>
-                        {/* The static connection line */}
-                        <Line
-                            points={curve.getPoints(40)}
-                            color="#00ffff"
-                            lineWidth={0.5}
-                            opacity={0.15}
-                            transparent
-                        />
-
-                        {/* Animated packets traveling along the line */}
-                        <DataPacket curve={curve} color="#00ffff" speed={0.5} offset={((i * 9301 + 49297) % 233280) / 233280} />
-                        <DataPacket curve={curve} color="#ff00ff" speed={0.3} offset={((i * 9301 + 49297) % 233280) / 233280 + 0.5} />
-                    </group>
+                    // The static connection line
+                    <Line
+                        key={key}
+                        points={curve.getPoints(40)}
+                        color="#00ffff"
+                        lineWidth={0.5}
+                        opacity={0.15}
+                        transparent
+                    />
                 );
             })}
+            
+            {/* Animated packets traveling along the lines handled by GPU Instanced Shader */}
+            <DataPackets curves={curves} color="#00ffff" speedBase={0.5} offsetBase={0} />
+            <DataPackets curves={curves} color="#ff00ff" speedBase={0.3} offsetBase={0.5} />
         </group>
     );
 }
@@ -387,8 +524,6 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
 
                 <EffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />
-                    <Noise opacity={0.05} />
-                    <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />
                 </EffectComposer>
             </Canvas>
