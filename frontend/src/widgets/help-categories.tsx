@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { ShieldAlert, Server, CreditCard, LockKeyhole } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
+import { ScrambleText } from '@/shared/ui/scramble-text';
 
 export function HelpCategories() {
     const t = useTranslations('HelpCenter');
+    const [routingIndex, setRoutingIndex] = useState<number | null>(null);
 
     const categories = [
         {
@@ -39,6 +42,19 @@ export function HelpCategories() {
         }
     ];
 
+    const handleCategoryClick = (idx: number) => {
+        setRoutingIndex(idx);
+        // Play routing effect briefly before scrolling
+        setTimeout(() => {
+            const faqSection = document.getElementById('faq');
+            if (faqSection) {
+                faqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            // Reset after scroll started
+            setTimeout(() => setRoutingIndex(null), 800);
+        }, 600);
+    };
+
     return (
         <section className="relative w-full">
             <div className="flex items-center gap-4 mb-10">
@@ -60,24 +76,34 @@ export function HelpCategories() {
                             viewport={{ once: true, margin: "-100px" }}
                             transition={{ duration: 0.5, delay: idx * 0.1 }}
                         >
-                            <TiltCard className="h-full cursor-pointer hover:border-terminal-border/80 transition-colors group">
-                                <div className="p-6 flex flex-col items-center text-center h-full">
-                                    <div className={`p-4 rounded-full bg-terminal-bg border border-terminal-border group-hover:bg-terminal-bg/50 transition-colors mb-6 relative`}>
-                                        <div className={`absolute inset-0 blur-md opacity-0 group-hover:opacity-30 transition-opacity bg-current ${cat.color} rounded-full`} />
-                                        <Icon className={`w-8 h-8 ${cat.color} relative z-10`} />
-                                    </div>
-                                    <h3 className="text-xl font-bold font-display mb-3 group-hover:text-neon-cyan transition-colors">
-                                        {t(cat.titleKey as any)}
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground font-mono flex-grow">
-                                        {t(cat.descKey as any)}
-                                    </p>
+                            <div onClick={() => handleCategoryClick(idx)}>
+                                <TiltCard className="h-full cursor-pointer hover:border-terminal-border/80 transition-colors group">
+                                    <div className="p-6 flex flex-col items-center text-center h-full">
+                                        <div className={`p-4 rounded-full bg-terminal-bg border border-terminal-border group-hover:bg-terminal-bg/50 transition-colors mb-6 relative ${routingIndex === idx ? 'animate-pulse' : ''}`}>
+                                            <div className={`absolute inset-0 blur-md opacity-0 group-hover:opacity-30 transition-opacity bg-current ${cat.color} rounded-full`} />
+                                            <Icon className={`w-8 h-8 ${cat.color} relative z-10 ${routingIndex === idx ? 'animate-ping' : ''}`} />
+                                        </div>
+                                        <h3 className="text-xl font-bold font-display mb-3 group-hover:text-neon-cyan transition-colors">
+                                            {routingIndex === idx ? (
+                                                <span className="text-neon-cyan tracking-widest"><ScrambleText text="ROUTING..." /></span>
+                                            ) : (
+                                                t(cat.titleKey as any)
+                                            )}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground font-mono flex-grow">
+                                            {routingIndex === idx ? (
+                                                <span className="text-neon-cyan/70">Establishing secure connection to databank node...</span>
+                                            ) : (
+                                                t(cat.descKey as any)
+                                            )}
+                                        </p>
                                     
                                     <div className="mt-6 w-full h-1 bg-terminal-bg rounded overflow-hidden">
                                         <div className="h-full bg-gradient-to-r from-transparent via-current to-transparent opacity-0 group-hover:opacity-50 group-hover:animate-pulse transition-opacity w-full" style={{ color: "var(--color-neon-cyan)" }} />
                                     </div>
-                                </div>
-                            </TiltCard>
+                                    </div>
+                                </TiltCard>
+                            </div>
                         </motion.div>
                     );
                 })}
