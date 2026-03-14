@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, MonitorPlay, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Smartphone, MonitorPlay, Zap, ToggleLeft, ToggleRight, HardDrive, DollarSign, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 
@@ -33,6 +33,16 @@ const DEFAULT_CONFIG: TwaMockConfig = {
 
 export function TwaTab({ isDark }: { isDark: boolean }) {
     const [config, setConfig] = useState<TwaMockConfig>(DEFAULT_CONFIG);
+    const [events, setEvents] = useState<{ id: string; time: Date; type: string; payload: string }[]>([]);
+
+    const logEvent = (type: string, payload: string) => {
+        setEvents(prev => [{ id: Math.random().toString(36).substring(7), time: new Date(), type, payload }, ...prev].slice(0, 50));
+    };
+
+    // Attach to global scope for the mock to call
+    useEffect(() => {
+        (window as any).__DEV_TWA_LOG__ = logEvent;
+    }, []);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -118,13 +128,63 @@ export function TwaTab({ isDark }: { isDark: boolean }) {
                     hideProgress: () => {}
                 },
                 HapticFeedback: {
-                    impactOccurred: () => {},
-                    notificationOccurred: () => {},
-                    selectionChanged: () => {}
+                    impactOccurred: (style: string) => (window as any).__DEV_TWA_LOG__?.('HAPTIC_IMPACT', style),
+                    notificationOccurred: (type: string) => (window as any).__DEV_TWA_LOG__?.('HAPTIC_NOTIFICATION', type),
+                    selectionChanged: () => (window as any).__DEV_TWA_LOG__?.('HAPTIC_SELECTION', 'changed')
                 },
-                ready: () => console.log('[TWA Mock] WebApp.ready() called'),
-                expand: () => console.log('[TWA Mock] WebApp.expand() called'),
-                close: () => console.log('[TWA Mock] WebApp.close() called'),
+                CloudStorage: {
+                    setItem: (key: string, value: string, cb?: (err: any, ok: boolean) => void) => {
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_SET', `${key}=${value.substring(0,20)}...`);
+                        localStorage.setItem(`TWA_CLOUD_${key}`, value);
+                        if(cb) cb(null, true);
+                    },
+                    getItem: (key: string, cb?: (err: any, val: string) => void) => {
+                        const val = localStorage.getItem(`TWA_CLOUD_${key}`) || '';
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_GET', `${key}=${val.substring(0,20)}...`);
+                        if(cb) cb(null, val);
+                    },
+                    getItems: (keys: string[], cb?: (err: any, vals: Record<string, string>) => void) => {
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_GET_MULTI', keys.join(','));
+                        const res: Record<string, string> = {};
+                        keys.forEach(k => res[k] = localStorage.getItem(`TWA_CLOUD_${k}`) || '');
+                        if(cb) cb(null, res);
+                    },
+                    removeItem: (key: string, cb?: (err: any, ok: boolean) => void) => {
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_REMOVE', key);
+                        localStorage.removeItem(`TWA_CLOUD_${key}`);
+                        if(cb) cb(null, true);
+                    },
+                    removeItems: (keys: string[], cb?: (err: any, ok: boolean) => void) => {
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_REMOVE_MULTI', keys.join(','));
+                        keys.forEach(k => localStorage.removeItem(`TWA_CLOUD_${k}`));
+                        if(cb) cb(null, true);
+                    },
+                    getKeys: (cb?: (err: any, keys: string[]) => void) => {
+                        const keys: string[] = [];
+                        for(let i=0; i<localStorage.length; i++) {
+                            const k = localStorage.key(i);
+                            if(k?.startsWith('TWA_CLOUD_')) keys.push(k.replace('TWA_CLOUD_', ''));
+                        }
+                        (window as any).__DEV_TWA_LOG__?.('CLOUD_KEYS', keys.join(','));
+                        if(cb) cb(null, keys);
+                    }
+                },
+                openInvoice: (url: string, callback?: (status: string) => void) => {
+                    (window as any).__DEV_TWA_LOG__?.('INVOICE_OPENED', url);
+                    if (confirm(`Simulate successful payment for invoice?\nURL: ${url}`)) {
+                        (window as any).__DEV_TWA_LOG__?.('INVOICE_STATUS', 'paid');
+                        if(callback) callback('paid');
+                    } else if (confirm('Simulate failed payment? (Click Cancel for cancelled)')) {
+                        (window as any).__DEV_TWA_LOG__?.('INVOICE_STATUS', 'failed');
+                        if(callback) callback('failed');
+                    } else {
+                        (window as any).__DEV_TWA_LOG__?.('INVOICE_STATUS', 'cancelled');
+                        if(callback) callback('cancelled');
+                    }
+                },
+                ready: () => (window as any).__DEV_TWA_LOG__?.('SYSTEM', 'WebApp.ready() called'),
+                expand: () => (window as any).__DEV_TWA_LOG__?.('SYSTEM', 'WebApp.expand() called'),
+                close: () => (window as any).__DEV_TWA_LOG__?.('SYSTEM', 'WebApp.close() called'),
             }
         };
 
@@ -289,6 +349,38 @@ export function TwaTab({ isDark }: { isDark: boolean }) {
                     >
                         Save & Reload Context
                     </button>
+                </div>
+            </div>
+
+            {/* Event Log */}
+            <div className={cn("flex-1 overflow-hidden border rounded flex flex-col min-h-[150px]", isDark ? "bg-black/30 border-gray-800" : "bg-slate-50/50 border-slate-200")}>
+                <div className={cn("p-2 border-b flex justify-between items-center", isDark ? "bg-gray-900 border-gray-800" : "bg-slate-100 border-slate-200")}>
+                    <h4 className={cn("font-bold text-[10px] uppercase flex items-center gap-2", isDark ? "text-gray-400" : "text-slate-500")}>
+                        <Activity className="w-3.5 h-3.5" /> SDK Event Log
+                    </h4>
+                    <button onClick={() => setEvents([])} className={cn("text-[9px] uppercase font-bold px-2 py-0.5 rounded", isDark ? "bg-gray-800 text-gray-400 hover:text-white" : "bg-white border text-slate-500 hover:text-slate-800")}>
+                        Clear
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {events.length === 0 ? (
+                        <div className="h-full flex items-center justify-center italic text-xs opacity-30">
+                            Waiting for WebApp calls...
+                        </div>
+                    ) : (
+                        events.map(ev => (
+                            <div key={ev.id} className="text-[10px] font-mono flex gap-2 border-b border-dashed border-gray-700/30 pb-1">
+                                <span className="opacity-50 shrink-0">{ev.time.toLocaleTimeString([], { hour12: false })}</span>
+                                <span className={cn("font-bold shrink-0", 
+                                    ev.type.includes('HAPTIC') ? (isDark ? 'text-pink-400' : 'text-pink-600') :
+                                    ev.type.includes('CLOUD') ? (isDark ? 'text-cyan-400' : 'text-cyan-600') :
+                                    ev.type.includes('INVOICE') ? (isDark ? 'text-green-400' : 'text-green-600') :
+                                    (isDark ? 'text-gray-400' : 'text-gray-600')
+                                )}>{ev.type}</span>
+                                <span className="text-gray-400 truncate break-all">{ev.payload}</span>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
