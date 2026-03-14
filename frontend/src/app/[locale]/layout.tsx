@@ -101,12 +101,12 @@ export default async function RootLayout({
                                     </div>
                                 </MotionProvider>
                             </SmoothScrollProvider>
+                            {/* Background scanline effect and glow can be global or part of specific layouts */}
+                            <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+                            <DevPanel />
+                            <WebVitalsReporter />
                           </QueryProvider>
                         </AuthProvider>
-                    {/* Background scanline effect and glow can be global or part of specific layouts */}
-                    <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
-                    <DevPanel />
-                    <WebVitalsReporter />
                 </NextIntlClientProvider>
                 </ThemeProvider>
                 <JsonLd<Organization>
