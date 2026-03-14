@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { TerminalSquare, Shield, Activity, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 interface DocsSidebarProps {
     activeSection: string;
@@ -48,10 +49,8 @@ export function DocsSidebar({ activeSection }: DocsSidebarProps) {
                                 
                                 return (
                                     <li key={item.id}>
-                                        <button 
-                                            onClick={() => {
-                                                document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' });
-                                            }}
+                                        <Link 
+                                            href={`#${item.id}`}
                                             className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-mono transition-all duration-300 relative group
                                                 ${isActive ? 'text-neon-cyan' : 'text-muted-foreground hover:text-foreground'}
                                             `}
@@ -74,7 +73,7 @@ export function DocsSidebar({ activeSection }: DocsSidebarProps) {
 
                                             <Icon className={`w-4 h-4 ${isActive ? 'opacity-100' : 'opacity-40 group-hover:opacity-80'}`} />
                                             <span className="truncate">{t(item.titleKey as any)}</span>
-                                        </button>
+                                        </Link>
                                     </li>
                                 );
                             })}
