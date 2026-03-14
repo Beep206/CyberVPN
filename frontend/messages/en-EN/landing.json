@@ -1,6 +1,6 @@
 {
   "hero": {
-    "protocol_badge": "PROTOCOL: VLESS-REALITY (ACTIVE) | CORE: XRAY-CORE",
+    "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
     "title": "INVISIBLE VPN. POWERED BY VLESS-REALITY",
     "titleHighlight": "INVISIBLE VPN",
     "subtitle": "Bypass DPI blocking of any complexity. Masquerade traffic as standard HTTPS. Up to 10 Gbps speeds without encapsulation loss.",
@@ -32,12 +32,12 @@
     },
     "protocols": {
       "title": "Advanced Protocols",
-      "desc": "Full support for VLESS, Trojan, and Shadowsocks-2022 for maximum compatibility."
+      "desc": "Full support for VLESS, Trojan, and Shadowsocks-2022. Native XHTTP support to bypass the strictest corporate and state firewalls—your traffic looks indistinguishable from standard HTTP requests to trusted resources."
     }
   },
   "how_it_works": {
     "title": "How Reality Works",
-    "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted."
+    "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted. Includes intelligent transport selection—automatically failing over to XHTTP if non-standard protocols are blocked."
   },
   "comparison_table": {
     "title": "Legacy vs Next-Gen",
@@ -92,7 +92,7 @@
   },
   "tech_specs": {
     "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
-    "transport": "Transport: TCP, gRPC, WebSocket (HTTP Upgrade)",
+    "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP",
     "network": "Network: 10Gbps Uplinks, Global IPv6 Support"
   },
   "pricing": {
