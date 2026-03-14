@@ -51,6 +51,19 @@ export function DocsSidebar({ activeSection }: DocsSidebarProps) {
                                     <li key={item.id}>
                                         <Link 
                                             href={`#${item.id}`}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                const element = document.getElementById(item.id);
+                                                if (element) {
+                                                    const headerOffset = 100;
+                                                    const elementPosition = element.getBoundingClientRect().top;
+                                                    const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                                                    window.scrollTo({
+                                                        top: offsetPosition,
+                                                        behavior: "smooth"
+                                                    });
+                                                }
+                                            }}
                                             className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-mono transition-all duration-300 relative group
                                                 ${isActive ? 'text-neon-cyan' : 'text-muted-foreground hover:text-foreground'}
                                             `}
