@@ -80,7 +80,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         referral,
         partner,
         devices,
-        helpCenter
+        helpCenter,
+        docs
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
@@ -108,7 +109,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         import(`../../messages/${locale}/referral.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/partner.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/devices.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/HelpCenter.json`).catch(() => ({ default: {} }))
+        import(`../../messages/${locale}/HelpCenter.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/Docs.json`).catch(() => ({ default: {} }))
     ]);
 
     return {
@@ -138,6 +140,7 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         Referral: referral.default,
         Partner: partner.default,
         Devices: devices.default,
-        HelpCenter: helpCenter.default
+        HelpCenter: helpCenter.default,
+        Docs: docs.default
     };
 });
