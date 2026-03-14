@@ -53,6 +53,15 @@ import { MotionProvider } from "@/app/providers/motion-provider";
 import { DevPanel } from "@/features/dev/dev-panel";
 import { SkipNavLink } from "@/shared/ui/atoms/skip-nav-link";
 import { WebVitalsReporter } from "@/shared/ui/atoms/web-vitals-reporter";
+import { injectTwaMock } from '@/features/dev/lib/twa-mock';
+import { consoleInterceptor } from '@/features/dev/lib/console-interceptor';
+
+// Inject TWA mock on the server pass if it's a client render, 
+// though typically this specifically works in the client bundle.
+if (typeof window !== 'undefined') {
+    injectTwaMock();
+    consoleInterceptor.start();
+}
 
 export default async function RootLayout({
     children,
