@@ -21,6 +21,9 @@ export function I18nTab({ isDark }: { isDark: boolean }) {
         const next = !forceRtl;
         setForceRtl(next);
         document.documentElement.dir = next ? 'rtl' : 'ltr';
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DEV_RTL', next ? 'true' : 'false');
+        }
     };
 
     const toggleShowKeys = () => {
