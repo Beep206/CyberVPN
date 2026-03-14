@@ -18,6 +18,7 @@ import { FlagsTab } from "./tabs/flags-tab";
 import { ChaosTab } from "./tabs/chaos-tab";
 import { I18nTab } from "./tabs/i18n-tab";
 import { ThemeTab } from "./tabs/theme-tab";
+import { networkLogger } from "./lib/network-logger";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +31,27 @@ export function DevPanel() {
     useEffect(() => {
         setMounted(true);
         setBypassAuth(document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH=')));
+
+        // Global Persistence Initializations for Dev Panel features
+        networkLogger.start();
+
+        if (typeof window !== 'undefined') {
+            // Restore RTL setting
+            if (localStorage.getItem('DEV_RTL') === 'true') {
+                document.documentElement.dir = 'rtl';
+            }
+
+            // Restore Custom Theme
+            const savedTheme = localStorage.getItem('DEV_THEME');
+            if (savedTheme) {
+                try {
+                    const parsedTheme = JSON.parse(savedTheme);
+                    Object.entries(parsedTheme).forEach(([key, val]) => {
+                        document.documentElement.style.setProperty(key, val as string);
+                    });
+                } catch { /* ignore */ }
+            }
+        }
     }, []);
     /* eslint-enable react-hooks/set-state-in-effect */
 

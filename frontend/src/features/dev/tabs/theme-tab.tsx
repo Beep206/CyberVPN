@@ -20,19 +20,31 @@ export function ThemeTab({ isDark }: { isDark: boolean }) {
         if (typeof window !== 'undefined') {
             const root = document.documentElement;
             const computed = getComputedStyle(root);
-            const initialColors: Record<string, string> = {};
+            let initialColors: Record<string, string> = {};
             
+            // First check if we have saved theme
+            const savedTheme = localStorage.getItem('DEV_THEME');
+            if (savedTheme) {
+                try { initialColors = JSON.parse(savedTheme); } catch { /* ignore */ }
+            }
+
             THEME_VARS.forEach(v => {
-                const val = computed.getPropertyValue(v.name).trim();
-                // If it's empty, use the hardcoded default from the list
-                initialColors[v.name] = val.startsWith('#') || val.startsWith('rgb') ? val : v.defaultVal;
+                if (!initialColors[v.name]) {
+                    const val = computed.getPropertyValue(v.name).trim();
+                    // If it's empty, use the hardcoded default from the list
+                    initialColors[v.name] = val.startsWith('#') || val.startsWith('rgb') ? val : v.defaultVal;
+                }
             });
             setColors(initialColors);
         }
     }, []);
 
     const handleColorChange = (name: string, value: string) => {
-        setColors(prev => ({ ...prev, [name]: value }));
+        setColors(prev => {
+            const next = { ...prev, [name]: value };
+            localStorage.setItem('DEV_THEME', JSON.stringify(next));
+            return next;
+        });
         document.documentElement.style.setProperty(name, value);
     };
 
@@ -55,6 +67,7 @@ export function ThemeTab({ isDark }: { isDark: boolean }) {
             document.documentElement.style.removeProperty(v.name);
         });
         setColors(resetColors);
+        localStorage.removeItem('DEV_THEME');
     };
 
     return (
