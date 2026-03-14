@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Layout, Trash2 } from "lucide-react";
+import { Layout, Trash2, Server } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export function ToolsTab({ isDark }: { isDark: boolean }) {
     const [outlines, setOutlines] = useState(false);
+    const [rscActive, setRscActive] = useState(false);
 
     /* eslint-disable react-hooks/set-state-in-effect -- Restore dev outlines on mount */
     useEffect(() => {
@@ -37,6 +38,35 @@ export function ToolsTab({ isDark }: { isDark: boolean }) {
             style?.remove();
         }
     }, [outlines, isDark]);
+
+    // RSC vs Client Highlighter
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const styleId = 'dev-rsc-style';
+        if (rscActive) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.innerHTML = `
+                body *:not(#dev-panel-root):not(#dev-panel-root *) {
+                    outline: 2px solid rgba(59, 130, 246, 0.4) !important; /* Server (Blue) */
+                    outline-offset: -2px;
+                }
+                body button, body input, body select, body textarea, body a, body [role="button"], body [tabindex] {
+                    outline: 2px solid rgba(234, 179, 8, 0.7) !important; /* Client (Yellow) */
+                    outline-offset: -2px;
+                    background-color: rgba(234, 179, 8, 0.1) !important;
+                }
+            `;
+            document.head.appendChild(style);
+        } else {
+            document.getElementById(styleId)?.remove();
+        }
+
+        return () => {
+            document.getElementById(styleId)?.remove();
+        };
+    }, [rscActive]);
 
     const handleClearStorage = (type: 'local' | 'session' | 'cookies') => {
         if (typeof window !== 'undefined') {
@@ -85,6 +115,43 @@ export function ToolsTab({ isDark }: { isDark: boolean }) {
                             "absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md transition-transform duration-300",
                             outlines
                                 ? (isDark ? "translate-x-7 bg-neon-cyan shadow-[0_0_15px_#00ffff]" : "translate-x-7 bg-blue-500")
+                                : (isDark ? "translate-x-0 bg-gray-400" : "translate-x-0 bg-white")
+                        )}
+                        layout
+                    />
+                </button>
+            </div>
+
+            {/* RSC vs Client Highlighter */}
+            <div className={cn(
+                "flex items-center justify-between p-4 border rounded transition-colors",
+                isDark
+                    ? "border-purple-900/40 bg-black hover:border-purple-500/60"
+                    : "border-slate-200 bg-white hover:border-purple-300"
+            )}>
+                <div className="flex gap-3 items-center">
+                    <div className={cn("p-2 rounded", isDark ? "bg-purple-500/10" : "bg-purple-50")}>
+                        <Server className={cn("w-5 h-5", isDark ? "text-purple-400" : "text-purple-500")} />
+                    </div>
+                    <div>
+                        <h4 className={cn("text-base font-extrabold", isDark ? "text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "text-purple-700")}>RSC vs Client Highlight</h4>
+                        <p className={cn("text-xs mt-1 font-semibold transition-colors", isDark ? "text-gray-400" : "text-slate-500")}>Highlights Server Components (Blue) and Client Islands (Yellow).</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setRscActive(!rscActive)}
+                    className={cn(
+                        "relative w-14 h-7 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2",
+                        rscActive
+                            ? (isDark ? "bg-purple-500/30 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "bg-purple-100 border-purple-500")
+                            : (isDark ? "bg-gray-800 border-gray-500 shadow-[0_0_15px_rgba(0,0,0,0.5)]" : "bg-slate-200 border-slate-300")
+                    )}
+                >
+                    <motion.div
+                        className={cn(
+                            "absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow-md transition-transform duration-300",
+                            rscActive
+                                ? (isDark ? "translate-x-7 bg-purple-400 shadow-[0_0_15px_#a855f7]" : "translate-x-7 bg-purple-500")
                                 : (isDark ? "translate-x-0 bg-gray-400" : "translate-x-0 bg-white")
                         )}
                         layout
