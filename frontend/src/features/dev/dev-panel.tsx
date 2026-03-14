@@ -30,6 +30,7 @@ import { AutofillTab } from './tabs/autofill-tab';
 import { ToolsTab } from "./tabs/tools-tab";
 import { networkLogger } from "./lib/network-logger";
 import { renderProfiler } from "./lib/render-profiler";
+import { cssXRay } from "./lib/css-xray";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
@@ -53,20 +54,34 @@ export function DevPanel() {
             if (savedMocks) {
                 try { networkLogger.mockRules = JSON.parse(savedMocks); } catch {}
             }
+            
             // Restore RTL setting
             if (localStorage.getItem('DEV_RTL') === 'true') {
                 document.documentElement.dir = 'rtl';
             }
 
-            // Restore Custom Theme
-            const savedTheme = localStorage.getItem('DEV_THEME');
+            // Restore custom theme
+            const savedTheme = localStorage.getItem('DEV_CUSTOM_THEME');
             if (savedTheme) {
                 try {
-                    const parsedTheme = JSON.parse(savedTheme);
-                    Object.entries(parsedTheme).forEach(([key, val]) => {
-                        document.documentElement.style.setProperty(key, val as string);
-                    });
-                } catch { /* ignore */ }
+                    const theme = JSON.parse(savedTheme);
+                    if (theme && typeof theme === 'object') {
+                        Object.keys(theme).forEach(key => {
+                            if (theme[key]) document.documentElement.style.setProperty(key, theme[key]);
+                        });
+                    }
+                } catch (e) { }
+            }
+
+            // Start global instances
+            networkLogger.start(); // Keep networkLogger.start() here as it's a global instance
+            renderProfiler.start();
+            cssXRay.start();
+            
+            // Set mock rules
+            const localRules = localStorage.getItem('dev_mock_rules');
+            if (localRules) {
+                try { networkLogger.mockRules = JSON.parse(localRules); } catch {}
             }
         }
     }, []);

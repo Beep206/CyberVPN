@@ -1,48 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { cssXRay } from '../lib/css-xray';
 
 export function XRayTab({ isDark }: { isDark: boolean }) {
     const [xrayActive, setXrayActive] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('DEV_CSS_XRAY') === 'true';
-            setXrayActive(saved);
+            setXrayActive(cssXRay.isActive);
         }
     }, []);
 
-    useEffect(() => {
-        if (typeof document === 'undefined') return;
-
-        const id = 'dev-css-xray-styles';
-        let styleEl = document.getElementById(id) as HTMLStyleElement;
-
-        if (xrayActive) {
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = id;
-                document.head.appendChild(styleEl);
-            }
-            // Intentionally aggressive universal selector to reveal all bounding boxes
-            styleEl.textContent = `
-                * {
-                    outline: 1px solid rgba(0, 255, 255, 0.5) !important;
-                    background: rgba(0, 0, 0, 0.1) !important;
-                }
-                #dev-panel-root, #dev-panel-root * {
-                    outline: none !important;
-                    background: inherit !important;
-                }
-            `;
-        } else {
-            if (styleEl) styleEl.remove();
-        }
-
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('DEV_CSS_XRAY', xrayActive ? 'true' : 'false');
-        }
-    }, [xrayActive]);
+    const toggleXRay = () => {
+        const next = !xrayActive;
+        setXrayActive(next);
+        cssXRay.toggle(next);
+    };
 
     return (
         <div className="space-y-6 relative z-20 h-full flex flex-col">
@@ -66,11 +40,11 @@ export function XRayTab({ isDark }: { isDark: boolean }) {
                     </p>
                 </div>
                 {xrayActive ? (
-                    <button onClick={() => setXrayActive(false)} className={cn("relative w-12 h-6 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2", isDark ? "bg-cyan-500/30 border-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.4)]" : "bg-cyan-100 border-cyan-500")}>
+                    <button onClick={toggleXRay} className={cn("relative w-12 h-6 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2", isDark ? "bg-cyan-500/30 border-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.4)]" : "bg-cyan-100 border-cyan-500")}>
                          <div className={cn("absolute top-0.5 left-0.5 w-4 h-4 rounded-full shadow-md transition-transform duration-300", isDark ? "translate-x-6 bg-cyan-400 shadow-[0_0_10px_#22d3ee]" : "translate-x-6 bg-cyan-500")} />
                     </button>
                 ) : (
-                    <button onClick={() => setXrayActive(true)} className={cn("relative w-12 h-6 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2", isDark ? "bg-gray-800 border-gray-600" : "bg-slate-200 border-slate-300")}>
+                    <button onClick={toggleXRay} className={cn("relative w-12 h-6 shrink-0 rounded-full transition-colors duration-300 focus:outline-none border-2", isDark ? "bg-gray-800 border-gray-600" : "bg-slate-200 border-slate-300")}>
                          <div className={cn("absolute top-0.5 left-0.5 w-4 h-4 rounded-full shadow-md transition-transform duration-300", isDark ? "translate-x-0 bg-gray-400" : "translate-x-0 bg-white")} />
                     </button>
                 )}
