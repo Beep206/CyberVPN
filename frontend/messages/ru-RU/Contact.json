@@ -1,5 +1,14 @@
 {
-  "title": "SECURE_UPLINK",
-  "subtitle": "ESTABLISH DIRECT CONNECTION",
-  "terminalName": "root@cybervpn-relay:~$"
+  "title": "ЗАЩИЩЕННАЯ СВЯЗЬ",
+  "subtitle": "Глобальный зашифрованный ретранслятор",
+  "form": {
+    "name": "Позывной / Имя",
+    "email": "Адрес для ответа",
+    "department": "Выберите подсеть",
+    "department_support": "Техническая поддержка",
+    "department_sales": "Корпоративный отдел",
+    "message": "Текст передачи",
+    "submit": "НАЧАТЬ ПЕРЕДАЧУ",
+    "success": "Пакет доставлен. Следы стерты."
+  }
 }
