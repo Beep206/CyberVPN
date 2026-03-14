@@ -20,6 +20,8 @@ export function QueryTab({ isDark }: { isDark: boolean }) {
     const [queries, setQueries] = useState<QueryInfo[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [editData, setEditData] = useState<Record<string, string>>({});
 
     const updateQueries = () => {
         if (!queryClient) return;
@@ -77,6 +79,33 @@ export function QueryTab({ isDark }: { isDark: boolean }) {
     const handleRefetch = (queryKeyStr: string) => {
         if (!queryClient) return;
         queryClient.refetchQueries({ queryKey: JSON.parse(queryKeyStr) });
+    };
+
+    const toggleExpand = (queryHash: string, data: any) => {
+        const next = new Set(expandedIds);
+        if (next.has(queryHash)) {
+            next.delete(queryHash);
+        } else {
+            next.add(queryHash);
+            setEditData(prev => ({ ...prev, [queryHash]: JSON.stringify(data, null, 2) }));
+        }
+        setExpandedIds(next);
+    };
+
+    const handleSaveCacheData = (queryKeyStr: string, queryHash: string) => {
+        if (!queryClient) return;
+        try {
+            const parsed = JSON.parse(editData[queryHash]);
+            queryClient.setQueryData(JSON.parse(queryKeyStr), parsed);
+            // Brief flush to show it worked
+            setExpandedIds(prev => {
+                const next = new Set(prev);
+                next.delete(queryHash);
+                return next;
+            });
+        } catch (err) {
+            alert('Invalid JSON! Cannot save to cache.');
+        }
     };
 
     const filteredQueries = queries.filter(q => q.queryKey.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -164,9 +193,12 @@ export function QueryTab({ isDark }: { isDark: boolean }) {
                                     isDark ? "bg-black/40 border-gray-800 hover:border-orange-500/30" : "bg-white border-slate-200 hover:border-orange-300"
                                 )}
                             >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="font-mono font-bold break-all pr-4">
-                                        {query.queryKey}
+                                <div className="flex justify-between items-start mb-2 group/header">
+                                    <div 
+                                        className="font-mono font-bold break-all pr-4 cursor-pointer hover:text-orange-500 transition-colors"
+                                        onClick={() => toggleExpand(query.queryHash, query.state.data)}
+                                    >
+                                        {expandedIds.has(query.queryHash) ? '▼' : '▶'} {query.queryKey}
                                     </div>
                                     <div className={cn("px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0", getStatusColor(query.status, query.fetchStatus))}>
                                         {query.fetchStatus === 'fetching' ? 'fetching' : query.status}
@@ -206,6 +238,29 @@ export function QueryTab({ isDark }: { isDark: boolean }) {
                                         Remove
                                     </button>
                                 </div>
+
+                                {expandedIds.has(query.queryHash) && (
+                                    <div className={cn("mt-3 pt-3 border-t", isDark ? "border-gray-800" : "border-slate-200")}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] font-bold uppercase opacity-50">Cache Payload (JSON)</span>
+                                            <button 
+                                                onClick={() => handleSaveCacheData(query.queryKey, query.queryHash)}
+                                                className={cn("text-[10px] font-bold uppercase px-2 py-0.5 rounded", isDark ? "bg-green-500/20 text-green-400 hover:bg-green-500/40" : "bg-green-100 text-green-700 hover:bg-green-200")}
+                                            >
+                                                Save to Cache
+                                            </button>
+                                        </div>
+                                        <textarea
+                                            value={editData[query.queryHash] || ''}
+                                            onChange={(e) => setEditData(prev => ({ ...prev, [query.queryHash]: e.target.value }))}
+                                            className={cn(
+                                                "w-full h-32 p-2 text-[10px] font-mono rounded bg-black/50 border outline-none resize-y",
+                                                isDark ? "border-gray-800 focus:border-orange-500/50 text-orange-200" : "bg-slate-50 border-slate-300 focus:border-orange-500/50 text-slate-700"
+                                            )}
+                                            spellCheck={false}
+                                        />
+                                    </div>
+                                )}
                             </motion.div>
                         );
                     })}
