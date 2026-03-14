@@ -67,7 +67,7 @@ export function TechDataGrid({ title, items, className = '', columns = 3 }: Tech
                             </span>
                             <span className="text-sm md:text-base font-mono text-neon-cyan/90 break-words drop-shadow-[0_0_5px_rgba(0,255,255,0.3)]">
                                 {item.scramble ? (
-                                    <ScrambleText text={item.value} triggerOnHover />
+                                    <ScrambleText text={item.value} />
                                 ) : (
                                     item.value
                                 )}
