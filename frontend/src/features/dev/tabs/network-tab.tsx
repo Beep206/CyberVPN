@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Activity, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Activity, Trash2, ChevronDown, ChevronRight, Terminal, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { networkLogger, NetworkLogEntry } from "../lib/network-logger";
 
@@ -37,6 +37,49 @@ export function NetworkTab({ isDark }: { isDark: boolean }) {
         if (status >= 200 && status < 300) return isDark ? "text-neon-cyan" : "text-green-500";
         if (status >= 400 && status < 500) return isDark ? "text-yellow-400" : "text-orange-500";
         return isDark ? "text-neon-pink" : "text-red-500";
+    };
+
+    const exportAsCurl = (log: NetworkLogEntry) => {
+        let curl = `curl '${log.url}' \\\n  -X '${log.method}' \\\n`;
+        
+        let headers = { ...log.reqHeaders };
+        // If it's a replay, we want to try to keep it close to original
+        Object.entries(headers).forEach(([key, val]) => {
+            if (val) curl += `  -H '${key}: ${val}' \\\n`;
+        });
+
+        if (log.reqBody) {
+            const bodyStr = typeof log.reqBody === 'object' ? JSON.stringify(log.reqBody) : String(log.reqBody);
+            // Escape single quotes for bash
+            curl += `  --data-raw '${bodyStr.replace(/'/g, "'\\''")}' \\\n`;
+        }
+
+        // Remove trailing slash and newline
+        curl = curl.trim().replace(/\\\n$/, '').trim();
+        if (curl.endsWith('\\')) curl = curl.slice(0, -1).trim();
+
+        navigator.clipboard.writeText(curl);
+        
+        // Brief visual feedback (could use a toast here if configured, or just console)
+        console.log('[Dev Tools] Copied cURL to clipboard:\n', curl);
+        alert('Copied cURL to clipboard!');
+    };
+
+    const replayRequest = async (log: NetworkLogEntry, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const options: RequestInit = {
+                method: log.method,
+                headers: log.reqHeaders as HeadersInit,
+            };
+            if (log.method !== 'GET' && log.method !== 'HEAD' && log.reqBody) {
+                options.body = typeof log.reqBody === 'object' ? JSON.stringify(log.reqBody) : String(log.reqBody);
+            }
+            // Fetch triggers the interceptor natively, so it will appear at the top of the logs
+            await fetch(log.url, options);
+        } catch (err) {
+            console.error('[Dev Tools] Replay failed', err);
+        }
     };
 
     return (
@@ -109,8 +152,31 @@ export function NetworkTab({ isDark }: { isDark: boolean }) {
                                     </tr>
                                     {isExpanded && (
                                         <tr className={cn("border-b", isDark ? "bg-black border-gray-900" : "bg-white border-slate-200")}>
-                                            <td colSpan={5} className="p-4 text-[11px] font-mono whitespace-pre-wrap break-all">
-                                                <div className="space-y-3">
+                                            <td colSpan={5} className="p-4 text-[11px] font-mono whitespace-pre-wrap break-all relative">
+                                                
+                                                {/* Action Bar */}
+                                                <div className="absolute top-4 right-4 flex gap-2">
+                                                    <button 
+                                                        onClick={() => exportAsCurl(log)}
+                                                        className={cn(
+                                                            "flex items-center gap-1.5 px-2 py-1 rounded border transition-colors",
+                                                            isDark ? "border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800" : "border-slate-300 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        <Terminal className="w-3 h-3" /> cURL
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => replayRequest(log, e)}
+                                                        className={cn(
+                                                            "flex items-center gap-1.5 px-2 py-1 rounded border transition-colors text-blue-500",
+                                                            isDark ? "border-blue-900/50 hover:bg-blue-900/30" : "border-blue-200 hover:bg-blue-50"
+                                                        )}
+                                                    >
+                                                        <RefreshCw className="w-3 h-3" /> Replay
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3 pr-40">
                                                     <div>
                                                         <span className={cn("font-bold", isDark ? "text-neon-cyan" : "text-blue-600")}>URL: </span>
                                                         <span className={isDark ? "text-gray-300" : "text-slate-600"}>{log.url}</span>
