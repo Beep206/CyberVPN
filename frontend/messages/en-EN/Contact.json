@@ -1,5 +1,14 @@
 {
-  "title": "SECURE_UPLINK",
-  "subtitle": "ESTABLISH DIRECT CONNECTION",
-  "terminalName": "root@cybervpn-relay:~$"
+  "title": "SECURE COMMS",
+  "subtitle": "Global encrypted relay",
+  "form": {
+    "name": "Alias / Designation",
+    "email": "Encrypted Reply Address",
+    "department": "Select Sub-net",
+    "department_support": "Technical Operations",
+    "department_sales": "Enterprise Acquisitions",
+    "message": "Transmission Payload",
+    "submit": "INITIATE UPLINK",
+    "success": "Payload Delivered. Trace wiped."
+  }
 }
