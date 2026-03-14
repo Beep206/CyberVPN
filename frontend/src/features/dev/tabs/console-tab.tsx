@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Trash2, Pause, Play, ChevronRight, ChevronDown } from 'lucide-react';
+import { Terminal, Trash2, Pause, Play, ChevronRight, ChevronDown, Cpu, FastForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { consoleInterceptor, ConsoleMessage } from '../lib/console-interceptor';
@@ -92,6 +92,8 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
     const [messages, setMessages] = useState<ConsoleMessage[]>([]);
     const [isPaused, setIsPaused] = useState(false);
     const [filter, setFilter] = useState<string>('all');
+    const [regexFilter, setRegexFilter] = useState<string>('');
+    const [replInput, setReplInput] = useState<string>('');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -122,7 +124,43 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
         console.table([{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }]);
     };
 
-    const filteredMessages = messages.filter(msg => filter === 'all' || msg.level === filter);
+    const handleEval = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!replInput.trim()) return;
+
+        console.log(`> ${replInput}`);
+        try {
+            // eslint-disable-next-line no-eval
+            const result = eval(replInput);
+            
+            // Handle promises heuristically
+            if (result instanceof Promise) {
+                console.info("Promise { <pending> }");
+                result.then(v => console.log("Promise resolved:", v)).catch(err => console.error("Promise rejected:", err));
+            } else {
+                console.info(result);
+            }
+        } catch (err: any) {
+            console.error(err);
+        }
+        setReplInput('');
+    };
+
+    const filteredMessages = messages.filter(msg => {
+        if (filter !== 'all' && msg.level !== filter) return false;
+        
+        if (regexFilter) {
+            try {
+                const re = new RegExp(regexFilter, 'i');
+                // Basic stringification check for the filter
+                const strContent = msg.args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+                if (!re.test(strContent)) return false;
+            } catch {
+                return true; // invalid regex fails open
+            }
+        }
+        return true;
+    });
 
     return (
         <div className="absolute inset-0 flex flex-col relative z-20">
@@ -171,6 +209,19 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
                         {level}
                     </button>
                 ))}
+
+                <div className="mx-2 w-px h-4 bg-gray-700/50" />
+                
+                <input
+                    type="text"
+                    placeholder="Regex Filter..."
+                    value={regexFilter}
+                    onChange={e => setRegexFilter(e.target.value)}
+                    className={cn(
+                        "px-2 py-1 flex-1 min-w-[100px] text-[10px] font-mono rounded bg-transparent border outline-none",
+                        isDark ? "border-gray-800 focus:border-green-500/50 text-gray-300" : "border-slate-300 focus:border-green-500/50 text-slate-700"
+                    )}
+                />
                 
                 <span className={cn("ml-auto text-[10px] font-mono", isDark ? "text-gray-600" : "text-slate-400")}>
                     {messages.length} logs
@@ -230,6 +281,23 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
                     )}
                 </div>
             </div>
+
+            {/* REPL Input */}
+            <form onSubmit={handleEval} className={cn("p-2 border-t flex items-center gap-2 shrink-0", isDark ? "border-gray-800 bg-gray-900" : "border-slate-200 bg-slate-50")}>
+                <FastForward className={cn("w-4 h-4 shrink-0", isDark ? "text-green-500" : "text-green-600")} />
+                <input
+                    type="text"
+                    value={replInput}
+                    onChange={(e) => setReplInput(e.target.value)}
+                    placeholder="Evaluate JavaScript context... e.g., document.title"
+                    className={cn(
+                        "w-full bg-transparent border-none outline-none font-mono text-xs",
+                        isDark ? "text-gray-200 placeholder:text-gray-600" : "text-slate-800 placeholder:text-slate-400"
+                    )}
+                    spellCheck={false}
+                    autoComplete="off"
+                />
+            </form>
         </div>
     );
 }
