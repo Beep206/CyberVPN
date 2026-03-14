@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import { ShieldAlert, Server, CreditCard, LockKeyhole } from 'lucide-react';
@@ -10,9 +11,13 @@ import { ScrambleText } from '@/shared/ui/scramble-text';
 export function HelpCategories() {
     const t = useTranslations('HelpCenter');
     const [routingIndex, setRoutingIndex] = useState<number | null>(null);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const categories = [
         {
+            id: 'getting_started',
             icon: ShieldAlert,
             titleKey: 'category_getting_started',
             descKey: 'category_getting_started_desc',
@@ -20,6 +25,7 @@ export function HelpCategories() {
             glow: 'shadow-matrix-green'
         },
         {
+            id: 'troubleshooting',
             icon: Server,
             titleKey: 'category_troubleshooting',
             descKey: 'category_troubleshooting_desc',
@@ -27,6 +33,7 @@ export function HelpCategories() {
             glow: 'shadow-neon-cyan'
         },
         {
+            id: 'billing',
             icon: CreditCard,
             titleKey: 'category_billing',
             descKey: 'category_billing_desc',
@@ -34,6 +41,7 @@ export function HelpCategories() {
             glow: 'shadow-neon-pink'
         },
         {
+            id: 'security',
             icon: LockKeyhole,
             titleKey: 'category_security',
             descKey: 'category_security_desc',
@@ -42,8 +50,14 @@ export function HelpCategories() {
         }
     ];
 
-    const handleCategoryClick = (idx: number) => {
+    const handleCategoryClick = (idx: number, catId: string) => {
         setRoutingIndex(idx);
+
+        // Update URL
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('category', catId);
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+
         // Play routing effect briefly before scrolling
         setTimeout(() => {
             const faqSection = document.getElementById('faq');
@@ -76,7 +90,7 @@ export function HelpCategories() {
                             viewport={{ once: true, margin: "-100px" }}
                             transition={{ duration: 0.5, delay: idx * 0.1 }}
                         >
-                            <div onClick={() => handleCategoryClick(idx)}>
+                            <div onClick={() => handleCategoryClick(idx, cat.id)}>
                                 <TiltCard className="h-full cursor-pointer hover:border-terminal-border/80 transition-colors group">
                                     <div className="p-6 flex flex-col items-center text-center h-full">
                                         <div className={`p-4 rounded-full bg-terminal-bg border border-terminal-border group-hover:bg-terminal-bg/50 transition-colors mb-6 relative ${routingIndex === idx ? 'animate-pulse' : ''}`}>

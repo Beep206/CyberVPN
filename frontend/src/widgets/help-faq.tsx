@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import { TerminalSquare, Cpu, Lock, Fingerprint, RefreshCcw } from 'lucide-react';
@@ -11,13 +12,28 @@ const QA_COUNT = 4;
 // Helper icons map
 const ICONS = [Cpu, Lock, Fingerprint, TerminalSquare];
 
-export function HelpFaq() {
+// We must wrap the component relying on useSearchParams in a Suspense boundary 
+// but since it's the main export, we can just export a wrapper or handle it safely.
+// For Next.js App Router client components, useSearchParams must be suspended.
+function HelpFaqContent() {
     const t = useTranslations('HelpCenter');
+    const searchParams = useSearchParams();
+    
+    // Default to 'getting_started' if no category is selected or it's invalid
+    const categoryQuery = searchParams.get('category') || 'getting_started';
+    const validCategories = ['getting_started', 'troubleshooting', 'billing', 'security'];
+    const activeCategory = validCategories.includes(categoryQuery) ? categoryQuery : 'getting_started';
+
     const [activeIndex, setActiveIndex] = useState<number>(0);
     const [isDecrypting, setIsDecrypting] = useState(false);
     const [typedAnswer, setTypedAnswer] = useState('');
 
-    const currentAnswer = t(`faq_${activeIndex + 1}_a` as any);
+    // Reset the active question to the first one whenever category changes
+    useEffect(() => {
+        setActiveIndex(0);
+    }, [activeCategory]);
+
+    const currentAnswer = t(`faq_${activeCategory}_${activeIndex + 1}_a` as any);
 
     // Terminal Decoder typewriter effect logic
     useEffect(() => {
@@ -64,9 +80,9 @@ export function HelpFaq() {
                 <div className="lg:col-span-5 flex flex-col gap-4 relative z-10">
                     <p className="font-mono text-muted-foreground/50 text-xs mb-2 pl-2">SELECT_NODE_FOR_DECRYPTION</p>
                     
-                    {Array.from({ length: QA_COUNT }).map((_, idx) => {
+                    {Array.from({ length: 3 }).map((_, idx) => {
                         const isActive = activeIndex === idx;
-                        const question = t(`faq_${idx + 1}_q` as any);
+                        const question = t(`faq_${activeCategory}_${idx + 1}_q` as any);
                         const Icon = ICONS[idx % ICONS.length];
 
                         return (
@@ -162,7 +178,7 @@ export function HelpFaq() {
                                     ) : (
                                         <div className="relative">
                                             <h3 className="text-xl font-display font-bold text-neon-cyan mb-6 tracking-wide drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]">
-                                                &gt; {t(`faq_${activeIndex + 1}_q` as any)}
+                                                &gt; {t(`faq_${activeCategory}_${activeIndex + 1}_q` as any)}
                                             </h3>
                                             
                                             {/* decorative line */}
@@ -185,12 +201,20 @@ export function HelpFaq() {
                         {/* Background structural lines */}
                         <div className="absolute bottom-0 right-0 w-32 h-32 border-b border-r border-neon-cyan/20 rounded-br-xl m-4 pointer-events-none" />
                         <div className="absolute top-10 right-4 font-cyber text-[10px] text-muted-foreground/30 rotate-90 origin-right pointer-events-none">
-                            DATA_ID_7493_A
+                            DATA_ID_{activeCategory.toUpperCase()}_A
                         </div>
                     </div>
                 </div>
 
             </div>
         </section>
+    );
+}
+
+export function HelpFaq() {
+    return (
+        <Suspense fallback={<div className="w-full text-center p-10 font-mono text-neon-cyan"><ScrambleText text="INITIALIZING MATRIX..." /></div>}>
+            <HelpFaqContent />
+        </Suspense>
     );
 }
