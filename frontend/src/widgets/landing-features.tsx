@@ -17,43 +17,43 @@ const FeaturesScene3D = dynamic(
 // Feature configuration with icons and styling
 const featureConfig = [
     {
-        id: 'shield',
-        icon: Shield,
+        id: 'stealth',
+        icon: EyeOff,
         color: 'text-neon-cyan',
         bgColor: 'bg-neon-cyan/15 dark:bg-neon-cyan/10',
         colSpan: 'md:col-span-2'
     },
     {
-        id: 'speed',
+        id: 'backbone',
         icon: Zap,
         color: 'text-yellow-400',
         bgColor: 'bg-yellow-400/15 dark:bg-yellow-400/10',
         colSpan: 'md:col-span-1'
     },
     {
-        id: 'privacy',
-        icon: EyeOff,
+        id: 'ram',
+        icon: Shield,
         color: 'text-neon-purple',
         bgColor: 'bg-neon-purple/15 dark:bg-neon-purple/10',
         colSpan: 'md:col-span-1'
     },
     {
-        id: 'global',
+        id: 'routing',
         icon: Globe,
         color: 'text-blue-400',
         bgColor: 'bg-blue-400/15 dark:bg-blue-400/10',
         colSpan: 'md:col-span-1'
     },
     {
-        id: 'unlimited',
-        icon: InfinityIcon,
+        id: 'multiplatform',
+        icon: Layers,
         color: 'text-matrix-green',
         bgColor: 'bg-matrix-green/15 dark:bg-matrix-green/10',
         colSpan: 'md:col-span-1'
     },
     {
         id: 'protocols',
-        icon: Layers,
+        icon: InfinityIcon,
         color: 'text-neon-pink',
         bgColor: 'bg-neon-pink/15 dark:bg-neon-pink/10',
         colSpan: 'md:col-span-2'
