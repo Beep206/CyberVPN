@@ -1,6 +1,6 @@
 {
   "hero": {
-    "protocol_badge": "PROTOCOL: VLESS-REALITY (ACTIVE) | CORE: XRAY-CORE",
+    "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
     "title": "НЕВИДИМЫЙ VPN. РАБОТАЕТ НА VLESS-REALITY",
     "titleHighlight": "НЕВИДИМЫЙ VPN.",
     "subtitle": "Обход DPI-блокировок любой сложности. Маскировка трафика под стандартный HTTPS. Скорость до 10 Гбит/с без потерь на инкапсуляцию.",
@@ -32,12 +32,12 @@
     },
     "protocols": {
       "title": "Продвинутые Протоколы",
-      "desc": "Полная поддержка VLESS, Trojan и Shadowsocks-2022 для максимальной совместимости."
+      "desc": "Полная поддержка VLESS, Trojan. Поддержка XHTTP для обхода самых жестких корпоративных и государственных файрволов. Ваш трафик выглядит как стандартные HTTP-запросы к доверенным ресурсам."
     }
   },
   "how_it_works": {
     "title": "Как работает Reality",
-    "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт."
+    "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт. Интеллектуальный выбор транспорта: автоматическое переключение на XHTTP, если сеть блокирует нестандартные протоколы."
   },
   "comparison_table": {
     "title": "Устаревшее против Нового поколения",
@@ -92,7 +92,7 @@
   },
   "tech_specs": {
     "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
-    "transport": "Транспорт: TCP, gRPC, WebSocket (HTTP Upgrade)",
+    "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP",
     "network": "Сеть: Аплинки 10 Гбит/с, глобальная поддержка IPv6"
   },
   "pricing": {

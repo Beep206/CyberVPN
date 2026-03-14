@@ -45,7 +45,7 @@ export function LandingTechnical() {
         {
             id: 'trans',
             label: 'Transport',
-            value: t('tech_specs.transport').split(': ')[1] || 'TCP, gRPC, WebSocket (HTTP Upgrade)'
+            value: t('tech_specs.transport').split(': ')[1] || 'XHTTP (Next-Gen), gRPC, Reality-TCP'
         },
         {
             id: 'net',
