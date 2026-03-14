@@ -1,6 +1,8 @@
 import { LandingHero } from '@/widgets/landing-hero';
 import { LandingFeatures } from '@/widgets/landing-features';
+import { LandingTechnical } from '@/widgets/landing-technical';
 import { SpeedTunnel } from '@/widgets/speed-tunnel';
+import { QuickStart } from '@/widgets/quick-start';
 import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 
@@ -12,7 +14,9 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
             <TerminalHeader />
             <LandingHero />
             <LandingFeatures />
+            <LandingTechnical />
             <SpeedTunnel />
+            <QuickStart />
             <Footer />
         </main>
     );

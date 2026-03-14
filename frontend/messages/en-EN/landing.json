@@ -1,42 +1,104 @@
 {
-    "hero": {
-        "title": "SECURE YOUR DIGITAL",
-        "titleHighlight": "EXISTENCE",
-        "subtitle": "Advanced encryption for the modern web. Bypass restrictions, protect your identity, and surf with absolute anonymity.",
-        "ctaPrimary": "Get Started",
-        "ctaSecondary": "View Features",
-        "status": "SYSTEM STATUS: OPTIMAL"
+  "hero": {
+    "protocol_badge": "PROTOCOL: VLESS-REALITY (ACTIVE) | CORE: XRAY-CORE",
+    "title": "INVISIBLE VPN. POWERED BY VLESS-REALITY",
+    "titleHighlight": "INVISIBLE VPN",
+    "subtitle": "Bypass DPI blocking of any complexity. Masquerade traffic as standard HTTPS. Up to 10 Gbps speeds without encapsulation loss.",
+    "cta_telegram": "LAUNCH IN TELEGRAM",
+    "cta_app": "DOWNLOAD APP"
+  },
+  "features": {
+    "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
+    "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
+    "stealth": {
+      "title": "Stealth Mode (Reality)",
+      "desc": "Traffic is indistinguishable from visiting Google/Microsoft/Apple. No VPN fingerprinting."
     },
-    "features": {
-        "sectionTitle": "NEXT-GEN PROTECTION",
-        "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
-        "shield": {
-            "title": "MILITARY-GRADE SHIELD",
-            "desc": "AES-256 encryption with rotating quantum-resistant keys. Your data fortress, impenetrable by design."
-        },
-        "speed": {
-            "title": "HYPER VELOCITY",
-            "desc": "10 Gbit/s servers with sub-10ms latency. Stream, download, and browse at the speed of light."
-        },
-        "privacy": {
-            "title": "ZERO KNOWLEDGE",
-            "desc": "Verified no-logs policy. RAM-only infrastructure. We can't see your data even if we wanted to."
-        },
-        "global": {
-            "title": "GLOBAL MATRIX",
-            "desc": "100+ locations across 50 countries with intelligent auto-routing for optimal performance."
-        },
-        "unlimited": {
-            "title": "LIMITLESS ACCESS",
-            "desc": "Unlimited bandwidth, unlimited devices, unlimited connections. No caps, no throttling, ever."
-        },
-        "protocols": {
-            "title": "MULTI-LAYER PROTOCOLS",
-            "desc": "WireGuard, OpenVPN, IKEv2 with smart protocol switching. Adapts to your network in real-time."
-        }
+    "backbone": {
+      "title": "Backbone Performance",
+      "desc": "Native 10 Gbit/s uplinks in Tier-3 data centers. Optimized for 4K/8K streaming and low-ping gaming."
     },
-    "speed": {
-        "title": "10 GBIT/S",
-        "subtitle": "Unrestricted Velocity"
+    "ram": {
+      "title": "RAM-Only Infrastructure",
+      "desc": "No disks, no logs, no persistence. Infrastructure is wiped on every restart."
+    },
+    "routing": {
+      "title": "Intelligent Routing",
+      "desc": "Global mesh of 100+ nodes with automated latency-based selection."
+    },
+    "multiplatform": {
+      "title": "Native Multi-Platform",
+      "desc": "One subscription for Telegram Bot, iOS, Android, Windows, macOS, and Linux."
+    },
+    "protocols": {
+      "title": "Advanced Protocols",
+      "desc": "Full support for VLESS, Trojan, and Shadowsocks-2022 for maximum compatibility."
     }
+  },
+  "how_it_works": {
+    "title": "How Reality Works",
+    "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted."
+  },
+  "comparison_table": {
+    "title": "Legacy vs Next-Gen",
+    "headers": {
+      "feature": "Feature",
+      "legacy": "Legacy VPN (WireGuard/OpenVPN)",
+      "cybervpn": "CyberVPN (VLESS-Reality)"
+    },
+    "rows": {
+      "dpi": {
+        "feature": "DPI Detection",
+        "legacy": "Easily fingerprinted and blocked",
+        "cybervpn": "Indistinguishable from HTTPS"
+      },
+      "speed": {
+        "feature": "Speed under Load",
+        "legacy": "Throttled by ISP deep inspection",
+        "cybervpn": "Full backbone speed (10Gbps)"
+      },
+      "ip_blocking": {
+        "feature": "IP Blocking Risk",
+        "legacy": "High (static patterns)",
+        "cybervpn": "Zero (dynamic Reality masking)"
+      },
+      "privacy": {
+        "feature": "Privacy Layer",
+        "legacy": "Standard encryption",
+        "cybervpn": "RAM-only encryption (Zero-trace)"
+      }
+    }
+  },
+  "status_board": {
+    "title": "Node Status Dashboard",
+    "item_online": "ONLINE",
+    "protocols": {
+      "reality": "Reality",
+      "vless_grpc": "VLESS-gRPC"
+    }
+  },
+  "quick_start": {
+    "title": "30-Second Path",
+    "step1": "Launch the bot (@CyberVPN_Bot)",
+    "step2": "One-tap Trial Activation (2 days / 2GB)",
+    "step3": "Import config to any app and stay free"
+  },
+  "network_stats": {
+    "title": "Network Infrastructure",
+    "bandwidth": "1.2 Tbps Backbone capacity",
+    "nodes": "100+ Active high-performance nodes",
+    "coverage": "50+ Countries, 100+ Cities",
+    "uptime": "99.9% Network availability"
+  },
+  "tech_specs": {
+    "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
+    "transport": "Transport: TCP, gRPC, WebSocket (HTTP Upgrade)",
+    "network": "Network: 10Gbps Uplinks, Global IPv6 Support"
+  },
+  "pricing": {
+    "basic": "Basic: Trial / Entry level",
+    "pro": "Pro: Most popular",
+    "ultra": "Ultra: High bandwidth",
+    "cyber": "Cyber: Premium / Full access"
+  }
 }
