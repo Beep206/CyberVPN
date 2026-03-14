@@ -37,7 +37,7 @@ const footerLinks = {
         { label: 'api', href: '#api' },
     ],
     support: [
-        { label: 'helpCenter', href: '#' },
+        { label: 'helpCenter', href: '/help' },
         { label: 'status', href: '#' },
         { label: 'contact', href: '#' },
         { label: 'documentation', href: '#' },
