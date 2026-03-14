@@ -78,7 +78,7 @@ export function FeatureCard3D({
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-50px' }}
-            className={`${colSpan}`}
+            className={`h-full ${colSpan}`}
         >
             <InceptionButton wrapperClassName="h-full w-full">
                 <motion.div
