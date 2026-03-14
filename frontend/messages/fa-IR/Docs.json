@@ -1,0 +1,19 @@
+{
+  "meta_title": "Neural Documentation | CyberVPN",
+  "meta_description": "Comprehensive schematics and guides for integrating and utilizing the CyberVPN network.",
+  "title": "NEURAL BLUEPRINTS",
+  "subtitle": "SYSTEM DOCUMENTATION & SCHEMATICS",
+  "search_placeholder": "Search blueprints...",
+  "section_getting_started": "INITIALIZATION",
+  "section_routing": "SIGNAL ROUTING",
+  "section_security": "ENCRYPTION PROTOCOLS",
+  "section_api": "NEURAL API",
+  "doc_install_title": "Core Installation",
+  "doc_install_desc": "Deploy the core engine on supported physical architectures.",
+  "doc_config_title": "Configuring Tunnels",
+  "doc_config_desc": "Establish secure pathways through hostile networks.",
+  "doc_protocols_title": "Supported Protocols",
+  "doc_protocols_desc": "Specifications for VLESS, VMess, and Trojan Reality.",
+  "sidebar_category_basics": "Core Systems",
+  "sidebar_category_advanced": "Deep Integration"
+}

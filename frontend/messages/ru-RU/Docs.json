@@ -1,0 +1,19 @@
+{
+  "meta_title": "Нейронная Документация | CyberVPN",
+  "meta_description": "Комплексные схемы и руководства по интеграции и использованию сети CyberVPN.",
+  "title": "НЕЙРОННЫЕ ЧЕРТЕЖИ",
+  "subtitle": "СИСТЕМНАЯ ДОКУМЕНТАЦИЯ И СХЕМЫ",
+  "search_placeholder": "Поиск по чертежам...",
+  "section_getting_started": "ИНИЦИАЛИЗАЦИЯ",
+  "section_routing": "МАРШРУТИЗАЦИЯ",
+  "section_security": "ПРОТОКОЛЫ ШИФРОВАНИЯ",
+  "section_api": "НЕЙРОННЫЙ API",
+  "doc_install_title": "Установка Ядра",
+  "doc_install_desc": "Развертывание базового движка на поддерживаемых физических архитектурах.",
+  "doc_config_title": "Настройка Туннелей",
+  "doc_config_desc": "Создание защищенных путей через враждебные сети.",
+  "doc_protocols_title": "Поддерживаемые Протоколы",
+  "doc_protocols_desc": "Спецификации для VLESS, VMess и Trojan Reality.",
+  "sidebar_category_basics": "Базовые Системы",
+  "sidebar_category_advanced": "Глубокая Интеграция"
+}
