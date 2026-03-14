@@ -48,6 +48,7 @@ function InstancedPackets({ count = 800 }: { count?: number }) {
                 <instancedBufferAttribute attach="attributes-aOffset" args={[offsets, 3]} />
                 <instancedBufferAttribute attach="attributes-aSpeed" args={[speeds, 3]} />
             </sphereGeometry>
+            {/* @ts-expect-error Custom R3F shader node */}
             <antiDPIShader 
                 ref={materialRef} 
                 transparent 
