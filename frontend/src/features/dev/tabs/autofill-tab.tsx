@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Wand2, Keyboard, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Wand2, Keyboard, CheckCircle2, FlaskConical, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,8 +16,61 @@ const fakeData = {
 
 type FillResult = { filled: number; type: string };
 
+type AutofillPreset = {
+    id: string;
+    name: string;
+    description: string;
+    data: Record<string, string>; // Maps input `name` or `type` to a specific string
+};
+
+const DEFAULT_PRESETS: AutofillPreset[] = [
+    {
+        id: 'sql_inject_1',
+        name: 'SQL Injection 1',
+        description: 'Attempts basic logical OR bypassing',
+        data: {
+            'email': "admin' OR '1'='1",
+            'user': "admin' OR '1'='1",
+            'password': "' OR '1'='1"
+        }
+    },
+    {
+        id: 'xss_payload_1',
+        name: 'Basic XSS',
+        description: 'Injects simple alert script wrapper',
+        data: {
+            'text': "<script>alert('XSS')</script>",
+            'name': "<b>Test</b>",
+            'default': "<img src=x onerror=alert(1)>"
+        }
+    }
+];
+
 export function AutofillTab({ isDark }: { isDark: boolean }) {
     const [lastAction, setLastAction] = useState<FillResult | null>(null);
+    const [presets, setPresets] = useState<AutofillPreset[]>(DEFAULT_PRESETS);
+    const [activePresetId, setActivePresetId] = useState<string>('random_chaos');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('DEV_AUTOFILL_PRESETS');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setPresets(parsed);
+                    }
+                } catch { }
+            }
+        }
+    }, []);
+
+    const savePresets = (newPresets: AutofillPreset[]) => {
+        setPresets(newPresets);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DEV_AUTOFILL_PRESETS', JSON.stringify(newPresets));
+        }
+    };
 
     const triggerFill = (type: 'all' | 'form') => {
         if (typeof document === 'undefined') return;
@@ -40,25 +93,45 @@ export function AutofillTab({ isDark }: { isDark: boolean }) {
 
         let filledCount = 0;
 
+        const activePreset = presets.find(p => p.id === activePresetId);
+
         inputs.forEach(input => {
             const name = input.name.toLowerCase();
             const type = input.type.toLowerCase();
             let val = '';
 
-            if (type === 'email' || name.includes('email')) {
-                val = fakeData.email();
-            } else if (type === 'password' || name.includes('pass')) {
-                val = fakeData.password();
-            } else if (type === 'url' || name.includes('url') || name.includes('link')) {
-                val = fakeData.url();
-            } else if (name.includes('ip') || name.includes('address')) {
-                val = fakeData.ip();
-            } else if (name.includes('name') || name.includes('user')) {
-                val = fakeData.name();
-            } else if (type === 'number') {
-                val = fakeData.number();
-            } else {
-                val = fakeData.text();
+            if (activePresetId === 'random_chaos') {
+                if (type === 'email' || name.includes('email')) {
+                    val = fakeData.email();
+                } else if (type === 'password' || name.includes('pass')) {
+                    val = fakeData.password();
+                } else if (type === 'url' || name.includes('url') || name.includes('link')) {
+                    val = fakeData.url();
+                } else if (name.includes('ip') || name.includes('address')) {
+                    val = fakeData.ip();
+                } else if (name.includes('name') || name.includes('user')) {
+                    val = fakeData.name();
+                } else if (type === 'number') {
+                    val = fakeData.number();
+                } else {
+                    val = fakeData.text();
+                }
+            } else if (activePreset) {
+                // Exact name match
+                if (activePreset.data[name]) {
+                    val = activePreset.data[name];
+                } 
+                // Partial name match
+                else if (Object.keys(activePreset.data).some(k => name.includes(k))) {
+                    const matchingKey = Object.keys(activePreset.data).find(k => name.includes(k))!;
+                    val = activePreset.data[matchingKey];
+                }
+                // Fallback default
+                else if (activePreset.data['default']) {
+                    val = activePreset.data['default'];
+                } else {
+                    return; // Skip filling this input
+                }
             }
 
             // Set value and trigger React events
@@ -86,6 +159,43 @@ export function AutofillTab({ isDark }: { isDark: boolean }) {
             <p className={cn("text-[10px]", isDark ? "text-gray-400" : "text-slate-500")}>
                 The Magic Wand safely traverses the active DOM (outside of the Dev Panel) and injects realistic mock data (Emails, Passwords, URLs, IP Addresses) into empty standard HTML inputs to save typing.
             </p>
+
+            {/* Injection Scenario Selector */}
+            <div className={cn("p-4 border rounded flex flex-col gap-3", isDark ? "bg-black/50 border-gray-800" : "bg-white border-slate-200")}>
+                <div>
+                    <h4 className={cn("font-bold flex items-center gap-2 mb-1", isDark ? "text-pink-400" : "text-pink-600")}>
+                        <FlaskConical className="w-4 h-4" /> Injection Scenario
+                    </h4>
+                    <p className={cn("text-[10px]", isDark ? "text-gray-500" : "text-slate-500")}>
+                        Choose whether to generate random realistic data or apply a specific vulnerability payload to test form validation logic.
+                    </p>
+                </div>
+                
+                <select
+                    value={activePresetId}
+                    onChange={(e) => setActivePresetId(e.target.value)}
+                    className={cn(
+                        "w-full px-3 py-2 text-xs font-mono rounded border outline-none transition-colors",
+                        isDark ? "bg-gray-900 border-gray-700 text-pink-200 focus:border-pink-500" : "bg-slate-50 border-slate-300 focus:border-pink-500"
+                    )}
+                >
+                    <option value="random_chaos">Random Realistic Data (Default)</option>
+                    <optgroup label="Custom Vulnerability Payloads">
+                        {presets.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} - {p.description}</option>
+                        ))}
+                    </optgroup>
+                </select>
+
+                {activePresetId !== 'random_chaos' && (
+                    <div className={cn("p-2 rounded text-[10px] font-mono border", isDark ? "bg-gray-900 border-gray-800 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-600")}>
+                        <div className="font-bold mb-1 opacity-70">Payload Map:</div>
+                        <pre className="whitespace-pre-wrap">
+                            {JSON.stringify(presets.find(p => p.id === activePresetId)?.data || {}, null, 2)}
+                        </pre>
+                    </div>
+                )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <button 
