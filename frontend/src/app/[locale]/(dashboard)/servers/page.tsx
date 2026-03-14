@@ -10,7 +10,7 @@ export default async function ServersPage({
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Servers' });
     return (
-        <div className="p-8 space-y-8">
+        <div className="max-w-7xl mx-auto w-full space-y-8">
             <div className="flex justify-between items-center mb-8 bg-terminal-surface/30 p-6 rounded-xl border border-grid-line/30 backdrop-blur">
                 <div>
                     <h1 className="text-3xl font-display text-foreground tracking-widest">{t('title')}</h1>

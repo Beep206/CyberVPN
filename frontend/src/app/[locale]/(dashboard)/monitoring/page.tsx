@@ -10,7 +10,7 @@ export default async function MonitoringPage({
     const t = await getTranslations({ locale, namespace: 'Monitoring' });
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-7xl mx-auto w-full space-y-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-display text-neon-cyan mb-2">

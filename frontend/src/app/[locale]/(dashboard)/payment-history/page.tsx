@@ -10,7 +10,7 @@ export default async function PaymentHistoryPage({
     const t = await getTranslations({ locale, namespace: 'PaymentHistory' });
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="max-w-7xl mx-auto w-full space-y-8">
             <header className="mb-8">
                 <h1 className="text-2xl md:text-4xl font-display text-neon-cyan drop-shadow-glow">
                     {t('title') || 'Payment History'}
