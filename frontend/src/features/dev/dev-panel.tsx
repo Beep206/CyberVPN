@@ -24,6 +24,7 @@ import { RenderTab } from './tabs/render-tab';
 import { EventsTab } from './tabs/events-tab';
 import { ToolsTab } from "./tabs/tools-tab";
 import { networkLogger } from "./lib/network-logger";
+import { renderProfiler } from "./lib/render-profiler";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
@@ -39,8 +40,14 @@ export function DevPanel() {
 
         // Global Persistence Initializations for Dev Panel features
         networkLogger.start();
+        renderProfiler.start();
 
         if (typeof window !== 'undefined') {
+            // Restore Mock Rules globally
+            const savedMocks = localStorage.getItem('DEV_MOCK_RULES');
+            if (savedMocks) {
+                try { networkLogger.mockRules = JSON.parse(savedMocks); } catch {}
+            }
             // Restore RTL setting
             if (localStorage.getItem('DEV_RTL') === 'true') {
                 document.documentElement.dir = 'rtl';

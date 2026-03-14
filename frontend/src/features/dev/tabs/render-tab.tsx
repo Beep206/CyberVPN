@@ -1,104 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Zap, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'motion/react';
+import { renderProfiler } from '../lib/render-profiler';
 
 export function RenderTab({ isDark }: { isDark: boolean }) {
     const [paintFlashing, setPaintFlashing] = useState(false);
-    const observerRef = useRef<MutationObserver | null>(null);
 
-    // Sync from local storage on mount
+    // Sync from local storage/singleton on mount
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('DEV_PAINT_FLASHING') === 'true';
-            setPaintFlashing(saved);
-        }
+        setPaintFlashing(renderProfiler.isFlashing);
     }, []);
-
-    const enableFlashing = () => {
-        if (typeof window === 'undefined') return;
-        
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach(mutation => {
-                const target = mutation.target as HTMLElement;
-                // Ignore text nodes or the dev panel itself to prevent infinite loops
-                if (target.nodeType === 1 
-                    && !target.closest('#dev-panel-root') 
-                    && !target.classList.contains('dev-paint-flash')
-                    && !(target as any)._isFlashing) {
-                    
-                    const rect = target.getBoundingClientRect();
-                    if (rect.width === 0 || rect.height === 0 || rect.width > window.innerWidth || rect.height > window.innerHeight) return;
-
-                    (target as any)._isFlashing = true;
-
-                    const flash = document.createElement('div');
-                    flash.className = 'dev-paint-flash pointer-events-none fixed z-[99999] transition-opacity duration-500 ease-out';
-                    
-                    // Generate a random bright color box
-                    const colors = ['rgba(255,100,200,0.5)', 'rgba(100,255,200,0.5)', 'rgba(100,200,255,0.5)', 'rgba(255,255,100,0.5)'];
-                    const randColor = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    flash.style.backgroundColor = randColor;
-                    flash.style.border = `1px solid ${randColor.replace('0.5', '1')}`;
-                    flash.style.left = `${rect.left}px`;
-                    flash.style.top = `${rect.top}px`;
-                    flash.style.width = `${rect.width}px`;
-                    flash.style.height = `${rect.height}px`;
-
-                    document.body.appendChild(flash);
-
-                    // Fade out and remove
-                    requestAnimationFrame(() => {
-                        flash.style.opacity = '1';
-                        setTimeout(() => {
-                            flash.style.opacity = '0';
-                            setTimeout(() => {
-                                flash.remove();
-                                (target as any)._isFlashing = false;
-                            }, 500); // Wait for transition
-                        }, 50); // Flash duration
-                    });
-                }
-            });
-        });
-
-        observer.observe(document.body, {
-            attributes: true,
-            childList: true,
-            characterData: true,
-            subtree: true,
-            attributeFilter: ['class', 'style', 'src', 'href', 'value']
-        });
-
-        observerRef.current = observer;
-    };
-
-    const disableFlashing = () => {
-        if (observerRef.current) {
-            observerRef.current.disconnect();
-            observerRef.current = null;
-        }
-        document.querySelectorAll('.dev-paint-flash').forEach(el => el.remove());
-    };
 
     const togglePaintFlashing = () => {
         const next = !paintFlashing;
         setPaintFlashing(next);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('DEV_PAINT_FLASHING', next ? 'true' : 'false');
-        }
+        renderProfiler.toggle(next);
     };
-
-    // React to toggle changes
-    useEffect(() => {
-        if (paintFlashing) {
-            enableFlashing();
-        } else {
-            disableFlashing();
-        }
-        return () => disableFlashing();
-    }, [paintFlashing]);
 
     return (
         <div className="space-y-6 relative z-20 h-full flex flex-col">
