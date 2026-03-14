@@ -17,9 +17,10 @@ export type MockRule = {
     urlPattern: string;
     active: boolean;
     method: 'ALL' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    pattern: string;
     status: number;
-    delay: number;
-    responseBody: string;
+    delayMs?: number; // Optional artificial latency per-endpoint
+    responsePattern: Record<string, any>;
 };
 
 type Listener = (logs: NetworkLogEntry[]) => void;
@@ -114,29 +115,32 @@ class NetworkLogger {
 
             // Check Mocks
             try {
-                const activeMock = this.mockRules.find(m => 
-                    m.active && 
-                    (m.method === 'ALL' || m.method === method.toUpperCase()) && 
+                const activeMock = this.mockRules.find(m =>
+                    m.active &&
+                    (m.method === 'ALL' || m.method === method.toUpperCase()) &&
                     new RegExp(m.urlPattern).test(url)
                 );
 
                 if (activeMock) {
-                    if (activeMock.delay > 0) {
-                        await new Promise(r => setTimeout(r, activeMock.delay));
+                    const delay = activeMock.delayMs || 0;
+                    if (delay > 0) {
+                        await new Promise(r => setTimeout(r, delay));
                     }
-                    
-                    let mockResBody = activeMock.responseBody;
-                    try { mockResBody = JSON.parse(activeMock.responseBody) } catch { /* text */ }
+
+                    let mockResBody = activeMock.responsePattern;
+                    // The original code had `activeMock.responseBody` which was a string.
+                    // Now `responsePattern` is `Record<string, any>`, so it's already parsed JSON.
+                    // No need for `try { mockResBody = JSON.parse(activeMock.responseBody) } catch { /* text */ }`
 
                     this.updateLog(id, {
                         status: activeMock.status,
-                        duration: activeMock.delay || Math.round(performance.now() - startTime),
+                        duration: delay || Math.round(performance.now() - startTime),
                         resBody: mockResBody,
                         resHeaders: { 'x-mocked-by': 'DevPanel' },
                         isMocked: true
                     });
-                    
-                    return new Response(activeMock.responseBody, {
+
+                    return new Response(JSON.stringify(activeMock.responsePattern), {
                         status: activeMock.status,
                         headers: { 'content-type': 'application/json', 'x-mocked-by': 'DevPanel' }
                     });
@@ -168,10 +172,10 @@ class NetworkLogger {
                 const response = await _fetch(input, init);
                 // Clone response to read body
                 const clone = response.clone();
-                
+
                 let resBody: any;
                 const contentType = clone.headers.get('content-type') || '';
-                
+
                 try {
                     if (contentType.includes('application/json')) {
                         resBody = await clone.json();

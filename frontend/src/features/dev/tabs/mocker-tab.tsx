@@ -8,6 +8,11 @@ export function MockerTab({ isDark }: { isDark: boolean }) {
     const [rules, setRules] = useState<MockRule[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    const [profiles, setProfiles] = useState<Record<string, MockRule[]>>({
+        "Default": []
+    });
+    const [activeProfile, setActiveProfile] = useState<string>("Default");
+
     // Initial state setup to read from logger and localStorage
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -16,29 +21,91 @@ export function MockerTab({ isDark }: { isDark: boolean }) {
             if (saved) {
                 try { initial = JSON.parse(saved); } catch { /* err */ }
             }
+            
+            const savedProfiles = localStorage.getItem('DEV_MOCK_PROFILES');
+            let initialProfiles: Record<string, MockRule[]> = { "Default": initial };
+            if (savedProfiles) {
+                try {
+                    const parsed = JSON.parse(savedProfiles);
+                    if (Object.keys(parsed).length > 0) initialProfiles = parsed;
+                } catch { /* err */ }
+            }
+            
+            setProfiles(initialProfiles);
+            
+            const savedActive = localStorage.getItem('DEV_MOCK_ACTIVE_PROFILE');
+            if (savedActive && initialProfiles[savedActive]) {
+                setActiveProfile(savedActive);
+                initial = initialProfiles[savedActive];
+            } else {
+                initial = initialProfiles["Default"] || [];
+            }
+
             // Apply to logger instantly
             networkLogger.mockRules = initial;
             setRules(initial);
         }
     }, []);
 
-    const saveRules = (newRules: MockRule[]) => {
+    const saveRules = (newRules: MockRule[], profileName: string = activeProfile) => {
         setRules(newRules);
         networkLogger.mockRules = newRules;
+        
+        const nextProfiles = { ...profiles, [profileName]: newRules };
+        setProfiles(nextProfiles);
+
         if (typeof window !== 'undefined') {
             localStorage.setItem('DEV_MOCK_RULES', JSON.stringify(newRules));
+            localStorage.setItem('DEV_MOCK_PROFILES', JSON.stringify(nextProfiles));
+            localStorage.setItem('DEV_MOCK_ACTIVE_PROFILE', profileName);
+        }
+    };
+
+    const loadProfile = (name: string) => {
+        const loadedRules = profiles[name] || [];
+        setActiveProfile(name);
+        setRules(loadedRules);
+        networkLogger.mockRules = loadedRules;
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DEV_MOCK_RULES', JSON.stringify(loadedRules));
+            localStorage.setItem('DEV_MOCK_ACTIVE_PROFILE', name);
+        }
+    };
+
+    const createProfile = () => {
+        const name = prompt("Enter new profile name:");
+        if (!name || profiles[name]) return;
+        saveRules([], name);
+        setActiveProfile(name);
+    };
+
+    const deleteProfile = (name: string) => {
+        if (name === "Default") return;
+        if (!confirm(`Delete profile "${name}"?`)) return;
+        
+        const nextProfiles = { ...profiles };
+        delete nextProfiles[name];
+        setProfiles(nextProfiles);
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DEV_MOCK_PROFILES', JSON.stringify(nextProfiles));
+        }
+        
+        if (activeProfile === name) {
+            loadProfile("Default");
         }
     };
 
     const addRule = () => {
         const newRule: MockRule = {
             id: Math.random().toString(36).substring(7),
+            pattern: '.*',
             urlPattern: '/api/example',
             active: true,
             method: 'ALL',
             status: 200,
-            delay: 500,
-            responseBody: '{\n  "status": "success",\n  "data": []\n}'
+            delayMs: 500,
+            responsePattern: { status: "success", data: [] }
         };
         const next = [newRule, ...rules];
         saveRules(next);
@@ -67,20 +134,51 @@ export function MockerTab({ isDark }: { isDark: boolean }) {
                 <h3 className={cn("font-extrabold text-sm uppercase tracking-widest flex items-center gap-2", isDark ? "text-neon-cyan drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]" : "text-emerald-700")}>
                     <Unplug className="w-5 h-5" /> API Response Mocker
                 </h3>
-                <button
-                    onClick={addRule}
-                    className={cn(
-                        "px-3 py-1.5 rounded transition-all flex items-center gap-1 text-[10px] font-bold uppercase",
-                        isDark ? "bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/40 border border-neon-cyan/30" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                    )}
-                >
-                    <Plus className="w-3.5 h-3.5" /> Add Mock
-                </button>
             </div>
 
             <p className={cn("text-[10px]", isDark ? "text-gray-400" : "text-slate-500")}>
                 Intercept outgoing `fetch` requests matching Regex patterns and return custom JSON responses. Ideal for testing UI empty states, errors, and mock data.
             </p>
+
+            <div className={cn("p-3 rounded border flex items-center justify-between", isDark ? "bg-black/40 border-gray-800" : "bg-slate-50 border-slate-200")}>
+                <div className="flex items-center gap-2">
+                    <span className={cn("text-xs font-bold uppercase", isDark ? "text-gray-500" : "text-slate-500")}>Profile:</span>
+                    <select 
+                        value={activeProfile} 
+                        onChange={e => loadProfile(e.target.value)}
+                        className={cn("text-xs font-mono px-2 py-1 rounded outline-none border", isDark ? "bg-gray-900 border-gray-700 text-neon-cyan" : "bg-white border-slate-300 text-blue-600")}
+                    >
+                        {Object.keys(profiles).map(p => (
+                            <option key={p} value={p}>{p}</option>
+                        ))}
+                    </select>
+                    {activeProfile !== "Default" && (
+                        <button onClick={() => deleteProfile(activeProfile)} className="p-1 hover:text-red-500 text-gray-500 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={createProfile}
+                        className={cn(
+                            "px-3 py-1.5 rounded transition-all flex items-center gap-1 text-[10px] font-bold uppercase",
+                            isDark ? "hover:bg-gray-800 text-gray-400 border border-gray-700" : "hover:bg-slate-200 text-slate-600 border border-slate-300"
+                        )}
+                    >
+                        <Plus className="w-3 h-3" /> New Profile
+                    </button>
+                    <button
+                        onClick={addRule}
+                        className={cn(
+                            "px-3 py-1.5 rounded transition-all flex items-center gap-1 text-[10px] font-bold uppercase",
+                            isDark ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 border border-emerald-500/30" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        )}
+                    >
+                        <Plus className="w-3.5 h-3.5" /> Add Mock
+                    </button>
+                </div>
+            </div>
 
             <div className="flex-1 overflow-auto space-y-4 pr-1">
                 <AnimatePresence>
@@ -204,8 +302,8 @@ export function MockerTab({ isDark }: { isDark: boolean }) {
                                                     <label className={cn("text-[10px] font-bold uppercase", isDark ? "text-gray-500" : "text-slate-500")}>Delay (ms)</label>
                                                     <input 
                                                         type="number" 
-                                                        value={rule.delay} 
-                                                        onChange={e => updateRule(rule.id, { delay: parseInt(e.target.value) || 0 })}
+                                                        value={rule.delayMs || 0} 
+                                                        onChange={e => updateRule(rule.id, { delayMs: parseInt(e.target.value) || 0 })}
                                                         className={cn("w-full px-2 py-1.5 text-xs font-mono rounded border outline-none", isDark ? "bg-black border-gray-700" : "bg-white border-slate-300")}
                                                     />
                                                 </div>
@@ -214,8 +312,16 @@ export function MockerTab({ isDark }: { isDark: boolean }) {
                                             <div className="space-y-1">
                                                 <label className={cn("text-[10px] font-bold uppercase", isDark ? "text-gray-500" : "text-slate-500")}>Response Body (JSON)</label>
                                                 <textarea 
-                                                    value={rule.responseBody}
-                                                    onChange={e => updateRule(rule.id, { responseBody: e.target.value })}
+                                                    value={JSON.stringify(rule.responsePattern, null, 2)}
+                                                    onChange={e => {
+                                                        try {
+                                                            const parsed = JSON.parse(e.target.value);
+                                                            updateRule(rule.id, { responsePattern: parsed });
+                                                        } catch {
+                                                            // Provide visual parsing help if needed, but we rely on simple state for now
+                                                            // The user is expected to type valid JSON
+                                                        }
+                                                    }}
                                                     rows={8}
                                                     className={cn("w-full px-2 py-1.5 text-[10px] font-mono rounded border outline-none whitespace-pre", isDark ? "bg-black border-gray-700 focus:border-neon-cyan" : "bg-white border-slate-300 focus:border-blue-500")}
                                                     spellCheck={false}
