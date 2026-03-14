@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, Backdrop, Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
+import { Backdrop, Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
 import { Bloom, EffectComposer, ToneMapping } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
@@ -29,7 +29,10 @@ export function DocsScene({ activeSection }: DocsSceneProps) {
             
             <Canvas camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full">
                 <Suspense fallback={null}>
-                    <Environment preset="city" />
+                    {/* Manual lighting to avoid CDN download hangs from Environment */}
+                    <ambientLight intensity={0.5} />
+                    <directionalLight position={[10, 10, 5]} intensity={1} color={config.color} />
+                    <directionalLight position={[-10, 10, -5]} intensity={0.5} color="#ffffff" />
                     
                     {/* The primary 3D representation that changes based on section */}
                     <BlueprintHologram activeSection={activeSection} color={config.color} />
