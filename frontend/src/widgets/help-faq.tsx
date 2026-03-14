@@ -46,7 +46,7 @@ export function HelpFaq() {
     }, [activeIndex, currentAnswer]);
 
     return (
-        <section className="relative w-full max-w-6xl mx-auto mb-32">
+        <section id="faq" className="relative w-full max-w-6xl mx-auto mb-32 scroll-mt-32">
             <div className="flex items-center gap-4 mb-12">
                 <div className="h-px bg-terminal-border flex-1" />
                 <h2 className="text-2xl font-display font-bold text-foreground tracking-widest uppercase">
