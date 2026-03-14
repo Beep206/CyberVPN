@@ -40,7 +40,7 @@ const footerLinks = {
         { label: 'helpCenter', href: '/help' },
         { label: 'status', href: '#' },
         { label: 'contact', href: '#' },
-        { label: 'documentation', href: '#' },
+        { label: 'documentation', href: '/docs' },
     ],
     legal: [
         { label: 'privacy', href: '#' },
