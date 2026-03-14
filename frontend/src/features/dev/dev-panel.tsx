@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Shield, Navigation, Monitor, Settings, Globe, Wrench, Activity, Flag, Skull, Languages, Palette } from "lucide-react";
+import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette } from 'lucide-react';
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -12,17 +12,22 @@ import { AuthTab } from "./tabs/auth-tab";
 import { BrowserTab } from "./tabs/browser-tab";
 import { SystemTab } from "./tabs/system-tab";
 import { PerformanceTab } from "./tabs/performance-tab";
+import { NetworkTab } from './tabs/network-tab';
+import { ChaosTab } from './tabs/chaos-tab';
+import { ThemeTab } from './tabs/theme-tab';
+import { I18nTab } from './tabs/i18n-tab';
+import { FlagsTab } from './tabs/flags-tab';
+import { StorageTab } from './tabs/storage-tab';
+import { MockerTab } from './tabs/mocker-tab';
+import { A11yTab } from './tabs/a11y-tab';
+import { RenderTab } from './tabs/render-tab';
+import { EventsTab } from './tabs/events-tab';
 import { ToolsTab } from "./tabs/tools-tab";
-import { NetworkTab } from "./tabs/network-tab";
-import { FlagsTab } from "./tabs/flags-tab";
-import { ChaosTab } from "./tabs/chaos-tab";
-import { I18nTab } from "./tabs/i18n-tab";
-import { ThemeTab } from "./tabs/theme-tab";
 import { networkLogger } from "./lib/network-logger";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools">("nav");
+    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -146,10 +151,15 @@ export function DevPanel() {
                                         { id: "system", icon: Settings, label: "System" },
                                         { id: "performance", icon: Monitor, label: "Perf" },
                                         { id: "network", icon: Activity, label: "Net" },
+                                        { id: "mocker", icon: Unplug, label: "Mocker" },
                                         { id: "flags", icon: Flag, label: "Flags" },
                                         { id: "chaos", icon: Skull, label: "Chaos" },
                                         { id: "i18n", icon: Languages, label: "i18n" },
                                         { id: "theme", icon: Palette, label: "Theme" },
+                                        { id: "storage", icon: Database, label: "Data" },
+                                        { id: "a11y", icon: ScanEye, label: "A11y" },
+                                        { id: "render", icon: Zap, label: "Profiler" },
+                                        { id: "events", icon: Bell, label: "Events" },
                                         { id: "tools", icon: Wrench, label: "Tools" },
                                     ] as const).map((tab) => (
                                         <button
@@ -202,6 +212,11 @@ export function DevPanel() {
                                         {activeTab === "i18n" && <I18nTab isDark={isDark} />}
                                         {activeTab === "theme" && <ThemeTab isDark={isDark} />}
                                         {activeTab === "tools" && <ToolsTab isDark={isDark} />}
+                                        {activeTab === "storage" && <StorageTab isDark={isDark} />}
+                                        {activeTab === "mocker" && <MockerTab isDark={isDark} />}
+                                        {activeTab === "a11y" && <A11yTab isDark={isDark} />}
+                                        {activeTab === "render" && <RenderTab isDark={isDark} />}
+                                        {activeTab === "events" && <EventsTab isDark={isDark} />}
                                     </motion.div>
                                 </AnimatePresence>
                                 </div>

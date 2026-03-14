@@ -9,6 +9,17 @@ export type NetworkLogEntry = {
     resBody?: any;
     reqHeaders?: Record<string, string>;
     resHeaders?: Record<string, string>;
+    isMocked?: boolean;
+};
+
+export type MockRule = {
+    id: string;
+    urlPattern: string;
+    active: boolean;
+    method: 'ALL' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    status: number;
+    delay: number;
+    responseBody: string;
 };
 
 type Listener = (logs: NetworkLogEntry[]) => void;
@@ -21,6 +32,9 @@ class NetworkLogger {
     // Chaos Simulator properties
     public chaosLatency = 0;
     public chaosFailureRate = 0;
+
+    // Mock Rules
+    public mockRules: MockRule[] = [];
 
     // Save references to originals
     private originalFetch: typeof window.fetch | null = null;
@@ -97,6 +111,39 @@ class NetworkLogger {
                 reqBody: parsedReqBody,
                 reqHeaders: init?.headers as any
             });
+
+            // Check Mocks
+            try {
+                const activeMock = this.mockRules.find(m => 
+                    m.active && 
+                    (m.method === 'ALL' || m.method === method.toUpperCase()) && 
+                    new RegExp(m.urlPattern).test(url)
+                );
+
+                if (activeMock) {
+                    if (activeMock.delay > 0) {
+                        await new Promise(r => setTimeout(r, activeMock.delay));
+                    }
+                    
+                    let mockResBody = activeMock.responseBody;
+                    try { mockResBody = JSON.parse(activeMock.responseBody) } catch { /* text */ }
+
+                    this.updateLog(id, {
+                        status: activeMock.status,
+                        duration: activeMock.delay || Math.round(performance.now() - startTime),
+                        resBody: mockResBody,
+                        resHeaders: { 'x-mocked-by': 'DevPanel' },
+                        isMocked: true
+                    });
+                    
+                    return new Response(activeMock.responseBody, {
+                        status: activeMock.status,
+                        headers: { 'content-type': 'application/json', 'x-mocked-by': 'DevPanel' }
+                    });
+                }
+            } catch (err) {
+                console.error("Mock Regex Error", err);
+            }
 
             // Chaos: Artificial Latency
             if (this.chaosLatency > 0) {
