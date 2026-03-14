@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette, Terminal, Layers, DatabaseZap, Wand2, Smartphone } from 'lucide-react';
 import { DevButton } from "./dev-button";
@@ -31,6 +31,57 @@ import { ToolsTab } from "./tabs/tools-tab";
 import { networkLogger } from "./lib/network-logger";
 import { renderProfiler } from "./lib/render-profiler";
 import { cssXRay } from "./lib/css-xray";
+
+// ----------------------------------------------------------------------
+// Mini FPS Graph for Header
+// ----------------------------------------------------------------------
+function MiniFPSGraph({ isDark }: { isDark: boolean }) {
+    const [fpsHistory, setFpsHistory] = useState<number[]>(Array(20).fill(60));
+    const [currentFps, setCurrentFps] = useState(60);
+    const frameCount = useRef(0);
+    const lastTime = useRef(performance.now());
+    const reqRef = useRef<number>(0);
+
+    useEffect(() => {
+        const loop = (time: number) => {
+            frameCount.current++;
+            if (time - lastTime.current >= 1000) {
+                const fps = Math.min(60, Math.round((frameCount.current * 1000) / (time - lastTime.current)));
+                setCurrentFps(fps);
+                setFpsHistory(prev => [...prev.slice(1), fps]);
+                frameCount.current = 0;
+                lastTime.current = time;
+            }
+            reqRef.current = requestAnimationFrame(loop);
+        };
+        reqRef.current = requestAnimationFrame(loop);
+        return () => {
+            if (reqRef.current) cancelAnimationFrame(reqRef.current);
+        };
+    }, []);
+
+    // 0 = 60fps (top), 100 = 0fps (bottom)
+    const points = fpsHistory.map((val, i) => {
+        const x = (i / (fpsHistory.length - 1)) * 40; // width 40
+        const y = 20 - (Math.max(0, Math.min(60, val)) / 60) * 20; // height 20
+        return `${x},${y}`;
+    }).join(' ');
+
+    const fpsColor = currentFps > 45 ? (isDark ? "text-green-400" : "text-green-600") : 
+                     currentFps > 25 ? (isDark ? "text-yellow-400" : "text-yellow-600") : 
+                     (isDark ? "text-red-400" : "text-red-600");
+
+    return (
+        <div className={cn("hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border", isDark ? "bg-black/50 border-gray-800" : "bg-slate-100 border-slate-200")}>
+            <span className={cn("font-mono text-[10px] font-bold w-12", fpsColor)}>
+                {currentFps} FPS
+            </span>
+            <svg className="w-10 h-5 overflow-visible" viewBox="0 0 40 20">
+                <polyline points={points} fill="none" className={fpsColor} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+        </div>
+    );
+}
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
@@ -152,17 +203,20 @@ export function DevPanel() {
                                         Dev_Console <span className={cn("text-xs font-black", isDark ? "text-neon-pink animate-pulse drop-shadow-[0_0_15px_#ff00ff]" : "text-blue-500")}>v2.0</span>
                                     </h2>
                                 </div>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className={cn(
-                                        "p-1 rounded transition-colors transition-all",
-                                        isDark
-                                            ? "hover:bg-neon-pink/20 hover:text-neon-pink text-neon-cyan hover:shadow-[0_0_15px_#ff00ff]"
-                                            : "hover:bg-red-100 hover:text-red-500 text-slate-400"
-                                    )}
-                                >
-                                    <X className="h-5 w-5 font-bold" />
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    <MiniFPSGraph isDark={isDark} />
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        className={cn(
+                                            "p-1 rounded transition-colors transition-all",
+                                            isDark
+                                                ? "hover:bg-neon-pink/20 hover:text-neon-pink text-neon-cyan hover:shadow-[0_0_15px_#ff00ff]"
+                                                : "hover:bg-red-100 hover:text-red-500 text-slate-400"
+                                        )}
+                                    >
+                                        <X className="h-5 w-5 font-bold" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex flex-1 relative z-20 overflow-hidden">
