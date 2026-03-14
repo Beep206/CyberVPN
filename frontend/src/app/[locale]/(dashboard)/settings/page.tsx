@@ -13,7 +13,7 @@ export default async function SettingsPage({
     const t = await getTranslations({ locale, namespace: 'Settings' });
 
     return (
-        <div className="max-w-7xl mx-auto w-full space-y-8">
+        <div className="max-w-4xl mx-auto w-full space-y-8">
             <header className="mb-8">
                 <h1 className="text-2xl md:text-4xl font-display text-neon-cyan drop-shadow-glow">
                     {t('title') || 'Settings'}
@@ -23,7 +23,7 @@ export default async function SettingsPage({
                 </p>
             </header>
 
-            <div className="space-y-8 max-w-4xl">
+            <div className="space-y-8">
                 {/* Profile Settings */}
                 <ProfileSection />
 
