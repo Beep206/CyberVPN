@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Shield, Navigation, Monitor, Settings, Globe, Wrench } from "lucide-react";
+import { X, Shield, Navigation, Monitor, Settings, Globe, Wrench, Activity, Flag, Skull, Languages, Palette } from "lucide-react";
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -13,10 +13,15 @@ import { BrowserTab } from "./tabs/browser-tab";
 import { SystemTab } from "./tabs/system-tab";
 import { PerformanceTab } from "./tabs/performance-tab";
 import { ToolsTab } from "./tabs/tools-tab";
+import { NetworkTab } from "./tabs/network-tab";
+import { FlagsTab } from "./tabs/flags-tab";
+import { ChaosTab } from "./tabs/chaos-tab";
+import { I18nTab } from "./tabs/i18n-tab";
+import { ThemeTab } from "./tabs/theme-tab";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "tools">("nav");
+    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -117,6 +122,11 @@ export function DevPanel() {
                                     { id: "browser", icon: Globe, label: "Browser" },
                                     { id: "system", icon: Settings, label: "System" },
                                     { id: "performance", icon: Monitor, label: "Perf" },
+                                    { id: "network", icon: Activity, label: "Net" },
+                                    { id: "flags", icon: Flag, label: "Flags" },
+                                    { id: "chaos", icon: Skull, label: "Chaos" },
+                                    { id: "i18n", icon: Languages, label: "i18n" },
+                                    { id: "theme", icon: Palette, label: "Theme" },
                                     { id: "tools", icon: Wrench, label: "Tools" },
                                 ] as const).map((tab) => (
                                     <button
@@ -160,6 +170,11 @@ export function DevPanel() {
                                         {activeTab === "browser" && <BrowserTab isDark={isDark} />}
                                         {activeTab === "system" && <SystemTab isDark={isDark} />}
                                         {activeTab === "performance" && <PerformanceTab isDark={isDark} />}
+                                        {activeTab === "network" && <NetworkTab isDark={isDark} />}
+                                        {activeTab === "flags" && <FlagsTab isDark={isDark} />}
+                                        {activeTab === "chaos" && <ChaosTab isDark={isDark} />}
+                                        {activeTab === "i18n" && <I18nTab isDark={isDark} />}
+                                        {activeTab === "theme" && <ThemeTab isDark={isDark} />}
                                         {activeTab === "tools" && <ToolsTab isDark={isDark} />}
                                     </motion.div>
                                 </AnimatePresence>
