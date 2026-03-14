@@ -14,7 +14,7 @@ export function DocsContainer() {
             {/* Left Sidebar (25%) */}
             <div className="lg:col-span-3 hidden lg:block">
                 <div className="sticky top-24">
-                    <DocsSidebar activeSection={activeSection} />
+                    <DocsSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
                 </div>
             </div>
 

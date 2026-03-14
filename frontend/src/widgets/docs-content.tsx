@@ -18,8 +18,8 @@ export function DocsContent({ onSectionChange }: { onSectionChange: (id: string)
                 }
             });
         }, {
-            // Trigger when section hits upper third of screen
-            rootMargin: '-10% 0px -70% 0px',
+            // Trigger when section hits the upper half of screen, with a generous bound
+            rootMargin: '-100px 0px -40% 0px',
             threshold: 0
         });
 
