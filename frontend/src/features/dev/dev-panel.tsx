@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette } from 'lucide-react';
+import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette, Terminal, Layers, DatabaseZap, Wand2, Smartphone } from 'lucide-react';
 import { DevButton } from "./dev-button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -22,13 +22,18 @@ import { MockerTab } from './tabs/mocker-tab';
 import { A11yTab } from './tabs/a11y-tab';
 import { RenderTab } from './tabs/render-tab';
 import { EventsTab } from './tabs/events-tab';
+import { TwaTab } from './tabs/twa-tab';
+import { ConsoleTab } from './tabs/console-tab';
+import { XRayTab } from './tabs/xray-tab';
+import { QueryTab } from './tabs/query-tab';
+import { AutofillTab } from './tabs/autofill-tab';
 import { ToolsTab } from "./tabs/tools-tab";
 import { networkLogger } from "./lib/network-logger";
 import { renderProfiler } from "./lib/render-profiler";
 
 export function DevPanel() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events">("nav");
+    const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events" | "twa" | "console" | "xray" | "query" | "autofill">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -167,6 +172,11 @@ export function DevPanel() {
                                         { id: "a11y", icon: ScanEye, label: "A11y" },
                                         { id: "render", icon: Zap, label: "Profiler" },
                                         { id: "events", icon: Bell, label: "Events" },
+                                        { id: "twa", icon: Smartphone, label: "TWA" },
+                                        { id: "console", icon: Terminal, label: "Logs" },
+                                        { id: "xray", icon: Layers, label: "X-Ray" },
+                                        { id: "query", icon: DatabaseZap, label: "Cache" },
+                                        { id: "autofill", icon: Wand2, label: "Magic" },
                                         { id: "tools", icon: Wrench, label: "Tools" },
                                     ] as const).map((tab) => (
                                         <button
@@ -224,6 +234,11 @@ export function DevPanel() {
                                         {activeTab === "a11y" && <A11yTab isDark={isDark} />}
                                         {activeTab === "render" && <RenderTab isDark={isDark} />}
                                         {activeTab === "events" && <EventsTab isDark={isDark} />}
+                                        {activeTab === "twa" && <TwaTab isDark={isDark} />}
+                                        {activeTab === "console" && <ConsoleTab isDark={isDark} />}
+                                        {activeTab === "xray" && <XRayTab isDark={isDark} />}
+                                        {activeTab === "query" && <QueryTab isDark={isDark} />}
+                                        {activeTab === "autofill" && <AutofillTab isDark={isDark} />}
                                     </motion.div>
                                 </AnimatePresence>
                                 </div>
