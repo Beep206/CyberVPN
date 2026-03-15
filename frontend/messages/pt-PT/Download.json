@@ -1,0 +1,23 @@
+{
+  "title": "SECURE PACKAGE",
+  "subtitle": "Acquire Payload",
+  "platforms": {
+    "windows": "Windows x64",
+    "macos": "macOS (Apple Silicon / Intel)",
+    "linux": "Linux (Debian / Ubuntu / RHEL)",
+    "ios": "iOS (App Store)",
+    "android": "Android (APK / Play Store)"
+  },
+  "terminal": {
+    "init": "[SYS] INITIALIZING DOWNLOAD PROTOCOL...",
+    "verify": "VERIFYING ARCHITECTURE: ",
+    "compiling": "COMPILING SECURE BINARIES...",
+    "ready": "PAYLOAD COMPILED. READY FOR EXTRACTION.",
+    "button": "DOWNLOAD PAYLOAD",
+    "version": "VERSION:"
+  },
+  "changelog": {
+    "title": "LATEST DIRECTIVES",
+    "empty": "No recent updates for this architecture."
+  }
+}
