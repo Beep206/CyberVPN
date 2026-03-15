@@ -1,7 +1,7 @@
 use crate::engine::error::AppError;
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 // Note: For production we would dynamically determine this or read from an API
 const SING_BOX_VERSION: &str = "1.11.4";
@@ -24,11 +24,28 @@ fn get_target() -> &'static str {
     "unknown" // fallback
 }
 
+const XRAY_VERSION: &str = "1.8.24";
+
+fn get_xray_target_name() -> &'static str {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    return "linux-64";
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    return "linux-arm64-v8a";
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    return "windows-64";
+    #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+    return "windows-arm64-v8a";
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    return "macos-64";
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    return "macos-arm64-v8a";
+
+    #[allow(unreachable_code)]
+    "unknown"
+}
+
 pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
-    let app_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::System(format!("Failed to get app_data_dir: {}", e)))?;
+    let app_dir = crate::engine::store::get_app_dir(app_handle)?;
 
     let bin_dir = app_dir.join("bin");
 
@@ -156,6 +173,95 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
             Err(AppError::System(
                 "Failed to extract binary from archive".to_string(),
             ))
+        }
+    })
+    .await
+    .map_err(|e| AppError::System(e.to_string()))??;
+
+    Ok(bin_path_result)
+}
+
+pub async fn ensure_xray_binary(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    let app_dir = crate::engine::store::get_app_dir(app_handle)?;
+    let bin_dir = app_dir.join("bin");
+
+    if !bin_dir.exists() {
+        tokio::fs::create_dir_all(&bin_dir)
+            .await
+            .map_err(|e| AppError::System(e.to_string()))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    let bin_name = "xray.exe";
+    #[cfg(not(target_os = "windows"))]
+    let bin_name = "xray";
+
+    let bin_path_sync = bin_dir.join(bin_name);
+
+    if bin_path_sync.exists() {
+        return Ok(bin_path_sync);
+    }
+
+    let target = get_xray_target_name();
+    if target == "unknown" {
+        return Err(AppError::System(
+            "Unsupported platform for Xray".to_string(),
+        ));
+    }
+
+    let filename = format!("Xray-{}.zip", target);
+    let url = format!(
+        "https://github.com/XTLS/Xray-core/releases/download/v{}/{}",
+        XRAY_VERSION, filename
+    );
+
+    let archive_path = app_dir.join(&filename);
+
+    let client = reqwest::Client::new();
+    let response = client.get(&url).send().await?;
+
+    if !response.status().is_success() {
+        return Err(AppError::System(format!(
+            "Download failed: {}",
+            response.status()
+        )));
+    }
+
+    let bytes = response.bytes().await?;
+
+    let bin_path_result = tokio::task::spawn_blocking(move || -> Result<PathBuf, AppError> {
+        std::fs::write(&archive_path, bytes)?;
+
+        let file = std::fs::File::open(&archive_path)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            if file.name().ends_with("/") {
+                continue;
+            }
+
+            if file.name() == bin_name || file.name().ends_with(&format!("/{}", bin_name)) {
+                let mut outfile = std::fs::File::create(&bin_path_sync)?;
+                std::io::copy(&mut file, &mut outfile)?;
+
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let mut perms = std::fs::metadata(&bin_path_sync)?.permissions();
+                    perms.set_mode(0o755);
+                    std::fs::set_permissions(&bin_path_sync, perms)?;
+                }
+                break;
+            }
+        }
+
+        let _ = std::fs::remove_file(&archive_path);
+
+        if bin_path_sync.exists() {
+            Ok(bin_path_sync)
+        } else {
+            Err(AppError::System("Failed to extract Xray".to_string()))
         }
     })
     .await

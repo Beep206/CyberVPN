@@ -6,16 +6,44 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct AppDataStore {
     pub profiles: Vec<ProxyNode>,
     pub active_profile_id: Option<String>,
     pub routing_rules: Vec<crate::ipc::models::RoutingRule>,
     pub subscriptions: Vec<crate::ipc::models::Subscription>,
     pub custom_config: Option<String>,
+    #[serde(default = "default_active_core")]
+    pub active_core: String,
 }
 
-pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+fn default_active_core() -> String {
+    "sing-box".to_string()
+}
+
+impl Default for AppDataStore {
+    fn default() -> Self {
+        Self {
+            profiles: Vec::new(),
+            active_profile_id: None,
+            routing_rules: Vec::new(),
+            subscriptions: Vec::new(),
+            custom_config: None,
+            active_core: default_active_core(),
+        }
+    }
+}
+
+pub fn get_app_dir(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            let portable_flag = parent.join(".portable");
+            if portable_flag.exists() {
+                return Ok(parent.to_path_buf());
+            }
+        }
+    }
+
     let app_dir = app_handle
         .path()
         .app_data_dir()
@@ -25,6 +53,11 @@ pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
         fs::create_dir_all(&app_dir)?;
     }
 
+    Ok(app_dir)
+}
+
+pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    let app_dir = get_app_dir(app_handle)?;
     Ok(app_dir.join("store.json"))
 }
 
