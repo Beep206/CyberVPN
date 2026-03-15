@@ -9,6 +9,13 @@
     "department_sales": "Enterprise Acquisitions",
     "message": "Transmission Payload",
     "submit": "INITIATE UPLINK",
-    "success": "Payload Delivered. Trace wiped."
+    "success": "Payload Delivered. Trace wiped.",
+    "scanning": "SCANNING SECURE FREQUENCIES...",
+    "establishing": "ESTABLISHING TLS TUNNEL...",
+    "verified": "UPLINK SECURED",
+    "placeholder_name": "guest_774",
+    "placeholder_email": "secure@proton.me",
+    "placeholder_message": "< BEGIN TRANSMISSION >",
+    "new_uplink": "[ INITIATE NEW UPLINK ]"
   }
 }
