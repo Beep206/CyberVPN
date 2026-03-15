@@ -1,12 +1,14 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, Noise, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import { TierLevel } from '@/widgets/pricing/pricing-dashboard';
 import { Vector2 } from 'three';
+import { PerformanceMonitor } from '@react-three/drei';
+import { useInView } from 'motion/react';
 
 // --- CONFIGURATION ---
 const TIER_COLORS = {
@@ -84,88 +86,99 @@ function DataCrystal({ hoveredTier }: { hoveredTier: TierLevel }) {
 
 // --- PARTICLE DATA STREAMS ---
 function DataStreams({ hoveredTier }: { hoveredTier: TierLevel }) {
-    const pointsRef = useRef<THREE.Points>(null);
-    const materialRef = useRef<THREE.PointsMaterial>(null);
+    const meshRef = useRef<THREE.InstancedMesh>(null!);
+    const materialRef = useRef<THREE.MeshBasicMaterial>(null!);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
     
-    // Generate static particle positions
-    const particlesCount = 2000;
-    const positions = new Float32Array(particlesCount * 3);
-    const speeds = new Float32Array(particlesCount);
-    
-    for (let i = 0; i < particlesCount; i++) {
-        positions[i * 3] = (Math.random() - 0.5) * 20; // x
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 20 - 10; // y
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 20; // z
-        speeds[i] = Math.random() * 0.5 + 0.1;
-    }
+    // Significantly reduced point count but better aesthetics via scaling
+    const count = 150;
+    const particles = useMemo(() => {
+        return new Array(count).fill(0).map(() => ({
+            x: (Math.random() - 0.5) * 15,
+            y: (Math.random() - 0.5) * 20 - 10,
+            z: (Math.random() - 0.5) * 15,
+            speed: Math.random() * 0.5 + 0.1,
+            scaleY: Math.random() * 2 + 0.5
+        }));
+    }, []);
 
     useFrame((state, delta) => {
-        if (!pointsRef.current || !materialRef.current) return;
+        if (!meshRef.current || !materialRef.current) return;
         
-        const positionsAttr = pointsRef.current.geometry.attributes.position;
-        const targetSpeed = TIER_SPEEDS[hoveredTier] * 2;
+        const targetSpeed = TIER_SPEEDS[hoveredTier] * 3;
         
-        // Move particles upwards based on tier speed
-        for (let i = 0; i < particlesCount; i++) {
-            let y = positionsAttr.array[i * 3 + 1] as number;
-            y += speeds[i] * targetSpeed * delta;
+        particles.forEach((p, i) => {
+            p.y += p.speed * targetSpeed * delta;
             
             // Loop particles back to bottom
-            if (y > 10) y = -10;
+            if (p.y > 10) p.y = -10;
             
-            positionsAttr.array[i * 3 + 1] = y;
-        }
-        positionsAttr.needsUpdate = true;
+            dummy.position.set(p.x, p.y, p.z);
+            dummy.scale.set(1, p.scaleY, 1); // Elongate to look like stream rays
+            dummy.updateMatrix();
+            meshRef.current.setMatrixAt(i, dummy.matrix);
+        });
+        meshRef.current.instanceMatrix.needsUpdate = true;
         
-        // Interpolate particle color
+        // Interpolate particle color globally
         materialRef.current.color.lerp(TIER_COLORS[hoveredTier], delta * 3);
     });
 
     return (
-        <points ref={pointsRef}>
-            <bufferGeometry>
-                <bufferAttribute
-                    attach="attributes-position"
-                    count={particlesCount}
-                    args={[positions, 3]}
-                />
-            </bufferGeometry>
-            <pointsMaterial
+        <instancedMesh ref={meshRef} args={[new THREE.BoxGeometry(0.04, 1.0, 0.04), undefined, count]}>
+            <meshBasicMaterial
                 ref={materialRef}
-                size={0.05}
                 color={TIER_COLORS.none}
                 transparent
                 opacity={0.6}
                 blending={THREE.AdditiveBlending}
+                depthWrite={false}
             />
-        </points>
+        </instancedMesh>
     );
 }
 
 // --- MAIN CANVAS COMPONENT ---
 export function PricingCore3D({ hoveredTier }: { hoveredTier: TierLevel }) {
-    return (
-        <Canvas camera={{ position: [0, 2, 8], fov: 45 }}>
-            <color attach="background" args={['#000000']} />
-            <fog attach="fog" args={['#000000', 5, 15]} />
-            
-            <ambientLight intensity={0.5} />
-            
-            <DataCrystal hoveredTier={hoveredTier} />
-            <DataStreams hoveredTier={hoveredTier} />
+    const containerRef = useRef<HTMLDivElement>(null);
+    // Pause rendering entirely when the component is off-screen (scrolled past)
+    const isInView = useInView(containerRef, { margin: "200px" });
+    const [dpr, setDpr] = useState(1); // Manage DPR dynamically
 
-            <EffectComposer>
-                <Bloom 
-                    luminanceThreshold={0.2}
-                    mipmapBlur
-                    intensity={1.5}
-                />
-                <ChromaticAberration
-                    blendFunction={BlendFunction.NORMAL}
-                    offset={new Vector2(0.002, 0.002)}
-                />
-                <Noise opacity={0.035} />
-            </EffectComposer>
-        </Canvas>
+    return (
+        <div ref={containerRef} className="absolute inset-0 w-full h-full">
+            <Canvas 
+                frameloop={isInView ? 'always' : 'never'}
+                camera={{ position: [0, 2, 8], fov: 45 }}
+                // Optimize GL context: false antialias, false alpha (since background is black), high-perf mode
+                gl={{ antialias: false, powerPreference: "high-performance", alpha: false }}
+                dpr={dpr}
+            >
+                {/* Dynamically scale down pixel ratio to preserve FPS on weak devices */}
+                <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1.5)} />
+
+                <color attach="background" args={['#000000']} />
+                <fog attach="fog" args={['#000000', 5, 15]} />
+                
+                <ambientLight intensity={0.5} />
+                
+                <DataCrystal hoveredTier={hoveredTier} />
+                <DataStreams hoveredTier={hoveredTier} />
+
+                {/* Disable MSAA inside the composer for massive performance boost */}
+                <EffectComposer multisampling={0}>
+                    <Bloom 
+                        luminanceThreshold={0.2}
+                        mipmapBlur
+                        intensity={1.5}
+                    />
+                    <ChromaticAberration
+                        blendFunction={BlendFunction.NORMAL}
+                        offset={new Vector2(0.002, 0.002)}
+                    />
+                    <Noise opacity={0.035} />
+                </EffectComposer>
+            </Canvas>
+        </div>
     );
 }
