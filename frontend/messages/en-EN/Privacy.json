@@ -1,0 +1,35 @@
+{
+    "title": "TRANSPARENCY PROTOCOL",
+    "description": "TOP SECRET. DECRYPTING PRIVACY POLICY...",
+    "sections": {
+        "introduction": {
+            "title": "01. INTRODUCTION & OVERVIEW",
+            "content": "This document represents the official Privacy Policy of the CyberVPN network. Our core principle is simple: we cannot surrender what we do not possess. We have engineered an infrastructure that is physically incapable of storing your personal data, activity logs, or browsing history."
+        },
+        "dataCollection": {
+            "title": "02. DATA COLLECTION",
+            "content": "To maintain the protocol protocol, we require an absolute minimum of information. We collect only: authorization credentials (password hash) and subscription metadata (token expiration date).",
+            "radarLabels": {
+                "collected": "AUTHORIZATION",
+                "blocked": "TRAFFIC LOGS"
+            }
+        },
+        "noLogs": {
+            "title": "03. ZERO-LOGS POLICY",
+            "content": "Our entire network operates on RAM disks (volatile memory). The moment a server is rebooted, any traces of your presence are irretrievably destroyed. We do not keep DNS query logs, IP addresses, or session timestamps."
+        },
+        "encryption": {
+            "title": "04. CRYPTOGRAPHY",
+            "content": "Your traffic is protected by AES-256-GCM standard with Perfect Forward Secrecy (PFS). This means that even if a future quantum computer breaks the current key, your past sessions will remain secure."
+        },
+        "thirdParties": {
+            "title": "05. THIRD PARTIES",
+            "content": "CyberVPN does not share, sell, or trade your data. We do not cooperate with advertising networks or data brokers. Our sole source of income is the subscription fees paid by our users."
+        }
+    },
+    "status": {
+        "encrypted": "ENCRYPTED",
+        "decrypted": "DECRYPTED",
+        "decrypting": "DECRYPTING..."
+    }
+}
