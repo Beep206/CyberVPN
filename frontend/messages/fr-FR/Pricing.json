@@ -1,0 +1,57 @@
+{
+  "title": "ACCESS TIERS",
+  "subtitle": "Network Power Allocation",
+  "tiers": {
+    "basic": {
+      "name": "STEALTH",
+      "price": "Free",
+      "period": "/forever",
+      "description": "Essential encryption for navigating the digital outer rims.",
+      "features": [
+        "AES-256 Core Encryption",
+        "5 Global Relay Nodes",
+        "10 GB/mc Bandwidth limit",
+        "Standard Support Ping"
+      ],
+      "button": "INITIATE STEALTH"
+    },
+    "pro": {
+      "name": "CYBER_PRO",
+      "price": "$8.99",
+      "period": "/month",
+      "description": "Unrestricted speed and matrix-level anonymity for true runners.",
+      "features": [
+        "Quantum-Resistant Protocols",
+        "8,000+ Tier-1 Relays",
+        "Unlimited Bandwidth",
+        "Zero-Log Hardened Cores",
+        "Double VPN Routing"
+      ],
+      "button": "UPGRADE TO PRO",
+      "badge": "MOST POPULAR"
+    },
+    "elite": {
+      "name": "ELITE_SYNC",
+      "price": "$15.99",
+      "period": "/month",
+      "description": "Full network override. Dedicated IPs and total infrastructure control.",
+      "features": [
+        "Dedicated Cyber-IP Address",
+        "Obfuscated Stealth Protocols",
+        "Priority Node Selection",
+        "10Gbps Network Links",
+        "Access to Beta Directives"
+      ],
+      "button": "ACQUIRE ELITE"
+    }
+  },
+  "faq": {
+    "title": "DECRYPTED ARCHIVES",
+    "q1": "Are my logs recorded?",
+    "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
+    "q2": "What happens if I exceed the Stealth tier bandwidth?",
+    "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
+    "q3": "Do you accept crypto?",
+    "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive."
+  }
+}
