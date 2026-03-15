@@ -92,6 +92,8 @@ pub fn parse_vmess(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -283,6 +285,8 @@ pub fn parse_trojan(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment,
+        tls_record_fragment,
     })
 }
 
@@ -367,6 +371,8 @@ pub fn parse_hysteria2(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -457,6 +463,8 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment,
+        tls_record_fragment,
     })
 }
 
@@ -568,6 +576,8 @@ pub fn parse_tuic(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -654,6 +664,8 @@ pub fn parse_wireguard(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -715,6 +727,8 @@ pub fn parse_socks(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -787,6 +801,8 @@ pub fn parse_http(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -855,6 +871,8 @@ pub fn parse_ssh(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -1027,6 +1045,8 @@ fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
         group_id: None,
         plugin: None,
         plugin_opts: None,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
