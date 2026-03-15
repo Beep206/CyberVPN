@@ -64,13 +64,14 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
                         // Let's modify the standard command to accept the previous state.
                         // For now we'll pass false, or look it up if persisted.
                         let _ =
-                            crate::ipc::connect_profile(id, false, app_handle.clone(), state).await;
+                            crate::ipc::connect_profile(id, false, false, app_handle.clone(), state).await;
                     } else {
                         // Attempt to connect the first profile if no active_id
                         if let Ok(profiles) = crate::engine::store::load_store(&app_handle) {
                             if let Some(profile) = profiles.profiles.first() {
                                 let _ = crate::ipc::connect_profile(
                                     profile.id.clone(),
+                                    false,
                                     false,
                                     app_handle.clone(),
                                     state,

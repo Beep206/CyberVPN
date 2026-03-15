@@ -88,6 +88,10 @@ pub fn parse_vmess(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -138,6 +142,26 @@ pub fn parse_shadowsocks(link: &str) -> Result<ProxyNode, AppError> {
         format!("SS {}", host)
     };
 
+    let mut plugin = None;
+    let mut plugin_opts = None;
+
+    for (k, v) in parsed_url.query_pairs() {
+        if k == "plugin" {
+            let plugin_val = v.into_owned();
+            if let Some((p_name, p_opts)) = plugin_val.split_once(';') {
+                plugin = Some(p_name.to_string());
+                // Only set plugin_opts if not already set by plugin-opts query param
+                if plugin_opts.is_none() {
+                    plugin_opts = Some(p_opts.to_string());
+                }
+            } else {
+                plugin = Some(plugin_val);
+            }
+        } else if k == "plugin-opts" || k == "plugin_opts" {
+            plugin_opts = Some(v.into_owned());
+        }
+    }
+
     Ok(ProxyNode {
         id: uuid::Uuid::new_v4().to_string(),
         name,
@@ -170,6 +194,12 @@ pub fn parse_shadowsocks(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin,
+        plugin_opts,
+        tls_fragment: None,
+        tls_record_fragment: None,
     })
 }
 
@@ -203,12 +233,16 @@ pub fn parse_trojan(link: &str) -> Result<ProxyNode, AppError> {
     let mut sni = None;
     let mut security = Some("tls".to_string());
     let mut flow = None;
+    let mut tls_fragment = None;
+    let mut tls_record_fragment = None;
 
     for (k, v) in parsed_url.query_pairs() {
         match k.as_ref() {
             "sni" | "peer" => sni = Some(v.into_owned()),
             "security" => security = Some(v.into_owned()),
             "flow" => flow = Some(v.into_owned()),
+            "tls_fragment" | "tls-fragment" => tls_fragment = Some(v == "true" || v == "1"),
+            "tls_record_fragment" | "tls-record-fragment" => tls_record_fragment = Some(v == "true" || v == "1"),
             _ => {}
         }
     }
@@ -245,6 +279,10 @@ pub fn parse_trojan(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -325,6 +363,10 @@ pub fn parse_hysteria2(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -362,6 +404,8 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
     let mut flow = None;
     let mut short_id = None;
     let mut public_key = None;
+    let mut tls_fragment = None;
+    let mut tls_record_fragment = None;
 
     for (k, v) in parsed_url.query_pairs() {
         match k.as_ref() {
@@ -371,6 +415,8 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
             "flow" => flow = Some(v.into_owned()),
             "sid" => short_id = Some(v.into_owned()),
             "pbk" => public_key = Some(v.into_owned()),
+            "tls_fragment" | "tls-fragment" => tls_fragment = Some(v == "true" || v == "1"),
+            "tls_record_fragment" | "tls-record-fragment" => tls_record_fragment = Some(v == "true" || v == "1"),
             _ => {}
         }
     }
@@ -407,6 +453,10 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -514,6 +564,10 @@ pub fn parse_tuic(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -596,6 +650,10 @@ pub fn parse_wireguard(link: &str) -> Result<ProxyNode, AppError> {
         private_key,
         peer_public_key: Some(peer_public_key),
         mtu,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -653,6 +711,10 @@ pub fn parse_socks(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -721,6 +783,10 @@ pub fn parse_http(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -785,6 +851,10 @@ pub fn parse_ssh(link: &str) -> Result<ProxyNode, AppError> {
         private_key,
         peer_public_key: None,
         mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
     })
 }
 
@@ -913,6 +983,53 @@ pub fn generate_link(node: &ProxyNode) -> String {
     url_str
 }
 
+fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
+    let url = Url::parse(link).map_err(|e| AppError::System(format!("Invalid URL: {}", e)))?;
+
+    let name = url
+        .fragment()
+        .map(|f| urlencoding::decode(f).unwrap_or_else(|_| f.into()).into_owned())
+        .unwrap_or_else(|| "Tailscale Node".to_string());
+
+    Ok(ProxyNode {
+        id: uuid::Uuid::new_v4().to_string(),
+        name,
+        server: "".to_string(),
+        port: 0,
+        protocol: "tailscale".to_string(),
+        uuid: None,
+        password: None,
+        network: None,
+        flow: None,
+        tls: None,
+        sni: None,
+        fingerprint: None,
+        public_key: None,
+        short_id: None,
+        ping: None,
+        next_hop_id: None,
+        alter_id: None,
+        security: None,
+        method: None,
+        obfs: None,
+        obfs_password: None,
+        up_mbps: None,
+        down_mbps: None,
+        alpn: None,
+        subscription_id: None,
+        congestion_control: None,
+        udp_relay_mode: None,
+        local_address: None,
+        private_key: None,
+        peer_public_key: None,
+        mtu: None,
+        mux: None,
+        group_id: None,
+        plugin: None,
+        plugin_opts: None,
+    })
+}
+
 /// Parses a given proxy link (e.g., vless://, vmess://) and returns a `ProxyNode`.
 pub fn parse_link(link: &str) -> Result<ProxyNode, AppError> {
     let trimmed = link.trim();
@@ -936,6 +1053,8 @@ pub fn parse_link(link: &str) -> Result<ProxyNode, AppError> {
         parse_http(trimmed)
     } else if trimmed.starts_with("ssh://") {
         parse_ssh(trimmed)
+    } else if trimmed.starts_with("tailscale://") {
+        parse_tailscale(trimmed)
     } else {
         Err(AppError::System(
             "Unsupported protocol/link format.".to_string(),

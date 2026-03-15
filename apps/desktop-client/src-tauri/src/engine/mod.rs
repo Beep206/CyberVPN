@@ -7,3 +7,5 @@ pub mod qr;
 pub mod store;
 pub mod subscription;
 pub mod sys;
+pub mod ping;
+pub mod sysproxy;

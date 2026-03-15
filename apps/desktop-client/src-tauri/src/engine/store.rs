@@ -15,6 +15,11 @@ pub struct AppDataStore {
     pub custom_config: Option<String>,
     #[serde(default = "default_active_core")]
     pub active_core: String,
+    pub local_socks_port: Option<u16>,
+    #[serde(default)]
+    pub allow_lan: bool,
+    #[serde(default)]
+    pub groups: Vec<crate::ipc::models::ProfileGroup>,
 }
 
 fn default_active_core() -> String {
@@ -30,6 +35,9 @@ impl Default for AppDataStore {
             subscriptions: Vec::new(),
             custom_config: None,
             active_core: default_active_core(),
+            local_socks_port: None,
+            allow_lan: false,
+            groups: Vec::new(),
         }
     }
 }
