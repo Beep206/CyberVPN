@@ -21,6 +21,8 @@ struct TrafficUpdate {
 
 pub struct ProcessManager {
     child: Arc<Mutex<Option<Child>>>,
+    #[cfg(target_os = "windows")]
+    is_elevated_run: Arc<Mutex<bool>>,
 }
 
 impl Default for ProcessManager {
@@ -33,6 +35,8 @@ impl ProcessManager {
     pub fn new() -> Self {
         Self {
             child: Arc::new(Mutex::new(None)),
+            #[cfg(target_os = "windows")]
+            is_elevated_run: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -55,9 +59,56 @@ impl ProcessManager {
         let mut command = if tun_mode && !crate::engine::sys::is_elevated() {
             #[cfg(target_os = "windows")]
             {
-                // On Windows we could use ShellExecuteEx with "runas" verb, but for now 
-                // returning ElevationRequired so the UX prompts them to restart as Administrator.
-                return Err(AppError::ElevationRequired("Windows requires running the app as Administrator for TUN mode".to_string()));
+                // Invoke UAC elevation
+                println!("Requesting elevation via UAC...");
+                crate::engine::sys::elevate_and_run(&bin_path, &config_path)?;
+                
+                let mut elevated_guard = self.is_elevated_run.lock().await;
+                *elevated_guard = true;
+
+                // We must tail the log file asynchronously
+                let log_path = config_path.with_file_name("run.log");
+                let app_clone = app_handle.clone();
+                tokio::spawn(async move {
+                    // Give process a moment to create the log file array
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    if let Ok(file) = tokio::fs::File::open(&log_path).await {
+                        let mut reader = tokio::io::BufReader::new(file);
+                        let mut line = String::new();
+                        use tokio::io::AsyncBufReadExt;
+                        
+                        loop {
+                            line.clear();
+                            match reader.read_line(&mut line).await {
+                                Ok(0) => {
+                                    // EOF reached, wait and try again
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                                }
+                                Ok(_) => {
+                                    let trimmed = line.trim();
+                                    if trimmed.is_empty() { continue; }
+
+                                    // Check for traffic stats
+                                    if let Some(caps) = TRAFFIC_REGEX.captures(trimmed) {
+                                        if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
+                                            let _ = app_clone.emit("traffic_update", TrafficUpdate { up, down });
+                                        }
+                                    } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
+                                        if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
+                                            let _ = app_clone.emit("traffic_update", TrafficUpdate { up, down });
+                                        }
+                                    }
+                                    let _ = app_clone.emit("singbox-log", trimmed);
+                                }
+                                Err(_) => {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return Ok(());
             }
 
             #[cfg(unix)]
@@ -137,6 +188,20 @@ impl ProcessManager {
     }
 
     pub async fn stop(&self) -> Result<(), AppError> {
+        #[cfg(target_os = "windows")]
+        {
+            let mut elevated_guard = self.is_elevated_run.lock().await;
+            if *elevated_guard {
+                println!("Stopping elevated sing-box process via taskkill...");
+                let _ = tokio::process::Command::new("taskkill")
+                    .args(&["/F", "/IM", "sing-box.exe"])
+                    .output()
+                    .await;
+                *elevated_guard = false;
+                return Ok(());
+            }
+        }
+
         let child_process = {
             let mut child_guard = self.child.lock().await;
             child_guard.take()
@@ -153,6 +218,12 @@ impl ProcessManager {
     }
     
     pub async fn is_running(&self) -> bool {
+        #[cfg(target_os = "windows")]
+        {
+            if *self.is_elevated_run.lock().await {
+                return true;
+            }
+        }
         self.child.lock().await.is_some()
     }
 }

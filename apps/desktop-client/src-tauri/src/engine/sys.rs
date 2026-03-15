@@ -62,3 +62,42 @@ pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
     // On Unix, TUN relies on the kernel module (tun), so nothing needs to be downloaded.
     Ok(())
 }
+
+/// On Windows, invoke the process with the runas verb to trigger UAC.
+#[cfg(target_os = "windows")]
+pub fn elevate_and_run(
+    bin_path: &std::path::Path,
+    config_path: &std::path::Path,
+) -> Result<(), AppError> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::UI::Shell::{ShellExecuteExW, SHELLEXECUTEINFOW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS};
+    use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
+
+    let verb: Vec<u16> = std::ffi::OsStr::new("runas").encode_wide().chain(std::iter::once(0)).collect();
+    let file: Vec<u16> = bin_path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    
+    // arguments: run -c config_path
+    let mut args_string = String::from("run -c \"");
+    args_string.push_str(&config_path.to_string_lossy());
+    args_string.push_str("\"");
+    let args: Vec<u16> = std::ffi::OsStr::new(&args_string).encode_wide().chain(std::iter::once(0)).collect();
+
+    let mut info = SHELLEXECUTEINFOW::default();
+    info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
+    // We intentionally don't capture hProcess here since we can't easily integrate it with Tokio
+    // and we will rely on checking if `sing-box` is running via name later or closing it directly.
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+    info.lpVerb = windows::core::PCWSTR::from_raw(verb.as_ptr());
+    info.lpFile = windows::core::PCWSTR::from_raw(file.as_ptr());
+    info.lpParameters = windows::core::PCWSTR::from_raw(args.as_ptr());
+    info.nShow = SW_HIDE.0 as i32;
+
+    // SAFETY: We initialize a valid SHELLEXECUTEINFOW structure.
+    // Pointers are valid and point to null-terminated UTF-16 strings within the same scope.
+    let res = unsafe { ShellExecuteExW(&mut info) };
+    if res.is_err() {
+        return Err(AppError::System("Failed to elevate process via UAC".to_string()));
+    }
+    
+    Ok(())
+}

@@ -77,16 +77,36 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
         .find(|p| p.id == id)
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
-    // 2. Generate config
-    let config_json = crate::engine::config::generate_singbox_config(
-        profile, 
-        &store_data.profiles, 
-        tun_mode, 
-        &store_data.routing_rules
-    );
+    let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
+    #[allow(unused_variables)]
+    let log_path = app_dir.join("run.log");
+
+    #[allow(unused_mut, unused_assignments)]
+    let mut log_path_opt = None;
+    
+    #[cfg(target_os = "windows")]
+    {
+        if tun_mode && !crate::engine::sys::is_elevated() {
+            log_path_opt = Some(log_path.as_path());
+        }
+    }
+
+    // 2. Generate config or apply Custom Config Override
+    let config_json = if let Some(custom_json_str) = &store_data.custom_config {
+        println!("Using Custom JSON Override for sing-box configuration.");
+        serde_json::from_str::<serde_json::Value>(custom_json_str)
+            .map_err(|e| AppError::System(format!("Custom JSON config parse error: {}", e)))?
+    } else {
+        crate::engine::config::generate_singbox_config(
+            profile, 
+            &store_data.profiles, 
+            tun_mode, 
+            &store_data.routing_rules,
+            log_path_opt
+        )
+    };
     
     // 3. Save to run.json
-    let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
     let config_path = app_dir.join("run.json");
     let bin_path = app_dir.join("sing-box");
 
@@ -189,6 +209,35 @@ pub async fn update_subscription(sub_id: String, app: AppHandle) -> Result<(), A
         sub.last_updated = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
     }
 
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn scan_screen_for_qr() -> Result<ProxyNode, AppError> {
+    crate::engine::qr::scan_screen_for_qr().await
+}
+
+#[tauri::command]
+pub async fn generate_link(node: ProxyNode) -> Result<String, AppError> {
+    Ok(crate::engine::parser::generate_link(&node))
+}
+
+#[tauri::command]
+pub async fn get_custom_config(app: AppHandle) -> Result<Option<String>, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.custom_config)
+}
+
+#[tauri::command]
+pub async fn save_custom_config(config: Option<String>, app: AppHandle) -> Result<(), AppError> {
+    if let Some(ref json_str) = config {
+        // Zero-cost validation
+        serde_json::from_str::<serde::de::IgnoredAny>(json_str)
+            .map_err(|e| AppError::System(format!("Invalid JSON configuration: {}", e)))?;
+    }
+    let mut store_data = store::load_store(&app)?;
+    store_data.custom_config = config;
     store::save_store(&app, &store_data)?;
     Ok(())
 }

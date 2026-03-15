@@ -12,6 +12,7 @@ pub struct AppDataStore {
     pub active_profile_id: Option<String>,
     pub routing_rules: Vec<crate::ipc::models::RoutingRule>,
     pub subscriptions: Vec<crate::ipc::models::Subscription>,
+    pub custom_config: Option<String>,
 }
 
 pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
