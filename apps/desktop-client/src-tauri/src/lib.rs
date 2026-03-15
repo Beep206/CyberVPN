@@ -68,6 +68,9 @@ pub fn run() {
                 if let Err(e) = engine::provision::ensure_sing_box_binary(&app_handle).await {
                     eprintln!("Failed to provision sing-box: {}", e);
                 }
+                if let Err(e) = engine::provision::ensure_xray_binary(&app_handle).await {
+                    eprintln!("Failed to provision xray-core: {}", e);
+                }
             });
 
             #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]

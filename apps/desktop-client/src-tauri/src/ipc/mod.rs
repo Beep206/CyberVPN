@@ -6,7 +6,6 @@ use crate::engine::parser;
 use crate::engine::store;
 use models::{ConnectionStatus, ProxyNode};
 use std::sync::Arc;
-use tauri::Manager;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::RwLock;
 
@@ -91,7 +90,7 @@ pub async fn connect_profile(
         .find(|p| p.id == id)
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
-    let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
+    let app_dir = crate::engine::store::get_app_dir(&app)?;
     #[allow(unused_variables)]
     let log_path = app_dir.join("run.log");
 
@@ -122,7 +121,22 @@ pub async fn connect_profile(
 
     // 3. Save to run.json
     let config_path = app_dir.join("run.json");
-    let bin_path = app_dir.join("sing-box");
+    let active_core = store_data.active_core.clone();
+
+    #[cfg(target_os = "windows")]
+    let bin_name = if active_core == "xray" {
+        "xray.exe"
+    } else {
+        "sing-box.exe"
+    };
+    #[cfg(not(target_os = "windows"))]
+    let bin_name = if active_core == "xray" {
+        "xray"
+    } else {
+        "sing-box"
+    };
+
+    let bin_path = app_dir.join("bin").join(bin_name);
 
     tokio::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?).await?;
 
@@ -141,7 +155,7 @@ pub async fn connect_profile(
     // 5. Start process
     if let Err(e) = state
         .process_manager
-        .start(app.clone(), bin_path, config_path, tun_mode)
+        .start(app.clone(), bin_path, config_path, tun_mode, &active_core)
         .await
     {
         let mut status_lock = state.status.write().await;

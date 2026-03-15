@@ -47,7 +47,7 @@ pub fn is_elevated() -> bool {
 pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
     #[cfg(target_os = "windows")]
     {
-        let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
+        let app_dir = crate::engine::store::get_app_dir(app)?;
         let dll_path = app_dir.join("wintun.dll");
 
         if !dll_path.exists() {

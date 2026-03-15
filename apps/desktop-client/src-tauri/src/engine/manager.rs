@@ -48,6 +48,7 @@ impl ProcessManager {
         bin_path: std::path::PathBuf,
         config_path: std::path::PathBuf,
         tun_mode: bool,
+        core_name: &str,
     ) -> Result<(), AppError> {
         let mut child_guard = self.child.lock().await;
 
@@ -55,7 +56,15 @@ impl ProcessManager {
             return Err(AppError::System("Sing-box is already running".to_string()));
         }
 
-        println!("Starting sing-box with config: {}", config_path.display());
+        if core_name == "xray" {
+            println!("Warning: connecting with Xray-core, limited config generation rules apply.");
+        }
+
+        println!(
+            "Starting {} with config: {}",
+            core_name,
+            config_path.display()
+        );
         println!("TUN Mode Enabled: {}", tun_mode);
 
         let mut command = if tun_mode && !crate::engine::sys::is_elevated() {
@@ -136,14 +145,14 @@ impl ProcessManager {
             }
         } else {
             // Normal execution (or already elevated)
-            let mut cmd = Command::new(bin_path);
-            cmd.arg("run");
-            cmd.arg("-c").arg(config_path);
-            cmd
+            let mut c = Command::new(&bin_path);
+            c.arg("run")
+                .arg("-c")
+                .arg(&config_path)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+            c
         };
-
-        command.stdout(Stdio::piped());
-        command.stderr(Stdio::piped());
 
         // Spawn child
         let mut spawn_child = command.spawn()?;
