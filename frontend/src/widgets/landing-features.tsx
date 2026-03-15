@@ -87,7 +87,7 @@ export function LandingFeatures() {
     return (
         <section className="relative py-32 bg-terminal-bg overflow-hidden">
             {/* 3D Background Scene */}
-            <FeaturesScene3D key={pathname} />
+            <FeaturesScene3D key={pathname} activeFeature="quantum" />
 
             {/* Grid overlay */}
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px] z-[1]" />
