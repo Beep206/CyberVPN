@@ -4,7 +4,7 @@ use crate::engine::error::AppError;
 use crate::engine::manager::ProcessManager;
 use crate::engine::parser;
 use crate::engine::store;
-use models::{ConnectionStatus, ProxyNode};
+use models::{ConnectionStatus, ProfileGroup, ProxyNode};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::RwLock;
@@ -71,6 +71,40 @@ pub async fn delete_routing_rule(id: String, app: AppHandle) -> Result<(), AppEr
 }
 
 #[tauri::command]
+pub async fn test_all_latencies(app: AppHandle) -> Result<(), AppError> {
+    use futures::stream::StreamExt;
+    
+    let mut store_data = store::load_store(&app)?;
+    
+    // We clone the profiles so we can borrow them across async tasks
+    let profiles_clone = store_data.profiles.clone();
+    
+    let results = futures::stream::iter(profiles_clone.into_iter().enumerate().map(|(index, node)| {
+        async move {
+            let ping = crate::engine::ping::test_latency(&node).await.unwrap_or(0);
+            (index, ping)
+        }
+    }))
+    .buffer_unordered(15) // Max 15 concurrent tests
+    .collect::<Vec<(usize, u32)>>()
+    .await;
+
+    for (index, ping) in results {
+        if ping > 0 {
+            store_data.profiles[index].ping = Some(ping);
+        } else {
+            // Either failed or timeout. Set to 0 or leave as is. We set to 0 to indicate error.
+            store_data.profiles[index].ping = Some(0);
+        }
+    }
+
+    store::save_store(&app, &store_data)?;
+    app.emit("profiles-updated", ())?;
+    
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn parse_clipboard_link(link: String) -> Result<ProxyNode, AppError> {
     parser::parse_link(&link)
 }
@@ -79,6 +113,7 @@ pub async fn parse_clipboard_link(link: String) -> Result<ProxyNode, AppError> {
 pub async fn connect_profile(
     id: String,
     tun_mode: bool,
+    system_proxy: bool,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
@@ -116,6 +151,8 @@ pub async fn connect_profile(
             tun_mode,
             &store_data.routing_rules,
             log_path_opt,
+            store_data.local_socks_port,
+            store_data.allow_lan,
         )
     };
 
@@ -165,6 +202,16 @@ pub async fn connect_profile(
         return Err(e);
     }
 
+    if system_proxy && !tun_mode {
+        let port = store_data.local_socks_port.unwrap_or(2080);
+        if let Err(e) = crate::engine::sysproxy::set_system_proxy(port) {
+            eprintln!("Failed to set system proxy: {}", e);
+        }
+    } else {
+        crate::engine::sysproxy::clear_system_proxy().ok();
+    }
+
+
     // 6. Update status to connected
     {
         let mut status_lock = state.status.write().await;
@@ -179,6 +226,7 @@ pub async fn connect_profile(
 #[tauri::command]
 pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
     state.process_manager.stop().await?;
+    crate::engine::sysproxy::clear_system_proxy().ok();
 
     let mut status_lock = state.status.write().await;
     status_lock.status = "disconnected".to_string();
@@ -284,4 +332,76 @@ pub async fn save_custom_config(config: Option<String>, app: AppHandle) -> Resul
     store_data.custom_config = config;
     store::save_store(&app, &store_data)?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_local_socks_port(app: AppHandle) -> Result<Option<u16>, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.local_socks_port)
+}
+
+#[tauri::command]
+pub async fn save_local_socks_port(port: Option<u16>, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.local_socks_port = port;
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_allow_lan(app: AppHandle) -> Result<bool, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.allow_lan)
+}
+
+#[tauri::command]
+pub async fn save_allow_lan(allow: bool, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.allow_lan = allow;
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_groups(app: AppHandle) -> Result<Vec<ProfileGroup>, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.groups)
+}
+
+#[tauri::command]
+pub async fn add_group(group: ProfileGroup, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.groups.push(group);
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_group(id: String, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.groups.retain(|g| g.id != id);
+    for p in store_data.profiles.iter_mut() {
+        if let Some(ref gid) = p.group_id {
+            if gid == &id {
+                p.group_id = None;
+            }
+        }
+    }
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_node_group(node_id: String, group_id: Option<String>, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    if let Some(node) = store_data.profiles.iter_mut().find(|n| n.id == node_id) {
+        node.group_id = group_id;
+        store::save_store(&app, &store_data)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_geo_assets(app: AppHandle) -> Result<(), AppError> {
+    crate::engine::provision::update_geo_assets(&app).await
 }

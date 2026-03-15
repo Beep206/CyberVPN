@@ -16,7 +16,16 @@ use tokio::sync::RwLock;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    std::panic::set_hook(Box::new(|info| {
+        let _ = crate::engine::sysproxy::clear_system_proxy();
+        eprintln!("Panic occurred: {:?}", info);
+    }));
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
+        ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
@@ -39,6 +48,7 @@ pub fn run() {
                                 let _ = crate::ipc::connect_profile(
                                     id,
                                     false,
+                                    false,
                                     app_handle.clone(),
                                     state,
                                 )
@@ -49,6 +59,7 @@ pub fn run() {
                                     if let Some(profile) = profiles.profiles.first() {
                                         let _ = crate::ipc::connect_profile(
                                             profile.id.clone(),
+                                            false,
                                             false,
                                             app_handle.clone(),
                                             state,
@@ -155,8 +166,23 @@ pub fn run() {
             ipc::scan_screen_for_qr,
             ipc::generate_link,
             ipc::get_custom_config,
-            ipc::save_custom_config
+            ipc::save_custom_config,
+            ipc::test_all_latencies,
+            ipc::get_local_socks_port,
+            ipc::save_local_socks_port,
+            ipc::get_allow_lan,
+            ipc::save_allow_lan,
+            ipc::get_groups,
+            ipc::add_group,
+            ipc::delete_group,
+            ipc::set_node_group,
+            ipc::update_geo_assets
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let _ = crate::engine::sysproxy::clear_system_proxy();
+            }
+        });
 }

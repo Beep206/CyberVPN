@@ -12,6 +12,13 @@ pub struct Subscription {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProfileGroup {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProxyNode {
     pub id: String,
     pub name: String,
@@ -46,6 +53,13 @@ pub struct ProxyNode {
     pub private_key: Option<String>,        // Wireguard / SSH
     pub peer_public_key: Option<String>,    // Wireguard
     pub mtu: Option<u32>,                   // Wireguard
+    pub mux: Option<String>,                // Multiplexing
+    pub group_id: Option<String>,           // Profile Grouping
+    // Phase 19 Additions
+    pub plugin: Option<String>,             // Shadowsocks obfs/v2ray-plugin
+    pub plugin_opts: Option<String>,
+    pub tls_fragment: Option<bool>,
+    pub tls_record_fragment: Option<bool>,
 }
 
 impl ProxyNode {
@@ -86,6 +100,17 @@ pub struct RoutingRule {
     pub domains: Vec<String>, // e.g., ["*.openai.com", "geosite:google"]
     pub ips: Vec<String>,     // e.g., ["geoip:telegram", "192.168.1.0/24"]
     pub outbound: String,     // e.g., "proxy", "direct", "block"
+    // Phase 19 Advanced Routing
+    #[serde(default)]
+    pub process_name: Vec<String>,
+    #[serde(default)]
+    pub port_range: Vec<String>,
+    #[serde(default)]
+    pub network: Option<String>,
+    #[serde(default)]
+    pub domain_keyword: Vec<String>,
+    #[serde(default)]
+    pub domain_regex: Vec<String>,
 }
 
 impl RoutingRule {

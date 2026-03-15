@@ -269,3 +269,35 @@ pub async fn ensure_xray_binary(app_handle: &AppHandle) -> Result<PathBuf, AppEr
 
     Ok(bin_path_result)
 }
+
+pub async fn update_geo_assets(app_handle: &AppHandle) -> Result<(), AppError> {
+    let app_dir = crate::engine::store::get_app_dir(app_handle)?;
+    let bin_dir = app_dir.join("bin");
+    
+    if !bin_dir.exists() {
+        tokio::fs::create_dir_all(&bin_dir)
+            .await
+            .map_err(|e| AppError::System(e.to_string()))?;
+    }
+
+    let geoip_url = "https://github.com/SagerNet/sing-geoip/releases/latest/download/geoip.db";
+    let geosite_url = "https://github.com/SagerNet/sing-geosite/releases/latest/download/geosite.db";
+
+    let client = reqwest::Client::new();
+    
+    for (url, filename) in [(geoip_url, "geoip.db"), (geosite_url, "geosite.db")] {
+        let dest = bin_dir.join(filename);
+        let tmp_dest = bin_dir.join(format!("{}.tmp", filename));
+        
+        let response = client.get(url).send().await.map_err(|e| AppError::System(e.to_string()))?;
+        if response.status().is_success() {
+            let bytes = response.bytes().await.map_err(|e| AppError::System(e.to_string()))?;
+            tokio::fs::write(&tmp_dest, bytes).await.map_err(|e| AppError::System(e.to_string()))?;
+            tokio::fs::rename(&tmp_dest, &dest).await.map_err(|e| AppError::System(e.to_string()))?;
+        } else {
+            return Err(AppError::System(format!("Failed to download {}: {}", filename, response.status())));
+        }
+    }
+
+    Ok(())
+}

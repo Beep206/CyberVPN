@@ -9,6 +9,11 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
     ob_map.insert("server_port".to_string(), json!(node.port));
 
     match node.protocol.as_str() {
+        "tailscale" => {
+            // Tailscale outbounds do not use server/server_port in standard sing-box config
+            ob_map.remove("server");
+            ob_map.remove("server_port");
+        }
         "vless" => {
             if let Some(ref uuid) = node.uuid {
                 ob_map.insert("uuid".to_string(), json!(uuid));
@@ -34,6 +39,12 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
             }
             if let Some(ref password) = node.password {
                 ob_map.insert("password".to_string(), json!(password));
+            }
+            if let Some(ref plugin) = node.plugin {
+                ob_map.insert("plugin".to_string(), json!(plugin));
+                if let Some(ref plugin_opts) = node.plugin_opts {
+                    ob_map.insert("plugin_opts".to_string(), json!(plugin_opts));
+                }
             }
         }
         "trojan" => {
@@ -159,11 +170,29 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
             tls_map.insert("reality".to_string(), json!(reality_map));
         }
 
+        // Fragment
+        if node.tls_fragment == Some(true) {
+            let mut fragment_map = serde_json::Map::new();
+            fragment_map.insert("enabled".to_string(), json!(true));
+            fragment_map.insert("size".to_string(), json!("10-50"));
+            fragment_map.insert("sleep".to_string(), json!("10-20"));
+            tls_map.insert("fragment".to_string(), json!(fragment_map));
+        }
+
         ob_map.insert("tls".to_string(), json!(tls_map));
     }
 
     if let Some(d) = detour {
         ob_map.insert("detour".to_string(), json!(d));
+    }
+
+    if let Some(ref m) = node.mux {
+        if m != "none" {
+            let mut mux_map = serde_json::Map::new();
+            mux_map.insert("enabled".to_string(), json!(true));
+            mux_map.insert("protocol".to_string(), json!(m));
+            ob_map.insert("multiplex".to_string(), json!(mux_map));
+        }
     }
 
     json!(ob_map)
@@ -185,10 +214,10 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
 ///     method: None, obfs: None, obfs_password: None, up_mbps: None, down_mbps: None,
 ///     alpn: None, subscription_id: None, congestion_control: None,
 ///     udp_relay_mode: None, local_address: None, private_key: None,
-///     peer_public_key: None, mtu: None,
+///     peer_public_key: None, mtu: None, mux: None, group_id: None,
 /// };
 ///
-/// let config = generate_singbox_config(&node, &[], false, &[], None);
+/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false);
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
 pub fn generate_singbox_config(
@@ -197,6 +226,8 @@ pub fn generate_singbox_config(
     tun_enabled: bool,
     user_rules: &[RoutingRule],
     log_path: Option<&std::path::Path>,
+    local_socks_port: Option<u16>,
+    allow_lan: bool,
 ) -> Value {
     let mut outbounds = Vec::new();
 
@@ -221,11 +252,13 @@ pub fn generate_singbox_config(
     outbounds.push(json!({"type": "dns", "tag": "dns-out"}));
 
     // 2. Build Inbounds
+    let port = local_socks_port.unwrap_or(2080);
+    let listen_ip = if allow_lan { "0.0.0.0" } else { "127.0.0.1" };
     let mut inbounds = vec![json!({
         "type": "mixed",
         "tag": "mixed-in",
-        "listen": "127.0.0.1",
-        "listen_port": 2080,
+        "listen": listen_ip,
+        "listen_port": port,
         "sniff": true,
         "sniff_override_destination": true
     })];
@@ -256,6 +289,23 @@ pub fn generate_singbox_config(
             }
             if !r.ips.is_empty() {
                 rule_obj.insert("ip_cidr".into(), json!(r.ips));
+            }
+            if !r.process_name.is_empty() {
+                rule_obj.insert("process_name".into(), json!(r.process_name));
+            }
+            if !r.port_range.is_empty() {
+                rule_obj.insert("port".into(), json!(r.port_range));
+            }
+            if let Some(ref network) = r.network {
+                if !network.trim().is_empty() {
+                    rule_obj.insert("network".into(), json!(network));
+                }
+            }
+            if !r.domain_keyword.is_empty() {
+                rule_obj.insert("domain_keyword".into(), json!(r.domain_keyword));
+            }
+            if !r.domain_regex.is_empty() {
+                rule_obj.insert("domain_regex".into(), json!(r.domain_regex));
             }
             rule_obj.insert("outbound".into(), json!(r.outbound));
             json!(rule_obj)
@@ -350,13 +400,19 @@ mod tests {
             private_key: None,
             peer_public_key: None,
             mtu: None,
+            mux: None,
+            group_id: None,
+            plugin: None,
+            plugin_opts: None,
+            tls_fragment: None,
+            tls_record_fragment: None,
         }
     }
 
     #[test]
     fn generate_config_should_append_tun_inbounds() {
         let node = create_mock_node("1", None);
-        let config = generate_singbox_config(&node, &[], true, &[], None);
+        let config = generate_singbox_config(&node, &[], true, &[], None, None, false);
 
         let inbounds = config.get("inbounds").unwrap().as_array().unwrap();
         assert_eq!(inbounds.len(), 2, "Expected 2 inbounds (mixed + tun)");
@@ -385,7 +441,7 @@ mod tests {
             outbound: "direct".into(),
         };
 
-        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None);
+        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false);
         let rules = config["route"]["rules"].as_array().unwrap();
 
         // Custom rule should be first
@@ -407,7 +463,7 @@ mod tests {
         let node_a = create_mock_node("A", Some("B"));
         let node_b = create_mock_node("B", None);
 
-        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None);
+        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false);
         let outbounds = config["outbounds"].as_array().unwrap();
 
         // We should have proxy and proxy-next.

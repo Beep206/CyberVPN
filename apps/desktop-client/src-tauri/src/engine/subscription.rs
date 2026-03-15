@@ -126,6 +126,12 @@ pub async fn fetch_and_parse_subscription(url: &str) -> Result<Vec<ProxyNode>, A
                             private_key: None,
                             peer_public_key: None,
                             mtu: None,
+                            mux: None,
+                            group_id: None,
+                            plugin: None,
+                            plugin_opts: None,
+                            tls_fragment: None,
+                            tls_record_fragment: None,
                         });
                     }
                     _ => continue,
