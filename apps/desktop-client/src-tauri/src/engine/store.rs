@@ -20,11 +20,11 @@ pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
         .path()
         .app_data_dir()
         .map_err(|e| AppError::System(format!("Failed to get app_data_dir: {}", e)))?;
-        
+
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir)?;
     }
-    
+
     Ok(app_dir.join("store.json"))
 }
 
@@ -33,7 +33,7 @@ pub fn load_store(app_handle: &AppHandle) -> Result<AppDataStore, AppError> {
     if !store_path.exists() {
         return Ok(AppDataStore::default());
     }
-    
+
     let contents = fs::read_to_string(&store_path)?;
     let store = serde_json::from_str(&contents)?;
     Ok(store)

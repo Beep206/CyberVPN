@@ -18,7 +18,7 @@ pub fn is_elevated() -> bool {
             if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut handle).is_ok() {
                 let mut elevation: TOKEN_ELEVATION = std::mem::zeroed();
                 let mut size = std::mem::size_of::<TOKEN_ELEVATION>() as u32;
-                
+
                 let success = GetTokenInformation(
                     handle,
                     TokenElevation,
@@ -26,7 +26,7 @@ pub fn is_elevated() -> bool {
                     size,
                     &mut size,
                 );
-                
+
                 if success.is_ok() {
                     return elevation.TokenIsElevated != 0;
                 }
@@ -49,16 +49,16 @@ pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
     {
         let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
         let dll_path = app_dir.join("wintun.dll");
-        
+
         if !dll_path.exists() {
             // In a full production setup, we would download or extract the correct architecture of wintun.dll
             // from the bundled resources. For now, we simulate extraction.
             println!("Wintun.dll not found. Extracting to {}", dll_path.display());
-            
+
             // Placeholder: std::fs::write(&dll_path, include_bytes!("../../resources/wintun-amd64.dll"))
         }
     }
-    
+
     // On Unix, TUN relies on the kernel module (tun), so nothing needs to be downloaded.
     Ok(())
 }
@@ -70,17 +70,29 @@ pub fn elevate_and_run(
     config_path: &std::path::Path,
 ) -> Result<(), AppError> {
     use std::os::windows::ffi::OsStrExt;
-    use windows::Win32::UI::Shell::{ShellExecuteExW, SHELLEXECUTEINFOW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS};
+    use windows::Win32::UI::Shell::{
+        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+    };
     use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 
-    let verb: Vec<u16> = std::ffi::OsStr::new("runas").encode_wide().chain(std::iter::once(0)).collect();
-    let file: Vec<u16> = bin_path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
-    
+    let verb: Vec<u16> = std::ffi::OsStr::new("runas")
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let file: Vec<u16> = bin_path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
     // arguments: run -c config_path
     let mut args_string = String::from("run -c \"");
     args_string.push_str(&config_path.to_string_lossy());
     args_string.push_str("\"");
-    let args: Vec<u16> = std::ffi::OsStr::new(&args_string).encode_wide().chain(std::iter::once(0)).collect();
+    let args: Vec<u16> = std::ffi::OsStr::new(&args_string)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
 
     let mut info = SHELLEXECUTEINFOW::default();
     info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
@@ -96,8 +108,10 @@ pub fn elevate_and_run(
     // Pointers are valid and point to null-terminated UTF-16 strings within the same scope.
     let res = unsafe { ShellExecuteExW(&mut info) };
     if res.is_err() {
-        return Err(AppError::System("Failed to elevate process via UAC".to_string()));
+        return Err(AppError::System(
+            "Failed to elevate process via UAC".to_string(),
+        ));
     }
-    
+
     Ok(())
 }

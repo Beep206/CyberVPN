@@ -1,14 +1,14 @@
 pub mod models;
 
-use models::{ConnectionStatus, ProxyNode};
-use tauri::{AppHandle, State, Emitter};
+use crate::engine::error::AppError;
 use crate::engine::manager::ProcessManager;
-use tokio::sync::RwLock;
+use crate::engine::parser;
+use crate::engine::store;
+use models::{ConnectionStatus, ProxyNode};
 use std::sync::Arc;
 use tauri::Manager;
-use crate::engine::store;
-use crate::engine::error::AppError;
-use crate::engine::parser;
+use tauri::{AppHandle, Emitter, State};
+use tokio::sync::RwLock;
 
 pub struct AppState {
     pub status: RwLock<ConnectionStatus>,
@@ -46,10 +46,17 @@ pub async fn add_routing_rule(rule: models::RoutingRule, app: AppHandle) -> Resu
 }
 
 #[tauri::command]
-pub async fn update_routing_rule(rule: models::RoutingRule, app: AppHandle) -> Result<(), AppError> {
+pub async fn update_routing_rule(
+    rule: models::RoutingRule,
+    app: AppHandle,
+) -> Result<(), AppError> {
     rule.validate().map_err(AppError::System)?;
     let mut store_data = store::load_store(&app)?;
-    if let Some(existing) = store_data.routing_rules.iter_mut().find(|r| r.id == rule.id) {
+    if let Some(existing) = store_data
+        .routing_rules
+        .iter_mut()
+        .find(|r| r.id == rule.id)
+    {
         *existing = rule;
         store::save_store(&app, &store_data)?;
     }
@@ -70,10 +77,17 @@ pub async fn parse_clipboard_link(link: String) -> Result<ProxyNode, AppError> {
 }
 
 #[tauri::command]
-pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn connect_profile(
+    id: String,
+    tun_mode: bool,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
     // 1. Fetch profile
     let store_data = store::load_store(&app)?;
-    let profile = store_data.profiles.iter()
+    let profile = store_data
+        .profiles
+        .iter()
         .find(|p| p.id == id)
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
@@ -83,7 +97,7 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
 
     #[allow(unused_mut, unused_assignments)]
     let mut log_path_opt = None;
-    
+
     #[cfg(target_os = "windows")]
     {
         if tun_mode && !crate::engine::sys::is_elevated() {
@@ -98,14 +112,14 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
             .map_err(|e| AppError::System(format!("Custom JSON config parse error: {}", e)))?
     } else {
         crate::engine::config::generate_singbox_config(
-            profile, 
-            &store_data.profiles, 
-            tun_mode, 
+            profile,
+            &store_data.profiles,
+            tun_mode,
             &store_data.routing_rules,
-            log_path_opt
+            log_path_opt,
         )
     };
-    
+
     // 3. Save to run.json
     let config_path = app_dir.join("run.json");
     let bin_path = app_dir.join("sing-box");
@@ -125,7 +139,11 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
     }
 
     // 5. Start process
-    if let Err(e) = state.process_manager.start(app.clone(), bin_path, config_path, tun_mode).await {
+    if let Err(e) = state
+        .process_manager
+        .start(app.clone(), bin_path, config_path, tun_mode)
+        .await
+    {
         let mut status_lock = state.status.write().await;
         status_lock.status = "error".to_string();
         status_lock.message = Some(e.to_string());
@@ -153,14 +171,16 @@ pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<()
     status_lock.active_id = None;
     status_lock.up_bytes = 0;
     status_lock.down_bytes = 0;
-    
+
     app.emit("connection-status", status_lock.clone())?;
 
     Ok(())
 }
 
 #[tauri::command]
-pub async fn get_connection_status(state: State<'_, AppState>) -> Result<ConnectionStatus, AppError> {
+pub async fn get_connection_status(
+    state: State<'_, AppState>,
+) -> Result<ConnectionStatus, AppError> {
     let status_lock = state.status.read().await;
     Ok(status_lock.clone())
 }
@@ -182,31 +202,41 @@ pub async fn add_subscription(sub: models::Subscription, app: AppHandle) -> Resu
 #[tauri::command]
 pub async fn update_subscription(sub_id: String, app: AppHandle) -> Result<(), AppError> {
     let mut store_data = store::load_store(&app)?;
-    
+
     // Find the subscription URL
     let url = {
-        let sub = store_data.subscriptions.iter().find(|s| s.id == sub_id)
+        let sub = store_data
+            .subscriptions
+            .iter()
+            .find(|s| s.id == sub_id)
             .ok_or_else(|| AppError::System("Subscription not found".to_string()))?;
         sub.url.clone()
     };
 
     // Fetch new nodes
     let mut new_nodes = crate::engine::subscription::fetch_and_parse_subscription(&url).await?;
-    
+
     // Assign sub_id
     for node in &mut new_nodes {
         node.subscription_id = Some(sub_id.clone());
     }
 
     // Sweep old nodes
-    store_data.profiles.retain(|p| p.subscription_id.as_deref() != Some(sub_id.as_str()));
-    
+    store_data
+        .profiles
+        .retain(|p| p.subscription_id.as_deref() != Some(sub_id.as_str()));
+
     // Append new nodes
     store_data.profiles.extend(new_nodes);
-    
+
     // Update timestamp
     if let Some(sub) = store_data.subscriptions.iter_mut().find(|s| s.id == sub_id) {
-        sub.last_updated = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
+        sub.last_updated = Some(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        );
     }
 
     store::save_store(&app, &store_data)?;

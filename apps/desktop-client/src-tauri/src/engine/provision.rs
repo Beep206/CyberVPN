@@ -1,7 +1,7 @@
+use crate::engine::error::AppError;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
-use crate::engine::error::AppError;
 
 // Note: For production we would dynamically determine this or read from an API
 const SING_BOX_VERSION: &str = "1.11.4";
@@ -36,7 +36,9 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
         tokio::task::spawn_blocking({
             let bin_dir = bin_dir.clone();
             move || fs::create_dir_all(&bin_dir)
-        }).await.map_err(|e| AppError::System(e.to_string()))??;
+        })
+        .await
+        .map_err(|e| AppError::System(e.to_string()))??;
     }
 
     #[cfg(target_os = "windows")]
@@ -55,12 +57,21 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
 
     let target = get_target();
     if target == "unknown" {
-        return Err(AppError::System("Unsupported OS/Architecture combination for automatic Sing-box download.".to_string()));
+        return Err(AppError::System(
+            "Unsupported OS/Architecture combination for automatic Sing-box download.".to_string(),
+        ));
     }
 
-    println!("Downloading Sing-box {} for {}...", SING_BOX_VERSION, target);
+    println!(
+        "Downloading Sing-box {} for {}...",
+        SING_BOX_VERSION, target
+    );
 
-    let ext = if cfg!(target_os = "windows") { "zip" } else { "tar.gz" };
+    let ext = if cfg!(target_os = "windows") {
+        "zip"
+    } else {
+        "tar.gz"
+    };
     let release_folder = format!("sing-box-{}-{}", SING_BOX_VERSION, target);
     let filename = format!("{}.{}", release_folder, ext);
     let url = format!(
@@ -71,13 +82,13 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
     let archive_path = app_dir.join(&filename);
 
     let client = reqwest::Client::new();
-    let response = client
-        .get(&url)
-        .send()
-        .await?;
+    let response = client.get(&url).send().await?;
 
     if !response.status().is_success() {
-        return Err(AppError::System(format!("Download failed with status: {}", response.status())));
+        return Err(AppError::System(format!(
+            "Download failed with status: {}",
+            response.status()
+        )));
     }
 
     let bytes = response.bytes().await?;
@@ -117,11 +128,11 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
             for file in archive.entries()? {
                 let mut file = file?;
                 let path = file.path()?.into_owned();
-                
+
                 // Expected structure inside tar: sing-box-1.11.4-linux-amd64/sing-box
                 if path.ends_with(bin_name) {
                     file.unpack(&bin_path_sync)?;
-                    
+
                     // Allow execute
                     #[cfg(unix)]
                     {
@@ -142,9 +153,13 @@ pub async fn ensure_sing_box_binary(app_handle: &AppHandle) -> Result<PathBuf, A
             println!("Sing-box successfully provisioned.");
             Ok(bin_path_sync)
         } else {
-            Err(AppError::System("Failed to extract binary from archive".to_string()))
+            Err(AppError::System(
+                "Failed to extract binary from archive".to_string(),
+            ))
         }
-    }).await.map_err(|e| AppError::System(e.to_string()))??;
+    })
+    .await
+    .map_err(|e| AppError::System(e.to_string()))??;
 
     Ok(bin_path_result)
 }

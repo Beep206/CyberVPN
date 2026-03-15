@@ -1,9 +1,9 @@
+use crate::ipc::AppState;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
-use crate::ipc::AppState;
 
 pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
     let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -42,7 +42,7 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
                 // To do: toggle connection using current active_id.
                 // We will implement this safely using Rust async patterns.
                 let app_handle = app.clone();
-                
+
                 tokio::spawn(async move {
                     let state = app_handle.state::<AppState>();
                     // Extract connection info without holding lock across awaits
@@ -63,12 +63,19 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
                         // For the tray toggle, we could just read the last used tun_mode or default to false.
                         // Let's modify the standard command to accept the previous state.
                         // For now we'll pass false, or look it up if persisted.
-                        let _ = crate::ipc::connect_profile(id, false, app_handle.clone(), state).await;
+                        let _ =
+                            crate::ipc::connect_profile(id, false, app_handle.clone(), state).await;
                     } else {
                         // Attempt to connect the first profile if no active_id
                         if let Ok(profiles) = crate::engine::store::load_store(&app_handle) {
                             if let Some(profile) = profiles.profiles.first() {
-                                let _ = crate::ipc::connect_profile(profile.id.clone(), false, app_handle.clone(), state).await;
+                                let _ = crate::ipc::connect_profile(
+                                    profile.id.clone(),
+                                    false,
+                                    app_handle.clone(),
+                                    state,
+                                )
+                                .await;
                             }
                         }
                     }
