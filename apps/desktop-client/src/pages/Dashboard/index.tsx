@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ConnectButton } from "../../widgets/ConnectButton";
 import { TrafficGraph } from "../../widgets/TrafficGraph";
+import { Switch } from "../../components/ui/switch";
+import { Label } from "../../components/ui/label";
 import { toast } from "sonner";
 import { 
     ConnectionStatus, 
@@ -20,6 +22,7 @@ export function DashboardPage() {
       downBytes: 0
   });
 
+  const [tunMode, setTunMode] = useState(false);
   const [trafficData, setTrafficData] = useState<Array<{ time: string, up: number, down: number }>>([]);
 
   useEffect(() => {
@@ -75,10 +78,14 @@ export function DashboardPage() {
               return;
           }
           setStatus(prev => ({ ...prev, status: "connecting" }));
-          await connectProfile(profiles[0].id);
+          await connectProfile(profiles[0].id, tunMode);
       } catch (e: any) {
           console.error("Failed to connect", e);
-          toast.error(`Connection failed: ${e}`);
+          if (e.includes("Elevation Required")) {
+              toast.error("TUN Mode requires Administrator / Root privileges. Please restart the app with elevation.", { duration: 8000 });
+          } else {
+              toast.error(`Connection failed: ${e}`);
+          }
           setStatus(prev => ({ ...prev, status: "error" }));
       }
   };
@@ -110,13 +117,31 @@ export function DashboardPage() {
         </div>
       </header>
       
-      <div className="flex-1 flex flex-col items-center justify-center gap-16">
+      <div className="flex-1 flex flex-col items-center justify-center gap-12">
          {/* Central Connect Button */}
          <ConnectButton 
              status={status} 
              onConnect={handleConnect} 
              onDisconnect={handleDisconnect} 
          />
+
+         {/* TUN Mode Toggle */}
+         <div className="flex items-center space-x-3 bg-black/40 px-6 py-4 rounded-xl border border-border/50 backdrop-blur-sm">
+             <div className="flex flex-col gap-1">
+                 <Label htmlFor="tun-mode" className="text-sm font-bold tracking-wider uppercase text-[var(--color-matrix-green)]">
+                     TUN Mode Virtual Interface
+                 </Label>
+                 <span className="text-xs text-muted-foreground w-64 leading-tight">
+                     Routes ALL system traffic through the VPN. Requires Administrator / Root privileges.
+                 </span>
+             </div>
+             <Switch 
+                 id="tun-mode" 
+                 checked={tunMode} 
+                 onCheckedChange={setTunMode}
+                 disabled={status.status !== "disconnected"}
+             />
+         </div>
 
          {/* Traffic Graph */}
          <div className="w-full max-w-3xl">
