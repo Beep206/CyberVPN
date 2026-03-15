@@ -18,7 +18,7 @@ export function ClassifiedText({ text }: { text: string }) {
             {/* The scanning laser line */}
             <AnimatePresence>
                 {isRevealed && (
-                    <motion.div
+                    <motion.span
                         initial={{ left: 0, opacity: 0 }}
                         animate={{ left: '100%', opacity: 1 }}
                         exit={{ left: '100%', opacity: 0 }}
