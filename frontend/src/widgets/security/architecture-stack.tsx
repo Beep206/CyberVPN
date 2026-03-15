@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Server, Network, ShieldClose, ShieldTick, Terminal, ChevronRight } from 'lucide-react';
+import { Server, Network, ShieldClose, ShieldCheck, Terminal, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SecurityLayerId } from './security-dashboard';
 
@@ -25,7 +25,7 @@ export function ArchitectureStack({ activeLayer, setActiveLayer }: Props) {
         <div className="w-full h-full p-8 flex flex-col pt-16">
             <div className="mb-12">
                 <h2 className="text-sm font-cyber text-muted-foreground-low tracking-widest flex items-center gap-2">
-                    <ShieldTick className="w-4 h-4 text-neon-cyan" />
+                    <ShieldCheck className="w-4 h-4 text-neon-cyan" />
                     {t('title')}
                 </h2>
                 <div className="mt-4 h-px w-full bg-gradient-to-r from-neon-cyan/50 to-transparent" />
