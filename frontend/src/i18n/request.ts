@@ -88,7 +88,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         pricing,
         features,
         network,
-        api
+        api,
+        privacy
     ] = await Promise.all([
         import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
@@ -124,7 +125,8 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         import(`../../messages/${locale}/Pricing.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/Features.json`).catch(() => ({ default: {} })),
         import(`../../messages/${locale}/Network.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Api.json`).catch(() => ({ default: {} }))
+        import(`../../messages/${locale}/Api.json`).catch(() => ({ default: {} })),
+        import(`../../messages/${locale}/Privacy.json`).catch(() => ({ default: {} }))
     ]);
 
     return {
@@ -162,6 +164,7 @@ const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Local
         Pricing: pricing.default,
         Features: features.default,
         Network: network.default,
-        Api: api.default
+        Api: api.default,
+        Privacy: privacy.default
     };
 });
