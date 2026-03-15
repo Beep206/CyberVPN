@@ -30,8 +30,8 @@ const socialLinks = [
 
 const footerLinks = {
     product: [
-        { label: 'features', href: '#features' },
-        { label: 'pricing', href: '#pricing' },
+        { label: 'features', href: '/features' },
+        { label: 'pricing', href: '/pricing' },
         { label: 'servers', href: '#servers' },
         { label: 'download', href: '/download' },
         { label: 'api', href: '#api' },
