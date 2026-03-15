@@ -1,0 +1,56 @@
+{
+  "title": "API Документация",
+  "description": "Программный доступ к глобальной инфраструктуре CyberVPN. Автоматизируйте маршрутизацию серверов, управление пользователями и политики безопасности.",
+  "labels": {
+    "method": "МЕТОД",
+    "endpoint": "ЭНДПОИНТ",
+    "headers": "ЗАГОЛОВКИ",
+    "parameters": "ПАРАМЕТРЫ",
+    "body": "ТЕЛО (BODY)",
+    "request": "ЗАПРОС (cURL)",
+    "response": "ОТВЕТ (JSON)",
+    "copied": "СКОПИРОВАНО"
+  },
+  "endpoints": {
+    "auth": {
+      "category": "Аутентификация",
+      "items": {
+        "generateToken": {
+          "title": "Генерация API Токена",
+          "description": "Обменивает client ID и secret на короткоживущий токен Bearer. Необходим для всех последующих вызовов API.",
+          "params": [
+            {"name": "client_id", "type": "string", "req": true, "desc": "Ваш API Client ID."},
+            {"name": "client_secret", "type": "string", "req": true, "desc": "Ваш API Client Secret."}
+          ],
+          "request": "curl -X POST https://api.cybervpn.com/v1/auth/token \\\n  -d \"client_id=your_id\" \\\n  -d \"client_secret=your_secret\"",
+          "response": "{\n  \"access_token\": \"eyJhbGci...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}"
+        }
+      }
+    },
+    "servers": {
+      "category": "Инфраструктура",
+      "items": {
+        "listServers": {
+          "title": "Список Активных Узлов",
+          "description": "Возвращает статус в реальном времени, загрузку и геолокацию всех VPN инстансов онлайн.",
+          "params": [
+            {"name": "region", "type": "string", "req": false, "desc": "Фильтр по региону (например, 'europe')."},
+            {"name": "limit", "type": "int", "req": false, "desc": "Максимум результатов."}
+          ],
+          "request": "curl -X GET https://api.cybervpn.com/v1/servers?region=europe \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"",
+          "response": "{\n  \"nodes\": [\n    {\n      \"id\": \"eu-frankfurt-01\",\n      \"load\": 42,\n      \"status\": \"online\"\n    }\n  ]\n}"
+        },
+        "connect": {
+          "title": "Инициация Соединения",
+          "description": "Запрашивает оптимизированный маршрут и эфемерные ключи для конкретного целевого узла.",
+          "params": [
+            {"name": "node_id", "type": "string", "req": true, "desc": "ID целевого сервера."},
+            {"name": "protocol", "type": "enum", "req": true, "desc": "WireGuard, OpenVPN, или Stealth."}
+          ],
+          "request": "curl -X POST https://api.cybervpn.com/v1/servers/connect \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"node_id\": \"eu-frankfurt-01\", \"protocol\": \"WireGuard\"}'",
+          "response": "{\n  \"connection_ip\": \"198.51.100.14\",\n  \"port\": 51820,\n  \"public_key\": \"base64_pub_key...\"\n}"
+        }
+      }
+    }
+  }
+}

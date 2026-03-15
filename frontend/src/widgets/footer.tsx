@@ -34,7 +34,7 @@ const footerLinks = {
         { label: 'pricing', href: '/pricing' },
         { label: 'servers', href: '/network' },
         { label: 'download', href: '/download' },
-        { label: 'api', href: '#api' },
+        { label: 'api', href: '/api' },
     ],
     support: [
         { label: 'helpCenter', href: '/help' },
