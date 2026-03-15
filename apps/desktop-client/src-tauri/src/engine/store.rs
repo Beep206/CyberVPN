@@ -10,6 +10,8 @@ use tauri::Manager;
 pub struct AppDataStore {
     pub profiles: Vec<ProxyNode>,
     pub active_profile_id: Option<String>,
+    pub routing_rules: Vec<crate::ipc::models::RoutingRule>,
+    pub subscriptions: Vec<crate::ipc::models::Subscription>,
 }
 
 pub fn get_store_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {

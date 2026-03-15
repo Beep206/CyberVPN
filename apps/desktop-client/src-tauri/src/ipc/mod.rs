@@ -23,8 +23,43 @@ pub async fn get_profiles(app: AppHandle) -> Result<Vec<ProxyNode>, AppError> {
 
 #[tauri::command]
 pub async fn add_profile(profile: ProxyNode, app: AppHandle) -> Result<(), AppError> {
+    profile.validate().map_err(AppError::System)?;
     let mut store_data = store::load_store(&app)?;
     store_data.profiles.push(profile);
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_routing_rules(app: AppHandle) -> Result<Vec<models::RoutingRule>, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.routing_rules)
+}
+
+#[tauri::command]
+pub async fn add_routing_rule(rule: models::RoutingRule, app: AppHandle) -> Result<(), AppError> {
+    rule.validate().map_err(AppError::System)?;
+    let mut store_data = store::load_store(&app)?;
+    store_data.routing_rules.push(rule);
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_routing_rule(rule: models::RoutingRule, app: AppHandle) -> Result<(), AppError> {
+    rule.validate().map_err(AppError::System)?;
+    let mut store_data = store::load_store(&app)?;
+    if let Some(existing) = store_data.routing_rules.iter_mut().find(|r| r.id == rule.id) {
+        *existing = rule;
+        store::save_store(&app, &store_data)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_routing_rule(id: String, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.routing_rules.retain(|r| r.id != id);
     store::save_store(&app, &store_data)?;
     Ok(())
 }
@@ -43,7 +78,12 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
     // 2. Generate config
-    let config_json = crate::engine::config::generate_singbox_config(profile, true);
+    let config_json = crate::engine::config::generate_singbox_config(
+        profile, 
+        &store_data.profiles, 
+        tun_mode, 
+        &store_data.routing_rules
+    );
     
     // 3. Save to run.json
     let app_dir = app.path().app_data_dir().map_err(AppError::Tauri)?;
@@ -58,6 +98,10 @@ pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: 
         status_lock.status = "connecting".to_string();
         status_lock.active_id = Some(id.clone());
         app.emit("connection-status", status_lock.clone())?;
+    }
+
+    if tun_mode {
+        crate::engine::sys::ensure_wintun(&app)?;
     }
 
     // 5. Start process
@@ -99,4 +143,52 @@ pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<()
 pub async fn get_connection_status(state: State<'_, AppState>) -> Result<ConnectionStatus, AppError> {
     let status_lock = state.status.read().await;
     Ok(status_lock.clone())
+}
+
+#[tauri::command]
+pub async fn get_subscriptions(app: AppHandle) -> Result<Vec<models::Subscription>, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(store_data.subscriptions)
+}
+
+#[tauri::command]
+pub async fn add_subscription(sub: models::Subscription, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    store_data.subscriptions.push(sub);
+    store::save_store(&app, &store_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_subscription(sub_id: String, app: AppHandle) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    
+    // Find the subscription URL
+    let url = {
+        let sub = store_data.subscriptions.iter().find(|s| s.id == sub_id)
+            .ok_or_else(|| AppError::System("Subscription not found".to_string()))?;
+        sub.url.clone()
+    };
+
+    // Fetch new nodes
+    let mut new_nodes = crate::engine::subscription::fetch_and_parse_subscription(&url).await?;
+    
+    // Assign sub_id
+    for node in &mut new_nodes {
+        node.subscription_id = Some(sub_id.clone());
+    }
+
+    // Sweep old nodes
+    store_data.profiles.retain(|p| p.subscription_id.as_deref() != Some(sub_id.as_str()));
+    
+    // Append new nodes
+    store_data.profiles.extend(new_nodes);
+    
+    // Update timestamp
+    if let Some(sub) = store_data.subscriptions.iter_mut().find(|s| s.id == sub_id) {
+        sub.last_updated = Some(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
+    }
+
+    store::save_store(&app, &store_data)?;
+    Ok(())
 }

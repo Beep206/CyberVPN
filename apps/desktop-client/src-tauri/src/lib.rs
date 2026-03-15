@@ -1,5 +1,6 @@
 pub mod engine;
 pub mod ipc;
+pub mod tray;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -7,6 +8,7 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+use tauri::Manager;
 use ipc::AppState;
 use ipc::models::ConnectionStatus;
 use tokio::sync::RwLock;
@@ -15,7 +17,38 @@ use std::sync::Arc;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        let app_handle = app.clone();
+                        
+                        tokio::spawn(async move {
+                            let state = app_handle.state::<AppState>();
+                            let (status_str, active_id) = {
+                                let status_lock = state.status.read().await;
+                                (status_lock.status.clone(), status_lock.active_id.clone())
+                            };
+
+                            if status_str == "connected" || status_str == "connecting" {
+                                let _ = crate::ipc::disconnect(app_handle.clone(), state).await;
+                            } else if let Some(id) = active_id {
+                                let _ = crate::ipc::connect_profile(id, false, app_handle.clone(), state).await;
+                            } else {
+                                if let Ok(profiles) = crate::engine::store::load_store(&app_handle) {
+                                    if let Some(profile) = profiles.profiles.first() {
+                                        let _ = crate::ipc::connect_profile(profile.id.clone(), false, app_handle.clone(), state).await;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                })
+                .build(),
+        )
         .setup(|app| {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -23,7 +56,57 @@ pub fn run() {
                     eprintln!("Failed to provision sing-box: {}", e);
                 }
             });
+            
+            #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let app_handle_cloned = app.handle().clone();
+                // We wrap it in a catch to avoid panicking if we fail to register the scheme
+                let _ = app.deep_link().on_open_url(move |urls| {
+                    for url in urls.urls() {
+                        let h = app_handle_cloned.clone();
+                        let url_str = url.as_str().to_string();
+                        tauri::async_runtime::spawn(async move {
+                            if url_str.starts_with("throne://") {
+                                // Extract the VLESS or Hysteria part after the throne://
+                                // For now, pass the whole url_str, parser handles if it's prefixed
+                                let parse_target = if url_str.starts_with("throne://vless") || url_str.starts_with("throne://hysteria") {
+                                    url_str.replace("throne://", "")
+                                } else {
+                                    url_str
+                                };
+                                
+                                if let Ok(node) = crate::engine::parser::parse_link(&parse_target) {
+                                    if let Ok(mut store) = crate::engine::store::load_store(&h) {
+                                        store.profiles.push(node);
+                                        let _ = crate::engine::store::save_store(&h, &store);
+                                        use tauri::Emitter;
+                                        let _ = h.emit("profile-imported", ());
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            
+            use std::str::FromStr;
+            use tauri_plugin_global_shortcut::GlobalShortcutExt;
+            if let Ok(shortcut) = tauri_plugin_global_shortcut::Shortcut::from_str("CommandOrControl+Shift+C") {
+                if let Err(e) = app.global_shortcut().register(shortcut) {
+                    eprintln!("Failed to register global hotkey: {}", e);
+                }
+            }
+            
+            crate::tray::setup(app.handle())?;
+            
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
         })
         .manage(AppState {
             status: RwLock::new(ConnectionStatus {
@@ -41,7 +124,14 @@ pub fn run() {
             ipc::add_profile,
             ipc::connect_profile,
             ipc::disconnect,
-            ipc::get_connection_status
+            ipc::get_connection_status,
+            ipc::get_routing_rules,
+            ipc::add_routing_rule,
+            ipc::update_routing_rule,
+            ipc::delete_routing_rule,
+            ipc::get_subscriptions,
+            ipc::add_subscription,
+            ipc::update_subscription
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
