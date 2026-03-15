@@ -14,11 +14,28 @@
       {
         "title": "desktop-client",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "throne"
+        ]
+      }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/beepbeep/CyberVPN/releases/download/latest/update-{{target}}-{{current_version}}.json"
+      ],
+      "pubkey": "dGVzdF9wdWJsaWNfa2V5X3BsYWNlaG9sZGVy"
     }
   },
   "bundle": {

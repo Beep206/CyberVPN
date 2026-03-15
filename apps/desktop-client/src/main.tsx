@@ -8,6 +8,8 @@ import { Layout } from "./widgets/Layout";
 import { DashboardPage } from "./pages/Dashboard";
 import { ProfilesPage } from "./pages/Profiles";
 import { SettingsPage } from "./pages/Settings";
+import { RoutingPage } from "./pages/Routing";
+import { SubscriptionsPage } from "./pages/Subscriptions";
 import "./index.css";
 
 function AnimatedRoutes() {
@@ -19,6 +21,8 @@ function AnimatedRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="profiles" element={<ProfilesPage />} />
+          <Route path="routing" element={<RoutingPage />} />
+          <Route path="subscriptions" element={<SubscriptionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

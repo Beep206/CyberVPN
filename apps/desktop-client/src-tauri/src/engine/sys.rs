@@ -43,6 +43,7 @@ pub fn is_elevated() -> bool {
 }
 
 /// On Windows, extracts wintun.dll next to the executable if running TUN mode.
+#[allow(unused_variables)]
 pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
     #[cfg(target_os = "windows")]
     {

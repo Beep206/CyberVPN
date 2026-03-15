@@ -18,6 +18,16 @@ export interface ProxyNode {
   publicKey?: string;
   shortId?: string;
   ping?: number;
+  nextHopId?: string;
+  subscriptionId?: string;
+}
+
+export interface RoutingRule {
+  id: string;
+  enabled: boolean;
+  domains: string[];
+  ips: string[];
+  outbound: string;
 }
 
 export interface ConnectionStatus {
@@ -74,4 +84,47 @@ export const listenTrafficUpdate = async (
   return await listen<{ up: number; down: number }>("traffic_update", (event) => {
     callback(event.payload);
   });
+};
+
+/** Get all routing rules */
+export const getRoutingRules = async (): Promise<RoutingRule[]> => {
+  return await invoke<RoutingRule[]>("get_routing_rules");
+};
+
+/** Add a new routing rule */
+export const addRoutingRule = async (rule: RoutingRule): Promise<void> => {
+  return await invoke("add_routing_rule", { rule });
+};
+
+/** Update an existing routing rule */
+export const updateRoutingRule = async (rule: RoutingRule): Promise<void> => {
+  return await invoke("update_routing_rule", { rule });
+};
+
+/** Delete a routing rule */
+export const deleteRoutingRule = async (id: string): Promise<void> => {
+  return await invoke("delete_routing_rule", { id });
+};
+
+export interface Subscription {
+  id: string;
+  name: string;
+  url: string;
+  autoUpdate: boolean;
+  lastUpdated?: number;
+}
+
+/** Get all subscriptions */
+export const getSubscriptions = async (): Promise<Subscription[]> => {
+  return await invoke<Subscription[]>("get_subscriptions");
+};
+
+/** Add a new subscription */
+export const addSubscription = async (sub: Subscription): Promise<void> => {
+  return await invoke("add_subscription", { sub });
+};
+
+/** Update/Sync an existing subscription by ID */
+export const updateSubscription = async (subId: string): Promise<void> => {
+  return await invoke("update_subscription", { subId });
 };

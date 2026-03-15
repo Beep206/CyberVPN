@@ -26,6 +26,7 @@ export function ProfilesPage() {
   const [port, setPort] = useState("443");
   const [protocol, setProtocol] = useState("vless");
   const [uuid, setUuid] = useState("");
+  const [nextHopId, setNextHopId] = useState<string>("");
 
   const refreshProfiles = async () => {
     try {
@@ -48,6 +49,7 @@ export function ProfilesPage() {
       port: parseInt(port, 10),
       protocol,
       uuid,
+      nextHopId: nextHopId || undefined,
     };
 
     try {
@@ -141,6 +143,20 @@ export function ProfilesPage() {
                 <Label htmlFor="uuid" className="text-right">UUID</Label>
                 <Input id="uuid" value={uuid} onChange={e => setUuid(e.target.value)} className="col-span-3 bg-black/40 border-border/50" type="password" />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="nextHop" className="text-right">Next Hop (Optional)</Label>
+                <select 
+                    id="nextHop" 
+                    value={nextHopId} 
+                    onChange={e => setNextHopId(e.target.value)} 
+                    className="col-span-3 flex h-10 w-full rounded-md border border-border/50 bg-black/40 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-matrix-green)]"
+                >
+                    <option value="">None (Direct)</option>
+                    {profiles.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.server})</option>
+                    ))}
+                </select>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreateProfile} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">Save Profile</Button>
@@ -186,6 +202,12 @@ export function ProfilesPage() {
                              <div className="flex items-center gap-2">
                                  <Key size={14} className="text-muted-foreground" />
                                  <span className="truncate text-xs">{p.uuid.substring(0, 8)}...</span>
+                             </div>
+                         )}
+                         {p.nextHopId && (
+                             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
+                                 <Globe size={14} className="text-[var(--color-neon-pink)]" />
+                                 <span className="text-xs text-[var(--color-neon-pink)]">Chain → {profiles.find(x => x.id === p.nextHopId)?.name || "Unknown"}</span>
                              </div>
                          )}
                      </div>
