@@ -21,39 +21,31 @@ function AegisShield({ activeLayer }: { activeLayer: SecurityLayerId }) {
 
         // Determine target color and state based on layer selected
         let targetColor = new THREE.Color('#00ffff'); // Default Cyan (Client)
-        let targetWireframe = false;
         let scaleTarget = 1;
 
         switch (activeLayer) {
             case 'bareMetal':
-                targetColor = new THREE.Color('#333333'); // Dark gray metal
+                targetColor = new THREE.Color('#88aadd'); // Steely bright metal
                 scaleTarget = 0.8;
-                targetWireframe = false;
                 break;
             case 'network':
                 targetColor = new THREE.Color('#00ff88'); // Matrix Green (Routing)
-                targetWireframe = true;
                 scaleTarget = 0.9;
                 break;
             case 'crypto':
                 targetColor = new THREE.Color('#ff00ff'); // Purple (Encryption Math)
                 scaleTarget = 1.1;
-                targetWireframe = true;
                 break;
             case 'client':
             default:
                 targetColor = new THREE.Color('#00ffff'); // Neon Cyan (App surface)
                 scaleTarget = 1;
-                targetWireframe = false;
                 break;
         }
 
         // Smooth transition colors and scale
         materialRef.current.color.lerp(targetColor, delta * 3);
         materialRef.current.emissive.lerp(targetColor, delta * 3);
-        
-        // Cannot lerp boolean wireframe easily, so we just set it
-        materialRef.current.wireframe = targetWireframe;
 
         // Smooth scale
         const currentScale = shieldRef.current.scale.x;
@@ -74,6 +66,7 @@ function AegisShield({ activeLayer }: { activeLayer: SecurityLayerId }) {
                     opacity={0.3}
                     roughness={0.1}
                     metalness={0.8}
+                    wireframe={true}
                 />
             </Icosahedron>
 
@@ -199,7 +192,7 @@ export default function SecurityShield3D({ activeLayer }: { activeLayer: Securit
             <AegisShield activeLayer={activeLayer} />
             <ThreatBombardment activeLayer={activeLayer} />
 
-            <EffectComposer disableNormalPass multisampling={0}>
+            <EffectComposer multisampling={0}>
                 <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
                 <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
                 <Noise opacity={0.04} />
