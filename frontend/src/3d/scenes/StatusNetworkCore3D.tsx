@@ -234,7 +234,7 @@ export function NetworkCore3D() {
 
             <EffectComposer enableNormalPass={false}>
                 <Bloom luminanceThreshold={0.5} mipmapBlur intensity={globalStatus === 'outage' ? 3.0 : 1.5} />
-                {globalStatus === 'outage' ? <Glitch delay={new THREE.Vector2(0.5, 2.0)} duration={new THREE.Vector2(0.1, 0.3)} /> : null}
+                <Glitch active={globalStatus === 'outage'} delay={new THREE.Vector2(0.5, 2.0)} duration={new THREE.Vector2(0.1, 0.3)} />
                 <Noise opacity={0.03} />
                 <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} />
             </EffectComposer>
