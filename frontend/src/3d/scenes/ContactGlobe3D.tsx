@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, MeshDistortMaterial, Float, Stars, Outlines } from '@react-three/drei';
+import { Sphere, MeshDistortMaterial, Float, Stars, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useTranslations } from 'next-intl';
 
@@ -15,8 +15,10 @@ interface ContactGlobe3DProps {
 
 export function ContactGlobe3D({ isTyping, isEncrypting, isSuccess, isHoveringSubmit }: ContactGlobe3DProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<any>(null); // Type any for specific drei material props access if needed, handling safely via ref
+  const materialRef = useRef<any>(null);
+  const wireframeGlobeMatRef = useRef<any>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const wireframeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   
   // Dynamic target values based on state
   const targetDistort = isSuccess ? 0.8 : isEncrypting ? 0.6 : isHoveringSubmit ? 0.5 : isTyping ? 0.4 : 0.2;
@@ -33,37 +35,53 @@ export function ContactGlobe3D({ isTyping, isEncrypting, isSuccess, isHoveringSu
 
   useFrame((state, delta) => {
     if (meshRef.current) {
-        // Smoothly interpolate scale
         meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
-        // Rotate globe
         meshRef.current.rotation.y += delta * (targetSpeed * 0.2);
         meshRef.current.rotation.x += delta * (targetSpeed * 0.1);
     }
 
     if (materialRef.current) {
-        // Smoothly interpolate material properties
+        // Base dark sphere only changes distortion
         materialRef.current.distort = THREE.MathUtils.lerp(materialRef.current.distort, targetDistort, 0.05);
         materialRef.current.speed = THREE.MathUtils.lerp(materialRef.current.speed, targetSpeed, 0.05);
-        materialRef.current.color.lerp(targetColor, 0.05);
-        materialRef.current.emissive.lerp(targetColor, 0.05);
-        // Pulse emissive intensity if encrypting
+    }
+    
+    if (wireframeGlobeMatRef.current) {
+        // Wireframe layer glows and matches distortion
+        wireframeGlobeMatRef.current.distort = THREE.MathUtils.lerp(wireframeGlobeMatRef.current.distort, targetDistort, 0.05);
+        wireframeGlobeMatRef.current.speed = THREE.MathUtils.lerp(wireframeGlobeMatRef.current.speed, targetSpeed, 0.05);
+        
+        wireframeGlobeMatRef.current.color.lerp(targetColor, 0.05);
+        wireframeGlobeMatRef.current.emissive.lerp(targetColor, 0.05);
+        
         if (isEncrypting) {
-            materialRef.current.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 10) * 0.5;
+            wireframeGlobeMatRef.current.emissiveIntensity = 1.0 + Math.sin(state.clock.elapsedTime * 15) * 1.0;
+            wireframeGlobeMatRef.current.opacity = 0.8;
         } else if (isSuccess) {
-            materialRef.current.emissiveIntensity = THREE.MathUtils.lerp(materialRef.current.emissiveIntensity, 1.5, 0.1);
+            wireframeGlobeMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(wireframeGlobeMatRef.current.emissiveIntensity, 2.0, 0.1);
+            wireframeGlobeMatRef.current.opacity = 1.0;
+        } else if (isTyping) {
+            wireframeGlobeMatRef.current.emissiveIntensity = 0.8 + Math.sin(state.clock.elapsedTime * 8) * 0.4;
+            wireframeGlobeMatRef.current.opacity = 0.6;
         } else {
-            materialRef.current.emissiveIntensity = THREE.MathUtils.lerp(materialRef.current.emissiveIntensity, 0.2, 0.05);
+            wireframeGlobeMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(wireframeGlobeMatRef.current.emissiveIntensity, 0.2, 0.05);
+            wireframeGlobeMatRef.current.opacity = 0.2;
         }
+    }
+
+    if (wireframeMaterialRef.current) {
+        wireframeMaterialRef.current.color.lerp(targetColor, 0.05);
+        wireframeMaterialRef.current.opacity = isEncrypting ? 0.8 : isSuccess ? 1.0 : isTyping ? 0.5 : 0.2;
     }
     
     if (groupRef.current && isSuccess) {
-        // Celebration floating burst
-        groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.2;
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, Math.sin(state.clock.elapsedTime * 2) * 0.2, 0.1);
     }
   });
 
   return (
     <group ref={groupRef}>
+      <Environment preset="city" />
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 10]} intensity={1} />
       <pointLight position={[-10, -10, -10]} intensity={0.5} color="#ff00ff" />
@@ -71,35 +89,41 @@ export function ContactGlobe3D({ isTyping, isEncrypting, isSuccess, isHoveringSu
       <Stars radius={50} depth={50} count={isEncrypting ? 2000 : 1000} factor={4} saturation={0} fade speed={isEncrypting ? 3 : 1} />
 
       <Float speed={2} rotationIntensity={1} floatIntensity={isTyping ? 3 : 1}>
-        {/* Core Sphere */}
+        {/* Core Base Sphere - Glossy obsidian black */}
         <Sphere ref={meshRef} args={[1.5, 64, 64]}>
           <MeshDistortMaterial
             ref={materialRef}
-            color="#555555"
-            emissive="#555555"
-            emissiveIntensity={0.2}
-            envMapIntensity={1}
+            color="#000000"
+            emissive="#000000"
+            emissiveIntensity={0}
+            envMapIntensity={2}
             clearcoat={1}
             clearcoatRoughness={0.1}
-            metalness={0.8}
-            roughness={0.2}
+            metalness={0.9}
+            roughness={0.1}
             distort={0.2}
             speed={1}
-            transparent
-            opacity={0.9}
           />
-          {/* Wireframe Outline for Cyberpunk Feel */}
-          <Outlines thickness={0.02} color={targetColor} />
+          {/* Internal Wireframe for Cyberpunk Structure */}
+          <Sphere args={[1.505, 32, 32]}>
+            <MeshDistortMaterial
+               ref={wireframeGlobeMatRef}
+               wireframe
+               transparent
+               distort={0.2}
+               speed={1}
+            />
+          </Sphere>
         </Sphere>
         
         {/* Outer orbital rings */}
         <mesh rotation-x={Math.PI / 2}>
             <ringGeometry args={[2.2, 2.22, 64]} />
-            <meshBasicMaterial color={targetColor} transparent opacity={isTyping ? 0.3 : 0.1} side={THREE.DoubleSide} />
+            <meshBasicMaterial ref={wireframeMaterialRef} color={targetColor} transparent opacity={isTyping || isEncrypting ? 0.8 : 0.2} side={THREE.DoubleSide} />
         </mesh>
         <mesh rotation-x={Math.PI / 3} rotation-y={Math.PI / 4}>
             <ringGeometry args={[2.6, 2.62, 64]} />
-            <meshBasicMaterial color={targetColor} transparent opacity={isEncrypting ? 0.5 : 0.05} side={THREE.DoubleSide} />
+            <meshBasicMaterial color={targetColor} transparent opacity={isEncrypting ? 0.9 : 0.1} side={THREE.DoubleSide} />
         </mesh>
       </Float>
     </group>

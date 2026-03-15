@@ -1,5 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { ContactForm } from '@/widgets/contact-form';
+import { TerminalHeader } from '@/widgets/terminal-header';
+import { Footer } from '@/widgets/footer';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
@@ -16,13 +18,17 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
     const t = await getTranslations({ locale, namespace: 'Contact' });
 
     return (
-        <main className="min-h-screen relative overflow-hidden bg-background">
+        <div className="flex min-h-screen flex-col bg-background">
+            <TerminalHeader />
+            
+            <main className="flex-1 relative overflow-hidden bg-background">
+                {/* The Main Split Screen Form */}
+                <div className="relative z-10 w-full h-full">
+                    <ContactForm />
+                </div>
+            </main>
 
-            {/* The Main Split Screen Form */}
-            <div className="relative z-10 w-full h-full">
-                <ContactForm />
-            </div>
-
-        </main>
+            <Footer />
+        </div>
     );
 }

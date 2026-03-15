@@ -9,6 +9,13 @@
     "department_sales": "Корпоративный отдел",
     "message": "Текст передачи",
     "submit": "НАЧАТЬ ПЕРЕДАЧУ",
-    "success": "Пакет доставлен. Следы стерты."
+    "success": "Пакет доставлен. Следы стерты.",
+    "scanning": "СКАНИРОВАНИЕ ЗАЩИЩЕННЫХ ЧАСТОТ...",
+    "establishing": "УСТАНОВКА TLS ТУННЕЛЯ...",
+    "verified": "СВЯЗЬ УСТАНОВЛЕНА",
+    "placeholder_name": "гость_774",
+    "placeholder_email": "secure@proton.me",
+    "placeholder_message": "< НАЧАЛО ПЕРЕДАЧИ >",
+    "new_uplink": "[ ИНИЦИИРОВАТЬ НОВОЕ ПОДКЛЮЧЕНИЕ ]"
   }
 }

@@ -7,6 +7,8 @@ import { Mail, User, Building, Send, ShieldAlert, CheckCircle2 } from 'lucide-re
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { Canvas } from '@react-three/fiber';
+import { EffectComposer, Bloom, Noise, Glitch } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import { ContactGlobe3D } from '@/3d/scenes/ContactGlobe3D';
 
 export function ContactForm() {
@@ -110,7 +112,7 @@ export function ContactForm() {
                                                 onFocus={handleInputFocus}
                                                 onBlur={handleInputBlur}
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/50 transition-all font-mono text-sm"
-                                                placeholder="guest_774"
+                                                placeholder={t('form.placeholder_name')}
                                             />
                                         </div>
                                     </div>
@@ -132,7 +134,7 @@ export function ContactForm() {
                                                 onFocus={handleInputFocus}
                                                 onBlur={handleInputBlur}
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/50 transition-all font-mono text-sm"
-                                                placeholder="secure@proton.me"
+                                                placeholder={t('form.placeholder_email')}
                                             />
                                         </div>
                                     </div>
@@ -172,7 +174,7 @@ export function ContactForm() {
                                             onBlur={handleInputBlur}
                                             rows={4}
                                             className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white placeholder:text-white/20 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/50 transition-all resize-none font-mono text-sm"
-                                            placeholder="&lt; BEGIN TRANSMISSION &gt;"
+                                            placeholder={t('form.placeholder_message')}
                                         />
                                     </div>
 
@@ -219,7 +221,7 @@ export function ContactForm() {
                                     </div>
                                     
                                     <div className="font-mono text-xs text-muted-foreground-low">
-                                        [ {encryptionProgress}% ] AES-256-GCM Handshake
+                                        [ {encryptionProgress}% ] {encryptionProgress < 30 ? t('form.scanning') : encryptionProgress < 70 ? t('form.establishing') : t('form.verified')}
                                     </div>
                                 </motion.div>
                             )}
@@ -248,7 +250,7 @@ export function ContactForm() {
                                         onClick={resetForm}
                                         className="mt-8 px-6 py-2 border border-white/10 rounded-full text-xs font-mono text-white/50 hover:text-white hover:border-white/30 transition-all"
                                     >
-                                        [ INITIATE NEW UPLINK ]
+                                        {t('form.new_uplink')}
                                     </button>
                                 </motion.div>
                             )}
@@ -258,11 +260,12 @@ export function ContactForm() {
             </div>
 
             {/* Right Pane: 3D Holographic Scene */}
-            <div className="w-full lg:w-1/2 h-[50vh] lg:h-screen sticky top-0 bg-[#050505] overflow-hidden hidden md:block">
+            <div className="w-full lg:w-1/2 h-[400px] lg:h-screen lg:sticky lg:top-0 bg-[#050505] overflow-hidden relative">
                 
                 {/* Vignette Overlay to blend the edges */}
                 <div className="absolute inset-0 pointer-events-none z-10 box-shadow-vignette shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
-                <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-terminal-bg to-transparent z-10" />
+                <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-terminal-bg to-transparent z-10 hidden lg:block" />
+                <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-terminal-bg to-transparent z-10 lg:hidden" />
 
                 <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
                     <ContactGlobe3D 
@@ -271,7 +274,41 @@ export function ContactForm() {
                         isSuccess={isSuccess} 
                         isHoveringSubmit={isHoveringSubmit} 
                     />
+                    
+                    <EffectComposer autoClear={false}>
+                        <Bloom 
+                            luminanceThreshold={0.2} 
+                            mipmapBlur 
+                            intensity={isEncrypting ? 2.5 : isSuccess ? 3.0 : 1.5} 
+                        />
+                        <Noise opacity={0.035} />
+                        <Glitch delay={new THREE.Vector2(0.5, 1.5)} duration={new THREE.Vector2(0.1, 0.3)} active={isEncrypting} />
+                    </EffectComposer>
                 </Canvas>
+                
+                {/* Overlay Scanning UI on 3D Scene */}
+                <div className="absolute top-8 right-8 pointer-events-none z-20 font-mono text-xs hidden md:block border border-white/10 bg-black/40 backdrop-blur-md p-4 rounded-lg">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between gap-8 text-muted-foreground-low">
+                            <span>SYS_CLK:</span>
+                            <span className="text-white">{new Date().toISOString().split('T')[1].substring(0,8)}</span>
+                        </div>
+                        <div className="flex justify-between gap-8 text-muted-foreground-low">
+                            <span>NET_STATUS:</span>
+                            <span className={isEncrypting ? 'text-warning' : isSuccess ? 'text-neon-cyan' : isTyping ? 'text-matrix-green' : 'text-white'}>
+                                {isEncrypting ? '[ ENCRYPTING ]' : isSuccess ? '[ SECURED ]' : isTyping ? '[ SCANNING ]' : '[ IDLE ]'}
+                            </span>
+                        </div>
+                        <div className="h-px bg-white/10 my-1 w-full" />
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                                {(isTyping || isEncrypting) && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75"></span>}
+                                <span className={`relative inline-flex rounded-full h-2 w-2 ${isEncrypting ? 'bg-warning' : isSuccess ? 'bg-neon-cyan' : isTyping ? 'bg-matrix-green' : 'bg-white/20'}`}></span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground-low uppercase">Live telemetry active</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
