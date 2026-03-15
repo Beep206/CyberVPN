@@ -1,0 +1,23 @@
+{
+  "title": "SYSTEM TELEMETRY",
+  "subtitle": "Global Network Operations Center",
+  "metrics": {
+    "uptime": "99.99% UPTIME",
+    "status_nominal": "ALL SYSTEMS NOMINAL",
+    "status_warning": "DEGRADED PERFORMANCE",
+    "status_outage": "MAJOR OUTAGE DETECTED",
+    "active_nodes": "ACTIVE CORES",
+    "bandwidth": "THROUGHPUT",
+    "latency": "AVG LATENCY"
+  },
+  "history": {
+    "title": "90-Day History",
+    "tooltip_date": "Date",
+    "tooltip_status": "Status"
+  },
+  "incidents": {
+    "title": "INCIDENT LOG",
+    "empty": "No active incidents. Network secure.",
+    "view_all": "VIEW ARCHIVE"
+  }
+}
