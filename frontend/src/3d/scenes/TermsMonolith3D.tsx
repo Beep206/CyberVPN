@@ -1,0 +1,221 @@
+'use client';
+
+import * as THREE from 'three';
+import React, { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { Environment, Float, Preload } from '@react-three/drei';
+
+function MonolithStructure({ isAccepted }: { isAccepted: boolean }) {
+    const groupRef = useRef<THREE.Group>(null!);
+    const materialRef = useRef<THREE.MeshStandardMaterial>(null!);
+
+    // A monolithic black obelisk/server
+    useFrame((state, delta) => {
+        if (groupRef.current) {
+            // Slow ominous rotation
+            groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.1) * 0.1;
+
+            // Float physics
+            groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.5;
+        }
+
+        if (materialRef.current) {
+            // Transition color from cyan/red to green when accepted
+            const targetColor = isAccepted ? new THREE.Color('#00ff44') : new THREE.Color('#00ffff');
+            materialRef.current.emissive.lerp(targetColor, delta * 2);
+            materialRef.current.color.lerp(targetColor, delta * 2);
+        }
+    });
+
+    return (
+        <group ref={groupRef} position={[0, -5, -10]}>
+            {/* The Main Obelisk */}
+            <mesh position={[0, 10, 0]} castShadow receiveShadow>
+                {/* Tall box geometry */}
+                <boxGeometry args={[4, 20, 2]} />
+                <meshStandardMaterial 
+                    ref={materialRef}
+                    color="#00ffff"
+                    emissive="#00ffff"
+                    emissiveIntensity={0.2}
+                    roughness={0.2}
+                    metalness={0.9}
+                    wireframe={!isAccepted}
+                />
+            </mesh>
+            
+            {/* Wireframe inner scaffolding */}
+            <mesh position={[0, 10, 0]}>
+                <boxGeometry args={[3.8, 19.8, 1.8]} />
+                <meshBasicMaterial color="#000000" />
+            </mesh>
+        </group>
+    );
+}
+
+// Generates rings around the monolith
+function DataRings({ isAccepted }: { isAccepted: boolean }) {
+    const ringsRef = useRef<THREE.Group>(null!);
+
+    useFrame((state, delta) => {
+        if (ringsRef.current) {
+            ringsRef.current.rotation.y += delta * 0.2;
+            ringsRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.2) * 0.1;
+            
+            // Speed up rings on acceptance
+            if (isAccepted) {
+                ringsRef.current.rotation.y += delta * 1.5;
+            }
+        }
+    });
+
+    return (
+        <group ref={ringsRef} position={[0, 5, -10]}>
+            {[...Array(5)].map((_, i) => (
+                <Float key={i} speed={2} rotationIntensity={0.5} floatIntensity={0.5} position={[0, (i - 2) * 2, 0]}>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[5 + i * 0.5, 0.02, 16, 100]} />
+                        <meshStandardMaterial 
+                            color={isAccepted ? '#00ff88' : '#ff0055'} 
+                            emissive={isAccepted ? '#00ff88' : '#ff0055'} 
+                            emissiveIntensity={isAccepted ? 2 : 1}
+                        />
+                    </mesh>
+                </Float>
+            ))}
+        </group>
+    );
+}
+
+// Generates exploding particles triggered on acceptance
+function AcceptanceExplosion({ isAccepted }: { isAccepted: boolean }) {
+    const particleCount = 2000;
+    const positions = useMemo(() => {
+        const arr = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            // Start bunched up
+            arr[i * 3] = (Math.random() - 0.5) * 2;
+            arr[i * 3 + 1] = (Math.random() - 0.5) * 2 + 5;
+            arr[i * 3 + 2] = (Math.random() - 0.5) * 2 - 10;
+        }
+        return arr;
+    }, []);
+
+    const velocities = useMemo(() => {
+        const arr = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            arr[i * 3] = (Math.random() - 0.5) * 30; // x
+            arr[i * 3 + 1] = (Math.random() - 0.5) * 30; // y
+            arr[i * 3 + 2] = Math.random() * 20; // z (throw towards camera)
+        }
+        return arr;
+    }, []);
+
+    const pointsRef = useRef<THREE.Points>(null!);
+
+    useFrame((_, delta) => {
+        if (!isAccepted || !pointsRef.current) return;
+
+        const positionsArray = pointsRef.current.geometry.attributes.position.array as Float32Array;
+        
+        // Explode outward
+        for (let i = 0; i < particleCount; i++) {
+            positionsArray[i * 3] += velocities[i * 3] * delta;
+            positionsArray[i * 3 + 1] += velocities[i * 3 + 1] * delta;
+            positionsArray[i * 3 + 2] += velocities[i * 3 + 2] * delta;
+            
+            // Slow down over time (drag)
+            velocities[i * 3] *= 0.95;
+            velocities[i * 3 + 1] *= 0.95;
+            velocities[i * 3 + 2] *= 0.95;
+        }
+        
+        pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    });
+
+    return (
+        <points ref={pointsRef}>
+            <bufferGeometry>
+                <bufferAttribute
+                    attach="attributes-position"
+                    count={particleCount}
+                    array={positions}
+                    itemSize={3}
+                />
+            </bufferGeometry>
+            <pointsMaterial
+                size={0.1}
+                color="#00ff88"
+                transparent
+                opacity={isAccepted ? 1 : 0}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+            />
+        </points>
+    );
+}
+
+// Camera controller that looks up the monolith as user scrolls
+function CameraController({ scrollDepth }: { scrollDepth: number }) {
+    useFrame((state) => {
+        // Safe exponential interpolation
+        const delta = Math.min(state.clock.getDelta(), 0.1);
+        const alpha = 1 - Math.exp(-3.0 * delta);
+
+        // Move camera up and slightly back as user scrolls
+        const targetY = scrollDepth * 15; // Move up 15 units
+        const targetZ = 10 + scrollDepth * 5; // Move back slightly
+
+        state.camera.position.lerp(new THREE.Vector3(0, targetY, targetZ), alpha);
+        
+        // Look slightly upward as we scroll to emphasize scale
+        state.camera.lookAt(0, targetY + (scrollDepth * 5), -10);
+    });
+    
+    return null;
+}
+
+export default function TermsMonolith3D({ 
+    scrollDepth, 
+    isAccepted 
+}: { 
+    scrollDepth: number;
+    isAccepted: boolean;
+}) {
+    // Dynamic lighting based on acceptance
+    const primaryColor = isAccepted ? '#00ff88' : '#00ffff';
+    const secondaryColor = isAccepted ? '#00cc66' : '#ff0055';
+
+    return (
+        <Canvas
+            camera={{ position: [0, 0, 10], fov: 60 }}
+            gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+            dpr={[1, 1.5]}
+        >
+            <fog attach="fog" args={['#000000', 10, 40]} />
+            <ambientLight intensity={0.1} />
+            <directionalLight position={[10, 20, 10]} intensity={1} color={primaryColor} />
+            <pointLight position={[0, -10, 0]} intensity={5} color={secondaryColor} distance={30} />
+            
+            <MonolithStructure isAccepted={isAccepted} />
+            <DataRings isAccepted={isAccepted} />
+            <AcceptanceExplosion isAccepted={isAccepted} />
+            
+            <CameraController scrollDepth={scrollDepth} />
+
+            <EffectComposer disableNormalPass multisampling={0}>
+                <Bloom 
+                    luminanceThreshold={isAccepted ? 0.3 : 0.5} 
+                    mipmapBlur 
+                    intensity={isAccepted ? 2.5 : 1.5} 
+                />
+                <ChromaticAberration 
+                    offset={new THREE.Vector2(0.003, 0.003)}
+                />
+                <Noise opacity={0.03} />
+            </EffectComposer>
+            <Preload all />
+        </Canvas>
+    );
+}
