@@ -1,16 +1,18 @@
-use tauri::{AppHandle, Emitter};
-use tokio::process::{Child, Command};
-use tokio::io::{AsyncBufReadExt, BufReader};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use std::process::Stdio;
 use crate::engine::error::AppError;
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
+use std::process::Stdio;
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter};
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::{Child, Command};
+use tokio::sync::Mutex;
 
 lazy_static! {
-    static ref TRAFFIC_REGEX: Regex = Regex::new(r"(?i)(?:up|sent)\D*(\d+)\D*(?:down|recv)\D*(\d+)").unwrap();
-    static ref TRAFFIC_REGEX_REV: Regex = Regex::new(r"(?i)(?:down|recv)\D*(\d+)\D*(?:up|sent)\D*(\d+)").unwrap();
+    static ref TRAFFIC_REGEX: Regex =
+        Regex::new(r"(?i)(?:up|sent)\D*(\d+)\D*(?:down|recv)\D*(\d+)").unwrap();
+    static ref TRAFFIC_REGEX_REV: Regex =
+        Regex::new(r"(?i)(?:down|recv)\D*(\d+)\D*(?:up|sent)\D*(\d+)").unwrap();
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -41,9 +43,9 @@ impl ProcessManager {
     }
 
     pub async fn start(
-        &self, 
-        app_handle: AppHandle, 
-        bin_path: std::path::PathBuf, 
+        &self,
+        app_handle: AppHandle,
+        bin_path: std::path::PathBuf,
         config_path: std::path::PathBuf,
         tun_mode: bool,
     ) -> Result<(), AppError> {
@@ -62,7 +64,7 @@ impl ProcessManager {
                 // Invoke UAC elevation
                 println!("Requesting elevation via UAC...");
                 crate::engine::sys::elevate_and_run(&bin_path, &config_path)?;
-                
+
                 let mut elevated_guard = self.is_elevated_run.lock().await;
                 *elevated_guard = true;
 
@@ -76,26 +78,35 @@ impl ProcessManager {
                         let mut reader = tokio::io::BufReader::new(file);
                         let mut line = String::new();
                         use tokio::io::AsyncBufReadExt;
-                        
+
                         loop {
                             line.clear();
                             match reader.read_line(&mut line).await {
                                 Ok(0) => {
                                     // EOF reached, wait and try again
-                                    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(200))
+                                        .await;
                                 }
                                 Ok(_) => {
                                     let trimmed = line.trim();
-                                    if trimmed.is_empty() { continue; }
+                                    if trimmed.is_empty() {
+                                        continue;
+                                    }
 
                                     // Check for traffic stats
                                     if let Some(caps) = TRAFFIC_REGEX.captures(trimmed) {
-                                        if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
-                                            let _ = app_clone.emit("traffic_update", TrafficUpdate { up, down });
+                                        if let (Ok(up), Ok(down)) =
+                                            (caps[1].parse::<u64>(), caps[2].parse::<u64>())
+                                        {
+                                            let _ = app_clone
+                                                .emit("traffic_update", TrafficUpdate { up, down });
                                         }
                                     } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
-                                        if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
-                                            let _ = app_clone.emit("traffic_update", TrafficUpdate { up, down });
+                                        if let (Ok(down), Ok(up)) =
+                                            (caps[1].parse::<u64>(), caps[2].parse::<u64>())
+                                        {
+                                            let _ = app_clone
+                                                .emit("traffic_update", TrafficUpdate { up, down });
                                         }
                                     }
                                     let _ = app_clone.emit("singbox-log", trimmed);
@@ -130,17 +141,21 @@ impl ProcessManager {
             cmd.arg("-c").arg(config_path);
             cmd
         };
-        
+
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
 
         // Spawn child
         let mut spawn_child = command.spawn()?;
 
-        let stdout = spawn_child.stdout.take()
+        let stdout = spawn_child
+            .stdout
+            .take()
             .ok_or_else(|| AppError::System("Failed to capture stdout".to_string()))?;
-            
-        let stderr = spawn_child.stderr.take()
+
+        let stderr = spawn_child
+            .stderr
+            .take()
             .ok_or_else(|| AppError::System("Failed to capture stderr".to_string()))?;
 
         let app_clone1 = app_handle.clone();
@@ -157,7 +172,7 @@ impl ProcessManager {
                         let _ = app_clone1.emit("traffic_update", TrafficUpdate { up, down });
                     }
                 }
-                
+
                 // Forward Sing-box stdout to React frontend
                 let _ = app_clone1.emit("singbox-log", &line);
             }
@@ -216,7 +231,7 @@ impl ProcessManager {
 
         Err(AppError::System("Sing-box is not running".to_string()))
     }
-    
+
     pub async fn is_running(&self) -> bool {
         #[cfg(target_os = "windows")]
         {

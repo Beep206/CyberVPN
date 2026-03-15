@@ -20,7 +20,7 @@ pub enum AppError {
 
     #[error("System error: {0}")]
     System(String),
-    
+
     #[error("Elevation Required: {0}")]
     ElevationRequired(String),
 }

@@ -8,11 +8,11 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-use tauri::Manager;
-use ipc::AppState;
 use ipc::models::ConnectionStatus;
-use tokio::sync::RwLock;
+use ipc::AppState;
 use std::sync::Arc;
+use tauri::Manager;
+use tokio::sync::RwLock;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,7 +25,7 @@ pub fn run() {
                 .with_handler(|app, _shortcut, event| {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         let app_handle = app.clone();
-                        
+
                         tokio::spawn(async move {
                             let state = app_handle.state::<AppState>();
                             let (status_str, active_id) = {
@@ -36,11 +36,24 @@ pub fn run() {
                             if status_str == "connected" || status_str == "connecting" {
                                 let _ = crate::ipc::disconnect(app_handle.clone(), state).await;
                             } else if let Some(id) = active_id {
-                                let _ = crate::ipc::connect_profile(id, false, app_handle.clone(), state).await;
+                                let _ = crate::ipc::connect_profile(
+                                    id,
+                                    false,
+                                    app_handle.clone(),
+                                    state,
+                                )
+                                .await;
                             } else {
-                                if let Ok(profiles) = crate::engine::store::load_store(&app_handle) {
+                                if let Ok(profiles) = crate::engine::store::load_store(&app_handle)
+                                {
                                     if let Some(profile) = profiles.profiles.first() {
-                                        let _ = crate::ipc::connect_profile(profile.id.clone(), false, app_handle.clone(), state).await;
+                                        let _ = crate::ipc::connect_profile(
+                                            profile.id.clone(),
+                                            false,
+                                            app_handle.clone(),
+                                            state,
+                                        )
+                                        .await;
                                     }
                                 }
                             }
@@ -56,7 +69,7 @@ pub fn run() {
                     eprintln!("Failed to provision sing-box: {}", e);
                 }
             });
-            
+
             #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
@@ -70,12 +83,14 @@ pub fn run() {
                             if url_str.starts_with("throne://") {
                                 // Extract the VLESS or Hysteria part after the throne://
                                 // For now, pass the whole url_str, parser handles if it's prefixed
-                                let parse_target = if url_str.starts_with("throne://vless") || url_str.starts_with("throne://hysteria") {
+                                let parse_target = if url_str.starts_with("throne://vless")
+                                    || url_str.starts_with("throne://hysteria")
+                                {
                                     url_str.replace("throne://", "")
                                 } else {
                                     url_str
                                 };
-                                
+
                                 if let Ok(node) = crate::engine::parser::parse_link(&parse_target) {
                                     if let Ok(mut store) = crate::engine::store::load_store(&h) {
                                         store.profiles.push(node);
@@ -89,17 +104,19 @@ pub fn run() {
                     }
                 });
             }
-            
+
             use std::str::FromStr;
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
-            if let Ok(shortcut) = tauri_plugin_global_shortcut::Shortcut::from_str("CommandOrControl+Shift+C") {
+            if let Ok(shortcut) =
+                tauri_plugin_global_shortcut::Shortcut::from_str("CommandOrControl+Shift+C")
+            {
                 if let Err(e) = app.global_shortcut().register(shortcut) {
                     eprintln!("Failed to register global hotkey: {}", e);
                 }
             }
-            
+
             crate::tray::setup(app.handle())?;
-            
+
             Ok(())
         })
         .on_window_event(|window, event| {
