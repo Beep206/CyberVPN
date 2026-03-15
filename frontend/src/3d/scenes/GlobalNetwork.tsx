@@ -126,6 +126,7 @@ interface NetworkConnection {
 interface GlobalNetworkSceneProps {
     servers?: NetworkServer[];
     connections?: NetworkConnection[];
+    activeNodeId?: string | null;
 }
 
 // Convert Lat/Lng to 3D Vector
@@ -140,7 +141,7 @@ function latLngToVector3(lat: number, lng: number, radius: number) {
     );
 }
 
-function ServerNodes({ servers }: { servers: NetworkServer[] }) {
+function ServerNodes({ servers, activeNodeId }: { servers: NetworkServer[], activeNodeId?: string | null }) {
     const coreRef = useRef<THREE.InstancedMesh>(null!);
     const ringRef = useRef<THREE.InstancedMesh>(null!);
     const glowRef = useRef<THREE.InstancedMesh>(null!);
@@ -160,13 +161,21 @@ function ServerNodes({ servers }: { servers: NetworkServer[] }) {
             const pos = latLngToVector3(server.lat, server.lng, 2);
             dummy.position.copy(pos);
             dummy.rotation.set(0, 0, 0);
-            dummy.scale.setScalar(1);
+            
+            // Highlight logic
+            const isHovered = activeNodeId === server.id;
+            const isDimmed = activeNodeId && !isHovered;
+            
+            dummy.scale.setScalar(isHovered ? 1.5 : (isDimmed ? 0.8 : 1));
             dummy.updateMatrix();
             
-            const cStr = server.status === 'online' ? '#00ff88' :
-                         server.status === 'offline' ? '#ff4444' :
-                         server.status === 'warning' ? '#ffcc00' : '#bd00ff';
-            color.set(cStr);
+            let cStr = server.status === 'online' ? '#00ff88' :
+                       server.status === 'offline' ? '#ff4444' :
+                       server.status === 'warning' ? '#ffcc00' : '#bd00ff';
+                       
+            if (isHovered) cStr = '#00ffff'; // Override to cyan on hover
+            if (isDimmed) color.set(cStr).multiplyScalar(0.3); // Dim others
+            else color.set(cStr);
             
             coreRef.current.setMatrixAt(i, dummy.matrix);
             coreRef.current.setColorAt(i, color);
@@ -175,9 +184,14 @@ function ServerNodes({ servers }: { servers: NetworkServer[] }) {
                 dummy.rotation.x = Math.PI / 2;
                 dummy.updateMatrix();
                 ringRef.current.setMatrixAt(i, dummy.matrix);
-                ringRef.current.setColorAt(i, color);
+                
+                // Active node gets a much brighter ring
+                const ringColor = new THREE.Color(cStr);
+                if (isHovered) ringColor.multiplyScalar(2);
+                ringRef.current.setColorAt(i, ringColor);
                 
                 dummy.rotation.set(0,0,0);
+                dummy.scale.setScalar(isHovered ? 2 : 1); // Larger glow for active
                 dummy.updateMatrix();
                 glowRef.current.setMatrixAt(i, dummy.matrix);
                 glowRef.current.setColorAt(i, color);
@@ -196,7 +210,7 @@ function ServerNodes({ servers }: { servers: NetworkServer[] }) {
         if(ringRef.current.instanceColor) ringRef.current.instanceColor.needsUpdate = true;
         glowRef.current.instanceMatrix.needsUpdate = true;
         if(glowRef.current.instanceColor) glowRef.current.instanceColor.needsUpdate = true;
-    }, [servers]);
+    }, [servers, activeNodeId]);
 
     useFrame((state) => {
         if (!glowRef.current) return;
@@ -461,20 +475,37 @@ const DEFAULT_CONNECTIONS: NetworkConnection[] = [
 
 // Parallax Camera Rig
 // Parallax Group Component
-function ParallaxGroup({ children }: { children: React.ReactNode }) {
+function ParallaxGroup({ children, activeNodeId, servers }: { children: React.ReactNode, activeNodeId?: string | null, servers?: NetworkServer[] }) {
     const group = useRef<THREE.Group>(null!);
 
-    useFrame((state) => {
+    useFrame((state, delta) => {
         const { pointer } = state;
-        // Rotate the entire group slightly based on mouse position
-        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, pointer.x * 0.2, 0.1);
-        group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -pointer.y * 0.2, 0.1);
+        
+        let targetRotX = -pointer.y * 0.2;
+        let targetRotY = pointer.x * 0.2;
+
+        // If a node is active, calculate its spherical angle and rotate the globe to face it
+        if (activeNodeId && servers) {
+            const activeServer = servers.find(s => s.id === activeNodeId);
+            if (activeServer) {
+                // Convert lat/lng to rotation angles to center the node
+                const phi = (activeServer.lat) * (Math.PI / 180);
+                const theta = (activeServer.lng) * (Math.PI / 180);
+                
+                targetRotX += phi;
+                targetRotY += theta;
+            }
+        }
+
+        // Smoothly interpolate to the target rotation
+        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetRotY, delta * 3);
+        group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, targetRotX, delta * 3);
     });
 
     return <group ref={group}>{children}</group>;
 }
 
-export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS }: GlobalNetworkSceneProps) {
+export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS, activeNodeId }: GlobalNetworkSceneProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "100px" });
     const [dpr, setDpr] = useState(1);
@@ -509,10 +540,10 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                 <pointLight position={[-10, -5, -10]} color="#ff00ff" intensity={1} />
 
                 {/* Parallax Wrapper for Scene Content */}
-                <ParallaxGroup>
+                <ParallaxGroup activeNodeId={activeNodeId} servers={servers}>
                     <ObsidianSphere />
                     <group rotation-y={0}>
-                        <ServerNodes servers={servers} />
+                        <ServerNodes servers={servers} activeNodeId={activeNodeId} />
                         <ConnectionLines connections={connections} />
                     </group>
                 </ParallaxGroup>
