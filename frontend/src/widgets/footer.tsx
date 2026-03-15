@@ -43,7 +43,7 @@ const footerLinks = {
         { label: 'documentation', href: '/docs' },
     ],
     legal: [
-        { label: 'privacy', href: '#' },
+        { label: 'privacy', href: '/privacy' },
         { label: 'terms', href: '#' },
         { label: 'security', href: '#' },
     ]
