@@ -39,8 +39,8 @@ export const addProfile = async (profile: ProxyNode): Promise<void> => {
 };
 
 /** Connect to a proxy profile */
-export const connectProfile = async (id: string): Promise<void> => {
-  return await invoke("connect_profile", { id });
+export const connectProfile = async (id: string, tunMode: boolean): Promise<void> => {
+  return await invoke("connect_profile", { id, tunMode });
 };
 
 /** Disconnect the active proxy */

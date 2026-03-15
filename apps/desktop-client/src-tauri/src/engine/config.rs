@@ -66,6 +66,7 @@ pub fn generate_singbox_config(proxy: &ProxyNode, tun_enabled: bool) -> Value {
             "inet4_address": "172.19.0.1/30",
             "auto_route": true,
             "strict_route": true,
+            "auto_redirect": true,
             "stack": "system",
             "sniff": true,
             "sniff_override_destination": true

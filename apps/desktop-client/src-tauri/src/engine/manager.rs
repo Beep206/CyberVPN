@@ -36,7 +36,13 @@ impl ProcessManager {
         }
     }
 
-    pub async fn start(&self, app_handle: AppHandle, bin_path: std::path::PathBuf, config_path: std::path::PathBuf) -> Result<(), AppError> {
+    pub async fn start(
+        &self, 
+        app_handle: AppHandle, 
+        bin_path: std::path::PathBuf, 
+        config_path: std::path::PathBuf,
+        tun_mode: bool,
+    ) -> Result<(), AppError> {
         let mut child_guard = self.child.lock().await;
 
         if child_guard.is_some() {
@@ -44,10 +50,35 @@ impl ProcessManager {
         }
 
         println!("Starting sing-box with config: {}", config_path.display());
+        println!("TUN Mode Enabled: {}", tun_mode);
 
-        let mut command = Command::new(bin_path);
-        command.arg("run");
-        command.arg("-c").arg(config_path);
+        let mut command = if tun_mode && !crate::engine::sys::is_elevated() {
+            #[cfg(target_os = "windows")]
+            {
+                // On Windows we could use ShellExecuteEx with "runas" verb, but for now 
+                // returning ElevationRequired so the UX prompts them to restart as Administrator.
+                return Err(AppError::ElevationRequired("Windows requires running the app as Administrator for TUN mode".to_string()));
+            }
+
+            #[cfg(unix)]
+            {
+                // Linux/macOS: wrap the command in pkexec to seamlessly prompt for user password
+                // Note: pkexec must be installed on the system map the GUI prompt appropriately.
+                // Alternative is `sudo -A` with a custom askpass script.
+                println!("Requesting elevation via pkexec...");
+                let mut cmd = Command::new("pkexec");
+                cmd.arg(bin_path);
+                cmd.arg("run");
+                cmd.arg("-c").arg(config_path);
+                cmd
+            }
+        } else {
+            // Normal execution (or already elevated)
+            let mut cmd = Command::new(bin_path);
+            cmd.arg("run");
+            cmd.arg("-c").arg(config_path);
+            cmd
+        };
         
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());

@@ -35,7 +35,7 @@ pub async fn parse_clipboard_link(link: String) -> Result<ProxyNode, AppError> {
 }
 
 #[tauri::command]
-pub async fn connect_profile(id: String, app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn connect_profile(id: String, tun_mode: bool, app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
     // 1. Fetch profile
     let store_data = store::load_store(&app)?;
     let profile = store_data.profiles.iter()
@@ -61,7 +61,7 @@ pub async fn connect_profile(id: String, app: AppHandle, state: State<'_, AppSta
     }
 
     // 5. Start process
-    if let Err(e) = state.process_manager.start(app.clone(), bin_path, config_path).await {
+    if let Err(e) = state.process_manager.start(app.clone(), bin_path, config_path, tun_mode).await {
         let mut status_lock = state.status.write().await;
         status_lock.status = "error".to_string();
         status_lock.message = Some(e.to_string());
