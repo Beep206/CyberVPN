@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Plus, Trash2, Server, Globe, Key, ClipboardPaste } from "lucide-react";
-import { getProfiles, addProfile, parseClipboardLink, ProxyNode } from "../../shared/api/ipc";
+import { Shield, Plus, Trash2, Server, Globe, Key, ClipboardPaste, ScanLine, Share2 } from "lucide-react";
+import { getProfiles, addProfile, parseClipboardLink, scanScreenForQr, generateLink, ProxyNode } from "../../shared/api/ipc";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -19,6 +20,10 @@ import {
 export function ProfilesPage() {
   const [profiles, setProfiles] = useState<ProxyNode[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [shareNodeName, setShareNodeName] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -86,6 +91,33 @@ export function ProfilesPage() {
     }
   };
 
+  const handleScanScreen = async () => {
+    setIsScanning(true);
+    try {
+      toast.info("Scanning screens for QR Code...");
+      const parsedNode = await scanScreenForQr();
+      await addProfile(parsedNode);
+      await refreshProfiles();
+      toast.success(`Imported profile securely from QR: ${parsedNode.name}`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`Scan Failed: ${e}`);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleShare = async (node: ProxyNode) => {
+    try {
+      const link = await generateLink(node);
+      setShareLink(link);
+      setShareNodeName(node.name);
+      setIsShareOpen(true);
+    } catch (e: any) {
+      toast.error(`Sharing failed: ${e}`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -103,9 +135,14 @@ export function ProfilesPage() {
         </div>
         
         <div className="flex gap-3">
+          <Button variant="outline" onClick={handleScanScreen} disabled={isScanning} className="gap-2 border-[var(--color-neon-cyan)]/30 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10 transition-all">
+            <ScanLine size={16} className={isScanning ? "animate-spin" : ""} />
+            Scan QR
+          </Button>
+          
           <Button variant="outline" onClick={handlePasteFromClipboard} className="gap-2 border-border/50 bg-black/40 hover:bg-black/60 transition-all">
             <ClipboardPaste size={16} />
-            Paste from Clipboard
+            Paste
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -162,9 +199,37 @@ export function ProfilesPage() {
               <Button onClick={handleCreateProfile} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">Save Profile</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
         </div>
       </header>
+      
+      <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <DialogContent className="sm:max-w-[400px] border-[var(--color-neon-cyan)]/30 bg-card/95 backdrop-blur shadow-2xl flex flex-col items-center pt-8 pb-8">
+            <DialogHeader className="w-full text-center mb-4">
+              <DialogTitle className="text-[var(--color-neon-cyan)] tracking-wide">Share Node</DialogTitle>
+              <DialogDescription>{shareNodeName}</DialogDescription>
+            </DialogHeader>
+            <div className="bg-white p-4 rounded-xl shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+                <QRCodeSVG value={shareLink} size={256} className="pointer-events-none" />
+            </div>
+            <div className="flex flex-col items-center mt-6 w-full px-4 text-center">
+                <p className="text-xs text-muted-foreground/60 break-all w-full font-mono bg-black/40 p-3 rounded-lg border border-border/40 select-all">
+                    {shareLink}
+                </p>
+                <Button 
+                    variant="outline" 
+                    className="w-full mt-4 border-[var(--color-neon-cyan)]/50 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10"
+                    onClick={() => {
+                        navigator.clipboard.writeText(shareLink);
+                        toast.success("Link copied to clipboard");
+                    }}
+                >
+                    <ClipboardPaste size={16} className="mr-2" />
+                    Copy Raw Link
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
          <AnimatePresence>
@@ -184,9 +249,14 @@ export function ProfilesPage() {
                              </div>
                              <h3 className="font-semibold text-lg">{p.name}</h3>
                          </div>
-                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <Trash2 size={16} />
-                         </Button>
+                         <div className="flex gap-2">
+                             <Button variant="ghost" size="icon" onClick={() => handleShare(p)} className="text-muted-foreground hover:text-[var(--color-neon-cyan)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <Share2 size={16} />
+                             </Button>
+                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <Trash2 size={16} />
+                             </Button>
+                         </div>
                      </div>
                      
                      <div className="space-y-2 text-sm text-muted-foreground/80 font-mono">

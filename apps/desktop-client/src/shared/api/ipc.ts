@@ -128,3 +128,23 @@ export const addSubscription = async (sub: Subscription): Promise<void> => {
 export const updateSubscription = async (subId: string): Promise<void> => {
   return await invoke("update_subscription", { subId });
 };
+
+/** Scan active screens for a QR code and return a ProxyNode */
+export const scanScreenForQr = async (): Promise<ProxyNode> => {
+  return await invoke<ProxyNode>("scan_screen_for_qr");
+};
+
+/** Generate a shareable link from a ProxyNode */
+export const generateLink = async (node: ProxyNode): Promise<string> => {
+  return await invoke<string>("generate_link", { node });
+};
+
+/** Get the currently set custom config override */
+export const getCustomConfig = async (): Promise<string | null> => {
+  return await invoke<string | null>("get_custom_config");
+};
+
+/** Save a custom config override */
+export const saveCustomConfig = async (config: string | null): Promise<void> => {
+  return await invoke("save_custom_config", { config });
+};

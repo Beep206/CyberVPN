@@ -131,7 +131,11 @@ pub fn run() {
             ipc::delete_routing_rule,
             ipc::get_subscriptions,
             ipc::add_subscription,
-            ipc::update_subscription
+            ipc::update_subscription,
+            ipc::scan_screen_for_qr,
+            ipc::generate_link,
+            ipc::get_custom_config,
+            ipc::save_custom_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

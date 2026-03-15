@@ -3,9 +3,10 @@ use crate::engine::error::AppError;
 use url::Url;
 use base64::prelude::*;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[allow(dead_code)]
 struct VmessFormat {
+    v: String,
     add: String,
     port: serde_json::Value,
     id: String,
@@ -356,6 +357,97 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
     })
 }
 
+/// Generates a shareable URL link for a given `ProxyNode`.
+pub fn generate_link(node: &ProxyNode) -> String {
+    let mut url_str = match node.protocol.as_str() {
+        "vless" => {
+            let mut u = Url::parse("vless://").unwrap();
+            let _ = u.set_username(node.uuid.as_deref().unwrap_or(""));
+            let _ = u.set_host(Some(&node.server));
+            let _ = u.set_port(Some(node.port));
+            
+            let mut q = u.query_pairs_mut();
+            if let Some(ref flow) = node.flow { q.append_pair("flow", flow); }
+            if let Some(ref tls) = node.tls { q.append_pair("security", tls); }
+            if let Some(ref sni) = node.sni { q.append_pair("sni", sni); }
+            if let Some(ref fp) = node.fingerprint { q.append_pair("fp", fp); }
+            if let Some(ref pbk) = node.public_key { q.append_pair("pbk", pbk); }
+            if let Some(ref sid) = node.short_id { q.append_pair("sid", sid); }
+            drop(q);
+            
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
+        "trojan" => {
+            let mut u = Url::parse("trojan://").unwrap();
+            let _ = u.set_username(node.password.as_deref().unwrap_or(""));
+            let _ = u.set_host(Some(&node.server));
+            let _ = u.set_port(Some(node.port));
+            
+            let mut q = u.query_pairs_mut();
+            if let Some(ref sni) = node.sni { q.append_pair("sni", sni); }
+            if let Some(ref sec) = node.security { q.append_pair("security", sec); }
+            if let Some(ref flow) = node.flow { q.append_pair("flow", flow); }
+            drop(q);
+            
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
+        "hysteria2" | "hy2" => {
+            let mut u = Url::parse("hy2://").unwrap();
+            let _ = u.set_username(node.password.as_deref().unwrap_or(""));
+            let _ = u.set_host(Some(&node.server));
+            let _ = u.set_port(Some(node.port));
+            
+            let mut q = u.query_pairs_mut();
+            if let Some(ref obfs) = node.obfs { q.append_pair("obfs", obfs); }
+            if let Some(ref obfs_pw) = node.obfs_password { q.append_pair("obfs-password", obfs_pw); }
+            if let Some(up) = node.up_mbps { q.append_pair("up", &up.to_string()); }
+            if let Some(down) = node.down_mbps { q.append_pair("down", &down.to_string()); }
+            if let Some(ref sni) = node.sni { q.append_pair("sni", sni); }
+            if let Some(ref alpn) = node.alpn { q.append_pair("alpn", &alpn.join(",")); }
+            drop(q);
+
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
+        "shadowsocks" => {
+            let userpass = format!("{}:{}", node.method.as_deref().unwrap_or("chacha20-ietf-poly1305"), node.password.as_deref().unwrap_or(""));
+            let b64 = BASE64_STANDARD.encode(userpass);
+            let mut u = Url::parse("ss://").unwrap();
+            let _ = u.set_username(&b64);
+            let _ = u.set_host(Some(&node.server));
+            let _ = u.set_port(Some(node.port));
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
+        "vmess" => {
+            let vmess = VmessFormat {
+                v: "2".to_string(),
+                ps: Some(node.name.clone()),
+                add: node.server.clone(),
+                port: serde_json::json!(node.port),
+                id: node.uuid.clone().unwrap_or_default(),
+                scy: node.security.clone(),
+                net: node.network.clone(),
+                tls: node.tls.clone(),
+                sni: node.sni.clone(),
+                host: node.sni.clone(), // Often duplicated
+                path: None,
+                aid: node.alter_id.map(|a| serde_json::json!(a)),
+                alpn: node.alpn.as_ref().map(|a| a.join(",")),
+            };
+            let json_str = serde_json::to_string(&vmess).unwrap_or_default();
+            format!("vmess://{}", BASE64_STANDARD.encode(json_str))
+        }
+        _ => "".to_string(),
+    };
+    
+    // Some urls might encode the fragment with too many escapes, let's keep it simple
+    url_str = url_str.trim().to_string();
+    url_str
+}
+
 /// Parses a given proxy link (e.g., vless://, vmess://) and returns a `ProxyNode`.
 pub fn parse_link(link: &str) -> Result<ProxyNode, AppError> {
     let trimmed = link.trim();
@@ -373,6 +465,7 @@ pub fn parse_link(link: &str) -> Result<ProxyNode, AppError> {
         Err(AppError::System("Unsupported protocol/link format.".to_string()))
     }
 }
+
 
 #[cfg(test)]
 mod tests {

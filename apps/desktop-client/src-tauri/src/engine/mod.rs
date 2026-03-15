@@ -6,3 +6,4 @@ pub mod error;
 pub mod parser;
 pub mod sys;
 pub mod subscription;
+pub mod qr;

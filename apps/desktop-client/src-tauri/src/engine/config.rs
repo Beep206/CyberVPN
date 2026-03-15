@@ -123,17 +123,18 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
 ///     network: None, tls: None, sni: None, fingerprint: None, public_key: None,
 ///     short_id: None, ping: None, next_hop_id: None, alter_id: None, security: None,
 ///     method: None, obfs: None, obfs_password: None, up_mbps: None, down_mbps: None,
-///     alpn: None,
+///     alpn: None, subscription_id: None,
 /// };
 /// 
-/// let config = generate_singbox_config(&node, &[], false, &[]);
+/// let config = generate_singbox_config(&node, &[], false, &[], None);
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
 pub fn generate_singbox_config(
     proxy: &ProxyNode, 
     all_nodes: &[ProxyNode], 
     tun_enabled: bool,
-    user_rules: &[RoutingRule]
+    user_rules: &[RoutingRule],
+    log_path: Option<&std::path::Path>,
 ) -> Value {
     let mut outbounds = Vec::new();
 
@@ -201,12 +202,18 @@ pub fn generate_singbox_config(
     route_rules.push(json!({"protocol": "dns", "outbound": "dns-out"}));
     route_rules.push(json!({"ip_is_private": true, "outbound": "direct"}));
 
+    let mut log_obj = serde_json::Map::new();
+    log_obj.insert("level".into(), json!("info"));
+    log_obj.insert("timestamp".into(), json!(true));
+    if let Some(path) = log_path {
+        if let Some(path_str) = path.to_str() {
+            log_obj.insert("output".into(), json!(path_str));
+        }
+    }
+
     // 4. Final configuration assembly
     json!({
-        "log": {
-            "level": "info",
-            "timestamp": true
-        },
+        "log": log_obj,
         "dns": {
             "servers": [
                 {
@@ -279,7 +286,7 @@ mod tests {
     #[test]
     fn generate_config_should_append_tun_inbounds() {
         let node = create_mock_node("1", None);
-        let config = generate_singbox_config(&node, &[], true, &[]);
+        let config = generate_singbox_config(&node, &[], true, &[], None);
         
         let inbounds = config.get("inbounds").unwrap().as_array().unwrap();
         assert_eq!(inbounds.len(), 2, "Expected 2 inbounds (mixed + tun)");
@@ -306,7 +313,7 @@ mod tests {
             outbound: "direct".into(),
         };
 
-        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2]);
+        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None);
         let rules = config["route"]["rules"].as_array().unwrap();
         
         // Custom rule should be first
@@ -326,7 +333,7 @@ mod tests {
         let node_a = create_mock_node("A", Some("B"));
         let node_b = create_mock_node("B", None);
         
-        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[]);
+        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None);
         let outbounds = config["outbounds"].as_array().unwrap();
         
         // We should have proxy and proxy-next.
