@@ -1,0 +1,42 @@
+{
+    "title": "SYSTEM DIRECTIVES",
+    "description": "CRITICAL CLEARANCE: TERMS OF SERVICE. AWAITING ACKNOWLEDGMENT...",
+    "sections": {
+        "acceptance": {
+            "title": "01. AGREEMENT INITIALIZATION",
+            "content": "By utilizing the CyberVPN infrastructure, you are initiating a binding cybernetic contract. Access to our communication nodes (Servers) is granted strictly on the condition of unconditional acceptance of these Directives. If your protocols do not agree with the terms, terminate your connection immediately."
+        },
+        "prohibited": {
+            "title": "02. PATTERN LOCKDOWN",
+            "content": "The CyberVPN network was engineered to bypass censorship and protect digital identities, not to inflict damage upon other systems. The following traffic patterns are strictly prohibited at the hardware layer:",
+            "rules": {
+                "ddos": "DDoS attacks and network flooding",
+                "spam": "Mass spam distribution",
+                "malware": "Malware propagation",
+                "botnets": "Botnet command & control",
+                "csam": "Any content exploiting minors"
+            }
+        },
+        "service": {
+            "title": "03. WARRANTIES & UPTIME",
+            "content": "While our infrastructure is designed for maximum resilience (99.9% uptime), we provide access on an \"as-is\" basis. We reserve the right to offline, migrate, or upgrade any communication nodes without prior notification to ensure the aggregate security of the matrix."
+        },
+        "liability": {
+            "title": "04. LIMITATION OF LIABILITY",
+            "content": "You bear sole responsibility for the data packets transmitted through our network. To the maximum extent permitted by law, CyberVPN shall not be liable for any direct, indirect, or incidental damages, loss of profits, or systemic failures resulting from the use of our infrastructure."
+        },
+        "termination": {
+            "title": "05. TERMINATION PROTOCOL",
+            "content": "We reserve the right to instantly, without explanation or prior notice, terminate your access token if our neural networks or administrators detect a violation of Section 02 (Pattern Lockdown). Funds for the remaining subscription period will not be refunded in such events."
+        }
+    },
+    "status": {
+        "unverified": "UNVERIFIED",
+        "acknowledged": "ACKNOWLEDGED"
+    },
+    "terminal": {
+        "prompt": "AWAITING USER INPUT...",
+        "command": "ACCEPT_DIRECTIVES",
+        "verified": "SYSTEM: ACCESS GRANTED. CONTRACT SIGNED."
+    }
+}
