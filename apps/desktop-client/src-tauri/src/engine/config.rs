@@ -215,6 +215,7 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
 ///     alpn: None, subscription_id: None, congestion_control: None,
 ///     udp_relay_mode: None, local_address: None, private_key: None,
 ///     peer_public_key: None, mtu: None, mux: None, group_id: None,
+///     plugin: None, plugin_opts: None, tls_fragment: None, tls_record_fragment: None,
 /// };
 ///
 /// let config = generate_singbox_config(&node, &[], false, &[], None, None, false);
@@ -432,6 +433,11 @@ mod tests {
             domains: vec!["*.openai.com".into()],
             ips: vec![],
             outbound: "proxy".into(),
+            process_name: vec![],
+            port_range: vec![],
+            network: None,
+            domain_keyword: vec![],
+            domain_regex: vec![],
         };
         let rule2 = RoutingRule {
             id: "r2".into(),
@@ -439,6 +445,11 @@ mod tests {
             domains: vec!["*.google.com".into()],
             ips: vec![],
             outbound: "direct".into(),
+            process_name: vec![],
+            port_range: vec![],
+            network: None,
+            domain_keyword: vec![],
+            domain_regex: vec![],
         };
 
         let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false);
