@@ -3,12 +3,14 @@ import { useState, useEffect } from "react";
 import { getCustomConfig, saveCustomConfig } from "../../shared/api/ipc";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
-import { FileJson, Save } from "lucide-react";
+import { FileJson, Save, Moon, Sun, Monitor } from "lucide-react";
+import { useTheme } from "../../app/theme-provider";
 
 export function SettingsPage() {
   const [useCustomConfig, setUseCustomConfig] = useState(false);
   const [jsonConfig, setJsonConfig] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     getCustomConfig().then((cfg) => {
@@ -52,6 +54,39 @@ export function SettingsPage() {
       </header>
 
       <div className="flex-1 flex flex-col gap-6">
+        {/* Theme Settings */}
+        <div className="flex flex-col gap-4 p-6 rounded-xl border border-border/50 bg-black/40">
+          <div className="flex items-center justify-between mb-2">
+             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-cyan)]">
+              <Monitor size={24} />
+              <h2>Appearance</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Button 
+                variant={theme === "dark" ? "default" : "outline"} 
+                className={theme === "dark" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
+                onClick={() => setTheme("dark")}
+            >
+                <Moon size={16} className="mr-2" /> Dark
+            </Button>
+            <Button 
+                variant={theme === "light" ? "default" : "outline"} 
+                className={theme === "light" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
+                onClick={() => setTheme("light")}
+            >
+                <Sun size={16} className="mr-2" /> Light
+            </Button>
+            <Button 
+                variant={theme === "system" ? "default" : "outline"} 
+                className={theme === "system" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
+                onClick={() => setTheme("system")}
+            >
+                <Monitor size={16} className="mr-2" /> System
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-4 p-6 rounded-xl border border-border/50 bg-black/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-pink)]">

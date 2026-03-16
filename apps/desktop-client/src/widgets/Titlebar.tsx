@@ -38,7 +38,7 @@ export function Titlebar() {
 
   return (
     <div 
-      data-tauri-drag-region 
+      data-tauri-drag-region="true" 
       className="h-10 flex justify-between items-center select-none bg-black/90 border-b border-white/5 text-muted-foreground fixed top-0 left-0 right-0 z-50 backdrop-blur-md"
     >
         <div className="flex items-center gap-2 px-3 pointer-events-none text-[var(--color-matrix-green)]">
