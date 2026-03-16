@@ -71,5 +71,15 @@ dependencies {
     implementation(libs.androidx.tv.material)
     implementation(libs.androidx.navigation.compose)
 
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Ktor
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+
     testImplementation(libs.junit)
 }
