@@ -9,14 +9,21 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.cybervpn.tv.core.engine.SingboxEngine
+import com.cybervpn.tv.data.RoutingRepository
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.IOException
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class CyberVpnService : VpnService() {
+    @Inject
+    lateinit var routingRepository: RoutingRepository
+
     companion object {
         const val EXTRA_CONFIG = "extra_config"
         private const val TAG = "CyberVpnService"
@@ -34,7 +41,7 @@ class CyberVpnService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
 
-    @Suppress("TooGenericExceptionCaught")
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
@@ -62,6 +69,22 @@ class CyberVpnService : VpnService() {
                         .addAddress("172.19.0.1", DEFAULT_TUN_PREFIX_LENGTH) // Explicitly matches the ConfigGenerator inbound
                         .addDnsServer("1.1.1.1")
                         .setMtu(DEFAULT_MTU)
+
+                // Apply split tunneling rules before establish()
+                val bypassedPackages = routingRepository.bypassedPackages.first()
+                if (bypassedPackages.isNotEmpty()) {
+                    val packageManager = applicationContext.packageManager
+                    for (pkg in bypassedPackages) {
+                        try {
+                            // Ensure the package still exists on the device natively
+                            packageManager.getPackageInfo(pkg, 0)
+                            builder.addDisallowedApplication(pkg)
+                            Log.d(TAG, "Bypassing VPN for: $pkg")
+                        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+                            Log.w(TAG, "Bypass package $pkg not found, skipping.")
+                        }
+                    }
+                }
 
                 // .establish() throws exceptions if the permission is not granted or system fails
                 val fd = builder.establish() ?: throw IOException("Failed to establish TUN interface.")
