@@ -22,6 +22,12 @@ console-reports:
 style:
   TrailingWhitespace:
     active: true
+  MaxLineLength:
+    active: false
 
 complexity:
   active: true
+  TooManyFunctions:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
