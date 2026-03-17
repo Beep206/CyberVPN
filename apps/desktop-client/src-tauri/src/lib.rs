@@ -149,6 +149,7 @@ pub fn run() {
             }),
             process_manager: Arc::new(engine::manager::ProcessManager::new()),
         })
+        .manage(crate::engine::sys::sentinel::SentinelGuard::new())
         .invoke_handler(tauri::generate_handler![
             greet,
             ipc::get_profiles,
@@ -188,13 +189,18 @@ pub fn run() {
             crate::engine::sys::net::enable_lan_forwarding,
             crate::engine::sys::net::disable_lan_forwarding,
             crate::engine::sys::discovery::start_device_discovery,
-            crate::engine::sys::discovery::stop_device_discovery
+            crate::engine::sys::discovery::stop_device_discovery,
+            crate::engine::sys::sentinel::enable_killswitch_cmd,
+            crate::engine::sys::sentinel::disable_killswitch_cmd,
+            crate::engine::sys::sentinel::repair_network
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
+        .run(|app_handle, event| {
             if let tauri::RunEvent::Exit = event {
                 let _ = crate::engine::sysproxy::clear_system_proxy();
+                let guard = app_handle.state::<crate::engine::sys::sentinel::SentinelGuard>();
+                let _ = guard.disable();
             }
         });
 }

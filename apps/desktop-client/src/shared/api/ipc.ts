@@ -215,3 +215,15 @@ export const startDeviceDiscovery = async (): Promise<void> => {
 export const stopDeviceDiscovery = async (): Promise<void> => {
   return await invoke("stop_device_discovery");
 };
+
+export const enableKillswitchCmd = async (): Promise<void> => {
+  return await invoke("enable_killswitch_cmd");
+};
+
+export const disableKillswitchCmd = async (): Promise<void> => {
+  return await invoke("disable_killswitch_cmd");
+};
+
+export const repairNetwork = async (): Promise<void> => {
+  return await invoke("repair_network");
+};

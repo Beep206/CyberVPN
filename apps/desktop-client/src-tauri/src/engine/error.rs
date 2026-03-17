@@ -23,6 +23,9 @@ pub enum AppError {
 
     #[error("Elevation Required: {0}")]
     ElevationRequired(String),
+
+    #[error("Firewall error: {0}")]
+    FirewallError(String),
 }
 
 // Implement Serialize so we can return AppError to the frontend natively in Tauri commands
