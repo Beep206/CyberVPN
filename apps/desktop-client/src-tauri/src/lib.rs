@@ -183,7 +183,12 @@ pub fn run() {
             ipc::get_split_tunneling_apps,
             ipc::save_split_tunneling_apps,
             ipc::get_split_tunneling_mode,
-            ipc::save_split_tunneling_mode
+            ipc::save_split_tunneling_mode,
+            crate::engine::sys::net::get_lan_connection_info,
+            crate::engine::sys::net::enable_lan_forwarding,
+            crate::engine::sys::net::disable_lan_forwarding,
+            crate::engine::sys::discovery::start_device_discovery,
+            crate::engine::sys::discovery::stop_device_discovery
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
