@@ -71,6 +71,57 @@ pub async fn delete_routing_rule(id: String, app: AppHandle) -> Result<(), AppEr
 }
 
 #[tauri::command]
+pub async fn apply_routing_fix(
+    domain: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let mut store_data = store::load_store(&app)?;
+    
+    // Quick deduplication
+    let already_exists = store_data.routing_rules.iter().any(|r| {
+        r.domains.contains(&domain) || r.domain_keyword.contains(&domain)
+    });
+
+    if !already_exists {
+        let rule = models::RoutingRule {
+            id: uuid::Uuid::new_v4().to_string(),
+            enabled: true,
+            domains: vec![format!("domain:{}", domain)],
+            ips: vec![],
+            outbound: "proxy".to_string(),
+            process_name: vec![],
+            port_range: vec![],
+            network: None,
+            domain_keyword: vec![],
+            domain_regex: vec![],
+        };
+        store_data.routing_rules.push(rule);
+        store::save_store(&app, &store_data)?;
+    }
+
+    // Checking state gracefully
+    let (status, active_id) = {
+        let lock = state.status.read().await;
+        (lock.status.clone(), lock.active_id.clone())
+    };
+
+    if status == "connecting" {
+         // Do not interrupt an active connection attempt to prevent race conditions
+         return Ok(());
+    } else if status == "connected" {
+        if let Some(profile_id) = active_id {
+            // Signal the frontend to perform a graceful restart using the existing UI toggles
+            // This safely preserves the user's tun_mode and system_proxy states without needing
+            // to persist them permanently on the backend tracking thread.
+            let _ = app.emit("request-reconnect", profile_id);
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn test_all_latencies(app: AppHandle) -> Result<(), AppError> {
     use futures::stream::StreamExt;
     

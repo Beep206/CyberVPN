@@ -6,6 +6,8 @@ import { Toaster } from "../components/ui/sonner";
 import { toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { listen } from "@tauri-apps/api/event";
+import { applyRoutingFix } from "../shared/api/ipc";
 import { Titlebar } from "./Titlebar";
 
 export function Layout() {
@@ -35,7 +37,36 @@ export function Layout() {
     }
 
     const timer = setTimeout(checkForUpdates, 3000);
-    return () => clearTimeout(timer);
+
+    // AI Routing Assistant Listener
+    const unlistenRouting = listen<{ domain: string, reason: string }>("routing-suggestion", (event) => {
+      toast("Traffic Block Detected", {
+        description: `CyberVPN Assistant detected a failure (${event.payload.reason}) connecting to ${event.payload.domain}.`,
+        duration: 20000,
+        icon: <Shield className="text-[var(--color-neon-pink)] animate-pulse" />,
+        action: {
+          label: "Magic Fix",
+          onClick: async () => {
+             try {
+                toast.loading("Applying Magic Fix...", { id: "magic-fix" });
+                await applyRoutingFix(event.payload.domain);
+                toast.success("Rule Injected! Re-routing traffic.", { id: "magic-fix" });
+             } catch (e: any) {
+                toast.error(`Fix Failed: ${e}`, { id: "magic-fix" });
+             }
+          }
+        },
+        cancel: {
+          label: "Ignore",
+          onClick: () => {}
+        }
+      });
+    });
+
+    return () => {
+       clearTimeout(timer);
+       unlistenRouting.then(f => f());
+    };
   }, []);
 
   const navItems = [
@@ -46,6 +77,7 @@ export function Layout() {
     { path: "/hotspot", label: "Hotspot", icon: WifiHigh },
     { path: "/split-tunneling", label: "Split Tunneling", icon: Split },
     { path: "/subscriptions", label: "Subscriptions", icon: Rss },
+    { path: "/account", label: "My Account", icon: Shield },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 

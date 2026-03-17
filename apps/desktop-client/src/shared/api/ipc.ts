@@ -227,3 +227,7 @@ export const disableKillswitchCmd = async (): Promise<void> => {
 export const repairNetwork = async (): Promise<void> => {
   return await invoke("repair_network");
 };
+
+export const applyRoutingFix = async (domain: string): Promise<void> => {
+  return await invoke("apply_routing_fix", { domain });
+};
