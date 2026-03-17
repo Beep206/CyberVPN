@@ -229,6 +229,8 @@ pub fn generate_singbox_config(
     log_path: Option<&std::path::Path>,
     local_socks_port: Option<u16>,
     allow_lan: bool,
+    split_apps: &[String],
+    split_mode: &str,
 ) -> Value {
     let mut outbounds = Vec::new();
 
@@ -280,7 +282,24 @@ pub fn generate_singbox_config(
     }
 
     // 3. Transform user RoutingRules into sing-box route rules using idiomatic Iterators
-    let mut route_rules: Vec<Value> = user_rules
+    let mut route_rules: Vec<Value> = Vec::new();
+
+    // 3a. Inject Split Tunneling rules FIRST
+    if !split_apps.is_empty() {
+        if split_mode == "allow" {
+            route_rules.push(json!({
+                "process_name": split_apps,
+                "outbound": "proxy"
+            }));
+        } else if split_mode == "disallow" {
+            route_rules.push(json!({
+                "process_name": split_apps,
+                "outbound": "direct"
+            }));
+        }
+    }
+
+    let mut user_mapped_rules: Vec<Value> = user_rules
         .iter()
         .filter(|r| r.enabled)
         .map(|r| {
@@ -312,6 +331,8 @@ pub fn generate_singbox_config(
             json!(rule_obj)
         })
         .collect();
+
+    route_rules.append(&mut user_mapped_rules);
 
     // Core default rules to prevent leaks and loops
     route_rules.push(json!({"protocol": "dns", "outbound": "dns-out"}));
@@ -357,7 +378,7 @@ pub fn generate_singbox_config(
         "outbounds": outbounds,
         "route": {
             "rules": route_rules,
-            "final": "proxy",
+            "final": if split_mode == "allow" && !split_apps.is_empty() { "direct" } else { "proxy" },
             "auto_detect_interface": true
         }
     })
@@ -413,7 +434,7 @@ mod tests {
     #[test]
     fn generate_config_should_append_tun_inbounds() {
         let node = create_mock_node("1", None);
-        let config = generate_singbox_config(&node, &[], true, &[], None, None, false);
+        let config = generate_singbox_config(&node, &[], true, &[], None, None, false, &[], "allow");
 
         let inbounds = config.get("inbounds").unwrap().as_array().unwrap();
         assert_eq!(inbounds.len(), 2, "Expected 2 inbounds (mixed + tun)");
@@ -452,7 +473,7 @@ mod tests {
             domain_regex: vec![],
         };
 
-        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false);
+        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false, &[], "allow");
         let rules = config["route"]["rules"].as_array().unwrap();
 
         // Custom rule should be first
@@ -474,7 +495,7 @@ mod tests {
         let node_a = create_mock_node("A", Some("B"));
         let node_b = create_mock_node("B", None);
 
-        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false);
+        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false, &[], "allow");
         let outbounds = config["outbounds"].as_array().unwrap();
 
         // We should have proxy and proxy-next.

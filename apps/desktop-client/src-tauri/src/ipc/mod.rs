@@ -153,6 +153,8 @@ pub async fn connect_profile(
             log_path_opt,
             store_data.local_socks_port,
             store_data.allow_lan,
+            &store_data.split_tunneling_apps,
+            &store_data.split_tunneling_mode,
         )
     };
 
@@ -429,5 +431,53 @@ pub async fn save_active_core(core: String, app: AppHandle) -> Result<(), AppErr
     .await
     .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))??;
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_installed_apps() -> Result<Vec<models::AppInfo>, AppError> {
+    crate::engine::sys::apps::get_installed_apps().await
+}
+
+#[tauri::command]
+pub async fn get_split_tunneling_apps(app: tauri::AppHandle) -> Result<Vec<String>, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.split_tunneling_apps)
+}
+
+#[tauri::command]
+pub async fn save_split_tunneling_apps(apps: Vec<String>, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.split_tunneling_apps = apps;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_split_tunneling_mode(app: tauri::AppHandle) -> Result<String, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.split_tunneling_mode)
+}
+
+#[tauri::command]
+pub async fn save_split_tunneling_mode(mode: String, app: tauri::AppHandle) -> Result<(), AppError> {
+    if mode != "allow" && mode != "disallow" {
+        return Err(AppError::System("Invalid mode".to_string()));
+    }
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.split_tunneling_mode = mode;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
     Ok(())
 }
