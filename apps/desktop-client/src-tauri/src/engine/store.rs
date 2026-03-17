@@ -20,6 +20,14 @@ pub struct AppDataStore {
     pub allow_lan: bool,
     #[serde(default)]
     pub groups: Vec<crate::ipc::models::ProfileGroup>,
+    #[serde(default)]
+    pub split_tunneling_apps: Vec<String>,
+    #[serde(default = "default_split_tunneling_mode")]
+    pub split_tunneling_mode: String,
+}
+
+fn default_split_tunneling_mode() -> String {
+    "allow".to_string()
 }
 
 fn default_active_core() -> String {
@@ -38,6 +46,8 @@ impl Default for AppDataStore {
             local_socks_port: None,
             allow_lan: false,
             groups: Vec::new(),
+            split_tunneling_apps: Vec::new(),
+            split_tunneling_mode: default_split_tunneling_mode(),
         }
     }
 }

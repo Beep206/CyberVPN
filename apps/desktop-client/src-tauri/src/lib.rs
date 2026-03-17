@@ -178,7 +178,12 @@ pub fn run() {
             ipc::set_node_group,
             ipc::update_geo_assets,
             ipc::get_active_core,
-            ipc::save_active_core
+            ipc::save_active_core,
+            ipc::get_installed_apps,
+            ipc::get_split_tunneling_apps,
+            ipc::save_split_tunneling_apps,
+            ipc::get_split_tunneling_mode,
+            ipc::save_split_tunneling_mode
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -143,3 +143,12 @@ pub struct ConnectionStatus {
     pub up_bytes: u64,
     pub down_bytes: u64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppInfo {
+    pub name: String,
+    pub package_name: String,
+    pub icon_base64: Option<String>,
+    pub exec_path: String,
+}
