@@ -185,3 +185,33 @@ export const getSplitTunnelingMode = async (): Promise<string> => {
 export const saveSplitTunnelingMode = async (mode: string): Promise<void> => {
   return await invoke("save_split_tunneling_mode", { mode });
 };
+
+export interface LanInfo {
+  ip: string;
+  port: number;
+}
+
+export interface LanDevice {
+  ip: string;
+  mac: string;
+}
+
+export const getLanConnectionInfo = async (): Promise<LanInfo> => {
+  return await invoke("get_lan_connection_info");
+};
+
+export const enableLanForwarding = async (): Promise<void> => {
+  return await invoke("enable_lan_forwarding");
+};
+
+export const disableLanForwarding = async (): Promise<void> => {
+  return await invoke("disable_lan_forwarding");
+};
+
+export const startDeviceDiscovery = async (): Promise<void> => {
+  return await invoke("start_device_discovery");
+};
+
+export const stopDeviceDiscovery = async (): Promise<void> => {
+  return await invoke("stop_device_discovery");
+};
