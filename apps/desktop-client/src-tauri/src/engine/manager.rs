@@ -13,6 +13,42 @@ lazy_static! {
         Regex::new(r"(?i)(?:up|sent)\D*(\d+)\D*(?:down|recv)\D*(\d+)").unwrap();
     static ref TRAFFIC_REGEX_REV: Regex =
         Regex::new(r"(?i)(?:down|recv)\D*(\d+)\D*(?:up|sent)\D*(\d+)").unwrap();
+    static ref FAILURE_REGEX: Regex =
+        Regex::new(r"(?i)(connection reset|timeout|dns failure).*?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})").unwrap();
+}
+
+#[derive(Clone, serde::Serialize)]
+struct RoutingSuggestion {
+    domain: String,
+    reason: String,
+}
+
+async fn check_routing_failures(
+    line: &str,
+    domain_failures: Arc<Mutex<std::collections::HashMap<String, (u32, std::time::Instant)>>>,
+    app_handle: AppHandle,
+) {
+    if let Some(caps) = FAILURE_REGEX.captures(line) {
+        let reason = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
+        let domain = caps.get(2).map(|m| m.as_str().to_string()).unwrap_or_default();
+        
+        let mut failures = domain_failures.lock().await;
+        let now = std::time::Instant::now();
+        
+        // Cleanup old entries
+        failures.retain(|_, (_, time)| now.duration_since(*time).as_secs() < 120);
+
+        let entry = failures.entry(domain.clone()).or_insert((0, now));
+        entry.0 += 1;
+        entry.1 = now;
+
+        if entry.0 == 3 {
+             let _ = app_handle.emit("routing-suggestion", RoutingSuggestion {
+                 domain,
+                 reason,
+             });
+        }
+    }
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -26,6 +62,7 @@ pub struct ProcessManager {
     #[cfg(target_os = "windows")]
     is_elevated_run: Arc<Mutex<bool>>,
     expected_exit: Arc<Mutex<bool>>,
+    domain_failures: Arc<Mutex<std::collections::HashMap<String, (u32, std::time::Instant)>>>,
 }
 
 impl Default for ProcessManager {
@@ -41,6 +78,7 @@ impl ProcessManager {
             #[cfg(target_os = "windows")]
             is_elevated_run: Arc::new(Mutex::new(false)),
             expected_exit: Arc::new(Mutex::new(false)),
+            domain_failures: Arc::new(Mutex::new(std::collections::HashMap::new())),
         }
     }
 
@@ -84,6 +122,7 @@ impl ProcessManager {
                 // We must tail the log file asynchronously
                 let log_path = config_path.with_file_name("run.log");
                 let app_clone = app_handle.clone();
+                let failures_clone1 = self.domain_failures.clone();
                 tokio::spawn(async move {
                     // Give process a moment to create the log file array
                     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -123,6 +162,12 @@ impl ProcessManager {
                                         }
                                     }
                                     let _ = app_clone.emit("singbox-log", trimmed);
+                                    
+                                    check_routing_failures(
+                                        trimmed,
+                                        failures_clone1.clone(),
+                                        app_clone.clone()
+                                    ).await;
                                 }
                                 Err(_) => {
                                     break;
@@ -150,7 +195,7 @@ impl ProcessManager {
                         let mut is_running = false;
                         if *is_elevated_arc.lock().await {
                             is_running = true;
-                            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+                            sys.refresh_processes();
                             let mut found = false;
                             for _ in sys.processes_by_exact_name("sing-box.exe".as_ref()) {
                                 found = true;
@@ -215,6 +260,7 @@ impl ProcessManager {
             .ok_or_else(|| AppError::System("Failed to capture stderr".to_string()))?;
 
         let app_clone1 = app_handle.clone();
+        let failures_clone2 = self.domain_failures.clone();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -231,10 +277,17 @@ impl ProcessManager {
 
                 // Forward Sing-box stdout to React frontend
                 let _ = app_clone1.emit("singbox-log", &line);
+                
+                check_routing_failures(
+                    &line,
+                    failures_clone2.clone(),
+                    app_clone1.clone()
+                ).await;
             }
         });
 
         let app_clone2 = app_handle.clone();
+        let failures_clone3 = self.domain_failures.clone();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -251,6 +304,12 @@ impl ProcessManager {
 
                 // Forward Sing-box stderr to React frontend
                 let _ = app_clone2.emit("singbox-log", &line);
+                
+                check_routing_failures(
+                    &line,
+                    failures_clone3.clone(),
+                    app_clone2.clone()
+                ).await;
             }
         });
 

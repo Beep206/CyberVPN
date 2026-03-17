@@ -161,6 +161,7 @@ pub fn run() {
             ipc::add_routing_rule,
             ipc::update_routing_rule,
             ipc::delete_routing_rule,
+            ipc::apply_routing_fix,
             ipc::get_subscriptions,
             ipc::add_subscription,
             ipc::update_subscription,
@@ -192,7 +193,13 @@ pub fn run() {
             crate::engine::sys::discovery::stop_device_discovery,
             crate::engine::sys::sentinel::enable_killswitch_cmd,
             crate::engine::sys::sentinel::disable_killswitch_cmd,
-            crate::engine::sys::sentinel::repair_network
+            crate::engine::sys::sentinel::repair_network,
+            crate::engine::sys::sync::cloud_push,
+            crate::engine::sys::sync::cloud_pull,
+            crate::engine::sys::sync::save_sync_password,
+            crate::engine::sys::sync::get_sync_password,
+            crate::engine::sys::sync::delete_sync_password,
+            crate::engine::sys::sync::generate_pairing_qr
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

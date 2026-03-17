@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Code, PlaySquare, Hexagon } from "lucide-react";
 import { toast } from "sonner";
 import { RoutingRule, getRoutingRules, addRoutingRule, updateRoutingRule, deleteRoutingRule } from "../../shared/api/ipc";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -81,6 +81,39 @@ export function RoutingPage() {
         }
     };
 
+    const applyPresetPack = async (packId: string) => {
+        let presetDomains: string[] = [];
+        let packName = "";
+
+        if (packId === "social") {
+             presetDomains = ["domain:twitter.com", "domain:x.com", "domain:facebook.com", "domain:instagram.com", "domain:chatgpt.com"];
+             packName = "Social Media Pack";
+        } else if (packId === "dev") {
+             presetDomains = ["domain:github.com", "domain:docker.com", "domain:stackoverflow.com"];
+             packName = "Developer Pack";
+        } else if (packId === "stream") {
+             presetDomains = ["domain:youtube.com", "domain:twitch.tv", "domain:netflix.com"];
+             packName = "Streamer Pack";
+        }
+
+        const newRule: RoutingRule = {
+            id: crypto.randomUUID(),
+            enabled: true,
+            domains: presetDomains,
+            ips: [],
+            outbound: "proxy",
+        };
+
+        try {
+            toast.loading(`Injecting ${packName}...`, { id: "preset" });
+            await addRoutingRule(newRule);
+            toast.success(`${packName} injected into the Engine`, { id: "preset" });
+            fetchRules();
+        } catch (error: any) {
+            toast.error(`Injection failed: ${error}`, { id: "preset" });
+        }
+    };
+
     return (
         <motion.div 
             className="flex flex-col gap-6"
@@ -155,6 +188,56 @@ export function RoutingPage() {
                         </form>
                     </CardContent>
                 </Card>
+            )}
+
+            {!isAdding && rules.length === 0 && (
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4"
+                >
+                    {/* Preset 1 */}
+                    <motion.div 
+                        whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(0,255,255,0.8)" }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => applyPresetPack("social")}
+                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(0,255,255,0.05)] hover:border-[var(--color-neon-cyan)] hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all"
+                    >
+                         <Hexagon size={28} className="text-[var(--color-neon-cyan)]" />
+                         <div>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-cyan)] uppercase">Social/AI Pack</h3>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">X, Meta, ChatGPT</p>
+                         </div>
+                    </motion.div>
+
+                    {/* Preset 2 */}
+                    <motion.div 
+                        whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(0,255,136,0.8)" }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => applyPresetPack("dev")}
+                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-matrix-green)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(0,255,136,0.05)] hover:border-[var(--color-matrix-green)] hover:shadow-[0_0_20px_rgba(0,255,136,0.2)] transition-all"
+                    >
+                         <Code size={28} className="text-[var(--color-matrix-green)]" />
+                         <div>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-matrix-green)] uppercase">Developer Pack</h3>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">GitHub, Docker</p>
+                         </div>
+                    </motion.div>
+
+                     {/* Preset 3 */}
+                     <motion.div 
+                        whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(255,0,255,0.8)" }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => applyPresetPack("stream")}
+                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-neon-pink)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(255,0,255,0.05)] hover:border-[var(--color-neon-pink)] hover:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+                    >
+                         <PlaySquare size={28} className="text-[var(--color-neon-pink)]" />
+                         <div>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-pink)] uppercase">Streamer Pack</h3>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Youtube, Twitch</p>
+                         </div>
+                    </motion.div>
+                </motion.div>
             )}
 
             <div className="flex flex-col gap-3">

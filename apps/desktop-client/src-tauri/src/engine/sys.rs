@@ -3,6 +3,7 @@ pub mod apps;
 pub mod net;
 pub mod discovery;
 pub mod sentinel;
+pub mod sync;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;

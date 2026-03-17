@@ -11,6 +11,7 @@ import { SettingsPage } from "./pages/Settings";
 import { HotspotPage } from "./pages/Hotspot";
 import { SplitTunnelingPage } from "./pages/SplitTunneling";
 import { SecurityPage } from "./pages/Security";
+import { AccountPage } from "./pages/Account";
 import { RoutingPage } from "./pages/Routing";
 import { SubscriptionsPage } from "./pages/Subscriptions";
 import "./index.css";
@@ -24,6 +25,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="security" element={<SecurityPage />} />
+          <Route path="account" element={<AccountPage />} />
           <Route path="profiles" element={<ProfilesPage />} />
           <Route path="routing" element={<RoutingPage />} />
           <Route path="hotspot" element={<HotspotPage />} />
