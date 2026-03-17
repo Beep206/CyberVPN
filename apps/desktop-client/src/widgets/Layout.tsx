@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Activity, Shield, Settings, Route, Rss } from "lucide-react";
+import { Activity, Shield, Settings, Route, Rss, Split } from "lucide-react";
 import { Toaster } from "../components/ui/sonner";
 import { toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
@@ -42,6 +42,7 @@ export function Layout() {
     { path: "/", label: "Dashboard", icon: Activity },
     { path: "/profiles", label: "Profiles", icon: Shield },
     { path: "/routing", label: "Routing", icon: Route },
+    { path: "/split-tunneling", label: "Split Tunneling", icon: Split },
     { path: "/subscriptions", label: "Subscriptions", icon: Rss },
     { path: "/settings", label: "Settings", icon: Settings },
   ];

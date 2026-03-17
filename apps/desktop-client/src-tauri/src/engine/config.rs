@@ -218,7 +218,7 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
 ///     plugin: None, plugin_opts: None, tls_fragment: None, tls_record_fragment: None,
 /// };
 ///
-/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false);
+/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow");
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
 pub fn generate_singbox_config(
