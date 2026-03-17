@@ -206,6 +206,7 @@ pub async fn connect_profile(
             store_data.allow_lan,
             &store_data.split_tunneling_apps,
             &store_data.split_tunneling_mode,
+            store_data.stealth_mode_enabled,
         )
     };
 
@@ -526,6 +527,26 @@ pub async fn save_split_tunneling_mode(mode: String, app: tauri::AppHandle) -> R
     tokio::task::spawn_blocking(move || {
         let mut store = crate::engine::store::load_store(&app)?;
         store.split_tunneling_mode = mode;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_stealth_mode(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.stealth_mode_enabled)
+}
+
+#[tauri::command]
+pub async fn save_stealth_mode(enabled: bool, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.stealth_mode_enabled = enabled;
         crate::engine::store::save_store(&app, &store)
     })
     .await

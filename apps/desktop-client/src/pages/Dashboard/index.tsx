@@ -12,8 +12,11 @@ import {
     listenTrafficUpdate,
     connectProfile, 
     getProfiles,
-    disconnectProxy 
+    disconnectProxy,
+    getStealthMode,
+    saveStealthMode
 } from "../../shared/api/ipc";
+import { StealthWave } from "../../components/ui/stealth-wave";
 
 export function DashboardPage() {
   const [status, setStatus] = useState<ConnectionStatus>({
@@ -23,11 +26,13 @@ export function DashboardPage() {
   });
 
   const [tunMode, setTunMode] = useState(false);
+  const [stealthMode, setStealthMode] = useState(false);
   const [trafficData, setTrafficData] = useState<Array<{ time: string, up: number, down: number }>>([]);
 
   useEffect(() => {
     // Initial fetch
     getConnectionStatus().then(setStatus).catch(console.error);
+    getStealthMode().then(setStealthMode).catch(console.error);
 
     // Setup listener
     const setupListener = async () => {
@@ -98,13 +103,32 @@ export function DashboardPage() {
       }
   };
 
+  const handleStealthToggle = async (checked: boolean) => {
+      try {
+          await saveStealthMode(checked);
+          setStealthMode(checked);
+          if (checked) {
+              toast.success("Stealth Camouflage Enabled: Traffic Reshaping Active");
+          } else {
+              toast.info("Stealth Camouflage Disabled");
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error("Failed to map Stealth state");
+      }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ 
+          opacity: 1, 
+          scale: 1,
+          backgroundColor: stealthMode ? "rgba(0, 30, 20, 0.4)" : "transparent"
+      }}
       exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ duration: 0.2 }}
-      className="flex flex-col h-full gap-12"
+      transition={{ duration: 0.8 }}
+      className="flex flex-col h-full gap-12 relative rounded-2xl p-4 transition-colors"
     >
       <header className="flex items-center justify-between">
         <div>
@@ -118,6 +142,11 @@ export function DashboardPage() {
       </header>
       
       <div className="flex-1 flex flex-col items-center justify-center gap-12">
+         {/* Stealth Wave */}
+         <div className="w-full max-w-3xl">
+             <StealthWave active={stealthMode} />
+         </div>
+
          {/* Central Connect Button */}
          <ConnectButton 
              status={status} 
@@ -139,6 +168,24 @@ export function DashboardPage() {
                  id="tun-mode" 
                  checked={tunMode} 
                  onCheckedChange={setTunMode}
+                 disabled={status.status !== "disconnected"}
+             />
+         </div>
+
+         {/* Stealth Camouflage Toggle */}
+         <div className={`flex items-center space-x-3 px-6 py-4 rounded-xl border backdrop-blur-sm transition-colors duration-500 ${stealthMode ? 'bg-[var(--color-matrix-green)]/10 border-[var(--color-matrix-green)]/40 shadow-[0_0_15px_rgba(0,255,136,0.15)]' : 'bg-black/40 border-border/50'}`}>
+             <div className="flex flex-col gap-1">
+                 <Label htmlFor="stealth-mode" className={`text-sm font-bold tracking-wider uppercase ${stealthMode ? 'text-[var(--color-matrix-green)]' : 'text-muted-foreground'}`}>
+                     Stealth Camouflage
+                 </Label>
+                 <span className="text-xs text-muted-foreground w-64 leading-tight">
+                     Reshapes packet timing and volume to evade Deep Packet Inspection (DPI) heuristics.
+                 </span>
+             </div>
+             <Switch 
+                 id="stealth-mode" 
+                 checked={stealthMode} 
+                 onCheckedChange={handleStealthToggle}
                  disabled={status.status !== "disconnected"}
              />
          </div>
