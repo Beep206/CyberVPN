@@ -176,7 +176,9 @@ pub fn run() {
             ipc::add_group,
             ipc::delete_group,
             ipc::set_node_group,
-            ipc::update_geo_assets
+            ipc::update_geo_assets,
+            ipc::get_active_core,
+            ipc::save_active_core
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

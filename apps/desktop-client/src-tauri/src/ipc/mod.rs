@@ -405,3 +405,29 @@ pub async fn set_node_group(node_id: String, group_id: Option<String>, app: AppH
 pub async fn update_geo_assets(app: AppHandle) -> Result<(), AppError> {
     crate::engine::provision::update_geo_assets(&app).await
 }
+
+#[tauri::command]
+pub async fn get_active_core(app: AppHandle) -> Result<String, AppError> {
+    let store_data = tokio::task::spawn_blocking(move || store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))??;
+    Ok(store_data.active_core)
+}
+
+#[tauri::command]
+pub async fn save_active_core(core: String, app: AppHandle) -> Result<(), AppError> {
+    if core != "sing-box" && core != "xray" {
+        return Err(AppError::System(format!("Invalid proxy engine core selected: {}", core)));
+    }
+    
+    tokio::task::spawn_blocking(move || {
+        let mut store_data = store::load_store(&app)?;
+        store_data.active_core = core;
+        store::save_store(&app, &store_data)?;
+        Ok::<(), AppError>(())
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))??;
+
+    Ok(())
+}
