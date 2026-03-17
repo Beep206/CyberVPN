@@ -148,3 +148,13 @@ export const getCustomConfig = async (): Promise<string | null> => {
 export const saveCustomConfig = async (config: string | null): Promise<void> => {
   return await invoke("save_custom_config", { config });
 };
+
+/** Get the currently selected proxy engine core */
+export const getActiveCore = async (): Promise<"sing-box" | "xray"> => {
+  return await invoke<"sing-box" | "xray">("get_active_core");
+};
+
+/** Save the proxy engine core */
+export const saveActiveCore = async (core: "sing-box" | "xray"): Promise<void> => {
+  return await invoke("save_active_core", { core });
+};

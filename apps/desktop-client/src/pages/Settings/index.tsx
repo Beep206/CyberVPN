@@ -1,14 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { getCustomConfig, saveCustomConfig } from "../../shared/api/ipc";
+import { getCustomConfig, saveCustomConfig, getActiveCore, saveActiveCore } from "../../shared/api/ipc";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
-import { FileJson, Save, Moon, Sun, Monitor } from "lucide-react";
+import { FileJson, Save, Moon, Sun, Monitor, Cpu } from "lucide-react";
 import { useTheme } from "../../app/theme-provider";
 
 export function SettingsPage() {
   const [useCustomConfig, setUseCustomConfig] = useState(false);
   const [jsonConfig, setJsonConfig] = useState("");
+  const [activeCore, setActiveCore] = useState<"sing-box" | "xray">("sing-box");
   const [isSaving, setIsSaving] = useState(false);
   const { theme, setTheme } = useTheme();
 
@@ -19,6 +20,9 @@ export function SettingsPage() {
         setJsonConfig(cfg);
       }
     });
+    getActiveCore().then((core) => {
+      setActiveCore(core);
+    });
   }, []);
 
   const handleSave = async () => {
@@ -28,15 +32,25 @@ export function SettingsPage() {
         // Basic validation
         JSON.parse(jsonConfig);
         await saveCustomConfig(jsonConfig);
-        toast.success("Custom configuration saved successfully!");
       } else {
         await saveCustomConfig(null);
-        toast.success("Reverted to managed engine configuration");
       }
+      await saveActiveCore(activeCore);
+      toast.success("Settings saved successfully!");
     } catch (e: any) {
       toast.error(`Invalid JSON or Save Failed: ${e}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCoreChange = async (core: "sing-box" | "xray") => {
+    setActiveCore(core);
+    try {
+      await saveActiveCore(core);
+      toast.success(`Active core switched to ${core}`);
+    } catch (e: any) {
+      toast.error(`Failed to change core: ${e}`);
     }
   };
 
@@ -83,6 +97,35 @@ export function SettingsPage() {
                 onClick={() => setTheme("system")}
             >
                 <Monitor size={16} className="mr-2" /> System
+            </Button>
+          </div>
+        </div>
+
+        {/* Proxy Engine Core Settings */}
+        <div className="flex flex-col gap-4 p-6 rounded-xl border border-border/50 bg-black/40">
+          <div className="flex items-center justify-between mb-2">
+             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-matrix-green)]">
+              <Cpu size={24} />
+              <h2>Proxy Engine Core</h2>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+             Sing-box is recommended for modern protocols (Hysteria2, TUIC), while Xray-core provides legacy compatibility.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Button 
+                variant={activeCore === "sing-box" ? "default" : "outline"} 
+                className={activeCore === "sing-box" ? "bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80" : ""}
+                onClick={() => handleCoreChange("sing-box")}
+            >
+                Sing-box (Modern)
+            </Button>
+            <Button 
+                variant={activeCore === "xray" ? "default" : "outline"} 
+                className={activeCore === "xray" ? "bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80" : ""}
+                onClick={() => handleCoreChange("xray")}
+            >
+                Xray (Legacy)
             </Button>
           </div>
         </div>

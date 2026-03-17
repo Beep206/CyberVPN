@@ -1,0 +1,42 @@
+name: Android TV Release
+
+on:
+  push:
+    tags:
+      - 'tv-v*'
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permissions to gradlew
+        run: chmod +x gradlew
+        working-directory: apps/android-tv
+
+      - name: Run Linters & Tests
+        run: ./gradlew detekt ktlintCheck testReleaseUnitTest
+        working-directory: apps/android-tv
+
+      - name: Build AAB and APK
+        run: ./gradlew bundleRelease assembleRelease
+        working-directory: apps/android-tv
+
+      - name: Create Release and Upload Artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            apps/android-tv/app/build/outputs/apk/release/app-release.apk
+            apps/android-tv/app/build/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
