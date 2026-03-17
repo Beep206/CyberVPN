@@ -25,6 +25,7 @@ pub struct ProcessManager {
     child: Arc<Mutex<Option<Child>>>,
     #[cfg(target_os = "windows")]
     is_elevated_run: Arc<Mutex<bool>>,
+    expected_exit: Arc<Mutex<bool>>,
 }
 
 impl Default for ProcessManager {
@@ -39,6 +40,7 @@ impl ProcessManager {
             child: Arc::new(Mutex::new(None)),
             #[cfg(target_os = "windows")]
             is_elevated_run: Arc::new(Mutex::new(false)),
+            expected_exit: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -55,6 +57,8 @@ impl ProcessManager {
         if child_guard.is_some() {
             return Err(AppError::System("Sing-box is already running".to_string()));
         }
+
+        *self.expected_exit.lock().await = false;
 
         if core_name == "xray" {
             println!("Warning: connecting with Xray-core, limited config generation rules apply.");
@@ -124,6 +128,49 @@ impl ProcessManager {
                                     break;
                                 }
                             }
+                        }
+                    }
+                });
+
+                let app_clone_watchdog = app_handle.clone();
+                let expected_exit_arc = self.expected_exit.clone();
+                let is_elevated_arc = self.is_elevated_run.clone();
+
+                tokio::spawn(async move {
+                    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+                    let mut sys = sysinfo::System::new();
+
+                    loop {
+                        interval.tick().await;
+
+                        if *expected_exit_arc.lock().await {
+                            break;
+                        }
+
+                        let mut is_running = false;
+                        if *is_elevated_arc.lock().await {
+                            is_running = true;
+                            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+                            let mut found = false;
+                            for _ in sys.processes_by_exact_name("sing-box.exe".as_ref()) {
+                                found = true;
+                                break;
+                            }
+                            if !found {
+                                is_running = false;
+                                *is_elevated_arc.lock().await = false;
+                            }
+                        }
+
+                        if !is_running {
+                            use tauri::Manager;
+                            if let Some(guard) = app_clone_watchdog.try_state::<crate::engine::sys::sentinel::SentinelGuard>() {
+                                if guard.is_active() {
+                                    let _ = guard.enable();
+                                }
+                            }
+                            let _ = app_clone_watchdog.emit("vpn-process-died", ());
+                            break;
                         }
                     }
                 });
@@ -208,10 +255,55 @@ impl ProcessManager {
         });
 
         *child_guard = Some(spawn_child);
+        drop(child_guard); // explicit unlock before spinning watchdog
+
+        let app_clone_watchdog = app_handle.clone();
+        let child_arc = self.child.clone();
+        let expected_exit_arc = self.expected_exit.clone();
+
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+
+            loop {
+                interval.tick().await;
+
+                if *expected_exit_arc.lock().await {
+                    break;
+                }
+
+                let mut is_running = false;
+                
+                {
+                    let mut cg = child_arc.lock().await;
+                    if let Some(child) = cg.as_mut() {
+                        is_running = true;
+                        if let Ok(Some(_status)) = child.try_wait() {
+                            let _ = cg.take();
+                            is_running = false;
+                        }
+                    }
+                }
+
+                if !is_running {
+                    // Unexpected exit detected
+                    use tauri::Manager;
+                    if let Some(guard) = app_clone_watchdog.try_state::<crate::engine::sys::sentinel::SentinelGuard>() {
+                        if guard.is_active() {
+                            let _ = guard.enable();
+                        }
+                    }
+                    let _ = app_clone_watchdog.emit("vpn-process-died", ());
+                    break;
+                }
+            }
+        });
+
         Ok(())
     }
 
     pub async fn stop(&self) -> Result<(), AppError> {
+        *self.expected_exit.lock().await = true;
+
         #[cfg(target_os = "windows")]
         {
             let mut elevated_guard = self.is_elevated_run.lock().await;
