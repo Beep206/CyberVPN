@@ -1,5 +1,7 @@
 use crate::engine::error::AppError;
 pub mod apps;
+pub mod net;
+pub mod discovery;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;

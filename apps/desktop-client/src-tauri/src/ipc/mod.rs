@@ -481,3 +481,4 @@ pub async fn save_split_tunneling_mode(mode: String, app: tauri::AppHandle) -> R
     .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
     Ok(())
 }
+// Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`
