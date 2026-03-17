@@ -24,6 +24,8 @@ pub struct AppDataStore {
     pub split_tunneling_apps: Vec<String>,
     #[serde(default = "default_split_tunneling_mode")]
     pub split_tunneling_mode: String,
+    #[serde(default)]
+    pub stealth_mode_enabled: bool,
 }
 
 fn default_split_tunneling_mode() -> String {
@@ -48,6 +50,7 @@ impl Default for AppDataStore {
             groups: Vec::new(),
             split_tunneling_apps: Vec::new(),
             split_tunneling_mode: default_split_tunneling_mode(),
+            stealth_mode_enabled: false,
         }
     }
 }

@@ -1,7 +1,30 @@
 use crate::ipc::models::{ProxyNode, RoutingRule};
+use serde::Serialize;
 use serde_json::{json, Value};
 
-fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
+#[derive(Serialize)]
+struct StealthPaddingConfig {
+    enabled: bool,
+    size: String,
+}
+
+#[derive(Serialize)]
+struct StealthMultiplexConfig {
+    enabled: bool,
+    protocol: String,
+    max_connections: u32,
+    min_streams: u32,
+    padding: bool,
+}
+
+#[derive(Serialize)]
+struct StealthXhttpConfig {
+    #[serde(rename = "type")]
+    transport_type: String,
+    path: String,
+}
+
+fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>, stealth_mode: bool) -> Value {
     let mut ob_map = serde_json::Map::new();
     ob_map.insert("type".to_string(), json!(node.protocol));
     ob_map.insert("tag".to_string(), json!(tag));
@@ -186,7 +209,34 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
         ob_map.insert("detour".to_string(), json!(d));
     }
 
-    if let Some(ref m) = node.mux {
+    if stealth_mode && (node.protocol == "vless" || node.tls.as_deref() == Some("reality")) {
+        let lower: u32 = rand::random::<u32>() % 100 + 50; // 50-149
+        let upper: u32 = rand::random::<u32>() % 300 + 300; // 300-599
+        
+        ob_map.insert("packet_encoding".to_string(), json!("xudp"));
+
+        let padding = StealthPaddingConfig {
+            enabled: true,
+            size: format!("{}-{}", lower, upper),
+        };
+        ob_map.insert("padding".to_string(), serde_json::to_value(&padding).unwrap());
+
+        let mx = StealthMultiplexConfig {
+            enabled: true,
+            protocol: "h2mux".to_string(),
+            max_connections: 4,
+            min_streams: 4,
+            padding: true,
+        };
+        ob_map.insert("multiplex".to_string(), serde_json::to_value(&mx).unwrap());
+        ob_map.insert("tcp_fast_open".to_string(), json!(true));
+
+        let xhttp = StealthXhttpConfig {
+            transport_type: "xhttp".to_string(),
+            path: format!("/api/{}", rand::random::<u32>() % 9000 + 1000),
+        };
+        ob_map.insert("transport".to_string(), serde_json::to_value(&xhttp).unwrap());
+    } else if let Some(ref m) = node.mux {
         if m != "none" {
             let mut mux_map = serde_json::Map::new();
             mux_map.insert("enabled".to_string(), json!(true));
@@ -218,7 +268,7 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
 ///     plugin: None, plugin_opts: None, tls_fragment: None, tls_record_fragment: None,
 /// };
 ///
-/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow");
+/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow", false);
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
 pub fn generate_singbox_config(
@@ -231,6 +281,7 @@ pub fn generate_singbox_config(
     allow_lan: bool,
     split_apps: &[String],
     split_mode: &str,
+    stealth_mode_enabled: bool,
 ) -> Value {
     let mut outbounds = Vec::new();
 
@@ -240,7 +291,7 @@ pub fn generate_singbox_config(
         if let Some(next_node) = all_nodes.iter().find(|n| &n.id == next_id) {
             let next_tag = "proxy-next";
             detour_tag = Some(next_tag);
-            outbounds.push(create_outbound(next_node, next_tag, None));
+            outbounds.push(create_outbound(next_node, next_tag, None, stealth_mode_enabled));
         } else {
             eprintln!(
                 "Warning: Next hop ID {} not found. Falling back to direct single-hop.",
@@ -249,7 +300,7 @@ pub fn generate_singbox_config(
         }
     }
 
-    outbounds.push(create_outbound(proxy, "proxy", detour_tag));
+    outbounds.push(create_outbound(proxy, "proxy", detour_tag, stealth_mode_enabled));
     outbounds.push(json!({"type": "direct", "tag": "direct"}));
     outbounds.push(json!({"type": "block", "tag": "block"}));
     outbounds.push(json!({"type": "dns", "tag": "dns-out"}));
@@ -434,7 +485,7 @@ mod tests {
     #[test]
     fn generate_config_should_append_tun_inbounds() {
         let node = create_mock_node("1", None);
-        let config = generate_singbox_config(&node, &[], true, &[], None, None, false, &[], "allow");
+        let config = generate_singbox_config(&node, &[], true, &[], None, None, false, &[], "allow", false);
 
         let inbounds = config.get("inbounds").unwrap().as_array().unwrap();
         assert_eq!(inbounds.len(), 2, "Expected 2 inbounds (mixed + tun)");
@@ -473,7 +524,7 @@ mod tests {
             domain_regex: vec![],
         };
 
-        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false, &[], "allow");
+        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false, &[], "allow", false);
         let rules = config["route"]["rules"].as_array().unwrap();
 
         // Custom rule should be first
@@ -495,7 +546,7 @@ mod tests {
         let node_a = create_mock_node("A", Some("B"));
         let node_b = create_mock_node("B", None);
 
-        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false, &[], "allow");
+        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false, &[], "allow", false);
         let outbounds = config["outbounds"].as_array().unwrap();
 
         // We should have proxy and proxy-next.

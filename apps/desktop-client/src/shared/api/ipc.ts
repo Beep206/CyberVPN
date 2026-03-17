@@ -231,3 +231,11 @@ export const repairNetwork = async (): Promise<void> => {
 export const applyRoutingFix = async (domain: string): Promise<void> => {
   return await invoke("apply_routing_fix", { domain });
 };
+
+export const getStealthMode = async (): Promise<boolean> => {
+  return await invoke("get_stealth_mode");
+};
+
+export const saveStealthMode = async (enabled: boolean): Promise<void> => {
+  return await invoke("save_stealth_mode", { enabled });
+};

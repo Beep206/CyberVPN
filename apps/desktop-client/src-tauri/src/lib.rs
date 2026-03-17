@@ -186,6 +186,8 @@ pub fn run() {
             ipc::save_split_tunneling_apps,
             ipc::get_split_tunneling_mode,
             ipc::save_split_tunneling_mode,
+            ipc::get_stealth_mode,
+            ipc::save_stealth_mode,
             crate::engine::sys::net::get_lan_connection_info,
             crate::engine::sys::net::enable_lan_forwarding,
             crate::engine::sys::net::disable_lan_forwarding,
