@@ -24,7 +24,6 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
             let sub_key = HSTRING::from(sub_key_str);
             let mut hkey_opt: HKEY = HKEY::default();
             
-            // SAFETY: passing valid handles and pointers to receive the opened key
             if RegOpenKeyExW(base_key, &sub_key, 0, KEY_READ, &mut hkey_opt).is_err() {
                 continue;
             }
@@ -32,12 +31,11 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
             let mut subkeys_count = 0;
             let mut max_subkey_len = 0;
 
-            // SAFETY: valid pointers for obtaining registry key info
             if RegQueryInfoKeyW(
-                hkey_opt, None, None, None, Some(&mut subkeys_count),
+                hkey_opt, windows::core::PWSTR::null(), None, None, Some(&mut subkeys_count),
                 Some(&mut max_subkey_len), None, None, None, None, None, None
             ).is_err() {
-                windows::Win32::System::Registry::RegCloseKey(hkey_opt);
+                let _ = windows::Win32::System::Registry::RegCloseKey(hkey_opt);
                 continue;
             }
 
@@ -45,10 +43,9 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
                 let mut name_buf = vec![0u16; (max_subkey_len + 1) as usize];
                 let mut name_len = name_buf.len() as u32;
 
-                // SAFETY: buffer is properly sized based on max_subkey_len
                 if RegEnumKeyExW(
                     hkey_opt, i, windows::core::PWSTR(name_buf.as_mut_ptr()), 
-                    &mut name_len, None, None, None, None
+                    &mut name_len, None, windows::core::PWSTR::null(), None, None
                 ).is_ok() {
                     let key_name = String::from_utf16_lossy(&name_buf[..name_len as usize]);
                     
@@ -59,7 +56,7 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
                     if RegOpenKeyExW(base_key, &app_sub_key, 0, KEY_READ, &mut app_key_opt).is_ok() {
                         let display_name = get_reg_string(app_key_opt, "DisplayName");
                         let display_icon = get_reg_string(app_key_opt, "DisplayIcon");
-                        let install_location = get_reg_string(app_key_opt, "InstallLocation");
+                        let install_location = get_reg_string(app_key_opt, "_InstallLocation");
                         
                         let exec_path = extract_exec_path(&display_icon, &install_location);
                         
@@ -79,11 +76,11 @@ pub fn get_installed_apps_impl() -> Result<Vec<AppInfo>, AppError> {
                                 });
                             }
                         }
-                        windows::Win32::System::Registry::RegCloseKey(app_key_opt);
+                        let _ = windows::Win32::System::Registry::RegCloseKey(app_key_opt);
                     }
                 }
             }
-            windows::Win32::System::Registry::RegCloseKey(hkey_opt);
+            let _ = windows::Win32::System::Registry::RegCloseKey(hkey_opt);
         }
     }
 
@@ -99,7 +96,6 @@ fn get_reg_string(hkey: windows::Win32::System::Registry::HKEY, value_name: &str
     let mut data_len = 0;
     let val = HSTRING::from(value_name);
     
-    // SAFETY: first call with null buffer to get required size
     unsafe {
         if RegQueryValueExW(hkey, &val, None, None, None, Some(&mut data_len)).is_err() {
             return None;
@@ -111,7 +107,6 @@ fn get_reg_string(hkey: windows::Win32::System::Registry::HKEY, value_name: &str
     }
     
     let mut buffer = vec![0u8; data_len as usize];
-    // SAFETY: second call with properly sized buffer
     unsafe {
         if RegQueryValueExW(hkey, &val, None, None, Some(buffer.as_mut_ptr()), Some(&mut data_len)).is_err() {
             return None;
@@ -120,12 +115,12 @@ fn get_reg_string(hkey: windows::Win32::System::Registry::HKEY, value_name: &str
     
     let u16_slice: &[u16] = unsafe { std::slice::from_raw_parts(buffer.as_ptr() as *const u16, (data_len / 2) as usize) };
     let end = u16_slice.iter().position(|&c| c == 0).unwrap_or(u16_slice.len());
-    let mut s = String::from_utf16_lossy(&u16_slice[..end]).trim_matches('"').to_string();
+    let s = String::from_utf16_lossy(&u16_slice[..end]).trim_matches('"').to_string();
     if s.is_empty() { None } else { Some(s) }
 }
 
 #[cfg(target_os = "windows")]
-fn extract_exec_path(display_icon: &Option<String>, install_location: &Option<String>) -> Option<String> {
+fn extract_exec_path(display_icon: &Option<String>, _install_location: &Option<String>) -> Option<String> {
     if let Some(mut icon_path) = display_icon.clone() {
         if let Some(idx) = icon_path.find(",0") {
             icon_path.truncate(idx);
@@ -144,7 +139,7 @@ fn extract_icon_base64(path: &str) -> Option<String> {
     use windows::Win32::UI::Shell::ExtractIconExW;
     use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, HICON};
     use windows::Win32::Graphics::Gdi::{
-        GetIconInfo, GetDC, GetDIBits, DeleteObject, ReleaseDC,
+        GetDC, GetDIBits, DeleteObject, ReleaseDC,
         BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS
     };
     use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
@@ -165,7 +160,6 @@ fn extract_icon_base64(path: &str) -> Option<String> {
     let mut hicon_large: [HICON; 1] = [HICON::default()];
     
     unsafe {
-        // SAFETY: Path is valid system HSTRING. Getting 1 icon.
         let result = ExtractIconExW(&path_h, 0, Some(hicon_large.as_mut_ptr()), None, 1);
         if result == 0 || hicon_large[0].is_invalid() {
             return None;
@@ -174,9 +168,8 @@ fn extract_icon_base64(path: &str) -> Option<String> {
         let hicon = hicon_large[0];
         let _icon_guard = IconGuard(hicon);
 
-        let mut icon_info = std::mem::zeroed();
-        // SAFETY: getting info about the valid icon handle
-        if GetIconInfo(hicon, &mut icon_info).is_err() {
+        let mut icon_info = windows::Win32::UI::WindowsAndMessaging::ICONINFO::default();
+        if windows::Win32::UI::WindowsAndMessaging::GetIconInfo(hicon, &mut icon_info).is_err() {
             return None;
         }
 
@@ -187,7 +180,7 @@ fn extract_icon_base64(path: &str) -> Option<String> {
         
         let mut bmp = windows::Win32::Graphics::Gdi::BITMAP::default();
         let query_res = windows::Win32::Graphics::Gdi::GetObjectW(
-            hbm.into(),
+            hbm,
             std::mem::size_of::<windows::Win32::Graphics::Gdi::BITMAP>() as i32,
             Some(&mut bmp as *mut _ as *mut std::ffi::c_void)
         );
@@ -202,24 +195,23 @@ fn extract_icon_base64(path: &str) -> Option<String> {
         let hdc_screen = GetDC(None);
         struct DcGuard(windows::Win32::Graphics::Gdi::HDC);
         impl Drop for DcGuard {
-            fn drop(&mut self) { unsafe { ReleaseDC(None, self.0); } }
+            fn drop(&mut self) { unsafe { let _ = ReleaseDC(None, self.0); } }
         }
         let _hdc_guard = DcGuard(hdc_screen);
 
         let mut bmi: BITMAPINFO = std::mem::zeroed();
         bmi.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
         bmi.bmiHeader.biWidth = width as i32;
-        bmi.bmiHeader.biHeight = -(height as i32); // top-down
+        bmi.bmiHeader.biHeight = -(height as i32); 
         bmi.bmiHeader.biPlanes = 1;
         bmi.bmiHeader.biBitCount = 32;
-        bmi.bmiHeader.biCompression = BI_RGB;
+        bmi.bmiHeader.biCompression = BI_RGB.0;
 
         let mut pixels = vec![0u8; (width * height * 4) as usize];
 
-        // SAFETY: we queried the size and allocated exactly enough bytes for the 32-bit DIB
         let get_dib_res = GetDIBits(
             hdc_screen,
-            hbm.into(),
+            hbm,
             0,
             height,
             Some(pixels.as_mut_ptr() as *mut _),
@@ -231,14 +223,12 @@ fn extract_icon_base64(path: &str) -> Option<String> {
             return None;
         }
 
-        // Convert BGRA to RGBA
         for chunk in pixels.chunks_exact_mut(4) {
             let b = chunk[0];
             let r = chunk[2];
             chunk[0] = r;
             chunk[2] = b;
             
-            // If the icon didn't draw alpha correctly, force full opacity if color pixel present
             if chunk[3] == 0 && (chunk[0] > 0 || chunk[1] > 0 || chunk[2] > 0) {
                chunk[3] = 255;
             }
@@ -324,7 +314,5 @@ pub async fn get_installed_apps() -> Result<Vec<AppInfo>, AppError> {
         get_installed_apps_impl()
     })
     .await
-    .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))??;
-
-    Ok(get_installed_apps_impl()?)
+    .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))?
 }

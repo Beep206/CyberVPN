@@ -158,3 +158,30 @@ export const getActiveCore = async (): Promise<"sing-box" | "xray"> => {
 export const saveActiveCore = async (core: "sing-box" | "xray"): Promise<void> => {
   return await invoke("save_active_core", { core });
 };
+
+export interface AppInfo {
+  name: string;
+  packageName: string;
+  iconBase64: string | null;
+  execPath: string;
+}
+
+export const getInstalledApps = async (): Promise<AppInfo[]> => {
+  return await invoke("get_installed_apps");
+};
+
+export const getSplitTunnelingApps = async (): Promise<string[]> => {
+  return await invoke("get_split_tunneling_apps");
+};
+
+export const saveSplitTunnelingApps = async (apps: string[]): Promise<void> => {
+  return await invoke("save_split_tunneling_apps", { apps });
+};
+
+export const getSplitTunnelingMode = async (): Promise<string> => {
+  return await invoke("get_split_tunneling_mode");
+};
+
+export const saveSplitTunnelingMode = async (mode: string): Promise<void> => {
+  return await invoke("save_split_tunneling_mode", { mode });
+};
