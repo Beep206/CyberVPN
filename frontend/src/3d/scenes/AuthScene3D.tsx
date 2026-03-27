@@ -10,6 +10,31 @@ import { useInView } from 'motion/react';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 
+// Create global static geometries to prevent GC stutters during renders
+const SHIELD_SHAPE = new THREE.Shape();
+const _size = 1.2;
+for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    const x = Math.cos(angle) * _size;
+    const y = Math.sin(angle) * _size;
+    if (i === 0) SHIELD_SHAPE.moveTo(x, y);
+    else SHIELD_SHAPE.lineTo(x, y);
+}
+SHIELD_SHAPE.closePath();
+
+const SHIELD_GEOMETRY = new THREE.ShapeGeometry(SHIELD_SHAPE);
+const SHIELD_LINE_POSITIONS = new Float32Array([
+    ...Array.from({ length: 6 }, (_, i) => {
+        const angle = (Math.PI / 3) * i - Math.PI / 2;
+        return [Math.cos(angle) * 1.2, Math.sin(angle) * 1.2, 0];
+    }).flat(),
+    Math.cos(-Math.PI / 2) * 1.2, Math.sin(-Math.PI / 2) * 1.2, 0
+]);
+const LOCK_CIRCLE_GEOMETRY = new THREE.CircleGeometry(0.25, 32);
+const ORB_GEOMETRY = new THREE.SphereGeometry(0.08, 16, 16);
+const DATA_STREAM_GEOMETRY = new THREE.BoxGeometry(0.01, 1, 0.01);
+const PARTICLE_GEOMETRY = new THREE.DodecahedronGeometry(0.02, 0);
+
 // ============================================
 // FLOATING SHIELD - Central Security Symbol
 // ============================================
@@ -17,23 +42,6 @@ function FloatingShield() {
     const groupRef = useRef<THREE.Group>(null!);
     const shieldRef = useRef<THREE.Mesh>(null!);
     const [hovered, setHovered] = useState(false);
-
-    // Create hexagonal shield shape
-    const shieldShape = useMemo(() => {
-        const shape = new THREE.Shape();
-        const size = 1.2;
-        const sides = 6;
-
-        for (let i = 0; i < sides; i++) {
-            const angle = (Math.PI / 3) * i - Math.PI / 2;
-            const x = Math.cos(angle) * size;
-            const y = Math.sin(angle) * size;
-            if (i === 0) shape.moveTo(x, y);
-            else shape.lineTo(x, y);
-        }
-        shape.closePath();
-        return shape;
-    }, []);
 
     useFrame((state) => {
         const t = state.clock.getElapsedTime();
@@ -55,8 +63,7 @@ function FloatingShield() {
                 onPointerLeave={() => setHovered(false)}
             >
                 {/* Main shield face */}
-                <mesh ref={shieldRef}>
-                    <shapeGeometry args={[shieldShape]} />
+                <mesh ref={shieldRef} geometry={SHIELD_GEOMETRY}>
                     <meshBasicMaterial
                         color={hovered ? '#00ffff' : '#00cccc'}
                         transparent
@@ -70,21 +77,14 @@ function FloatingShield() {
                     <bufferGeometry>
                         <bufferAttribute
                             attach="attributes-position"
-                            args={[new Float32Array([
-                                ...Array.from({ length: 6 }, (_, i) => {
-                                    const angle = (Math.PI / 3) * i - Math.PI / 2;
-                                    return [Math.cos(angle) * 1.2, Math.sin(angle) * 1.2, 0];
-                                }).flat(),
-                                Math.cos(-Math.PI / 2) * 1.2, Math.sin(-Math.PI / 2) * 1.2, 0
-                            ]), 3]}
+                            args={[SHIELD_LINE_POSITIONS, 3]}
                         />
                     </bufferGeometry>
                     <lineBasicMaterial color="#00ffff" linewidth={2} />
                 </lineLoop>
 
                 {/* Inner hexagon */}
-                <mesh scale={0.6}>
-                    <shapeGeometry args={[shieldShape]} />
+                <mesh scale={0.6} geometry={SHIELD_GEOMETRY}>
                     <meshBasicMaterial
                         color="#00ffff"
                         transparent
@@ -95,8 +95,7 @@ function FloatingShield() {
                 </mesh>
 
                 {/* Center lock icon representation */}
-                <mesh position={[0, 0, 0.01]}>
-                    <circleGeometry args={[0.25, 32]} />
+                <mesh position={[0, 0, 0.01]} geometry={LOCK_CIRCLE_GEOMETRY}>
                     <meshBasicMaterial color="#00ffff" transparent opacity={hovered ? 0.4 : 0.2} />
                 </mesh>
 
@@ -114,6 +113,7 @@ function FloatingShield() {
 // ============================================
 function PulsingRing({ radius, delay }: { radius: number; delay: number }) {
     const meshRef = useRef<THREE.Mesh>(null!);
+    const geometry = useMemo(() => new THREE.TorusGeometry(radius, 0.01, 8, 64), [radius]);
 
     useFrame((state) => {
         const t = state.clock.getElapsedTime();
@@ -123,8 +123,7 @@ function PulsingRing({ radius, delay }: { radius: number; delay: number }) {
     });
 
     return (
-        <mesh ref={meshRef} rotation-x={Math.PI / 2}>
-            <torusGeometry args={[radius, 0.01, 8, 64]} />
+        <mesh ref={meshRef} rotation-x={Math.PI / 2} geometry={geometry}>
             <meshBasicMaterial
                 color="#00ffff"
                 transparent
@@ -190,8 +189,7 @@ function SecurityParticles({ count = 500 }: { count?: number }) {
     });
 
     return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-            <dodecahedronGeometry args={[0.02, 0]} />
+        <instancedMesh ref={meshRef} args={[PARTICLE_GEOMETRY, undefined, count]}>
             <meshBasicMaterial
                 color="#00ffff"
                 transparent
@@ -207,47 +205,50 @@ function SecurityParticles({ count = 500 }: { count?: number }) {
 // ============================================
 function generateDataStreams(count: number) {
     return Array.from({ length: count }, () => ({
-        x: (Math.random() - 0.5) * 10,
-        z: (Math.random() - 0.5) * 4 - 2,
+        position: new THREE.Vector3(
+            (Math.random() - 0.5) * 10,
+            Math.random() * 8 - 4,
+            (Math.random() - 0.5) * 4 - 2
+        ),
         speed: Math.random() * 0.03 + 0.02,
-        length: Math.random() * 1.5 + 0.5,
-        y: Math.random() * 8 - 4,
+        scaleY: Math.random() * 1.5 + 0.5,
     }));
 }
 
 function DataStreams({ count = 30 }: { count?: number }) {
-    const groupRef = useRef<THREE.Group>(null!);
-
+    const meshRef = useRef<THREE.InstancedMesh>(null!);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
     const [streams] = useState(() => generateDataStreams(count));
 
     useFrame(() => {
-        if (!groupRef.current) return;
+        if (!meshRef.current) return;
 
-        groupRef.current.children.forEach((child, i) => {
-            const stream = streams[i];
-            child.position.y -= stream.speed;
+        streams.forEach((stream, i) => {
+            stream.position.y -= stream.speed;
 
-            if (child.position.y < -4) {
-                child.position.y = 4;
-                child.position.x = (Math.random() - 0.5) * 10;
+            if (stream.position.y < -4) {
+                stream.position.y = 4;
+                stream.position.x = (Math.random() - 0.5) * 10;
             }
+
+            dummy.position.copy(stream.position);
+            dummy.scale.set(1, stream.scaleY, 1);
+            dummy.updateMatrix();
+            meshRef.current.setMatrixAt(i, dummy.matrix);
         });
+
+        meshRef.current.instanceMatrix.needsUpdate = true;
     });
 
     return (
-        <group ref={groupRef}>
-            {streams.map((stream, i) => (
-                <mesh key={i} position={[stream.x, stream.y, stream.z]}>
-                    <boxGeometry args={[0.01, stream.length, 0.01]} />
-                    <meshBasicMaterial
-                        color="#00ff88"
-                        transparent
-                        opacity={0.3}
-                        blending={THREE.AdditiveBlending}
-                    />
-                </mesh>
-            ))}
-        </group>
+        <instancedMesh ref={meshRef} args={[DATA_STREAM_GEOMETRY, undefined, count]}>
+            <meshBasicMaterial
+                color="#00ff88"
+                transparent
+                opacity={0.3}
+                blending={THREE.AdditiveBlending}
+            />
+        </instancedMesh>
     );
 }
 
@@ -266,8 +267,7 @@ function GlowingOrb({ color, startPosition }: { color: string; startPosition: [n
 
     return (
         <Trail width={0.8} length={6} color={color} attenuation={(t) => t * t}>
-            <mesh ref={meshRef} position={startPosition}>
-                <sphereGeometry args={[0.08, 16, 16]} />
+            <mesh ref={meshRef} position={startPosition} geometry={ORB_GEOMETRY}>
                 <meshBasicMaterial color={color} transparent opacity={0.9} />
             </mesh>
         </Trail>
@@ -350,10 +350,12 @@ export function AuthScene3D() {
     const isInView = useInView(containerRef, { margin: "100px" });
     const [dpr, setDpr] = useState(1);
 
-    // Use pathname as key to force full R3F/WebGL context recreation on navigation
-    // This fixes "Cannot read properties of null" errors when switching languages
+    // Use locale from pathname as key to prevent R3F/WebGL context recreation on auth navigation, 
+    // but still fix "Cannot read properties of null" errors when actually switching languages
+    const locale = pathname.split('/')[1] || 'en';
+
     return (
-        <div ref={containerRef} key={pathname} className="absolute inset-0 z-0 pointer-events-none">
+        <div ref={containerRef} key={locale} className="absolute inset-0 z-0 pointer-events-none">
             <ErrorBoundary label="Auth 3D Scene">
                 <Canvas
                     camera={{ position: [0, 0, 5], fov: 50 }}
