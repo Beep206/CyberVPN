@@ -101,7 +101,21 @@ async def check_generate_link_rate_limit(request: Request) -> None:
         )
 
 
+async def check_telegram_web_login_rate_limit(request: Request) -> None:
+    """Rate limit POST /auth/telegram/web: 10/min per IP."""
+    client_ip = _get_client_ip(request)
+    key = f"cybervpn:tg_auth:web_login:ip:{client_ip}"
+
+    if not await _check_rate_limit(key, TELEGRAM_AUTH_LIMIT):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please try again later.",
+            headers={"Retry-After": str(WINDOW_SECONDS)},
+        )
+
+
 # Type aliases for FastAPI Depends
 TelegramMiniAppRateLimit = Annotated[None, Depends(check_telegram_miniapp_rate_limit)]
 TelegramBotLinkRateLimit = Annotated[None, Depends(check_telegram_bot_link_rate_limit)]
 GenerateLinkRateLimit = Annotated[None, Depends(check_generate_link_rate_limit)]
+TelegramWebLoginRateLimit = Annotated[None, Depends(check_telegram_web_login_rate_limit)]

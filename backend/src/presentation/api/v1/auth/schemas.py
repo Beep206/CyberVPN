@@ -188,6 +188,29 @@ class TelegramBotLinkResponse(BaseModel):
     user: AdminUserResponse
 
 
+class TelegramWebLoginRequest(BaseModel):
+    """Request for Telegram Web Widget/OAuth authentication."""
+
+    id: int = Field(..., description="Telegram User ID")
+    first_name: str = Field(..., max_length=255)
+    last_name: str | None = Field(None, max_length=255)
+    username: str | None = Field(None, max_length=255)
+    photo_url: str | None = Field(None, max_length=1024)
+    auth_date: int = Field(..., description="Authentication timestamp")
+    hash: str = Field(..., min_length=1, max_length=255, description="HMAC-SHA256 signature")
+
+
+class TelegramWebLoginResponse(BaseModel):
+    """Response for Telegram Web Widget/OAuth authentication."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 0
+    user: AdminUserResponse
+    is_new_user: bool = False
+
+
 class GenerateLoginLinkRequest(BaseModel):
     """Request to generate a Telegram bot login link (admin/bot-only)."""
 

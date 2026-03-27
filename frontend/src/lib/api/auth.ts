@@ -275,6 +275,13 @@ export const authApi = {
     apiClient.post<AuthResponse>('/auth/oauth2/telegram/callback', data),
 
   /**
+   * Authenticate via modern Telegram Web Login (2026 approach)
+   * POST /api/v1/auth/telegram/web
+   */
+  telegramWebLogin: (data: TelegramWidgetData) =>
+    apiClient.post<AuthResponse>('/auth/telegram/web', data),
+
+  /**
    * Authenticate via Telegram Mini App initData
    * POST /api/v1/auth/telegram/miniapp
    */
