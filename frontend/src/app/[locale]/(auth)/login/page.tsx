@@ -76,7 +76,9 @@ export default function LoginPage() {
     }, [error, isRateLimited]);
 
     const handleOAuthLogin = (provider: string) => {
-        oauthLogin(provider as Parameters<typeof oauthLogin>[0]);
+        oauthLogin(provider as Parameters<typeof oauthLogin>[0]).catch(() => {
+            // Ignore intentional cancellations or let the store handle the error state
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

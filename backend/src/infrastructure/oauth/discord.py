@@ -20,18 +20,26 @@ class DiscordOAuthProvider:
 
     AUTHORIZE_URL = "https://discord.com/oauth2/authorize"
     TOKEN_URL = "https://discord.com/api/oauth2/token"
-    USER_API_URL = "https://discord.com/api/users/@me"
+    USER_API_URL = "https://discord.com/api/v10/users/@me"
 
     def __init__(self) -> None:
         self.client_id = settings.discord_client_id
         self.client_secret = settings.discord_client_secret.get_secret_value()
 
-    def authorize_url(self, redirect_uri: str, state: str | None = None) -> str:
+    def authorize_url(
+        self,
+        redirect_uri: str,
+        state: str | None = None,
+        code_challenge: str | None = None,
+        code_challenge_method: str | None = None,
+    ) -> str:
         """Generate Discord OAuth authorization URL.
 
         Args:
             redirect_uri: URL to redirect after authentication
             state: CSRF protection state parameter (required for security)
+            code_challenge: PKCE challenge (required for security)
+            code_challenge_method: PKCE challenge method (e.g. S256)
 
         Returns:
             Discord auth URL
@@ -39,14 +47,19 @@ class DiscordOAuthProvider:
         params = f"client_id={self.client_id}&redirect_uri={redirect_uri}&response_type=code&scope=identify%20email"
         if state:
             params += f"&state={state}"
+        if code_challenge and code_challenge_method:
+            params += f"&code_challenge={code_challenge}&code_challenge_method={code_challenge_method}"
         return f"{self.AUTHORIZE_URL}?{params}"
 
-    async def exchange_code(self, code: str, redirect_uri: str) -> dict | None:
+    async def exchange_code(
+        self, code: str, redirect_uri: str, code_verifier: str | None = None
+    ) -> dict | None:
         """Exchange authorization code for access token and retrieve user info.
 
         Args:
             code: Authorization code from Discord
             redirect_uri: Original redirect URI used in authorization
+            code_verifier: PKCE verifier (required for security matching challenge)
 
         Returns:
             Normalized user info dict if successful, None otherwise
@@ -58,15 +71,19 @@ class DiscordOAuthProvider:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Exchange code for access token
+                data = {
+                    "grant_type": "authorization_code",
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                }
+                if code_verifier:
+                    data["code_verifier"] = code_verifier
+
                 token_response = await client.post(
                     self.TOKEN_URL,
-                    data={
-                        "grant_type": "authorization_code",
-                        "client_id": self.client_id,
-                        "client_secret": self.client_secret,
-                        "code": code,
-                        "redirect_uri": redirect_uri,
-                    },
+                    data=data,
                     headers={
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
@@ -115,6 +132,14 @@ class DiscordOAuthProvider:
                     return None
 
                 user_data = user_response.json()
+
+                # CRIT: Verify email is verified in Discord to prevent Account Takeover
+                if not user_data.get("verified"):
+                    logger.warning(
+                        "Discord user has unverified email, login rejected.",
+                        extra={"user_id": user_data.get("id")},
+                    )
+                    return None
 
                 # Build avatar URL
                 avatar_url = None

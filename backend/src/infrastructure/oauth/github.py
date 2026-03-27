@@ -112,10 +112,30 @@ class GitHubOAuthProvider:
 
                 user_data = user_response.json()
 
+                email = user_data.get("email")
+                if not email:
+                    try:
+                        emails_response = await client.get(
+                            "https://api.github.com/user/emails",
+                            headers={
+                                "Authorization": f"Bearer {access_token}",
+                                "Accept": "application/json",
+                                "X-GitHub-Api-Version": "2022-11-28",
+                            },
+                        )
+
+                        if emails_response.status_code == 200:
+                            for ex_email in emails_response.json():
+                                if ex_email.get("primary") and ex_email.get("verified"):
+                                    email = ex_email.get("email")
+                                    break
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch GitHub emails: {e}")
+
                 return {
                     "id": str(user_data.get("id")),  # Convert to string for consistency
                     "username": user_data.get("login"),
-                    "email": user_data.get("email"),
+                    "email": email,
                     "name": user_data.get("name"),
                     "avatar_url": user_data.get("avatar_url"),
                     "access_token": access_token,

@@ -50,7 +50,7 @@ class TwitterOAuthProvider:
             Twitter auth URL
         """
         params = (
-            f"client_id={self.client_id}&redirect_uri={redirect_uri}&response_type=code&scope=users.read tweet.read"
+            f"client_id={self.client_id}&redirect_uri={redirect_uri}&response_type=code&scope=users.read"
         )
         if state:
             params += f"&state={state}"
