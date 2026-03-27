@@ -51,7 +51,7 @@ router = APIRouter(prefix="/oauth", tags=["oauth"])
 # Provider class map: provider_name -> (ProviderClass, requires_pkce)
 _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
     "google": (GoogleOAuthProvider, True),
-    "discord": (DiscordOAuthProvider, False),
+    "discord": (DiscordOAuthProvider, True),
     "apple": (AppleOAuthProvider, True),
     "microsoft": (MicrosoftOAuthProvider, True),
     "twitter": (TwitterOAuthProvider, True),

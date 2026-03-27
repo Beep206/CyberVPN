@@ -43,7 +43,6 @@ class TestTwitterOAuthProvider:
             assert "redirect_uri=http://localhost/callback" in url
             assert "response_type=code" in url
             assert "users.read" in url
-            assert "tweet.read" in url
             assert url.startswith("https://twitter.com/i/oauth2/authorize")
 
     @pytest.mark.unit

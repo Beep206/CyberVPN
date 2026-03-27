@@ -96,6 +96,7 @@ class TestDiscordOAuthProvider:
                 "global_name": "Test User Display",
                 "email": "test@discord.com",
                 "avatar": "abc123hash",
+                "verified": True,
             }
 
             mock_client = AsyncMock()
@@ -147,6 +148,7 @@ class TestDiscordOAuthProvider:
                 "username": "noavatar",
                 "email": "no@avatar.com",
                 "avatar": None,
+                "verified": True,
             }
 
             mock_client = AsyncMock()
@@ -189,6 +191,7 @@ class TestDiscordOAuthProvider:
                 "id": "77",
                 "username": "fallbackuser",
                 "email": "fb@discord.com",
+                "verified": True,
             }
 
             mock_client = AsyncMock()
@@ -205,6 +208,48 @@ class TestDiscordOAuthProvider:
 
             assert result is not None
             assert result["name"] == "fallbackuser"
+
+    @pytest.mark.unit
+    async def test_exchange_code_unverified_email_returns_none(self):
+        """User with unverified email returns None."""
+        with patch("src.infrastructure.oauth.discord.settings") as mock_settings:
+            mock_settings.discord_client_id = "discord_test_id"
+            mock_settings.discord_client_secret = MagicMock()
+            mock_settings.discord_client_secret.get_secret_value.return_value = "discord_secret"
+
+            from src.infrastructure.oauth.discord import DiscordOAuthProvider
+
+            provider = DiscordOAuthProvider()
+
+            mock_token_response = MagicMock()
+            mock_token_response.status_code = 200
+            mock_token_response.json.return_value = {
+                "access_token": "tok",
+                "token_type": "Bearer",
+            }
+
+            mock_user_response = MagicMock()
+            mock_user_response.status_code = 200
+            mock_user_response.json.return_value = {
+                "id": "99",
+                "username": "unverifieduser",
+                "email": "unverified@discord.com",
+                "verified": False,
+            }
+
+            mock_client = AsyncMock()
+            mock_client.post.return_value = mock_token_response
+            mock_client.get.return_value = mock_user_response
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("httpx.AsyncClient", return_value=mock_client):
+                result = await provider.exchange_code(
+                    code="code",
+                    redirect_uri="http://localhost/callback",
+                )
+
+            assert result is None
 
     # ------------------------------------------------------------------
     # exchange_code - failure paths

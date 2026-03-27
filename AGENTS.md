@@ -57,41 +57,28 @@ mcp-cli call plugin_context7_context7/query-docs '{"library": "react", "query": 
 - If compatibility issues arise, fix the code to work with current versions
 - Document version constraints in comments if needed
 
-## Windows Terminal & Antigravity Compatibility
+## WSL & Antigravity Compatibility
 
-When operating in this repository as an AI agent on a **Windows PowerShell** environment (especially within **Antigravity**), you MUST adhere to the following strict rules to prevent hangs and syntax errors:
+When operating in this repository as an AI agent on a **WSL Ubuntu** environment (especially within **Antigravity**), adhere to these rules:
 
 ### 1. Syntax for Chaining Commands
-Windows PowerShell 5.1 does **NOT** support the `&&` operator. 
-- **DO NOT USE**: `command1 && command2`
-- **USE INSTEAD**: `command1 ; command2` 
+You can safely use standard bash operators like `&&` and `||`.
 - **PRO-TIP**: To ensure stability, **DO NOT chain complex commands** (like `add`, `commit`, `sync`, `push`) in a single string. Execute each step as a **separate tool call**. This prevents signal/EOF confusion in Antigravity.
 
-### 2. Tool Availability
-Before running commands like `bd sync`, verify the tool exists. If `bd` is missing, the resulting error in a complex chain can hang the terminal.
-- **MANDATORY**: Run `cmd /c <command> --version` or `Get-Command <command>` to verify existence before use.
+### 2. Terminal Background Jobs
+Long-running dev servers can block the AI terminal if not handled properly.
+- **MANDATORY**: When launching servers, prefer `nohup` in the background to prevent the UI from hanging.
+  Example: `nohup npm run dev > /tmp/next.log 2>&1 &`
 
-### 3. Preventing EOF Hangs (Antigravity/Windows)
-If commands like `git status`, `npm install`, or `ls` appear to hang in the "Running..." state, it is likely the CLI failing to detect the End-of-File (EOF) signal.
-- **MANDATORY**: For shell commands that interact with the file system or external tools, prefer prefixing them with `cmd /c` to ensure immediate process termination and signal unlocking.
-  Example: `cmd /c git status` instead of just `git status`.
-
-### 3. Git Commits and Husky Hooks
-Husky hooks (e.g., `pre-commit`) often lack a proper interactive TTY session on Windows and will **hang infinitely**.
-- **PROHIBITED**: `git commit -m "message"` (will hang)
-- **MANDATORY**: You MUST append `--no-verify` to all `git commit` commands.
-  Example: `git commit --no-verify -m "chore: commit message"`
+### 3. Git Commits
+If interactive Husky hooks hang the process:
+- **MANDATORY**: Append `--no-verify` to `git commit` commands if problems occur.
 
 ### 4. Background Dev Servers
-Next.js telemetry prompts can hang the background process.
-- **MANDATORY**: Disable telemetry: `$env:NEXT_TELEMETRY_DISABLED=1; npm run dev`
+Next.js telemetry prompts can hang the process.
+- **MANDATORY**: Disable telemetry: `NEXT_TELEMETRY_DISABLED=1 npm run dev`
 
-### 5. Linting and Large Outputs
-Linting tools like ESLint often produce large amounts of output or complex terminal escape sequences (colors/formatting) that can hang the Antigravity output buffer.
-- **MANDATORY**: When running linting, use the `--quiet` flag (or equivalent) to only show errors and reduce terminal noise.
-  Example: `cmd /c npm run lint -- --quiet`
-
-### 6. IDE Settings (User Hint)
+### 5. IDE Settings (User Hint)
 If hangs persist, ensure that **Terminal > Integrated > Shell Integration** is **DISABLED** in your IDE (Antigravity/VS Code) settings to prevent escape sequence conflicts.
 
 ## Architecture

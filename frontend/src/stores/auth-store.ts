@@ -321,10 +321,13 @@ export const useAuthStore = create<AuthState>()(
           );
 
           return new Promise<void>((resolve, reject) => {
+            let checkClosed: NodeJS.Timeout;
+
             const messageListener = async (event: MessageEvent) => {
               if (event.origin !== window.location.origin) return;
               if (event.data?.type === 'TELEGRAM_AUTH_SUCCESS') {
                 window.removeEventListener('message', messageListener);
+                clearInterval(checkClosed);
                 if (tgPopup) tgPopup.close();
                 
                 try {
@@ -338,7 +341,7 @@ export const useAuthStore = create<AuthState>()(
             window.addEventListener('message', messageListener);
             
             // Periodically check if popup was closed by user
-            const checkClosed = setInterval(() => {
+            checkClosed = setInterval(() => {
               if (tgPopup?.closed) {
                 clearInterval(checkClosed);
                 window.removeEventListener('message', messageListener);
