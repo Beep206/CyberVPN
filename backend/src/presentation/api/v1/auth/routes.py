@@ -28,6 +28,8 @@ from src.application.use_cases.auth.resend_otp import ResendOtpUseCase
 from src.application.use_cases.auth.reset_password import ResetPasswordUseCase
 from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseCase
 from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
+from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseCase
+from src.application.services.telegram_auth import TelegramAuthService
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.monitoring.instrumentation.routes import track_auth_attempt, track_registration
@@ -79,6 +81,8 @@ from src.presentation.api.v1.auth.schemas import (
     TelegramBotLinkResponse,
     TelegramMiniAppRequest,
     TelegramMiniAppResponse,
+    TelegramWebLoginRequest,
+    TelegramWebLoginResponse,
     TokenResponse,
     VerifyOtpRequest,
     VerifyOtpResponse,
@@ -90,6 +94,7 @@ from src.presentation.dependencies.telegram_rate_limit import (
     GenerateLinkRateLimit,
     TelegramBotLinkRateLimit,
     TelegramMiniAppRateLimit,
+    TelegramWebLoginRateLimit,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -793,6 +798,61 @@ async def telegram_miniapp_auth(
     set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return TelegramMiniAppResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+        expires_in=result.expires_in,
+        user=AdminUserResponse.model_validate(result.user),
+        is_new_user=result.is_new_user,
+    )
+
+
+@router.post(
+    "/telegram/web",
+    response_model=TelegramWebLoginResponse,
+    responses={
+        401: {"description": "Invalid or expired payload"},
+    },
+)
+async def telegram_web_auth(
+    request: TelegramWebLoginRequest,
+    _rate_limit: TelegramWebLoginRateLimit,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
+) -> TelegramWebLoginResponse:
+    """Authenticate via Telegram Web Widget OAuth payload.
+
+    Validates HMAC-SHA256 signature, checks auth_date freshness,
+    auto-registers or auto-logs-in the Telegram user.
+    """
+    user_repo = AdminUserRepository(db)
+    telegram_service = TelegramAuthService()
+
+    use_case = TelegramWebAuthUseCase(
+        user_repo=user_repo,
+        auth_service=auth_service,
+        session=db,
+        telegram_service=telegram_service,
+        remnawave_gateway=remnawave_adapter,
+    )
+
+    try:
+        result = await use_case.execute(payload=request.model_dump())
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        )
+
+    track_auth_attempt(method="telegram_web", success=True)
+    if result.is_new_user:
+        track_registration(method="telegram_web")
+
+    set_auth_cookies(response, result.access_token, result.refresh_token)
+
+    return TelegramWebLoginResponse(
         access_token=result.access_token,
         refresh_token=result.refresh_token,
         token_type=result.token_type,

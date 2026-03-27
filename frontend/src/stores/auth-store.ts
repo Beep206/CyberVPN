@@ -34,7 +34,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isLoading: false,
       isAuthenticated: false,
@@ -216,7 +216,8 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.telegramStarted();
         set({ isLoading: true, error: null, isNewTelegramUser: false });
         try {
-          const { data } = await authApi.telegramWidget(widgetData);
+          // 2026 approach using secure web endpoint
+          const { data } = await authApi.telegramWebLogin(widgetData);
           const isNewUser = data.is_new_user ?? false;
           set({ user: data.user, isAuthenticated: true, isLoading: false, isNewTelegramUser: isNewUser });
           authAnalytics.telegramSuccess(data.user.id);
@@ -306,6 +307,48 @@ export const useAuthStore = create<AuthState>()(
       },
 
       oauthLogin: async (provider) => {
+        if (provider === 'telegram') {
+          // Custom popup handling for Telegram
+          const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'CyberVPN_Bot';
+          const localeMatch = window.location.pathname.match(/^\/([a-z]{2,3}-[A-Z]{2})/);
+          const localePrefix = localeMatch ? `/${localeMatch[1]}` : '';
+          const popupUrl = `${localePrefix}/telegram-widget?bot=${botUsername}`;
+          
+          const tgPopup = window.open(
+            popupUrl,
+            'TelegramLogin',
+            'width=550,height=470,menubar=no,toolbar=no,location=no'
+          );
+
+          return new Promise<void>((resolve, reject) => {
+            const messageListener = async (event: MessageEvent) => {
+              if (event.origin !== window.location.origin) return;
+              if (event.data?.type === 'TELEGRAM_AUTH_SUCCESS') {
+                window.removeEventListener('message', messageListener);
+                if (tgPopup) tgPopup.close();
+                
+                try {
+                  await get().telegramAuth(event.data.payload);
+                  resolve();
+                } catch (err) {
+                  reject(err);
+                }
+              }
+            };
+            window.addEventListener('message', messageListener);
+            
+            // Periodically check if popup was closed by user
+            const checkClosed = setInterval(() => {
+              if (tgPopup?.closed) {
+                clearInterval(checkClosed);
+                window.removeEventListener('message', messageListener);
+                set({ isLoading: false });
+                reject(new Error('Telegram login cancelled'));
+              }
+            }, 500);
+          });
+        }
+
         set({ isLoading: true, error: null });
         try {
           const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
