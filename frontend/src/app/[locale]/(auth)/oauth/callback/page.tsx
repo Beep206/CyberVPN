@@ -33,6 +33,9 @@ export default function OAuthCallbackPage() {
             return;
         }
 
+        // SEC-02: Clean URL immediately to prevent code/state exposure in browser history
+        window.history.replaceState({}, document.title, window.location.pathname);
+
         const handleCallback = async () => {
             try {
                 const result = await oauthCallback(provider, code, state);
