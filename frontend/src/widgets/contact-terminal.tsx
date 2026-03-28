@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { Terminal as TerminalIcon, ShieldAlert, CheckCircle2, ChevronRight, Send, RefreshCw } from 'lucide-react';
 import { ScrambleText } from '@/shared/ui/scramble-text';
+import { createDeterministicRandom } from '@/3d/lib/seeded-random';
 
 type FormStep = 'department' | 'email' | 'message' | 'encrypting' | 'success';
 
@@ -24,6 +25,17 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
     const [encryptionProgress, setEncryptionProgress] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const scrambleLines = useMemo(() => {
+        const random = createDeterministicRandom(157);
+
+        return Array.from({ length: 15 }, () => {
+            let line = '';
+            for (let i = 0; i < 220; i++) {
+                line += Math.floor(random() * 36).toString(36);
+            }
+            return line;
+        });
+    }, []);
 
     // Auto-focus input when step changes
     useEffect(() => {
@@ -193,8 +205,8 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
                             
                             {/* Raw Data Scramble simulation */}
                             <div className="text-xs text-muted-foreground-low break-all h-20 overflow-hidden opacity-30 select-none">
-                                {Array.from({ length: 15 }).map((_, i) => (
-                                    <div key={i}>{Math.random().toString(36).substring(2, 112) + Math.random().toString(36).substring(2, 112)}</div>
+                                {scrambleLines.map((line, i) => (
+                                    <div key={i}>{line}</div>
                                 ))}
                             </div>
 

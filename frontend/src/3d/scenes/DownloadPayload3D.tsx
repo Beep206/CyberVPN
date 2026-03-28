@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Environment, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -90,7 +90,7 @@ function AnimatedPayloadCore({ selectedOS }: PayloadProps) {
 }
 
 // Background environment grid
-function ScannerGrid({ selectedOS }: { selectedOS: OSPlatform }) {
+function ScannerGrid() {
     const gridRef = useRef<THREE.GridHelper>(null!);
 
     useFrame((state) => {
@@ -127,7 +127,7 @@ export function DownloadPayload3D({ selectedOS }: PayloadProps) {
             <directionalLight position={[10, 10, 5]} intensity={1} />
 
             <AnimatedPayloadCore selectedOS={selectedOS} />
-            <ScannerGrid selectedOS={selectedOS} />
+            <ScannerGrid />
             
             {/* Gentle camera sway, limited to prevent dizzying */}
             <OrbitControls 

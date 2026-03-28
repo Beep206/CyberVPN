@@ -20,14 +20,22 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
 
     // Simulated terminal output sequence
     useEffect(() => {
+        const timeoutIds: Array<ReturnType<typeof setTimeout>> = [];
+
         if (selectedOS === 'none') {
-            setLogs(['[SYS] AWAITING PLATFORM SELECTION...']);
-            setIsReady(false);
-            return;
+            const resetId = setTimeout(() => {
+                setLogs(['[SYS] AWAITING PLATFORM SELECTION...']);
+                setIsReady(false);
+            }, 0);
+
+            return () => clearTimeout(resetId);
         }
 
-        setIsReady(false);
-        setLogs([t('init')]);
+        const initId = setTimeout(() => {
+            setIsReady(false);
+            setLogs([t('init')]);
+        }, 0);
+        timeoutIds.push(initId);
 
         const sequence = [
             { text: `${t('verify')} ${selectedOS.toUpperCase()}`, delay: 800 },
@@ -36,8 +44,6 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
             { text: '[OK] SIGNATURE INTACT.', delay: 3500 },
             { text: t('ready'), delay: 4500 }
         ];
-
-        let timeoutIds: NodeJS.Timeout[] = [];
 
         sequence.forEach((step) => {
             const id = setTimeout(() => {

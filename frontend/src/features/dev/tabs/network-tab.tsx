@@ -42,7 +42,7 @@ export function NetworkTab({ isDark }: { isDark: boolean }) {
     const exportAsCurl = (log: NetworkLogEntry) => {
         let curl = `curl '${log.url}' \\\n  -X '${log.method}' \\\n`;
         
-        let headers = { ...log.reqHeaders };
+        const headers = { ...log.reqHeaders };
         // If it's a replay, we want to try to keep it close to original
         Object.entries(headers).forEach(([key, val]) => {
             if (val) curl += `  -H '${key}: ${val}' \\\n`;

@@ -5,7 +5,7 @@ import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { type SecurityLayerId } from '@/widgets/security/security-dashboard';
-import { Icosahedron } from '@react-three/drei';
+import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 // The Aegis Firewall Shield (Interactive Icosahedron turning into a sphere)
 function AegisShield({ activeLayer }: { activeLayer: SecurityLayerId }) {
@@ -56,7 +56,8 @@ function AegisShield({ activeLayer }: { activeLayer: SecurityLayerId }) {
     return (
         <group position={[0, -2, -10]}>
             {/* The Core Geometric Shield */}
-            <Icosahedron ref={shieldRef as any} args={[5, 4]}>
+            <mesh ref={shieldRef}>
+                <icosahedronGeometry args={[5, 4]} />
                 <meshStandardMaterial 
                     ref={materialRef}
                     color="#00ffff"
@@ -68,7 +69,7 @@ function AegisShield({ activeLayer }: { activeLayer: SecurityLayerId }) {
                     metalness={0.8}
                     wireframe={true}
                 />
-            </Icosahedron>
+            </mesh>
 
             {/* Inner Core Light */}
             <pointLight position={[0, 0, 0]} intensity={2} color="#ffffff" distance={10} />
@@ -82,12 +83,13 @@ function ThreatBombardment({ activeLayer }: { activeLayer: SecurityLayerId }) {
     
     // Initial particle positions far outside the shield
     const positions = useMemo(() => {
+        const random = createDeterministicRandom(particleCount * 83);
         const arr = new Float32Array(particleCount * 3);
         for (let i = 0; i < particleCount; i++) {
             // Random points on a large sphere surface
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            const radius = 15 + Math.random() * 10;
+            const theta = randomInRange(random, 0, Math.PI * 2);
+            const phi = Math.acos(randomInRange(random, -1, 1));
+            const radius = randomInRange(random, 15, 25);
 
             arr[i * 3] = radius * Math.sin(phi) * Math.cos(theta); // x
             arr[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta); // y
@@ -98,10 +100,10 @@ function ThreatBombardment({ activeLayer }: { activeLayer: SecurityLayerId }) {
 
     // Individual particle velocities aiming roughly toward center (0,0,-10)
     const velocities = useMemo(() => {
-        const arr = new Float32Array(particleCount * 3);
+        const random = createDeterministicRandom(particleCount * 89);
+        const arr = new Float32Array(particleCount);
         for (let i = 0; i < particleCount; i++) {
-            // Speed variance based on index
-            const speed = 2 + Math.random() * 5;
+            const speed = randomInRange(random, 2, 7);
             arr[i] = speed;
         }
         return arr;
@@ -161,9 +163,7 @@ function ThreatBombardment({ activeLayer }: { activeLayer: SecurityLayerId }) {
             <bufferGeometry>
                 <bufferAttribute
                     attach="attributes-position"
-                    count={particleCount}
-                    array={positions}
-                    itemSize={3}
+                    args={[positions, 3]}
                 />
             </bufferGeometry>
             <pointsMaterial

@@ -30,23 +30,31 @@ function HelpFaqContent() {
 
     // Reset the active question to the first one whenever category changes
     useEffect(() => {
-        setActiveIndex(0);
+        const timeoutId = window.setTimeout(() => {
+            setActiveIndex(0);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
     }, [activeCategory]);
 
-    const currentAnswer = t(`faq_${activeCategory}_${activeIndex + 1}_a` as any);
+    const currentAnswer = t(`faq_${activeCategory}_${activeIndex + 1}_a`);
 
     // Terminal Decoder typewriter effect logic
     useEffect(() => {
-        setIsDecrypting(true);
-        setTypedAnswer('');
+        const setupTimeout = window.setTimeout(() => {
+            setIsDecrypting(true);
+            setTypedAnswer('');
+        }, 0);
         
         // Initial "scramble/decrypting" phase
-        const decryptTimout = setTimeout(() => {
+        const decryptTimout = window.setTimeout(() => {
             setIsDecrypting(false);
             
             // Typewriter phase
             let i = 0;
-            const typeInterval = setInterval(() => {
+            const typeInterval = window.setInterval(() => {
                 if (i <= currentAnswer.length) {
                     setTypedAnswer(currentAnswer.slice(0, i));
                     i += 2; // Type 2 chars at a time for speed (WOW effect)
@@ -58,7 +66,10 @@ function HelpFaqContent() {
             return () => clearInterval(typeInterval);
         }, 800);
 
-        return () => clearTimeout(decryptTimout);
+        return () => {
+            window.clearTimeout(setupTimeout);
+            window.clearTimeout(decryptTimout);
+        };
     }, [activeIndex, currentAnswer]);
 
     return (
@@ -82,7 +93,7 @@ function HelpFaqContent() {
                     
                     {Array.from({ length: 3 }).map((_, idx) => {
                         const isActive = activeIndex === idx;
-                        const question = t(`faq_${activeCategory}_${idx + 1}_q` as any);
+                        const question = t(`faq_${activeCategory}_${idx + 1}_q`);
                         const Icon = ICONS[idx % ICONS.length];
 
                         return (
@@ -178,7 +189,7 @@ function HelpFaqContent() {
                                     ) : (
                                         <div className="relative">
                                             <h3 className="text-xl font-display font-bold text-neon-cyan mb-6 tracking-wide drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]">
-                                                &gt; {t(`faq_${activeCategory}_${activeIndex + 1}_q` as any)}
+                                                &gt; {t(`faq_${activeCategory}_${activeIndex + 1}_q`)}
                                             </h3>
                                             
                                             {/* decorative line */}

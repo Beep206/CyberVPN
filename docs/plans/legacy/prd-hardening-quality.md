@@ -404,7 +404,7 @@ No backup mechanism exists. The `remnawave-db-data` named volume is the single c
 3. Configure daily `pg_dump` with `--format=custom` for efficient compression
 4. Set retention: 7 daily + 4 weekly backups
 5. Add healthcheck that verifies latest backup is < 25 hours old
-6. Document restore procedure in `infra/README.md` or `plan/`
+6. Document restore procedure in `infra/README.md` or `docs/plans/legacy/`
 
 **Required Changes** (Option B -- cron on host):
 1. Create `infra/scripts/backup-postgres.sh` that runs `docker exec remnawave-db pg_dump ...`
@@ -513,7 +513,7 @@ The release workflow only handles mobile app releases (Android AAB + iOS IPA). N
 1. Create `.github/workflows/deploy-staging.yml` with `workflow_dispatch` trigger
 2. Define staging environment in GitHub Environments with required reviewers
 3. Staging workflow should: build backend Docker image, build frontend, deploy to staging server
-4. Document staging environment setup in `plan/staging-environment.md`
+4. Document staging environment setup in `docs/plans/legacy/staging-environment.md`
 5. This is a manual trigger workflow as a first step; automated staging on merge to `develop` is future work
 
 #### DX-01: Pre-commit Hooks

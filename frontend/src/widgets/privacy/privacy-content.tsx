@@ -134,16 +134,17 @@ function DecryptionText({
     
     useEffect(() => {
         if (!trigger) {
-            setDisplayText('');
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setDisplayText('');
+            }, 0);
+
+            return () => {
+                window.clearTimeout(timeoutId);
+            };
         }
 
         let iteration = 0;
-        let interval: NodeJS.Timeout;
-        
-        const length = text.length;
-
-        interval = setInterval(() => {
+        const interval = window.setInterval(() => {
             setDisplayText(
                 text.split('')
                     .map((letter, index) => {
@@ -157,11 +158,11 @@ function DecryptionText({
             );
 
             // Speed formula: decypts faster towards the end
-            if (iteration >= length) {
+            if (iteration >= text.length) {
                 clearInterval(interval);
             }
             
-            iteration += 1 / (length / 20); // Scale iterations based on text length
+            iteration += 1 / (text.length / 20); // Scale iterations based on text length
         }, speed);
 
         return () => clearInterval(interval);

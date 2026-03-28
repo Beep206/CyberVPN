@@ -101,14 +101,14 @@ export function HelpCategories() {
                                             {routingIndex === idx ? (
                                                 <span className="text-neon-cyan tracking-widest"><ScrambleText text="ROUTING..." /></span>
                                             ) : (
-                                                t(cat.titleKey as any)
+                                                t(cat.titleKey)
                                             )}
                                         </h3>
                                         <p className="text-sm text-muted-foreground font-mono flex-grow">
                                             {routingIndex === idx ? (
                                                 <span className="text-neon-cyan/70">Establishing secure connection to databank node...</span>
                                             ) : (
-                                                t(cat.descKey as any)
+                                                t(cat.descKey)
                                             )}
                                         </p>
                                     

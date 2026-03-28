@@ -4,7 +4,7 @@ Comprehensive end-to-end verification script for all CyberVPN backend API endpoi
 
 ## Overview
 
-The `e2e_verify_endpoints.py` script tests **38 backend endpoints** across all modules:
+The `scripts/testing/e2e_verify_endpoints.py` script tests **38 backend endpoints** across all modules:
 - **Auth** (12 endpoints): register, login, verify, 2FA flows
 - **VPN** (1 endpoint): usage stats
 - **Wallet** (3 endpoints): balance, transactions, withdraw
@@ -36,19 +36,19 @@ pip install requests
 ### Default (localhost:8000)
 
 ```bash
-python e2e_verify_endpoints.py
+python scripts/testing/e2e_verify_endpoints.py
 ```
 
 ### Custom backend URL
 
 ```bash
-python e2e_verify_endpoints.py --base-url http://api.example.com
+python scripts/testing/e2e_verify_endpoints.py --base-url http://api.example.com
 ```
 
 ### Run with Python directly
 
 ```bash
-./e2e_verify_endpoints.py
+./scripts/testing/e2e_verify_endpoints.py
 ```
 
 ## Output Example
@@ -111,7 +111,7 @@ The script exits with code 0 on success, 1 on failure, making it suitable for CI
 ```yaml
 # .github/workflows/e2e-test.yml
 - name: Run E2E verification
-  run: python e2e_verify_endpoints.py --base-url ${{ secrets.API_URL }}
+  run: python scripts/testing/e2e_verify_endpoints.py --base-url ${{ secrets.API_URL }}
 ```
 
 ## Authentication
@@ -146,7 +146,7 @@ pip install requests
 
 ## Extending the Script
 
-To add new endpoints, edit `e2e_verify_endpoints.py`:
+To add new endpoints, edit `scripts/testing/e2e_verify_endpoints.py`:
 
 ```python
 endpoints = [

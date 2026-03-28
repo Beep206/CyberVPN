@@ -128,7 +128,7 @@ export function Footer() {
                                                 hoveredLink === link.label ? "opacity-100 scale-125" : "opacity-0 scale-0"
                                             )} />
                                             <span className={cn("transition-transform duration-300", hoveredLink === link.label ? "translate-x-1" : "")}>
-                                                {t(`links.${link.label as any}`)}
+                                                {t(`links.${link.label}`)}
                                             </span>
                                         </Link>
                                     </MagneticButton>
@@ -157,7 +157,7 @@ export function Footer() {
                                                 hoveredLink === link.label ? "opacity-100 scale-125" : "opacity-0 scale-0"
                                             )} />
                                             <span className={cn("transition-transform duration-300", hoveredLink === link.label ? "translate-x-1" : "")}>
-                                                {t(`links.${link.label as any}`)}
+                                                {t(`links.${link.label}`)}
                                             </span>
                                         </Link>
                                     </MagneticButton>
@@ -200,7 +200,7 @@ export function Footer() {
                                         href={link.href}
                                         className="hover:text-neon-cyan transition-colors py-1 px-1"
                                     >
-                                        {t(`links.${link.label as any}`)}
+                                        {t(`links.${link.label}`)}
                                     </Link>
                                 </MagneticButton>
                             ))}
@@ -233,4 +233,3 @@ export function Footer() {
         </footer>
     );
 }
-

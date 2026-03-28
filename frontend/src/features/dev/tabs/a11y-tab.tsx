@@ -223,7 +223,7 @@ export function A11yTab({ isDark }: { isDark: boolean }) {
             svg.style.pointerEvents = 'none';
             svg.style.zIndex = '99998';
 
-            let points: string[] = [];
+            const points: string[] = [];
             
             focusable.forEach((el, i) => {
                 const rect = el.getBoundingClientRect();

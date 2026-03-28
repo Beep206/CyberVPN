@@ -6,6 +6,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useInView } from 'motion/react';
 import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { PerformanceMonitor, Line } from '@react-three/drei';
+import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 // Import Custom Shaders
 import '@/3d/shaders/FastTrackShader';
@@ -27,11 +28,14 @@ const INSTANCES_PER_PATH = 40;
 const TOTAL_INSTANCES = NUM_PATHS * INSTANCES_PER_PATH;
 const HUB_POS = new THREE.Vector3(0, 0, -5);
 
+type FastTrackShaderMaterial = THREE.ShaderMaterial & { time: number };
+
 function DataTrails() {
     const meshRef = useRef<THREE.InstancedMesh>(null!);
-    const materialRef = useRef<any>(null!);
+    const materialRef = useRef<FastTrackShaderMaterial>(null!);
 
     const { aP0, aP1, aP2, aP3, aParams, aColorMix, pathLines } = useMemo(() => {
+        const random = createDeterministicRandom(TOTAL_INSTANCES * 31);
         const p0Array = new Float32Array(TOTAL_INSTANCES * 3);
         const p1Array = new Float32Array(TOTAL_INSTANCES * 3);
         const p2Array = new Float32Array(TOTAL_INSTANCES * 3);
@@ -44,7 +48,7 @@ function DataTrails() {
         for (let p = 0; p < NUM_PATHS; p++) {
             // Generate Path Control Points
             const angle = (p / NUM_PATHS) * Math.PI * 2;
-            const radius = 6 + Math.random() * 4;
+            const radius = randomInRange(random, 6, 10);
             // Start from far away, wide spread
             const p0 = new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 10);
             
@@ -71,17 +75,17 @@ function DataTrails() {
                 p3Array.set([p3.x, p3.y, p3.z], i3);
 
                 // Speed, Offset, Scale Radius, Scale Length
-                const speed = 0.2 + Math.random() * 0.3;
-                const offset = Math.random();
-                const scaleRadius = 0.3 + Math.random() * 0.7; // Thick/thin trails
-                const scaleLength = 4.0 + Math.random() * 6.0;
+                const speed = randomInRange(random, 0.2, 0.5);
+                const offset = random();
+                const scaleRadius = randomInRange(random, 0.3, 1.0);
+                const scaleLength = randomInRange(random, 4.0, 10.0);
 
                 paramsArray.set([speed, offset, scaleRadius, scaleLength], i4);
 
                 // Mix values for coloring
                 // r = secondary vs primary mix
                 // g = white mix
-                colorMixArray.set([Math.random(), Math.random() > 0.8 ? 0.5 : 0.0, 0], i3);
+                colorMixArray.set([random(), random() > 0.8 ? 0.5 : 0.0, 0], i3);
             }
         }
 
@@ -117,7 +121,7 @@ function DataTrails() {
                     <instancedBufferAttribute attach="attributes-aParams" args={[aParams, 4]} />
                     <instancedBufferAttribute attach="attributes-aColorMix" args={[aColorMix, 3]} />
                 </cylinderGeometry>
-                {/* @ts-ignore - custom shader material */}
+                {/* @ts-expect-error - custom shader material */}
                 <fastTrackShader 
                     ref={materialRef} 
                     transparent 
@@ -132,7 +136,7 @@ function DataTrails() {
 
 // Convergence Hub
 function Hub() {
-    const materialRef = useRef<any>(null!);
+    const materialRef = useRef<FastTrackShaderMaterial>(null!);
     
     useFrame((state) => {
         if (materialRef.current) {
@@ -144,7 +148,7 @@ function Hub() {
         <group position={[0, 0, -5]}>
             <mesh>
                 <sphereGeometry args={[0.5, 32, 32]} />
-                {/* @ts-ignore */}
+                {/* @ts-expect-error - custom shader material */}
                 <hubShader ref={materialRef} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
             </mesh>
             <pointLight distance={10} intensity={2} color="#00ff41" />

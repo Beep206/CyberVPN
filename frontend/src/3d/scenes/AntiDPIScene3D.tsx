@@ -3,30 +3,38 @@
 import React, { useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, PerformanceMonitor } from '@react-three/drei';
+import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
 import { EffectComposer, Bloom, Noise } from '@react-three/postprocessing';
 import '@/3d/shaders/AntiDPIShader';
+import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 
 const SCANNER_POS = 0.0;
-const BOUND_MIN_X = -5.0; 
+const BOUND_MIN_X = -5.0;
 const BOUND_MAX_X = 5.0;
+
+type AntiDPIShaderMaterial = THREE.ShaderMaterial & {
+    uniforms: {
+        time: { value: number };
+    };
+};
 
 function InstancedPackets({ count = 800 }: { count?: number }) {
     const mesh = useRef<THREE.InstancedMesh>(null!);
-    const materialRef = useRef<THREE.ShaderMaterial>(null!);
+    const materialRef = useRef<AntiDPIShaderMaterial>(null!);
 
     const [offsets, speeds] = useMemo(() => {
+        const random = createDeterministicRandom(count * 17 + 13);
         const off = new Float32Array(count * 3);
         const spd = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            off[i * 3 + 0] = BOUND_MIN_X + Math.random() * (BOUND_MAX_X - BOUND_MIN_X);
-            off[i * 3 + 1] = (Math.random() - 0.5) * 2.2;
-            off[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
-            
-            spd[i * 3 + 0] = 0.8 + Math.random() * 1.5; 
-            spd[i * 3 + 1] = 0.4 + Math.random() * 0.4; // Small scale for elegance
-            spd[i * 3 + 2] = Math.random() * Math.PI * 2; 
+            off[i * 3 + 0] = randomInRange(random, BOUND_MIN_X, BOUND_MAX_X);
+            off[i * 3 + 1] = randomSigned(random, 1.1);
+            off[i * 3 + 2] = randomSigned(random, 0.75);
+
+            spd[i * 3 + 0] = randomInRange(random, 0.8, 2.3);
+            spd[i * 3 + 1] = randomInRange(random, 0.4, 0.8);
+            spd[i * 3 + 2] = randomInRange(random, 0, Math.PI * 2);
         }
         return [off, spd];
     }, [count]);
@@ -40,7 +48,7 @@ function InstancedPackets({ count = 800 }: { count?: number }) {
     return (
         <instancedMesh 
             ref={mesh} 
-            args={[null as any, null as any, count]} 
+            args={[undefined, undefined, count]} 
             renderOrder={5} 
             frustumCulled={false}
         >

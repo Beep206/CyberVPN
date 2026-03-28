@@ -9,6 +9,7 @@ import { TierLevel } from '@/widgets/pricing/pricing-dashboard';
 import { Vector2 } from 'three';
 import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
+import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 
 // --- CONFIGURATION ---
 const TIER_COLORS = {
@@ -93,14 +94,15 @@ function DataStreams({ hoveredTier }: { hoveredTier: TierLevel }) {
     // Significantly reduced point count but better aesthetics via scaling
     const count = 150;
     const particles = useMemo(() => {
+        const random = createDeterministicRandom(count * 71);
         return new Array(count).fill(0).map(() => ({
-            x: (Math.random() - 0.5) * 15,
-            y: (Math.random() - 0.5) * 20 - 10,
-            z: (Math.random() - 0.5) * 15,
-            speed: Math.random() * 0.5 + 0.1,
-            scaleY: Math.random() * 2 + 0.5
+            x: randomSigned(random, 7.5),
+            y: randomSigned(random, 10) - 10,
+            z: randomSigned(random, 7.5),
+            speed: randomInRange(random, 0.1, 0.6),
+            scaleY: randomInRange(random, 0.5, 2.5)
         }));
-    }, []);
+    }, [count]);
 
     useFrame((state, delta) => {
         if (!meshRef.current || !materialRef.current) return;

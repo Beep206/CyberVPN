@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { Monitor, Apple, TerminalSquare, Smartphone, Laptop } from 'lucide-react';
+import { Monitor, Apple, TerminalSquare, Smartphone, Laptop, type LucideIcon } from 'lucide-react';
 import { OSPlatform } from './download-dashboard';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ interface OSSelectorProps {
     onSelect: (os: OSPlatform) => void;
 }
 
-const platforms: { id: OSPlatform; icon: any; color: string; labelKey: string }[] = [
+const platforms: { id: OSPlatform; icon: LucideIcon; color: string; labelKey: string }[] = [
     { id: 'windows', icon: Monitor, color: '#00ffff', labelKey: 'windows' }, // Cyber-cyan
     { id: 'macos', icon: Apple, color: '#ffffff', labelKey: 'macos' }, // White/Silver
     { id: 'linux', icon: TerminalSquare, color: '#ffb800', labelKey: 'linux' }, // Warning orange/yellow

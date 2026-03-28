@@ -2,11 +2,11 @@
 
 import * as THREE from 'three';
 import React, { useRef, useMemo, useState, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Text, PerformanceMonitor, Line, Float, CameraControls } from '@react-three/drei';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { ActiveEndpoint, EndpointCategory } from '@/widgets/api/api-dashboard';
-import { useInView } from 'motion/react';
+import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 type NodeCategory = 'client' | 'gateway' | 'auth' | 'servers' | 'db';
 type NodeId = 'client' | 'apiGate' | 'auth' | 'generateToken' | 'servers' | 'listServers' | 'connect' | 'dbAuth' | 'dbServers';
@@ -68,17 +68,18 @@ function DataFlow({ edges, activeEndpoint }: { edges: ApiEdge[], activeEndpoint:
     const packetCount = 200;
     
     const packets = useMemo(() => {
+        const random = createDeterministicRandom(edges.length * 97 + packetCount);
         return new Array(packetCount).fill(0).map(() => {
-            const edge = edges[Math.floor(Math.random() * edges.length)];
+            const edge = edges[Math.floor(random() * edges.length)];
             const source = API_NODES.find(n => n.id === edge.source)!;
             const target = API_NODES.find(n => n.id === edge.target)!;
             
             return {
                 start: new THREE.Vector3(...source.pos),
                 end: new THREE.Vector3(...target.pos),
-                progress: Math.random(),
-                speed: 0.3 + Math.random() * 0.5,
-                offset: Math.random() * Math.PI * 2
+                progress: random(),
+                speed: randomInRange(random, 0.3, 0.8),
+                offset: randomInRange(random, 0, Math.PI * 2)
             };
         });
     }, [edges]);
@@ -206,7 +207,7 @@ function GraphEdges({ edges, activePath, activeEndpoint }: { edges: ApiEdge[], a
 
     return (
         <group>
-            {edges.map((edge, i) => {
+            {edges.map((edge) => {
                 const sourceNode = API_NODES.find(n => n.id === edge.source)!;
                 const targetNode = API_NODES.find(n => n.id === edge.target)!;
                 
@@ -219,7 +220,7 @@ function GraphEdges({ edges, activePath, activeEndpoint }: { edges: ApiEdge[], a
 
                 return (
                     <Line 
-                        key={i}
+                        key={`${edge.source}-${edge.target}`}
                         points={points}
                         color={isActive ? activeColor : "#333344"}
                         transparent
@@ -235,7 +236,7 @@ function GraphEdges({ edges, activePath, activeEndpoint }: { edges: ApiEdge[], a
 // --- Inner Scene Component ---
 function SceneContent({ activePath, activeEndpoint }: { activePath: NodeId[], activeEndpoint: ActiveEndpoint }) {
     const activeColor = getCategoryColor(activeEndpoint.category);
-    const controlsRef = useRef<any>(null);
+    const controlsRef = useRef<React.ElementRef<typeof CameraControls>>(null);
 
     useEffect(() => {
         if (!controlsRef.current) return;
