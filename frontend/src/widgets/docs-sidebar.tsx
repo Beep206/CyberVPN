@@ -41,7 +41,7 @@ export function DocsSidebar({ activeSection, onSectionChange }: DocsSidebarProps
                 {sections.map((group, gIdx) => (
                     <div key={gIdx} className="space-y-3">
                         <h3 className="text-xs font-mono text-muted-foreground/50 tracking-wider uppercase pl-4 border-l border-terminal-border/30">
-                            {t(group.categoryKey as any)}
+                            {t(group.categoryKey)}
                         </h3>
                         <ul className="space-y-1">
                             {group.items.map((item) => {
@@ -87,7 +87,7 @@ export function DocsSidebar({ activeSection, onSectionChange }: DocsSidebarProps
                                             )}
 
                                             <Icon className={`w-4 h-4 ${isActive ? 'opacity-100' : 'opacity-40 group-hover:opacity-80'}`} />
-                                            <span className="truncate">{t(item.titleKey as any)}</span>
+                                            <span className="truncate">{t(item.titleKey)}</span>
                                         </Link>
                                     </li>
                                 );

@@ -3,10 +3,10 @@
 import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Canvas } from '@react-three/fiber';
-import { Float, Stars, Environment, PositionalAudio } from '@react-three/drei';
+import { Float, Stars, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
-import { useTranslations } from 'next-intl';
+import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 // Configuration
 const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
@@ -139,15 +139,16 @@ function DataStreamInstanced({ count = 100, status }: { count?: number, status: 
     
     // Store attributes per instance: position, velocity, angle
     const particles = useMemo(() => {
+        const random = createDeterministicRandom(count * 101);
         return new Array(count).fill(0).map(() => {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 2 + Math.random() * 20;
-            const speed = 5 + Math.random() * 10;
+            const angle = randomInRange(random, 0, Math.PI * 2);
+            const radius = randomInRange(random, 2, 22);
+            const speed = randomInRange(random, 5, 15);
             return {
                 angle,
                 radius,
                 speed,
-                y: -1.9 + Math.random() * 0.5 // Just above grid
+                y: randomInRange(random, -1.9, -1.4)
             };
         });
     }, [count]);
@@ -211,7 +212,7 @@ function CameraRig({ children }: { children: React.ReactNode }) {
 
 export function NetworkCore3D() {
     // Determine global status based on app state (mocked as nominal for now, can be updated via props)
-    const [globalStatus, setGlobalStatus] = useState<'nominal' | 'warning' | 'outage'>('nominal');
+    const [globalStatus] = useState<'nominal' | 'warning' | 'outage'>('nominal');
 
     return (
         <Canvas

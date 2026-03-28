@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Server, Network, ShieldClose, ShieldCheck, Terminal, ChevronRight } from 'lucide-react';
+import { Server, Network, ShieldClose, ShieldCheck, Terminal, ChevronRight, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SecurityLayerId } from './security-dashboard';
 
@@ -11,7 +11,7 @@ interface Props {
     setActiveLayer: (id: SecurityLayerId) => void;
 }
 
-const LAYERS: { id: SecurityLayerId; icon: any }[] = [
+const LAYERS: { id: SecurityLayerId; icon: LucideIcon }[] = [
     { id: 'bareMetal', icon: Server },
     { id: 'network', icon: Network },
     { id: 'crypto', icon: ShieldClose },

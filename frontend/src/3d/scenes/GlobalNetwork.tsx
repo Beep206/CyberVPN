@@ -7,13 +7,13 @@ import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
     Line,
-    Sphere,
     OrbitControls,
     Environment,
     PerformanceMonitor
 } from '@react-three/drei';
 import { useInView } from 'motion/react';
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
 import '@/3d/shaders/AtmosphereShader'; // Keeping atmosphere for outer glow only
@@ -59,6 +59,7 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
     
     // Generate initial state once
     const { instanceMatrix, phases, speeds } = useMemo(() => {
+        const random = createDeterministicRandom(count * 59);
         const matrix = new THREE.InstancedBufferAttribute(new Float32Array(count * 16), 16);
         const p = new Float32Array(count);
         const s = new Float32Array(count);
@@ -66,16 +67,16 @@ function FloatingParticles({ count = 2000 }: { count?: number }) {
         
         for (let i = 0; i < count; i++) {
             // Give them random starting positions (similar to worker, simplified here for speed)
-            const radius = 2 + Math.random() * 4;
-            const theta = Math.random() * Math.PI * 2;
-            const y = (Math.random() - 0.5) * 4;
+            const radius = randomInRange(random, 2, 6);
+            const theta = randomInRange(random, 0, Math.PI * 2);
+            const y = randomSigned(random, 2);
             
             dummy.position.set(radius * Math.cos(theta), y, radius * Math.sin(theta));
             dummy.updateMatrix();
             dummy.matrix.toArray(matrix.array, i * 16);
             
-            p[i] = Math.random() * Math.PI * 2;
-            s[i] = 0.005 + Math.random() * 0.05; // speed base
+            p[i] = randomInRange(random, 0, Math.PI * 2);
+            s[i] = randomInRange(random, 0.005, 0.055);
         }
         return { instanceMatrix: matrix, phases: p, speeds: s };
     }, [count]);

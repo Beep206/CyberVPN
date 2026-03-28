@@ -44,8 +44,8 @@ VPNBussiness/
 │   ├── telegram-bot/      # aiogram 3 — Telegram-бот
 │   └── task-worker/       # TaskIQ — фоновые задачи
 ├── infra/                 # Docker Compose — инфраструктура
-├── docs/                  # Проектная документация
-└── plan/                  # Руководства по деплою
+├── docs/                  # Проектная документация, планы и тестовые гайды
+└── scripts/               # Вспомогательные локальные скрипты
 ```
 
 ---

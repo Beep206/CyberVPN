@@ -43,7 +43,7 @@ export function ChangelogAccordion({ selectedOS }: ChangelogAccordionProps) {
         >
             <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
                 <FileCode2 className="w-4 h-4 text-neon-purple" />
-                <h3 className="font-mono text-xs text-white uppercase tracking-widest">{t('title')} // {selectedOS}</h3>
+                <h3 className="font-mono text-xs text-white uppercase tracking-widest">{t('title')} / {selectedOS}</h3>
             </div>
             
             <div className="divide-y divide-white/5">

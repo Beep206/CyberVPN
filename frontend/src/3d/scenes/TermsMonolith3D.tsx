@@ -4,7 +4,21 @@ import * as THREE from 'three';
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
-import { Environment, Float, Preload } from '@react-three/drei';
+import { Float, Preload } from '@react-three/drei';
+import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
+
+function createExplosionVelocities(particleCount: number): Float32Array {
+    const random = createDeterministicRandom(particleCount * 131);
+    const velocities = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+        velocities[i * 3] = randomSigned(random, 15);
+        velocities[i * 3 + 1] = randomSigned(random, 15);
+        velocities[i * 3 + 2] = randomInRange(random, 0, 20);
+    }
+
+    return velocities;
+}
 
 function MonolithStructure({ isAccepted }: { isAccepted: boolean }) {
     const groupRef = useRef<THREE.Group>(null!);
@@ -92,25 +106,18 @@ function DataRings({ isAccepted }: { isAccepted: boolean }) {
 function AcceptanceExplosion({ isAccepted }: { isAccepted: boolean }) {
     const particleCount = 2000;
     const positions = useMemo(() => {
+        const random = createDeterministicRandom(particleCount * 127);
         const arr = new Float32Array(particleCount * 3);
         for (let i = 0; i < particleCount; i++) {
             // Start bunched up
-            arr[i * 3] = (Math.random() - 0.5) * 2;
-            arr[i * 3 + 1] = (Math.random() - 0.5) * 2 + 5;
-            arr[i * 3 + 2] = (Math.random() - 0.5) * 2 - 10;
+            arr[i * 3] = randomSigned(random, 1);
+            arr[i * 3 + 1] = randomSigned(random, 1) + 5;
+            arr[i * 3 + 2] = randomSigned(random, 1) - 10;
         }
         return arr;
-    }, []);
+    }, [particleCount]);
 
-    const velocities = useMemo(() => {
-        const arr = new Float32Array(particleCount * 3);
-        for (let i = 0; i < particleCount; i++) {
-            arr[i * 3] = (Math.random() - 0.5) * 30; // x
-            arr[i * 3 + 1] = (Math.random() - 0.5) * 30; // y
-            arr[i * 3 + 2] = Math.random() * 20; // z (throw towards camera)
-        }
-        return arr;
-    }, []);
+    const velocitiesRef = useRef<Float32Array>(createExplosionVelocities(particleCount));
 
     const pointsRef = useRef<THREE.Points>(null!);
 
@@ -118,6 +125,7 @@ function AcceptanceExplosion({ isAccepted }: { isAccepted: boolean }) {
         if (!isAccepted || !pointsRef.current) return;
 
         const positionsArray = pointsRef.current.geometry.attributes.position.array as Float32Array;
+        const velocities = velocitiesRef.current;
         
         // Explode outward
         for (let i = 0; i < particleCount; i++) {
@@ -139,9 +147,7 @@ function AcceptanceExplosion({ isAccepted }: { isAccepted: boolean }) {
             <bufferGeometry>
                 <bufferAttribute
                     attach="attributes-position"
-                    count={particleCount}
-                    array={positions}
-                    itemSize={3}
+                    args={[positions, 3]}
                 />
             </bufferGeometry>
             <pointsMaterial
@@ -204,7 +210,7 @@ export default function TermsMonolith3D({
             
             <CameraController scrollDepth={scrollDepth} />
 
-            <EffectComposer disableNormalPass multisampling={0}>
+            <EffectComposer enableNormalPass={false} multisampling={0}>
                 <Bloom 
                     luminanceThreshold={isAccepted ? 0.3 : 0.5} 
                     mipmapBlur 

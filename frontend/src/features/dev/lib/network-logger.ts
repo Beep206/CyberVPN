@@ -127,7 +127,7 @@ class NetworkLogger {
                         await new Promise(r => setTimeout(r, delay));
                     }
 
-                    let mockResBody = activeMock.responsePattern;
+                    const mockResBody = activeMock.responsePattern;
                     // The original code had `activeMock.responseBody` which was a string.
                     // Now `responsePattern` is `Record<string, any>`, so it's already parsed JSON.
                     // No need for `try { mockResBody = JSON.parse(activeMock.responseBody) } catch { /* text */ }`

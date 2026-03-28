@@ -4,7 +4,6 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial, Float, Stars, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { useTranslations } from 'next-intl';
 
 interface ContactGlobe3DProps {
   isTyping: boolean;
@@ -13,10 +12,14 @@ interface ContactGlobe3DProps {
   isHoveringSubmit: boolean;
 }
 
+type DistortMaterialHandle = React.ElementRef<typeof MeshDistortMaterial> & {
+  speed: number;
+};
+
 export function ContactGlobe3D({ isTyping, isEncrypting, isSuccess, isHoveringSubmit }: ContactGlobe3DProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<any>(null);
-  const wireframeGlobeMatRef = useRef<any>(null);
+  const materialRef = useRef<DistortMaterialHandle>(null);
+  const wireframeGlobeMatRef = useRef<DistortMaterialHandle>(null);
   const groupRef = useRef<THREE.Group>(null);
   const wireframeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   

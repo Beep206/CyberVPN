@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActiveEndpoint } from './api-dashboard';
@@ -37,15 +37,14 @@ interface CodeTerminalProps {
 export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
     const t = useTranslations('Api');
     const [copiedContent, setCopiedContent] = useState<'request' | 'response' | null>(null);
-    const [typingCompleted, setTypingCompleted] = useState({ request: false, response: false });
+    const [typingCompleted, setTypingCompleted] = useState<{ requestEndpointId: string | null }>({
+        requestEndpointId: null,
+    });
 
     const reqData = t.raw(`endpoints.${activeEndpoint.category}.items.${activeEndpoint.id}.request`);
     const resData = t.raw(`endpoints.${activeEndpoint.category}.items.${activeEndpoint.id}.response`);
 
-    // Reset typing state when endpoint changes
-    useEffect(() => {
-        setTypingCompleted({ request: false, response: false });
-    }, [activeEndpoint]);
+    const requestCompleted = typingCompleted.requestEndpointId === activeEndpoint.id;
 
     const handleCopy = (content: string, type: 'request' | 'response') => {
         navigator.clipboard.writeText(content);
@@ -98,7 +97,7 @@ export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
                                     <TypewriterText 
                                         text={reqData} 
                                         speed={5} 
-                                        onComplete={() => setTypingCompleted(prev => ({ ...prev, request: true }))} 
+                                        onComplete={() => setTypingCompleted({ requestEndpointId: activeEndpoint.id })} 
                                     />
                                 </span>
                             </div>
@@ -106,7 +105,7 @@ export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
 
                         {/* Visual separator (fake loading line between req and res) */}
                         <div className="my-6 w-full h-[1px] bg-grid-line/20 relative">
-                            {typingCompleted.request && (
+                            {requestCompleted && (
                                 <motion.div 
                                     className="absolute left-0 top-0 h-full w-1/4 bg-neon-cyan"
                                     initial={{ x: "-100%" }}
@@ -121,13 +120,13 @@ export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
                             <div className="flex items-center justify-between">
                                 <span className={cn(
                                     "font-mono text-xs font-bold uppercase tracking-widest transition-colors duration-500",
-                                    typingCompleted.request ? "text-neon-purple" : "text-muted-foreground"
+                                    requestCompleted ? "text-neon-purple" : "text-muted-foreground"
                                 )}>
                                     {t('labels.response')}
                                 </span>
                                 <button 
                                     onClick={() => handleCopy(resData, 'response')}
-                                    disabled={!typingCompleted.request}
+                                    disabled={!requestCompleted}
                                     className="p-1.5 rounded bg-terminal-bg hover:bg-neon-purple/20 border border-grid-line/50 hover:border-neon-purple/50 text-muted-foreground hover:text-neon-purple transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     aria-label="Copy response JSON"
                                 >
@@ -137,7 +136,7 @@ export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
                             
                             <div className="p-4 rounded-md bg-[#020205] border border-grid-line/30 font-mono text-sm leading-relaxed overflow-x-auto whitespace-pre relative group-hover:border-neon-purple/30 transition-colors">
                                 {/* Only start typing the response after the request is done typing */}
-                                {typingCompleted.request ? (
+                                {requestCompleted ? (
                                     <span className="text-gray-400">
                                         <TypewriterText text={resData} speed={2} />
                                     </span>

@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { FeatureId } from '@/widgets/features/features-dashboard';
 import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
+import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 const COLORS: Record<FeatureId, string> = {
     quantum: '#00ffff',     // Cyan
@@ -27,19 +28,20 @@ function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
     
     // Generate initial ring / spherical positions
     const particles = useMemo(() => {
+        const random = createDeterministicRandom(count * 43);
         return new Array(count).fill(0).map((_, i) => {
             // Distribute on a sphere/cylinder hybrid
             const phi = Math.acos(-1 + (2 * i) / count);
             const theta = Math.sqrt(count * Math.PI) * phi;
             
-            const r = 2.5 + Math.random() * 0.5;
+            const r = randomInRange(random, 2.5, 3.0);
             
             return {
                 baseX: r * Math.cos(theta) * Math.sin(phi),
                 baseY: r * Math.sin(theta) * Math.sin(phi),
                 baseZ: r * Math.cos(phi),
-                speed: Math.random() * 2 + 0.5,
-                phase: Math.random() * Math.PI * 2
+                speed: randomInRange(random, 0.5, 2.5),
+                phase: randomInRange(random, 0, Math.PI * 2)
             };
         });
     }, [count]);
@@ -176,17 +178,6 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
     const isInView = useInView(containerRef, { margin: "200px" });
     const [dpr, setDpr] = useState(1);
     
-    // Trigger a light glitch effect on feature change
-    const [glitchActive, setGlitchActive] = useState(false);
-    
-    // Watch for feature changes to trigger glitch
-    const prevFeature = useRef(activeFeature);
-    if (prevFeature.current !== activeFeature) {
-        setGlitchActive(true);
-        setTimeout(() => setGlitchActive(false), 300); // 300ms glitch duration
-        prevFeature.current = activeFeature;
-    }
-
     return (
         <div ref={containerRef} className="absolute inset-0 w-full h-full">
             <Canvas 
@@ -212,7 +203,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
                         intensity={activeFeature === 'killswitch' ? 2.5 : 1.2} 
                     />
                     <Glitch 
-                        active={glitchActive} 
+                        active={activeFeature === 'obfuscation' || activeFeature === 'killswitch'} 
                         delay={new THREE.Vector2(0, 0)} 
                         duration={new THREE.Vector2(0.1, 0.3)} 
                         ratio={0.5}

@@ -310,7 +310,7 @@ Security audits, vulnerability reviews, threat modeling. OWASP Top 10 compliance
 | **Tools** | Read, Write, Edit, Glob, Grep, Task, WebSearch |
 | **Skills** | requirements-analysis, product-strategist, business-analyst, product-analytics, analytics-tracking |
 | **Can Delegate** | Yes (via Task Master) |
-| **Scope** | `.taskmaster/`, `docs/`, `plan/` |
+| **Scope** | `docs/` |
 
 PRDs, roadmap, task prioritization via Task Master. Tracks DAU, MAU, churn, conversion, NPS.
 
@@ -432,7 +432,7 @@ Owns TaskIQ worker. Jobs: subscription expiration, notifications, analytics aggr
 | **Tools** | Read, Write, Edit, Glob, Grep, WebSearch, WebFetch |
 | **Skills** | pricing-strategy, startup-metrics-framework, startup-business-models, indie-monetization-strategist, gtm-pricing, payment-gateway-integration, referral-program, xlsx, stripe-integration, cloud-cost-management |
 | **Can Delegate** | No |
-| **Scope** | `docs/`, `plan/` |
+| **Scope** | `docs/` |
 
 Pricing tiers, unit economics (CAC, LTV, payback), payment flow optimization (CryptoBot vs RevenueCat vs direct), regional pricing for 27+ markets, financial projections.
 

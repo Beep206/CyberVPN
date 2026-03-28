@@ -1,6 +1,6 @@
 # Infrastructure
 
-Local Docker Compose stack that mirrors the launch plan in `plan/vpn-business-deployment-guide.md`.
+Local Docker Compose stack that mirrors the launch plan in `docs/plans/legacy/vpn-business-deployment-guide.md`.
 
 ## Quick start
 1. Review and edit `infra/.env` (generated for local use) or copy `infra/.env.example`.
