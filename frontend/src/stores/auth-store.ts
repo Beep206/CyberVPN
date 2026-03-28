@@ -22,6 +22,7 @@ interface AuthState {
   fetchUser: () => Promise<void>;
   telegramAuth: (data: TelegramWidgetData) => Promise<void>;
   telegramMiniAppAuth: () => Promise<void>;
+  telegramMagicLinkAuth: () => Promise<void>;
   loginWithBotLink: (token: string) => Promise<void>;
   oauthLogin: (provider: OAuthProvider) => Promise<void>;
   oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
@@ -279,6 +280,71 @@ export const useAuthStore = create<AuthState>()(
         throw lastError;
       },
 
+      telegramMagicLinkAuth: async () => {
+        authAnalytics.telegramStarted();
+        set({ isLoading: true, error: null });
+        try {
+          const { data } = await authApi.requestTelegramMagicLink();
+          
+          // Open Telegram
+          window.location.href = data.bot_url;
+          
+          // Start polling
+          return new Promise<void>((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 150; // 5 minutes (2s * 150)
+            
+            const poll = setInterval(async () => {
+              attempts++;
+              try {
+                const { data: statusData } = await authApi.pollTelegramMagicLinkStatus(data.token);
+                
+                if (statusData.status === 'completed' && statusData.login_result) {
+                  clearInterval(poll);
+                  const result = statusData.login_result;
+                  
+                  // SEC-01: Backend sets httpOnly cookies. Just set React state.
+                  set({
+                    user: {
+                      id: result.user.id,
+                      email: result.user.email || '',
+                      login: result.user.login,
+                      is_active: result.user.is_active,
+                      is_email_verified: result.user.is_email_verified,
+                      role: 'viewer', // default or use actual
+                      created_at: result.user.created_at,
+                    },
+                    isAuthenticated: true,
+                    isLoading: false,
+                    isNewTelegramUser: result.is_new_user,
+                  });
+                  authAnalytics.telegramSuccess(result.user.id);
+                  resolve();
+                } else if (statusData.status === 'expired' || attempts >= maxAttempts) {
+                  clearInterval(poll);
+                  set({ error: 'Magic link expired or timed out', isLoading: false });
+                  authAnalytics.telegramError('Timeout');
+                  reject(new Error('Timeout'));
+                }
+              } catch (error: unknown) {
+                // Continue polling on network errors until maxAttempts
+                if (attempts >= maxAttempts) {
+                  clearInterval(poll);
+                  set({ error: 'Failed to poll status', isLoading: false });
+                  reject(error);
+                }
+              }
+            }, 2000);
+          });
+        } catch (error: unknown) {
+          const axiosError = error as { response?: { data?: { detail?: string } } };
+          const message = axiosError.response?.data?.detail || 'Failed to start Magic Link auth';
+          authAnalytics.telegramError(message);
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
       loginWithBotLink: async (token) => {
         set({ isLoading: true, error: null });
         try {
@@ -308,48 +374,7 @@ export const useAuthStore = create<AuthState>()(
 
       oauthLogin: async (provider) => {
         if (provider === 'telegram') {
-          // Custom popup handling for Telegram
-          const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'CyberVPN_Bot';
-          const localeMatch = window.location.pathname.match(/^\/([a-z]{2,3}-[A-Z]{2})/);
-          const localePrefix = localeMatch ? `/${localeMatch[1]}` : '';
-          const popupUrl = `${localePrefix}/telegram-widget?bot=${botUsername}`;
-          
-          const tgPopup = window.open(
-            popupUrl,
-            'TelegramLogin',
-            'width=550,height=470,menubar=no,toolbar=no,location=no'
-          );
-
-          return new Promise<void>((resolve, reject) => {
-            let checkClosed: NodeJS.Timeout;
-
-            const messageListener = async (event: MessageEvent) => {
-              if (event.origin !== window.location.origin) return;
-              if (event.data?.type === 'TELEGRAM_AUTH_SUCCESS') {
-                window.removeEventListener('message', messageListener);
-                clearInterval(checkClosed);
-                if (tgPopup) tgPopup.close();
-                
-                try {
-                  await get().telegramAuth(event.data.payload);
-                  resolve();
-                } catch (err) {
-                  reject(err);
-                }
-              }
-            };
-            window.addEventListener('message', messageListener);
-            
-            // Periodically check if popup was closed by user
-            checkClosed = setInterval(() => {
-              if (tgPopup?.closed) {
-                clearInterval(checkClosed);
-                window.removeEventListener('message', messageListener);
-                set({ isLoading: false });
-                reject(new Error('Telegram login cancelled'));
-              }
-            }, 500);
-          });
+          return get().telegramMagicLinkAuth();
         }
 
         set({ isLoading: true, error: null });

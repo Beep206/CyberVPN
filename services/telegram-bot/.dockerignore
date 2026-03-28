@@ -8,7 +8,7 @@ __pycache__
 .env.*
 !.env.example
 tests/
-*.md
+!README.md
 .git
 .gitignore
 .venv

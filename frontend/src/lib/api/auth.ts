@@ -139,6 +139,16 @@ export interface TelegramMiniAppResponse {
   is_new_user: boolean;
 }
 
+export interface TelegramMagicLinkResponse {
+  token: string;
+  bot_url: string;
+}
+
+export interface TelegramMagicLinkStatusResponse {
+  status: 'pending' | 'completed' | 'expired';
+  login_result?: OAuthLoginResponse;
+}
+
 export interface BotLinkRequest {
   token: string;
 }
@@ -406,4 +416,18 @@ export const authApi = {
    */
   logoutDevice: (deviceId: string) =>
     apiClient.delete<{ message: string }>(`/auth/devices/${deviceId}`),
+
+  /**
+   * Request a magic link for Telegram Login
+   * GET /api/v1/oauth/telegram/magic-link
+   */
+  requestTelegramMagicLink: () =>
+    apiClient.get<TelegramMagicLinkResponse>('/oauth/telegram/magic-link'),
+
+  /**
+   * Poll status of Telegram Magic Link
+   * GET /api/v1/oauth/telegram/magic-link/{token}/status
+   */
+  pollTelegramMagicLinkStatus: (token: string) =>
+    apiClient.get<TelegramMagicLinkStatusResponse>(`/oauth/telegram/magic-link/${token}/status`),
 };

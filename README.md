@@ -1,9 +1,9 @@
 # VPN Business Monorepo
 
-This repository hosts the admin UI plus planning and infrastructure docs for the VPN business launch.
+This repository hosts the frontend UI plus planning and infrastructure docs for the VPN business launch.
 
 ## Structure
-- `admin/` - Next.js admin UI (feature-sliced structure).
+- `frontend/` - Next.js frontend UI (feature-sliced structure).
 - `apps/` - Future customer-facing apps (landing, subscription).
 - `services/` - Backend services (bot, API, workers).
 - `packages/` - Shared libraries (UI, config, types).
@@ -20,7 +20,7 @@ Install dependencies from the repo root:
 npm install
 ```
 
-Run the admin UI:
+Run the frontend UI:
 
 ```bash
 npm run dev
@@ -33,4 +33,4 @@ npm run lint
 npm run build
 ```
 
-If you prefer, you can also run commands directly inside `admin/`.
+If you prefer, you can also run commands directly inside `frontend/`.

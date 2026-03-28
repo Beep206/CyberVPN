@@ -2,7 +2,7 @@
 Проект: CyberVPN — платформа управления VPN-бизнесом
 Монорепозиторий с микросервисной архитектурой:
 - backend/ — FastAPI REST API (Clean Architecture, DDD)
-- admin/ — Next.js 16 admin dashboard (cyberpunk-тема)
+- frontend/ — Next.js 16 frontend dashboard (cyberpunk-тема)
 - frontend/ — Next.js 16 пользовательский фронтенд
 - services/task-worker/ — TaskIQ фоновые задачи
 - services/telegram-bot/ — **ЭТОТ МИКРОСЕРВИС** (aiogram 3 Telegram-бот)

@@ -153,9 +153,9 @@ Creates, modifies, and retires agents. Has triple skill sourcing:
 | **Tools** | Read, Write, Edit, Bash, Glob, Grep, Task |
 | **Skills** | nextjs-senior-dev, nextjs-app-router-patterns, next-best-practices, react-best-practices, react-patterns, react-performance-optimization, typescript-strict-mode, cache-components, i18n-expert, vercel-deployment |
 | **Can Delegate** | Yes — to ui-engineer, 3d-engineer |
-| **Scope** | `admin/`, `frontend/` |
+| **Scope** | `frontend/` |
 
-Owns Next.js 16 admin dashboard and public frontend. Feature-Sliced Design + Atomic Design. React Compiler (no manual memoization).
+Owns the Next.js 16 frontend app. Feature-Sliced Design + Atomic Design. React Compiler (no manual memoization).
 
 #### 4. ui-engineer
 | Field | Value |
@@ -165,7 +165,7 @@ Owns Next.js 16 admin dashboard and public frontend. Feature-Sliced Design + Ato
 | **Tools** | Read, Write, Edit, Bash, Glob, Grep |
 | **Skills** | tailwindcss-fundamentals-v4, tailwind-design-system, zustand-state-management, tanstack-query, framer-motion-animator, web-accessibility, frontend-design |
 | **Can Delegate** | No |
-| **Scope** | `admin/src/shared/`, `admin/src/widgets/`, `admin/src/entities/` |
+| **Scope** | `frontend/src/shared/`, `frontend/src/widgets/`, `frontend/src/entities/` |
 
 Builds reusable Atomic Design components. Tailwind CSS 4, Zustand 5, TanStack Query v5, Motion 12, Lenis smooth scroll.
 
@@ -177,7 +177,7 @@ Builds reusable Atomic Design components. Tailwind CSS 4, Zustand 5, TanStack Qu
 | **Tools** | Read, Write, Edit, Bash, Glob, Grep |
 | **Skills** | three-js, r3f-fundamentals, r3f-materials, react-performance-optimization |
 | **Can Delegate** | No |
-| **Scope** | `admin/src/3d/` |
+| **Scope** | `frontend/src/3d/` |
 
 Owns all 3D code: cyberpunk globe, particle effects, shaders. Three.js 0.174, R3F 9.1, Drei 10.7.
 
@@ -350,7 +350,7 @@ Landing pages, email campaigns, social media, blog articles, app store descripti
 | **Tools** | Read, Write, Edit, Glob, Grep, WebSearch, WebFetch |
 | **Skills** | seo, seo-audit, seo-content-writer, analytics-tracking, app-store-optimization |
 | **Can Delegate** | No |
-| **Scope** | `admin/`, `frontend/` |
+| **Scope** | `frontend/` |
 
 Web SEO (generateMetadata, robots.ts, sitemap.ts, JSON-LD, hreflang for 27+ locales, Core Web Vitals). App Store Optimization for iOS/Android.
 
@@ -366,7 +366,7 @@ Web SEO (generateMetadata, robots.ts, sitemap.ts, JSON-LD, hreflang for 27+ loca
 | **Tools** | Read, Write, Edit, Glob, Grep, WebSearch |
 | **Skills** | frontend-design, web-design-guidelines, brand-strategist, brand-designer, web-accessibility, accessibility-compliance, tailwind-design-system |
 | **Can Delegate** | No |
-| **Scope** | `admin/src/shared/`, `frontend/` |
+| **Scope** | `frontend/src/shared/`, `frontend/` |
 
 Owns cyberpunk design system. Colors: neon-cyan (#00ffff), matrix-green (#00ff88), neon-pink (#ff00ff). Fonts: Orbitron + JetBrains Mono. WCAG 2.2 AA compliance. RTL support.
 
@@ -382,7 +382,7 @@ Owns cyberpunk design system. Colors: neon-cyan (#00ffff), matrix-green (#00ff88
 | **Tools** | Read, Write, Edit, Bash, Glob, Grep, WebSearch |
 | **Skills** | i18n-localization, internationalization-i18n, flutter-internationalization, i18n-expert |
 | **Can Delegate** | No |
-| **Scope** | `admin/messages/`, `cybervpn_mobile/lib/l10n/`, `admin/src/i18n/` |
+| **Scope** | `frontend/messages/`, `cybervpn_mobile/lib/l10n/`, `frontend/src/i18n/` |
 
 Manages 41 locales across 3 platforms:
 - **Next.js:** next-intl 4.7, JSON message files

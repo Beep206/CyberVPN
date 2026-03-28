@@ -11,6 +11,7 @@ import asyncio
 import base64
 import hmac
 import ipaddress
+import logging
 import sys
 
 import structlog
@@ -304,7 +305,7 @@ def main() -> None:
             else structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
-            structlog.get_level_from_name(get_settings().logging.level),
+            logging.getLevelName(get_settings().logging.level),
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),

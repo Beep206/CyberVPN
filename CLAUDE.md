@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CyberVPN is a VPN business management platform with a cyberpunk-themed admin dashboard. It's structured as an npm workspaces monorepo with the admin panel as the primary development focus.
+CyberVPN is a VPN business management platform with a cyberpunk-themed frontend dashboard. It's structured as an npm workspaces monorepo with the frontend app as the primary development focus.
 
 **Stack**: Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, Three.js (React Three Fiber)
 
@@ -15,12 +15,12 @@ CyberVPN is a VPN business management platform with a cyberpunk-themed admin das
 ```bash
 # Development (from repo root)
 npm install          # Install all workspace dependencies
-npm run dev          # Start admin dashboard (localhost:3000)
+npm run dev          # Start frontend app (localhost:3000)
 npm run build        # Production build
 npm run lint         # ESLint validation
 
-# Or run directly in admin/
-cd admin && npm run dev
+# Or run directly in frontend/
+cd frontend && npm run dev
 
 # Infrastructure (Docker)
 cd infra && docker compose up -d                    # Core services
@@ -60,14 +60,14 @@ mcp-cli call plugin_context7_context7/query-docs '{"library": "react", "query": 
 ## Architecture
 
 ### Monorepo Structure
-- **admin/** - Next.js admin dashboard (primary workspace)
+- **frontend/** - Next.js frontend app (primary workspace)
 - **apps/** - User-facing apps (landing, portal) - placeholder
 - **services/** - Backend services (API, bot, workers) - placeholder
 - **packages/** - Shared libraries - placeholder
 - **infra/** - Docker Compose stack for local development
 - **plan/** - Technical documentation and deployment guides (Russian)
 
-### Admin App Structure (`admin/src/`)
+### Frontend App Structure (`frontend/src/`)
 
 Follows Feature-Sliced Design with Atomic Design for components:
 
@@ -98,7 +98,7 @@ i18n/                  # Internationalization (next-intl)
 
 ### Key Patterns
 
-**Path alias**: `@/*` maps to `admin/src/*`
+**Path alias**: `@/*` maps to `frontend/src/*`
 
 **Server Components** (async pages):
 ```tsx
@@ -134,7 +134,7 @@ Local Docker stack includes:
 
 ### i18n
 
-27 locales configured in `admin/src/i18n/config.ts`. Message files in `admin/messages/{locale}/`. Default: `en-EN`. RTL support for Arabic, Hebrew, Farsi.
+27 locales configured in `frontend/src/i18n/config.ts`. Message files in `frontend/messages/{locale}/`. Default: `en-EN`. RTL support for Arabic, Hebrew, Farsi.
 
 ## Task Master AI
 

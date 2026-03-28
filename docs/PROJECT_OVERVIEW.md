@@ -37,8 +37,7 @@
 
 ```
 VPNBussiness/
-├── admin/                 # Next.js 16 — админ-панель
-├── frontend/              # Next.js 16 — пользовательский портал
+├── frontend/              # Next.js 16 — фронтенд-приложение
 ├── backend/               # FastAPI — REST API (Clean Architecture + DDD)
 ├── cybervpn_mobile/       # Flutter — мобильное приложение
 ├── services/
@@ -150,7 +149,7 @@ backend/src/
 ### Frontend: Feature-Sliced Design + Atomic Design
 
 ```
-admin/src/ & frontend/src/
+frontend/src/
 ├── app/[locale]/          # Next.js App Router с i18n-маршрутизацией
 │   └── (dashboard)/       # Группы маршрутов (серверы, пользователи, аналитика)
 ├── 3d/scenes/             # Three.js 3D-сцены (GlobalNetwork — интерактивный глобус)
@@ -565,7 +564,7 @@ await remnawave.system.get_bandwidth()
 ### Интернационализация
 - **27 локалей** через next-intl
 - **5 RTL-языков:** арабский, иврит, фарси, урду, курдский
-- Файлы переводов: `admin/messages/{locale}/`
+- Файлы переводов: `frontend/messages/{locale}/`
 
 ---
 

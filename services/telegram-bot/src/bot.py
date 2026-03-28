@@ -117,7 +117,7 @@ def create_dispatcher(settings: BotSettings, bot: Bot) -> Dispatcher:
 
     register_routers(dp)
 
-    async def _shutdown_resources(_: Bot) -> None:
+    async def _shutdown_resources(*args, **kwargs) -> None:
         await api_client.close()
         await cache.close()
 

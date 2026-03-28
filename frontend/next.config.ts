@@ -5,6 +5,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
   reactCompiler?: boolean;
+  allowedDevOrigins?: string[];
 };
 
 // SEC-03: Content-Security-Policy in Report-Only mode.
@@ -24,7 +25,12 @@ const cspDirectives = [
 ].join("; ");
 
 const config: NextConfigWithCompiler = {
-  experimental: {},
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["vpn.ozoxy.ru"],
+    },
+  },
+  allowedDevOrigins: ["vpn.ozoxy.ru"],
   cacheComponents: true,
   reactCompiler: true,
   skipTrailingSlashRedirect: true,

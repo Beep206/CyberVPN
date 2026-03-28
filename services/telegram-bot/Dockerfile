@@ -9,9 +9,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
-COPY pyproject.toml ./
-
-# Install dependencies to a virtual environment for clean copy
+COPY pyproject.toml README.md ./
+# Copy source code since hatchling requires it to build the package wheel during installation
+COPY src/ ./src/
 RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
     /opt/venv/bin/pip install --no-cache-dir .

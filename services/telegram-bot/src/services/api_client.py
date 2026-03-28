@@ -160,7 +160,7 @@ class CyberVPNAPIClient:
                 keepalive_expiry=30.0,
             ),
             headers={
-                "Authorization": f"Bearer {settings.api_key.get_secret_value()}",
+                "Authorization": f"Bearer {settings.api_key.get_secret_value().strip()}",
                 "Content-Type": "application/json",
                 "User-Agent": "CyberVPN-TelegramBot/1.0",
             },
