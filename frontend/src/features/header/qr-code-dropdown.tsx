@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { QrCode, Smartphone, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslations } from 'next-intl';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
@@ -18,8 +17,6 @@ export function QRCodeDropdown() {
     const [activeTab, setActiveTab] = useState<Tab>('ios');
     const [isHovered, setIsHovered] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const t = useTranslations('Header.QRCode');
-
     // Close on click outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {

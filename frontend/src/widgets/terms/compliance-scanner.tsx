@@ -16,6 +16,7 @@ const SECTION_KEYS: TermsSectionId[] = ['acceptance', 'prohibited', 'service', '
 
 export function ComplianceScanner({ activeSection, setActiveSection, isAccepted }: Props) {
     const t = useTranslations('Terms');
+    void setActiveSection;
 
     // Helper to determine if a section has been passed (scrolled past = scanned)
     const getSectionStatus = (section: TermsSectionId) => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
 import { Check, Minus } from 'lucide-react';
 
 const featuresData = [

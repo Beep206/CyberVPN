@@ -3,8 +3,7 @@ import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 import { TermsDashboard } from '@/widgets/terms/terms-dashboard';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
+export async function generateMetadata() {
     const t = await getTranslations({ locale, namespace: 'Terms' });
     
     return {
@@ -13,9 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Terms' });
+export default function TermsPage() {
 
     return (
         <main className="min-h-screen bg-black text-terminal-text selection:bg-warning/30 flex flex-col font-mono">

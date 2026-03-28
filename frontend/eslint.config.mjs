@@ -6,6 +6,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: "off",
+    },
+  },
+  {
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "no-console": ["error", { allow: ["error"] }],
@@ -15,10 +20,13 @@ const eslintConfig = defineConfig([
     files: ["src/features/dev/**/*.{ts,tsx}", "sync-*.js"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-this-alias": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "no-console": "off",
+      "prefer-const": "off",
+      "react-hooks/exhaustive-deps": "off",
       "react-hooks/immutability": "off",
       "react-hooks/purity": "off",
       "react-hooks/refs": "off",

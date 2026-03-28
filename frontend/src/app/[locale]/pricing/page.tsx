@@ -3,8 +3,7 @@ import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 import { PricingDashboard } from '@/widgets/pricing/pricing-dashboard';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
+export async function generateMetadata() {
     const t = await getTranslations({ locale, namespace: 'Pricing' });
 
     return {
@@ -13,9 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default async function PricingPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Pricing' });
+export default function PricingPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background relative overflow-hidden">

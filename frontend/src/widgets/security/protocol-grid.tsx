@@ -51,7 +51,7 @@ export function ProtocolGrid() {
                             </tr>
                         </thead>
                         <tbody>
-                            {PROTOCOLS.map((protocol, rowIdx) => {
+                            {PROTOCOLS.map((protocol) => {
                                 const rowData = t.raw(protocol.key) as string[];
 
                                 return (

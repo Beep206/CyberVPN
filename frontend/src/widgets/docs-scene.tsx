@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Backdrop, Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
+import { Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
 import { Bloom, EffectComposer, ToneMapping } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
