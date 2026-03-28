@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
+from redis.asyncio import Redis
 
 from src.keyboards.menu import main_menu_keyboard
 
@@ -22,8 +24,10 @@ router = Router(name="start")
 @router.message(CommandStart())
 async def start_handler(
     message: Message,
+    command: CommandObject,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    redis: Redis,
     user: dict[str, Any] | None = None,
     referrer_id: int | None = None,
     promo_code: str | None = None,
@@ -38,6 +42,24 @@ async def start_handler(
     first_name = message.from_user.first_name or ""
     last_name = message.from_user.last_name or ""
     language_code = message.from_user.language_code or "en"
+
+    # Check for magic link auth
+    magic_auth_success = False
+    if command.args and command.args.startswith("auth_"):
+        token = command.args.replace("auth_", "")
+        redis_key = f"auth_magic_link:{token}"
+        status = await redis.get(redis_key)
+        if status and status == "pending":
+            user_payload = {
+                "id": str(user_id),
+                "first_name": first_name,
+                "last_name": last_name if last_name else None,
+                "username": username if username else None,
+                "language_code": language_code,
+            }
+            await redis.set(redis_key, json.dumps(user_payload), ex=300)
+            magic_auth_success = True
+            logger.info("magic_link_auth_success", user_id=user_id, token_subset=token[:6])
 
     # Update user data on /start and ensure registration exists
     try:
@@ -80,6 +102,9 @@ async def start_handler(
 
     if referrer_id:
         welcome_text += "\n\n" + i18n.get("welcome-referral-bonus")
+
+    if magic_auth_success:
+        welcome_text = "✅ <b>Успешная авторизация!</b>\nВы можете вернуться в браузер — вход выполнен автоматически.\n\n" + welcome_text
 
     await message.answer(
         text=welcome_text,

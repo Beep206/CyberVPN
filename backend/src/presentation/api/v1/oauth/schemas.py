@@ -96,3 +96,17 @@ class OAuthLoginResponse(BaseModel):
     is_new_user: bool = False
     requires_2fa: bool = False
     tfa_token: str | None = None
+
+
+class TelegramMagicLinkResponse(BaseModel):
+    """Response when requesting a Magic Link for Telegram Login."""
+
+    token: str = Field(..., description="Unique magic link session token")
+    bot_url: str = Field(..., description="URL to open Telegram bot with the start parameter")
+
+
+class TelegramMagicLinkStatusResponse(BaseModel):
+    """Status polling response for Telegram Magic Link."""
+
+    status: Literal["pending", "completed", "expired"] = Field(..., description="Current status of the magic link session")
+    login_result: OAuthLoginResponse | None = Field(default=None, description="Populated with login tokens if status is completed")

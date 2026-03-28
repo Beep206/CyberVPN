@@ -39,6 +39,8 @@ from src.presentation.api.v1.oauth.schemas import (
     OAuthLoginUserResponse,
     OAuthProvider,
     TelegramCallbackRequest,
+    TelegramMagicLinkResponse,
+    TelegramMagicLinkStatusResponse,
 )
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
@@ -200,6 +202,95 @@ async def telegram_callback(
         provider="telegram",
         provider_user_id=str(user_info["id"]),
     )
+
+
+import uuid
+import json
+
+@router.get("/telegram/magic-link", response_model=TelegramMagicLinkResponse)
+async def create_telegram_magic_link(
+    redis_client: redis.Redis = Depends(get_redis),
+) -> TelegramMagicLinkResponse:
+    """Create a new Deep Link (Magic Link) session for seamless Telegram login."""
+    token = str(uuid.uuid4())
+    # Save the pending token for 5 minutes (300 seconds)
+    await redis_client.setex(f"auth_magic_link:{token}", 300, "pending")
+    
+    provider = TelegramOAuthProvider()
+    bot_username = provider.bot_username
+    bot_url = f"tg://resolve?domain={bot_username}&start=auth_{token}"
+    
+    return TelegramMagicLinkResponse(token=token, bot_url=bot_url)
+
+
+@router.get("/telegram/magic-link/{token}/status", response_model=TelegramMagicLinkStatusResponse)
+async def check_telegram_magic_link_status(
+    request: Request,
+    token: str,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
+) -> TelegramMagicLinkStatusResponse:
+    """Poll the status of the Magic Link login session."""
+    raw_status = await redis_client.get(f"auth_magic_link:{token}")
+    if not raw_status:
+        return TelegramMagicLinkStatusResponse(status="expired")
+    
+    status_str = raw_status.decode("utf-8") if isinstance(raw_status, bytes) else raw_status
+    if status_str == "pending":
+        return TelegramMagicLinkStatusResponse(status="pending")
+    
+    try:
+        user_info = json.loads(status_str)
+    except Exception as e:
+        logger.error(f"Failed to parse magic link status: {e}")
+        return TelegramMagicLinkStatusResponse(status="expired")
+    
+    user_repo = AdminUserRepository(db)
+    oauth_repo = OAuthAccountRepository(db)
+    use_case = OAuthLoginUseCase(
+        user_repo=user_repo,
+        oauth_repo=oauth_repo,
+        auth_service=auth_service,
+        session=db,
+        remnawave_gateway=remnawave_adapter,
+    )
+    
+    try:
+        result = await use_case.execute(
+            provider="telegram",
+            user_info=user_info,
+            client_fingerprint=generate_client_fingerprint(request),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+
+    await redis_client.delete(f"auth_magic_link:{token}")
+
+    logger.info(
+        "Telegram Magic Link login completed",
+        extra={
+            "user_id": str(result.user.id),
+            "is_new_user": result.is_new_user,
+        },
+    )
+
+    login_result = OAuthLoginResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+        expires_in=result.expires_in,
+        user=OAuthLoginUserResponse.model_validate(result.user),
+        is_new_user=result.is_new_user,
+        requires_2fa=result.requires_2fa,
+        tfa_token=result.tfa_token,
+    )
+    
+    return TelegramMagicLinkStatusResponse(status="completed", login_result=login_result)
 
 
 @router.post("/github/callback", response_model=OAuthLinkResponse)

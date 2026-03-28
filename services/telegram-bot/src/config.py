@@ -232,7 +232,7 @@ class BotSettings(BaseSettings):
 
     # ── Nested groups ────────────────────────────────────────────────────
     webhook: WebhookSettings = Field(default_factory=WebhookSettings)
-    backend: BackendSettings
+    backend: BackendSettings = Field(default_factory=BackendSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     cryptobot: CryptoBotSettings = Field(default_factory=CryptoBotSettings)
     yookassa: YooKassaSettings = Field(default_factory=YooKassaSettings)
