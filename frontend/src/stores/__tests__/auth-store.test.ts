@@ -8,8 +8,10 @@ const {
   mockLogout,
   mockMe,
   mockTelegramWidget,
+  mockTelegramWebLogin,
   mockTelegramMiniApp,
   mockTelegramBotLink,
+  mockRequestTelegramMagicLink,
   mockOauthLoginAuthorize,
   mockOauthLoginCallback,
   mockRequestMagicLink,
@@ -46,8 +48,10 @@ const {
     mockLogout: vi.fn(),
     mockMe: vi.fn(),
     mockTelegramWidget: vi.fn(),
+    mockTelegramWebLogin: vi.fn(),
     mockTelegramMiniApp: vi.fn(),
     mockTelegramBotLink: vi.fn(),
+    mockRequestTelegramMagicLink: vi.fn(),
     mockOauthLoginAuthorize: vi.fn(),
     mockOauthLoginCallback: vi.fn(),
     mockRequestMagicLink: vi.fn(),
@@ -81,8 +85,10 @@ vi.mock('@/lib/api/auth', () => ({
     me: (...args: unknown[]) => mockMe(...args),
     session: (...args: unknown[]) => mockMe(...args),
     telegramWidget: (...args: unknown[]) => mockTelegramWidget(...args),
+    telegramWebLogin: (...args: unknown[]) => mockTelegramWebLogin(...args),
     telegramMiniApp: (...args: unknown[]) => mockTelegramMiniApp(...args),
     telegramBotLink: (...args: unknown[]) => mockTelegramBotLink(...args),
+    requestTelegramMagicLink: (...args: unknown[]) => mockRequestTelegramMagicLink(...args),
     oauthLoginAuthorize: (...args: unknown[]) => mockOauthLoginAuthorize(...args),
     oauthLoginCallback: (...args: unknown[]) => mockOauthLoginCallback(...args),
     requestMagicLink: (...args: unknown[]) => mockRequestMagicLink(...args),
@@ -222,6 +228,7 @@ describe('Auth Store', () => {
       expect(typeof state.fetchUser).toBe('function');
       expect(typeof state.telegramAuth).toBe('function');
       expect(typeof state.telegramMiniAppAuth).toBe('function');
+      expect(typeof state.telegramMagicLinkAuth).toBe('function');
       expect(typeof state.loginWithBotLink).toBe('function');
       expect(typeof state.oauthLogin).toBe('function');
       expect(typeof state.oauthCallback).toBe('function');
@@ -825,7 +832,7 @@ describe('Auth Store', () => {
     it('test_telegramAuth_success_sets_authenticated_user', async () => {
       // Arrange
       const mockUser = createMockUser({ id: 'usr_tg_001', telegram_id: 123456789 });
-      mockTelegramWidget.mockResolvedValue({
+      mockTelegramWebLogin.mockResolvedValue({
         data: { user: mockUser, is_new_user: false },
       });
 
@@ -842,7 +849,7 @@ describe('Auth Store', () => {
 
     it('test_telegramAuth_new_user_sets_isNewTelegramUser_flag', async () => {
       // Arrange
-      mockTelegramWidget.mockResolvedValue({
+      mockTelegramWebLogin.mockResolvedValue({
         data: { user: createMockUser(), is_new_user: true },
       });
 
@@ -855,7 +862,7 @@ describe('Auth Store', () => {
 
     it('test_telegramAuth_missing_is_new_user_defaults_to_false', async () => {
       // Arrange - is_new_user not in response
-      mockTelegramWidget.mockResolvedValue({
+      mockTelegramWebLogin.mockResolvedValue({
         data: { user: createMockUser() },
       });
 
@@ -869,7 +876,7 @@ describe('Auth Store', () => {
     it('test_telegramAuth_calls_analytics', async () => {
       // Arrange
       const mockUser = createMockUser({ id: 'tg_analytics' });
-      mockTelegramWidget.mockResolvedValue({
+      mockTelegramWebLogin.mockResolvedValue({
         data: { user: mockUser, is_new_user: false },
       });
 
@@ -883,7 +890,7 @@ describe('Auth Store', () => {
 
     it('test_telegramAuth_failure_sets_error', async () => {
       // Arrange
-      mockTelegramWidget.mockRejectedValue({
+      mockTelegramWebLogin.mockRejectedValue({
         response: { data: { detail: 'Telegram auth failed' } },
       });
 
@@ -899,7 +906,7 @@ describe('Auth Store', () => {
 
     it('test_telegramAuth_failure_uses_fallback_error', async () => {
       // Arrange
-      mockTelegramWidget.mockRejectedValue(new Error('Network error'));
+      mockTelegramWebLogin.mockRejectedValue(new Error('Network error'));
 
       // Act & Assert
       await expect(
@@ -911,7 +918,7 @@ describe('Auth Store', () => {
 
     it('test_telegramAuth_failure_calls_analytics_error', async () => {
       // Arrange
-      mockTelegramWidget.mockRejectedValue({
+      mockTelegramWebLogin.mockRejectedValue({
         response: { data: { detail: 'Hash mismatch' } },
       });
 
@@ -927,7 +934,7 @@ describe('Auth Store', () => {
     it('test_telegramAuth_resets_isNewTelegramUser_on_start', async () => {
       // Arrange
       useAuthStore.setState({ isNewTelegramUser: true });
-      mockTelegramWidget.mockResolvedValue({
+      mockTelegramWebLogin.mockResolvedValue({
         data: { user: createMockUser(), is_new_user: false },
       });
 
@@ -1185,6 +1192,27 @@ describe('Auth Store', () => {
   // =========================================================================
 
   describe('oauthLogin', () => {
+    it('test_oauthLogin_telegram_stores_session_and_redirects_to_waiting_page', async () => {
+      window.location.pathname = '/ru-RU/login';
+      mockRequestTelegramMagicLink.mockResolvedValue({
+        data: {
+          token: 'magic_tg_token',
+          bot_url: 'https://t.me/CyberVPNBot?start=auth_magic_tg_token',
+          deep_link_url: 'tg://resolve?domain=CyberVPNBot&start=auth_magic_tg_token',
+        },
+      });
+
+      await useAuthStore.getState().oauthLogin('telegram');
+
+      expect(mockTelegramStarted).toHaveBeenCalledOnce();
+      expect(mockRequestTelegramMagicLink).toHaveBeenCalledOnce();
+      expect(sessionStorage.setItem).toHaveBeenCalledWith(
+        'telegram_magic_link_session',
+        expect.stringContaining('magic_tg_token')
+      );
+      expect(window.location.href).toBe('/ru-RU/telegram-link');
+    });
+
     it('test_oauthLogin_stores_provider_in_sessionStorage_and_redirects', async () => {
       mockOauthLoginAuthorize.mockResolvedValue({
         data: {

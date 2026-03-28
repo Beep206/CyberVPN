@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
@@ -141,9 +142,9 @@ class TestAPIClientGetUser:
         }
 
         with respx.mock:
-            route = respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123456"
-            ).mock(return_value=httpx.Response(200, json=user_data))
+            route = respx.get("https://api.test.cybervpn.local/telegram/users/123456").mock(
+                return_value=httpx.Response(200, json=user_data)
+            )
 
             result = await client.get_user(123456)
 
@@ -157,12 +158,8 @@ class TestAPIClientGetUser:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/999999"
-            ).mock(
-                return_value=httpx.Response(
-                    404, json={"detail": "User not found"}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/users/999999").mock(
+                return_value=httpx.Response(404, json={"detail": "User not found"})
             )
 
             with pytest.raises(NotFoundError) as exc_info:
@@ -188,13 +185,11 @@ class TestAPIClientRegisterUser:
         }
 
         with respx.mock:
-            route = respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(return_value=httpx.Response(200, json=expected_response))
-
-            result = await client.register_user(
-                telegram_id=123456, username="newuser", language="en"
+            route = respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+                return_value=httpx.Response(200, json=expected_response)
             )
+
+            result = await client.register_user(telegram_id=123456, username="newuser", language="en")
 
             assert result == expected_response
             assert route.called
@@ -206,9 +201,7 @@ class TestAPIClientRegisterUser:
 
         await client.close()
 
-    async def test_register_user_with_referrer(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_register_user_with_referrer(self, mock_settings: BotSettings) -> None:
         """Test user registration with referrer ID."""
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
@@ -218,13 +211,11 @@ class TestAPIClientRegisterUser:
         }
 
         with respx.mock:
-            route = respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(return_value=httpx.Response(200, json=expected_response))
-
-            result = await client.register_user(
-                telegram_id=123456, referrer_id=789
+            route = respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+                return_value=httpx.Response(200, json=expected_response)
             )
+
+            result = await client.register_user(telegram_id=123456, referrer_id=789)
 
             assert result == expected_response
             assert route.called
@@ -236,18 +227,71 @@ class TestAPIClientRegisterUser:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(
-                return_value=httpx.Response(
-                    409, json={"detail": "User already exists"}
-                )
+            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+                return_value=httpx.Response(409, json={"detail": "User already exists"})
             )
 
             with pytest.raises(ConflictError) as exc_info:
                 await client.register_user(123456)
 
             assert exc_info.value.status_code == 409
+
+        await client.close()
+
+
+@pytest.mark.asyncio
+class TestAPIClientCompleteTelegramMagicLink:
+    """Test Telegram magic-link completion API method."""
+
+    async def test_complete_telegram_magic_link_success(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+
+        with respx.mock:
+            route = respx.post("https://api.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(
+                return_value=httpx.Response(200, json={"status": "accepted"})
+            )
+
+            result = await client.complete_telegram_magic_link(
+                token="magic_token_123",
+                telegram_id=123456,
+                first_name="Alice",
+                last_name="Doe",
+                username="alice",
+                language_code="en",
+            )
+
+            assert result == {"status": "accepted"}
+            assert route.called
+
+        await client.close()
+
+    async def test_complete_telegram_magic_link_sends_expected_payload(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+
+        captured_payload: str | None = None
+
+        with respx.mock:
+
+            def _handler(request: httpx.Request) -> httpx.Response:
+                nonlocal captured_payload
+                captured_payload = request.read().decode("utf-8")
+                return httpx.Response(200, json={"status": "accepted"})
+
+            respx.post("https://api.test.cybervpn.local/oauth/telegram/magic-link/complete").mock(side_effect=_handler)
+
+            await client.complete_telegram_magic_link(
+                token="magic_token_123",
+                telegram_id=777,
+                first_name="Bob",
+                username="bob",
+            )
+
+        assert captured_payload is not None
+        payload = json.loads(captured_payload)
+        assert payload["token"] == "magic_token_123"
+        assert payload["id"] == "777"
+        assert payload["first_name"] == "Bob"
+        assert payload["username"] == "bob"
 
         await client.close()
 
@@ -266,9 +310,9 @@ class TestAPIClientGetAvailablePlans:
         ]
 
         with respx.mock:
-            route = respx.get(
-                "https://api.test.cybervpn.local/telegram/plans"
-            ).mock(return_value=httpx.Response(200, json=plans))
+            route = respx.get("https://api.test.cybervpn.local/telegram/plans").mock(
+                return_value=httpx.Response(200, json=plans)
+            )
 
             result = await client.get_available_plans()
 
@@ -306,12 +350,8 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(
-                return_value=httpx.Response(
-                    401, json={"detail": "Unauthorized"}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(401, json={"detail": "Unauthorized"})
             )
 
             with pytest.raises(AuthError) as exc_info:
@@ -326,9 +366,7 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
                 return_value=httpx.Response(
                     429,
                     json={"detail": "Too many requests"},
@@ -349,12 +387,8 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(
-                return_value=httpx.Response(
-                    500, json={"detail": "Internal server error"}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(500, json={"detail": "Internal server error"})
             )
 
             with pytest.raises(ServerError) as exc_info:
@@ -369,9 +403,9 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(return_value=httpx.Response(418, json={"detail": "I'm a teapot"}))
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(418, json={"detail": "I'm a teapot"})
+            )
 
             with pytest.raises(APIError) as exc_info:
                 await client.get_user(123)
@@ -385,9 +419,7 @@ class TestAPIClientErrorHandling:
 class TestCircuitBreakerIntegration:
     """Test circuit breaker integration with API client."""
 
-    async def test_circuit_opens_after_failures(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_circuit_opens_after_failures(self, mock_settings: BotSettings) -> None:
         """Test circuit breaker opens after multiple server errors.
 
         Note: The API client has tenacity retry with stop_after_attempt(3),
@@ -399,9 +431,9 @@ class TestCircuitBreakerIntegration:
         client._circuit = CircuitBreaker(failure_threshold=3)
 
         with respx.mock:
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(return_value=httpx.Response(500, json={"detail": "Error"}))
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(500, json={"detail": "Error"})
+            )
 
             # First call will retry 3 times, recording 3 failures and opening the circuit
             with pytest.raises(ServerError):
@@ -416,9 +448,7 @@ class TestCircuitBreakerIntegration:
 
         await client.close()
 
-    async def test_circuit_half_open_recovery(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_circuit_half_open_recovery(self, mock_settings: BotSettings) -> None:
         """Test circuit breaker half-open recovery.
 
         Note: With failure_threshold=2 and tenacity retries, the circuit opens
@@ -427,15 +457,11 @@ class TestCircuitBreakerIntegration:
         import time
 
         client = CyberVPNAPIClient(settings=mock_settings.backend)
-        client._circuit = CircuitBreaker(
-            failure_threshold=2, recovery_timeout=0.1
-        )
+        client._circuit = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
 
         with respx.mock:
             # Fail to open circuit - will retry and hit threshold during first call
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(return_value=httpx.Response(500))
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(return_value=httpx.Response(500))
 
             # First call retries twice, recording 2 failures and opening circuit
             with pytest.raises(ServerError):
@@ -450,12 +476,8 @@ class TestCircuitBreakerIntegration:
             assert client._circuit.state == CircuitState.HALF_OPEN
 
             # Successful request should close it
-            respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(
-                return_value=httpx.Response(
-                    200, json={"telegram_id": 123}
-                )
+            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(200, json={"telegram_id": 123})
             )
 
             await client.get_user(123)
@@ -468,17 +490,15 @@ class TestCircuitBreakerIntegration:
 class TestRetryLogic:
     """Test tenacity retry logic."""
 
-    async def test_retry_on_connection_error(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_retry_on_connection_error(self, mock_settings: BotSettings) -> None:
         """Test retry on connection errors."""
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
             # Simulate connection error
-            route = respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(side_effect=httpx.ConnectError("Connection failed"))
+            route = respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                side_effect=httpx.ConnectError("Connection failed")
+            )
 
             with pytest.raises(ServerError, match="Backend connection error"):
                 await client.get_user(123)
@@ -488,19 +508,13 @@ class TestRetryLogic:
 
         await client.close()
 
-    async def test_no_retry_on_client_errors(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_no_retry_on_client_errors(self, mock_settings: BotSettings) -> None:
         """Test that client errors (4xx) don't trigger retries."""
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            route = respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
-            ).mock(
-                return_value=httpx.Response(
-                    404, json={"detail": "Not found"}
-                )
+            route = respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+                return_value=httpx.Response(404, json={"detail": "Not found"})
             )
 
             with pytest.raises(NotFoundError):
@@ -528,9 +542,7 @@ class TestAPIClientCleanup:
         # Note: close() not in original, testing cleanup pattern
         # In production, ensure proper cleanup
 
-    async def test_context_manager_usage(
-        self, mock_settings: BotSettings
-    ) -> None:
+    async def test_context_manager_usage(self, mock_settings: BotSettings) -> None:
         """Test using client as context manager (if implemented)."""
         # This test documents the expected pattern
         # Actual implementation may need __aenter__/__aexit__

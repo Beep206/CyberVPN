@@ -448,6 +448,48 @@ export const authHandlers = [
   }),
 
   /**
+   * GET /oauth/telegram/magic-link
+   * Creates a Telegram magic-link session.
+   */
+  http.get(`${API_BASE}/oauth/telegram/magic-link`, () => {
+    return HttpResponse.json({
+      token: 'magic_link_token_123',
+      bot_url: 'https://t.me/CyberVPNBot?start=auth_magic_link_token_123',
+      deep_link_url: 'tg://resolve?domain=CyberVPNBot&start=auth_magic_link_token_123',
+    });
+  }),
+
+  /**
+   * GET /oauth/telegram/magic-link/:token/status
+   * Polls Telegram magic-link session status.
+   */
+  http.get(`${API_BASE}/oauth/telegram/magic-link/:token/status`, ({ params }) => {
+    const token = params.token as string;
+
+    if (token === 'expired_magic_link_token') {
+      return HttpResponse.json({ status: 'expired' });
+    }
+
+    return HttpResponse.json({
+      status: 'completed',
+      login_result: {
+        ...MOCK_TOKENS,
+        user: {
+          id: MOCK_USER.id,
+          login: MOCK_USER.login,
+          email: MOCK_USER.email,
+          is_active: true,
+          is_email_verified: true,
+          created_at: MOCK_USER.created_at,
+        },
+        is_new_user: false,
+        requires_2fa: false,
+        tfa_token: null,
+      },
+    });
+  }),
+
+  /**
    * GET /oauth/:provider/login
    * Get OAuth authorization URL for a provider.
    */

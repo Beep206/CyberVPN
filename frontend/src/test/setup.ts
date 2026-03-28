@@ -3,6 +3,8 @@ import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './mocks/server';
 
+process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
+
 // ---------------------------------------------------------------------------
 // MSW Server Lifecycle
 // ---------------------------------------------------------------------------

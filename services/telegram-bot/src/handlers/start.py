@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import Router
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import Message
-from redis.asyncio import Redis
 
 from src.keyboards.menu import main_menu_keyboard
+from src.services.api_client import APIError
 
 if TYPE_CHECKING:
+    from aiogram.types import Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -21,13 +20,27 @@ logger = structlog.get_logger(__name__)
 router = Router(name="start")
 
 
-@router.message(CommandStart())
-async def start_handler(
+def _get_start_payload(message: Message, command: CommandObject) -> str | None:
+    """Extract the /start payload from CommandObject or raw message text."""
+    if command.args:
+        return command.args.strip() or None
+
+    text = (message.text or "").strip()
+    if not text.startswith("/start"):
+        return None
+
+    parts = text.split(maxsplit=1)
+    if len(parts) == 2:
+        payload = parts[1].strip()
+        return payload or None
+    return None
+
+
+async def _handle_start(
     message: Message,
     command: CommandObject,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
-    redis: Redis,
     user: dict[str, Any] | None = None,
     referrer_id: int | None = None,
     promo_code: str | None = None,
@@ -42,24 +55,30 @@ async def start_handler(
     first_name = message.from_user.first_name or ""
     last_name = message.from_user.last_name or ""
     language_code = message.from_user.language_code or "en"
+    start_payload = _get_start_payload(message, command)
 
     # Check for magic link auth
     magic_auth_success = False
-    if command.args and command.args.startswith("auth_"):
-        token = command.args.replace("auth_", "")
-        redis_key = f"auth_magic_link:{token}"
-        status = await redis.get(redis_key)
-        if status and status == "pending":
-            user_payload = {
-                "id": str(user_id),
-                "first_name": first_name,
-                "last_name": last_name if last_name else None,
-                "username": username if username else None,
-                "language_code": language_code,
-            }
-            await redis.set(redis_key, json.dumps(user_payload), ex=300)
+    if start_payload and start_payload.startswith("auth_"):
+        token = start_payload.removeprefix("auth_")
+        try:
+            await api_client.complete_telegram_magic_link(
+                token=token,
+                telegram_id=user_id,
+                first_name=first_name,
+                last_name=last_name or None,
+                username=username or None,
+                language_code=language_code,
+            )
             magic_auth_success = True
             logger.info("magic_link_auth_success", user_id=user_id, token_subset=token[:6])
+        except APIError as exc:
+            logger.warning(
+                "magic_link_auth_failed",
+                user_id=user_id,
+                status_code=exc.status_code,
+                detail=exc.detail,
+            )
 
     # Update user data on /start and ensure registration exists
     try:
@@ -104,7 +123,9 @@ async def start_handler(
         welcome_text += "\n\n" + i18n.get("welcome-referral-bonus")
 
     if magic_auth_success:
-        welcome_text = "✅ <b>Успешная авторизация!</b>\nВы можете вернуться в браузер — вход выполнен автоматически.\n\n" + welcome_text
+        welcome_text = (
+            "<b>Success!</b>\nYou can return to the browser - sign-in completed automatically.\n\n" + welcome_text
+        )
 
     await message.answer(
         text=welcome_text,
@@ -112,3 +133,45 @@ async def start_handler(
     )
 
     logger.info("start_command_completed", user_id=user_id)
+
+
+@router.message(CommandStart(deep_link=True))
+async def start_with_deep_link_handler(
+    message: Message,
+    command: CommandObject,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    user: dict[str, Any] | None = None,
+    referrer_id: int | None = None,
+    promo_code: str | None = None,
+) -> None:
+    await _handle_start(
+        message=message,
+        command=command,
+        i18n=i18n,
+        api_client=api_client,
+        user=user,
+        referrer_id=referrer_id,
+        promo_code=promo_code,
+    )
+
+
+@router.message(CommandStart())
+async def start_handler(
+    message: Message,
+    command: CommandObject,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    user: dict[str, Any] | None = None,
+    referrer_id: int | None = None,
+    promo_code: str | None = None,
+) -> None:
+    await _handle_start(
+        message=message,
+        command=command,
+        i18n=i18n,
+        api_client=api_client,
+        user=user,
+        referrer_id=referrer_id,
+        promo_code=promo_code,
+    )
