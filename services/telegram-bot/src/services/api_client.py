@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import structlog
@@ -22,9 +22,10 @@ from tenacity import (
     wait_exponential,
 )
 
-from src.config import BackendSettings
-
 logger = structlog.get_logger(__name__)
+
+if TYPE_CHECKING:
+    from src.config import BackendSettings
 
 
 # ── Exceptions ───────────────────────────────────────────────────────────
@@ -360,6 +361,31 @@ class CyberVPNAPIClient:
             f"/telegram/users/{telegram_id}",
             json=payload,
         )
+
+    async def complete_telegram_magic_link(
+        self,
+        *,
+        token: str,
+        telegram_id: int,
+        first_name: str,
+        last_name: str | None = None,
+        username: str | None = None,
+        language_code: str | None = None,
+    ) -> dict[str, Any]:
+        """Complete a pending Telegram magic-link session in the backend."""
+        payload: dict[str, Any] = {
+            "token": token,
+            "id": str(telegram_id),
+            "first_name": first_name,
+        }
+        if last_name is not None:
+            payload["last_name"] = last_name
+        if username is not None:
+            payload["username"] = username
+        if language_code is not None:
+            payload["language_code"] = language_code
+
+        return await self._request_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
 
     # ── Subscriptions ────────────────────────────────────────────────
 

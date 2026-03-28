@@ -7,10 +7,12 @@ Security improvements:
 - Provider enum validation (HIGH-7)
 """
 
+import json
 import logging
+import uuid
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -30,6 +32,7 @@ from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.oauth.twitter import TwitterOAuthProvider
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
+from src.presentation.api.v1.auth.cookies import set_auth_cookies
 from src.presentation.api.v1.oauth.schemas import (
     GitHubCallbackRequest,
     OAuthAuthorizeResponse,
@@ -39,6 +42,8 @@ from src.presentation.api.v1.oauth.schemas import (
     OAuthLoginUserResponse,
     OAuthProvider,
     TelegramCallbackRequest,
+    TelegramMagicLinkCompleteRequest,
+    TelegramMagicLinkCompleteResponse,
     TelegramMagicLinkResponse,
     TelegramMagicLinkStatusResponse,
 )
@@ -67,6 +72,20 @@ def _get_client_ip(request: Request) -> str:
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+def _get_magic_link_key(token: str) -> str:
+    return f"auth_magic_link:{token}"
+
+
+def _build_magic_link_user_info(payload: TelegramMagicLinkCompleteRequest) -> dict[str, str | None]:
+    return {
+        "id": payload.id,
+        "first_name": payload.first_name,
+        "last_name": payload.last_name,
+        "username": payload.username,
+        "language_code": payload.language_code,
+    }
 
 
 @router.get("/telegram/authorize", response_model=OAuthAuthorizeResponse)
@@ -204,28 +223,86 @@ async def telegram_callback(
     )
 
 
-import uuid
-import json
-
 @router.get("/telegram/magic-link", response_model=TelegramMagicLinkResponse)
 async def create_telegram_magic_link(
     redis_client: redis.Redis = Depends(get_redis),
 ) -> TelegramMagicLinkResponse:
     """Create a new Deep Link (Magic Link) session for seamless Telegram login."""
     token = str(uuid.uuid4())
-    # Save the pending token for 5 minutes (300 seconds)
-    await redis_client.setex(f"auth_magic_link:{token}", 300, "pending")
-    
+
     provider = TelegramOAuthProvider()
     bot_username = provider.bot_username
-    bot_url = f"tg://resolve?domain={bot_username}&start=auth_{token}"
-    
-    return TelegramMagicLinkResponse(token=token, bot_url=bot_url)
+    if not bot_username:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Telegram bot is not configured.",
+        )
+
+    await redis_client.setex(_get_magic_link_key(token), 300, "pending")
+
+    bot_url = f"https://t.me/{bot_username}?start=auth_{token}"
+    deep_link_url = f"tg://resolve?domain={bot_username}&start=auth_{token}"
+
+    return TelegramMagicLinkResponse(
+        token=token,
+        bot_url=bot_url,
+        deep_link_url=deep_link_url,
+    )
+
+
+@router.post("/telegram/magic-link/complete", response_model=TelegramMagicLinkCompleteResponse)
+async def complete_telegram_magic_link(
+    payload: TelegramMagicLinkCompleteRequest,
+    redis_client: redis.Redis = Depends(get_redis),
+    _current_user: AdminUserModel = Depends(get_current_active_user),
+) -> TelegramMagicLinkCompleteResponse:
+    """Accept trusted Telegram bot data for a pending magic-link session."""
+    redis_key = _get_magic_link_key(payload.token)
+    current_status = await redis_client.get(redis_key)
+
+    if current_status is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Magic link session expired or not found.",
+        )
+
+    if current_status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Magic link session has already been completed.",
+        )
+
+    ttl_seconds = await redis_client.ttl(redis_key)
+    if ttl_seconds <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Magic link session expired or not found.",
+        )
+
+    stored = await redis_client.set(
+        redis_key,
+        json.dumps(_build_magic_link_user_info(payload)),
+        ex=ttl_seconds,
+        xx=True,
+    )
+    if not stored:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Magic link session expired or not found.",
+        )
+
+    logger.info(
+        "Telegram Magic Link session confirmed",
+        extra={"telegram_id": payload.id},
+    )
+
+    return TelegramMagicLinkCompleteResponse(status="accepted")
 
 
 @router.get("/telegram/magic-link/{token}/status", response_model=TelegramMagicLinkStatusResponse)
 async def check_telegram_magic_link_status(
     request: Request,
+    response: Response,
     token: str,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
@@ -233,20 +310,29 @@ async def check_telegram_magic_link_status(
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMagicLinkStatusResponse:
     """Poll the status of the Magic Link login session."""
-    raw_status = await redis_client.get(f"auth_magic_link:{token}")
+    redis_key = _get_magic_link_key(token)
+    raw_status = await redis_client.get(redis_key)
     if not raw_status:
         return TelegramMagicLinkStatusResponse(status="expired")
-    
+
     status_str = raw_status.decode("utf-8") if isinstance(raw_status, bytes) else raw_status
     if status_str == "pending":
         return TelegramMagicLinkStatusResponse(status="pending")
-    
-    try:
-        user_info = json.loads(status_str)
-    except Exception as e:
-        logger.error(f"Failed to parse magic link status: {e}")
+
+    consumed_status = await redis_client.getdel(redis_key)
+    if not consumed_status:
         return TelegramMagicLinkStatusResponse(status="expired")
-    
+
+    consumed_status_str = consumed_status.decode("utf-8") if isinstance(consumed_status, bytes) else consumed_status
+    if consumed_status_str == "pending":
+        return TelegramMagicLinkStatusResponse(status="pending")
+
+    try:
+        user_info = json.loads(consumed_status_str)
+    except json.JSONDecodeError:
+        logger.exception("Failed to parse Telegram Magic Link payload")
+        return TelegramMagicLinkStatusResponse(status="expired")
+
     user_repo = AdminUserRepository(db)
     oauth_repo = OAuthAccountRepository(db)
     use_case = OAuthLoginUseCase(
@@ -256,7 +342,7 @@ async def check_telegram_magic_link_status(
         session=db,
         remnawave_gateway=remnawave_adapter,
     )
-    
+
     try:
         result = await use_case.execute(
             provider="telegram",
@@ -268,8 +354,6 @@ async def check_telegram_magic_link_status(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         )
-
-    await redis_client.delete(f"auth_magic_link:{token}")
 
     logger.info(
         "Telegram Magic Link login completed",
@@ -289,7 +373,10 @@ async def check_telegram_magic_link_status(
         requires_2fa=result.requires_2fa,
         tfa_token=result.tfa_token,
     )
-    
+
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
+
     return TelegramMagicLinkStatusResponse(status="completed", login_result=login_result)
 
 
@@ -428,6 +515,7 @@ async def oauth_login_callback(
     provider: OAuthProvider,
     callback_data: OAuthLoginCallbackRequest,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
@@ -509,6 +597,9 @@ async def oauth_login_callback(
             "is_new_user": result.is_new_user,
         },
     )
+
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return OAuthLoginResponse(
         access_token=result.access_token,

@@ -142,6 +142,7 @@ export interface TelegramMiniAppResponse {
 export interface TelegramMagicLinkResponse {
   token: string;
   bot_url: string;
+  deep_link_url?: string;
 }
 
 export interface TelegramMagicLinkStatusResponse {

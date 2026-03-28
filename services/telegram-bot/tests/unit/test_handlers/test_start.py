@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import respx
 from aiogram.types import Message, User
+
+from src.handlers.start import _get_start_payload, start_handler
 
 if TYPE_CHECKING:
     from src.config import BotSettings
@@ -38,9 +41,7 @@ class TestStartHandler:
 
         # Mock API response
         with respx.mock:
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(
+            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
                 return_value=respx.MockResponse(
                     200,
                     json={
@@ -51,24 +52,12 @@ class TestStartHandler:
                 )
             )
 
-            # Simulate handler logic
-            user_data = {
-                "telegram_id": user.id,
-                "username": user.username,
-                "first_name": user.first_name,
-                "language_code": user.language_code or "en",
-            }
-
             # Handler would register user
-            result = await mock_api_client.register_user(
-                telegram_id=user.id, username=user.username, language="en"
-            )
+            result = await mock_api_client.register_user(telegram_id=user.id, username=user.username, language="en")
 
             assert result["telegram_id"] == 123456
 
-    async def test_start_with_referral_link(
-        self, mock_api_client: CyberVPNAPIClient
-    ) -> None:
+    async def test_start_with_referral_link(self, mock_api_client: CyberVPNAPIClient) -> None:
         """Test /start with referral deep link (ref_)."""
         user = User(
             id=999999,
@@ -87,20 +76,14 @@ class TestStartHandler:
         referrer_id = None
 
         if deep_link.startswith("ref_"):
-            try:
+            with suppress(ValueError):
                 referrer_id = int(deep_link[4:])
-            except ValueError:
-                pass
 
         assert referrer_id == 12345
 
-    async def test_start_with_promo_link(
-        self, mock_api_client: CyberVPNAPIClient
-    ) -> None:
+    async def test_start_with_promo_link(self, mock_api_client: CyberVPNAPIClient) -> None:
         """Test /start with promo deep link (promo_)."""
-        user = User(
-            id=888888, is_bot=False, first_name="User", username="user"
-        )
+        user = User(id=888888, is_bot=False, first_name="User", username="user")
 
         message = MagicMock(spec=Message)
         message.from_user = user
@@ -115,6 +98,55 @@ class TestStartHandler:
             promo_code = deep_link[6:]
 
         assert promo_code == "SUMMER2024"
+
+    async def test_start_with_magic_link_completes_backend_session(self, mock_simple_api_client) -> None:
+        """Test /start auth_ deep link completes backend magic-link session."""
+        telegram_user = User(
+            id=424242,
+            is_bot=False,
+            first_name="Alice",
+            last_name="Doe",
+            username="alice",
+            language_code="en",
+        )
+
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = "auth_magic_token_123"
+
+        i18n = MagicMock()
+        i18n.side_effect = lambda key: key
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            user={"status": "active"},
+        )
+
+        mock_simple_api_client.complete_telegram_magic_link.assert_awaited_once_with(
+            token="magic_token_123",
+            telegram_id=424242,
+            first_name="Alice",
+            last_name="Doe",
+            username="alice",
+            language_code="en",
+        )
+
+    async def test_get_start_payload_falls_back_to_raw_message_text(self) -> None:
+        """Test payload extraction from raw /start message when CommandObject args are empty."""
+        message = MagicMock(spec=Message)
+        message.text = "/start auth_magic_token_123"
+
+        command = MagicMock()
+        command.args = None
+
+        assert _get_start_payload(message, command) == "auth_magic_token_123"
 
     async def test_start_invalid_referral_link(self) -> None:
         """Test /start with invalid referral ID."""
@@ -164,9 +196,7 @@ class TestStartHandler:
         call_args = message.answer.call_args[0][0]
         assert "12345" in call_args
 
-    async def test_start_registration_failure(
-        self, mock_api_client: CyberVPNAPIClient
-    ) -> None:
+    async def test_start_registration_failure(self, mock_api_client: CyberVPNAPIClient) -> None:
         """Test /start when registration fails."""
         user = User(id=777, is_bot=False, first_name="Test")
 
@@ -176,12 +206,8 @@ class TestStartHandler:
 
         with respx.mock:
             # Registration fails
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(
-                return_value=respx.MockResponse(
-                    500, json={"detail": "Server error"}
-                )
+            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+                return_value=respx.MockResponse(500, json={"detail": "Server error"})
             )
 
             # Should handle error gracefully
@@ -198,9 +224,7 @@ class TestStartHandler:
             # Should have sent error message
             assert message.answer.called
 
-    async def test_start_promo_activation(
-        self, mock_api_client: CyberVPNAPIClient
-    ) -> None:
+    async def test_start_promo_activation(self, mock_api_client: CyberVPNAPIClient) -> None:
         """Test automatic promo code activation on start."""
         user = User(id=555, is_bot=False, first_name="User")
 
@@ -223,16 +247,12 @@ class TestStartHandler:
         message.answer = AsyncMock()
 
         # Simulate creating keyboard
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        from aiogram.types import InlineKeyboardButton
         from aiogram.utils.keyboard import InlineKeyboardBuilder
 
         builder = InlineKeyboardBuilder()
-        builder.add(
-            InlineKeyboardButton(text="My Subscription", callback_data="my_sub")
-        )
-        builder.add(
-            InlineKeyboardButton(text="Buy Plan", callback_data="buy_plan")
-        )
+        builder.add(InlineKeyboardButton(text="My Subscription", callback_data="my_sub"))
+        builder.add(InlineKeyboardButton(text="Buy Plan", callback_data="buy_plan"))
         keyboard = builder.as_markup()
 
         await message.answer("Welcome!", reply_markup=keyboard)
@@ -241,9 +261,7 @@ class TestStartHandler:
         call_kwargs = message.answer.call_args[1]
         assert "reply_markup" in call_kwargs
 
-    async def test_start_multiple_times_same_user(
-        self, mock_api_client: CyberVPNAPIClient
-    ) -> None:
+    async def test_start_multiple_times_same_user(self, mock_api_client: CyberVPNAPIClient) -> None:
         """Test that /start can be called multiple times."""
         user = User(id=111, is_bot=False, first_name="Test")
 
@@ -254,17 +272,11 @@ class TestStartHandler:
 
         with respx.mock:
             # First time: creates user
-            respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
-            ).mock(
-                return_value=respx.MockResponse(
-                    200, json={"telegram_id": 111}
-                )
+            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+                return_value=respx.MockResponse(200, json={"telegram_id": 111})
             )
 
-            await mock_api_client.register_user(
-                telegram_id=111, username="test", language="en"
-            )
+            await mock_api_client.register_user(telegram_id=111, username="test", language="en")
 
         # Second /start should still work (updates user)
         message.text = "/start"

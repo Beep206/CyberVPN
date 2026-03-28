@@ -2,8 +2,19 @@ import { create } from 'zustand';
 import { authApi, type User, type TelegramWidgetData, type OAuthProvider, type OAuthLoginResponse } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { authAnalytics } from '@/lib/analytics';
+import {
+  clearTelegramMagicLinkSession,
+  saveTelegramMagicLinkSession,
+} from '@/features/auth/lib/telegram-magic-link-session';
 
 let fetchUserInFlight: Promise<void> | null = null;
+
+function getLocalePrefix(): string {
+  if (typeof window === 'undefined') return '/en-EN';
+
+  const match = window.location.pathname.match(/^\/([a-z]{2,3}-[A-Z]{2})(?:\/|$)/);
+  return match ? `/${match[1]}` : '/en-EN';
+}
 
 interface AuthState {
   user: User | null;
@@ -284,59 +295,22 @@ export const useAuthStore = create<AuthState>()(
         authAnalytics.telegramStarted();
         set({ isLoading: true, error: null });
         try {
+          clearTelegramMagicLinkSession();
           const { data } = await authApi.requestTelegramMagicLink();
-          
-          // Open Telegram
-          window.location.href = data.bot_url;
-          
-          // Start polling
-          return new Promise<void>((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 150; // 5 minutes (2s * 150)
-            
-            const poll = setInterval(async () => {
-              attempts++;
-              try {
-                const { data: statusData } = await authApi.pollTelegramMagicLinkStatus(data.token);
-                
-                if (statusData.status === 'completed' && statusData.login_result) {
-                  clearInterval(poll);
-                  const result = statusData.login_result;
-                  
-                  // SEC-01: Backend sets httpOnly cookies. Just set React state.
-                  set({
-                    user: {
-                      id: result.user.id,
-                      email: result.user.email || '',
-                      login: result.user.login,
-                      is_active: result.user.is_active,
-                      is_email_verified: result.user.is_email_verified,
-                      role: 'viewer', // default or use actual
-                      created_at: result.user.created_at,
-                    },
-                    isAuthenticated: true,
-                    isLoading: false,
-                    isNewTelegramUser: result.is_new_user,
-                  });
-                  authAnalytics.telegramSuccess(result.user.id);
-                  resolve();
-                } else if (statusData.status === 'expired' || attempts >= maxAttempts) {
-                  clearInterval(poll);
-                  set({ error: 'Magic link expired or timed out', isLoading: false });
-                  authAnalytics.telegramError('Timeout');
-                  reject(new Error('Timeout'));
-                }
-              } catch (error: unknown) {
-                // Continue polling on network errors until maxAttempts
-                if (attempts >= maxAttempts) {
-                  clearInterval(poll);
-                  set({ error: 'Failed to poll status', isLoading: false });
-                  reject(error);
-                }
-              }
-            }, 2000);
+
+          saveTelegramMagicLinkSession({
+            token: data.token,
+            botUrl: data.bot_url,
+            deepLinkUrl: data.deep_link_url,
+            requestedAt: Date.now(),
           });
+
+          window.open(data.deep_link_url ?? data.bot_url, '_blank', 'noopener,noreferrer');
+
+          set({ isLoading: false });
+          window.location.href = `${getLocalePrefix()}/telegram-link`;
         } catch (error: unknown) {
+          clearTelegramMagicLinkSession();
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Failed to start Magic Link auth';
           authAnalytics.telegramError(message);

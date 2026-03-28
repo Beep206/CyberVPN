@@ -9,10 +9,9 @@
  * by the global test setup in src/test/setup.ts.
  *
  * NOTE: The apiClient response interceptor converts 401 responses (except on
- * /auth/me) into a token-refresh flow. When no refresh token is stored the
- * interceptor throws Error('No refresh token') and redirects window.location.
- * Tests must reset window.location.href after each test to prevent subsequent
- * requests from failing with "Invalid URL".
+ * /auth/me) into a cookie-based refresh flow. Failed refresh attempts bubble
+ * up as the refresh endpoint's 401 response, and auth tokens are not stored in
+ * localStorage anymore.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -77,12 +76,12 @@ describe('authApi.login', () => {
   it('test_login_invalid_credentials_rejects_with_error', async () => {
     // Arrange
     // The MSW handler returns 401 for wrong password. The apiClient 401
-    // interceptor then tries to refresh but finds no refresh token in
-    // localStorage and throws Error('No refresh token').
+    // interceptor then tries cookie-based refresh, which also returns 401 in
+    // the test environment.
     const credentials = { email: 'testuser@cybervpn.io', password: 'wrong_password' };
 
     // Act & Assert
-    await expect(authApi.login(credentials)).rejects.toThrow('No refresh token');
+    await expect(authApi.login(credentials)).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_login_invalid_credentials_with_refresh_token_retries_and_gets_401', async () => {
@@ -573,8 +572,8 @@ describe('authApi.verifyMagicLink', () => {
 // ===========================================================================
 
 describe('authApi request interceptor', () => {
-  it('test_request_includes_authorization_header_when_token_stored', async () => {
-    // Arrange -- store a token so the interceptor injects it
+  it('test_request_ignores_legacy_localstorage_tokens_for_authorization_header', async () => {
+    // Arrange -- SEC-01: localStorage tokens no longer drive auth headers
     localStorage.setItem('access_token', 'my_jwt_token');
 
     let capturedAuthHeader: string | undefined;
@@ -589,7 +588,7 @@ describe('authApi request interceptor', () => {
     await authApi.me();
 
     // Assert
-    expect(capturedAuthHeader).toBe('Bearer my_jwt_token');
+    expect(capturedAuthHeader).toBeUndefined();
   });
 
   it('test_request_omits_authorization_header_when_no_token', async () => {
@@ -701,16 +700,16 @@ describe('apiClient 401 interceptor', () => {
     }
   });
 
-  it('test_401_without_refresh_token_throws_no_refresh_token', async () => {
-    // Arrange -- no refresh token in localStorage; call a non-/auth/me endpoint
+  it('test_401_without_cookie_refresh_bubbles_refresh_401', async () => {
+    // Arrange -- call a non-/auth/me endpoint; refresh also fails with 401
     server.use(
       http.post(`${API_BASE}/auth/logout`, () => {
         return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
       }),
     );
 
-    // Act & Assert -- interceptor finds no refresh token
-    await expect(authApi.logout()).rejects.toThrow('No refresh token');
+    // Act & Assert
+    await expect(authApi.logout()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_401_with_refresh_token_retries_original_request', async () => {
@@ -737,9 +736,9 @@ describe('apiClient 401 interceptor', () => {
     expect(callCount).toBe(2);
     expect(response.status).toBe(200);
     expect(response.data.message).toBe('Logged out successfully');
-    // The interceptor should have stored the new tokens from the refresh
-    expect(tokenStorage.getAccessToken()).toBe('mock_refreshed_access_token');
-    expect(tokenStorage.getRefreshToken()).toBe('mock_refreshed_refresh_token');
+    // SEC-01: tokens remain in httpOnly cookies, legacy storage stays empty
+    expect(tokenStorage.getAccessToken()).toBeNull();
+    expect(tokenStorage.getRefreshToken()).toBeNull();
   });
 });
 
@@ -771,8 +770,7 @@ describe('authApi.telegramWidget', () => {
   });
 
   it('test_telegram_widget_invalid_hash_rejects', async () => {
-    // Arrange -- 'invalid_hash' triggers 401 in the handler. The 401
-    // interceptor then tries to refresh but finds no refresh token.
+    // Arrange -- 'invalid_hash' triggers 401 and refresh also fails.
     const data = {
       id: 123456,
       first_name: 'Test',
@@ -781,7 +779,7 @@ describe('authApi.telegramWidget', () => {
     };
 
     // Act & Assert
-    await expect(authApi.telegramWidget(data)).rejects.toThrow('No refresh token');
+    await expect(authApi.telegramWidget(data)).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_telegram_widget_invalid_hash_with_refresh_token_gets_401', async () => {
@@ -932,9 +930,8 @@ describe('authApi.telegramMiniApp', () => {
   });
 
   it('test_telegram_miniapp_invalid_data_rejects', async () => {
-    // Arrange -- 'invalid_init_data' triggers 401 in the handler.
-    // The 401 interceptor tries to refresh but finds no refresh token.
-    await expect(authApi.telegramMiniApp('invalid_init_data')).rejects.toThrow('No refresh token');
+    // Arrange -- 'invalid_init_data' triggers 401 and refresh also fails.
+    await expect(authApi.telegramMiniApp('invalid_init_data')).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_telegram_miniapp_empty_string_rejects_with_422', async () => {
@@ -1350,10 +1347,10 @@ describe('authApi.telegramLinkAuthorize', () => {
       }),
     );
 
-    // Act & Assert -- the 401 interceptor will try to refresh, fail with no token
+    // Act & Assert -- the 401 interceptor will try to refresh and bubble the 401
     await expect(
       authApi.telegramLinkAuthorize('https://cybervpn.io/link'),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_telegram_link_authorize_server_error_500_rejects', async () => {
@@ -1507,6 +1504,65 @@ describe('authApi.telegramLinkCallback', () => {
 });
 
 // ===========================================================================
+// authApi.requestTelegramMagicLink
+// ===========================================================================
+
+describe('authApi.requestTelegramMagicLink', () => {
+  it('test_request_telegram_magic_link_returns_bot_urls_and_token', async () => {
+    const response = await authApi.requestTelegramMagicLink();
+
+    expect(response.status).toBe(200);
+    expect(response.data.token).toBe('magic_link_token_123');
+    expect(response.data.bot_url).toContain('https://t.me/');
+    expect(response.data.deep_link_url).toContain('tg://resolve');
+  });
+
+  it('test_request_telegram_magic_link_server_error_500_rejects', async () => {
+    server.use(
+      http.get(`${API_BASE}/oauth/telegram/magic-link`, () => {
+        return HttpResponse.json(
+          { detail: 'Telegram bot unavailable' },
+          { status: 500 },
+        );
+      }),
+    );
+
+    try {
+      await authApi.requestTelegramMagicLink();
+      expect.fail('Expected 500 error');
+    } catch (error: unknown) {
+      expect(isAxiosError(error)).toBe(true);
+      if (isAxiosError(error)) {
+        expect(error.response?.status).toBe(500);
+        expect(error.response?.data.detail).toBe('Telegram bot unavailable');
+      }
+    }
+  });
+});
+
+// ===========================================================================
+// authApi.pollTelegramMagicLinkStatus
+// ===========================================================================
+
+describe('authApi.pollTelegramMagicLinkStatus', () => {
+  it('test_poll_telegram_magic_link_status_returns_completed_login_result', async () => {
+    const response = await authApi.pollTelegramMagicLinkStatus('magic_link_token_123');
+
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe('completed');
+    expect(response.data.login_result?.user.id).toBe(MOCK_USER.id);
+  });
+
+  it('test_poll_telegram_magic_link_status_returns_expired_status', async () => {
+    const response = await authApi.pollTelegramMagicLinkStatus('expired_magic_link_token');
+
+    expect(response.status).toBe(200);
+    expect(response.data.status).toBe('expired');
+    expect(response.data.login_result).toBeUndefined();
+  });
+});
+
+// ===========================================================================
 // authApi.unlinkProvider
 // ===========================================================================
 
@@ -1556,8 +1612,7 @@ describe('authApi.unlinkProvider', () => {
   });
 
   it('test_unlink_provider_unauthenticated_rejects', async () => {
-    // Arrange -- override to return 401. The 401 interceptor will try
-    // to refresh but find no refresh token.
+    // Arrange -- override to return 401. The refresh attempt also returns 401.
     server.use(
       http.delete(`${API_BASE}/oauth/:provider`, () => {
         return HttpResponse.json(
@@ -1568,7 +1623,7 @@ describe('authApi.unlinkProvider', () => {
     );
 
     // Act & Assert
-    await expect(authApi.unlinkProvider('telegram')).rejects.toThrow('No refresh token');
+    await expect(authApi.unlinkProvider('telegram')).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_unlink_provider_rate_limited_rejects_with_rate_limit_error', async () => {

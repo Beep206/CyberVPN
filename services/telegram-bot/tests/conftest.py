@@ -261,6 +261,7 @@ class MockCyberVPNAPIClient:
         self.ban_user = AsyncMock(return_value={})
         self.unban_user = AsyncMock(return_value={})
         self.send_admin_message = AsyncMock(return_value={})
+        self.complete_telegram_magic_link = AsyncMock(return_value={"status": "accepted"})
 
         # Payment operations (legacy/test-specific methods)
         self.create_payment = AsyncMock(return_value={})

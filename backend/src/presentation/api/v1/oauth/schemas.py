@@ -103,10 +103,35 @@ class TelegramMagicLinkResponse(BaseModel):
 
     token: str = Field(..., description="Unique magic link session token")
     bot_url: str = Field(..., description="URL to open Telegram bot with the start parameter")
+    deep_link_url: str | None = Field(
+        default=None,
+        description="Native Telegram deep link for devices with the Telegram app installed",
+    )
+
+
+class TelegramMagicLinkCompleteRequest(BaseModel):
+    """Trusted Telegram bot payload used to complete a magic-link session."""
+
+    id: str = Field(..., description="Telegram user ID")
+    token: str = Field(..., description="Magic link session token")
+    first_name: str = Field(..., description="Telegram first name")
+    last_name: str | None = Field(default=None, description="Telegram last name")
+    username: str | None = Field(default=None, description="Telegram username")
+    language_code: str | None = Field(default=None, description="Telegram language code")
+
+
+class TelegramMagicLinkCompleteResponse(BaseModel):
+    """Response returned after the bot confirms a magic-link session."""
+
+    status: Literal["accepted"] = Field(..., description="Magic link completion status")
 
 
 class TelegramMagicLinkStatusResponse(BaseModel):
     """Status polling response for Telegram Magic Link."""
 
-    status: Literal["pending", "completed", "expired"] = Field(..., description="Current status of the magic link session")
-    login_result: OAuthLoginResponse | None = Field(default=None, description="Populated with login tokens if status is completed")
+    status: Literal["pending", "completed", "expired"] = Field(
+        ..., description="Current status of the magic link session"
+    )
+    login_result: OAuthLoginResponse | None = Field(
+        default=None, description="Populated with login tokens if status is completed"
+    )
