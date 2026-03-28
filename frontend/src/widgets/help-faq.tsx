@@ -7,8 +7,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TerminalSquare, Cpu, Lock, Fingerprint, RefreshCcw } from 'lucide-react';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 
-const QA_COUNT = 4;
-
 // Helper icons map
 const ICONS = [Cpu, Lock, Fingerprint, TerminalSquare];
 

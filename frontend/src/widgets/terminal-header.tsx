@@ -11,7 +11,6 @@ import { QRCodeDropdown } from "@/features/header/qr-code-dropdown";
 import { UserMenu } from "@/features/header/user-menu";
 import { MagneticButton } from "@/shared/ui/magnetic-button";
 import { useAuthStore } from '@/stores/auth-store';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function TerminalHeader() {

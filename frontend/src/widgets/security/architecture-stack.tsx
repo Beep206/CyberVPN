@@ -32,7 +32,7 @@ export function ArchitectureStack({ activeLayer, setActiveLayer }: Props) {
             </div>
 
             <div className="flex-1 flex flex-col justify-center gap-4">
-                {LAYERS.map(({ id, icon: Icon }, index) => {
+                {LAYERS.map(({ id, icon: Icon }) => {
                     const isActive = activeLayer === id;
 
                     return (

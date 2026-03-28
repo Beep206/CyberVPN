@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import { Copy, Check, Terminal } from 'lucide-react';

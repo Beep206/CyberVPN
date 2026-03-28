@@ -10,7 +10,6 @@ import {
     Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { useAuthStore } from '@/stores/auth-store';

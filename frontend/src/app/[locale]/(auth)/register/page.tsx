@@ -24,7 +24,7 @@ export default function RegisterPage() {
     const router = useRouter();
     const locale = useLocale();
 
-    const { register, login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+    const { register, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
     const isRateLimited = useIsRateLimited();
 
     const [usernameOnly, setUsernameOnly] = useState(false);

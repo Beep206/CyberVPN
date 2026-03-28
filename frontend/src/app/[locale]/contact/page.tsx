@@ -3,8 +3,7 @@ import { ContactForm } from '@/widgets/contact-form';
 import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
+export async function generateMetadata() {
     const t = await getTranslations({ locale, namespace: 'Contact' });
 
     return {
@@ -13,9 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Contact' });
+export default function ContactPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background">

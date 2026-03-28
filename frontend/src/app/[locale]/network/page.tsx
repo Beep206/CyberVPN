@@ -3,8 +3,7 @@ import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 import { NetworkDashboard } from '@/widgets/servers/network-dashboard';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
+export async function generateMetadata() {
     const t = await getTranslations({ locale, namespace: 'Network' });
     
     return {
@@ -13,9 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default async function ServersPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Network' });
+export default function ServersPage() {
 
     return (
         <main className="min-h-screen bg-black text-terminal-text selection:bg-neon-cyan/30 flex flex-col font-mono overflow-x-hidden">

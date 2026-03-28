@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { Server, Zap, Shield, Globe2, ChevronRight } from 'lucide-react';
+import { Globe2, ChevronRight } from 'lucide-react';
 
 interface ServerLocationsListProps {
     activeNodeId: string | null;
@@ -22,7 +22,7 @@ export function ServerLocationsList({ activeNodeId, setActiveNodeId }: ServerLoc
 
     return (
         <div className="w-full flex flex-col gap-6">
-            {Object.entries(REGION_MAP).map(([regionKey, serverIds], rIdx) => (
+            {Object.entries(REGION_MAP).map(([regionKey, serverIds], regionIndex) => (
                 <div key={regionKey} className="flex flex-col gap-2">
                     <h3 className="font-display text-sm font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Globe2 className="w-4 h-4 text-neon-cyan/50" />
@@ -30,7 +30,7 @@ export function ServerLocationsList({ activeNodeId, setActiveNodeId }: ServerLoc
                     </h3>
                     
                     <div className="flex flex-col gap-2">
-                        {serverIds.map((id, sIdx) => {
+                        {serverIds.map((id, serverIndex) => {
                             const isActive = activeNodeId === id;
                             
                             return (
@@ -38,7 +38,7 @@ export function ServerLocationsList({ activeNodeId, setActiveNodeId }: ServerLoc
                                     key={id}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.4, delay: rIdx * 0.1 + sIdx * 0.05 }}
+                                    transition={{ duration: 0.4, delay: regionIndex * 0.1 + serverIndex * 0.05 }}
                                     onMouseEnter={() => setActiveNodeId(id)}
                                     className={cn(
                                         "relative w-full text-left p-4 rounded-lg border transition-all duration-300 group overflow-hidden flex items-center justify-between",

@@ -2,23 +2,15 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { Terminal as TerminalIcon, ShieldAlert, CheckCircle2, ChevronRight, Send, RefreshCw } from 'lucide-react';
+import { Terminal as TerminalIcon, ShieldAlert, CheckCircle2, Send, RefreshCw } from 'lucide-react';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import { createDeterministicRandom } from '@/3d/lib/seeded-random';
 
 type FormStep = 'department' | 'email' | 'message' | 'encrypting' | 'success';
 
 export function ContactTerminal({ terminalName }: { terminalName: string }) {
-    const t = useTranslations('Contact');
-    
     const [step, setStep] = useState<FormStep>('department');
     const [history, setHistory] = useState<{ query: string; answer: string }[]>([]);
-    
-    // Form State
-    const [department, setDepartment] = useState('');
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
     
     // UI State
     const [inputValue, setInputValue] = useState('');
@@ -68,7 +60,6 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
             
             if (validDepartments.includes(mappedValue)) {
                 setHistory([...history, { query: 'Select department (support/sales/press):', answer: value }]);
-                setDepartment(mappedValue);
                 setStep('email');
             } else {
                 setHistory([...history, { query: 'Select department (support/sales/press):', answer: `${value} - [ERROR] Invalid Selection` }]);
@@ -79,7 +70,6 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
         if (step === 'email') {
             if (value.includes('@') && value.includes('.')) {
                 setHistory([...history, { query: 'Provide identification (Email):', answer: value }]);
-                setEmail(value);
                 setStep('message');
             } else {
                 setHistory([...history, { query: 'Provide identification (Email):', answer: `${value} - [ERROR] Invalid Format` }]);
@@ -89,7 +79,6 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
 
         if (step === 'message') {
             setHistory([...history, { query: 'Enter transmission data (Message):', answer: value }]);
-            setMessage(value);
             setStep('encrypting');
             startEncryption();
             return;
@@ -112,9 +101,6 @@ export function ContactTerminal({ terminalName }: { terminalName: string }) {
     const resetTerminal = () => {
         setStep('department');
         setHistory([]);
-        setDepartment('');
-        setEmail('');
-        setMessage('');
         setEncryptionProgress(0);
     };
 

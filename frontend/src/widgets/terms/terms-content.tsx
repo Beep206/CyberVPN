@@ -73,6 +73,7 @@ export function TermsContent({
 }) {
     const t = useTranslations('Terms');
     const containerRef = useRef<HTMLDivElement>(null);
+    void isAccepted;
 
     // Scroll spy logic
     useEffect(() => {

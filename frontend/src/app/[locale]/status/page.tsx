@@ -3,8 +3,7 @@ import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
 import { StatusDashboard } from '@/widgets/status/status-dashboard';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
+export async function generateMetadata() {
     const t = await getTranslations({ locale, namespace: 'Status' });
 
     return {
@@ -13,9 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default async function StatusPage({ params }: { params: Promise<{ locale: string }> }) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Status' });
+export default function StatusPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background relative overflow-hidden">
