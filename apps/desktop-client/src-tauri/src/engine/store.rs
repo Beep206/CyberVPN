@@ -1,6 +1,6 @@
 use crate::engine::error::AppError;
 use crate::engine::sys::net_monitor::NetworkProfile;
-use crate::ipc::models::{ProxyNode, RoutingRule, Subscription};
+use crate::ipc::models::ProxyNode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;

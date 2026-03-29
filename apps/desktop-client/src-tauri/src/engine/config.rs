@@ -282,6 +282,7 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>, stealth_mo
 /// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow", false, false, "disabled", None);
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
+#[allow(clippy::too_many_arguments)]
 pub fn generate_singbox_config(
     proxy: &ProxyNode,
     all_nodes: &[ProxyNode],

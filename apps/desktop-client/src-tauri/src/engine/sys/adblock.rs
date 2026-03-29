@@ -40,10 +40,8 @@ pub async fn download_blocklists(app_handle: &AppHandle, level: &str) -> Result<
                 // Hosts file format typically: 0.0.0.0 domain.com
                 let mut parts = trimmed.split_whitespace();
                 if let (Some(ip), Some(domain)) = (parts.next(), parts.next()) {
-                    if ip == "0.0.0.0" || ip == "127.0.0.1" {
-                        if domain != "0.0.0.0" && domain != "localhost" && domain != "127.0.0.1" && domain != "broadcasthost" {
-                            local_set.insert(domain.to_string());
-                        }
+                    if (ip == "0.0.0.0" || ip == "127.0.0.1") && domain != "0.0.0.0" && domain != "localhost" && domain != "127.0.0.1" && domain != "broadcasthost" {
+                        local_set.insert(domain.to_string());
                     }
                 }
             }
