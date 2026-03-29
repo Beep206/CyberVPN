@@ -4,9 +4,10 @@ import * as THREE from 'three';
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text, PerformanceMonitor, Line, Float, CameraControls } from '@react-three/drei';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { ActiveEndpoint, EndpointCategory } from '@/widgets/api/api-dashboard';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 type NodeCategory = 'client' | 'gateway' | 'auth' | 'servers' | 'db';
 type NodeId = 'client' | 'apiGate' | 'auth' | 'generateToken' | 'servers' | 'listServers' | 'connect' | 'dbAuth' | 'dbServers';
@@ -286,10 +287,10 @@ function SceneContent({ activePath, activeEndpoint }: { activePath: NodeId[], ac
                 <gridHelper args={[40, 40, activeColor, '#111122']} position={[0, -4, 0]} material-transparent material-opacity={0.15} />
             </group>
             
-            <EffectComposer enableNormalPass={false} multisampling={0}>
+            <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                 <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
                 <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} radialModulation={false} modulationOffset={0} />
-            </EffectComposer>
+            </SafeEffectComposer>
         </group>
     );
 }

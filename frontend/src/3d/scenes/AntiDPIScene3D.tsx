@@ -5,9 +5,10 @@ import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
-import { EffectComposer, Bloom, Noise } from '@react-three/postprocessing';
+import { Bloom, Noise } from '@react-three/postprocessing';
 import '@/3d/shaders/AntiDPIShader';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 const SCANNER_POS = 0.0;
 const BOUND_MIN_X = -5.0;
@@ -151,10 +152,10 @@ export default function AntiDPIScene3D() {
                 <InstancedPackets count={800} />
                 <ScannerAndShield />
 
-                <EffectComposer multisampling={0}>
+                <SafeEffectComposer multisampling={0}>
                     <Bloom luminanceThreshold={0.2} intensity={1.2} radius={0.4} />
                     <Noise opacity={0.05} />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

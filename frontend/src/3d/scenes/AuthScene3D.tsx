@@ -6,9 +6,9 @@ const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
-import { useInView } from 'motion/react';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 // Create global static geometries to prevent GC stutters during renders
 const SHIELD_SHAPE = new THREE.Shape();
@@ -318,7 +318,7 @@ function AuthSceneContent() {
             <GlowingOrb color="#9d00ff" startPosition={[-3, -1, -1]} />
             <GlowingOrb color="#00ff88" startPosition={[0, -2, -2]} />
 
-            <EffectComposer enableNormalPass={false} multisampling={0}>
+            <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                 <Bloom
                     luminanceThreshold={0.4}
                     mipmapBlur
@@ -331,7 +331,7 @@ function AuthSceneContent() {
                     radialModulation={false}
                     modulationOffset={0}
                 />
-            </EffectComposer>
+            </SafeEffectComposer>
         </>
     );
 }
@@ -346,21 +346,17 @@ import { usePathname } from 'next/navigation';
 // ============================================
 export function AuthScene3D() {
     const pathname = usePathname();
-    const containerRef = useRef<HTMLDivElement>(null);
-    const isInView = useInView(containerRef, { margin: "100px" });
     const [dpr, setDpr] = useState(1);
 
-    // Use locale from pathname as key to prevent R3F/WebGL context recreation on auth navigation, 
-    // but still fix "Cannot read properties of null" errors when actually switching languages
-    const locale = pathname.split('/')[1] || 'en';
+    // Force a fresh WebGL tree for each auth route entry while keeping route-level remounts predictable.
+    const sceneKey = `auth-scene:${pathname}`;
 
     return (
-        <div ref={containerRef} key={locale} className="absolute inset-0 z-0 pointer-events-none">
-            <ErrorBoundary label="Auth 3D Scene">
+        <div key={sceneKey} className="absolute inset-0 z-0 pointer-events-none">
+            <ErrorBoundary key={sceneKey} label="Auth 3D Scene">
                 <Canvas
                     camera={{ position: [0, 0, 5], fov: 50 }}
                     dpr={dpr}
-                    frameloop={isInView ? 'always' : 'never'}
                     gl={{
                         antialias: false,
                         alpha: true,

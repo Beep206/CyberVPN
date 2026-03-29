@@ -12,7 +12,8 @@ import {
     PerformanceMonitor
 } from '@react-three/drei';
 import { useInView } from 'motion/react';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
@@ -554,10 +555,10 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                 {/* Keep controls disabled; scene animates itself via useFrame. */}
                 <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
 
-                <EffectComposer enableNormalPass={false} multisampling={0}>
+                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />
                     <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

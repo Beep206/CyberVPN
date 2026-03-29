@@ -2,8 +2,9 @@
 
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import * as THREE from 'three';
 import { FeatureId } from '@/widgets/features/features-dashboard';
 import { PerformanceMonitor } from '@react-three/drei';
@@ -196,7 +197,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
                     <EngineCoreNodes activeFeature={activeFeature} />
                 </group>
 
-                <EffectComposer multisampling={0}>
+                <SafeEffectComposer multisampling={0}>
                     <Bloom 
                         luminanceThreshold={0.2} 
                         mipmapBlur 
@@ -213,7 +214,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
                         offset={new THREE.Vector2(0.003, 0.003)}
                     />
                     <Noise opacity={activeFeature === 'obfuscation' ? 0.08 : 0.03} />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

@@ -4,9 +4,10 @@ import React, { useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useInView } from 'motion/react';
-import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { PerformanceMonitor, Line } from '@react-three/drei';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 // Import Custom Shaders
 import '@/3d/shaders/FastTrackShader';
@@ -190,11 +191,11 @@ export default function FastTrackScene3D() {
                     <Hub />
                 </ParallaxGroup>
 
-                <EffectComposer enableNormalPass={false} multisampling={0}>
+                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.4} />
                     <Noise opacity={0.03} />
                     <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={true} modulationOffset={0.5} />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

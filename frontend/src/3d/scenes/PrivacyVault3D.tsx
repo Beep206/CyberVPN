@@ -3,9 +3,10 @@
 import * as THREE from 'three';
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { PrivacySectionId } from '@/widgets/privacy/privacy-dashboard';
 import { Float, Points, PointMaterial } from '@react-three/drei';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 // Generate random points for the data cloud
 function generateDataCloud(count: number, radius: number) {
@@ -153,7 +154,7 @@ export default function PrivacyVault3D({
                 <VaultCore scrollDepth={scrollDepth} />
                 <CameraController scrollDepth={scrollDepth} />
 
-                <EffectComposer disableNormalPass multisampling={0}>
+                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom 
                         luminanceThreshold={0.2} 
                         mipmapBlur 
@@ -163,7 +164,7 @@ export default function PrivacyVault3D({
                     <ChromaticAberration 
                         offset={new THREE.Vector2(0.002, 0.002)}
                     />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

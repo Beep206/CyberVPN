@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { type SecurityLayerId } from '@/widgets/security/security-dashboard';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
@@ -192,11 +193,11 @@ export default function SecurityShield3D({ activeLayer }: { activeLayer: Securit
             <AegisShield activeLayer={activeLayer} />
             <ThreatBombardment activeLayer={activeLayer} />
 
-            <EffectComposer multisampling={0}>
+            <SafeEffectComposer multisampling={0}>
                 <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
                 <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
                 <Noise opacity={0.04} />
-            </EffectComposer>
+            </SafeEffectComposer>
         </Canvas>
     );
 }

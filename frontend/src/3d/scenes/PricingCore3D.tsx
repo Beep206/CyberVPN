@@ -2,8 +2,9 @@
 
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, Noise, ChromaticAberration } from '@react-three/postprocessing';
+import { Bloom, Noise, ChromaticAberration } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import * as THREE from 'three';
 import { TierLevel } from '@/widgets/pricing/pricing-dashboard';
 import { Vector2 } from 'three';
@@ -168,7 +169,7 @@ export function PricingCore3D({ hoveredTier }: { hoveredTier: TierLevel }) {
                 <DataStreams hoveredTier={hoveredTier} />
 
                 {/* Disable MSAA inside the composer for massive performance boost */}
-                <EffectComposer multisampling={0}>
+                <SafeEffectComposer multisampling={0}>
                     <Bloom 
                         luminanceThreshold={0.2}
                         mipmapBlur
@@ -179,7 +180,7 @@ export function PricingCore3D({ hoveredTier }: { hoveredTier: TierLevel }) {
                         offset={new Vector2(0.002, 0.002)}
                     />
                     <Noise opacity={0.035} />
-                </EffectComposer>
+                </SafeEffectComposer>
             </Canvas>
         </div>
     );

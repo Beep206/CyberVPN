@@ -7,9 +7,10 @@ import { Mail, User, Building, Send, ShieldAlert, CheckCircle2 } from 'lucide-re
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { Canvas } from '@react-three/fiber';
-import { EffectComposer, Bloom, Noise, Glitch } from '@react-three/postprocessing';
+import { Bloom, Noise, Glitch } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { ContactGlobe3D } from '@/3d/scenes/ContactGlobe3D';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 export function ContactForm() {
     const t = useTranslations('Contact');
@@ -275,7 +276,7 @@ export function ContactForm() {
                         isHoveringSubmit={isHoveringSubmit} 
                     />
                     
-                    <EffectComposer autoClear={false}>
+                    <SafeEffectComposer autoClear={false}>
                         <Bloom 
                             luminanceThreshold={0.2} 
                             mipmapBlur 
@@ -283,7 +284,7 @@ export function ContactForm() {
                         />
                         <Noise opacity={0.035} />
                         <Glitch delay={new THREE.Vector2(0.5, 1.5)} duration={new THREE.Vector2(0.1, 0.3)} active={isEncrypting} />
-                    </EffectComposer>
+                    </SafeEffectComposer>
                 </Canvas>
                 
                 {/* Overlay Scanning UI on 3D Scene */}

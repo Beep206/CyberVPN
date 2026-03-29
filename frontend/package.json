@@ -10,13 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "generate:api-types": "node scripts/generate-api-types.mjs",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix"
-    ]
+    "generate:api-types": "node scripts/generate-api-types.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -67,9 +61,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9",
     "eslint-config-next": "16.1.5",
-    "husky": "^9.1.7",
     "jsdom": "^28.0.0",
-    "lint-staged": "^15.5.1",
     "msw": "^2.12.9",
     "openapi-typescript": "^7.12.0",
     "tailwindcss": "^4.1.18",
