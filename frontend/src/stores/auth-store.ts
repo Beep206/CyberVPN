@@ -308,7 +308,7 @@ export const useAuthStore = create<AuthState>()(
           window.open(data.deep_link_url ?? data.bot_url, '_blank', 'noopener,noreferrer');
 
           set({ isLoading: false });
-          window.location.href = `${getLocalePrefix()}/telegram-link`;
+          window.location.href = `${getLocalePrefix()}/telegram-link?magic=${encodeURIComponent(data.token)}`;
         } catch (error: unknown) {
           clearTelegramMagicLinkSession();
           const axiosError = error as { response?: { data?: { detail?: string } } };
