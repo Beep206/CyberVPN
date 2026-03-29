@@ -131,6 +131,15 @@ pub fn run() {
 
             crate::tray::setup(app.handle())?;
 
+            // Start Network Monitor Phase 28
+            crate::engine::sys::net_monitor::start_network_monitor(
+                app.handle().clone(),
+                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false))
+            );
+
+            // Start Telemetry Histogram Flusher Phase 30
+            crate::engine::sys::stats::spawn_flush_interval(app.handle().clone());
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -188,6 +197,8 @@ pub fn run() {
             ipc::save_split_tunneling_mode,
             ipc::get_stealth_mode,
             ipc::save_stealth_mode,
+            ipc::get_pqc_enforcement_mode,
+            ipc::save_pqc_enforcement_mode,
             crate::engine::sys::net::get_lan_connection_info,
             crate::engine::sys::net::enable_lan_forwarding,
             crate::engine::sys::net::disable_lan_forwarding,
@@ -201,7 +212,18 @@ pub fn run() {
             crate::engine::sys::sync::save_sync_password,
             crate::engine::sys::sync::get_sync_password,
             crate::engine::sys::sync::delete_sync_password,
-            crate::engine::sys::sync::generate_pairing_qr
+            crate::engine::sys::sync::generate_pairing_qr,
+            ipc::audit_quantum_readiness,
+            ipc::get_smart_connect_status,
+            ipc::set_smart_connect_status,
+            ipc::get_network_rules,
+            ipc::update_network_rule,
+            ipc::run_stealth_diagnostics,
+            ipc::apply_stealth_fix,
+            crate::engine::sys::stats::get_usage_history, // Mapped natively on stats
+            crate::engine::sys::stats::get_global_footprint,
+            ipc::start_remote_server,
+            ipc::stop_remote_server
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

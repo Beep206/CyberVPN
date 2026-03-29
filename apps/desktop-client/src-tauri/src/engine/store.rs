@@ -1,6 +1,8 @@
 use crate::engine::error::AppError;
+use crate::engine::sys::net_monitor::NetworkProfile;
 use crate::ipc::models::ProxyNode;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -26,6 +28,20 @@ pub struct AppDataStore {
     pub split_tunneling_mode: String,
     #[serde(default)]
     pub stealth_mode_enabled: bool,
+    #[serde(default)]
+    pub pqc_enforcement_mode: bool,
+    #[serde(default = "default_privacy_shield_level")]
+    pub privacy_shield_level: String,
+    
+    // Phase 28 features
+    #[serde(default)]
+    pub smart_connect_enabled: bool,
+    #[serde(default)]
+    pub network_rules: HashMap<String, NetworkProfile>,
+}
+
+fn default_privacy_shield_level() -> String {
+    "standard".to_string()
 }
 
 fn default_split_tunneling_mode() -> String {
@@ -51,6 +67,10 @@ impl Default for AppDataStore {
             split_tunneling_apps: Vec::new(),
             split_tunneling_mode: default_split_tunneling_mode(),
             stealth_mode_enabled: false,
+            pqc_enforcement_mode: false,
+            privacy_shield_level: default_privacy_shield_level(),
+            smart_connect_enabled: false,
+            network_rules: HashMap::new(),
         }
     }
 }

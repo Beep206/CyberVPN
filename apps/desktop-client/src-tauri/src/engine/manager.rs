@@ -2,6 +2,7 @@ use crate::engine::error::AppError;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -57,12 +58,40 @@ struct TrafficUpdate {
     down: u64,
 }
 
+async fn check_privacy_threats(
+    line: &str,
+    threats_blocked: Arc<AtomicU64>,
+    app_handle: AppHandle,
+) {
+    if line.contains("rejected by rule 'adblock-standard'") || line.contains("rejected by rule 'block'") {
+        // Typical string: "[Route] [XX tcp] connection to tcp:metrics.icloud.com:443 rejected by rule 'adblock-standard'"
+        let mut domain = "unknown".to_string();
+        if let Some(idx) = line.find("connection to ") {
+            let substr = &line[idx + 14..];
+            let end_idx = substr.find(" rejected").unwrap_or(substr.len());
+            let target = &substr[..end_idx];
+            
+            // Extract domain from tcp:domain:port if applicable
+            let parts: Vec<&str> = target.split(':').collect();
+            if parts.len() >= 2 {
+                domain = parts[1].to_string();
+            } else {
+                domain = parts[0].to_string();
+            }
+        }
+        
+        threats_blocked.fetch_add(1, Ordering::Relaxed);
+        let _ = app_handle.emit("tracker-blocked", domain);
+    }
+}
+
 pub struct ProcessManager {
     child: Arc<Mutex<Option<Child>>>,
     #[cfg(target_os = "windows")]
     is_elevated_run: Arc<Mutex<bool>>,
     expected_exit: Arc<Mutex<bool>>,
     domain_failures: Arc<Mutex<std::collections::HashMap<String, (u32, std::time::Instant)>>>,
+    pub threats_blocked: Arc<AtomicU64>,
 }
 
 impl Default for ProcessManager {
@@ -79,6 +108,7 @@ impl ProcessManager {
             is_elevated_run: Arc::new(Mutex::new(false)),
             expected_exit: Arc::new(Mutex::new(false)),
             domain_failures: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            threats_blocked: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -123,6 +153,7 @@ impl ProcessManager {
                 let log_path = config_path.with_file_name("run.log");
                 let app_clone = app_handle.clone();
                 let failures_clone1 = self.domain_failures.clone();
+                let threats_clone1 = self.threats_blocked.clone();
                 tokio::spawn(async move {
                     // Give process a moment to create the log file array
                     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -152,6 +183,7 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
+                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
                                         }
                                     } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
                                         if let (Ok(down), Ok(up)) =
@@ -159,6 +191,7 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
+                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
                                         }
                                     }
                                     let _ = app_clone.emit("singbox-log", trimmed);
@@ -166,6 +199,12 @@ impl ProcessManager {
                                     check_routing_failures(
                                         trimmed,
                                         failures_clone1.clone(),
+                                        app_clone.clone()
+                                    ).await;
+
+                                    check_privacy_threats(
+                                        trimmed,
+                                        threats_clone1.clone(),
                                         app_clone.clone()
                                     ).await;
                                 }
@@ -261,6 +300,7 @@ impl ProcessManager {
 
         let app_clone1 = app_handle.clone();
         let failures_clone2 = self.domain_failures.clone();
+        let threats_clone2 = self.threats_blocked.clone();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -268,10 +308,12 @@ impl ProcessManager {
                 if let Some(caps) = TRAFFIC_REGEX.captures(&line) {
                     if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone1.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(&line) {
                     if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone1.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 }
 
@@ -283,11 +325,18 @@ impl ProcessManager {
                     failures_clone2.clone(),
                     app_clone1.clone()
                 ).await;
+
+                check_privacy_threats(
+                    &line,
+                    threats_clone2.clone(),
+                    app_clone1.clone()
+                ).await;
             }
         });
 
         let app_clone2 = app_handle.clone();
         let failures_clone3 = self.domain_failures.clone();
+        let threats_clone3 = self.threats_blocked.clone();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -295,10 +344,12 @@ impl ProcessManager {
                 if let Some(caps) = TRAFFIC_REGEX.captures(&line) {
                     if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone2.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(&line) {
                     if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone2.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 }
 
@@ -308,6 +359,12 @@ impl ProcessManager {
                 check_routing_failures(
                     &line,
                     failures_clone3.clone(),
+                    app_clone2.clone()
+                ).await;
+
+                check_privacy_threats(
+                    &line,
+                    threats_clone3.clone(),
                     app_clone2.clone()
                 ).await;
             }

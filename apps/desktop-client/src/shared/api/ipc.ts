@@ -239,3 +239,112 @@ export const getStealthMode = async (): Promise<boolean> => {
 export const saveStealthMode = async (enabled: boolean): Promise<void> => {
   return await invoke("save_stealth_mode", { enabled });
 };
+
+export interface AuditResult {
+  id: string;
+  name: string;
+  protocol: string;
+  status: string;
+}
+
+export const auditQuantumReadiness = async (): Promise<AuditResult[]> => {
+  return await invoke("audit_quantum_readiness");
+};
+
+export const getPrivacyShieldLevel = async (): Promise<string> => {
+  return await invoke("get_privacy_shield_level");
+};
+
+export const setPrivacyShieldLevel = async (level: string): Promise<void> => {
+  return await invoke("set_privacy_shield_level", { level });
+};
+
+export const forceUpdateBlocklists = async (): Promise<void> => {
+  return await invoke("force_update_blocklists");
+};
+
+export const getThreatCount = async (): Promise<number> => {
+  return await invoke("get_threat_count");
+};
+
+export const listenTrackerBlocked = (callback: (domain: string) => void) => {
+  const unlistenPromise = listen<string>("tracker-blocked", (event) => {
+    callback(event.payload);
+  });
+  return () => {
+    unlistenPromise.then((f) => f());
+  };
+};
+
+// Phase 28 - Smart Connect
+export interface NetworkProfile {
+  auto_connect: boolean;
+  stealth_required: boolean;
+  kill_switch_required: boolean;
+  icon_type: string;
+}
+
+export const getSmartConnectStatus = async (): Promise<boolean> => {
+  return await invoke("get_smart_connect_status");
+};
+
+export const setSmartConnectStatus = async (enabled: boolean): Promise<void> => {
+  return await invoke("set_smart_connect_status", { enabled });
+};
+
+export const getNetworkRules = async (): Promise<Record<string, NetworkProfile>> => {
+  return await invoke("get_network_rules");
+};
+
+export const updateNetworkRule = async (ssid: string, profile: NetworkProfile): Promise<void> => {
+  return await invoke("update_network_rule", { ssid, profile });
+};
+
+export const listenNetworkChanged = (callback: (event: { ssid: string, is_trusted: boolean }) => void) => {
+  const unlistenPromise = listen<{ ssid: string, is_trusted: boolean }>("network-changed", (event) => {
+    callback(event.payload);
+  });
+  return () => {
+    unlistenPromise.then((f) => f());
+  };
+};
+
+// Phase 29 - Stealth Diagnostics
+export interface CensorshipReport {
+    ip_blocked: boolean;
+    sni_filtered: boolean;
+    udp_blocked: boolean;
+    tls_intercepted: boolean;
+    recommended_action: string;
+    recommended_protocol: string;
+}
+
+export const runStealthDiagnostics = async (nodeId: string): Promise<CensorshipReport> => {
+    return await invoke("run_stealth_diagnostics", { nodeId });
+};
+
+export const applyStealthFix = async (nodeId: string, recommendedProtocol: string): Promise<void> => {
+    return await invoke("apply_stealth_fix", { nodeId, recommendedProtocol });
+};
+
+export const listenStealthProbeLog = (callback: (log: string) => void) => {
+    const unlistenPromise = listen<string>("stealth-probe-log", (event) => callback(event.payload));
+    return () => { unlistenPromise.then(f => f()); };
+};
+
+// Phase 30 - Telemetry & Analytics
+export interface UsageRecord {
+  date: string;
+  bytes_up: number;
+  bytes_down: number;
+  protocol: string;
+  country_code: string;
+}
+
+export const getUsageHistory = async (period: string): Promise<UsageRecord[]> => {
+  return await invoke("get_usage_history", { period });
+};
+
+export const getGlobalFootprint = async (): Promise<Record<string, number>> => {
+    return await invoke("get_global_footprint");
+};

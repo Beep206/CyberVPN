@@ -1,14 +1,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { enableKillswitchCmd, disableKillswitchCmd, repairNetwork } from "../../shared/api/ipc";
+import { enableKillswitchCmd, disableKillswitchCmd, repairNetwork, auditQuantumReadiness, AuditResult } from "../../shared/api/ipc";
 import { toast } from "sonner";
-import { Shield, ShieldAlert, ShieldCheck, Wrench, Activity } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, Wrench, Activity, Fingerprint, Search, Server } from "lucide-react";
 
 export function SecurityPage() {
   const [isKillSwitchActive, setIsKillSwitchActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRepairing, setIsRepairing] = useState(false);
+
+  // Quantum Forge State
+  const [auditResults, setAuditResults] = useState<AuditResult[] | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     let unlisten: UnlistenFn;
@@ -75,6 +79,22 @@ export function SecurityPage() {
       toast.error(`Repair failed: ${err}`);
     } finally {
       setIsRepairing(false);
+    }
+  };
+
+  const handleQuantumScan = async () => {
+    setIsScanning(true);
+    setAuditResults(null);
+    try {
+      // Simulate scan delay for visual effect
+      await new Promise(r => setTimeout(r, 1500));
+      const results = await auditQuantumReadiness();
+      setAuditResults(results);
+      toast.success("Quantum Readiness Audit Complete");
+    } catch (err: any) {
+      toast.error(`Quantum Audit Failed: ${err}`);
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -214,6 +234,133 @@ export function SecurityPage() {
            
         </div>
       </div>
+
+      {/* Quantum Forge Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-8 p-8 rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-black/60 relative overflow-hidden"
+      >
+        {/* Particles during scanning */}
+        <AnimatePresence>
+          {isScanning && (
+             <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 pointer-events-none overflow-hidden"
+             >
+               {[...Array(20)].map((_, i) => (
+                 <motion.div
+                   key={i}
+                   className="absolute w-1 h-12 bg-gradient-to-b from-transparent to-[var(--color-neon-cyan)] opacity-50"
+                   initial={{ top: "-10%", left: `${Math.random() * 100}%` }}
+                   animate={{ top: "110%" }}
+                   transition={{ duration: 1 + Math.random(), repeat: Infinity, ease: "linear", delay: Math.random() }}
+                 />
+               ))}
+             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-10">
+          <div>
+            <h3 className="text-2xl font-bold flex items-center gap-3 text-[var(--color-neon-cyan)]">
+              <Fingerprint size={28} />
+              Quantum Forge Audit
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-lg">
+              Audit your cryptographic profiles for Post-Quantum Cryptography (PQC) readiness. Protects against "Harvest Now, Decrypt Later" (HNDL) attacks.
+            </p>
+          </div>
+          <motion.button
+             onClick={handleQuantumScan}
+             disabled={isScanning}
+             whileHover={{ scale: 1.05 }}
+             whileTap={{ scale: 0.95 }}
+             className={`px-6 py-3 rounded-lg border transition-all flex items-center justify-center gap-2 font-medium min-w-[180px] ${
+               isScanning 
+                 ? 'border-transparent bg-[var(--color-neon-cyan)]/20 text-[var(--color-neon-cyan)]/50' 
+                 : 'border-[var(--color-neon-cyan)]/50 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)]'
+             }`}
+          >
+            {isScanning ? <Activity className="animate-spin" size={18} /> : <Search size={18} />}
+            {isScanning ? "Scanning Matrix..." : "Quantum Scan"}
+          </motion.button>
+        </div>
+
+        {/* Results Container */}
+        <div className="space-y-3 relative z-10 mt-6 min-h-[100px]">
+          {!auditResults && !isScanning && (
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/50">
+              <Shield size={48} className="mb-4 opacity-20" />
+              <p>Initiate a scan to analyze your secure connections.</p>
+            </div>
+          )}
+          {auditResults && auditResults.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-10">No profiles found in the system.</p>
+          )}
+          
+          <AnimatePresence>
+            {auditResults?.map((res, idx) => (
+              <motion.div 
+                key={res.id} 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-black/40 border border-border/30 hover:bg-black/60 hover:border-border/60 transition-colors gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-card border border-border/50 flex items-center justify-center">
+                    <Server size={20} className="text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-foreground tracking-wide">{res.name}</h4>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono tracking-wider">{res.protocol}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-end">
+                  {res.status === "Ready" && (
+                    <div className="relative group cursor-help">
+                       <span className="text-xs px-3 py-1.5 rounded-md bg-[var(--color-matrix-green)]/10 text-[var(--color-matrix-green)] flex items-center gap-1.5 border border-[#8a2be2]/50 shadow-[0_0_15px_rgba(138,43,226,0.3)] font-medium tracking-wide">
+                         <ShieldCheck size={16} className="text-[#8a2be2] drop-shadow-[0_0_8px_rgba(138,43,226,0.8)]" /> 
+                         Quantum Shield Active
+                       </span>
+                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
+                          Hybrid ML-KEM-768 is active. This session is mathematically secured against quantum computer decryption.
+                       </div>
+                    </div>
+                  )}
+                  {res.status === "Partially Ready" && (
+                    <div className="relative group cursor-help">
+                       <span className="text-xs px-3 py-1.5 rounded-md bg-yellow-500/10 text-yellow-500 flex items-center gap-1.5 border border-yellow-500/20 font-medium tracking-wide">
+                         <ShieldAlert size={16} /> 
+                         Partially Ready
+                       </span>
+                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
+                          Protocol handles PQC at transport layer (QUIC) or partially supports it.
+                       </div>
+                    </div>
+                  )}
+                  {res.status === "Not Ready" && (
+                    <div className="relative group cursor-help">
+                       <span className="text-xs px-3 py-1.5 rounded-md bg-red-500/10 text-red-500 flex items-center gap-1.5 border border-red-500/20 font-medium tracking-wide">
+                         <ShieldAlert size={16} /> 
+                         Vulnerable
+                       </span>
+                       <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
+                          Vulnerable to "Harvest Now, Decrypt Later" (HNDL) attacks by quantum computers.
+                       </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
