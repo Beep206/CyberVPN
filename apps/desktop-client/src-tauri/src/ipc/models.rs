@@ -1,5 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum PqcAlgorithm {
+    MlKem768x25519Plus,
+    // Future algorithms can go here, e.g., MlKem1024x448Plus
+}
+
+// Fallback to serialization as a string for sing-box standard injection
+impl PqcAlgorithm {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PqcAlgorithm::MlKem768x25519Plus => "mlkem768x25519plus",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Subscription {
@@ -60,6 +76,8 @@ pub struct ProxyNode {
     pub plugin_opts: Option<String>,
     pub tls_fragment: Option<bool>,
     pub tls_record_fragment: Option<bool>,
+    // Phase 26
+    pub pqc_enabled: Option<bool>,
 }
 
 impl ProxyNode {
@@ -151,4 +169,13 @@ pub struct AppInfo {
     pub package_name: String,
     pub icon_base64: Option<String>,
     pub exec_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuditResult {
+    pub id: String,
+    pub name: String,
+    pub protocol: String,
+    pub status: String,
 }

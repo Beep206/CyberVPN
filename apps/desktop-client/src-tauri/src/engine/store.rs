@@ -26,6 +26,8 @@ pub struct AppDataStore {
     pub split_tunneling_mode: String,
     #[serde(default)]
     pub stealth_mode_enabled: bool,
+    #[serde(default)]
+    pub pqc_enforcement_mode: bool,
 }
 
 fn default_split_tunneling_mode() -> String {
@@ -51,6 +53,7 @@ impl Default for AppDataStore {
             split_tunneling_apps: Vec::new(),
             split_tunneling_mode: default_split_tunneling_mode(),
             stealth_mode_enabled: false,
+            pqc_enforcement_mode: false,
         }
     }
 }

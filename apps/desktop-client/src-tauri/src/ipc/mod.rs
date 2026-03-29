@@ -207,6 +207,7 @@ pub async fn connect_profile(
             &store_data.split_tunneling_apps,
             &store_data.split_tunneling_mode,
             store_data.stealth_mode_enabled,
+            store_data.pqc_enforcement_mode,
         )
     };
 
@@ -228,6 +229,13 @@ pub async fn connect_profile(
     };
 
     let bin_path = app_dir.join("bin").join(bin_name);
+
+    if active_core == "sing-box" {
+        let pqc_active = profile.pqc_enabled.unwrap_or(false) || store_data.pqc_enforcement_mode;
+        if pqc_active {
+            crate::engine::provision::check_pqc_support(&app).await?;
+        }
+    }
 
     tokio::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?).await?;
 
@@ -552,5 +560,53 @@ pub async fn save_stealth_mode(enabled: bool, app: tauri::AppHandle) -> Result<(
     .await
     .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn get_pqc_enforcement_mode(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.pqc_enforcement_mode)
+}
+
+#[tauri::command]
+pub async fn save_pqc_enforcement_mode(enabled: bool, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.pqc_enforcement_mode = enabled;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn audit_quantum_readiness(app: tauri::AppHandle) -> Result<Vec<models::AuditResult>, AppError> {
+    let store_data = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    
+    let pqc_enforcement = store_data.pqc_enforcement_mode;
+    
+    let results: Vec<models::AuditResult> = store_data.profiles.iter().map(|node| {
+        let pqc_active = node.pqc_enabled.unwrap_or(false) || pqc_enforcement;
+        
+        let status = match node.protocol.as_str() {
+            "vless" | "wireguard" if pqc_active => "Ready",
+            "hysteria2" | "tuic" => "Partially Ready",
+            _ => "Not Ready",
+        };
+
+        models::AuditResult {
+            id: node.id.clone(),
+            name: node.name.clone(),
+            protocol: node.protocol.clone(),
+            status: status.to_string(),
+        }
+    }).collect();
+
+    Ok(results)
 }
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`

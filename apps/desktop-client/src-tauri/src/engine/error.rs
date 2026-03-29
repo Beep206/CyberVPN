@@ -35,6 +35,9 @@ pub enum AppError {
 
     #[error("Cloud Unreachable: {0}")]
     CloudUnreachable(String),
+
+    #[error("Unsupported Core Version: {0}")]
+    UnsupportedCoreVersion(String),
 }
 
 // Implement Serialize so we can return AppError to the frontend natively in Tauri commands

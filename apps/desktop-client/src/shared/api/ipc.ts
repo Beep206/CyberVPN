@@ -239,3 +239,14 @@ export const getStealthMode = async (): Promise<boolean> => {
 export const saveStealthMode = async (enabled: boolean): Promise<void> => {
   return await invoke("save_stealth_mode", { enabled });
 };
+
+export interface AuditResult {
+  id: string;
+  name: string;
+  protocol: string;
+  status: string;
+}
+
+export const auditQuantumReadiness = async (): Promise<AuditResult[]> => {
+  return await invoke("audit_quantum_readiness");
+};
