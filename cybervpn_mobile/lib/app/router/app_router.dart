@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +9,6 @@ import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection_observer.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
-import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/reset_password_screen.dart';
@@ -31,7 +29,6 @@ import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/add_p
 import 'package:cybervpn_mobile/features/vpn_profiles/presentation/screens/add_by_url_screen.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
-import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/permission_request_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/change_password_screen.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/delete_account_screen.dart';
@@ -108,10 +105,11 @@ String _authRouteWithOAuthCallback({
   required String state,
 }) {
   final authPath = currentPath == '/register' ? '/register' : '/login';
-  return Uri(
-    path: authPath,
-    queryParameters: {'oauth_code': code, 'oauth_state': state},
-  ).toString();
+  return buildAuthRouteLocation(
+    authPath: authPath,
+    oauthCode: code,
+    oauthState: state,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -228,32 +226,15 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 /// 4. If authenticated and on an auth route or `/onboarding` -> redirect to
 ///    `/connection`. Also, consume any pending deep link.
 /// 5. Otherwise -> no redirect.
-/// Maximum time (seconds) to stay on splash before forcing navigation.
-const _maxSplashSeconds = 10;
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Notifier that fires when auth/onboarding state changes, triggering
   // GoRouter redirect re-evaluation without recreating the router.
   final refreshNotifier = _RouterRefreshNotifier();
 
-  // Track when splash started so we can enforce a maximum display time.
-  final splashStartTime = DateTime.now();
-
-  // Schedule a forced refresh after the max splash time so the redirect
-  // re-evaluates even if no provider state changes.
-  final splashTimer = Timer(
-    const Duration(seconds: _maxSplashSeconds),
-    refreshNotifier.notify,
-  );
-  ref.onDispose(splashTimer.cancel);
-
   ref.listen(authProvider, (_, _) => refreshNotifier.notify());
   ref.listen(shouldShowOnboardingProvider, (_, _) => refreshNotifier.notify());
   ref.listen(quickSetupProvider, (_, _) => refreshNotifier.notify());
-  ref.listen(profileMigrationProvider, (_, _) => refreshNotifier.notify());
-
-  // Initialize quick actions handler (keeps it alive)
-  ref.watch(quickActionsHandlerProvider);
 
   // Dispose the notifier when this provider is disposed.
   ref.onDispose(refreshNotifier.dispose);
@@ -271,18 +252,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final authState = ref.read(authProvider);
         final isAuthenticated = ref.read(isAuthenticatedProvider);
         final isAuthLoading = authState.isLoading;
-        final onboardingAsync = ref.read(shouldShowOnboardingProvider);
-        final isOnboardingLoading = onboardingAsync.isLoading;
-        final shouldShowOnboarding = onboardingAsync.value ?? false;
-        final quickSetupAsync = ref.read(quickSetupProvider);
-        final isQuickSetupLoading = quickSetupAsync.isLoading;
-        final shouldShowQuickSetup =
-            !(quickSetupAsync.value?.completed ?? false);
-        final migrationAsync = ref.read(profileMigrationProvider);
-        final isMigrationLoading = migrationAsync.isLoading;
+        final shouldShowOnboarding = ref.read(shouldShowOnboardingProvider);
+        final shouldShowQuickSetup = ref.read(shouldShowQuickSetupProvider);
 
         final uri = state.uri;
         final path = uri.path;
+        final postAuthRedirect = readPostAuthRedirect(uri);
         final isAuthRoute =
             path == '/login' ||
             path == '/register' ||
@@ -295,26 +270,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final isSplashRoute = path == '/splash';
 
         // -- Splash handling --------------------------------------------------
-        // While auth or onboarding state is loading, keep the user on splash.
-        // Once both resolve, redirect from splash into the normal guard chain.
-        // Safety net: force navigation after _maxSplashSeconds to prevent
-        // indefinite splash on any provider hang.
-        if (isSplashRoute &&
-            (isAuthLoading ||
-                isOnboardingLoading ||
-                isQuickSetupLoading ||
-                isMigrationLoading)) {
-          final elapsed = DateTime.now().difference(splashStartTime).inSeconds;
-          if (elapsed >= _maxSplashSeconds) {
-            AppLogger.warning(
-              'Splash timeout after ${elapsed}s — forcing navigation to /login',
-              category: 'router',
-            );
-            return '/login';
-          }
+        // Keep the user on splash only while auth restoration is still loading.
+        // Auth restoration has its own timeout, so we don't block on any other
+        // startup work here.
+        if (isSplashRoute && isAuthLoading) {
           return null; // stay on /splash
         }
-        if (isSplashRoute && !isAuthLoading) {
+        if (isSplashRoute) {
           // Auth resolved. Redirect to root so the standard guards below
           // decide the correct destination (onboarding, login, or connection).
           return '/';
@@ -334,30 +296,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           final parseResult = DeepLinkParser.parseUri(uri);
 
-          // Handle Telegram auth callback specially - trigger the provider
-          // without navigating to a separate screen.
           if (parseResult.route case TelegramAuthRoute(:final authData)) {
-            // Trigger Telegram auth callback asynchronously.
-            // The auth state listener will handle navigation on success.
-            unawaited(
-              ref.read(telegramAuthProvider.notifier).handleCallback(authData),
+            return buildAuthRouteLocation(
+              authPath: path == '/register' ? '/register' : '/login',
+              telegramAuthData: authData,
             );
-
-            // Stay on current screen (login/register) - the listener will
-            // navigate to /connection on success.
-            return path.isEmpty || path == '/' ? '/login' : null;
           }
 
-          // Handle Telegram bot link specially - exchange token for JWT.
-          // The token has a 5-min TTL, so consume it immediately.
           if (parseResult.route case TelegramBotLinkRoute(:final token)) {
-            // Trigger bot link auth asynchronously.
-            // The auth state listener will handle navigation on success.
-            unawaited(ref.read(authProvider.notifier).loginWithBotLink(token));
+            return buildAuthRouteLocation(
+              authPath: path == '/register' ? '/register' : '/login',
+              telegramBotToken: token,
+            );
+          }
 
-            // Stay on current screen — the auth listener will navigate
-            // to /connection on success, or show error on failure.
-            return path.isEmpty || path == '/' ? '/login' : null;
+          if (parseResult.route case ReferralRoute(:final code)) {
+            if (!isAuthenticated) {
+              return buildAuthRouteLocation(
+                authPath: '/register',
+                referralCode: code,
+              );
+            }
+
+            return resolveDeepLinkPath(parseResult.route!);
           }
 
           final deepLinkPath = parseResult.route != null
@@ -365,13 +326,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : null;
           if (deepLinkPath != null) {
             if (!isAuthenticated) {
-              // Store the deep link for after login.
-              ref
-                  .read<PendingDeepLinkNotifier>(
-                    pendingDeepLinkProvider.notifier,
-                  )
-                  .setPending(parseResult.route!);
-              return '/login';
+              return buildAuthRouteLocation(
+                authPath: '/login',
+                postAuthRedirect: deepLinkPath,
+              );
             }
             return deepLinkPath;
           }
@@ -381,27 +339,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
         // 1. Onboarding not completed -> show onboarding
         if (shouldShowOnboarding && !isOnboardingRoute) {
-          return '/onboarding';
+          return buildOnboardingLocation(postAuthRedirect: postAuthRedirect);
         }
 
         // 2. Onboarding complete, not authenticated -> show login
         //    (but allow deep link target paths through -- they get caught above)
         if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
-          return '/login';
+          return buildAuthRouteLocation(
+            authPath: '/login',
+            postAuthRedirect: postAuthRedirect,
+          );
         }
 
         // 3. Authenticated user on auth/onboarding routes -> go to app
-        //    Check for pending deep link first.
         if (isAuthenticated && (isAuthRoute || isOnboardingRoute)) {
           // Show quick setup if not completed.
           if (shouldShowQuickSetup && !isQuickSetupRoute) {
-            return '/quick-setup';
+            return buildQuickSetupLocation(postAuthRedirect: postAuthRedirect);
           }
-          final pendingRoute = ref
-              .read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier)
-              .consume();
-          if (pendingRoute != null) {
-            return resolveDeepLinkPath(pendingRoute);
+          if (postAuthRedirect != null && postAuthRedirect.isNotEmpty) {
+            return postAuthRedirect;
           }
           return '/connection';
         }
@@ -410,13 +367,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (isAuthenticated && path == '/') {
           // Show quick setup if not completed.
           if (shouldShowQuickSetup && !isQuickSetupRoute) {
-            return '/quick-setup';
+            return buildQuickSetupLocation(postAuthRedirect: postAuthRedirect);
           }
-          final pendingRoute = ref
-              .read<PendingDeepLinkNotifier>(pendingDeepLinkProvider.notifier)
-              .consume();
-          if (pendingRoute != null) {
-            return resolveDeepLinkPath(pendingRoute);
+          if (postAuthRedirect != null && postAuthRedirect.isNotEmpty) {
+            return postAuthRedirect;
           }
           return '/connection';
         }

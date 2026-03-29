@@ -11,10 +11,8 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/biometric_service.dart';
-import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
-import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 // secureStorageProvider and networkInfoProvider already imported via providers.dart above.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -230,27 +228,33 @@ void main() {
     bool biometricEnabled = false,
   }) async {
     // Configure onboarding state
-    when(() => mockOnboardingRepo.hasCompletedOnboarding())
-        .thenAnswer((_) async => onboardingCompleted);
+    when(
+      () => mockOnboardingRepo.hasCompletedOnboarding(),
+    ).thenAnswer((_) async => onboardingCompleted);
 
     // Configure network state
-    when(() => mockNetworkInfo.isConnected)
-        .thenAnswer((_) async => networkOnline);
+    when(
+      () => mockNetworkInfo.isConnected,
+    ).thenAnswer((_) async => networkOnline);
 
     // Configure auth state
-    when(() => mockAuthRepo.isAuthenticated())
-        .thenAnswer((_) async => Success(isAuthenticated));
+    when(
+      () => mockAuthRepo.isAuthenticated(),
+    ).thenAnswer((_) async => Success(isAuthenticated));
 
     if (isAuthenticated) {
-      when(() => mockAuthRepo.getCurrentUser())
-          .thenAnswer((_) async => Success(testUser));
+      when(
+        () => mockAuthRepo.getCurrentUser(),
+      ).thenAnswer((_) async => Success(testUser));
     }
 
     // Configure biometric state
-    when(() => mockBiometricService.isBiometricAvailable())
-        .thenAnswer((_) async => biometricAvailable);
-    when(() => mockBiometricService.isBiometricEnabled())
-        .thenAnswer((_) async => biometricEnabled);
+    when(
+      () => mockBiometricService.isBiometricAvailable(),
+    ).thenAnswer((_) async => biometricAvailable);
+    when(
+      () => mockBiometricService.isBiometricEnabled(),
+    ).thenAnswer((_) async => biometricEnabled);
 
     // Seed secure storage if authenticated
     if (isAuthenticated) {
@@ -273,10 +277,7 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: overrides,
-        child: const CyberVpnApp(),
-      ),
+      ProviderScope(overrides: overrides, child: const CyberVpnApp()),
     );
     await tester.pumpAndSettle();
   }
@@ -297,399 +298,444 @@ void main() {
   // Test 1: Full Registration Flow
   // ===========================================================================
   group('E2E: Full Registration Flow', () {
-    testWidgets(
-      'User can register and reach main screen',
-      (tester) async {
-        // Setup: Configure mock to accept registration
-        when(() => mockAuthRepo.register(
-              email: any(named: 'email'),
-              password: any(named: 'password'),
-              device: any(named: 'device'),
-              referralCode: any(named: 'referralCode'),
-            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
+    testWidgets('User can register and reach main screen', (tester) async {
+      // Setup: Configure mock to accept registration
+      when(
+        () => mockAuthRepo.register(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          device: any(named: 'device'),
+          referralCode: any(named: 'referralCode'),
+        ),
+      ).thenAnswer((_) async => Success((testUser, testAccessToken)));
 
-        // After registration, auth check should pass
-        var registrationComplete = false;
-        when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
-          return Success(registrationComplete);
-        });
-        when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
-          return Success(registrationComplete ? testUser : null);
-        });
+      // After registration, auth check should pass
+      var registrationComplete = false;
+      when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
+        return Success(registrationComplete);
+      });
+      when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
+        return Success(registrationComplete ? testUser : null);
+      });
 
-        await pumpTestApp(tester, onboardingCompleted: true);
+      await pumpTestApp(tester, onboardingCompleted: true);
 
-        // Step 1: Should be on login screen (onboarding already done)
-        expect(find.text('CyberVPN'), findsOneWidget,
-            reason: 'Should show login screen');
+      // Step 1: Should be on login screen (onboarding already done)
+      expect(
+        find.text('CyberVPN'),
+        findsOneWidget,
+        reason: 'Should show login screen',
+      );
 
-        // Step 2: Navigate to register screen
-        final registerLink = find.text('Register');
-        expect(registerLink, findsWidgets,
-            reason: 'Should have register link');
-        await tester.tap(registerLink.first);
-        await safePumpAndSettle(tester);
+      // Step 2: Navigate to register screen
+      final registerLink = find.text('Register');
+      expect(registerLink, findsWidgets, reason: 'Should have register link');
+      await tester.tap(registerLink.first);
+      await safePumpAndSettle(tester);
 
-        // Step 3: Verify on register screen
-        expect(find.text('Create Account'), findsOneWidget,
-            reason: 'Should show register screen');
+      // Step 3: Verify on register screen
+      expect(
+        find.text('Create Account'),
+        findsOneWidget,
+        reason: 'Should show register screen',
+      );
 
-        // Step 4: Fill registration form
-        final textFields = find.byType(TextFormField);
-        expect(textFields, findsWidgets,
-            reason: 'Should have text fields');
+      // Step 4: Fill registration form
+      final textFields = find.byType(TextFormField);
+      expect(textFields, findsWidgets, reason: 'Should have text fields');
 
-        // Email field (first)
-        await tester.enterText(textFields.at(0), testEmail);
+      // Email field (first)
+      await tester.enterText(textFields.at(0), testEmail);
+      await tester.pump();
+
+      // Password field (second)
+      await tester.enterText(textFields.at(1), testPassword);
+      await tester.pump();
+
+      // Confirm password field (third)
+      await tester.enterText(textFields.at(2), testPassword);
+      await tester.pump();
+
+      // Step 5: Accept terms
+      final checkbox = find.byType(Checkbox);
+      if (checkbox.evaluate().isNotEmpty) {
+        await tester.tap(checkbox.first);
         await tester.pump();
+      }
 
-        // Password field (second)
-        await tester.enterText(textFields.at(1), testPassword);
-        await tester.pump();
+      // Step 6: Tap register button
+      registrationComplete = true; // Registration will succeed
 
-        // Confirm password field (third)
-        await tester.enterText(textFields.at(2), testPassword);
-        await tester.pump();
+      final registerButton = find.widgetWithText(ElevatedButton, 'Register');
+      expect(
+        registerButton,
+        findsOneWidget,
+        reason: 'Should have register button',
+      );
+      await tester.tap(registerButton);
+      await safePumpAndSettle(tester);
 
-        // Step 5: Accept terms
-        final checkbox = find.byType(Checkbox);
-        if (checkbox.evaluate().isNotEmpty) {
-          await tester.tap(checkbox.first);
-          await tester.pump();
-        }
+      // Step 7: Verify registration was called
+      verify(
+        () => mockAuthRepo.register(
+          email: testEmail,
+          password: testPassword,
+          device: any(named: 'device'),
+          referralCode: any(named: 'referralCode'),
+        ),
+      ).called(1);
 
-        // Step 6: Tap register button
-        registrationComplete = true; // Registration will succeed
+      // Step 8: Should navigate to main screen
+      // Look for bottom navigation or home screen elements
+      await tester.pump(const Duration(seconds: 1));
+      await safePumpAndSettle(tester);
 
-        final registerButton = find.widgetWithText(ElevatedButton, 'Register');
-        expect(registerButton, findsOneWidget,
-            reason: 'Should have register button');
-        await tester.tap(registerButton);
-        await safePumpAndSettle(tester);
-
-        // Step 7: Verify registration was called
-        verify(() => mockAuthRepo.register(
-              email: testEmail,
-              password: testPassword,
-              device: any(named: 'device'),
-              referralCode: any(named: 'referralCode'),
-            )).called(1);
-
-        // Step 8: Should navigate to main screen
-        // Look for bottom navigation or home screen elements
-        await tester.pump(const Duration(seconds: 1));
-        await safePumpAndSettle(tester);
-
-        // Verify we're past the auth screens
-        expect(find.text('Create Account'), findsNothing,
-            reason: 'Should no longer be on register screen');
-      },
-    );
+      // Verify we're past the auth screens
+      expect(
+        find.text('Create Account'),
+        findsNothing,
+        reason: 'Should no longer be on register screen',
+      );
+    });
   });
 
   // ===========================================================================
   // Test 2: Full Login Flow
   // ===========================================================================
   group('E2E: Full Login Flow', () {
-    testWidgets(
-      'User can login and reach main screen',
-      (tester) async {
-        // Setup: Configure mock to accept login
-        when(() => mockAuthRepo.login(
-              email: any(named: 'email'),
-              password: any(named: 'password'),
-              device: any(named: 'device'),
-              rememberMe: any(named: 'rememberMe'),
-            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
+    testWidgets('User can login and reach main screen', (tester) async {
+      // Setup: Configure mock to accept login
+      when(
+        () => mockAuthRepo.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          device: any(named: 'device'),
+          rememberMe: any(named: 'rememberMe'),
+        ),
+      ).thenAnswer((_) async => Success((testUser, testAccessToken)));
 
-        var loginComplete = false;
-        when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
-          return Success(loginComplete);
-        });
-        when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
-          return Success(loginComplete ? testUser : null);
-        });
+      var loginComplete = false;
+      when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async {
+        return Success(loginComplete);
+      });
+      when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async {
+        return Success(loginComplete ? testUser : null);
+      });
 
-        await pumpTestApp(tester, onboardingCompleted: true);
+      await pumpTestApp(tester, onboardingCompleted: true);
 
-        // Step 1: Should be on login screen
-        expect(find.text('CyberVPN'), findsOneWidget,
-            reason: 'Should show login screen');
+      // Step 1: Should be on login screen
+      expect(
+        find.text('CyberVPN'),
+        findsOneWidget,
+        reason: 'Should show login screen',
+      );
 
-        // Step 2: Fill login form
-        final textFields = find.byType(TextFormField);
-        expect(textFields, findsWidgets,
-            reason: 'Should have text fields');
+      // Step 2: Fill login form
+      final textFields = find.byType(TextFormField);
+      expect(textFields, findsWidgets, reason: 'Should have text fields');
 
-        // Email field (first)
-        await tester.enterText(textFields.at(0), testEmail);
-        await tester.pump();
+      // Email field (first)
+      await tester.enterText(textFields.at(0), testEmail);
+      await tester.pump();
 
-        // Password field (second)
-        await tester.enterText(textFields.at(1), testPassword);
-        await tester.pump();
+      // Password field (second)
+      await tester.enterText(textFields.at(1), testPassword);
+      await tester.pump();
 
-        // Step 3: Tap login button
-        loginComplete = true;
+      // Step 3: Tap login button
+      loginComplete = true;
 
-        final loginButton = find.widgetWithText(ElevatedButton, 'Login');
-        if (loginButton.evaluate().isEmpty) {
-          // Try finding by text only
-          await tester.tap(find.text('Login').first);
-        } else {
-          await tester.tap(loginButton);
-        }
-        await safePumpAndSettle(tester);
+      final loginButton = find.widgetWithText(ElevatedButton, 'Login');
+      if (loginButton.evaluate().isEmpty) {
+        // Try finding by text only
+        await tester.tap(find.text('Login').first);
+      } else {
+        await tester.tap(loginButton);
+      }
+      await safePumpAndSettle(tester);
 
-        // Step 4: Verify login was called
-        verify(() => mockAuthRepo.login(
-              email: testEmail,
-              password: testPassword,
-              device: any(named: 'device'),
-              rememberMe: any(named: 'rememberMe'),
-            )).called(1);
+      // Step 4: Verify login was called
+      verify(
+        () => mockAuthRepo.login(
+          email: testEmail,
+          password: testPassword,
+          device: any(named: 'device'),
+          rememberMe: any(named: 'rememberMe'),
+        ),
+      ).called(1);
 
-        // Step 5: Should navigate away from login screen
-        await tester.pump(const Duration(seconds: 1));
-        await safePumpAndSettle(tester);
+      // Step 5: Should navigate away from login screen
+      await tester.pump(const Duration(seconds: 1));
+      await safePumpAndSettle(tester);
 
-        expect(find.text('CyberVPN'), findsNothing,
-            reason: 'Should no longer be on login screen header');
-      },
-    );
+      expect(
+        find.text('CyberVPN'),
+        findsNothing,
+        reason: 'Should no longer be on login screen header',
+      );
+    });
   });
 
   // ===========================================================================
   // Test 3: Session Persistence
   // ===========================================================================
   group('E2E: Session Persistence', () {
-    testWidgets(
-      'App restores session on relaunch without requiring login',
-      (tester) async {
-        // Setup: User is already authenticated with stored tokens
-        await pumpTestApp(
-          tester,
-          onboardingCompleted: true,
-          isAuthenticated: true,
+    testWidgets('App restores session on relaunch without requiring login', (
+      tester,
+    ) async {
+      // Setup: User is already authenticated with stored tokens
+      await pumpTestApp(
+        tester,
+        onboardingCompleted: true,
+        isAuthenticated: true,
+      );
+
+      // Should skip login and go directly to main screen
+      await tester.pump(const Duration(seconds: 2));
+      await safePumpAndSettle(tester);
+
+      // Verify isAuthenticated was checked
+      verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
+
+      // Verify getCurrentUser was called to restore session
+      verify(() => mockAuthRepo.getCurrentUser()).called(greaterThan(0));
+
+      // Should NOT be on login screen
+      expect(
+        find.text('CyberVPN'),
+        findsNothing,
+        reason: 'Should skip login screen for authenticated user',
+      );
+
+      // Should be on main app (home/connection screen)
+      // Look for common main screen elements
+      final hasBottomNav = find
+          .byType(BottomNavigationBar)
+          .evaluate()
+          .isNotEmpty;
+      final hasTabBar = find.byType(NavigationBar).evaluate().isNotEmpty;
+      final hasMainContent = hasBottomNav || hasTabBar;
+
+      expect(
+        hasMainContent || find.text('Connection').evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Should be on main screen',
+      );
+    });
+
+    testWidgets('Tokens are stored in secure storage after login', (
+      tester,
+    ) async {
+      when(
+        () => mockAuthRepo.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          device: any(named: 'device'),
+          rememberMe: any(named: 'rememberMe'),
+        ),
+      ).thenAnswer((_) async {
+        // Simulate token storage
+        await fakeSecureStorage.write(
+          key: SecureStorageWrapper.accessTokenKey,
+          value: testAccessToken,
         );
+        await fakeSecureStorage.write(
+          key: SecureStorageWrapper.refreshTokenKey,
+          value: testRefreshToken,
+        );
+        return Success((testUser, testAccessToken));
+      });
 
-        // Should skip login and go directly to main screen
-        await tester.pump(const Duration(seconds: 2));
-        await safePumpAndSettle(tester);
+      await pumpTestApp(tester, onboardingCompleted: true);
 
-        // Verify isAuthenticated was checked
-        verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
+      // Perform login
+      final textFields = find.byType(TextFormField);
+      await tester.enterText(textFields.at(0), testEmail);
+      await tester.pump();
+      await tester.enterText(textFields.at(1), testPassword);
+      await tester.pump();
 
-        // Verify getCurrentUser was called to restore session
-        verify(() => mockAuthRepo.getCurrentUser()).called(greaterThan(0));
+      final loginButton = find.widgetWithText(ElevatedButton, 'Login');
+      if (loginButton.evaluate().isNotEmpty) {
+        await tester.tap(loginButton);
+      } else {
+        await tester.tap(find.text('Login').first);
+      }
+      await safePumpAndSettle(tester);
 
-        // Should NOT be on login screen
-        expect(find.text('CyberVPN'), findsNothing,
-            reason: 'Should skip login screen for authenticated user');
+      // Verify tokens were stored
+      final storedAccessToken =
+          fakeSecureStorage.store[SecureStorageWrapper.accessTokenKey];
+      final storedRefreshToken =
+          fakeSecureStorage.store[SecureStorageWrapper.refreshTokenKey];
 
-        // Should be on main app (home/connection screen)
-        // Look for common main screen elements
-        final hasBottomNav = find.byType(BottomNavigationBar).evaluate().isNotEmpty;
-        final hasTabBar = find.byType(NavigationBar).evaluate().isNotEmpty;
-        final hasMainContent = hasBottomNav || hasTabBar;
-
-        expect(hasMainContent || find.text('Connection').evaluate().isNotEmpty,
-            isTrue,
-            reason: 'Should be on main screen');
-      },
-    );
-
-    testWidgets(
-      'Tokens are stored in secure storage after login',
-      (tester) async {
-        when(() => mockAuthRepo.login(
-              email: any(named: 'email'),
-              password: any(named: 'password'),
-              device: any(named: 'device'),
-              rememberMe: any(named: 'rememberMe'),
-            )).thenAnswer((_) async {
-          // Simulate token storage
-          await fakeSecureStorage.write(
-            key: SecureStorageWrapper.accessTokenKey,
-            value: testAccessToken,
-          );
-          await fakeSecureStorage.write(
-            key: SecureStorageWrapper.refreshTokenKey,
-            value: testRefreshToken,
-          );
-          return Success((testUser, testAccessToken));
-        });
-
-        await pumpTestApp(tester, onboardingCompleted: true);
-
-        // Perform login
-        final textFields = find.byType(TextFormField);
-        await tester.enterText(textFields.at(0), testEmail);
-        await tester.pump();
-        await tester.enterText(textFields.at(1), testPassword);
-        await tester.pump();
-
-        final loginButton = find.widgetWithText(ElevatedButton, 'Login');
-        if (loginButton.evaluate().isNotEmpty) {
-          await tester.tap(loginButton);
-        } else {
-          await tester.tap(find.text('Login').first);
-        }
-        await safePumpAndSettle(tester);
-
-        // Verify tokens were stored
-        final storedAccessToken = fakeSecureStorage.store[SecureStorageWrapper.accessTokenKey];
-        final storedRefreshToken = fakeSecureStorage.store[SecureStorageWrapper.refreshTokenKey];
-
-        expect(storedAccessToken, equals(testAccessToken),
-            reason: 'Access token should be stored in secure storage');
-        expect(storedRefreshToken, equals(testRefreshToken),
-            reason: 'Refresh token should be stored in secure storage');
-      },
-    );
+      expect(
+        storedAccessToken,
+        equals(testAccessToken),
+        reason: 'Access token should be stored in secure storage',
+      );
+      expect(
+        storedRefreshToken,
+        equals(testRefreshToken),
+        reason: 'Refresh token should be stored in secure storage',
+      );
+    });
   });
 
   // ===========================================================================
   // Test 4: Biometric Login Flow
   // ===========================================================================
   group('E2E: Biometric Login Flow', () {
-    testWidgets(
-      'Biometric login shows when enabled and available',
-      (tester) async {
-        // Setup: Biometrics available and enabled with stored credentials
-        when(() => mockBiometricService.isBiometricAvailable())
-            .thenAnswer((_) async => true);
-        when(() => mockBiometricService.isBiometricEnabled())
-            .thenAnswer((_) async => true);
-        when(() => mockBiometricService.getAvailableBiometrics())
-            .thenAnswer((_) async => [BiometricType.fingerprint]);
+    testWidgets('Biometric login shows when enabled and available', (
+      tester,
+    ) async {
+      // Setup: Biometrics available and enabled with stored credentials
+      when(
+        () => mockBiometricService.isBiometricAvailable(),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockBiometricService.isBiometricEnabled(),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockBiometricService.getAvailableBiometrics(),
+      ).thenAnswer((_) async => [BiometricType.fingerprint]);
 
-        // Seed biometric credentials
-        fakeSecureStorage.seed({
-          SecureStorageWrapper.biometricCredentialsKey:
-              '{"email":"$testEmail","password":"$testPassword"}',
-        });
+      // Seed biometric credentials
+      fakeSecureStorage.seed({
+        SecureStorageWrapper.biometricCredentialsKey:
+            '{"email":"$testEmail","password":"$testPassword"}',
+      });
 
-        await pumpTestApp(
-          tester,
-          onboardingCompleted: true,
-          biometricAvailable: true,
-          biometricEnabled: true,
-        );
+      await pumpTestApp(
+        tester,
+        onboardingCompleted: true,
+        biometricAvailable: true,
+        biometricEnabled: true,
+      );
 
-        await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      await safePumpAndSettle(tester);
+
+      // Look for biometric login button (fingerprint icon or "Use Biometrics")
+      final biometricButton = find.byIcon(Icons.fingerprint);
+      final biometricText = find.textContaining('Biometric');
+
+      expect(
+        biometricButton.evaluate().isNotEmpty ||
+            biometricText.evaluate().isNotEmpty,
+        isTrue,
+        reason: 'Should show biometric login option when available and enabled',
+      );
+    });
+
+    testWidgets('Biometric authentication success logs user in', (
+      tester,
+    ) async {
+      // Setup biometrics
+      when(
+        () => mockBiometricService.isBiometricAvailable(),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockBiometricService.isBiometricEnabled(),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockBiometricService.authenticate(reason: any(named: 'reason')),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockBiometricService.getAvailableBiometrics(),
+      ).thenAnswer((_) async => [BiometricType.fingerprint]);
+
+      // Seed credentials for biometric re-auth
+      fakeSecureStorage.seed({
+        SecureStorageWrapper.biometricCredentialsKey:
+            '{"email":"$testEmail","password":"$testPassword"}',
+        SecureStorageWrapper.accessTokenKey: testAccessToken,
+        SecureStorageWrapper.refreshTokenKey: testRefreshToken,
+      });
+
+      // Configure login mock
+      when(
+        () => mockAuthRepo.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          device: any(named: 'device'),
+          rememberMe: any(named: 'rememberMe'),
+        ),
+      ).thenAnswer((_) async => Success((testUser, testAccessToken)));
+
+      await pumpTestApp(
+        tester,
+        onboardingCompleted: true,
+        biometricAvailable: true,
+        biometricEnabled: true,
+      );
+
+      await safePumpAndSettle(tester);
+
+      // Tap biometric button if present
+      final biometricButton = find.byIcon(Icons.fingerprint);
+      if (biometricButton.evaluate().isNotEmpty) {
+        await tester.tap(biometricButton.first);
         await safePumpAndSettle(tester);
 
-        // Look for biometric login button (fingerprint icon or "Use Biometrics")
-        final biometricButton = find.byIcon(Icons.fingerprint);
-        final biometricText = find.textContaining('Biometric');
-
-        expect(
-          biometricButton.evaluate().isNotEmpty || biometricText.evaluate().isNotEmpty,
-          isTrue,
-          reason: 'Should show biometric login option when available and enabled',
-        );
-      },
-    );
-
-    testWidgets(
-      'Biometric authentication success logs user in',
-      (tester) async {
-        // Setup biometrics
-        when(() => mockBiometricService.isBiometricAvailable())
-            .thenAnswer((_) async => true);
-        when(() => mockBiometricService.isBiometricEnabled())
-            .thenAnswer((_) async => true);
-        when(() => mockBiometricService.authenticate(reason: any(named: 'reason')))
-            .thenAnswer((_) async => true);
-        when(() => mockBiometricService.getAvailableBiometrics())
-            .thenAnswer((_) async => [BiometricType.fingerprint]);
-
-        // Seed credentials for biometric re-auth
-        fakeSecureStorage.seed({
-          SecureStorageWrapper.biometricCredentialsKey:
-              '{"email":"$testEmail","password":"$testPassword"}',
-          SecureStorageWrapper.accessTokenKey: testAccessToken,
-          SecureStorageWrapper.refreshTokenKey: testRefreshToken,
-        });
-
-        // Configure login mock
-        when(() => mockAuthRepo.login(
-              email: any(named: 'email'),
-              password: any(named: 'password'),
-              device: any(named: 'device'),
-              rememberMe: any(named: 'rememberMe'),
-            )).thenAnswer((_) async => Success((testUser, testAccessToken)));
-
-        await pumpTestApp(
-          tester,
-          onboardingCompleted: true,
-          biometricAvailable: true,
-          biometricEnabled: true,
-        );
-
-        await safePumpAndSettle(tester);
-
-        // Tap biometric button if present
-        final biometricButton = find.byIcon(Icons.fingerprint);
-        if (biometricButton.evaluate().isNotEmpty) {
-          await tester.tap(biometricButton.first);
-          await safePumpAndSettle(tester);
-
-          // Verify biometric authentication was attempted
-          verify(() => mockBiometricService.authenticate(
-                reason: any(named: 'reason'),
-              )).called(greaterThan(0));
-        }
-      },
-    );
+        // Verify biometric authentication was attempted
+        verify(
+          () => mockBiometricService.authenticate(reason: any(named: 'reason')),
+        ).called(greaterThan(0));
+      }
+    });
   });
 
   // ===========================================================================
   // Test 5: Offline Mode Access
   // ===========================================================================
   group('E2E: Offline Mode Access', () {
-    testWidgets(
-      'Authenticated user can access app offline with cached data',
-      (tester) async {
-        // Setup: User authenticated but network offline
-        when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+    testWidgets('Authenticated user can access app offline with cached data', (
+      tester,
+    ) async {
+      // Setup: User authenticated but network offline
+      when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
 
-        // Seed cached user data
-        fakeSecureStorage.seed({
-          SecureStorageWrapper.accessTokenKey: testAccessToken,
-          SecureStorageWrapper.refreshTokenKey: testRefreshToken,
-          SecureStorageWrapper.cachedUserKey:
-              '{"id":"$testUserId","email":"$testEmail","username":"TestUser"}',
-        });
+      // Seed cached user data
+      fakeSecureStorage.seed({
+        SecureStorageWrapper.accessTokenKey: testAccessToken,
+        SecureStorageWrapper.refreshTokenKey: testRefreshToken,
+        SecureStorageWrapper.cachedUserKey:
+            '{"id":"$testUserId","email":"$testEmail","username":"TestUser"}',
+      });
 
-        // Auth check should work with cached data
-        when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => const Success(true));
-        when(() => mockAuthRepo.getCurrentUser())
-            .thenAnswer((_) async => Success(testUser));
+      // Auth check should work with cached data
+      when(
+        () => mockAuthRepo.isAuthenticated(),
+      ).thenAnswer((_) async => const Success(true));
+      when(
+        () => mockAuthRepo.getCurrentUser(),
+      ).thenAnswer((_) async => Success(testUser));
 
-        await pumpTestApp(
-          tester,
-          onboardingCompleted: true,
-          isAuthenticated: true,
-          networkOnline: false,
-        );
+      await pumpTestApp(
+        tester,
+        onboardingCompleted: true,
+        isAuthenticated: true,
+        networkOnline: false,
+      );
 
-        await tester.pump(const Duration(seconds: 2));
-        await safePumpAndSettle(tester);
+      await tester.pump(const Duration(seconds: 2));
+      await safePumpAndSettle(tester);
 
-        // Should still access app (with cached session)
-        verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
+      // Should still access app (with cached session)
+      verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
 
-        // Should NOT show login screen
-        expect(find.text('CyberVPN'), findsNothing,
-            reason: 'Should not show login when offline with valid session');
+      // Should NOT show login screen
+      expect(
+        find.text('CyberVPN'),
+        findsNothing,
+        reason: 'Should not show login when offline with valid session',
+      );
 
-        // Should show offline indicator or limited functionality message
-        // This depends on app implementation
-      },
-    );
+      // Should show offline indicator or limited functionality message
+      // This depends on app implementation
+    });
 
     testWidgets(
       'App shows appropriate offline state when network unavailable',
@@ -710,46 +756,54 @@ void main() {
         // App should handle offline gracefully
         // Look for offline indicators or cached content
         final hasContent = find.byType(Scaffold).evaluate().isNotEmpty;
-        expect(hasContent, isTrue,
-            reason: 'App should display content even when offline');
-      },
-    );
-
-    testWidgets(
-      'Session validation works offline with cached tokens',
-      (tester) async {
-        // Setup: Valid tokens in storage, offline
-        fakeSecureStorage.seed({
-          SecureStorageWrapper.accessTokenKey: testAccessToken,
-          SecureStorageWrapper.refreshTokenKey: testRefreshToken,
-          SecureStorageWrapper.cachedUserKey:
-              '{"id":"$testUserId","email":"$testEmail"}',
-        });
-
-        when(() => mockAuthRepo.isAuthenticated())
-            .thenAnswer((_) async => const Success(true));
-        when(() => mockAuthRepo.getCurrentUser())
-            .thenAnswer((_) async => Success(testUser));
-
-        await pumpTestApp(
-          tester,
-          onboardingCompleted: true,
-          isAuthenticated: true,
-          networkOnline: false,
+        expect(
+          hasContent,
+          isTrue,
+          reason: 'App should display content even when offline',
         );
-
-        await safePumpAndSettle(tester);
-
-        // Verify cached tokens are used for session validation
-        final hasAccessToken =
-            fakeSecureStorage.store.containsKey(SecureStorageWrapper.accessTokenKey);
-        expect(hasAccessToken, isTrue,
-            reason: 'Should have access token in secure storage');
-
-        // Auth repo should validate session
-        verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
       },
     );
+
+    testWidgets('Session validation works offline with cached tokens', (
+      tester,
+    ) async {
+      // Setup: Valid tokens in storage, offline
+      fakeSecureStorage.seed({
+        SecureStorageWrapper.accessTokenKey: testAccessToken,
+        SecureStorageWrapper.refreshTokenKey: testRefreshToken,
+        SecureStorageWrapper.cachedUserKey:
+            '{"id":"$testUserId","email":"$testEmail"}',
+      });
+
+      when(
+        () => mockAuthRepo.isAuthenticated(),
+      ).thenAnswer((_) async => const Success(true));
+      when(
+        () => mockAuthRepo.getCurrentUser(),
+      ).thenAnswer((_) async => Success(testUser));
+
+      await pumpTestApp(
+        tester,
+        onboardingCompleted: true,
+        isAuthenticated: true,
+        networkOnline: false,
+      );
+
+      await safePumpAndSettle(tester);
+
+      // Verify cached tokens are used for session validation
+      final hasAccessToken = fakeSecureStorage.store.containsKey(
+        SecureStorageWrapper.accessTokenKey,
+      );
+      expect(
+        hasAccessToken,
+        isTrue,
+        reason: 'Should have access token in secure storage',
+      );
+
+      // Auth repo should validate session
+      verify(() => mockAuthRepo.isAuthenticated()).called(greaterThan(0));
+    });
   });
 }
 
@@ -765,31 +819,41 @@ void _setupDefaultMockBehaviors({
   required MockBiometricService mockBiometricService,
 }) {
   // Device service defaults
-  when(() => mockDeviceService.getDeviceInfo())
-      .thenAnswer((_) async => testDeviceInfo);
-  when(() => mockDeviceService.getDeviceId())
-      .thenAnswer((_) async => testDeviceId);
+  when(
+    () => mockDeviceService.getDeviceInfo(),
+  ).thenAnswer((_) async => testDeviceInfo);
+  when(
+    () => mockDeviceService.getDeviceId(),
+  ).thenAnswer((_) async => testDeviceId);
 
   // Network info defaults
   when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
 
   // Onboarding defaults
-  when(() => mockOnboardingRepo.hasCompletedOnboarding())
-      .thenAnswer((_) async => true);
-  when(() => mockOnboardingRepo.completeOnboarding())
-      .thenAnswer((_) async {});
+  when(
+    () => mockOnboardingRepo.hasCompletedOnboarding(),
+  ).thenAnswer((_) async => true);
+  when(() => mockOnboardingRepo.completeOnboarding()).thenAnswer((_) async {});
 
   // Auth defaults
-  when(() => mockAuthRepo.isAuthenticated()).thenAnswer((_) async => const Success(false));
-  when(() => mockAuthRepo.getCurrentUser()).thenAnswer((_) async => const Success(null));
+  when(
+    () => mockAuthRepo.isAuthenticated(),
+  ).thenAnswer((_) async => const Success(false));
+  when(
+    () => mockAuthRepo.getCurrentUser(),
+  ).thenAnswer((_) async => const Success(null));
 
   // Biometric defaults
-  when(() => mockBiometricService.isBiometricAvailable())
-      .thenAnswer((_) async => false);
-  when(() => mockBiometricService.isBiometricEnabled())
-      .thenAnswer((_) async => false);
-  when(() => mockBiometricService.getAvailableBiometrics())
-      .thenAnswer((_) async => []);
-  when(() => mockBiometricService.hasEnrollmentChanged())
-      .thenAnswer((_) async => false);
+  when(
+    () => mockBiometricService.isBiometricAvailable(),
+  ).thenAnswer((_) async => false);
+  when(
+    () => mockBiometricService.isBiometricEnabled(),
+  ).thenAnswer((_) async => false);
+  when(
+    () => mockBiometricService.getAvailableBiometrics(),
+  ).thenAnswer((_) async => []);
+  when(
+    () => mockBiometricService.hasEnrollmentChanged(),
+  ).thenAnswer((_) async => false);
 }

@@ -1,54 +1,85 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
-// Pending deep link state
+// Route intent query parameters
 // ---------------------------------------------------------------------------
 
-/// Holds a pending [DeepLinkRoute] that should be executed after the user
-/// authenticates.
-///
-/// When a deep link arrives while the user is unauthenticated, the route is
-/// stored here. After login completes, the router consumes and clears it.
-class PendingDeepLinkNotifier extends Notifier<DeepLinkRoute?> {
-  @override
-  DeepLinkRoute? build() => null;
+const postAuthRedirectQueryParam = 'next';
+const oauthCodeQueryParam = 'oauth_code';
+const oauthStateQueryParam = 'oauth_state';
+const telegramAuthDataQueryParam = 'telegram_auth_data';
+const telegramBotTokenQueryParam = 'telegram_bot_token';
+const referralCodeQueryParam = 'referral_code';
 
-  /// Store a deep link to execute after authentication.
-  void setPending(DeepLinkRoute route) {
-    state = route;
-    AppLogger.info(
-      'Stored pending deep link: $route',
-      category: 'deep-link',
-    );
-  }
+String buildRouteLocation(
+  String path, {
+  Map<String, String?> queryParameters = const <String, String?>{},
+}) {
+  final filtered = <String, String>{
+    for (final entry in queryParameters.entries)
+      if (entry.value != null && entry.value!.isNotEmpty)
+        entry.key: entry.value!,
+  };
 
-  /// Consume and return the pending deep link, clearing the state.
-  DeepLinkRoute? consume() {
-    final route = state;
-    if (route != null) {
-      state = null;
-      AppLogger.info(
-        'Consumed pending deep link: $route',
-        category: 'deep-link',
-      );
-    }
-    return route;
-  }
-
-  /// Clear the pending deep link without consuming it.
-  void clear() {
-    state = null;
-  }
+  return Uri(
+    path: path,
+    queryParameters: filtered.isEmpty ? null : filtered,
+  ).toString();
 }
 
-/// Provider for the pending deep link state.
-final pendingDeepLinkProvider =
-    NotifierProvider<PendingDeepLinkNotifier, DeepLinkRoute?>(() {
-  return PendingDeepLinkNotifier();
-});
+String buildAuthRouteLocation({
+  required String authPath,
+  String? postAuthRedirect,
+  String? oauthCode,
+  String? oauthState,
+  String? telegramAuthData,
+  String? telegramBotToken,
+  String? referralCode,
+}) {
+  return buildRouteLocation(
+    authPath,
+    queryParameters: <String, String?>{
+      postAuthRedirectQueryParam: postAuthRedirect,
+      oauthCodeQueryParam: oauthCode,
+      oauthStateQueryParam: oauthState,
+      telegramAuthDataQueryParam: telegramAuthData,
+      telegramBotTokenQueryParam: telegramBotToken,
+      referralCodeQueryParam: referralCode,
+    },
+  );
+}
+
+String buildQuickSetupLocation({String? postAuthRedirect}) {
+  return buildRouteLocation(
+    '/quick-setup',
+    queryParameters: <String, String?>{
+      postAuthRedirectQueryParam: postAuthRedirect,
+    },
+  );
+}
+
+String buildPermissionsLocation({String? postAuthRedirect}) {
+  return buildRouteLocation(
+    '/permissions',
+    queryParameters: <String, String?>{
+      postAuthRedirectQueryParam: postAuthRedirect,
+    },
+  );
+}
+
+String buildOnboardingLocation({String? postAuthRedirect}) {
+  return buildRouteLocation(
+    '/onboarding',
+    queryParameters: <String, String?>{
+      postAuthRedirectQueryParam: postAuthRedirect,
+    },
+  );
+}
+
+String? readPostAuthRedirect(Uri uri) {
+  return uri.queryParameters[postAuthRedirectQueryParam];
+}
 
 // ---------------------------------------------------------------------------
 // Route resolution
@@ -71,10 +102,8 @@ String resolveDeepLinkPath(DeepLinkRoute route) {
       state != null
           ? '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code&oauth_state=$state'
           : '/profile/social-accounts?oauth_provider=$provider&oauth_code=$code',
-    TelegramAuthRoute(:final authData) =>
-      '/telegram-auth?auth_data=$authData',
-    TelegramBotLinkRoute(:final token) =>
-      '/auth/telegram-link?token=$token',
+    TelegramAuthRoute(:final authData) => '/telegram-auth?auth_data=$authData',
+    TelegramBotLinkRoute(:final token) => '/auth/telegram-link?token=$token',
     MagicLinkVerifyRoute(:final token) => '/magic-link/verify?token=$token',
   };
 }
@@ -95,8 +124,12 @@ String? resolveDeepLinkFromUri(Uri uri) {
   if (result.route != null) {
     final path = resolveDeepLinkPath(result.route!);
     AppLogger.info(
-      'Resolved deep link $uriString -> $path',
+      'Resolved deep link route',
       category: 'deep-link',
+      data: {
+        'route_type': result.route.runtimeType.toString(),
+        'target_path': path,
+      },
     );
     return path;
   }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/providers/quick_setup_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -87,8 +88,13 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
     _connectionTimeoutTimer?.cancel();
     unawaited(ref.read(quickSetupProvider.notifier).abandon());
     if (mounted) {
-      context.go('/connection');
+      context.go(_postQuickSetupDestination);
     }
+  }
+
+  String get _postQuickSetupDestination {
+    final uri = GoRouterState.of(context).uri;
+    return readPostAuthRedirect(uri) ?? '/connection';
   }
 
   Future<void> _handleConnect() async {
@@ -96,9 +102,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
     final recommendedServer = ref.read(recommendedServerProvider);
     if (recommendedServer == null) {
-      _handleConnectionError(
-        AppLocalizations.of(context).quickSetupNoServers,
-      );
+      _handleConnectionError(AppLocalizations.of(context).quickSetupNoServers);
       return;
     }
 
@@ -199,7 +203,7 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
     _timeoutTimer?.cancel();
     unawaited(ref.read(quickSetupProvider.notifier).complete());
     if (mounted) {
-      context.go('/connection');
+      context.go(_postQuickSetupDestination);
     }
   }
 
@@ -214,8 +218,10 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
     final recommendedServer = ref.watch(recommendedServerProvider);
 
     // Listen to VPN connection state changes.
-    ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider,
-        (previous, next) {
+    ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider, (
+      previous,
+      next,
+    ) {
       switch (next.value) {
         case VpnConnected() when !_showCelebration:
           _showSuccess();
@@ -247,114 +253,120 @@ class _QuickSetupScreenState extends ConsumerState<QuickSetupScreen>
 
   Widget _buildSetupContent(ThemeData theme, ServerEntity? server) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Spacer(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // -- Icon --
+                  Icon(
+                    Icons.rocket_launch_outlined,
+                    size: 80,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: Spacing.xl),
 
-          // -- Icon --
-          Icon(
-            Icons.rocket_launch_outlined,
-            size: 80,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(height: Spacing.xl),
-
-          // -- Title --
-          Text(
-            l10n.quickSetupReadyToProtect,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Spacing.md),
-
-          // -- Subtitle --
-          Text(
-            l10n.quickSetupBestServer,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Spacing.xl * 1.5),
-
-          // -- Server card --
-          if (server != null) ...[
-            _buildServerCard(theme, server),
-            const SizedBox(height: Spacing.xl * 1.5),
-          ] else ...[
-            const CircularProgressIndicator(),
-            const SizedBox(height: Spacing.lg),
-            Text(
-              l10n.quickSetupFindingServer,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: Spacing.xl * 1.5),
-          ],
-
-          // -- Connect button --
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: (_isConnecting || server == null)
-                  ? null
-                  : _handleConnect,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Radii.lg),
-                ),
-              ),
-              child: _isConnecting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.shield, size: 24),
-                        const SizedBox(width: Spacing.sm),
-                        Text(
-                          l10n.quickSetupConnectButton,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  // -- Title --
+                  Text(
+                    l10n.quickSetupReadyToProtect,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
                     ),
-            ),
-          ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: Spacing.md),
 
-          const Spacer(),
+                  // -- Subtitle --
+                  Text(
+                    l10n.quickSetupBestServer,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: Spacing.xl * 1.5),
 
-          // -- Skip button --
-          TextButton(
-            onPressed: _isConnecting ? null : _handleSkip,
-            child: Text(
-              l10n.quickSetupSkip,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                  // -- Server card --
+                  if (server != null) ...[
+                    _buildServerCard(theme, server),
+                    const SizedBox(height: Spacing.xl * 1.5),
+                  ] else ...[
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: Spacing.lg),
+                    Text(
+                      l10n.quickSetupFindingServer,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: Spacing.xl * 1.5),
+                  ],
+
+                  // -- Connect button --
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: (_isConnecting || server == null)
+                          ? null
+                          : _handleConnect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(Radii.lg),
+                        ),
+                      ),
+                      child: _isConnecting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.shield, size: 24),
+                                const SizedBox(width: Spacing.sm),
+                                Text(
+                                  l10n.quickSetupConnectButton,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.lg),
+
+                  // -- Skip button --
+                  TextButton(
+                    onPressed: _isConnecting ? null : _handleSkip,
+                    child: Text(
+                      l10n.quickSetupSkip,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

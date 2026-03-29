@@ -17,15 +17,19 @@ void main() {
   });
 
   void stubGetSuccess({Map<String, dynamic>? data}) {
-    when(() => mockApiClient.get<Map<String, dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-          options: any(named: 'options'),
-        )).thenAnswer((_) async => Response<Map<String, dynamic>>(
-          data: data ?? {'status': 'ok'},
-          statusCode: 200,
-          requestOptions: RequestOptions(path: ''),
-        ));
+    when(
+      () => mockApiClient.get<Map<String, dynamic>>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        data: data ?? {'status': 'ok'},
+        statusCode: 200,
+        requestOptions: RequestOptions(path: ''),
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -42,12 +46,13 @@ void main() {
     });
 
     test('returns false on ServerException with 404', () async {
-      when(() => mockApiClient.get<Map<String, dynamic>>(
-            any(),
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).thenThrow(
-              const ServerException(message: 'Not Found', code: 404));
+      when(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(const ServerException(message: 'Not Found', code: 404));
 
       final result = await dataSource.checkAvailability();
 
@@ -55,12 +60,13 @@ void main() {
     });
 
     test('returns false on ServerException with 501', () async {
-      when(() => mockApiClient.get<Map<String, dynamic>>(
-            any(),
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).thenThrow(const ServerException(
-              message: 'Not Implemented', code: 501));
+      when(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(const ServerException(message: 'Not Implemented', code: 501));
 
       final result = await dataSource.checkAvailability();
 
@@ -68,12 +74,13 @@ void main() {
     });
 
     test('returns false on NetworkException', () async {
-      when(() => mockApiClient.get<Map<String, dynamic>>(
-            any(),
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).thenThrow(
-              const NetworkException(message: 'No internet connection'));
+      when(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(const NetworkException(message: 'No internet connection'));
 
       final result = await dataSource.checkAvailability();
 
@@ -81,15 +88,34 @@ void main() {
     });
 
     test('returns false on unexpected exception', () async {
-      when(() => mockApiClient.get<Map<String, dynamic>>(
-            any(),
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).thenThrow(Exception('Unexpected'));
+      when(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(Exception('Unexpected'));
 
       final result = await dataSource.checkAvailability();
 
       expect(result, isFalse);
+    });
+
+    test('keeps cached availability on transient failure', () async {
+      stubGetSuccess();
+      expect(await dataSource.checkAvailability(), isTrue);
+
+      when(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(const NetworkException(message: 'No internet connection'));
+
+      final result = await dataSource.checkAvailability();
+
+      expect(result, isTrue);
     });
 
     test('caches result and does not make repeated API calls', () async {
@@ -101,11 +127,13 @@ void main() {
       final result = await dataSource.checkAvailability();
 
       expect(result, isTrue);
-      verify(() => mockApiClient.get<Map<String, dynamic>>(
-            any(),
-            queryParameters: any(named: 'queryParameters'),
-            options: any(named: 'options'),
-          )).called(1);
+      verify(
+        () => mockApiClient.get<Map<String, dynamic>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        ),
+      ).called(1);
     });
   });
 
@@ -115,7 +143,7 @@ void main() {
 
   group('getReferralCode', () {
     test('returns code from API response', () async {
-      stubGetSuccess(data: {'code': 'ABC123'});
+      stubGetSuccess(data: {'referral_code': 'ABC123'});
 
       final result = await dataSource.getReferralCode();
 
@@ -129,12 +157,14 @@ void main() {
 
   group('getReferralStats', () {
     test('returns parsed stats from API response', () async {
-      stubGetSuccess(data: {
-        'total_invited': 10,
-        'paid_users': 3,
-        'points_earned': 250.5,
-        'balance': 100.0,
-      });
+      stubGetSuccess(
+        data: {
+          'total_referrals': 10,
+          'paid_users': 3,
+          'total_earned': 250.5,
+          'balance': 100.0,
+        },
+      );
 
       final result = await dataSource.getReferralStats();
 
@@ -151,26 +181,47 @@ void main() {
 
   group('getRecentReferrals', () {
     test('returns parsed entries from API response', () async {
-      stubGetSuccess(data: {
-        'referrals': [
-          {
-            'code': 'REF1',
-            'join_date': '2025-01-15T00:00:00.000',
-            'status': 'active',
-          },
-          {
-            'code': 'REF2',
-            'join_date': '2025-02-20T00:00:00.000',
-            'status': 'completed',
-          },
-        ],
-      });
+      stubGetSuccess(
+        data: {
+          'referrals': [
+            {
+              'code': 'REF1',
+              'join_date': '2025-01-15T00:00:00.000',
+              'status': 'active',
+            },
+            {
+              'code': 'REF2',
+              'join_date': '2025-02-20T00:00:00.000',
+              'status': 'completed',
+            },
+          ],
+        },
+      );
 
       final result = await dataSource.getRecentReferrals();
 
       expect(result, hasLength(2));
       expect(result[0].code, equals('REF1'));
+      expect(result[0].status.name, equals('active'));
       expect(result[1].code, equals('REF2'));
+    });
+
+    test('parses backend commission-style recent referrals', () async {
+      stubGetSuccess(
+        data: {
+          'referrals': [
+            {
+              'referred_user_id': 'user-42',
+              'created_at': '2025-03-01T00:00:00.000',
+            },
+          ],
+        },
+      );
+
+      final result = await dataSource.getRecentReferrals();
+
+      expect(result.single.code, equals('user-42'));
+      expect(result.single.status.name, equals('completed'));
     });
   });
 }

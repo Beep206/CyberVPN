@@ -121,6 +121,27 @@ void main() {
         expect(lines[i], contains('msg $i'));
       }
     });
+
+    test('redacts sensitive query params and bearer tokens', () {
+      AppLogger.info(
+        'Resolved deep link /login?oauth_code=secret-code&telegram_bot_token=bot-token',
+      );
+      AppLogger.warning(
+        'Authorization header Bearer abc.def.ghi',
+        data: {
+          'ticket': 'ws-ticket',
+          'nested': {'refresh_token': 'refresh-secret'},
+        },
+      );
+
+      final output = AppLogger.exportLogs();
+      expect(output, isNot(contains('secret-code')));
+      expect(output, isNot(contains('bot-token')));
+      expect(output, isNot(contains('ws-ticket')));
+      expect(output, isNot(contains('refresh-secret')));
+      expect(output, contains('***REDACTED***'));
+      expect(output, contains('Bearer ***REDACTED***'));
+    });
   });
 
   group('clearLogs', () {

@@ -63,31 +63,36 @@ class _StaggeredListItemState extends State<StaggeredListItem>
   Animation<double>? _opacity;
   Animation<Offset>? _slide;
 
-  bool get _shouldAnimate => widget.index < _maxAnimatedItems;
+  bool get _isAnimatedIndex => widget.index < _maxAnimatedItems;
+
+  bool get _shouldAnimate {
+    if (!_isAnimatedIndex) return false;
+    final mediaQuery = MediaQuery.maybeOf(context);
+    if (mediaQuery?.disableAnimations ?? false) return false;
+    return true;
+  }
 
   @override
   void initState() {
     super.initState();
+  }
 
-    if (!_shouldAnimate) return;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAnimationState();
+  }
 
-    _controller = AnimationController(
-      duration: widget.duration,
-      vsync: this,
-    );
-
-    final curved = CurvedAnimation(
-      parent: _controller!,
-      curve: widget.curve,
-    );
-
-    _opacity = Tween<double>(begin: 0, end: 1).animate(curved);
-    _slide = Tween<Offset>(
-      begin: widget.slideOffset,
-      end: Offset.zero,
-    ).animate(curved);
-
-    unawaited(_startAnimation());
+  @override
+  void didUpdateWidget(covariant StaggeredListItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index ||
+        oldWidget.duration != widget.duration ||
+        oldWidget.curve != widget.curve ||
+        oldWidget.slideOffset != widget.slideOffset) {
+      _disposeController();
+      _syncAnimationState();
+    }
   }
 
   Future<void> _startAnimation() async {
@@ -101,23 +106,49 @@ class _StaggeredListItemState extends State<StaggeredListItem>
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _disposeController();
     super.dispose();
+  }
+
+  void _syncAnimationState() {
+    if (!_shouldAnimate) {
+      _disposeController();
+      return;
+    }
+
+    if (_controller != null) {
+      return;
+    }
+
+    _controller = AnimationController(duration: widget.duration, vsync: this);
+
+    final curved = CurvedAnimation(parent: _controller!, curve: widget.curve);
+
+    _opacity = Tween<double>(begin: 0, end: 1).animate(curved);
+    _slide = Tween<Offset>(
+      begin: widget.slideOffset,
+      end: Offset.zero,
+    ).animate(curved);
+
+    unawaited(_startAnimation());
+  }
+
+  void _disposeController() {
+    _controller?.dispose();
+    _controller = null;
+    _opacity = null;
+    _slide = null;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_shouldAnimate) return widget.child;
-
-    final disableAnimations = MediaQuery.of(context).disableAnimations;
-    if (disableAnimations) return widget.child;
+    if (!_shouldAnimate || _slide == null || _opacity == null) {
+      return widget.child;
+    }
 
     return SlideTransition(
       position: _slide!,
-      child: FadeTransition(
-        opacity: _opacity!,
-        child: widget.child,
-      ),
+      child: FadeTransition(opacity: _opacity!, child: widget.child),
     );
   }
 }

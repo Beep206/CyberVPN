@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final now = DateTime(2026, 2, 15, 12, 0, 0);
 
-  ProfileServer _server({String id = 'srv-1', String profileId = 'p-1'}) {
+  ProfileServer server({String id = 'srv-1', String profileId = 'p-1'}) {
     return ProfileServer(
       id: id,
       profileId: profileId,
@@ -24,13 +24,15 @@ void main() {
     late RemoteVpnProfile profile;
 
     setUp(() {
-      profile = VpnProfile.remote(
-        id: 'p-remote-1',
-        name: 'My Sub',
-        subscriptionUrl: 'https://sub.example.com/token',
-        sortOrder: 0,
-        createdAt: now,
-      ) as RemoteVpnProfile;
+      profile =
+          VpnProfile.remote(
+                id: 'p-remote-1',
+                name: 'My Sub',
+                subscriptionUrl: 'https://sub.example.com/token',
+                sortOrder: 0,
+                createdAt: now,
+              )
+              as RemoteVpnProfile;
     });
 
     test('creates with all required fields', () {
@@ -60,25 +62,27 @@ void main() {
     test('creates with all optional fields', () {
       final expires = DateTime(2026, 3, 15);
       final updated = DateTime(2026, 2, 14);
-      final servers = [_server(profileId: 'p-remote-full')];
+      final servers = [server(profileId: 'p-remote-full')];
 
-      final full = VpnProfile.remote(
-        id: 'p-remote-full',
-        name: 'Full Sub',
-        subscriptionUrl: 'https://sub.example.com/full',
-        isActive: true,
-        sortOrder: 1,
-        createdAt: now,
-        lastUpdatedAt: updated,
-        uploadBytes: 100,
-        downloadBytes: 200,
-        totalBytes: 1000,
-        expiresAt: expires,
-        updateIntervalMinutes: 120,
-        supportUrl: 'https://support.example.com',
-        testUrl: 'https://test.example.com',
-        servers: servers,
-      ) as RemoteVpnProfile;
+      final full =
+          VpnProfile.remote(
+                id: 'p-remote-full',
+                name: 'Full Sub',
+                subscriptionUrl: 'https://sub.example.com/full',
+                isActive: true,
+                sortOrder: 1,
+                createdAt: now,
+                lastUpdatedAt: updated,
+                uploadBytes: 100,
+                downloadBytes: 200,
+                totalBytes: 1000,
+                expiresAt: expires,
+                updateIntervalMinutes: 120,
+                supportUrl: 'https://support.example.com',
+                testUrl: 'https://test.example.com',
+                servers: servers,
+              )
+              as RemoteVpnProfile;
 
       expect(full.isActive, true);
       expect(full.lastUpdatedAt, updated);
@@ -167,12 +171,14 @@ void main() {
     late LocalVpnProfile profile;
 
     setUp(() {
-      profile = VpnProfile.local(
-        id: 'p-local-1',
-        name: 'Local Configs',
-        sortOrder: 0,
-        createdAt: now,
-      ) as LocalVpnProfile;
+      profile =
+          VpnProfile.local(
+                id: 'p-local-1',
+                name: 'Local Configs',
+                sortOrder: 0,
+                createdAt: now,
+              )
+              as LocalVpnProfile;
     });
 
     test('creates with all required fields', () {
@@ -193,17 +199,19 @@ void main() {
 
     test('creates with servers and optional fields', () {
       final updated = DateTime(2026, 2, 14);
-      final servers = [_server(profileId: 'p-local-full')];
+      final servers = [server(profileId: 'p-local-full')];
 
-      final full = VpnProfile.local(
-        id: 'p-local-full',
-        name: 'Full Local',
-        isActive: true,
-        sortOrder: 2,
-        createdAt: now,
-        lastUpdatedAt: updated,
-        servers: servers,
-      ) as LocalVpnProfile;
+      final full =
+          VpnProfile.local(
+                id: 'p-local-full',
+                name: 'Full Local',
+                isActive: true,
+                sortOrder: 2,
+                createdAt: now,
+                lastUpdatedAt: updated,
+                servers: servers,
+              )
+              as LocalVpnProfile;
 
       expect(full.isActive, true);
       expect(full.lastUpdatedAt, updated);

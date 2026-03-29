@@ -50,11 +50,11 @@ class QuickSetupState {
 // QuickSetupNotifier
 // ---------------------------------------------------------------------------
 
-class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
+class QuickSetupNotifier extends Notifier<QuickSetupState> {
   late final SharedPreferences _prefs;
 
   @override
-  Future<QuickSetupState> build() async {
+  QuickSetupState build() {
     _prefs = ref.watch(sharedPreferencesProvider);
     final completed = _prefs.getBool(_quickSetupCompletedKey) ?? false;
     final abandoned = _prefs.getBool(_quickSetupAbandonedKey) ?? false;
@@ -62,32 +62,31 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
   }
 
   /// Check if quick setup has been completed before.
-  bool get isCompleted => state.value?.completed ?? false;
+  bool get isCompleted => state.completed;
 
   /// Mark quick setup as completed and persist the flag.
   Future<void> complete() async {
     try {
       await _prefs.setBool(_quickSetupCompletedKey, true);
-      state = AsyncData(
-        (state.value ?? const QuickSetupState()).copyWith(completed: true),
-      );
+      state = state.copyWith(completed: true);
       AppLogger.info('Quick setup marked as completed');
     } catch (e, st) {
-      AppLogger.error('Failed to mark quick setup as completed',
-          error: e, stackTrace: st);
+      AppLogger.error(
+        'Failed to mark quick setup as completed',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
   /// Set the connecting state during the first connection attempt.
   void setConnecting(bool isConnecting) {
-    final current = state.value ?? const QuickSetupState();
-    state = AsyncData(current.copyWith(isConnecting: isConnecting));
+    state = state.copyWith(isConnecting: isConnecting);
   }
 
   /// Set an error message.
   void setError(String? error) {
-    final current = state.value ?? const QuickSetupState();
-    state = AsyncData(current.copyWith(error: () => error));
+    state = state.copyWith(error: () => error);
   }
 
   /// Mark quick setup as abandoned (timeout or user skipped).
@@ -95,16 +94,14 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
     try {
       await _prefs.setBool(_quickSetupAbandonedKey, true);
       await _prefs.setBool(_quickSetupCompletedKey, true);
-      state = AsyncData(
-        (state.value ?? const QuickSetupState()).copyWith(
-          abandoned: true,
-          completed: true,
-        ),
-      );
+      state = state.copyWith(abandoned: true, completed: true);
       AppLogger.info('Quick setup marked as abandoned');
     } catch (e, st) {
-      AppLogger.error('Failed to mark quick setup as abandoned',
-          error: e, stackTrace: st);
+      AppLogger.error(
+        'Failed to mark quick setup as abandoned',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -113,11 +110,10 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
     try {
       await _prefs.remove(_quickSetupCompletedKey);
       await _prefs.remove(_quickSetupAbandonedKey);
-      state = const AsyncData(QuickSetupState());
+      state = const QuickSetupState();
       AppLogger.info('Quick setup resumed - flags cleared');
     } catch (e, st) {
-      AppLogger.error('Failed to resume quick setup',
-          error: e, stackTrace: st);
+      AppLogger.error('Failed to resume quick setup', error: e, stackTrace: st);
     }
   }
 
@@ -126,11 +122,14 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
     try {
       await _prefs.remove(_quickSetupCompletedKey);
       await _prefs.remove(_quickSetupAbandonedKey);
-      state = const AsyncData(QuickSetupState());
+      state = const QuickSetupState();
       AppLogger.info('Quick setup state reset');
     } catch (e, st) {
-      AppLogger.error('Failed to reset quick setup state',
-          error: e, stackTrace: st);
+      AppLogger.error(
+        'Failed to reset quick setup state',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 }
@@ -140,9 +139,9 @@ class QuickSetupNotifier extends AsyncNotifier<QuickSetupState> {
 // ---------------------------------------------------------------------------
 
 final quickSetupProvider =
-    AsyncNotifierProvider<QuickSetupNotifier, QuickSetupState>(
-  QuickSetupNotifier.new,
-);
+    NotifierProvider<QuickSetupNotifier, QuickSetupState>(
+      QuickSetupNotifier.new,
+    );
 
 // ---------------------------------------------------------------------------
 // Derived providers
@@ -150,6 +149,6 @@ final quickSetupProvider =
 
 /// Whether the user should see the quick setup flow (first time authenticated).
 final shouldShowQuickSetupProvider = Provider<bool>((ref) {
-  final quickSetup = ref.watch(quickSetupProvider).value;
-  return !(quickSetup?.completed ?? false);
+  final quickSetup = ref.watch(quickSetupProvider);
+  return !quickSetup.completed;
 });

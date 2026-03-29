@@ -31,25 +31,41 @@ class SpeedIndicator extends ConsumerWidget {
           label: l10n.a11yDownloadUploadSpeed(speed.download, speed.upload),
           hint: 'Shows current download and upload speeds',
           readOnly: true,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _SpeedGauge(
-                icon: Icons.arrow_downward_rounded,
-                label: l10n.downloadSpeed,
-                speed: speed.download,
-                total: usage.download,
-                isActive: isConnected,
-              ),
-              const SizedBox(width: 32),
-              _SpeedGauge(
-                icon: Icons.arrow_upward_rounded,
-                label: l10n.uploadSpeed,
-                speed: speed.upload,
-                total: usage.upload,
-                isActive: isConnected,
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final gauges = [
+                _SpeedGauge(
+                  icon: Icons.arrow_downward_rounded,
+                  label: l10n.downloadSpeed,
+                  speed: speed.download,
+                  total: usage.download,
+                  isActive: isConnected,
+                ),
+                _SpeedGauge(
+                  icon: Icons.arrow_upward_rounded,
+                  label: l10n.uploadSpeed,
+                  speed: speed.upload,
+                  total: usage.upload,
+                  isActive: isConnected,
+                ),
+              ];
+
+              if (constraints.maxWidth < 260) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [gauges[0], const SizedBox(height: 16), gauges[1]],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(child: Center(child: gauges[0])),
+                  const SizedBox(width: 24),
+                  Expanded(child: Center(child: gauges[1])),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -76,7 +92,9 @@ class _SpeedGauge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final activeColor = isActive ? colorScheme.tertiary : colorScheme.outline;
-    final textColor = isActive ? colorScheme.onSurface : colorScheme.onSurfaceVariant;
+    final textColor = isActive
+        ? colorScheme.onSurface
+        : colorScheme.onSurfaceVariant;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -88,9 +106,7 @@ class _SpeedGauge extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: activeColor.withValues(alpha: 0.15),
-            border: Border.all(
-              color: activeColor.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: activeColor.withValues(alpha: 0.4)),
             boxShadow: isActive && CyberColors.isCyberpunkTheme(context)
                 ? CyberEffects.neonGlow(activeColor, intensity: 0.4)
                 : null,

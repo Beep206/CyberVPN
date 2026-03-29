@@ -21,7 +21,10 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/services/push_notification_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/core/utils/startup_metrics.dart';
+import 'package:cybervpn_mobile/core/startup/startup_providers.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_service.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
 import 'package:cybervpn_mobile/shared/widgets/global_error_screen.dart';
 
 // Global provider container reference for accessing services
@@ -29,103 +32,80 @@ import 'package:cybervpn_mobile/shared/widgets/global_error_screen.dart';
 late final ProviderContainer _globalContainer;
 
 Future<void> main() async {
-  final totalSw = Stopwatch()..start();
-  final stepSw = Stopwatch();
-
   WidgetsFlutterBinding.ensureInitialized();
+  final startupMetrics = StartupMetrics();
+  startupMetrics.attachFirstFrameListener();
 
   // Use bundled fonts only. Prevent runtime HTTP requests to fonts.gstatic.com.
   GoogleFonts.config.allowRuntimeFetching = false;
 
   // Load .env file for local development fallback values.
-  stepSw.start();
-  await EnvironmentConfig.init();
-  _logStep('EnvironmentConfig.init', stepSw);
+  await startupMetrics.measureAsync(
+    'EnvironmentConfig.init',
+    EnvironmentConfig.init,
+  );
 
   // Initialize SharedPreferences before runApp so providers can access
   // it synchronously via the overridden sharedPreferencesProvider.
-  stepSw
-    ..reset()
-    ..start();
-  final prefs = await SharedPreferences.getInstance();
-  _logStep('SharedPreferences.getInstance', stepSw);
+  final prefs = await startupMetrics.measureAsync(
+    'SharedPreferences.getInstance',
+    SharedPreferences.getInstance,
+  );
 
   // Create the provider container with all overrides.
   // buildProviderOverrides is async because it awaits SecureStorage
   // prewarmCache to prevent race conditions during auth resolution.
-  stepSw
-    ..reset()
-    ..start();
-  final overrides = await buildProviderOverrides(prefs);
-  _globalContainer = ProviderContainer(overrides: overrides);
-  _logStep('buildProviderOverrides + ProviderContainer', stepSw);
-
-  // Eagerly activate auth-reactive side effects so they fire automatically
-  // when the authentication state changes.
-  _globalContainer.read(sentryUserSyncProvider);
-  _globalContainer.read(fcmAuthSyncProvider);
-  _globalContainer.read(attestationAuthProvider);
+  await startupMetrics.measureAsync(
+    'buildProviderOverrides + ProviderContainer',
+    () async {
+      final builtOverrides = await buildProviderOverrides(prefs);
+      _globalContainer = ProviderContainer(overrides: builtOverrides);
+    },
+  );
 
   // Defer non-critical initialization to post-launch for faster cold start.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(_initializeDeferredServices());
+    startupMetrics.recordEvent(
+      'First frame callback entered',
+      phase: StartupPhase.firstFrame,
+    );
+    unawaited(_initializeDeferredServices(startupMetrics));
   });
 
   final dsn = EnvironmentConfig.sentryDsn;
 
   if (dsn.isNotEmpty) {
-    stepSw
-      ..reset()
-      ..start();
-    await SentryFlutter.init((options) {
-      options.dsn = dsn;
-      options.environment = EnvironmentConfig.environment;
-      // Sample all traces in dev/staging; 20% in production to control costs.
-      options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
-      options.sendDefaultPii = false;
+    await startupMetrics.measureAsync('SentryFlutter.init', () async {
+      await SentryFlutter.init((options) {
+        options.dsn = dsn;
+        options.environment = EnvironmentConfig.environment;
+        // Sample all traces in dev/staging; 20% in production to control costs.
+        options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
+        options.sendDefaultPii = false;
 
-      // Performance tracing: automatic transaction tracking for app lifecycle,
-      // routing, and user interactions.
-      options.enableAutoPerformanceTracing = true;
-      options.enableUserInteractionTracing = true;
+        // Performance tracing: automatic transaction tracking for app lifecycle,
+        // routing, and user interactions.
+        options.enableAutoPerformanceTracing = true;
+        options.enableUserInteractionTracing = true;
 
-      // SECURITY: Sanitize breadcrumbs to prevent PII leakage (JWTs, emails, UUIDs).
-      options.beforeBreadcrumb = _sanitizeBreadcrumb;
+        // SECURITY: Sanitize breadcrumbs to prevent PII leakage (JWTs, emails, UUIDs).
+        options.beforeBreadcrumb = _sanitizeBreadcrumb;
 
-      // SECURITY: Sanitize exception messages before sending to Sentry.
-      options.beforeSend = _sanitizeSentryEvent;
-    }, appRunner: () => _runApp(prefs));
-    _logStep('SentryFlutter.init', stepSw);
+        // SECURITY: Sanitize exception messages before sending to Sentry.
+        options.beforeSend = _sanitizeSentryEvent;
+      }, appRunner: () => _runApp(startupMetrics));
+    });
   } else {
     // Sentry disabled (local/dev) -- run the app directly.
-    _runApp(prefs);
+    _runApp(startupMetrics);
   }
 
-  totalSw.stop();
   final isDebug = () {
     bool d = false;
     assert(d = true);
     return d;
   }();
-  AppLogger.info(
-    'Startup complete in ${totalSw.elapsedMilliseconds}ms '
-    '(${isDebug ? "debug" : "release"})',
-    category: 'startup',
-  );
-}
-
-/// Logs a startup step's duration. Warns if it exceeded 100ms.
-void _logStep(String name, Stopwatch sw) {
-  sw.stop();
-  final ms = sw.elapsedMilliseconds;
-  if (ms > 100) {
-    AppLogger.warning(
-      'Startup step "$name" took ${ms}ms (>100ms)',
-      category: 'startup',
-    );
-  } else {
-    AppLogger.info('Startup step "$name" took ${ms}ms', category: 'startup');
-  }
+  startupMetrics.logBootstrapComplete(modeLabel: isDebug ? 'debug' : 'release');
 }
 
 /// Initializes non-critical services after the first frame is rendered.
@@ -136,23 +116,83 @@ void _logStep(String name, Stopwatch sw) {
 /// - Quick actions (long-press app shortcuts)
 ///
 /// This reduces cold start time by avoiding blocking the main thread during launch.
-Future<void> _initializeDeferredServices() async {
-  // Initialize Firebase Core. This must happen before any other Firebase
-  // service (Messaging, Analytics, etc.) is used.
-  await _initializeFirebase();
+Future<void> _initializeDeferredServices(StartupMetrics startupMetrics) async {
+  Future<void> runDeferredStep(
+    String label,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await startupMetrics.measureAsync(
+        label,
+        action,
+        phase: StartupPhase.deferred,
+      );
+    } catch (e, st) {
+      AppLogger.warning(
+        'Deferred startup step failed: $label',
+        error: e,
+        stackTrace: st,
+        category: 'startup',
+      );
+    }
+  }
 
-  // Set up Firebase Cloud Messaging (FCM) handlers.
-  // Inject the FCM token service so it can register tokens on refresh.
-  final fcmTokenService = _globalContainer.read(fcmTokenServiceProvider);
-  PushNotificationService.instance.setFcmTokenService(fcmTokenService);
-  await PushNotificationService.instance.initialize();
+  try {
+    // Initialize Firebase Core. This must happen before any other Firebase
+    // service (Messaging, Analytics, etc.) is used.
+    await runDeferredStep('Firebase.initializeApp', _initializeFirebase);
 
-  // Initialize quick actions (long-press app shortcuts).
-  await QuickActionsService.instance.initialize();
+    await runDeferredStep('Deferred auth side effects', () async {
+      _globalContainer.read(sentryUserSyncProvider);
+      _globalContainer.read(fcmAuthSyncProvider);
+      _globalContainer.read(attestationAuthProvider);
+    });
 
-  // Register memory pressure observer to evict in-memory caches under pressure.
-  final secureStorage = _globalContainer.read(secureStorageProvider);
-  MemoryPressureObserver(secureStorage: secureStorage).register();
+    // Set up Firebase Cloud Messaging (FCM) handlers.
+    // Inject the FCM token service so it can register tokens on refresh.
+    await runDeferredStep('PushNotificationService.initialize', () async {
+      final fcmTokenService = _globalContainer.read(fcmTokenServiceProvider);
+      PushNotificationService.instance.setFcmTokenService(fcmTokenService);
+      await PushNotificationService.instance.initialize();
+    });
+
+    // Initialize quick actions (long-press app shortcuts).
+    await runDeferredStep(
+      'QuickActionsService.initialize',
+      QuickActionsService.instance.initialize,
+    );
+
+    // Register memory pressure observer to evict in-memory caches under pressure.
+    await runDeferredStep('MemoryPressureObserver.register', () async {
+      final secureStorage = _globalContainer.read(secureStorageProvider);
+      MemoryPressureObserver(secureStorage: secureStorage).register();
+    });
+
+    startupMetrics.recordEvent(
+      'Legacy profile migration queued',
+      phase: StartupPhase.deferred,
+    );
+    unawaited(
+      _globalContainer.read(profileMigrationProvider.future).catchError((
+        Object e,
+        StackTrace st,
+      ) {
+        AppLogger.warning(
+          'Deferred legacy profile migration failed',
+          error: e,
+          stackTrace: st,
+          category: 'startup',
+        );
+        return false;
+      }),
+    );
+  } finally {
+    _globalContainer.read(deferredStartupReadyProvider.notifier).markReady();
+    startupMetrics.recordEvent(
+      'Deferred startup ready',
+      phase: StartupPhase.deferred,
+    );
+  }
 }
 
 /// Initializes Firebase Core.
@@ -250,7 +290,9 @@ FutureOr<SentryEvent?> _sanitizeSentryEvent(SentryEvent event, Hint hint) {
 ///
 /// Configures [FlutterError.onError] and [PlatformDispatcher.instance.onError]
 /// to forward uncaught exceptions to Sentry when it is initialised.
-void _runApp(SharedPreferences prefs) {
+void _runApp(StartupMetrics startupMetrics) {
+  startupMetrics.recordEvent('runApp invoked');
+
   // Capture Flutter framework errors (e.g. build/layout/painting failures).
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);

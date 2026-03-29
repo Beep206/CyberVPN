@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/auth/token_refresh_coordinator.dart';
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/errors/failures.dart' hide Failure;
 import 'package:cybervpn_mobile/core/errors/network_error_handler.dart';
@@ -16,14 +17,17 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
   final AuthLocalDataSource _localDataSource;
   final NetworkInfo _networkInfo;
+  final TokenRefreshCoordinator? _tokenRefreshCoordinator;
 
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required AuthLocalDataSource localDataSource,
     required NetworkInfo networkInfo,
-  })  : _remoteDataSource = remoteDataSource,
-        _localDataSource = localDataSource,
-        _networkInfo = networkInfo;
+    TokenRefreshCoordinator? tokenRefreshCoordinator,
+  }) : _remoteDataSource = remoteDataSource,
+       _localDataSource = localDataSource,
+       _networkInfo = networkInfo,
+       _tokenRefreshCoordinator = tokenRefreshCoordinator;
 
   @override
   Future<Result<(UserEntity, String)>> login({
@@ -85,14 +89,24 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
     required String deviceId,
   }) async {
     try {
-      final tokenModel = await _remoteDataSource.refreshToken(
-        refreshToken: refreshToken,
-        deviceId: deviceId,
-      );
-      await _localDataSource.cacheToken(tokenModel);
+      final tokenModel = _tokenRefreshCoordinator != null
+          ? await _tokenRefreshCoordinator.refresh(
+              reason: 'auth-repository',
+              refreshTokenOverride: refreshToken,
+              deviceIdOverride: deviceId,
+            )
+          : await _remoteDataSource.refreshToken(
+              refreshToken: refreshToken,
+              deviceId: deviceId,
+            );
+      if (_tokenRefreshCoordinator == null) {
+        await _localDataSource.cacheToken(tokenModel);
+      }
       return Success(tokenModel.accessToken);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
+    } on TokenRefreshException catch (e) {
+      return Failure(AuthFailure(message: e.message));
     } catch (e) {
       return Failure(UnknownFailure(message: e.toString()));
     }
@@ -145,7 +159,11 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('getCurrentUser unexpected error', error: e, stackTrace: st);
+      AppLogger.warning(
+        'getCurrentUser unexpected error',
+        error: e,
+        stackTrace: st,
+      );
       return const Success(null);
     }
   }
@@ -160,9 +178,16 @@ class AuthRepositoryImpl with NetworkErrorHandler implements AuthRepository {
     } catch (e) {
       final token = await _localDataSource.getCachedToken();
       if (token == null) {
-        AppLogger.info('Background session validation: tokens invalidated', category: 'auth');
+        AppLogger.info(
+          'Background session validation: tokens invalidated',
+          category: 'auth',
+        );
       } else {
-        AppLogger.warning('Background session validation failed (transient)', error: e, category: 'auth');
+        AppLogger.warning(
+          'Background session validation failed (transient)',
+          error: e,
+          category: 'auth',
+        );
       }
     }
   }

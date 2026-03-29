@@ -10,7 +10,6 @@ import 'package:cybervpn_mobile/core/constants/app_constants.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
-import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/core/utils/input_validators.dart';
 import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
@@ -64,52 +63,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   bool _acceptedTerms = false;
   bool _isReferralCodeValid = false;
   bool _isUsernameOnlyMode = false;
-  String? _lastProcessedOAuthCallback;
+  String? _lastProcessedRouteIntent;
 
   @override
   void initState() {
     super.initState();
     unawaited(enableProtection());
-
-    // Check for pending referral deep link after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForReferralDeepLink();
-      unawaited(_processOAuthCallbackIfPresent());
-    });
   }
 
-  /// Checks for pending referral deep link and auto-fills the referral code field.
-  void _checkForReferralDeepLink() {
-    // Check if there's a pending deep link that's a ReferralRoute
-    final pendingRoute = ref.read(pendingDeepLinkProvider);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(_handleRouteIntents());
+  }
 
-    if (pendingRoute is ReferralRoute) {
-      final code = pendingRoute.code;
+  Future<void> _handleRouteIntents() async {
+    final handledRouteIntent =
+        await _processOAuthCallbackIfPresent() ||
+        await _processTelegramAuthIfPresent() ||
+        await _processTelegramBotLinkIfPresent() ||
+        _applyReferralCodeFromRoute();
 
-      // Auto-fill the referral code field
-      _referralCodeController.text = code.toUpperCase();
-
-      // Validate immediately
-      setState(() {
-        _isReferralCodeValid =
-            InputValidators.validateReferralCode(code) == null;
-      });
-
-      // Clear the pending deep link since we consumed it
-      ref.read(pendingDeepLinkProvider.notifier).clear();
-
-      // Show a brief confirmation
-      if (mounted && _isReferralCodeValid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).registerReferralFromLink,
-            ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+    if (!handledRouteIntent) {
+      return;
     }
   }
 
@@ -211,26 +187,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
   // ── Submit ────────────────────────────────────────────────────────
 
-  Future<void> _processOAuthCallbackIfPresent() async {
-    if (!mounted) return;
+  Future<bool> _processOAuthCallbackIfPresent() async {
+    if (!mounted) return false;
 
     final uri = GoRouterState.of(context).uri;
-    final code = uri.queryParameters['oauth_code'];
-    final stateToken = uri.queryParameters['oauth_state'];
+    final code = uri.queryParameters[oauthCodeQueryParam];
+    final stateToken = uri.queryParameters[oauthStateQueryParam];
     if (code == null || stateToken == null) {
-      return;
+      return false;
     }
 
-    final callbackFingerprint = '$code::$stateToken';
-    if (_lastProcessedOAuthCallback == callbackFingerprint) {
-      return;
+    final callbackFingerprint = 'oauth::$code::$stateToken';
+    if (_lastProcessedRouteIntent == callbackFingerprint) {
+      return false;
     }
-    _lastProcessedOAuthCallback = callbackFingerprint;
+    _lastProcessedRouteIntent = callbackFingerprint;
     await ref
         .read(authProvider.notifier)
         .completeOAuthLoginCallback(code: code, stateToken: stateToken);
 
-    if (!mounted) return;
+    if (!mounted) return true;
 
     final authState = ref.read(authProvider).value;
     if (authState case AuthError(:final message)) {
@@ -242,6 +218,110 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         ),
       );
     }
+
+    return true;
+  }
+
+  Future<bool> _processTelegramAuthIfPresent() async {
+    if (!mounted) return false;
+
+    final authData = GoRouterState.of(
+      context,
+    ).uri.queryParameters[telegramAuthDataQueryParam];
+    if (authData == null || authData.isEmpty) {
+      return false;
+    }
+
+    final fingerprint = 'telegram::$authData';
+    if (_lastProcessedRouteIntent == fingerprint) {
+      return false;
+    }
+    _lastProcessedRouteIntent = fingerprint;
+
+    await ref.read(telegramAuthProvider.notifier).handleCallback(authData);
+    return true;
+  }
+
+  Future<bool> _processTelegramBotLinkIfPresent() async {
+    if (!mounted) return false;
+
+    final token = GoRouterState.of(
+      context,
+    ).uri.queryParameters[telegramBotTokenQueryParam];
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+
+    final fingerprint = 'telegram-bot::$token';
+    if (_lastProcessedRouteIntent == fingerprint) {
+      return false;
+    }
+    _lastProcessedRouteIntent = fingerprint;
+
+    await ref.read(authProvider.notifier).loginWithBotLink(token);
+
+    if (!mounted) return true;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  bool _applyReferralCodeFromRoute() {
+    final code = GoRouterState.of(
+      context,
+    ).uri.queryParameters[referralCodeQueryParam];
+    if (code == null || code.isEmpty) {
+      return false;
+    }
+
+    final fingerprint = 'referral::$code';
+    if (_lastProcessedRouteIntent == fingerprint) {
+      return false;
+    }
+    _lastProcessedRouteIntent = fingerprint;
+
+    _referralCodeController.text = code.toUpperCase();
+    final isValid = InputValidators.validateReferralCode(code) == null;
+    if (mounted) {
+      setState(() {
+        _isReferralCodeValid = isValid;
+      });
+    }
+
+    if (mounted && isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).registerReferralFromLink),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  String _buildAuthSiblingRoute(String authPath) {
+    final uri = GoRouterState.of(context).uri;
+    return buildAuthRouteLocation(
+      authPath: authPath,
+      postAuthRedirect: readPostAuthRedirect(uri),
+      oauthCode: uri.queryParameters[oauthCodeQueryParam],
+      oauthState: uri.queryParameters[oauthStateQueryParam],
+      telegramAuthData: uri.queryParameters[telegramAuthDataQueryParam],
+      telegramBotToken: uri.queryParameters[telegramBotTokenQueryParam],
+      referralCode: uri.queryParameters[referralCodeQueryParam],
+    );
   }
 
   Future<void> _handleFacebookSignIn() async {
@@ -460,19 +540,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final authState = authAsync.value;
     final isLoading = authState is AuthLoading;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_processOAuthCallbackIfPresent());
-    });
-
     // Listen for external auth state changes (e.g. from social login).
     // Note: Social logins (Telegram, etc.) bypass OTP verification since
     // the provider has already verified the user's identity.
-    ref.listen<AsyncValue<AuthState>>(authProvider, (_, next) {
-      if (next.value is AuthAuthenticated) {
-        context.go('/connection');
-      }
-    });
-
     // Listen for Telegram auth state changes.
     ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider, (
       previous,
@@ -490,7 +560,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
             ),
           );
         }
-        context.go('/connection');
       } else if (state is TelegramAuthNotInstalled) {
         _showTelegramNotInstalledDialog();
       } else if (state is TelegramAuthError) {
@@ -1094,7 +1163,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                             label: l10n.registerLoginLink,
                             hint: l10n.registerLoginA11y,
                             child: GestureDetector(
-                              onTap: () => context.go('/login'),
+                              onTap: () =>
+                                  context.go(_buildAuthSiblingRoute('/login')),
                               child: ExcludeSemantics(
                                 child: Text(
                                   l10n.registerLoginLink,

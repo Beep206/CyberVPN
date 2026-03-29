@@ -30,6 +30,31 @@ void main() {
     });
   });
 
+  group('auth route helpers', () {
+    test(
+      'buildAuthRouteLocation keeps post-auth redirect and referral code',
+      () {
+        final route = buildAuthRouteLocation(
+          authPath: '/register',
+          postAuthRedirect: '/servers/42',
+          referralCode: 'REF123',
+        );
+
+        expect(route, '/register?next=%2Fservers%2F42&referral_code=REF123');
+      },
+    );
+
+    test('buildQuickSetupLocation keeps deferred destination', () {
+      final route = buildQuickSetupLocation(postAuthRedirect: '/settings');
+      expect(route, '/quick-setup?next=%2Fsettings');
+    });
+
+    test('readPostAuthRedirect extracts next path', () {
+      final uri = Uri.parse('/login?next=%2Fservers%2F42');
+      expect(readPostAuthRedirect(uri), '/servers/42');
+    });
+  });
+
   group('resolveDeepLinkFromUri', () {
     test('resolves custom scheme deep link', () {
       final uri = Uri.parse('cybervpn://connect?server=99');

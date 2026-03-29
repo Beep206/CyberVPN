@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+
 /// A test wrapper that provides a [MaterialApp] inside a [ProviderScope]
 /// with optional provider overrides for isolated widget testing.
 ///
@@ -46,14 +48,13 @@ class TestApp extends StatelessWidget {
     return ProviderScope(
       overrides: overrides.cast(),
       child: MaterialApp(
-        home: Directionality(
-          textDirection: textDirection,
-          child: child,
-        ),
+        home: Directionality(textDirection: textDirection, child: child),
         themeMode: themeMode,
         theme: ThemeData.light(useMaterial3: true),
         darkTheme: ThemeData.dark(useMaterial3: true),
         locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
       ),
     );

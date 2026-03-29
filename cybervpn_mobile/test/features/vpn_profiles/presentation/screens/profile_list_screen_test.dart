@@ -13,12 +13,12 @@ import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 
 /// Wraps [ProfileListScreen] with localization delegates and Riverpod scope.
 Widget _buildTestWidget() {
-  return ProviderScope(
+  return const ProviderScope(
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('en'),
-      home: const ProfileListScreen(),
+      locale: Locale('en'),
+      home: ProfileListScreen(),
     ),
   );
 }
@@ -130,9 +130,7 @@ void main() {
   group('ProfileListSkeleton', () {
     testWidgets('renders 3 skeleton cards', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: ProfileListSkeleton()),
-        ),
+        const MaterialApp(home: Scaffold(body: ProfileListSkeleton())),
       );
       await tester.pump();
 

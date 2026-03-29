@@ -11,12 +11,12 @@ import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 // ---------------------------------------------------------------------------
 
 Widget _buildTestWidget() {
-  return ProviderScope(
+  return const ProviderScope(
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('en'),
-      home: const AddByUrlScreen(),
+      locale: Locale('en'),
+      home: AddByUrlScreen(),
     ),
   );
 }

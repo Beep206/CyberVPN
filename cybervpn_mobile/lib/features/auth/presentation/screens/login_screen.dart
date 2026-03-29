@@ -9,6 +9,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/security/screen_protection.dart';
 import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/apple_sign_in_service.dart';
@@ -36,16 +37,18 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with ScreenProtection {
   bool _biometricChecked = false;
-  String? _lastProcessedOAuthCallback;
+  String? _lastProcessedRouteIntent;
 
   @override
   void initState() {
     super.initState();
     unawaited(enableProtection());
-    // Process pending OAuth callback or auto-trigger biometric login after first frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_handleInitialAuthEntry());
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(_handleInitialAuthEntry());
   }
 
   @override
@@ -56,8 +59,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   /// Checks if biometric login is available and auto-triggers it for returning users.
   Future<void> _handleInitialAuthEntry() async {
-    final handledOAuth = await _processOAuthCallbackIfPresent();
-    if (!handledOAuth) {
+    final handledRouteIntent =
+        await _processOAuthCallbackIfPresent() ||
+        await _processTelegramAuthIfPresent() ||
+        await _processTelegramBotLinkIfPresent();
+    if (!handledRouteIntent) {
       await _checkAndTriggerBiometric();
     }
   }
@@ -66,17 +72,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (!mounted) return false;
 
     final uri = GoRouterState.of(context).uri;
-    final code = uri.queryParameters['oauth_code'];
-    final stateToken = uri.queryParameters['oauth_state'];
+    final code = uri.queryParameters[oauthCodeQueryParam];
+    final stateToken = uri.queryParameters[oauthStateQueryParam];
     if (code == null || stateToken == null) {
       return false;
     }
 
-    final callbackFingerprint = '$code::$stateToken';
-    if (_lastProcessedOAuthCallback == callbackFingerprint) {
+    final callbackFingerprint = 'oauth::$code::$stateToken';
+    if (_lastProcessedRouteIntent == callbackFingerprint) {
       return false;
     }
-    _lastProcessedOAuthCallback = callbackFingerprint;
+    _lastProcessedRouteIntent = callbackFingerprint;
 
     await ref
         .read(authProvider.notifier)
@@ -96,6 +102,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
 
     return true;
+  }
+
+  Future<bool> _processTelegramAuthIfPresent() async {
+    if (!mounted) return false;
+
+    final authData = GoRouterState.of(
+      context,
+    ).uri.queryParameters[telegramAuthDataQueryParam];
+    if (authData == null || authData.isEmpty) {
+      return false;
+    }
+
+    final fingerprint = 'telegram::$authData';
+    if (_lastProcessedRouteIntent == fingerprint) {
+      return false;
+    }
+    _lastProcessedRouteIntent = fingerprint;
+
+    await ref.read(telegramAuthProvider.notifier).handleCallback(authData);
+    return true;
+  }
+
+  Future<bool> _processTelegramBotLinkIfPresent() async {
+    if (!mounted) return false;
+
+    final token = GoRouterState.of(
+      context,
+    ).uri.queryParameters[telegramBotTokenQueryParam];
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+
+    final fingerprint = 'telegram-bot::$token';
+    if (_lastProcessedRouteIntent == fingerprint) {
+      return false;
+    }
+    _lastProcessedRouteIntent = fingerprint;
+
+    await ref.read(authProvider.notifier).loginWithBotLink(token);
+
+    if (!mounted) return true;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  String _buildAuthSiblingRoute(String authPath) {
+    final uri = GoRouterState.of(context).uri;
+    return buildAuthRouteLocation(
+      authPath: authPath,
+      postAuthRedirect: readPostAuthRedirect(uri),
+      oauthCode: uri.queryParameters[oauthCodeQueryParam],
+      oauthState: uri.queryParameters[oauthStateQueryParam],
+      telegramAuthData: uri.queryParameters[telegramAuthDataQueryParam],
+      telegramBotToken: uri.queryParameters[telegramBotTokenQueryParam],
+      referralCode: uri.queryParameters[referralCodeQueryParam],
+    );
   }
 
   Future<void> _checkAndTriggerBiometric() async {
@@ -338,24 +411,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isAuthLoading = authState.value is AuthLoading;
     final isLoading = isTelegramLoading || isBiometricLoading || isAuthLoading;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_processOAuthCallbackIfPresent());
-    });
-
-    // Listen for auth state changes to navigate on success.
-    ref.listen<AsyncValue<AuthState>>(authProvider, (previous, next) {
-      final state = next.value;
-      if (state is AuthAuthenticated) {
-        context.go('/connection');
-      }
-    });
-
     // Listen for biometric login state changes.
     ref.listen<BiometricLoginState>(biometricLoginProvider, (previous, next) {
-      if (next is BiometricLoginSuccess) {
-        // Navigate on successful biometric login
-        context.go('/connection');
-      } else if (next is BiometricLoginEnrollmentChanged) {
+      if (next is BiometricLoginEnrollmentChanged) {
         // Biometric enrollment changed - show message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -404,8 +462,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           );
         }
-        // Navigate to home screen on successful auth
-        context.go('/connection');
       } else if (state is TelegramAuthNotInstalled) {
         // Show dialog with install options
         _showTelegramNotInstalledDialog();
@@ -646,7 +702,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             label: l10n.loginRegisterLink,
                             hint: l10n.register,
                             child: GestureDetector(
-                              onTap: () => context.go('/register'),
+                              onTap: () => context.go(
+                                _buildAuthSiblingRoute('/register'),
+                              ),
                               child: ExcludeSemantics(
                                 child: Text(
                                   l10n.loginRegisterLink,

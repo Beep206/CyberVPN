@@ -1,3 +1,4 @@
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/features/quick_setup/presentation/screens/quick_setup_screen.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -6,9 +7,12 @@ import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connecti
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late SharedPreferences mockPrefs;
 
   setUp(() async {
@@ -16,332 +20,228 @@ void main() {
     mockPrefs = await SharedPreferences.getInstance();
   });
 
-  /// Helper to build the screen with mocked providers.
-  Widget buildQuickSetupScreen({
+  Widget buildQuickSetupHost({
+    required SharedPreferences prefs,
+    required TestVpnConnectionNotifier vpnNotifier,
     ServerEntity? recommendedServer,
-    VpnConnectionState? vpnState,
   }) {
+    final router = GoRouter(
+      initialLocation: '/quick-setup',
+      routes: [
+        GoRoute(
+          path: '/quick-setup',
+          builder: (context, state) => const QuickSetupScreen(),
+        ),
+        GoRoute(
+          path: '/connection',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Connection destination')),
+        ),
+        GoRoute(
+          path: '/servers',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Servers destination')),
+        ),
+      ],
+    );
+
     return ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(mockPrefs),
-        recommendedServerProvider.overrideWith((ref) {
-          return recommendedServer;
-        }),
-        vpnConnectionProvider.overrideWith(() {
-          return TestVpnConnectionNotifier(vpnState);
-        }),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        recommendedServerProvider.overrideWith((ref) => recommendedServer),
+        vpnConnectionProvider.overrideWith(() => vpnNotifier),
       ],
-      child: const MaterialApp(
-        home: QuickSetupScreen(),
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
       ),
     );
   }
 
+  Future<void> pumpQuickSetupScreen(
+    WidgetTester tester, {
+    required TestVpnConnectionNotifier vpnNotifier,
+    ServerEntity? recommendedServer,
+  }) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    await tester.pumpWidget(
+      buildQuickSetupHost(
+        prefs: mockPrefs,
+        vpnNotifier: vpnNotifier,
+        recommendedServer: recommendedServer,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+
+  const server = ServerEntity(
+    id: 'server-1',
+    name: 'US East 1',
+    countryCode: 'US',
+    countryName: 'United States',
+    city: 'New York',
+    address: '1.2.3.4',
+    port: 443,
+    protocol: 'vless',
+    isAvailable: true,
+    isPremium: false,
+    isFavorite: false,
+    ping: 25,
+  );
+
   testWidgets(
     'displays auto-selected server with country flag and server name',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-        ping: 25,
+    (tester) async {
+      await pumpQuickSetupScreen(
+        tester,
+        vpnNotifier: TestVpnConnectionNotifier(const VpnDisconnected()),
+        recommendedServer: server,
       );
 
-      await tester.pumpWidget(buildQuickSetupScreen(
-        recommendedServer: server,
-        vpnState: const VpnDisconnected(),
-      ));
-      await tester.pumpAndSettle();
-
-      // Verify title.
       expect(find.text('Ready to protect you'), findsOneWidget);
-
-      // Verify server name.
       expect(find.text('US East 1'), findsOneWidget);
-
-      // Verify location.
       expect(find.text('New York, United States'), findsOneWidget);
-
-      // Verify ping display.
       expect(find.text('25 ms'), findsOneWidget);
-
-      // Verify Connect Now button.
       expect(find.text('Connect Now'), findsOneWidget);
     },
   );
 
-  testWidgets(
-    'taps Connect and calls VPN provider connect',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-      );
+  testWidgets('taps Connect and calls VPN provider connect', (tester) async {
+    final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
 
-      final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
+    await pumpQuickSetupScreen(
+      tester,
+      vpnNotifier: vpnNotifier,
+      recommendedServer: server,
+    );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(mockPrefs),
-            recommendedServerProvider.overrideWith((ref) => server),
-            vpnConnectionProvider.overrideWith(() => vpnNotifier),
-          ],
-          child: const MaterialApp(
-            home: QuickSetupScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Connect Now'));
+    await tester.pump();
 
-      // Tap Connect Now button.
-      final connectButton = find.text('Connect Now');
-      expect(connectButton, findsOneWidget);
-      await tester.tap(connectButton);
-      await tester.pump();
-
-      // Verify connect was called.
-      expect(vpnNotifier.connectCalled, isTrue);
-      expect(vpnNotifier.lastConnectedServer?.id, equals('server-1'));
-    },
-  );
+    expect(vpnNotifier.connectCalled, isTrue);
+    expect(vpnNotifier.lastConnectedServer?.id, equals('server-1'));
+  });
 
   testWidgets(
     'shows celebration animation and navigates to connection screen on success',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-      );
-
+    (tester) async {
       final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(mockPrefs),
-            recommendedServerProvider.overrideWith((ref) => server),
-            vpnConnectionProvider.overrideWith(() => vpnNotifier),
-          ],
-          child: const MaterialApp(
-            home: QuickSetupScreen(),
-          ),
-        ),
+      await pumpQuickSetupScreen(
+        tester,
+        vpnNotifier: vpnNotifier,
+        recommendedServer: server,
       );
-      await tester.pumpAndSettle();
 
-      // Tap Connect Now button.
       await tester.tap(find.text('Connect Now'));
       await tester.pump();
 
-      // Simulate successful connection.
       vpnNotifier.setState(
-        const VpnConnected(
-          server: server,
-          protocol: VpnProtocol.vless,
-        ),
+        const VpnConnected(server: server, protocol: VpnProtocol.vless),
       );
       await tester.pump();
-
-      // Wait for celebration animation to start.
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Verify celebration text appears.
       expect(find.text('You\'re protected!'), findsOneWidget);
       expect(find.text('Your connection is now secure'), findsOneWidget);
 
-      // Note: Navigation testing requires a full router setup which is
-      // complex for this widget test. The navigation is tested in integration
-      // tests or manually verified.
+      await tester.pump(const Duration(milliseconds: 2100));
+      await tester.pump();
+      expect(find.text('Connection destination'), findsOneWidget);
     },
   );
 
   testWidgets(
     'displays loading indicator when no recommended server is available',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(buildQuickSetupScreen(
+    (tester) async {
+      await pumpQuickSetupScreen(
+        tester,
+        vpnNotifier: TestVpnConnectionNotifier(const VpnDisconnected()),
         recommendedServer: null,
-        vpnState: const VpnDisconnected(),
-      ));
-      await tester.pumpAndSettle();
+      );
 
-      // Verify loading indicator.
       expect(find.byType(CircularProgressIndicator), findsWidgets);
-
-      // Verify loading message.
       expect(find.text('Finding the best server...'), findsOneWidget);
 
-      // Verify Connect button is disabled.
-      final connectButton =
-          tester.widget<ElevatedButton>(find.byType(ElevatedButton).first);
+      final connectButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).first,
+      );
       expect(connectButton.onPressed, isNull);
     },
   );
 
-  testWidgets(
-    'shows error SnackBar on connection failure',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-      );
+  testWidgets('shows error SnackBar on connection failure', (tester) async {
+    final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
 
-      final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
+    await pumpQuickSetupScreen(
+      tester,
+      vpnNotifier: vpnNotifier,
+      recommendedServer: server,
+    );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(mockPrefs),
-            recommendedServerProvider.overrideWith((ref) => server),
-            vpnConnectionProvider.overrideWith(() => vpnNotifier),
-          ],
-          child: const MaterialApp(
-            home: QuickSetupScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Connect Now'));
+    await tester.pump();
 
-      // Tap Connect Now button.
-      await tester.tap(find.text('Connect Now'));
-      await tester.pump();
+    vpnNotifier.setState(const VpnError(message: 'Connection timed out'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-      // Simulate connection error.
-      vpnNotifier.setState(const VpnError(message: 'Connection timed out'));
-      await tester.pump();
+    expect(
+      find.text('Connection failed: Connection timed out'),
+      findsOneWidget,
+    );
 
-      // Wait for SnackBar to appear.
-      await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('Servers destination'), findsOneWidget);
+  });
 
-      // Verify error message in SnackBar.
-      expect(find.text('Connection failed: Connection timed out'), findsOneWidget);
-    },
-  );
+  testWidgets('marks setup as abandoned when skip button is tapped', (
+    tester,
+  ) async {
+    await pumpQuickSetupScreen(
+      tester,
+      vpnNotifier: TestVpnConnectionNotifier(const VpnDisconnected()),
+      recommendedServer: server,
+    );
 
-  testWidgets(
-    'marks setup as abandoned when skip button is tapped',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-      );
+    await tester.ensureVisible(find.text('Skip for now'));
+    await tester.tap(find.text('Skip for now'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
 
-      await tester.pumpWidget(buildQuickSetupScreen(
-        recommendedServer: server,
-        vpnState: const VpnDisconnected(),
-      ));
-      await tester.pumpAndSettle();
+    expect(mockPrefs.getBool('quick_setup_abandoned'), isTrue);
+    expect(mockPrefs.getBool('quick_setup_completed'), isTrue);
+    expect(find.text('Connection destination'), findsOneWidget);
+  });
 
-      // Tap Skip button.
-      await tester.tap(find.text('Skip for now'));
-      await tester.pump();
+  testWidgets('shows loading indicator during connection attempt', (
+    tester,
+  ) async {
+    final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
 
-      // Verify the abandoned flag was set in SharedPreferences.
-      final abandoned = mockPrefs.getBool('quick_setup_abandoned');
-      expect(abandoned, isTrue);
+    await pumpQuickSetupScreen(
+      tester,
+      vpnNotifier: vpnNotifier,
+      recommendedServer: server,
+    );
 
-      final completed = mockPrefs.getBool('quick_setup_completed');
-      expect(completed, isTrue);
-    },
-  );
+    await tester.tap(find.text('Connect Now'));
+    await tester.pump();
 
-  testWidgets(
-    'shows loading indicator during connection attempt',
-    (WidgetTester tester) async {
-      const server = ServerEntity(
-        id: 'server-1',
-        name: 'US East 1',
-        countryCode: 'US',
-        countryName: 'United States',
-        city: 'New York',
-        address: '1.2.3.4',
-        port: 443,
-        protocol: 'vless',
-        isAvailable: true,
-        isPremium: false,
-        isFavorite: false,
-      );
-
-      final vpnNotifier = TestVpnConnectionNotifier(const VpnDisconnected());
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(mockPrefs),
-            recommendedServerProvider.overrideWith((ref) => server),
-            vpnConnectionProvider.overrideWith(() => vpnNotifier),
-          ],
-          child: const MaterialApp(
-            home: QuickSetupScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Tap Connect Now button.
-      await tester.tap(find.text('Connect Now'));
-      await tester.pump();
-
-      // Verify loading indicator appears in the button.
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
-    },
-  );
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+  });
 }
 
-// ---------------------------------------------------------------------------
-// Test VPN Connection Notifier
-// ---------------------------------------------------------------------------
-
 class TestVpnConnectionNotifier extends VpnConnectionNotifier {
-  VpnConnectionState? initialState;
+  TestVpnConnectionNotifier(this.initialState);
+
+  final VpnConnectionState? initialState;
   bool connectCalled = false;
   ServerEntity? lastConnectedServer;
-
-  TestVpnConnectionNotifier(this.initialState);
 
   @override
   Future<VpnConnectionState> build() async {

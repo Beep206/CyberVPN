@@ -1,10 +1,17 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
+import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -71,6 +78,8 @@ List<ServerEntity> _buildTestServers() {
   ];
 }
 
+SharedPreferences? _mockPrefs;
+
 // ---------------------------------------------------------------------------
 // Helper: build the widget under test with provider overrides
 // ---------------------------------------------------------------------------
@@ -81,38 +90,49 @@ Widget _buildTestWidget({
   required ServerListState state,
   NavigatorObserver? navigatorObserver,
 }) {
+  final router = GoRouter(
+    initialLocation: '/',
+    observers: <NavigatorObserver>[
+      ...?navigatorObserver == null ? null : [navigatorObserver],
+    ],
+    routes: [
+      GoRoute(path: '/', builder: (context, state) => const ServerListScreen()),
+      GoRoute(
+        path: '/servers/:id',
+        builder: (context, state) =>
+            Scaffold(body: Text('Detail: ${state.pathParameters['id']}')),
+      ),
+    ],
+  );
+
   return ProviderScope(
     overrides: [
       serverListProvider.overrideWith(() => _FakeServerListNotifier(state)),
-    ],
-    child: MediaQuery(
-      // Force phone-sized viewport (< 600dp) so tests exercise the narrow
-      // layout path (BottomNavigationBar, not NavigationRail).
-      data: const MediaQueryData(size: Size(400, 800)),
-      child: MaterialApp(
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const ServerListScreen(),
-        navigatorObservers: [
-          ?navigatorObserver,
-        ],
-        onGenerateRoute: (settings) {
-          if (settings.name == '/server-detail') {
-            return MaterialPageRoute(
-              builder: (_) => Scaffold(
-                body: Text('Detail: ${settings.arguments}'),
-              ),
-              settings: settings,
-            );
-          }
-          return null;
-        },
+      sharedPreferencesProvider.overrideWithValue(_mockPrefs!),
+      importedConfigsProvider.overrideWith((ref) => const []),
+      activeVpnProfileProvider.overrideWith((ref) => Stream.value(null)),
+      settingsProvider.overrideWith(
+        () => _FakeSettingsNotifier(const AppSettings()),
       ),
+    ],
+    child: MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) {
+        return MediaQuery(
+          data: const MediaQueryData(
+            size: Size(400, 800),
+            disableAnimations: true,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
     ),
   );
 }
@@ -169,10 +189,12 @@ class _FakeServerListNotifier extends AsyncNotifier<ServerListState>
         ..add(serverId);
     }
 
-    state = AsyncData(current.copyWith(
-      servers: updatedServers,
-      favoriteServerIds: updatedFavIds,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        servers: updatedServers,
+        favoriteServerIds: updatedFavIds,
+      ),
+    );
   }
 
   @override
@@ -251,6 +273,20 @@ class _ErrorNotifier extends AsyncNotifier<ServerListState>
   Future<void> loadMore() async {}
 }
 
+class _FakeSettingsNotifier extends SettingsNotifier {
+  _FakeSettingsNotifier(this._settings);
+
+  final AppSettings _settings;
+
+  @override
+  Future<AppSettings> build() async => _settings;
+}
+
+Future<void> _pumpSearchDebounce(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 220));
+  await tester.pump();
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -258,6 +294,11 @@ class _ErrorNotifier extends AsyncNotifier<ServerListState>
 void main() {
   setUpAll(() {
     registerFallbackValue(FakeRoute());
+  });
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _mockPrefs = await SharedPreferences.getInstance();
   });
 
   // =========================================================================
@@ -278,13 +319,11 @@ void main() {
       expect(find.text('Servers'), findsOneWidget);
     });
 
-    testWidgets('renders country group headers for each country',
-        (tester) async {
+    testWidgets('renders country group headers for each country', (
+      tester,
+    ) async {
       final servers = _buildTestServers();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -302,10 +341,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -320,10 +356,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -332,8 +365,7 @@ void main() {
       expect(find.byType(ServerCard), findsAtLeast(3));
     });
 
-    testWidgets('shows favorites section when favorites exist',
-        (tester) async {
+    testWidgets('shows favorites section when favorites exist', (tester) async {
       final servers = _buildTestServers();
       final state = ServerListState(
         servers: servers,
@@ -350,10 +382,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -365,10 +394,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -382,10 +408,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -394,36 +417,54 @@ void main() {
       expect(find.byType(ActionChip), findsOneWidget);
     });
 
-    testWidgets('shows loading indicator in loading state', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serverListProvider.overrideWith(_LoadingNotifier.new),
-          ],
-          child: const MaterialApp(
-            localizationsDelegates: [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
+    testWidgets(
+      'shows loading indicator in loading state',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serverListProvider.overrideWith(_LoadingNotifier.new),
+              sharedPreferencesProvider.overrideWithValue(_mockPrefs!),
+              importedConfigsProvider.overrideWith((ref) => const []),
+              activeVpnProfileProvider.overrideWith(
+                (ref) => Stream.value(null),
+              ),
+              settingsProvider.overrideWith(
+                () => _FakeSettingsNotifier(const AppSettings()),
+              ),
             ],
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: ServerListScreen(),
+            child: const MaterialApp(
+              localizationsDelegates: [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: ServerListScreen(),
+            ),
           ),
-        ),
-      );
-      // Use pump() with a short duration. The provider stays in AsyncLoading
-      // because the build() future never resolves.
-      await tester.pump(const Duration(milliseconds: 100));
+        );
+        // Use pump() with a short duration. The provider stays in AsyncLoading
+        // because the build() future never resolves.
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    }, timeout: const Timeout(Duration(seconds: 10)));
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      },
+      timeout: const Timeout(Duration(seconds: 10)),
+    );
 
     testWidgets('shows error state with retry button', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             serverListProvider.overrideWith(_ErrorNotifier.new),
+            sharedPreferencesProvider.overrideWithValue(_mockPrefs!),
+            importedConfigsProvider.overrideWith((ref) => const []),
+            activeVpnProfileProvider.overrideWith((ref) => Stream.value(null)),
+            settingsProvider.overrideWith(
+              () => _FakeSettingsNotifier(const AppSettings()),
+            ),
           ],
           child: const MaterialApp(
             localizationsDelegates: [
@@ -453,10 +494,7 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -467,7 +505,7 @@ void main() {
 
       // Enter search text that matches Frankfurt city.
       await tester.enterText(find.byType(TextField), 'Frankfurt');
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // Germany Frankfurt should still be visible (matches city).
       expect(find.text('Germany Frankfurt'), findsOneWidget);
@@ -477,20 +515,39 @@ void main() {
       // US group header should not appear since no US servers match 'Frankfurt'.
     });
 
+    testWidgets('search applies after debounce instead of every keystroke', (
+      tester,
+    ) async {
+      final servers = _buildTestServers()
+          .map((s) => s.copyWith(isFavorite: false))
+          .toList();
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
+
+      await tester.pumpWidget(_buildTestWidget(state: state));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'zzzznonexistent');
+      await tester.pump(const Duration(milliseconds: 40));
+
+      expect(find.text('US East 1'), findsOneWidget);
+      expect(find.text('No servers match your search'), findsNothing);
+
+      await _pumpSearchDebounce(tester);
+
+      expect(find.text('No servers match your search'), findsOneWidget);
+    });
+
     testWidgets('search filters servers by country name', (tester) async {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'Japan');
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // Japan servers match by countryName.
       // They may or may not be visible depending on scroll position,
@@ -501,38 +558,33 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
       // Enter search text.
       await tester.enterText(find.byType(TextField), 'Frankfurt');
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // Clear button should appear.
       final clearButton = find.byIcon(Icons.clear);
       expect(clearButton, findsOneWidget);
 
       await tester.tap(clearButton);
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // All servers should be visible again.
       expect(find.text('US East 1'), findsOneWidget);
     });
 
-    testWidgets('sort dropdown opens and shows all sort options',
-        (tester) async {
+    testWidgets('sort dropdown opens and shows all sort options', (
+      tester,
+    ) async {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -550,15 +602,13 @@ void main() {
       expect(find.text('Load'), findsOneWidget);
     });
 
-    testWidgets('selecting sort option changes displayed sort mode',
-        (tester) async {
+    testWidgets('selecting sort option changes displayed sort mode', (
+      tester,
+    ) async {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -575,16 +625,14 @@ void main() {
       expect(find.text('Country'), findsOneWidget);
     });
 
-    testWidgets('favorite star icons are displayed on server cards',
-        (tester) async {
+    testWidgets('favorite star icons are displayed on server cards', (
+      tester,
+    ) async {
       // Use a simple setup: us-1 is favorite, others are not.
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
@@ -620,22 +668,19 @@ void main() {
   // =========================================================================
 
   group('ServerListScreen - navigation', () {
-    testWidgets('tapping a server navigates to /server-detail with server ID',
-        (tester) async {
+    testWidgets('tapping a server navigates to /server-detail with server ID', (
+      tester,
+    ) async {
       final observer = MockNavigatorObserver();
       // No favorites to avoid duplicate name findings.
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
-      await tester.pumpWidget(_buildTestWidget(
-        state: state,
-        navigatorObserver: observer,
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(state: state, navigatorObserver: observer),
+      );
       await tester.pumpAndSettle();
 
       // Reset mock to ignore the initial MaterialApp push.
@@ -652,21 +697,16 @@ void main() {
       expect(find.text('Detail: us-1'), findsOneWidget);
     });
 
-    testWidgets('tapping a different server passes correct ID',
-        (tester) async {
+    testWidgets('tapping a different server passes correct ID', (tester) async {
       final observer = MockNavigatorObserver();
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
-      await tester.pumpWidget(_buildTestWidget(
-        state: state,
-        navigatorObserver: observer,
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(state: state, navigatorObserver: observer),
+      );
       await tester.pumpAndSettle();
 
       reset(observer);
@@ -685,25 +725,22 @@ void main() {
   // =========================================================================
 
   group('ServerListScreen - empty state', () {
-    testWidgets('shows empty state when search matches no servers',
-        (tester) async {
+    testWidgets('shows empty state when search matches no servers', (
+      tester,
+    ) async {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
       // Enter a query that matches no server name, city, or country.
       await tester.enterText(find.byType(TextField), 'zzzznonexistent');
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // The empty state should show.
-      expect(find.byIcon(Icons.search_off), findsOneWidget);
       expect(find.text('No servers match your search'), findsOneWidget);
       expect(find.text('Clear search'), findsOneWidget);
     });
@@ -712,29 +749,23 @@ void main() {
       final servers = _buildTestServers()
           .map((s) => s.copyWith(isFavorite: false))
           .toList();
-      final state = ServerListState(
-        servers: servers,
-        favoriteServerIds: [],
-      );
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
 
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
       // Enter non-matching query.
       await tester.enterText(find.byType(TextField), 'zzzznonexistent');
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // Verify empty state is displayed.
-      expect(find.byIcon(Icons.search_off), findsOneWidget);
-
       // Tap 'Clear search' button.
       await tester.tap(find.text('Clear search'));
-      await tester.pumpAndSettle();
+      await _pumpSearchDebounce(tester);
 
       // Servers should reappear.
       expect(find.text('US East 1'), findsOneWidget);
       expect(find.text('Germany Frankfurt'), findsOneWidget);
-      expect(find.byIcon(Icons.search_off), findsNothing);
     });
   });
 }

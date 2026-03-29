@@ -71,15 +71,26 @@ class _MockRemoteDataSource implements SubscriptionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> applyPromoCode(String code, String planId) async {
+  Future<Map<String, dynamic>> applyPromoCode(
+    String code,
+    String planId,
+  ) async {
     if (shouldFail) throw ServerException(message: errorMsg);
-    return <String, dynamic>{'discount_amount': 0.0, 'final_price': 0.0, 'message': ''};
+    return <String, dynamic>{
+      'discount_amount': 0.0,
+      'final_price': 0.0,
+      'message': '',
+    };
   }
 
   @override
   Future<Map<String, dynamic>> getTrialStatus() async {
     if (shouldFail) throw ServerException(message: errorMsg);
-    return <String, dynamic>{'is_eligible': false, 'days_remaining': null, 'trial_used': false};
+    return <String, dynamic>{
+      'is_eligible': false,
+      'days_remaining': null,
+      'trial_used': false,
+    };
   }
 
   @override
@@ -106,7 +117,7 @@ class _MockLocalDataSource implements SubscriptionLocalDataSource {
   }
 
   @override
-  Future<List<PlanEntity>?> getCachedPlans() async {
+  Future<List<PlanEntity>?> getCachedPlans({bool allowExpired = false}) async {
     getCachedPlansCallCount++;
     return cachedPlans;
   }
@@ -119,13 +130,16 @@ class _MockLocalDataSource implements SubscriptionLocalDataSource {
   }
 
   @override
-  Future<SubscriptionEntity?> getCachedSubscription() async {
+  Future<SubscriptionEntity?> getCachedSubscription({
+    bool allowExpired = false,
+  }) async {
     getCachedSubCallCount++;
     return cachedSubscription;
   }
 
   @override
-  Future<bool> hasSubscriptionCache() async => _hasSubCache;
+  Future<bool> hasSubscriptionCache({bool allowExpired = false}) async =>
+      _hasSubCache;
 
   @override
   Future<void> clearCache() async {
@@ -141,32 +155,31 @@ class _MockLocalDataSource implements SubscriptionLocalDataSource {
 // =============================================================================
 
 PlanEntity _testPlan({String id = 'plan-1', double price = 9.99}) => PlanEntity(
-      id: id,
-      name: 'Test Plan',
-      description: 'Test',
-      price: price,
-      currency: 'USD',
-      duration: PlanDuration.monthly,
-      durationDays: 30,
-      maxDevices: 5,
-      trafficLimitGb: 100,
-    );
+  id: id,
+  name: 'Test Plan',
+  description: 'Test',
+  price: price,
+  currency: 'USD',
+  duration: PlanDuration.monthly,
+  durationDays: 30,
+  maxDevices: 5,
+  trafficLimitGb: 100,
+);
 
 SubscriptionEntity _testSub({
   String id = 'sub-1',
   SubscriptionStatus status = SubscriptionStatus.active,
-}) =>
-    SubscriptionEntity(
-      id: id,
-      planId: 'plan-1',
-      userId: 'user-1',
-      status: status,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 30)),
-      trafficUsedBytes: 0,
-      trafficLimitBytes: 100 * 1024 * 1024 * 1024,
-      maxDevices: 5,
-    );
+}) => SubscriptionEntity(
+  id: id,
+  planId: 'plan-1',
+  userId: 'user-1',
+  status: status,
+  startDate: DateTime.now(),
+  endDate: DateTime.now().add(const Duration(days: 30)),
+  trafficUsedBytes: 0,
+  trafficLimitBytes: 100 * 1024 * 1024 * 1024,
+  maxDevices: 5,
+);
 
 // =============================================================================
 // Tests
@@ -238,7 +251,10 @@ void main() {
       expect(ds.fetchSubCallCount, equals(1));
 
       final second = await repo.getActiveSubscription();
-      expect((second as Success<SubscriptionEntity?>).data!.id, equals('sub-1'));
+      expect(
+        (second as Success<SubscriptionEntity?>).data!.id,
+        equals('sub-1'),
+      );
       expect(ds.fetchSubCallCount, equals(1));
     });
   });
@@ -343,17 +359,23 @@ void main() {
       expect(localDs.cachedSubscription, isNotNull);
     });
 
-    test('getActiveSubscription reads from persistent cache on new instance', () async {
-      // Simulate persisted cache.
-      localDs.cachedSubscription = _testSub(id: 'persisted-sub');
-      localDs._hasSubCache = true;
+    test(
+      'getActiveSubscription reads from persistent cache on new instance',
+      () async {
+        // Simulate persisted cache.
+        localDs.cachedSubscription = _testSub(id: 'persisted-sub');
+        localDs._hasSubCache = true;
 
-      final result = await repoWithLocal.getActiveSubscription();
+        final result = await repoWithLocal.getActiveSubscription();
 
-      expect((result as Success<SubscriptionEntity?>).data!.id, equals('persisted-sub'));
-      // Network was NOT called.
-      expect(ds.fetchSubCallCount, equals(0));
-    });
+        expect(
+          (result as Success<SubscriptionEntity?>).data!.id,
+          equals('persisted-sub'),
+        );
+        // Network was NOT called.
+        expect(ds.fetchSubCallCount, equals(0));
+      },
+    );
 
     test('subscribe clears persistent cache', () async {
       ds.createResult = _testSub(id: 'sub-new');
@@ -370,6 +392,48 @@ void main() {
       await repoWithLocal.cancelSubscription('sub-1');
 
       expect(localDs.clearCacheCallCount, equals(1));
+    });
+
+    test('getPlans falls back to stale cache when network fails', () async {
+      localDs.cachedPlans = [_testPlan(id: 'cached-plan')];
+      ds.shouldFail = true;
+
+      final result = await repoWithLocal.getPlans();
+
+      expect(result, isA<Success<List<PlanEntity>>>());
+      expect(
+        (result as Success<List<PlanEntity>>).data.first.id,
+        'cached-plan',
+      );
+    });
+
+    test(
+      'getActiveSubscription falls back to stale cache when network fails',
+      () async {
+        localDs.cachedSubscription = _testSub(id: 'cached-sub');
+        localDs._hasSubCache = true;
+        ds.shouldFail = true;
+
+        final result = await repoWithLocal.getActiveSubscription();
+
+        expect(result, isA<Success<SubscriptionEntity?>>());
+        expect((result as Success<SubscriptionEntity?>).data?.id, 'cached-sub');
+      },
+    );
+
+    test('staleWhileRevalidate returns cache immediately', () async {
+      localDs.cachedPlans = [_testPlan(id: 'cached-plan')];
+      ds.plans = [_testPlan(id: 'network-plan')];
+
+      final result = await repoWithLocal.getPlans(
+        strategy: CacheStrategy.staleWhileRevalidate,
+      );
+
+      expect(result, isA<Success<List<PlanEntity>>>());
+      expect(
+        (result as Success<List<PlanEntity>>).data.first.id,
+        'cached-plan',
+      );
     });
   });
 }
