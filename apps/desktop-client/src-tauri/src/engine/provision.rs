@@ -301,3 +301,38 @@ pub async fn update_geo_assets(app_handle: &AppHandle) -> Result<(), AppError> {
 
     Ok(())
 }
+
+pub async fn check_pqc_support(app_handle: &AppHandle) -> Result<(), AppError> {
+    let bin_path = ensure_sing_box_binary(app_handle).await?;
+
+    // Check version
+    let output = tokio::process::Command::new(&bin_path)
+        .arg("version")
+        .output()
+        .await
+        .map_err(|e| AppError::System(format!("Failed to execute sing-box version: {}", e)))?;
+
+    let version_str = String::from_utf8_lossy(&output.stdout);
+    
+    // sing-box version output typically starts with "sing-box version 1.11.4"
+    if let Some(ver_line) = version_str.lines().next() {
+        if ver_line.contains("version") {
+            let parts: Vec<&str> = ver_line.split_whitespace().collect();
+            if let Some(v_str) = parts.last() {
+                // Parse version, e.g., "1.11.4"
+                let semver_parts: Vec<&str> = v_str.split('.').collect();
+                if semver_parts.len() >= 2 {
+                    if let (Ok(major), Ok(minor)) = (semver_parts[0].parse::<u32>(), semver_parts[1].parse::<u32>()) {
+                        if major == 1 && minor < 9 {
+                            return Err(AppError::UnsupportedCoreVersion(
+                                "Sing-box core is older than 1.9.0 and does not support ML-KEM/Kyber Post-Quantum Cryptography. Please update your core.".to_string()
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

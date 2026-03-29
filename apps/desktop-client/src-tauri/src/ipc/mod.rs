@@ -176,6 +176,11 @@ pub async fn connect_profile(
         .find(|p| p.id == id)
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
+    // Phase 30: Telemetry sync barrier
+    let _ = crate::engine::sys::stats::flush_session(&app);
+    let country = crate::engine::sys::stats::resolve_ip_country(&profile.server);
+    crate::engine::sys::stats::start_session(profile.protocol.clone(), country);
+
     let app_dir = crate::engine::store::get_app_dir(&app)?;
     #[allow(unused_variables)]
     let log_path = app_dir.join("run.log");
@@ -207,6 +212,9 @@ pub async fn connect_profile(
             &store_data.split_tunneling_apps,
             &store_data.split_tunneling_mode,
             store_data.stealth_mode_enabled,
+            store_data.pqc_enforcement_mode,
+            &store_data.privacy_shield_level,
+            Some(app_dir.as_path()),
         )
     };
 
@@ -228,6 +236,13 @@ pub async fn connect_profile(
     };
 
     let bin_path = app_dir.join("bin").join(bin_name);
+
+    if active_core == "sing-box" {
+        let pqc_active = profile.pqc_enabled.unwrap_or(false) || store_data.pqc_enforcement_mode;
+        if pqc_active {
+            crate::engine::provision::check_pqc_support(&app).await?;
+        }
+    }
 
     tokio::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?).await?;
 
@@ -279,6 +294,7 @@ pub async fn connect_profile(
 
 #[tauri::command]
 pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+    let _ = crate::engine::sys::stats::flush_session(&app);
     state.process_manager.stop().await?;
     crate::engine::sysproxy::clear_system_proxy().ok();
 
@@ -553,4 +569,171 @@ pub async fn save_stealth_mode(enabled: bool, app: tauri::AppHandle) -> Result<(
     .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn get_pqc_enforcement_mode(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.pqc_enforcement_mode)
+}
+
+#[tauri::command]
+pub async fn save_pqc_enforcement_mode(enabled: bool, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.pqc_enforcement_mode = enabled;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn audit_quantum_readiness(app: tauri::AppHandle) -> Result<Vec<models::AuditResult>, AppError> {
+    let store_data = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    
+    let pqc_enforcement = store_data.pqc_enforcement_mode;
+    
+    let results: Vec<models::AuditResult> = store_data.profiles.iter().map(|node| {
+        let pqc_active = node.pqc_enabled.unwrap_or(false) || pqc_enforcement;
+        
+        let status = match node.protocol.as_str() {
+            "vless" | "wireguard" if pqc_active => "Ready",
+            "hysteria2" | "tuic" => "Partially Ready",
+            _ => "Not Ready",
+        };
+
+        models::AuditResult {
+            id: node.id.clone(),
+            name: node.name.clone(),
+            protocol: node.protocol.clone(),
+            status: status.to_string(),
+        }
+    }).collect();
+
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn get_privacy_shield_level(app: tauri::AppHandle) -> Result<String, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.privacy_shield_level)
+}
+
+#[tauri::command]
+pub async fn set_privacy_shield_level(level: String, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.privacy_shield_level = level;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn force_update_blocklists(app: tauri::AppHandle) -> Result<(), AppError> {
+    let level = get_privacy_shield_level(app.clone()).await?;
+    crate::engine::sys::adblock::download_blocklists(&app, &level).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_threat_count(state: State<'_, AppState>) -> Result<u64, AppError> {
+    use std::sync::atomic::Ordering;
+    Ok(state.process_manager.threats_blocked.load(Ordering::Relaxed))
+}
+
+#[tauri::command]
+pub async fn get_smart_connect_status(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.smart_connect_enabled)
+}
+
+#[tauri::command]
+pub async fn set_smart_connect_status(enabled: bool, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.smart_connect_enabled = enabled;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_network_rules(app: tauri::AppHandle) -> Result<std::collections::HashMap<String, crate::engine::sys::net_monitor::NetworkProfile>, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.network_rules)
+}
+
+#[tauri::command]
+pub async fn update_network_rule(
+    ssid: String,
+    profile: crate::engine::sys::net_monitor::NetworkProfile,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.network_rules.insert(ssid, profile);
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn run_stealth_diagnostics(node_id: String, app: tauri::AppHandle) -> Result<crate::engine::sys::diagnostics::CensorshipReport, AppError> {
+    let store = crate::engine::store::load_store(&app)?;
+    let node = store.profiles.into_iter().find(|p| p.id == node_id)
+        .ok_or_else(|| AppError::System("Node not found".into()))?;
+    crate::engine::sys::diagnostics::run_stealth_diagnostics(node, app).await
+}
+
+#[tauri::command]
+pub async fn apply_stealth_fix(
+    node_id: String,
+    recommended_protocol: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::ipc::AppState>,
+) -> Result<(), AppError> {
+    let mut store = crate::engine::store::load_store(&app)?;
+    if let Some(node) = store.profiles.iter_mut().find(|p| p.id == node_id) {
+        if recommended_protocol == "xhttp" || recommended_protocol == "vless-reality" || recommended_protocol == "wireguard" {
+             node.protocol = recommended_protocol;
+        } else if recommended_protocol == "vless-stealth" {
+             node.protocol = "vless".to_string();
+             store.stealth_mode_enabled = true;
+        }
+    }
+    crate::engine::store::save_store(&app, &store)?;
+    // Reconnect to apply the altered node and stealth profile
+    crate::ipc::connect_profile(node_id, false, false, app.clone(), state).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn start_remote_server(app: tauri::AppHandle) -> Result<String, AppError> {
+    crate::engine::sys::remote_control::start_remote_server(app).await
+}
+
+#[tauri::command]
+pub async fn stop_remote_server() -> Result<(), AppError> {
+    crate::engine::sys::remote_control::stop_remote_server().await;
+    Ok(())
+}
+
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`

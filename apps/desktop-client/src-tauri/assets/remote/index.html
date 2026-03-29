@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CyberVPN Remote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #fff; font-family: monospace; overflow-x: hidden; }
+        .neon-text { text-shadow: 0 0 10px rgba(0,255,136,0.6); }
+        .neon-border { box-shadow: 0 0 15px rgba(0,255,136,0.3); }
+        .neon-pink { text-shadow: 0 0 10px rgba(255,0,255,0.6); color: #ff00ff; }
+        
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #00ff88;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #00ff88;
+        }
+        
+        #kill-switch.active {
+            background-color: #ff0000;
+            box-shadow: 0 0 40px rgba(255,0,0,0.8);
+            border-color: #ff0000;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen p-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-10 border-b border-white/10 pb-4">
+        <h1 class="text-2xl font-bold tracking-widest text-[#00ff88] neon-text uppercase">CyberVPN</h1>
+        <div id="status-badge" class="px-3 py-1 rounded border border-white/20 text-xs text-white/50 animate-pulse">SYNCING</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col justify-center items-center">
+        <!-- Telemetry -->
+        <div class="grid grid-cols-2 w-full gap-4 mb-16 text-center">
+            <div class="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur">
+                <div class="text-[10px] text-white/50 mb-1">DATA UPLOAD</div>
+                <div id="up-stats" class="text-xl font-bold text-[#00ffff]">0 B</div>
+            </div>
+            <div class="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur">
+                <div class="text-[10px] text-white/50 mb-1">DATA DOWNLOAD</div>
+                <div id="down-stats" class="text-xl font-bold text-[#00ffff]">0 B</div>
+            </div>
+        </div>
+
+        <!-- THE KILL SWITCH -->
+        <div class="relative flex flex-col items-center">
+            <div class="text-xs text-white/40 mb-4 tracking-widest">MASTER CONTROL</div>
+            <button id="kill-switch" class="w-48 h-48 rounded-full border-4 border-white/10 flex items-center justify-center bg-black transition-all duration-300 transform active:scale-95 z-10">
+                <span id="kill-text" class="text-3xl font-black tracking-widest text-white/80">OFFLINE</span>
+            </button>
+            <div id="glow-ring" class="absolute top-8 w-48 h-48 rounded-full border-2 border-transparent transition-all duration-500 scale-110 opacity-0"></div>
+        </div>
+    </main>
+
+    <!-- JS Logic -->
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const secret = urlParams.get('key');
+        
+        let currentState = "disconnected";
+        let loopInterval = null;
+
+        const elStatus = document.getElementById('status-badge');
+        const elKillSwitch = document.getElementById('kill-switch');
+        const elKillText = document.getElementById('kill-text');
+        const elGlow = document.getElementById('glow-ring');
+        const upStats = document.getElementById('up-stats');
+        const downStats = document.getElementById('down-stats');
+
+        if (!secret) {
+            elStatus.textContent = "AUTH ERROR";
+            elStatus.style.borderColor = "red";
+            elStatus.style.color = "red";
+            elKillSwitch.disabled = true;
+        } else {
+            initLoop();
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function fetchAPI(endpoint, method="GET", body=null) {
+            try {
+                const res = await fetch(`/api/remote/${endpoint}`, {
+                    method,
+                    headers: {
+                        "Authorization": `Bearer ${secret}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: body ? JSON.stringify(body) : null
+                });
+                if (method === "GET") return await res.json();
+                return await res.text();
+            } catch (err) {
+                console.error(err);
+                return null;
+            }
+        }
+
+        async function initLoop() {
+            loopInterval = setInterval(async () => {
+                const status = await fetchAPI("status");
+                const stats = await fetchAPI("stats");
+
+                if (status) {
+                    currentState = status.status;
+                    if (currentState === "connected") {
+                        elStatus.textContent = "CONNECTED";
+                        elStatus.className = "px-3 py-1 rounded border border-[#00ff88] text-[#00ff88] text-xs font-bold";
+                        
+                        elKillSwitch.classList.add("active");
+                        elKillText.textContent = "DISCONNECT";
+                        elKillText.style.color = "white";
+
+                        elGlow.classList.add("border-red-500", "opacity-50", "animate-ping");
+                    } else if (currentState === "connecting") {
+                        elStatus.textContent = "CONNECTING...";
+                        elStatus.className = "px-3 py-1 rounded border border-yellow-500 text-yellow-500 text-xs";
+                    } else {
+                        elStatus.textContent = "STANDBY";
+                        elStatus.className = "px-3 py-1 rounded border border-white/20 text-white/50 text-xs";
+
+                        elKillSwitch.classList.remove("active");
+                        elKillText.textContent = "CONNECT";
+                        
+                        elGlow.classList.remove("border-red-500", "opacity-50", "animate-ping");
+                    }
+                }
+
+                if (stats) {
+                    upStats.textContent = formatBytes(stats.up);
+                    downStats.textContent = formatBytes(stats.down);
+                }
+            }, 1000);
+        }
+
+        elKillSwitch.addEventListener("click", async () => {
+            elKillSwitch.classList.add("scale-95");
+            setTimeout(() => elKillSwitch.classList.remove("scale-95"), 150);
+
+            if (currentState === "connected" || currentState === "connecting") {
+                await fetchAPI("disconnect", "POST");
+            } else {
+                // To connect, we need a profile ID. The remote will instruct desktop to connect to the LAST active or currently saved generic smart connect.
+                // For Phase 31, we will trigger an API hook. If `active_id` is missing, the backend should connect to the optimal smart node.
+                // Modification: We'll retrieve the first profile id using another API or pass null for Smart Connect auto-resolve.
+                // Assuming connect profile logic handles it:
+                await fetchAPI("connect", "POST", { profile_id: "" });
+            }
+        });
+    </script>
+</body>
+</html>

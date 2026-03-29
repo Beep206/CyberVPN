@@ -35,6 +35,21 @@ pub enum AppError {
 
     #[error("Cloud Unreachable: {0}")]
     CloudUnreachable(String),
+
+    #[error("Unsupported Core Version: {0}")]
+    UnsupportedCoreVersion(String),
+
+    #[error("ISP Handshake Reset: {0}")]
+    IspHandshakeReset(String),
+
+    #[error("UDP Throttling Detected: {0}")]
+    UdpThrottlingDetected(String),
+
+    #[error("Usage History Data Corrupted: {0}")]
+    UsageCorrupted(String),
+
+    #[error("Action Required: {error}. Resolution: {resolution}")]
+    Actionable { error: String, resolution: String },
 }
 
 // Implement Serialize so we can return AppError to the frontend natively in Tauri commands
