@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh, Brain } from "lucide-react";
+import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh, Brain, Terminal } from "lucide-react";
 import { Toaster } from "../components/ui/sonner";
 import { toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
@@ -71,6 +71,7 @@ export function Layout() {
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: Activity },
+    { path: "/stealth-lab", label: "Stealth Lab", icon: Terminal },
     { path: "/automation", label: "Smart Connect", icon: Brain },
     { path: "/security", label: "Safety Center", icon: Shield },
     { path: "/privacy-shield", label: "Privacy Shield", icon: Shield },
@@ -103,13 +104,13 @@ export function Layout() {
                 key={item.path}
                 className="relative flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
                 style={{
-                  color: isActive ? "var(--color-matrix-green)" : "var(--muted-foreground)"
+                  color: isActive ? (item.path === '/stealth-lab' ? "#ff00ff" : "var(--color-matrix-green)") : "var(--muted-foreground)"
                 }}
               >
                 {isActive && (
                   <motion.div
                     layoutId="active-nav"
-                    className="absolute inset-0 bg-[var(--color-matrix-green)]/10 border-l-2 border-[var(--color-matrix-green)] rounded-r-md"
+                    className={`absolute inset-0 border-l-2 rounded-r-md ${item.path === '/stealth-lab' ? 'bg-[#ff00ff]/10 border-[#ff00ff]' : 'bg-[var(--color-matrix-green)]/10 border-[var(--color-matrix-green)]'}`}
                     initial={false}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />

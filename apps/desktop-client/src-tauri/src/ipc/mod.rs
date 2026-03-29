@@ -689,4 +689,34 @@ pub async fn update_network_rule(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn run_stealth_diagnostics(node_id: String, app: tauri::AppHandle) -> Result<crate::engine::sys::diagnostics::CensorshipReport, AppError> {
+    let store = crate::engine::store::load_store(&app)?;
+    let node = store.profiles.into_iter().find(|p| p.id == node_id)
+        .ok_or_else(|| AppError::System("Node not found".into()))?;
+    crate::engine::sys::diagnostics::run_stealth_diagnostics(node, app).await
+}
+
+#[tauri::command]
+pub async fn apply_stealth_fix(
+    node_id: String,
+    recommended_protocol: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::ipc::AppState>,
+) -> Result<(), AppError> {
+    let mut store = crate::engine::store::load_store(&app)?;
+    if let Some(node) = store.profiles.iter_mut().find(|p| p.id == node_id) {
+        if recommended_protocol == "xhttp" || recommended_protocol == "vless-reality" || recommended_protocol == "wireguard" {
+             node.protocol = recommended_protocol;
+        } else if recommended_protocol == "vless-stealth" {
+             node.protocol = "vless".to_string();
+             store.stealth_mode_enabled = true;
+        }
+    }
+    crate::engine::store::save_store(&app, &store)?;
+    // Reconnect to apply the altered node and stealth profile
+    crate::ipc::connect_profile(node_id, false, false, app.clone(), state).await?;
+    Ok(())
+}
+
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`

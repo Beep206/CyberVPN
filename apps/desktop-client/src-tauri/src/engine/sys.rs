@@ -6,6 +6,7 @@ pub mod sentinel;
 pub mod sync;
 pub mod adblock;
 pub mod net_monitor;
+pub mod diagnostics;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;

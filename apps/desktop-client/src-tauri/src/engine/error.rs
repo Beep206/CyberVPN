@@ -38,6 +38,12 @@ pub enum AppError {
 
     #[error("Unsupported Core Version: {0}")]
     UnsupportedCoreVersion(String),
+
+    #[error("ISP Handshake Reset: {0}")]
+    IspHandshakeReset(String),
+
+    #[error("UDP Throttling Detected: {0}")]
+    UdpThrottlingDetected(String),
 }
 
 // Implement Serialize so we can return AppError to the frontend natively in Tauri commands
