@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
 import { Bloom, Noise } from '@react-three/postprocessing';
+import { ScenePerformanceMetrics } from '@/3d/components/scene-performance-metrics';
 import '@/3d/shaders/AntiDPIShader';
+import {
+    MARKETING_SCENE_CANVAS_PERFORMANCE,
+    MARKETING_SCENE_GL,
+    useAdaptiveSceneDpr,
+} from '@/3d/lib/scene-performance';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
@@ -124,26 +130,19 @@ function ScannerAndShield() {
 export default function AntiDPIScene3D() {
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "200px" });
-    const [dpr, setDpr] = useState(1); // Added DPR state
+    const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.2 });
 
     return (
         <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-none">
             <Canvas
                 frameloop={isInView ? 'always' : 'never'}
+                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 0, 8], fov: 40 }}
-                gl={{
-                    antialias: false,
-                    alpha: true,
-                    powerPreference: "high-performance",
-                    depth: true
-                }}
-                dpr={dpr} // Bound to state
+                gl={MARKETING_SCENE_GL}
+                dpr={dpr}
             >
-                {/* Dynamically scale DPR down for low-end GPUs, up for high-end */}
-                <PerformanceMonitor 
-                    onDecline={() => setDpr(0.75)} 
-                    onIncline={() => setDpr(1.2)} 
-                />
+                <ScenePerformanceMetrics sceneName="anti-dpi" />
+                <PerformanceMonitor {...monitorProps} />
                 
                 <ambientLight intensity={0.5} />
                 <pointLight position={[-4, 2, 4]} intensity={1.5} color="#ff0088" />

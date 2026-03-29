@@ -127,14 +127,12 @@ export function RouteErrorBoundary({ error, reset }: RouteErrorBoundaryProps) {
             Reboot System
           </Button>
 
-          <Link href="/dashboard" passHref legacyBehavior>
-            <Button
-              variant="outline"
-              className="h-12 px-8 border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan font-bold font-mono uppercase tracking-wider hover:shadow-[0_0_15px_rgba(0,255,255,0.2)] transition-all hover:scale-[1.02] min-w-[200px]"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Return to Base
-            </Button>
+          <Link
+            href="/dashboard"
+            className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-md border border-neon-cyan/50 bg-background px-8 text-neon-cyan font-bold font-mono uppercase tracking-wider transition-all hover:scale-[1.02] hover:bg-neon-cyan/10 hover:text-neon-cyan hover:shadow-[0_0_15px_rgba(0,255,255,0.2)]"
+          >
+            <Home className="w-4 h-4 mr-2" />
+            Return to Base
           </Link>
         </div>
       </div>

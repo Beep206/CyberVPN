@@ -26,7 +26,7 @@ export function RenderTab({ isDark }: { isDark: boolean }) {
             const styleId = 'dev-panel-react-flash-style';
             const style = document.createElement('style');
             style.id = styleId;
-            style.innerHTML = `
+            style.textContent = `
                 @keyframes react-render-flash {
                     0% { outline: 2px solid rgba(34, 197, 94, 0.9); box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.3); }
                     100% { outline: 2px solid rgba(34, 197, 94, 0); box-shadow: inset 0 0 0 rgba(34, 197, 94, 0); }

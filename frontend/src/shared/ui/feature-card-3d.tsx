@@ -2,6 +2,7 @@
 
 import { motion, useMotionTemplate, useMotionValue, type Variants } from 'motion/react';
 import React from 'react';
+import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import type { LucideIcon } from 'lucide-react';
 import { InceptionButton } from '@/components/ui/InceptionButton';
@@ -25,12 +26,17 @@ export function FeatureCard3D({
     index,
     colSpan = ''
 }: FeatureCard3DProps) {
+    const { allowPointerEffects } = useMotionCapability();
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const rotateX = useMotionValue(0);
     const rotateY = useMotionValue(0);
 
     function onMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+        if (!allowPointerEffects) {
+            return;
+        }
+
         const { left, top, width, height } = currentTarget.getBoundingClientRect();
         const localX = clientX - left;
         const localY = clientY - top;
@@ -83,21 +89,21 @@ export function FeatureCard3D({
             <InceptionButton wrapperClassName="h-full w-full">
                 <motion.div
                     className="group relative h-full rounded-2xl border border-grid-line/40 bg-terminal-surface/90 dark:bg-black/80 md:bg-terminal-surface/80 md:dark:bg-black/30 md:backdrop-blur-xl overflow-hidden shadow-lg dark:shadow-none cursor-pointer will-change-transform"
-                    onMouseMove={onMouseMove}
-                    onMouseLeave={onMouseLeave}
+                    onMouseMove={allowPointerEffects ? onMouseMove : undefined}
+                    onMouseLeave={allowPointerEffects ? onMouseLeave : undefined}
                     style={{
                         perspective: 1000,
                         rotateX,
                         rotateY,
                         transformStyle: 'preserve-3d'
                     }}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={allowPointerEffects ? { scale: 1.02 } : undefined}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
                     {/* Hover glow effect (Disabled on touch devices for performance) */}
-                    <div className="hidden md:block">
+                    <div className={`hidden md:block ${allowPointerEffects ? '' : 'pointer-events-none'}`}>
                         <motion.div
-                            className="pointer-events-none absolute -inset-px opacity-0 transition duration-500 group-hover:opacity-100 z-10 will-change-opacity"
+                            className={`pointer-events-none absolute -inset-px transition duration-500 z-10 will-change-opacity ${allowPointerEffects ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}
                             style={{
                                 background: useMotionTemplate`
                                     radial-gradient(

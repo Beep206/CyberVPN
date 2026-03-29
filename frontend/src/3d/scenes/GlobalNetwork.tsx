@@ -3,17 +3,22 @@
 import * as THREE from 'three';
 
 const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import {
     Line,
-    OrbitControls,
     Environment,
     PerformanceMonitor
 } from '@react-three/drei';
 import { useInView } from 'motion/react';
 import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
+import { ScenePerformanceMetrics } from '@/3d/components/scene-performance-metrics';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import {
+    MARKETING_SCENE_CANVAS_PERFORMANCE,
+    MARKETING_SCENE_GL,
+    useAdaptiveSceneDpr,
+} from '@/3d/lib/scene-performance';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
@@ -143,98 +148,93 @@ function latLngToVector3(lat: number, lng: number, radius: number) {
     );
 }
 
-function ServerNodes({ servers, activeNodeId }: { servers: NetworkServer[], activeNodeId?: string | null }) {
+function ServerNodes({
+    servers,
+    serverPositions,
+    activeNodeId,
+}: {
+    servers: NetworkServer[];
+    serverPositions: THREE.Vector3[];
+    activeNodeId?: string | null;
+}) {
     const coreRef = useRef<THREE.InstancedMesh>(null!);
     const ringRef = useRef<THREE.InstancedMesh>(null!);
     const glowRef = useRef<THREE.InstancedMesh>(null!);
-    
-    // Memoize static geometry to reuse
+    const ringMaterialRef = useRef<THREE.MeshBasicMaterial>(null!);
+    const glowMaterialRef = useRef<THREE.MeshBasicMaterial>(null!);
+
     const coreGeo = useMemo(() => new THREE.SphereGeometry(0.04, 16, 16), []);
     const ringGeo = useMemo(() => new THREE.RingGeometry(0.06, 0.07, 32), []);
     const glowGeo = useMemo(() => new THREE.SphereGeometry(0.1, 16, 16), []);
 
     React.useEffect(() => {
         if (!coreRef.current || !ringRef.current || !glowRef.current) return;
-        
+
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
-        
+
         servers.forEach((server, i) => {
-            const pos = latLngToVector3(server.lat, server.lng, 2);
+            const pos = serverPositions[i];
             dummy.position.copy(pos);
             dummy.rotation.set(0, 0, 0);
-            
-            // Highlight logic
+
             const isHovered = activeNodeId === server.id;
             const isDimmed = activeNodeId && !isHovered;
-            
+
             dummy.scale.setScalar(isHovered ? 1.5 : (isDimmed ? 0.8 : 1));
             dummy.updateMatrix();
-            
+
             let cStr = server.status === 'online' ? '#00ff88' :
-                       server.status === 'offline' ? '#ff4444' :
-                       server.status === 'warning' ? '#ffcc00' : '#bd00ff';
-                       
-            if (isHovered) cStr = '#00ffff'; // Override to cyan on hover
-            if (isDimmed) color.set(cStr).multiplyScalar(0.3); // Dim others
+                server.status === 'offline' ? '#ff4444' :
+                    server.status === 'warning' ? '#ffcc00' : '#bd00ff';
+
+            if (isHovered) cStr = '#00ffff';
+            if (isDimmed) color.set(cStr).multiplyScalar(0.3);
             else color.set(cStr);
-            
+
             coreRef.current.setMatrixAt(i, dummy.matrix);
             coreRef.current.setColorAt(i, color);
-            
+
             if (server.status === 'online') {
                 dummy.rotation.x = Math.PI / 2;
                 dummy.updateMatrix();
                 ringRef.current.setMatrixAt(i, dummy.matrix);
-                
-                // Active node gets a much brighter ring
+
                 const ringColor = new THREE.Color(cStr);
                 if (isHovered) ringColor.multiplyScalar(2);
                 ringRef.current.setColorAt(i, ringColor);
-                
-                dummy.rotation.set(0,0,0);
-                dummy.scale.setScalar(isHovered ? 2 : 1); // Larger glow for active
+
+                dummy.rotation.set(0, 0, 0);
+                dummy.scale.setScalar(isHovered ? 2 : 1);
                 dummy.updateMatrix();
                 glowRef.current.setMatrixAt(i, dummy.matrix);
                 glowRef.current.setColorAt(i, color);
             } else {
-                // Hide offline rings/glows by scaling to 0
                 dummy.scale.setScalar(0);
                 dummy.updateMatrix();
                 ringRef.current.setMatrixAt(i, dummy.matrix);
                 glowRef.current.setMatrixAt(i, dummy.matrix);
             }
         });
-        
+
         coreRef.current.instanceMatrix.needsUpdate = true;
-        if(coreRef.current.instanceColor) coreRef.current.instanceColor.needsUpdate = true;
+        if (coreRef.current.instanceColor) coreRef.current.instanceColor.needsUpdate = true;
         ringRef.current.instanceMatrix.needsUpdate = true;
-        if(ringRef.current.instanceColor) ringRef.current.instanceColor.needsUpdate = true;
+        if (ringRef.current.instanceColor) ringRef.current.instanceColor.needsUpdate = true;
         glowRef.current.instanceMatrix.needsUpdate = true;
-        if(glowRef.current.instanceColor) glowRef.current.instanceColor.needsUpdate = true;
-    }, [servers, activeNodeId]);
+        if (glowRef.current.instanceColor) glowRef.current.instanceColor.needsUpdate = true;
+    }, [activeNodeId, serverPositions, servers]);
 
     useFrame((state) => {
-        if (!glowRef.current) return;
-        // Global pulsing effect in vertex shader or basic material override would be better,
-        // but simple global scale adjustment here for instanced mesh:
-        const t = state.clock.getElapsedTime();
-        const scale = 1 + Math.sin(t * 3) * 0.3;
-        // In a perfect world we'd update instance matrices for scale, but standard material doesn't support global scale easily
-        // Workaround: we can update all matrices each frame, though still CPU work, it's 1 draw call instead of N.
-        const dummy = new THREE.Object3D();
-        servers.forEach((s, i) => {
-            if (s.status === 'online') {
-               const pos = latLngToVector3(s.lat, s.lng, 2);
-               dummy.position.copy(pos);
-               dummy.scale.setScalar(scale);
-               dummy.updateMatrix();
-               glowRef.current.setMatrixAt(i, dummy.matrix);
-            }
-        });
-        glowRef.current.instanceMatrix.needsUpdate = true;
-        // opacity trick applied to material globally
-        (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.sin(t * 3) * 0.2;
+        const pulse = Math.sin(state.clock.getElapsedTime() * 3);
+
+        if (glowMaterialRef.current) {
+            glowMaterialRef.current.opacity = 0.42 + pulse * 0.12;
+        }
+
+        if (ringMaterialRef.current) {
+            ringMaterialRef.current.opacity = 0.56 + pulse * 0.06;
+        }
     });
 
     return (
@@ -243,10 +243,10 @@ function ServerNodes({ servers, activeNodeId }: { servers: NetworkServer[], acti
                 <meshStandardMaterial toneMapped={false} />
             </instancedMesh>
             <instancedMesh ref={ringRef} args={[ringGeo, undefined, servers.length]}>
-                <meshBasicMaterial side={THREE.DoubleSide} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
+                <meshBasicMaterial ref={ringMaterialRef} side={THREE.DoubleSide} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
             </instancedMesh>
             <instancedMesh ref={glowRef} args={[glowGeo, undefined, servers.length]}>
-                <meshBasicMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+                <meshBasicMaterial ref={glowMaterialRef} transparent depthWrite={false} opacity={0.42} blending={THREE.AdditiveBlending} />
             </instancedMesh>
         </group>
     );
@@ -347,8 +347,8 @@ function DataPackets({ curves, color, speedBase, offsetBase }: { curves: THREE.Q
 
 // Connections Component with Data Packets
 function ConnectionLines({ connections }: { connections: NetworkConnection[] }) {
-    const curves = useMemo(() => {
-        return connections.map(conn => {
+    const { curves, pointsByCurve } = useMemo(() => {
+        const curves = connections.map(conn => {
             const start = latLngToVector3(conn.from.lat, conn.from.lng, 2);
             const end = latLngToVector3(conn.to.lat, conn.to.lng, 2);
 
@@ -361,18 +361,23 @@ function ConnectionLines({ connections }: { connections: NetworkConnection[] }) 
 
             return new THREE.QuadraticBezierCurve3(start, mid, end);
         });
+
+        return {
+            curves,
+            pointsByCurve: curves.map((curve) => curve.getPoints(40)),
+        };
     }, [connections]);
 
     return (
         <group>
-            {curves.map((curve, i) => {
+            {pointsByCurve.map((points, i) => {
                 const conn = connections[i];
                 const key = `${conn.from.lat},${conn.from.lng}-${conn.to.lat},${conn.to.lng}`;
                 return (
                     // The static connection line
                     <Line
                         key={key}
-                        points={curve.getPoints(40)}
+                        points={points}
                         color="#00ffff"
                         lineWidth={0.5}
                         opacity={0.15}
@@ -479,6 +484,10 @@ const DEFAULT_CONNECTIONS: NetworkConnection[] = [
 // Parallax Group Component
 function ParallaxGroup({ children, activeNodeId, servers }: { children: React.ReactNode, activeNodeId?: string | null, servers?: NetworkServer[] }) {
     const group = useRef<THREE.Group>(null!);
+    const activeServer = useMemo(
+        () => (activeNodeId && servers ? servers.find((server) => server.id === activeNodeId) : undefined),
+        [activeNodeId, servers],
+    );
 
     useFrame((state, delta) => {
         const { pointer } = state;
@@ -487,16 +496,12 @@ function ParallaxGroup({ children, activeNodeId, servers }: { children: React.Re
         let targetRotY = pointer.x * 0.2;
 
         // If a node is active, calculate its spherical angle and rotate the globe to face it
-        if (activeNodeId && servers) {
-            const activeServer = servers.find(s => s.id === activeNodeId);
-            if (activeServer) {
-                // Convert lat/lng to rotation angles to center the node
-                const phi = (activeServer.lat) * (Math.PI / 180);
-                const theta = (activeServer.lng) * (Math.PI / 180);
-                
-                targetRotX += phi;
-                targetRotY += theta;
-            }
+        if (activeServer) {
+            const phi = (activeServer.lat) * (Math.PI / 180);
+            const theta = (activeServer.lng) * (Math.PI / 180);
+
+            targetRotX += phi;
+            targetRotY += theta;
         }
 
         // Smoothly interpolate to the target rotation
@@ -510,27 +515,23 @@ function ParallaxGroup({ children, activeNodeId, servers }: { children: React.Re
 export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS, activeNodeId }: GlobalNetworkSceneProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "100px" });
-    const [dpr, setDpr] = useState(1);
+    const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.25 });
+    const serverPositions = useMemo(
+        () => servers.map((server) => latLngToVector3(server.lat, server.lng, 2)),
+        [servers],
+    );
 
     return (
         <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
                 frameloop={isInView ? 'always' : 'never'}
-                performance={{ min: 0.5 }}
+                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 2, 7], fov: 40 }}
-                gl={{
-                    antialias: false,
-                    alpha: true,
-                    powerPreference: "high-performance",
-                    stencil: false,
-                    depth: true
-                }}
+                gl={MARKETING_SCENE_GL}
                 dpr={dpr}
             >
-                <PerformanceMonitor 
-                    onDecline={() => setDpr(0.75)} 
-                    onIncline={() => setDpr(1.25)} 
-                />
+                <ScenePerformanceMetrics sceneName="global-network" />
+                <PerformanceMonitor {...monitorProps} />
                 {/* Reduced fog density to ensure stars are visible */}
                 <fog attach="fog" args={['#050510', 5, 25]} />
 
@@ -545,15 +546,12 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
                 <ParallaxGroup activeNodeId={activeNodeId} servers={servers}>
                     <ObsidianSphere />
                     <group rotation-y={0}>
-                        <ServerNodes servers={servers} activeNodeId={activeNodeId} />
+                        <ServerNodes servers={servers} serverPositions={serverPositions} activeNodeId={activeNodeId} />
                         <ConnectionLines connections={connections} />
                     </group>
                 </ParallaxGroup>
 
                 <FloatingParticles count={400} />
-
-                {/* Keep controls disabled; scene animates itself via useFrame. */}
-                <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
 
                 <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />

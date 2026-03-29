@@ -1,10 +1,16 @@
 'use client';
 
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
+import { ScenePerformanceMetrics } from '@/3d/components/scene-performance-metrics';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import {
+    MARKETING_SCENE_CANVAS_PERFORMANCE,
+    MARKETING_SCENE_GL,
+    useAdaptiveSceneDpr,
+} from '@/3d/lib/scene-performance';
 import * as THREE from 'three';
 import { FeatureId } from '@/widgets/features/features-dashboard';
 import { PerformanceMonitor } from '@react-three/drei';
@@ -18,11 +24,17 @@ const COLORS: Record<FeatureId, string> = {
     killswitch: '#ff3300'   // Warning Red
 };
 
+const FEATURES_CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.003, 0.003);
+const ENGINE_CORE_GEOMETRY = new THREE.BoxGeometry(0.1, 0.1, 0.3);
+const SHIELD_IDLE_SCALE = new THREE.Vector3(1.8, 1.8, 1.8);
+const SHIELD_ACTIVE_SCALE = new THREE.Vector3(2.8, 2.8, 2.8);
+
 // --- INSTANCED ENGINE CORE Nodes ---
 function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
     const meshRef = useRef<THREE.InstancedMesh>(null!);
     const materialRef = useRef<THREE.MeshPhysicalMaterial>(null!);
     const dummy = useMemo(() => new THREE.Object3D(), []);
+    const geometry = useMemo(() => ENGINE_CORE_GEOMETRY, []);
     
     // Core parameters
     const count = 300;
@@ -66,6 +78,8 @@ function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
             let x = p.baseX;
             let y = p.baseY;
             let z = p.baseZ;
+            dummy.rotation.set(0, 0, 0);
+            dummy.scale.set(1, 1, 1);
 
             // Apply transformations based on active feature
             if (isQuantum) {
@@ -84,7 +98,8 @@ function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
                 // Noise / scrambled positions
                 x += Math.sin(t * 5 + p.phase * 3) * 0.3;
                 z += Math.cos(t * 5 + p.phase * 3) * 0.3;
-                dummy.scale.set(Math.sin(t*2+i)*0.5 + 0.5, Math.sin(t*2+i)*0.5 + 0.5, Math.sin(t*2+i)*0.5 + 0.5); // Blinking/scaling
+                const scrambleScale = Math.sin(t * 2 + i) * 0.5 + 0.5;
+                dummy.scale.setScalar(scrambleScale);
             } else if (isKillswitch) {
                 // Contracting tightly to the core
                 x *= 0.6;
@@ -119,7 +134,7 @@ function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
     });
 
     return (
-        <instancedMesh ref={meshRef} args={[new THREE.BoxGeometry(0.1, 0.1, 0.3), undefined, count]}>
+        <instancedMesh ref={meshRef} args={[geometry, undefined, count]}>
             <meshPhysicalMaterial 
                 ref={materialRef}
                 color={COLORS.quantum}
@@ -136,20 +151,20 @@ function EngineCoreNodes({ activeFeature }: { activeFeature: FeatureId }) {
 function CentralShield({ activeFeature }: { activeFeature: FeatureId }) {
     const shieldRef = useRef<THREE.Mesh>(null!);
     const matRef = useRef<THREE.MeshPhysicalMaterial>(null!);
+    const targetColor = useMemo(() => new THREE.Color(), []);
     
     useFrame((state, delta) => {
         if (!shieldRef.current || !matRef.current) return;
         const isKillswitch = activeFeature === 'killswitch';
         
         // Smoothly scale shield up when killswitch is active, down otherwise
-        const targetScale = isKillswitch ? 2.8 : 1.8;
-        shieldRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 4);
+        shieldRef.current.scale.lerp(isKillswitch ? SHIELD_ACTIVE_SCALE : SHIELD_IDLE_SCALE, delta * 4);
         
         // Opacity and color sweep
         const targetOpacity = isKillswitch ? 0.6 : 0.1;
         matRef.current.opacity = THREE.MathUtils.lerp(matRef.current.opacity, targetOpacity, delta * 4);
         
-        const targetColor = new THREE.Color(COLORS[activeFeature]);
+        targetColor.set(COLORS[activeFeature]);
         matRef.current.color.lerp(targetColor, delta * 3);
         matRef.current.emissive.lerp(targetColor, delta * 3);
     });
@@ -177,17 +192,19 @@ function CentralShield({ activeFeature }: { activeFeature: FeatureId }) {
 export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId }) {
     const containerRef = useRef<HTMLDivElement>(null!);
     const isInView = useInView(containerRef, { margin: "200px" });
-    const [dpr, setDpr] = useState(1);
+    const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.5 });
     
     return (
         <div ref={containerRef} className="absolute inset-0 w-full h-full">
             <Canvas 
                 frameloop={isInView ? 'always' : 'never'}
+                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 0, 8], fov: 45 }}
-                gl={{ antialias: false, powerPreference: "high-performance", alpha: true }}
+                gl={MARKETING_SCENE_GL}
                 dpr={dpr}
             >
-                <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1.5)} />
+                <ScenePerformanceMetrics sceneName="features-core" />
+                <PerformanceMonitor {...monitorProps} />
 
                 <ambientLight intensity={0.5} />
                 <pointLight position={[5, 5, 5]} intensity={2} />
@@ -197,7 +214,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
                     <EngineCoreNodes activeFeature={activeFeature} />
                 </group>
 
-                <SafeEffectComposer multisampling={0}>
+                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                     <Bloom 
                         luminanceThreshold={0.2} 
                         mipmapBlur 
@@ -211,7 +228,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
                     />
                     <ChromaticAberration
                         blendFunction={BlendFunction.NORMAL}
-                        offset={new THREE.Vector2(0.003, 0.003)}
+                        offset={FEATURES_CHROMATIC_ABERRATION_OFFSET}
                     />
                     <Noise opacity={activeFeature === 'obfuscation' ? 0.08 : 0.03} />
                 </SafeEffectComposer>

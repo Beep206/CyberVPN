@@ -60,11 +60,15 @@ export function A11yTab({ isDark }: { isDark: boolean }) {
             filterMatrix = '0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0.299, 0.587, 0.114, 0, 0, 0, 0, 0, 1, 0';
         }
 
-        svg.innerHTML = `
-            <filter id="a11y-color-blindness">
-                <feColorMatrix type="matrix" values="${filterMatrix}" />
-            </filter>
-        `;
+        const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+        filter.setAttribute('id', 'a11y-color-blindness');
+
+        const colorMatrix = document.createElementNS('http://www.w3.org/2000/svg', 'feColorMatrix');
+        colorMatrix.setAttribute('type', 'matrix');
+        colorMatrix.setAttribute('values', filterMatrix);
+
+        filter.appendChild(colorMatrix);
+        svg.appendChild(filter);
         document.body.appendChild(svg);
         
         // Apply to body

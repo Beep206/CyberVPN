@@ -1,6 +1,10 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { withSentryConfig } from "@sentry/nextjs";
+
+const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -16,7 +20,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io wss: ws:",
+  "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:",
   "worker-src 'self' blob:",
   "frame-src 'self' https://oauth.telegram.org",
   "object-src 'none'",
@@ -34,6 +38,9 @@ const config: NextConfigWithCompiler = {
   cacheComponents: true,
   reactCompiler: true,
   skipTrailingSlashRedirect: true,
+  turbopack: {
+    root: join(CONFIG_DIR, '..'),
+  },
   async headers() {
     return [
       {
@@ -66,6 +73,4 @@ export default withSentryConfig(withNextIntl(config), {
   // Upload source maps for readable stack traces
   widenClientFileUpload: true,
 
-  // Automatically tree-shake unused Sentry code
-  disableLogger: true,
 });

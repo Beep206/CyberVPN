@@ -20,6 +20,37 @@ const LogLevelBg = {
     debug: 'bg-transparent'
 };
 
+const SAFE_REPL_CONTEXT: Record<string, () => unknown> = {
+    document: () => document,
+    history: () => history,
+    location: () => location,
+    navigator: () => navigator,
+    window: () => window,
+};
+
+function resolveReadOnlyExpression(expression: string): unknown {
+    const trimmed = expression.trim();
+
+    if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(trimmed)) {
+        throw new Error('Only read-only dotted paths are allowed, e.g. document.title');
+    }
+
+    const [rootKey, ...segments] = trimmed.split('.');
+    const rootFactory = SAFE_REPL_CONTEXT[rootKey];
+
+    if (!rootFactory) {
+        throw new Error(`Unsupported root object: ${rootKey}`);
+    }
+
+    return segments.reduce<unknown>((current, segment) => {
+        if (current == null || (typeof current !== 'object' && typeof current !== 'function')) {
+            throw new Error(`Cannot read property ${segment}`);
+        }
+
+        return Reflect.get(current, segment);
+    }, rootFactory());
+}
+
 function JsonViewer({ data, name = "" }: { data: any, name?: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -130,8 +161,7 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
 
         console.log(`> ${replInput}`);
         try {
-            // eslint-disable-next-line no-eval
-            const result = eval(replInput);
+            const result = resolveReadOnlyExpression(replInput);
             
             // Handle promises heuristically
             if (result instanceof Promise) {
@@ -296,6 +326,7 @@ export function ConsoleTab({ isDark }: { isDark: boolean }) {
                     )}
                     spellCheck={false}
                     autoComplete="off"
+                    aria-label="Console read-only inspector"
                 />
             </form>
         </div>
