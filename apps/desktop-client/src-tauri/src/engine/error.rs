@@ -44,6 +44,9 @@ pub enum AppError {
 
     #[error("UDP Throttling Detected: {0}")]
     UdpThrottlingDetected(String),
+
+    #[error("Usage History Data Corrupted: {0}")]
+    UsageCorrupted(String),
 }
 
 // Implement Serialize so we can return AppError to the frontend natively in Tauri commands

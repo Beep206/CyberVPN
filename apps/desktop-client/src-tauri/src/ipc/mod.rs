@@ -176,6 +176,11 @@ pub async fn connect_profile(
         .find(|p| p.id == id)
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
+    // Phase 30: Telemetry sync barrier
+    let _ = crate::engine::sys::stats::flush_session(&app);
+    let country = crate::engine::sys::stats::resolve_ip_country(&profile.server);
+    crate::engine::sys::stats::start_session(profile.protocol.clone(), country);
+
     let app_dir = crate::engine::store::get_app_dir(&app)?;
     #[allow(unused_variables)]
     let log_path = app_dir.join("run.log");
@@ -289,6 +294,7 @@ pub async fn connect_profile(
 
 #[tauri::command]
 pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+    let _ = crate::engine::sys::stats::flush_session(&app);
     state.process_manager.stop().await?;
     crate::engine::sysproxy::clear_system_proxy().ok();
 

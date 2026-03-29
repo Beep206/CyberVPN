@@ -71,6 +71,7 @@ export function Layout() {
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: Activity },
+    { path: "/analytics", label: "Command Center", icon: Activity },
     { path: "/stealth-lab", label: "Stealth Lab", icon: Terminal },
     { path: "/automation", label: "Smart Connect", icon: Brain },
     { path: "/security", label: "Safety Center", icon: Shield },
