@@ -8,6 +8,7 @@ pub mod adblock;
 pub mod net_monitor;
 pub mod diagnostics;
 pub mod stats;
+pub mod remote_control;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;

@@ -221,7 +221,9 @@ pub fn run() {
             ipc::run_stealth_diagnostics,
             ipc::apply_stealth_fix,
             crate::engine::sys::stats::get_usage_history, // Mapped natively on stats
-            crate::engine::sys::stats::get_global_footprint
+            crate::engine::sys::stats::get_global_footprint,
+            ipc::start_remote_server,
+            ipc::stop_remote_server
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
