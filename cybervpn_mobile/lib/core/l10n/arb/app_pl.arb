@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Wpisz swój email, a wyślemy Ci jednorazowy link logowania. Hasło nie jest potrzebne.",
   "magicLinkSentTo": "Wysłaliśmy link logowania na {email}. Kliknij link w wiadomości, aby się zalogować.",
   "continueWithGoogle": "Kontynuuj z Google",
+  "continueWithFacebook": "Kontynuuj z Facebook",
   "backToLogin": "Powrót do logowania",
   "rateLimitMessage": "Zbyt wiele żądań. Spróbuj ponownie za {seconds} sekund.",
   "registerModeUsernameOnly": "Tylko nazwa użytkownika",

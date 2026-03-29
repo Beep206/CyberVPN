@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Emailingizni kiriting, biz sizga bir martalik kirish havolasini yuboramiz. Parol kerak emas.",
   "magicLinkSentTo": "Biz {email} manziliga kirish havolasini yubordik. Kirish uchun emaildagi havolani bosing.",
   "continueWithGoogle": "Google bilan davom etish",
+  "continueWithFacebook": "Facebook bilan davom etish",
   "backToLogin": "Kirishga qaytish",
   "rateLimitMessage": "Juda ko'p so'rov. {seconds} sekunddan keyin qayta urinib ko'ring.",
   "registerModeUsernameOnly": "Faqat foydalanuvchi nomi",

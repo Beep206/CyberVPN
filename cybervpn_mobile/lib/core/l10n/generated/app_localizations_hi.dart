@@ -4453,6 +4453,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get continueWithGoogle => 'Google से जारी रखें';
 
   @override
+  String get continueWithFacebook => 'Facebook से जारी रखें';
+
+  @override
   String get continueWithApple => 'Apple से जारी रखें';
 
   @override

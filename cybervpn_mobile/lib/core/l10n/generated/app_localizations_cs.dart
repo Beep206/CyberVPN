@@ -4472,6 +4472,9 @@ class AppLocalizationsCs extends AppLocalizations {
   String get continueWithGoogle => 'Pokračovat s Google';
 
   @override
+  String get continueWithFacebook => 'Pokračovat s Facebook';
+
+  @override
   String get continueWithApple => 'Pokračovat s Apple';
 
   @override

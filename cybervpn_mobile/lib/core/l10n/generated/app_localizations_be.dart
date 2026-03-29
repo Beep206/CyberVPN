@@ -4498,6 +4498,9 @@ class AppLocalizationsBe extends AppLocalizations {
   String get continueWithGoogle => 'Працягнуць з Google';
 
   @override
+  String get continueWithFacebook => 'Працягнуць з Facebook';
+
+  @override
   String get continueWithApple => 'Працягнуць з Apple';
 
   @override

@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Ange din e-post så skickar vi en engångslänk för inloggning. Inget lösenord behövs.",
   "magicLinkSentTo": "Vi skickade en inloggningslänk till {email}. Tryck på länken i e-postmeddelandet för att logga in.",
   "continueWithGoogle": "Fortsätt med Google",
+  "continueWithFacebook": "Fortsätt med Facebook",
   "backToLogin": "Tillbaka till inloggning",
   "rateLimitMessage": "För många förfrågningar. Försök igen om {seconds} sekunder.",
   "registerModeUsernameOnly": "Endast användarnamn",

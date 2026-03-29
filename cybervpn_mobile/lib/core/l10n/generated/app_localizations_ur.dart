@@ -4496,6 +4496,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get continueWithGoogle => 'Google کے ساتھ جاری رکھیں';
 
   @override
+  String get continueWithFacebook => 'Facebook کے ساتھ جاری رکھیں';
+
+  @override
   String get continueWithApple => 'Apple کے ساتھ جاری رکھیں';
 
   @override

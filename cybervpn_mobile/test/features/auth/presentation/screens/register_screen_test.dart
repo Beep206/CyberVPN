@@ -40,7 +40,9 @@ void main() {
 
       expect(find.text('Create Account'), findsOneWidget);
       expect(
-          find.text('Join CyberVPN for a secure experience'), findsOneWidget);
+        find.text('Join CyberVPN for a secure experience'),
+        findsOneWidget,
+      );
       expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
     });
 
@@ -53,8 +55,9 @@ void main() {
       expect(findPasswordField(), findsOneWidget);
       expect(findConfirmPasswordField(), findsOneWidget);
       expect(
-          find.widgetWithText(TextFormField, 'Referral Code (optional)'),
-          findsOneWidget);
+        find.widgetWithText(TextFormField, 'Referral Code (optional)'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders Register button', (tester) async {
@@ -96,11 +99,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Continue with Telegram'), findsOneWidget);
+      expect(find.text('Continue with Facebook'), findsOneWidget);
+    });
+
+    testWidgets('does not render Apple social login button', (tester) async {
+      ignoreOverflowErrors();
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Continue with Apple'), findsNothing);
     });
 
     group('form validation', () {
-      testWidgets('empty email shows validation error on submit',
-          (tester) async {
+      testWidgets('empty email shows validation error on submit', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
@@ -111,8 +124,9 @@ void main() {
         expect(find.text('Email is required'), findsOneWidget);
       });
 
-      testWidgets('empty password shows validation error on submit',
-          (tester) async {
+      testWidgets('empty password shows validation error on submit', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
@@ -133,8 +147,7 @@ void main() {
         await tester.tap(findRegisterButton());
         await tester.pumpAndSettle();
 
-        expect(
-            find.text('Please enter a valid email address'), findsOneWidget);
+        expect(find.text('Please enter a valid email address'), findsOneWidget);
       });
 
       testWidgets('password mismatch shows error', (tester) async {
@@ -187,15 +200,17 @@ void main() {
         await tester.tap(findRegisterButton());
         await pumpFrames(tester);
 
-        expect(find.text('Password must be at least 8 characters'),
-            findsOneWidget);
+        expect(
+          find.text('Password must be at least 8 characters'),
+          findsOneWidget,
+        );
       });
     });
 
     group('terms and conditions', () {
-      testWidgets(
-          'submit without accepting terms shows SnackBar warning',
-          (tester) async {
+      testWidgets('submit without accepting terms shows SnackBar warning', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
@@ -212,8 +227,10 @@ void main() {
         await tester.tap(findRegisterButton());
         await pumpFrames(tester);
 
-        expect(find.text('Please accept the Terms & Conditions'),
-            findsOneWidget);
+        expect(
+          find.text('Please accept the Terms & Conditions'),
+          findsOneWidget,
+        );
       });
     });
 
@@ -244,12 +261,14 @@ void main() {
         await tester.tap(findRegisterButton());
         await pumpFrames(tester, count: 10);
 
-        verify(() => mockAuthRepo.register(
-              email: kValidEmail,
-              password: kValidPassword,
-              device: any(named: 'device'),
-              referralCode: null,
-            )).called(1);
+        verify(
+          () => mockAuthRepo.register(
+            email: kValidEmail,
+            password: kValidPassword,
+            device: any(named: 'device'),
+            referralCode: null,
+          ),
+        ).called(1);
       });
 
       testWidgets('navigates to /connection on success', (tester) async {
@@ -281,8 +300,7 @@ void main() {
     });
 
     group('failed registration', () {
-      testWidgets('API error shows error message in SnackBar',
-          (tester) async {
+      testWidgets('API error shows error message in SnackBar', (tester) async {
         ignoreOverflowErrors();
         stubRegisterFailure(mockAuthRepo, message: 'Email already taken');
 
@@ -319,8 +337,9 @@ void main() {
         expect(find.byIcon(Icons.visibility_outlined), findsNWidgets(2));
       });
 
-      testWidgets('tapping visibility icon toggles obscureText',
-          (tester) async {
+      testWidgets('tapping visibility icon toggles obscureText', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
@@ -350,19 +369,22 @@ void main() {
     });
 
     group('referral code field', () {
-      testWidgets('is visible when referral system is available',
-          (tester) async {
+      testWidgets('is visible when referral system is available', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
 
         expect(
-            find.widgetWithText(TextFormField, 'Referral Code (optional)'),
-            findsOneWidget);
+          find.widgetWithText(TextFormField, 'Referral Code (optional)'),
+          findsOneWidget,
+        );
       });
 
-      testWidgets('is hidden when referral system is unavailable',
-          (tester) async {
+      testWidgets('is hidden when referral system is unavailable', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         final widget = buildTestableAuthScreen(
           child: const RegisterScreen(),
@@ -373,18 +395,22 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-            find.widgetWithText(TextFormField, 'Referral Code (optional)'),
-            findsNothing);
+          find.widgetWithText(TextFormField, 'Referral Code (optional)'),
+          findsNothing,
+        );
       });
 
-      testWidgets('shows Applied! chip when valid code is entered',
-          (tester) async {
+      testWidgets('shows Applied! chip when valid code is entered', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
 
-        final referralField =
-            find.widgetWithText(TextFormField, 'Referral Code (optional)');
+        final referralField = find.widgetWithText(
+          TextFormField,
+          'Referral Code (optional)',
+        );
         await tester.ensureVisible(referralField);
         await tester.pump();
 
@@ -397,14 +423,17 @@ void main() {
         expect(find.byType(Chip), findsOneWidget);
       });
 
-      testWidgets('does not show Applied! chip for invalid code',
-          (tester) async {
+      testWidgets('does not show Applied! chip for invalid code', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
 
-        final referralField =
-            find.widgetWithText(TextFormField, 'Referral Code (optional)');
+        final referralField = find.widgetWithText(
+          TextFormField,
+          'Referral Code (optional)',
+        );
         await tester.ensureVisible(referralField);
         await tester.pump();
 
@@ -416,8 +445,9 @@ void main() {
         expect(find.text('Applied!'), findsNothing);
       });
 
-      testWidgets('includes referral code in registration call',
-          (tester) async {
+      testWidgets('includes referral code in registration call', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         stubRegisterSuccess(mockAuthRepo);
 
@@ -432,8 +462,10 @@ void main() {
         await tester.pump();
 
         // Enter referral code
-        final referralField =
-            find.widgetWithText(TextFormField, 'Referral Code (optional)');
+        final referralField = find.widgetWithText(
+          TextFormField,
+          'Referral Code (optional)',
+        );
         await tester.ensureVisible(referralField);
         await tester.pump();
         await tester.enterText(referralField, 'MYCODE2024');
@@ -452,12 +484,14 @@ void main() {
         await pumpFrames(tester, count: 10);
 
         // Verify the referral code was passed
-        verify(() => mockAuthRepo.register(
-              email: kValidEmail,
-              password: kValidPassword,
-              device: any(named: 'device'),
-              referralCode: 'MYCODE2024',
-            )).called(1);
+        verify(
+          () => mockAuthRepo.register(
+            email: kValidEmail,
+            password: kValidPassword,
+            device: any(named: 'device'),
+            referralCode: 'MYCODE2024',
+          ),
+        ).called(1);
       });
     });
   });

@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "သင့် email ကို ထည့်ပါ၊ တစ်ကြိမ်သုံး ဝင်ရောက်မှု လင့်ခ် ပို့ပေးပါမည်။ စကားဝှက် မလိုပါ။",
   "magicLinkSentTo": "{email} သို့ ဝင်ရောက်မှု လင့်ခ် ပို့လိုက်ပါပြီ။ ဝင်ရောက်ရန် email ထဲရှိ လင့်ခ်ကို နှိပ်ပါ။",
   "continueWithGoogle": "Google ဖြင့် ဆက်လက်ပါ",
+  "continueWithFacebook": "Facebook ဖြင့် ဆက်လက်ပါ",
   "backToLogin": "ဝင်ရောက်ခြင်းသို့ ပြန်သွားရန်",
   "rateLimitMessage": "တောင်းဆိုမှုများ များလွန်းပါသည်။ {seconds} စက္ကန့်အကြာတွင် ထပ်စမ်းကြည့်ပါ။",
   "registerModeUsernameOnly": "အသုံးပြုသူအမည် သာ",

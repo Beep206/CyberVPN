@@ -4446,6 +4446,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get continueWithGoogle => 'Lanjutkan dengan Google';
 
   @override
+  String get continueWithFacebook => 'Lanjutkan dengan Facebook';
+
+  @override
   String get continueWithApple => 'Lanjutkan dengan Apple';
 
   @override

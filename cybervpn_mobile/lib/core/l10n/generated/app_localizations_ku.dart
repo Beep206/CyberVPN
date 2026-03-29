@@ -4497,6 +4497,9 @@ class AppLocalizationsKu extends AppLocalizations {
   String get continueWithGoogle => 'بەردەوامبوون لەگەڵ Google';
 
   @override
+  String get continueWithFacebook => 'بەردەوامبوون لەگەڵ Facebook';
+
+  @override
   String get continueWithApple => 'بەردەوامبوون لەگەڵ Apple';
 
   @override

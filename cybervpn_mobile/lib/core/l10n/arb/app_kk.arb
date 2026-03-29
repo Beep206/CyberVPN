@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Email енгізіңіз, біз сізге бір реттік кіру сілтемесін жібереміз. Құпия сөз қажет емес.",
   "magicLinkSentTo": "Біз {email} мекенжайына кіру сілтемесін жібердік. Кіру үшін хаттағы сілтемені басыңыз.",
   "continueWithGoogle": "Google арқылы жалғастыру",
+  "continueWithFacebook": "Facebook арқылы жалғастыру",
   "backToLogin": "Кіруге оралу",
   "rateLimitMessage": "Сұраулар тым көп. {seconds} секундтан кейін қайталаңыз.",
   "registerModeUsernameOnly": "Тек пайдаланушы аты",

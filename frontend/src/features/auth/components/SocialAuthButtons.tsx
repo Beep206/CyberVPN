@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import type { OAuthProvider } from '@/lib/api/auth';
 import { cn } from '@/lib/utils';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 
@@ -43,6 +44,15 @@ const PROVIDERS = {
         ),
         colors: 'hover:bg-[#5865F2]/20 hover:border-[#5865F2]',
     },
+    facebook: {
+        name: 'Facebook',
+        icon: (
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.026 4.388 11.022 10.125 11.927v-8.437H7.078v-3.49h3.047V9.41c0-3.022 1.792-4.693 4.533-4.693 1.313 0 2.686.235 2.686.235v2.969H15.83c-1.49 0-1.955.93-1.955 1.885v2.266h3.328l-.532 3.49h-2.796V24C19.612 23.095 24 18.099 24 12.073z" fill="#1877F2" />
+            </svg>
+        ),
+        colors: 'hover:bg-[#1877F2]/20 hover:border-[#1877F2]',
+    },
     apple: {
         name: 'Apple',
         icon: (
@@ -74,10 +84,10 @@ const PROVIDERS = {
 
 // Row groupings for compact layout below Telegram
 const COMPACT_ROW_1: Array<keyof typeof PROVIDERS> = ['google', 'github', 'discord'];
-const COMPACT_ROW_2: Array<keyof typeof PROVIDERS> = ['apple', 'microsoft', 'twitter'];
+const COMPACT_ROW_2: Array<keyof typeof PROVIDERS> = ['facebook', 'microsoft', 'twitter'];
 
 interface SocialAuthButtonsProps {
-    onProviderClick?: (provider: string) => void;
+    onProviderClick?: (provider: OAuthProvider) => void;
     disabled?: boolean;
     className?: string;
 }
@@ -166,7 +176,7 @@ export function SocialAuthButtons({
                 })}
             </div>
 
-            {/* Row 2: Apple, Microsoft, X */}
+            {/* Row 2: Facebook, Microsoft, X */}
             <div className="flex gap-3">
                 {COMPACT_ROW_2.map((provider, index) => {
                     const { name, icon, colors } = PROVIDERS[provider];

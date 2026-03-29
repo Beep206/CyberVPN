@@ -21,6 +21,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
+import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/animated_form_field.dart';
 
 /// Feature flag: Enable OTP email verification after registration.
@@ -63,6 +64,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   bool _acceptedTerms = false;
   bool _isReferralCodeValid = false;
   bool _isUsernameOnlyMode = false;
+  String? _lastProcessedOAuthCallback;
 
   @override
   void initState() {
@@ -72,6 +74,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     // Check for pending referral deep link after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForReferralDeepLink();
+      unawaited(_processOAuthCallbackIfPresent());
     });
   }
 
@@ -208,6 +211,60 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
   // ── Submit ────────────────────────────────────────────────────────
 
+  Future<void> _processOAuthCallbackIfPresent() async {
+    if (!mounted) return;
+
+    final uri = GoRouterState.of(context).uri;
+    final code = uri.queryParameters['oauth_code'];
+    final stateToken = uri.queryParameters['oauth_state'];
+    if (code == null || stateToken == null) {
+      return;
+    }
+
+    final callbackFingerprint = '$code::$stateToken';
+    if (_lastProcessedOAuthCallback == callbackFingerprint) {
+      return;
+    }
+    _lastProcessedOAuthCallback = callbackFingerprint;
+    await ref
+        .read(authProvider.notifier)
+        .completeOAuthLoginCallback(code: code, stateToken: stateToken);
+
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    if (!mounted) return;
+
+    await ref
+        .read(authProvider.notifier)
+        .startOAuthLogin(OAuthProvider.facebook);
+
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   /// Handle Google Sign-In with native SDK + backend OAuth flow.
   Future<void> _handleGoogleSignIn() async {
     final l10n = AppLocalizations.of(context);
@@ -246,8 +303,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
       // Step 4: Store tokens and navigate
       final secureStorage = ref.read(secureStorageProvider);
-      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
-      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+      await secureStorage.write(
+        key: 'access_token',
+        value: loginResponse.accessToken,
+      );
+      await secureStorage.write(
+        key: 'refresh_token',
+        value: loginResponse.refreshToken,
+      );
 
       if (!mounted) return;
 
@@ -264,6 +327,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     }
   }
 
+  // ignore: unused_element
   /// Handle Apple Sign-In with native SDK + backend OAuth flow.
   Future<void> _handleAppleSignIn() async {
     final l10n = AppLocalizations.of(context);
@@ -298,8 +362,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
       // Step 4: Store tokens and navigate
       final secureStorage = ref.read(secureStorageProvider);
-      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
-      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+      await secureStorage.write(
+        key: 'access_token',
+        value: loginResponse.accessToken,
+      );
+      await secureStorage.write(
+        key: 'refresh_token',
+        value: loginResponse.refreshToken,
+      );
 
       if (!mounted) return;
 
@@ -368,7 +438,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         // Note: Backend OTP verification flow pending - set _kEnableOtpVerification to true once implemented.
         if (_kEnableOtpVerification) {
           // Redirect to OTP verification screen instead of auto-login
-          context.go('/otp-verification?email=${Uri.encodeComponent(identifier)}');
+          context.go(
+            '/otp-verification?email=${Uri.encodeComponent(identifier)}',
+          );
         } else {
           // Current behavior: immediate login after registration
           context.go('/connection');
@@ -387,6 +459,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final authAsync = ref.watch(authProvider);
     final authState = authAsync.value;
     final isLoading = authState is AuthLoading;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_processOAuthCallbackIfPresent());
+    });
 
     // Listen for external auth state changes (e.g. from social login).
     // Note: Social logins (Telegram, etc.) bypass OTP verification since
@@ -493,8 +569,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Apple OAuth (iOS only) ───────────────────
-                      if (Platform.isIOS) ...[
+                      SocialLoginButton(
+                        icon: Icons.public,
+                        label: l10n.continueWithFacebook,
+                        onPressed: () => unawaited(_handleFacebookSignIn()),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Apple OAuth (kept in code, hidden) ────────
+                      if (Platform.isIOS &&
+                          OAuthProvider.apple.isMobileAuthEntryEnabled) ...[
                         SocialLoginButton(
                           icon: Icons.apple,
                           label: l10n.continueWithApple,
@@ -514,7 +598,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Text(
                                 l10n.registerOrSeparator,
                                 style: theme.textTheme.bodySmall?.copyWith(
@@ -614,8 +700,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 ),
                               ),
                               validator: (value) {
-                                final error =
-                                    InputValidators.validateUsername(value);
+                                final error = InputValidators.validateUsername(
+                                  value,
+                                );
                                 if (error != null) {
                                   return l10n.registerUsernameValidationError;
                                 }
@@ -687,13 +774,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 onPressed: isLoading
                                     ? null
                                     : () => setState(
-                                        () =>
-                                            _obscurePassword = !_obscurePassword,
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
                                       ),
                               ),
                             ),
                             validator: InputValidators.validatePassword,
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -915,9 +1003,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       ),
                                       recognizer: TapGestureRecognizer()
                                         ..onTap = () async {
-                                          final uri = Uri.parse(AppConstants.termsOfServiceUrl);
+                                          final uri = Uri.parse(
+                                            AppConstants.termsOfServiceUrl,
+                                          );
                                           if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            await launchUrl(
+                                              uri,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
                                           }
                                         },
                                     ),
@@ -930,9 +1024,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                       ),
                                       recognizer: TapGestureRecognizer()
                                         ..onTap = () async {
-                                          final uri = Uri.parse(AppConstants.privacyPolicyUrl);
+                                          final uri = Uri.parse(
+                                            AppConstants.privacyPolicyUrl,
+                                          );
                                           if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            await launchUrl(
+                                              uri,
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
                                           }
                                         },
                                     ),

@@ -145,7 +145,7 @@ describe('OAuthCallbackPage', () => {
 
   it('shows error state when oauthCallback fails', async () => {
     mockSearchParams = new URLSearchParams('code=bad_code&state=bad_state');
-    sessionStorage.setItem('oauth_provider', 'apple');
+    sessionStorage.setItem('oauth_provider', 'facebook');
 
     mockOauthCallback.mockRejectedValue({
       message: 'OAuth callback failed',

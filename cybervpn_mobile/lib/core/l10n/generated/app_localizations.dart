@@ -7713,6 +7713,12 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get continueWithGoogle;
 
+  /// Label for Facebook social login button
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Facebook'**
+  String get continueWithFacebook;
+
   /// Label for Apple social login button
   ///
   /// In en, this message translates to:

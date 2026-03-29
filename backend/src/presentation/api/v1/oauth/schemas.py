@@ -15,6 +15,7 @@ class OAuthProvider(StrEnum):
     GITHUB = "github"
     GOOGLE = "google"
     DISCORD = "discord"
+    FACEBOOK = "facebook"
     APPLE = "apple"
     MICROSOFT = "microsoft"
     TWITTER = "twitter"
@@ -50,6 +51,14 @@ class GitHubCallbackRequest(BaseModel):
     """GitHub OAuth callback request."""
 
     code: str = Field(..., description="Authorization code from GitHub")
+    state: str = Field(..., description="OAuth state token for CSRF protection")
+    redirect_uri: str = Field(..., description="Redirect URI used in authorization")
+
+
+class FacebookCallbackRequest(BaseModel):
+    """Facebook OAuth callback request."""
+
+    code: str = Field(..., description="Authorization code from Facebook")
     state: str = Field(..., description="OAuth state token for CSRF protection")
     redirect_uri: str = Field(..., description="Redirect URI used in authorization")
 

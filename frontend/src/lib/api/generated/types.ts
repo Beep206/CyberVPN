@@ -50,6 +50,7 @@ export interface paths {
          * Refresh Token
          * @description Refresh access token using refresh token.
          *
+         *     SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
          *     MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
          */
         post: operations["refresh_token_api_v1_auth_refresh_post"];
@@ -71,6 +72,8 @@ export interface paths {
         /**
          * Logout
          * @description Logout user by invalidating refresh token and clearing auth cookies.
+         *
+         *     SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -129,6 +132,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Otp
+         * @description Verify OTP code for email verification.
+         *
+         *     On success:
+         *     1. Activates user account
+         *     2. Creates user in Remnawave VPN backend
+         *     3. Returns access/refresh tokens (auto-login)
+         *
+         *     Aliases:
+         *     - POST /auth/verify-otp (primary)
+         *     - POST /auth/verify-email (mobile compatibility)
+         */
+        post: operations["verify_otp_api_v1_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/verify-otp": {
         parameters: {
             query?: never;
@@ -146,8 +178,39 @@ export interface paths {
          *     1. Activates user account
          *     2. Creates user in Remnawave VPN backend
          *     3. Returns access/refresh tokens (auto-login)
+         *
+         *     Aliases:
+         *     - POST /auth/verify-otp (primary)
+         *     - POST /auth/verify-email (mobile compatibility)
          */
         post: operations["verify_otp_api_v1_auth_verify_otp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Otp
+         * @description Resend OTP verification code.
+         *
+         *     Uses Brevo (secondary provider) for resend requests.
+         *     Rate limited to 3 resends per hour per email.
+         *
+         *     Aliases:
+         *     - POST /auth/resend-otp (primary)
+         *     - POST /auth/resend-verification (mobile compatibility)
+         */
+        post: operations["resend_otp_api_v1_auth_resend_verification_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -169,6 +232,10 @@ export interface paths {
          *
          *     Uses Brevo (secondary provider) for resend requests.
          *     Rate limited to 3 resends per hour per email.
+         *
+         *     Aliases:
+         *     - POST /auth/resend-otp (primary)
+         *     - POST /auth/resend-verification (mobile compatibility)
          */
         post: operations["resend_otp_api_v1_auth_resend_otp_post"];
         delete?: never;
@@ -190,7 +257,8 @@ export interface paths {
          * Request Magic Link
          * @description Request a magic link for passwordless login.
          *
-         *     Always returns success to prevent email enumeration.
+         *     Sends a magic link to any email address. If the user doesn't exist,
+         *     a new account will be created when the link is verified.
          */
         post: operations["request_magic_link_api_v1_auth_magic_link_post"];
         delete?: never;
@@ -210,11 +278,36 @@ export interface paths {
         put?: never;
         /**
          * Verify Magic Link
-         * @description Verify magic link token and return JWT tokens.
+         * @description Verify magic link token and return JWT tokens with user data.
          *
          *     If user doesn't exist, creates a new account with verified email.
          */
         post: operations["verify_magic_link_api_v1_auth_magic_link_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/magic-link/verify-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Magic Link Otp
+         * @description Verify magic link via 6-digit OTP code and return JWT tokens with user data.
+         *
+         *     Alternative to clicking the magic link URL. The user enters the OTP code
+         *     from the email instead.
+         *
+         *     If user doesn't exist, creates a new account with verified email.
+         */
+        post: operations["verify_magic_link_otp_api_v1_auth_magic_link_verify_otp_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -238,6 +331,29 @@ export interface paths {
          *     auto-registers or auto-logs-in the Telegram user.
          */
         post: operations["telegram_miniapp_auth_api_v1_auth_telegram_miniapp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/telegram/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Telegram Web Auth
+         * @description Authenticate via Telegram Web Widget OAuth payload.
+         *
+         *     Validates HMAC-SHA256 signature, checks auth_date freshness,
+         *     auto-registers or auto-logs-in the Telegram user.
+         */
+        post: operations["telegram_web_auth_api_v1_auth_telegram_web_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -326,6 +442,72 @@ export interface paths {
          */
         post: operations["reset_password_api_v1_auth_reset_password_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Change user password after verifying current password.
+         *
+         *     Rate limited to 3 requests per hour per user.
+         */
+        post: operations["change_password_api_v1_auth_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Devices
+         * @description List all active sessions/devices for the current user (BF2-4).
+         *
+         *     Returns device_id, IP address, user agent, last used time, and marks the current session.
+         */
+        get: operations["list_devices_api_v1_auth_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Device
+         * @description Revoke a specific device session (remote logout) (BF2-4).
+         *
+         *     Revokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.
+         */
+        delete: operations["revoke_device_api_v1_auth_devices__device_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -619,6 +801,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oauth/telegram/magic-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Create Telegram Magic Link
+         * @description Create a new Deep Link (Magic Link) session for seamless Telegram login.
+         */
+        get: operations["create_telegram_magic_link_api_v1_oauth_telegram_magic_link_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/telegram/magic-link/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete Telegram Magic Link
+         * @description Accept trusted Telegram bot data for a pending magic-link session.
+         */
+        post: operations["complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/telegram/magic-link/{token}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Telegram Magic Link Status
+         * @description Poll the status of the Magic Link login session.
+         */
+        get: operations["check_telegram_magic_link_status_api_v1_oauth_telegram_magic_link__token__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oauth/github/callback": {
         parameters: {
             query?: never;
@@ -871,6 +1113,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/security/antiphishing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current anti-phishing code
+         * @description Retrieve the authenticated user's current anti-phishing code.
+         */
+        get: operations["get_antiphishing_code_api_v1_security_antiphishing_get"];
+        put?: never;
+        /**
+         * Set or update anti-phishing code
+         * @description Set or update the authenticated user's anti-phishing code for email security.
+         */
+        post: operations["set_antiphishing_code_api_v1_security_antiphishing_post"];
+        /**
+         * Delete anti-phishing code
+         * @description Remove the authenticated user's anti-phishing code.
+         */
+        delete: operations["delete_antiphishing_code_api_v1_security_antiphishing_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/": {
         parameters: {
             query?: never;
@@ -932,7 +1202,7 @@ export interface paths {
         };
         /**
          * Get current user profile
-         * @description Returns the profile of the currently authenticated user. Placeholder implementation returning mock data.
+         * @description Returns the profile of the currently authenticated user.
          */
         get: operations["get_profile_api_v1_users_me_profile_get"];
         put?: never;
@@ -942,9 +1212,33 @@ export interface paths {
         head?: never;
         /**
          * Update current user profile
-         * @description Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied. Placeholder implementation -- changes are NOT persisted.
+         * @description Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied.
          */
         patch: operations["update_profile_api_v1_users_me_profile_patch"];
+        trace?: never;
+    };
+    "/api/v1/users/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get notification preferences
+         * @description Returns the current user's notification preferences.
+         */
+        get: operations["get_notification_preferences_api_v1_users_me_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update notification preferences
+         * @description Partially update the current user's notification preferences. Only the fields present in the request body are applied.
+         */
+        patch: operations["update_notification_preferences_api_v1_users_me_notifications_patch"];
         trace?: never;
     };
     "/api/v1/servers/": {
@@ -1091,6 +1385,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get active subscription
+         * @description Retrieve the authenticated user's current subscription status.
+         */
+        get: operations["get_active_subscription_api_v1_subscriptions_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel subscription
+         * @description Cancel the authenticated user's active subscription.
+         */
+        post: operations["cancel_subscription_api_v1_subscriptions_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans/": {
         parameters: {
             query?: never;
@@ -1148,7 +1482,7 @@ export interface paths {
         };
         /**
          * Get current user usage statistics
-         * @description Returns VPN usage statistics for the currently authenticated user. Placeholder implementation returning mock data.
+         * @description Returns VPN usage statistics for the currently authenticated user from Remnawave.
          */
         get: operations["get_usage_api_v1_users_me_usage_get"];
         put?: never;
@@ -1170,7 +1504,7 @@ export interface paths {
         put?: never;
         /**
          * Activate trial period
-         * @description Activate a 7-day trial period for the authenticated user. Placeholder implementation -- always succeeds.
+         * @description Activate a 7-day trial period for the authenticated user.
          */
         post: operations["activate_trial_api_v1_trial_activate_post"];
         delete?: never;
@@ -1188,7 +1522,7 @@ export interface paths {
         };
         /**
          * Get trial status
-         * @description Returns the current trial status for the authenticated user. Placeholder implementation -- always returns not active, eligible.
+         * @description Returns the current trial status for the authenticated user.
          */
         get: operations["get_trial_status_api_v1_trial_status_get"];
         put?: never;
@@ -1689,6 +2023,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wallet/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Wallet
+         * @description Return the authenticated user's wallet balance.
+         *
+         *     Aliases:
+         *     - GET /wallet (primary)
+         *     - GET /wallet/balance (mobile compatibility)
+         */
+        get: operations["get_wallet_api_v1_wallet_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet": {
         parameters: {
             query?: never;
@@ -1699,6 +2057,10 @@ export interface paths {
         /**
          * Get Wallet
          * @description Return the authenticated user's wallet balance.
+         *
+         *     Aliases:
+         *     - GET /wallet (primary)
+         *     - GET /wallet/balance (mobile compatibility)
          */
         get: operations["get_wallet_api_v1_wallet_get"];
         put?: never;
@@ -2563,6 +2925,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness Check
+         * @description Readiness check for Kubernetes and orchestrators (unauthenticated).
+         *
+         *     Checks if the service is ready to accept traffic by verifying:
+         *     - Database connection is healthy
+         *     - Redis connection is healthy
+         *     - Task queue depth is below threshold (< 1000)
+         *
+         *     Returns:
+         *         200 OK if all checks pass
+         *         503 Service Unavailable if any check fails
+         */
+        get: operations["readiness_check_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/detailed": {
         parameters: {
             query?: never;
@@ -2590,6 +2981,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActiveSubscriptionResponse
+         * @description Response schema for active subscription.
+         */
+        ActiveSubscriptionResponse: {
+            /**
+             * Status
+             * @description Subscription status (active, expired, trial, cancelled, none)
+             */
+            status: string;
+            /**
+             * Plan Name
+             * @description Name of the subscription plan
+             */
+            plan_name?: string | null;
+            /**
+             * Expires At
+             * @description Subscription expiration timestamp
+             */
+            expires_at?: string | null;
+            /**
+             * Traffic Limit Bytes
+             * @description Traffic limit in bytes
+             */
+            traffic_limit_bytes?: number | null;
+            /**
+             * Used Traffic Bytes
+             * @description Used traffic in bytes
+             */
+            used_traffic_bytes?: number | null;
+            /**
+             * Auto Renew
+             * @description Whether subscription auto-renews
+             * @default false
+             */
+            auto_renew: boolean;
+        };
         /**
          * AdminCreateInviteRequest
          * @description Request body for admin-created invite codes.
@@ -2661,6 +3089,17 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * AntiPhishingCodeResponse
+         * @description Response with anti-phishing code.
+         */
+        AntiPhishingCodeResponse: {
+            /**
+             * Code
+             * @description User's anti-phishing code (null if not set)
+             */
+            code?: string | null;
         };
         /**
          * AuditLogResponse
@@ -2742,6 +3181,44 @@ export interface components {
         BindPartnerRequest: {
             /** Partner Code */
             partner_code: string;
+        };
+        /**
+         * CancelSubscriptionResponse
+         * @description Response schema for subscription cancellation.
+         */
+        CancelSubscriptionResponse: {
+            /**
+             * Message
+             * @default Subscription canceled successfully
+             */
+            message: string;
+            /**
+             * Canceled At
+             * Format: date-time
+             * @description Cancellation timestamp
+             */
+            canceled_at: string;
+        };
+        /**
+         * ChangePasswordRequest
+         * @description Request to change user password.
+         */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /**
+         * ChangePasswordResponse
+         * @description Response for successful password change.
+         */
+        ChangePasswordResponse: {
+            /**
+             * Message
+             * @default Password changed successfully
+             */
+            message: string;
         };
         /**
          * CheckoutRequest
@@ -3389,6 +3866,17 @@ export interface components {
             message: string;
         };
         /**
+         * DeleteAntiPhishingCodeResponse
+         * @description Response after deleting anti-phishing code.
+         */
+        DeleteAntiPhishingCodeResponse: {
+            /**
+             * Message
+             * @default Anti-phishing code deleted successfully
+             */
+            message: string;
+        };
+        /**
          * DeviceInfo
          * @description Device information for mobile authentication.
          *
@@ -3461,6 +3949,61 @@ export interface components {
              * @description Last activity timestamp
              */
             last_active_at?: string | null;
+        };
+        /**
+         * DeviceSessionListResponse
+         * @description Response schema for list of active sessions (BF2-4).
+         */
+        DeviceSessionListResponse: {
+            /**
+             * Devices
+             * @description List of active sessions
+             */
+            devices: components["schemas"]["DeviceSessionResponse"][];
+            /**
+             * Total
+             * @description Total number of active sessions
+             */
+            total: number;
+        };
+        /**
+         * DeviceSessionResponse
+         * @description Response schema for active device session (BF2-4).
+         */
+        DeviceSessionResponse: {
+            /**
+             * Device Id
+             * @description Unique device identifier
+             */
+            device_id?: string | null;
+            /**
+             * Ip Address
+             * @description Last known IP address
+             */
+            ip_address?: string | null;
+            /**
+             * User Agent
+             * @description Browser/device user agent string
+             */
+            user_agent?: string | null;
+            /**
+             * Last Used At
+             * Format: date-time
+             * @description Last time this session was used
+             */
+            last_used_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When this session was created
+             */
+            created_at: string;
+            /**
+             * Is Current
+             * @description Whether this is the current session
+             * @default false
+             */
+            is_current: boolean;
         };
         /**
          * FCMTokenDeleteRequest
@@ -3772,32 +4315,12 @@ export interface components {
             /** Total */
             total: number;
         };
-        /**
-         * LoginRequest
-         * @description Request schema for mobile user login.
-         *
-         *     Used by POST /api/v1/mobile/auth/login endpoint.
-         */
+        /** LoginRequest */
         LoginRequest: {
-            /**
-             * Email
-             * Format: email
-             * @description User email address
-             */
-            email: string;
-            /**
-             * Password
-             * @description User password
-             */
+            /** Login Or Email */
+            login_or_email: string;
+            /** Password */
             password: string;
-            /** @description Device information for login */
-            device: components["schemas"]["DeviceInfo"];
-            /**
-             * Remember Me
-             * @description If True, extends refresh token TTL to 30 days (default: 7 days)
-             * @default false
-             */
-            remember_me: boolean;
         };
         /**
          * LogoutAllResponse
@@ -3818,7 +4341,7 @@ export interface components {
         /** LogoutRequest */
         LogoutRequest: {
             /** Refresh Token */
-            refresh_token: string;
+            refresh_token?: string | null;
         };
         /**
          * MagicLinkRequest
@@ -3843,12 +4366,46 @@ export interface components {
             message: string;
         };
         /**
+         * MagicLinkVerifyOtpRequest
+         * @description Request to verify magic link via 6-digit OTP code.
+         */
+        MagicLinkVerifyOtpRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Code */
+            code: string;
+        };
+        /**
          * MagicLinkVerifyRequest
          * @description Request to verify magic link token.
          */
         MagicLinkVerifyRequest: {
             /** Token */
             token: string;
+        };
+        /**
+         * MagicLinkVerifyResponse
+         * @description Response for successful magic link verification with auto-login.
+         */
+        MagicLinkVerifyResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @default 0
+             */
+            expires_in: number;
+            user: components["schemas"]["AdminUserResponse"];
         };
         /**
          * MobileAuthError
@@ -3874,6 +4431,75 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * NotificationPreferencesResponse
+         * @description Response schema for notification preferences (BF2-5).
+         */
+        NotificationPreferencesResponse: {
+            /**
+             * Email Security
+             * @description Security alerts via email
+             * @default true
+             */
+            email_security: boolean;
+            /**
+             * Email Marketing
+             * @description Marketing communications via email
+             * @default false
+             */
+            email_marketing: boolean;
+            /**
+             * Push Connection
+             * @description VPN connection status push notifications
+             * @default true
+             */
+            push_connection: boolean;
+            /**
+             * Push Payment
+             * @description Payment and subscription push notifications
+             * @default true
+             */
+            push_payment: boolean;
+            /**
+             * Push Subscription
+             * @description Subscription expiry push notifications
+             * @default true
+             */
+            push_subscription: boolean;
+        };
+        /**
+         * NotificationPreferencesUpdateRequest
+         * @description Request schema for updating notification preferences (BF2-5).
+         *
+         *     All fields are optional - only provided fields will be updated.
+         */
+        NotificationPreferencesUpdateRequest: {
+            /**
+             * Email Security
+             * @description Security alerts via email
+             */
+            email_security?: boolean | null;
+            /**
+             * Email Marketing
+             * @description Marketing communications via email
+             */
+            email_marketing?: boolean | null;
+            /**
+             * Push Connection
+             * @description VPN connection status push notifications
+             */
+            push_connection?: boolean | null;
+            /**
+             * Push Payment
+             * @description Payment and subscription push notifications
+             */
+            push_payment?: boolean | null;
+            /**
+             * Push Subscription
+             * @description Subscription expiry push notifications
+             */
+            push_subscription?: boolean | null;
         };
         /**
          * OAuthAuthorizeResponse
@@ -3999,7 +4625,7 @@ export interface components {
          * @description Valid OAuth providers (HIGH-7).
          * @enum {string}
          */
-        OAuthProvider: "telegram" | "github" | "google" | "discord" | "apple" | "microsoft" | "twitter";
+        OAuthProvider: "telegram" | "github" | "google" | "discord" | "facebook" | "apple" | "microsoft" | "twitter";
         /** PartnerCodeResponse */
         PartnerCodeResponse: {
             /**
@@ -4340,10 +4966,23 @@ export interface components {
             /** Commission Rate */
             commission_rate: number;
         };
-        /** RefreshTokenRequest */
+        /**
+         * RefreshTokenRequest
+         * @description Request schema for token refresh.
+         *
+         *     Used by POST /api/v1/mobile/auth/refresh endpoint.
+         */
         RefreshTokenRequest: {
-            /** Refresh Token */
+            /**
+             * Refresh Token
+             * @description Current refresh token to exchange for new tokens
+             */
             refresh_token: string;
+            /**
+             * Device Id
+             * @description Device ID for session validation
+             */
+            device_id: string;
         };
         /**
          * RegisterRequest
@@ -4896,6 +5535,22 @@ export interface components {
             message: string;
         };
         /**
+         * RevokeDeviceResponse
+         * @description Response for successful device session revocation (BF2-4).
+         */
+        RevokeDeviceResponse: {
+            /**
+             * Message
+             * @default Device session revoked successfully
+             */
+            message: string;
+            /**
+             * Device Id
+             * @description ID of the revoked device
+             */
+            device_id: string;
+        };
+        /**
          * ServerResponse
          * @description Response schema for a Remnawave VPN server.
          */
@@ -4971,6 +5626,17 @@ export interface components {
              * @default ok
              */
             redis: string;
+        };
+        /**
+         * SetAntiPhishingCodeRequest
+         * @description Request to set or update anti-phishing code.
+         */
+        SetAntiPhishingCodeRequest: {
+            /**
+             * Code
+             * @description User's anti-phishing code
+             */
+            code: string;
         };
         /**
          * SignPayloadRequest
@@ -5205,6 +5871,89 @@ export interface components {
             state: string;
         };
         /**
+         * TelegramMagicLinkCompleteRequest
+         * @description Trusted Telegram bot payload used to complete a magic-link session.
+         */
+        TelegramMagicLinkCompleteRequest: {
+            /**
+             * Id
+             * @description Telegram user ID
+             */
+            id: string;
+            /**
+             * Token
+             * @description Magic link session token
+             */
+            token: string;
+            /**
+             * First Name
+             * @description Telegram first name
+             */
+            first_name: string;
+            /**
+             * Last Name
+             * @description Telegram last name
+             */
+            last_name?: string | null;
+            /**
+             * Username
+             * @description Telegram username
+             */
+            username?: string | null;
+            /**
+             * Language Code
+             * @description Telegram language code
+             */
+            language_code?: string | null;
+        };
+        /**
+         * TelegramMagicLinkCompleteResponse
+         * @description Response returned after the bot confirms a magic-link session.
+         */
+        TelegramMagicLinkCompleteResponse: {
+            /**
+             * Status
+             * @description Magic link completion status
+             * @constant
+             */
+            status: "accepted";
+        };
+        /**
+         * TelegramMagicLinkResponse
+         * @description Response when requesting a Magic Link for Telegram Login.
+         */
+        TelegramMagicLinkResponse: {
+            /**
+             * Token
+             * @description Unique magic link session token
+             */
+            token: string;
+            /**
+             * Bot Url
+             * @description URL to open Telegram bot with the start parameter
+             */
+            bot_url: string;
+            /**
+             * Deep Link Url
+             * @description Native Telegram deep link for devices with the Telegram app installed
+             */
+            deep_link_url?: string | null;
+        };
+        /**
+         * TelegramMagicLinkStatusResponse
+         * @description Status polling response for Telegram Magic Link.
+         */
+        TelegramMagicLinkStatusResponse: {
+            /**
+             * Status
+             * @description Current status of the magic link session
+             * @enum {string}
+             */
+            status: "pending" | "completed" | "expired";
+            /** @description Populated with login tokens if status is completed */
+            login_result?: components["schemas"]["OAuthLoginResponse"] | null;
+        };
+        /**
          * TelegramMiniAppRequest
          * @description Request for Telegram Mini App authentication.
          */
@@ -5288,6 +6037,61 @@ export interface components {
              * @description VPN subscription configuration URL
              */
             subscription_url?: string | null;
+        };
+        /**
+         * TelegramWebLoginRequest
+         * @description Request for Telegram Web Widget/OAuth authentication.
+         */
+        TelegramWebLoginRequest: {
+            /**
+             * Id
+             * @description Telegram User ID
+             */
+            id: number;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
+            /**
+             * Auth Date
+             * @description Authentication timestamp
+             */
+            auth_date: number;
+            /**
+             * Hash
+             * @description HMAC-SHA256 signature
+             */
+            hash: string;
+        };
+        /**
+         * TelegramWebLoginResponse
+         * @description Response for Telegram Web Widget/OAuth authentication.
+         */
+        TelegramWebLoginResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @default 0
+             */
+            expires_in: number;
+            user: components["schemas"]["AdminUserResponse"];
+            /**
+             * Is New User
+             * @default false
+             */
+            is_new_user: boolean;
         };
         /**
          * TokenResponse
@@ -5973,12 +6777,10 @@ export interface components {
              */
             created_at: string;
         };
-        /** LoginRequest */
-        src__presentation__api__v1__auth__schemas__LoginRequest: {
-            /** Login Or Email */
-            login_or_email: string;
-            /** Password */
-            password: string;
+        /** RefreshTokenRequest */
+        src__presentation__api__v1__auth__schemas__RefreshTokenRequest: {
+            /** Refresh Token */
+            refresh_token?: string | null;
         };
         /**
          * RegisterRequest
@@ -6018,6 +6820,33 @@ export interface components {
             expires_in: number;
         };
         /**
+         * LoginRequest
+         * @description Request schema for mobile user login.
+         *
+         *     Used by POST /api/v1/mobile/auth/login endpoint.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__LoginRequest: {
+            /**
+             * Email
+             * Format: email
+             * @description User email address
+             */
+            email: string;
+            /**
+             * Password
+             * @description User password
+             */
+            password: string;
+            /** @description Device information for login */
+            device: components["schemas"]["DeviceInfo"];
+            /**
+             * Remember Me
+             * @description If True, extends refresh token TTL to 30 days (default: 7 days)
+             * @default false
+             */
+            remember_me: boolean;
+        };
+        /**
          * LogoutRequest
          * @description Request schema for logout.
          *
@@ -6032,24 +6861,6 @@ export interface components {
             /**
              * Device Id
              * @description Device ID for session revocation
-             */
-            device_id: string;
-        };
-        /**
-         * RefreshTokenRequest
-         * @description Request schema for token refresh.
-         *
-         *     Used by POST /api/v1/mobile/auth/refresh endpoint.
-         */
-        src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest: {
-            /**
-             * Refresh Token
-             * @description Current refresh token to exchange for new tokens
-             */
-            refresh_token: string;
-            /**
-             * Device Id
-             * @description Device ID for session validation
              */
             device_id: string;
         };
@@ -6109,7 +6920,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LoginRequest"];
+                "application/json": components["schemas"]["LoginRequest"];
             };
         };
         responses: {
@@ -6154,7 +6965,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RefreshTokenRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__RefreshTokenRequest"];
             };
         };
         responses: {
@@ -6304,6 +7115,53 @@ export interface operations {
             };
         };
     };
+    verify_otp_api_v1_auth_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyOtpResponse"];
+                };
+            };
+            /** @description Invalid or expired OTP code */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too many attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     verify_otp_api_v1_auth_verify_otp_post: {
         parameters: {
             query?: never;
@@ -6343,6 +7201,46 @@ export interface operations {
                 };
             };
             /** @description Too many attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resend_otp_api_v1_auth_resend_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResendOtpResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit exceeded */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -6450,10 +7348,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
+                    "application/json": components["schemas"]["MagicLinkVerifyResponse"];
                 };
             };
             /** @description Invalid or expired token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_magic_link_otp_api_v1_auth_magic_link_verify_otp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MagicLinkVerifyOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MagicLinkVerifyResponse"];
+                };
+            };
+            /** @description Invalid or expired OTP code */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6494,6 +7432,46 @@ export interface operations {
                 };
             };
             /** @description Invalid or expired initData */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_web_auth_api_v1_auth_telegram_web_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramWebLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramWebLoginResponse"];
+                };
+            };
+            /** @description Invalid or expired payload */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -6671,6 +7649,132 @@ export interface operations {
             };
         };
     };
+    change_password_api_v1_auth_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordResponse"];
+                };
+            };
+            /** @description Invalid password or validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit exceeded (3 requests per hour) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_devices_api_v1_auth_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSessionListResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke_device_api_v1_auth_devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeDeviceResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Device not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     register_api_v1_auth_register_post: {
         parameters: {
             query?: {
@@ -6767,7 +7871,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__LoginRequest"];
             };
         };
         responses: {
@@ -6818,7 +7922,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest"];
+                "application/json": components["schemas"]["RefreshTokenRequest"];
             };
         };
         responses: {
@@ -7153,6 +8257,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OAuthLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_telegram_magic_link_api_v1_oauth_telegram_magic_link_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramMagicLinkResponse"];
+                };
+            };
+        };
+    };
+    complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramMagicLinkCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramMagicLinkCompleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_telegram_magic_link_status_api_v1_oauth_telegram_magic_link__token__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramMagicLinkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7614,6 +8802,121 @@ export interface operations {
             };
         };
     };
+    get_antiphishing_code_api_v1_security_antiphishing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AntiPhishingCodeResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    set_antiphishing_code_api_v1_security_antiphishing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAntiPhishingCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AntiPhishingCodeResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit exceeded (10 requests per hour) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_antiphishing_code_api_v1_security_antiphishing_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteAntiPhishingCodeResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded (5 requests per hour) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_users_api_v1_users__get: {
         parameters: {
             query?: {
@@ -7840,6 +9143,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notification_preferences_api_v1_users_me_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
+                };
+            };
+        };
+    };
+    update_notification_preferences_api_v1_users_me_notifications_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferencesUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8202,6 +9558,74 @@ export interface operations {
             };
         };
     };
+    get_active_subscription_api_v1_subscriptions_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveSubscriptionResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_subscription_api_v1_subscriptions_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelSubscriptionResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found in VPN backend */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded (3 requests per hour) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_plans_api_v1_plans__get: {
         parameters: {
             query?: never;
@@ -8339,6 +9763,20 @@ export interface operations {
                     "application/json": components["schemas"]["UsageResponse"];
                 };
             };
+            /** @description User not found in VPN backend */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description VPN backend unavailable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     activate_trial_api_v1_trial_activate_post: {
@@ -8359,6 +9797,27 @@ export interface operations {
                     "application/json": components["schemas"]["TrialActivateResponse"];
                 };
             };
+            /** @description Trial already activated or currently active */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limit exceeded (3 requests per hour) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     get_trial_status_api_v1_trial_status_get: {
@@ -8378,6 +9837,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TrialStatusResponse"];
                 };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -9261,6 +10727,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_wallet_api_v1_wallet_balance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletResponse"];
                 };
             };
         };
@@ -10628,6 +12114,28 @@ export interface operations {
         };
     };
     health_check_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    readiness_check_readiness_get: {
         parameters: {
             query?: never;
             header?: never;

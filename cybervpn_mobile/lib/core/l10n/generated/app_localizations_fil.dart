@@ -4460,6 +4460,9 @@ class AppLocalizationsFil extends AppLocalizations {
   String get continueWithGoogle => 'Magpatuloy sa Google';
 
   @override
+  String get continueWithFacebook => 'Magpatuloy sa Facebook';
+
+  @override
   String get continueWithApple => 'Magpatuloy sa Apple';
 
   @override

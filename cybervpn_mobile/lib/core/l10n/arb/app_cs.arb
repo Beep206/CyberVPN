@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Zadejte svůj email a pošleme vám jednorázový přihlašovací odkaz. Heslo není potřeba.",
   "magicLinkSentTo": "Odeslali jsme přihlašovací odkaz na {email}. Klepněte na odkaz v emailu pro přihlášení.",
   "continueWithGoogle": "Pokračovat s Google",
+  "continueWithFacebook": "Pokračovat s Facebook",
   "backToLogin": "Zpět na přihlášení",
   "rateLimitMessage": "Příliš mnoho požadavků. Zkuste to znovu za {seconds} sekund.",
   "registerModeUsernameOnly": "Pouze uživatelské jméno",

@@ -4417,6 +4417,9 @@ class AppLocalizationsYo extends AppLocalizations {
   String get continueWithGoogle => 'Tẹsiwaju pẹlu Google';
 
   @override
+  String get continueWithFacebook => 'Tẹsiwaju pẹlu Facebook';
+
+  @override
   String get continueWithApple => 'Tẹsiwaju pẹlu Apple';
 
   @override

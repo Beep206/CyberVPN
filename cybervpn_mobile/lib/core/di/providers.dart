@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/core/types/result.dart';
 // Data sources (lazy - created on first access via ref.watch)
 import 'package:cybervpn_mobile/features/auth/data/datasources/auth_remote_ds.dart';
 import 'package:cybervpn_mobile/features/auth/data/datasources/auth_local_ds.dart';
+import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_ds.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/server_local_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
@@ -47,6 +48,7 @@ import 'package:cybervpn_mobile/features/config_import/domain/repositories/confi
 import 'package:cybervpn_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/login.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/oauth_login.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/register.dart';
 import 'package:cybervpn_mobile/features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
@@ -160,6 +162,14 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepositoryImpl(
     remoteDataSource: ProfileRemoteDataSourceImpl(ref.watch(apiClientProvider)),
     networkInfo: ref.watch(networkInfoProvider),
+  );
+});
+
+/// Provides the generic OAuth login use case for mobile browser flows.
+final oauthLoginUseCaseProvider = Provider<OAuthLoginUseCase>((ref) {
+  return OAuthLoginUseCase(
+    oauthDataSource: OAuthRemoteDataSourceImpl(ref.watch(apiClientProvider)),
+    secureStorage: ref.watch(secureStorageProvider),
   );
 });
 
@@ -541,11 +551,13 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
   await secureStorage.prewarmCache();
 
   // --- Eager: requires pre-initialized SharedPreferences ---
-  final dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 15),
-    sendTimeout: const Duration(seconds: 10),
-  ));
+  final dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 10),
+    ),
+  );
   final apiClient = ApiClient(dio: dio, baseUrl: EnvironmentConfig.baseUrl);
   // Interceptor order is intentional:
   // 1. Auth: attaches/refreshes JWT on every request.

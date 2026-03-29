@@ -4457,6 +4457,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get continueWithGoogle => 'Google bilan davom etish';
 
   @override
+  String get continueWithFacebook => 'Facebook bilan davom etish';
+
+  @override
   String get continueWithApple => 'Apple bilan davom etish';
 
   @override

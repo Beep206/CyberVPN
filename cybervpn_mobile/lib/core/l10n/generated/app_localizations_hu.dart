@@ -4455,6 +4455,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get continueWithGoogle => 'Folytatás Google-lel';
 
   @override
+  String get continueWithFacebook => 'Folytatás Facebook-lel';
+
+  @override
   String get continueWithApple => 'Folytatás Apple-lel';
 
   @override

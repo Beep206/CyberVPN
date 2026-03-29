@@ -19,12 +19,16 @@ import 'package:cybervpn_mobile/features/profile/domain/usecases/link_social_acc
     show LinkSocialAccountUseCase, CompleteSocialAccountLinkUseCase;
 import 'package:cybervpn_mobile/features/profile/domain/usecases/unlink_social_account.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show getProfileUseCaseProvider,
-         setup2FAUseCaseProvider, verify2FAUseCaseProvider,
-         disable2FAUseCaseProvider, getDevicesUseCaseProvider,
-         removeDeviceUseCaseProvider, linkSocialAccountUseCaseProvider,
-         completeSocialAccountLinkUseCaseProvider,
-         unlinkSocialAccountUseCaseProvider;
+    show
+        getProfileUseCaseProvider,
+        setup2FAUseCaseProvider,
+        verify2FAUseCaseProvider,
+        disable2FAUseCaseProvider,
+        getDevicesUseCaseProvider,
+        removeDeviceUseCaseProvider,
+        linkSocialAccountUseCaseProvider,
+        completeSocialAccountLinkUseCaseProvider,
+        unlinkSocialAccountUseCaseProvider;
 
 // ---------------------------------------------------------------------------
 // Profile State
@@ -32,10 +36,7 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
 
 /// Immutable state for the profile feature.
 class ProfileState {
-  const ProfileState({
-    this.profile,
-    this.devices = const [],
-  });
+  const ProfileState({this.profile, this.devices = const []});
 
   /// The user's profile data, or null if not yet loaded.
   final Profile? profile;
@@ -53,10 +54,7 @@ class ProfileState {
   /// Number of linked OAuth provider accounts.
   int get linkedAccountsCount => linkedProviders.length;
 
-  ProfileState copyWith({
-    Profile? Function()? profile,
-    List<Device>? devices,
-  }) {
+  ProfileState copyWith({Profile? Function()? profile, List<Device>? devices}) {
     return ProfileState(
       profile: profile != null ? profile() : this.profile,
       devices: devices ?? this.devices,
@@ -101,7 +99,9 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     _getDevices = ref.watch(getDevicesUseCaseProvider);
     _removeDevice = ref.watch(removeDeviceUseCaseProvider);
     _linkSocialAccount = ref.watch(linkSocialAccountUseCaseProvider);
-    _completeSocialAccountLink = ref.watch(completeSocialAccountLinkUseCaseProvider);
+    _completeSocialAccountLink = ref.watch(
+      completeSocialAccountLinkUseCaseProvider,
+    );
     _unlinkSocialAccount = ref.watch(unlinkSocialAccountUseCaseProvider);
 
     final profileResult = await _getProfile.call();
@@ -272,10 +272,18 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     return _getAuthUrl(provider);
   }
 
-  /// Completes the OAuth linking flow with the authorization code.
-  Future<void> completeOAuthLink(OAuthProvider provider, String code) async {
+  /// Completes the OAuth linking flow with the authorization code and state.
+  Future<void> completeOAuthLink(
+    OAuthProvider provider,
+    String code,
+    String stateToken,
+  ) async {
     try {
-      final linkResult = await _completeSocialAccountLink.call(provider: provider, code: code);
+      final linkResult = await _completeSocialAccountLink.call(
+        provider: provider,
+        code: code,
+        state: stateToken,
+      );
       switch (linkResult) {
         case Success():
           break;
@@ -308,7 +316,8 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
     if (current == null) return;
 
     // Check if user has email/password as alternative login method
-    final hasEmailPassword = current.profile != null &&
+    final hasEmailPassword =
+        current.profile != null &&
         current.profile!.email.isNotEmpty &&
         current.profile!.isEmailVerified;
 
@@ -373,8 +382,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileState> {
 // ---------------------------------------------------------------------------
 
 /// Primary profile state provider backed by [ProfileNotifier].
-final profileProvider =
-    AsyncNotifierProvider<ProfileNotifier, ProfileState>(
+final profileProvider = AsyncNotifierProvider<ProfileNotifier, ProfileState>(
   ProfileNotifier.new,
 );
 

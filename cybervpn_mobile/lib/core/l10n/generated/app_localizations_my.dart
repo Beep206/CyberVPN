@@ -4422,6 +4422,9 @@ class AppLocalizationsMy extends AppLocalizations {
   String get continueWithGoogle => 'Google ဖြင့် ဆက်လက်ပါ';
 
   @override
+  String get continueWithFacebook => 'Facebook ဖြင့် ဆက်လက်ပါ';
+
+  @override
   String get continueWithApple => 'Apple ဖြင့် ဆက်လက်ပါ';
 
   @override

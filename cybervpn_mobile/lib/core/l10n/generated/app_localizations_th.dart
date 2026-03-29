@@ -4445,6 +4445,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get continueWithGoogle => 'ดำเนินการต่อด้วย Google';
 
   @override
+  String get continueWithFacebook => 'ดำเนินการต่อด้วย Facebook';
+
+  @override
   String get continueWithApple => 'ดำเนินการต่อด้วย Apple';
 
   @override

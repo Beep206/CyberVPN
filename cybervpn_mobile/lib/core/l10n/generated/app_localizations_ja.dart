@@ -4436,6 +4436,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get continueWithGoogle => 'Google で続ける';
 
   @override
+  String get continueWithFacebook => 'Facebook で続ける';
+
+  @override
   String get continueWithApple => 'Apple で続ける';
 
   @override

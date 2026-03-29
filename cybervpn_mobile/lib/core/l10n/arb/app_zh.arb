@@ -1616,6 +1616,7 @@
   "magicLinkSubtitle": "输入您的邮箱，我们将发送一次性登录链接。无需密码。",
   "magicLinkSentTo": "我们已向 {email} 发送了登录链接。点击邮件中的链接即可登录。",
   "continueWithGoogle": "使用 Google 继续",
+  "continueWithFacebook": "使用 Facebook 继续",
   "backToLogin": "返回登录",
   "rateLimitMessage": "请求过于频繁，请在 {seconds} 秒后重试。",
   "registerModeUsernameOnly": "仅用户名",

@@ -97,7 +97,7 @@ function fetchSessionOnce(): Promise<AxiosResponse<User>> {
   return sessionRequest;
 }
 
-export type OAuthProvider = 'google' | 'github' | 'discord' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
+export type OAuthProvider = 'google' | 'github' | 'discord' | 'facebook' | 'apple' | 'microsoft' | 'twitter' | 'telegram';
 
 export interface OAuthAuthorizeResponse {
   authorize_url: string;

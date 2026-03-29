@@ -24,7 +24,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LoginRequest"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
           },
@@ -59,7 +59,7 @@
           "auth"
         ],
         "summary": "Refresh Token",
-        "description": "Refresh access token using refresh token.\n\nMED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.",
+        "description": "Refresh access token using refresh token.\n\nSEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).\nMED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.",
         "operationId": "refresh_token_api_v1_auth_refresh_post",
         "requestBody": {
           "content": {
@@ -104,13 +104,13 @@
           "auth"
         ],
         "summary": "Logout",
-        "description": "Logout user by invalidating refresh token and clearing auth cookies.",
+        "description": "Logout user by invalidating refresh token and clearing auth cookies.\n\nSEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).",
         "operationId": "logout_api_v1_auth_logout_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LogoutRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LogoutRequest"
               }
             }
           },
@@ -224,13 +224,61 @@
         ]
       }
     },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Otp",
+        "description": "Verify OTP code for email verification.\n\nOn success:\n1. Activates user account\n2. Creates user in Remnawave VPN backend\n3. Returns access/refresh tokens (auto-login)\n\nAliases:\n- POST /auth/verify-otp (primary)\n- POST /auth/verify-email (mobile compatibility)",
+        "operationId": "verify_otp_api_v1_auth_verify_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyOtpResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired OTP code"
+          },
+          "429": {
+            "description": "Too many attempts"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/verify-otp": {
       "post": {
         "tags": [
           "auth"
         ],
         "summary": "Verify Otp",
-        "description": "Verify OTP code for email verification.\n\nOn success:\n1. Activates user account\n2. Creates user in Remnawave VPN backend\n3. Returns access/refresh tokens (auto-login)",
+        "description": "Verify OTP code for email verification.\n\nOn success:\n1. Activates user account\n2. Creates user in Remnawave VPN backend\n3. Returns access/refresh tokens (auto-login)\n\nAliases:\n- POST /auth/verify-otp (primary)\n- POST /auth/verify-email (mobile compatibility)",
         "operationId": "verify_otp_api_v1_auth_verify_otp_post",
         "requestBody": {
           "content": {
@@ -272,13 +320,58 @@
         }
       }
     },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Resend Otp",
+        "description": "Resend OTP verification code.\n\nUses Brevo (secondary provider) for resend requests.\nRate limited to 3 resends per hour per email.\n\nAliases:\n- POST /auth/resend-otp (primary)\n- POST /auth/resend-verification (mobile compatibility)",
+        "operationId": "resend_otp_api_v1_auth_resend_verification_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendOtpResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/resend-otp": {
       "post": {
         "tags": [
           "auth"
         ],
         "summary": "Resend Otp",
-        "description": "Resend OTP verification code.\n\nUses Brevo (secondary provider) for resend requests.\nRate limited to 3 resends per hour per email.",
+        "description": "Resend OTP verification code.\n\nUses Brevo (secondary provider) for resend requests.\nRate limited to 3 resends per hour per email.\n\nAliases:\n- POST /auth/resend-otp (primary)\n- POST /auth/resend-verification (mobile compatibility)",
         "operationId": "resend_otp_api_v1_auth_resend_otp_post",
         "requestBody": {
           "content": {
@@ -323,7 +416,7 @@
           "auth"
         ],
         "summary": "Request Magic Link",
-        "description": "Request a magic link for passwordless login.\n\nAlways returns success to prevent email enumeration.",
+        "description": "Request a magic link for passwordless login.\n\nSends a magic link to any email address. If the user doesn't exist,\na new account will be created when the link is verified.",
         "operationId": "request_magic_link_api_v1_auth_magic_link_post",
         "requestBody": {
           "content": {
@@ -368,7 +461,7 @@
           "auth"
         ],
         "summary": "Verify Magic Link",
-        "description": "Verify magic link token and return JWT tokens.\n\nIf user doesn't exist, creates a new account with verified email.",
+        "description": "Verify magic link token and return JWT tokens with user data.\n\nIf user doesn't exist, creates a new account with verified email.",
         "operationId": "verify_magic_link_api_v1_auth_magic_link_verify_post",
         "requestBody": {
           "content": {
@@ -386,13 +479,58 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/MagicLinkVerifyResponse"
                 }
               }
             }
           },
           "400": {
             "description": "Invalid or expired token"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/magic-link/verify-otp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Magic Link Otp",
+        "description": "Verify magic link via 6-digit OTP code and return JWT tokens with user data.\n\nAlternative to clicking the magic link URL. The user enters the OTP code\nfrom the email instead.\n\nIf user doesn't exist, creates a new account with verified email.",
+        "operationId": "verify_magic_link_otp_api_v1_auth_magic_link_verify_otp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagicLinkVerifyOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagicLinkVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired OTP code"
           },
           "422": {
             "description": "Validation Error",
@@ -438,6 +576,51 @@
           },
           "401": {
             "description": "Invalid or expired initData"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/telegram/web": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Telegram Web Auth",
+        "description": "Authenticate via Telegram Web Widget OAuth payload.\n\nValidates HMAC-SHA256 signature, checks auth_date freshness,\nauto-registers or auto-logs-in the Telegram user.",
+        "operationId": "telegram_web_auth_api_v1_auth_telegram_web_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramWebLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramWebLoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired payload"
           },
           "422": {
             "description": "Validation Error",
@@ -637,6 +820,146 @@
         }
       }
     },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Change Password",
+        "description": "Change user password after verifying current password.\n\nRate limited to 3 requests per hour per user.",
+        "operationId": "change_password_api_v1_auth_change_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid password or validation error"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "429": {
+            "description": "Rate limit exceeded (3 requests per hour)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/devices": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "List Devices",
+        "description": "List all active sessions/devices for the current user (BF2-4).\n\nReturns device_id, IP address, user agent, last used time, and marks the current session.",
+        "operationId": "list_devices_api_v1_auth_devices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceSessionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/devices/{device_id}": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Revoke Device",
+        "description": "Revoke a specific device session (remote logout) (BF2-4).\n\nRevokes all refresh tokens associated with the device and revokes all JWT access tokens for the user.",
+        "operationId": "revoke_device_api_v1_auth_devices__device_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeDeviceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Device not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -773,7 +1096,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LoginRequest"
               }
             }
           },
@@ -887,7 +1210,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"
+                "$ref": "#/components/schemas/LogoutRequest"
               }
             }
           },
@@ -934,7 +1257,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__UserResponse"
                 }
               }
             }
@@ -1196,6 +1519,56 @@
         }
       }
     },
+    "/api/v1/oauth/facebook/authorize": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Facebook Authorize",
+        "description": "Get Facebook OAuth authorization URL with CSRF state token.\n\nThe state token must be included in the callback request.",
+        "operationId": "facebook_authorize_api_v1_oauth_facebook_authorize_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Redirect URI after authentication",
+              "title": "Redirect Uri"
+            },
+            "description": "Redirect URI after authentication"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/oauth/telegram/callback": {
       "post": {
         "tags": [
@@ -1374,6 +1747,118 @@
         }
       }
     },
+    "/api/v1/oauth/telegram/magic-link": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Create Telegram Magic Link",
+        "description": "Create a new Deep Link (Magic Link) session for seamless Telegram login.",
+        "operationId": "create_telegram_magic_link_api_v1_oauth_telegram_magic_link_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramMagicLinkResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/oauth/telegram/magic-link/complete": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Complete Telegram Magic Link",
+        "description": "Accept trusted Telegram bot data for a pending magic-link session.",
+        "operationId": "complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramMagicLinkCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramMagicLinkCompleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/oauth/telegram/magic-link/{token}/status": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Check Telegram Magic Link Status",
+        "description": "Poll the status of the Magic Link login session.",
+        "operationId": "check_telegram_magic_link_status_api_v1_oauth_telegram_magic_link__token__status_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramMagicLinkStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/oauth/github/callback": {
       "post": {
         "tags": [
@@ -1427,6 +1912,118 @@
         "summary": "Github Callback Get Alias",
         "description": "GitHub OAuth callback (GET alias for mobile compatibility).\n\n**DEPRECATED**: Use POST /oauth/github/callback instead.\n\nThis is an alias route for backward compatibility with mobile clients\nthat use GET redirects. New implementations should use POST.",
         "operationId": "github_callback_get_alias_api_v1_oauth_github_callback_get",
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "State"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Redirect Uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/oauth/facebook/callback": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Facebook Callback",
+        "description": "Process Facebook OAuth callback and link account.",
+        "operationId": "facebook_callback_api_v1_oauth_facebook_callback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FacebookCallbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthLinkResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "Facebook Callback Get Alias",
+        "description": "Facebook OAuth callback (GET alias for mobile compatibility).\n\n**DEPRECATED**: Use POST /oauth/facebook/callback instead.",
+        "operationId": "facebook_callback_get_alias_api_v1_oauth_facebook_callback_get",
         "deprecated": true,
         "security": [
           {
@@ -1959,6 +2556,121 @@
         ]
       }
     },
+    "/api/v1/security/antiphishing": {
+      "get": {
+        "tags": [
+          "security"
+        ],
+        "summary": "Get current anti-phishing code",
+        "description": "Retrieve the authenticated user's current anti-phishing code.",
+        "operationId": "get_antiphishing_code_api_v1_security_antiphishing_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AntiPhishingCodeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "security"
+        ],
+        "summary": "Set or update anti-phishing code",
+        "description": "Set or update the authenticated user's anti-phishing code for email security.",
+        "operationId": "set_antiphishing_code_api_v1_security_antiphishing_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAntiPhishingCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AntiPhishingCodeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "429": {
+            "description": "Rate limit exceeded (10 requests per hour)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "summary": "Delete anti-phishing code",
+        "description": "Remove the authenticated user's anti-phishing code.",
+        "operationId": "delete_antiphishing_code_api_v1_security_antiphishing_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAntiPhishingCodeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "429": {
+            "description": "Rate limit exceeded (5 requests per hour)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/users/": {
       "get": {
         "tags": [
@@ -2052,7 +2764,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
@@ -2097,7 +2809,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
@@ -2157,7 +2869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
@@ -2220,7 +2932,7 @@
           "profile"
         ],
         "summary": "Get current user profile",
-        "description": "Returns the profile of the currently authenticated user. Placeholder implementation returning mock data.",
+        "description": "Returns the profile of the currently authenticated user.",
         "operationId": "get_profile_api_v1_users_me_profile_get",
         "responses": {
           "200": {
@@ -2245,7 +2957,7 @@
           "profile"
         ],
         "summary": "Update current user profile",
-        "description": "Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied. Placeholder implementation -- changes are NOT persisted.",
+        "description": "Partially update the profile of the currently authenticated user. Only the fields present in the request body are applied.",
         "operationId": "update_profile_api_v1_users_me_profile_patch",
         "requestBody": {
           "content": {
@@ -2264,6 +2976,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Get notification preferences",
+        "description": "Returns the current user's notification preferences.",
+        "operationId": "get_notification_preferences_api_v1_users_me_notifications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Update notification preferences",
+        "description": "Partially update the current user's notification preferences. Only the fields present in the request body are applied.",
+        "operationId": "update_notification_preferences_api_v1_users_me_notifications_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferencesUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesResponse"
                 }
               }
             }
@@ -2809,6 +3593,72 @@
         }
       }
     },
+    "/api/v1/subscriptions/active": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Get active subscription",
+        "description": "Retrieve the authenticated user's current subscription status.",
+        "operationId": "get_active_subscription_api_v1_subscriptions_active_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/subscriptions/cancel": {
+      "post": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Cancel subscription",
+        "description": "Cancel the authenticated user's active subscription.",
+        "operationId": "cancel_subscription_api_v1_subscriptions_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found in VPN backend"
+          },
+          "429": {
+            "description": "Rate limit exceeded (3 requests per hour)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/plans/": {
       "get": {
         "tags": [
@@ -2990,7 +3840,7 @@
           "usage"
         ],
         "summary": "Get current user usage statistics",
-        "description": "Returns VPN usage statistics for the currently authenticated user. Placeholder implementation returning mock data.",
+        "description": "Returns VPN usage statistics for the currently authenticated user from Remnawave.",
         "operationId": "get_usage_api_v1_users_me_usage_get",
         "responses": {
           "200": {
@@ -3002,6 +3852,12 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "User not found in VPN backend"
+          },
+          "502": {
+            "description": "VPN backend unavailable"
           }
         },
         "security": [
@@ -3017,7 +3873,7 @@
           "trial"
         ],
         "summary": "Activate trial period",
-        "description": "Activate a 7-day trial period for the authenticated user. Placeholder implementation -- always succeeds.",
+        "description": "Activate a 7-day trial period for the authenticated user.",
         "operationId": "activate_trial_api_v1_trial_activate_post",
         "responses": {
           "200": {
@@ -3029,6 +3885,15 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Trial already activated or currently active"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "429": {
+            "description": "Rate limit exceeded (3 requests per hour)"
           }
         },
         "security": [
@@ -3044,7 +3909,7 @@
           "trial"
         ],
         "summary": "Get trial status",
-        "description": "Returns the current trial status for the authenticated user. Placeholder implementation -- always returns not active, eligible.",
+        "description": "Returns the current trial status for the authenticated user.",
         "operationId": "get_trial_status_api_v1_trial_status_get",
         "responses": {
           "200": {
@@ -3056,6 +3921,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "User not found"
           }
         },
         "security": [
@@ -4364,13 +5232,40 @@
         ]
       }
     },
+    "/api/v1/wallet/balance": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "summary": "Get Wallet",
+        "description": "Return the authenticated user's wallet balance.\n\nAliases:\n- GET /wallet (primary)\n- GET /wallet/balance (mobile compatibility)",
+        "operationId": "get_wallet_api_v1_wallet_balance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/wallet": {
       "get": {
         "tags": [
           "wallet"
         ],
         "summary": "Get Wallet",
-        "description": "Return the authenticated user's wallet balance.",
+        "description": "Return the authenticated user's wallet balance.\n\nAliases:\n- GET /wallet (primary)\n- GET /wallet/balance (mobile compatibility)",
         "operationId": "get_wallet_api_v1_wallet_get",
         "responses": {
           "200": {
@@ -6391,6 +7286,27 @@
         }
       }
     },
+    "/readiness": {
+      "get": {
+        "summary": "Readiness Check",
+        "description": "Readiness check for Kubernetes and orchestrators (unauthenticated).\n\nChecks if the service is ready to accept traffic by verifying:\n- Database connection is healthy\n- Redis connection is healthy\n- Task queue depth is below threshold (< 1000)\n\nReturns:\n    200 OK if all checks pass\n    503 Service Unavailable if any check fails",
+        "operationId": "readiness_check_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Readiness Check Readiness Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health/detailed": {
       "get": {
         "summary": "Health Check Detailed",
@@ -6420,6 +7336,76 @@
   },
   "components": {
     "schemas": {
+      "ActiveSubscriptionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Subscription status (active, expired, trial, cancelled, none)"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name",
+            "description": "Name of the subscription plan"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Subscription expiration timestamp"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes",
+            "description": "Traffic limit in bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes",
+            "description": "Used traffic in bytes"
+          },
+          "auto_renew": {
+            "type": "boolean",
+            "title": "Auto Renew",
+            "description": "Whether subscription auto-renews",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ActiveSubscriptionResponse",
+        "description": "Response schema for active subscription."
+      },
       "AdminCreateInviteRequest": {
         "properties": {
           "user_id": {
@@ -6577,6 +7563,25 @@
         ],
         "title": "AdminUserResponse"
       },
+      "AntiPhishingCodeResponse": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "User's anti-phishing code (null if not set)"
+          }
+        },
+        "type": "object",
+        "title": "AntiPhishingCodeResponse",
+        "description": "Response with anti-phishing code."
+      },
       "AuditLogResponse": {
         "properties": {
           "id": {
@@ -6690,7 +7695,7 @@
             "description": "Authentication tokens"
           },
           "user": {
-            "$ref": "#/components/schemas/UserResponse",
+            "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__UserResponse",
             "description": "User profile data"
           },
           "is_new_user": {
@@ -6752,6 +7757,62 @@
           "partner_code"
         ],
         "title": "BindPartnerRequest"
+      },
+      "CancelSubscriptionResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Subscription canceled successfully"
+          },
+          "canceled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Canceled At",
+            "description": "Cancellation timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "canceled_at"
+        ],
+        "title": "CancelSubscriptionResponse",
+        "description": "Response schema for subscription cancellation."
+      },
+      "ChangePasswordRequest": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 12,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest",
+        "description": "Request to change user password."
+      },
+      "ChangePasswordResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Password changed successfully"
+          }
+        },
+        "type": "object",
+        "title": "ChangePasswordResponse",
+        "description": "Response for successful password change."
       },
       "CheckoutRequest": {
         "properties": {
@@ -7892,6 +8953,18 @@
         "title": "DeleteAccountResponse",
         "description": "Response for successful account deletion (FEAT-03)."
       },
+      "DeleteAntiPhishingCodeResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Anti-phishing code deleted successfully"
+          }
+        },
+        "type": "object",
+        "title": "DeleteAntiPhishingCodeResponse",
+        "description": "Response after deleting anti-phishing code."
+      },
       "DeviceInfo": {
         "properties": {
           "device_id": {
@@ -8008,6 +9081,95 @@
         "title": "DeviceResponse",
         "description": "Response schema for device registration.\n\nReturned by device registration endpoint."
       },
+      "DeviceSessionListResponse": {
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceSessionResponse"
+            },
+            "type": "array",
+            "title": "Devices",
+            "description": "List of active sessions"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of active sessions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "devices",
+          "total"
+        ],
+        "title": "DeviceSessionListResponse",
+        "description": "Response schema for list of active sessions (BF2-4)."
+      },
+      "DeviceSessionResponse": {
+        "properties": {
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id",
+            "description": "Unique device identifier"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address",
+            "description": "Last known IP address"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent",
+            "description": "Browser/device user agent string"
+          },
+          "last_used_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Used At",
+            "description": "Last time this session was used"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When this session was created"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current",
+            "description": "Whether this is the current session",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_used_at",
+          "created_at"
+        ],
+        "title": "DeviceSessionResponse",
+        "description": "Response schema for active device session (BF2-4)."
+      },
       "FCMTokenDeleteRequest": {
         "properties": {
           "device_id": {
@@ -8092,6 +9254,33 @@
         ],
         "title": "FCMTokenResponse",
         "description": "Response returned after a successful FCM token registration."
+      },
+      "FacebookCallbackRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Authorization code from Facebook"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "OAuth state token for CSRF protection"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "title": "Redirect Uri",
+            "description": "Redirect URI used in authorization"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "state",
+          "redirect_uri"
+        ],
+        "title": "FacebookCallbackRequest",
+        "description": "Facebook OAuth callback request."
       },
       "ForgotPasswordRequest": {
         "properties": {
@@ -8504,38 +9693,25 @@
       },
       "LoginRequest": {
         "properties": {
-          "email": {
+          "login_or_email": {
             "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address"
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Login Or Email"
           },
           "password": {
             "type": "string",
-            "maxLength": 128,
+            "maxLength": 255,
             "minLength": 1,
-            "title": "Password",
-            "description": "User password"
-          },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for login"
-          },
-          "remember_me": {
-            "type": "boolean",
-            "title": "Remember Me",
-            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
-            "default": false
+            "title": "Password"
           }
         },
         "type": "object",
         "required": [
-          "email",
-          "password",
-          "device"
+          "login_or_email",
+          "password"
         ],
-        "title": "LoginRequest",
-        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
+        "title": "LoginRequest"
       },
       "LogoutAllResponse": {
         "properties": {
@@ -8558,16 +9734,25 @@
         "properties": {
           "refresh_token": {
             "type": "string",
-            "maxLength": 1000,
             "minLength": 1,
-            "title": "Refresh Token"
+            "title": "Refresh Token",
+            "description": "Refresh token to revoke"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Device Id",
+            "description": "Device ID for session revocation"
           }
         },
         "type": "object",
         "required": [
-          "refresh_token"
+          "refresh_token",
+          "device_id"
         ],
-        "title": "LogoutRequest"
+        "title": "LogoutRequest",
+        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
       },
       "MagicLinkRequest": {
         "properties": {
@@ -8596,6 +9781,29 @@
         "title": "MagicLinkResponse",
         "description": "Response for magic link request (always same to prevent email enumeration)."
       },
+      "MagicLinkVerifyOtpRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "pattern": "^\\d{6}$",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "MagicLinkVerifyOtpRequest",
+        "description": "Request to verify magic link via 6-digit OTP code."
+      },
       "MagicLinkVerifyRequest": {
         "properties": {
           "token": {
@@ -8611,6 +9819,39 @@
         ],
         "title": "MagicLinkVerifyRequest",
         "description": "Request to verify magic link token."
+      },
+      "MagicLinkVerifyResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 0
+          },
+          "user": {
+            "$ref": "#/components/schemas/AdminUserResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "user"
+        ],
+        "title": "MagicLinkVerifyResponse",
+        "description": "Response for successful magic link verification with auto-login."
       },
       "MobileAuthError": {
         "properties": {
@@ -8645,6 +9886,110 @@
         ],
         "title": "MobileAuthError",
         "description": "Error response schema for mobile authentication.\n\nStandardized error format for mobile clients."
+      },
+      "NotificationPreferencesResponse": {
+        "properties": {
+          "email_security": {
+            "type": "boolean",
+            "title": "Email Security",
+            "description": "Security alerts via email",
+            "default": true
+          },
+          "email_marketing": {
+            "type": "boolean",
+            "title": "Email Marketing",
+            "description": "Marketing communications via email",
+            "default": false
+          },
+          "push_connection": {
+            "type": "boolean",
+            "title": "Push Connection",
+            "description": "VPN connection status push notifications",
+            "default": true
+          },
+          "push_payment": {
+            "type": "boolean",
+            "title": "Push Payment",
+            "description": "Payment and subscription push notifications",
+            "default": true
+          },
+          "push_subscription": {
+            "type": "boolean",
+            "title": "Push Subscription",
+            "description": "Subscription expiry push notifications",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "NotificationPreferencesResponse",
+        "description": "Response schema for notification preferences (BF2-5)."
+      },
+      "NotificationPreferencesUpdateRequest": {
+        "properties": {
+          "email_security": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Security",
+            "description": "Security alerts via email"
+          },
+          "email_marketing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Marketing",
+            "description": "Marketing communications via email"
+          },
+          "push_connection": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Connection",
+            "description": "VPN connection status push notifications"
+          },
+          "push_payment": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Payment",
+            "description": "Payment and subscription push notifications"
+          },
+          "push_subscription": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Subscription",
+            "description": "Subscription expiry push notifications"
+          }
+        },
+        "type": "object",
+        "title": "NotificationPreferencesUpdateRequest",
+        "description": "Request schema for updating notification preferences (BF2-5).\n\nAll fields are optional - only provided fields will be updated."
       },
       "OAuthAuthorizeResponse": {
         "properties": {
@@ -8840,6 +10185,7 @@
           "github",
           "google",
           "discord",
+          "facebook",
           "apple",
           "microsoft",
           "twitter"
@@ -9451,16 +10797,20 @@
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
-            "type": "string",
-            "maxLength": 1000,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Refresh Token"
           }
         },
         "type": "object",
-        "required": [
-          "refresh_token"
-        ],
         "title": "RefreshTokenRequest"
       },
       "RegisterRequest": {
@@ -10346,6 +11696,26 @@
         "title": "ResetPasswordResponse",
         "description": "Response for successful password reset."
       },
+      "RevokeDeviceResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Device session revoked successfully"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id",
+            "description": "ID of the revoked device"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id"
+        ],
+        "title": "RevokeDeviceResponse",
+        "description": "Response for successful device session revocation (BF2-4)."
+      },
       "ServerResponse": {
         "properties": {
           "uuid": {
@@ -10479,6 +11849,23 @@
         "type": "object",
         "title": "ServiceStatuses",
         "description": "Health status of backend service dependencies."
+      },
+      "SetAntiPhishingCodeRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Code",
+            "description": "User's anti-phishing code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "SetAntiPhishingCodeRequest",
+        "description": "Request to set or update anti-phishing code."
       },
       "SignPayloadRequest": {
         "properties": {
@@ -10841,6 +12228,149 @@
         "title": "TelegramCallbackRequest",
         "description": "Telegram OAuth callback data.\n\nContains all fields sent by Telegram Login Widget.\nThe hash field is used to validate the data integrity."
       },
+      "TelegramMagicLinkCompleteRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Telegram user ID"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Magic link session token"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name",
+            "description": "Telegram first name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name",
+            "description": "Telegram last name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "Telegram username"
+          },
+          "language_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language Code",
+            "description": "Telegram language code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "token",
+          "first_name"
+        ],
+        "title": "TelegramMagicLinkCompleteRequest",
+        "description": "Trusted Telegram bot payload used to complete a magic-link session."
+      },
+      "TelegramMagicLinkCompleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "accepted",
+            "title": "Status",
+            "description": "Magic link completion status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TelegramMagicLinkCompleteResponse",
+        "description": "Response returned after the bot confirms a magic-link session."
+      },
+      "TelegramMagicLinkResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "Unique magic link session token"
+          },
+          "bot_url": {
+            "type": "string",
+            "title": "Bot Url",
+            "description": "URL to open Telegram bot with the start parameter"
+          },
+          "deep_link_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Link Url",
+            "description": "Native Telegram deep link for devices with the Telegram app installed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "bot_url"
+        ],
+        "title": "TelegramMagicLinkResponse",
+        "description": "Response when requesting a Magic Link for Telegram Login."
+      },
+      "TelegramMagicLinkStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "expired"
+            ],
+            "title": "Status",
+            "description": "Current status of the magic link session"
+          },
+          "login_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OAuthLoginResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Populated with login tokens if status is completed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TelegramMagicLinkStatusResponse",
+        "description": "Status polling response for Telegram Magic Link."
+      },
       "TelegramMiniAppRequest": {
         "properties": {
           "init_data": {
@@ -10977,6 +12507,115 @@
           "username": "user123",
           "uuid": "550e8400-e29b-41d4-a716-446655440000"
         }
+      },
+      "TelegramWebLoginRequest": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "Telegram User ID"
+          },
+          "first_name": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1024
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "auth_date": {
+            "type": "integer",
+            "title": "Auth Date",
+            "description": "Authentication timestamp"
+          },
+          "hash": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Hash",
+            "description": "HMAC-SHA256 signature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "auth_date",
+          "hash"
+        ],
+        "title": "TelegramWebLoginRequest",
+        "description": "Request for Telegram Web Widget/OAuth authentication."
+      },
+      "TelegramWebLoginResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 0
+          },
+          "user": {
+            "$ref": "#/components/schemas/AdminUserResponse"
+          },
+          "is_new_user": {
+            "type": "boolean",
+            "title": "Is New User",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token",
+          "user"
+        ],
+        "title": "TelegramWebLoginResponse",
+        "description": "Response for Telegram Web Widget/OAuth authentication."
       },
       "TokenResponse": {
         "properties": {
@@ -11915,7 +13554,7 @@
         "properties": {
           "users": {
             "items": {
-              "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
+              "$ref": "#/components/schemas/UserResponse"
             },
             "type": "array",
             "title": "Users"
@@ -11945,18 +13584,79 @@
       },
       "UserResponse": {
         "properties": {
-          "id": {
+          "uuid": {
             "type": "string",
             "format": "uuid",
-            "title": "Id",
-            "description": "User UUID"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email",
-            "description": "User email address"
+            "title": "Uuid"
           },
           "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "short_uuid": {
+            "type": "string",
+            "title": "Short Uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "subscription_uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Uuid"
+          },
+          "expire_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expire At"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes"
+          },
+          "email": {
             "anyOf": [
               {
                 "type": "string"
@@ -11965,14 +13665,7 @@
                 "type": "null"
               }
             ],
-            "title": "Username",
-            "description": "Optional username"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "User account status",
-            "default": "active"
+            "title": "Email"
           },
           "telegram_id": {
             "anyOf": [
@@ -11983,53 +13676,20 @@
                 "type": "null"
               }
             ],
-            "title": "Telegram Id",
-            "description": "Linked Telegram user ID (if connected)"
-          },
-          "telegram_username": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Telegram Username",
-            "description": "Linked Telegram username (if connected)"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At",
-            "description": "Account creation timestamp"
-          },
-          "subscription": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SubscriptionInfo"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Subscription information (included in mobile responses)"
+            "title": "Telegram Id"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "email"
+          "uuid",
+          "username",
+          "status",
+          "short_uuid",
+          "created_at",
+          "updated_at"
         ],
         "title": "UserResponse",
-        "description": "Response schema for authenticated user profile.\n\nUsed by GET /api/v1/mobile/auth/me and included in login/register responses."
+        "description": "Response schema for a single VPN user."
       },
       "UserStatus": {
         "type": "string",
@@ -12466,27 +14126,24 @@
         ],
         "title": "WithdrawalResponse"
       },
-      "src__presentation__api__v1__auth__schemas__LoginRequest": {
+      "src__presentation__api__v1__auth__schemas__LogoutRequest": {
         "properties": {
-          "login_or_email": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Login Or Email"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Password"
+          "refresh_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
           }
         },
         "type": "object",
-        "required": [
-          "login_or_email",
-          "password"
-        ],
-        "title": "LoginRequest"
+        "title": "LogoutRequest"
       },
       "src__presentation__api__v1__auth__schemas__RegisterRequest": {
         "properties": {
@@ -12558,29 +14215,40 @@
         ],
         "title": "TokenResponse"
       },
-      "src__presentation__api__v1__mobile_auth__schemas__LogoutRequest": {
+      "src__presentation__api__v1__mobile_auth__schemas__LoginRequest": {
         "properties": {
-          "refresh_token": {
+          "email": {
             "type": "string",
-            "minLength": 1,
-            "title": "Refresh Token",
-            "description": "Refresh token to revoke"
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
           },
-          "device_id": {
+          "password": {
             "type": "string",
-            "maxLength": 36,
-            "minLength": 36,
-            "title": "Device Id",
-            "description": "Device ID for session revocation"
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "description": "User password"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for login"
+          },
+          "remember_me": {
+            "type": "boolean",
+            "title": "Remember Me",
+            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "refresh_token",
-          "device_id"
+          "email",
+          "password",
+          "device"
         ],
-        "title": "LogoutRequest",
-        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
+        "title": "LoginRequest",
+        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
       },
       "src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest": {
         "properties": {
@@ -12606,81 +14274,20 @@
         "title": "RefreshTokenRequest",
         "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
       },
-      "src__presentation__api__v1__users__schemas__UserResponse": {
+      "src__presentation__api__v1__mobile_auth__schemas__UserResponse": {
         "properties": {
-          "uuid": {
+          "id": {
             "type": "string",
             "format": "uuid",
-            "title": "Uuid"
-          },
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "status": {
-            "$ref": "#/components/schemas/UserStatus"
-          },
-          "short_uuid": {
-            "type": "string",
-            "title": "Short Uuid"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "subscription_uuid": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Subscription Uuid"
-          },
-          "expire_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expire At"
-          },
-          "traffic_limit_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Traffic Limit Bytes"
-          },
-          "used_traffic_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Used Traffic Bytes"
+            "title": "Id",
+            "description": "User UUID"
           },
           "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "User email address"
+          },
+          "username": {
             "anyOf": [
               {
                 "type": "string"
@@ -12689,7 +14296,14 @@
                 "type": "null"
               }
             ],
-            "title": "Email"
+            "title": "Username",
+            "description": "Optional username"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "User account status",
+            "default": "active"
           },
           "telegram_id": {
             "anyOf": [
@@ -12700,20 +14314,53 @@
                 "type": "null"
               }
             ],
-            "title": "Telegram Id"
+            "title": "Telegram Id",
+            "description": "Linked Telegram user ID (if connected)"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username",
+            "description": "Linked Telegram username (if connected)"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "Account creation timestamp"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionInfo"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Subscription information (included in mobile responses)"
           }
         },
         "type": "object",
         "required": [
-          "uuid",
-          "username",
-          "status",
-          "short_uuid",
-          "created_at",
-          "updated_at"
+          "id",
+          "email"
         ],
         "title": "UserResponse",
-        "description": "Response schema for a single VPN user."
+        "description": "Response schema for authenticated user profile.\n\nUsed by GET /api/v1/mobile/auth/me and included in login/register responses."
       }
     },
     "securitySchemes": {

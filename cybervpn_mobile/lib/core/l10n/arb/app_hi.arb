@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "अपना ईमेल दर्ज करें और हम आपको एक बार उपयोग होने वाला लॉगिन लिंक भेजेंगे। पासवर्ड की ज़रूरत नहीं।",
   "magicLinkSentTo": "हमने {email} पर लॉगिन लिंक भेजा है। साइन इन करने के लिए ईमेल में लिंक पर टैप करें।",
   "continueWithGoogle": "Google से जारी रखें",
+  "continueWithFacebook": "Facebook से जारी रखें",
   "backToLogin": "लॉगिन पर वापस जाएँ",
   "rateLimitMessage": "बहुत सारे अनुरोध। कृपया {seconds} सेकंड बाद पुनः प्रयास करें।",
   "registerModeUsernameOnly": "केवल यूज़रनेम",

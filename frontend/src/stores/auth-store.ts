@@ -16,6 +16,12 @@ function getLocalePrefix(): string {
   return match ? `/${match[1]}` : '/en-EN';
 }
 
+function getOAuthCallbackUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost/en-EN/oauth/callback';
+
+  return new URL(`${getLocalePrefix()}/oauth/callback`, window.location.origin).toString();
+}
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
@@ -353,7 +359,7 @@ export const useAuthStore = create<AuthState>()(
 
         set({ isLoading: true, error: null });
         try {
-          const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+          const redirectUri = getOAuthCallbackUrl();
           const { data } = await authApi.oauthLoginAuthorize(provider, redirectUri);
           // Store state in sessionStorage for CSRF validation on callback
           sessionStorage.setItem('oauth_state', data.state);
@@ -377,7 +383,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('OAuth state mismatch - possible CSRF attack');
           }
 
-          const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+          const redirectUri = getOAuthCallbackUrl();
           const { data } = await authApi.oauthLoginCallback(provider, {
             code,
             state,

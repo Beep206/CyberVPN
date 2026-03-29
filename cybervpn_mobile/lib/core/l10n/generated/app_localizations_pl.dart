@@ -4485,6 +4485,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get continueWithGoogle => 'Kontynuuj z Google';
 
   @override
+  String get continueWithFacebook => 'Kontynuuj z Facebook';
+
+  @override
   String get continueWithApple => 'Kontynuuj z Apple';
 
   @override

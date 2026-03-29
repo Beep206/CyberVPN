@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Ilagay ang iyong email at magpapadala kami ng isang beses lang na login link. Hindi kailangan ng password.",
   "magicLinkSentTo": "Nagpadala kami ng login link sa {email}. I-tap ang link sa email para mag-sign in.",
   "continueWithGoogle": "Magpatuloy sa Google",
+  "continueWithFacebook": "Magpatuloy sa Facebook",
   "backToLogin": "Bumalik sa login",
   "rateLimitMessage": "Masyadong maraming kahilingan. Subukan muli pagkatapos ng {seconds} segundo.",
   "registerModeUsernameOnly": "Username lang",

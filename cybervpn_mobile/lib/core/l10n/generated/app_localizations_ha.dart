@@ -4455,6 +4455,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get continueWithGoogle => 'Ci gaba da Google';
 
   @override
+  String get continueWithFacebook => 'Ci gaba da Facebook';
+
+  @override
   String get continueWithApple => 'Ci gaba da Apple';
 
   @override

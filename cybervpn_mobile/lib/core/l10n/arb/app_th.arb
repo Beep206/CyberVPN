@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์เข้าสู่ระบบแบบใช้ครั้งเดียว ไม่ต้องใช้รหัสผ่าน",
   "magicLinkSentTo": "เราส่งลิงก์เข้าสู่ระบบไปที่ {email} แล้ว แตะลิงก์ในอีเมลเพื่อเข้าสู่ระบบ",
   "continueWithGoogle": "ดำเนินการต่อด้วย Google",
+  "continueWithFacebook": "ดำเนินการต่อด้วย Facebook",
   "backToLogin": "กลับไปหน้าเข้าสู่ระบบ",
   "rateLimitMessage": "คำขอมากเกินไป กรุณาลองอีกครั้งใน {seconds} วินาที",
   "registerModeUsernameOnly": "ชื่อผู้ใช้เท่านั้น",

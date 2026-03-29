@@ -4445,6 +4445,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get continueWithGoogle => 'Tiếp tục với Google';
 
   @override
+  String get continueWithFacebook => 'Tiếp tục với Facebook';
+
+  @override
   String get continueWithApple => 'Tiếp tục với Apple';
 
   @override

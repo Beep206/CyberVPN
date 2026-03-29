@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "আপনার ইমেইল দিন এবং আমরা একবার ব্যবহারযোগ্য লগইন লিংক পাঠাব। পাসওয়ার্ডের প্রয়োজন নেই।",
   "magicLinkSentTo": "আমরা {email}-এ লগইন লিংক পাঠিয়েছি। সাইন ইন করতে ইমেইলের লিংকে ট্যাপ করুন।",
   "continueWithGoogle": "Google দিয়ে চালিয়ে যান",
+  "continueWithFacebook": "Facebook দিয়ে চালিয়ে যান",
   "backToLogin": "লগইনে ফিরে যান",
   "rateLimitMessage": "অনেক বেশি অনুরোধ। {seconds} সেকেন্ড পরে আবার চেষ্টা করুন।",
   "registerModeUsernameOnly": "শুধু ইউজারনেম",

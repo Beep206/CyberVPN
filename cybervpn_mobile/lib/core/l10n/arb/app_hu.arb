@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Adja meg az email címét, és küldünk egy egyszer használatos bejelentkezési linket. Jelszó nem szükséges.",
   "magicLinkSentTo": "Bejelentkezési linket küldtünk a(z) {email} címre. Koppintson az emailben lévő linkre a bejelentkezéshez.",
   "continueWithGoogle": "Folytatás Google-lel",
+  "continueWithFacebook": "Folytatás Facebook-lel",
   "backToLogin": "Vissza a bejelentkezéshez",
   "rateLimitMessage": "Túl sok kérés. Próbálja újra {seconds} másodperc múlva.",
   "registerModeUsernameOnly": "Csak felhasználónév",

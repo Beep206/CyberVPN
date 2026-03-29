@@ -1616,6 +1616,7 @@
   "magicLinkSubtitle": "Ingresa tu correo y te enviaremos un enlace de inicio de sesión de un solo uso. Sin contraseña.",
   "magicLinkSentTo": "Enviamos un enlace de inicio de sesión a {email}. Toca el enlace en el correo para iniciar sesión.",
   "continueWithGoogle": "Continuar con Google",
+  "continueWithFacebook": "Continuar con Facebook",
   "backToLogin": "Volver al inicio de sesión",
   "rateLimitMessage": "Demasiadas solicitudes. Inténtalo de nuevo en {seconds} segundos.",
   "registerModeUsernameOnly": "Solo nombre de usuario",
