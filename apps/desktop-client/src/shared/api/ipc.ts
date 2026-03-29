@@ -308,3 +308,26 @@ export const listenNetworkChanged = (callback: (event: { ssid: string, is_truste
     unlistenPromise.then((f) => f());
   };
 };
+
+// Phase 29 - Stealth Diagnostics
+export interface CensorshipReport {
+    ip_blocked: boolean;
+    sni_filtered: boolean;
+    udp_blocked: boolean;
+    tls_intercepted: boolean;
+    recommended_action: string;
+    recommended_protocol: string;
+}
+
+export const runStealthDiagnostics = async (nodeId: string): Promise<CensorshipReport> => {
+    return await invoke("run_stealth_diagnostics", { nodeId });
+};
+
+export const applyStealthFix = async (nodeId: string, recommendedProtocol: string): Promise<void> => {
+    return await invoke("apply_stealth_fix", { nodeId, recommendedProtocol });
+};
+
+export const listenStealthProbeLog = (callback: (log: string) => void) => {
+    const unlistenPromise = listen<string>("stealth-probe-log", (event) => callback(event.payload));
+    return () => { unlistenPromise.then(f => f()); };
+};

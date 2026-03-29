@@ -214,7 +214,9 @@ pub fn run() {
             ipc::get_smart_connect_status,
             ipc::set_smart_connect_status,
             ipc::get_network_rules,
-            ipc::update_network_rule
+            ipc::update_network_rule,
+            ipc::run_stealth_diagnostics,
+            ipc::apply_stealth_fix
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
