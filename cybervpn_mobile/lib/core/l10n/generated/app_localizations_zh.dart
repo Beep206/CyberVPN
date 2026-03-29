@@ -4433,6 +4433,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get continueWithGoogle => '使用 Google 继续';
 
   @override
+  String get continueWithFacebook => '使用 Facebook 继续';
+
+  @override
   String get continueWithApple => '使用 Apple 继续';
 
   @override
@@ -9280,6 +9283,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get continueWithGoogle => '使用 Google 继续';
+
+  @override
+  String get continueWithFacebook => '使用 Facebook 继续';
 
   @override
   String get continueWithApple => '使用 Apple 继续';

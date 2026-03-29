@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Увядзіце email, і мы дашлём вам аднаразовую спасылку для ўваходу. Пароль не патрэбен.",
   "magicLinkSentTo": "Мы даслалі спасылку для ўваходу на {email}. Націсніце на спасылку ў лісце, каб увайсці.",
   "continueWithGoogle": "Працягнуць з Google",
+  "continueWithFacebook": "Працягнуць з Facebook",
   "backToLogin": "Назад да ўваходу",
   "rateLimitMessage": "Занадта шмат запытаў. Паспрабуйце зноў праз {seconds} секунд.",
   "registerModeUsernameOnly": "Толькі імя карыстальніка",

@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Masukkan email Anda dan kami akan mengirim tautan login sekali pakai. Tidak perlu kata sandi.",
   "magicLinkSentTo": "Kami mengirim tautan login ke {email}. Ketuk tautan di email untuk masuk.",
   "continueWithGoogle": "Lanjutkan dengan Google",
+  "continueWithFacebook": "Lanjutkan dengan Facebook",
   "backToLogin": "Kembali ke login",
   "rateLimitMessage": "Terlalu banyak permintaan. Coba lagi dalam {seconds} detik.",
   "registerModeUsernameOnly": "Hanya nama pengguna",

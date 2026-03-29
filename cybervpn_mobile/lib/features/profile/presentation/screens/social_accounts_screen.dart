@@ -31,6 +31,8 @@ class SocialAccountsScreen extends ConsumerStatefulWidget {
 }
 
 class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
+  String? _lastProcessedCallback;
+
   @override
   void initState() {
     super.initState();
@@ -46,9 +48,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileSocialAccounts),
-      ),
+      appBar: AppBar(title: Text(l10n.profileSocialAccounts)),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBody(
@@ -58,6 +58,13 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
         data: (profileState) {
           final linkedProviders = profileState.linkedProviders;
           final profile = profileState.profile;
+          final visibleProviders = OAuthProvider.values
+              .where(
+                (provider) =>
+                    provider.isMobileLinkEntryEnabled ||
+                    linkedProviders.contains(provider),
+              )
+              .toList(growable: false);
 
           return ListView(
             padding: const EdgeInsets.all(Spacing.md),
@@ -66,17 +73,18 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
               Text(
                 l10n.profileSocialAccountsDescription,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: Spacing.lg),
 
               // Provider cards for all supported OAuth providers
               // Telegram is first (already first in enum) and highlighted
-              ...OAuthProvider.values.map((provider) {
+              ...visibleProviders.map((provider) {
                 final isLinked = linkedProviders.contains(provider);
                 // Check if this is the only login method
-                final hasEmail = profile != null &&
+                final hasEmail =
+                    profile != null &&
                     profile.email.isNotEmpty &&
                     profile.isEmailVerified;
                 final otherLinked = linkedProviders
@@ -97,10 +105,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
                         ? l10n.cantUnlinkOnlyMethod
                         : null,
                     linkedUsername: _getLinkedUsername(profile, provider),
-                    onLinkTap: () => _handleLinkProvider(
-                      context,
-                      provider,
-                    ),
+                    onLinkTap: () => _handleLinkProvider(context, provider),
                     onUnlinkTap: canUnlink
                         ? () => _showUnlinkDialog(context, provider)
                         : null,
@@ -124,8 +129,15 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final parsedUri = Uri.parse(uri);
       final provider = parsedUri.queryParameters['oauth_provider'];
       final code = parsedUri.queryParameters['oauth_code'];
+      final stateToken = parsedUri.queryParameters['oauth_state'];
 
-      if (provider != null && code != null) {
+      if (provider != null && code != null && stateToken != null) {
+        final callbackFingerprint = '$provider::$code::$stateToken';
+        if (_lastProcessedCallback == callbackFingerprint) {
+          return;
+        }
+        _lastProcessedCallback = callbackFingerprint;
+
         AppLogger.info(
           'Handling OAuth callback: provider=$provider',
           category: 'oauth',
@@ -139,13 +151,17 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
         messenger.showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).profileSocialCompletingLink(providerDisplayName)),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).profileSocialCompletingLink(providerDisplayName),
+            ),
           ),
         );
 
         await ref
             .read(profileProvider.notifier)
-            .completeOAuthLink(oauthProvider, code);
+            .completeOAuthLink(oauthProvider, code, stateToken);
 
         if (!mounted) return;
         messenger.showSnackBar(
@@ -162,7 +178,9 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final colorScheme = Theme.of(context).colorScheme;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).profileSocialOAuthFailed(e.toString())),
+          content: Text(
+            AppLocalizations.of(context).profileSocialOAuthFailed(e.toString()),
+          ),
           backgroundColor: colorScheme.error,
         ),
       );
@@ -177,10 +195,10 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
   String? _getLinkedUsername(Profile? profile, OAuthProvider provider) {
     if (profile == null) return null;
     return switch (provider) {
-      OAuthProvider.telegram => profile.telegramId != null &&
-              profile.telegramId!.isNotEmpty
-          ? '@${profile.telegramId}'
-          : null,
+      OAuthProvider.telegram =>
+        profile.telegramId != null && profile.telegramId!.isNotEmpty
+            ? '@${profile.telegramId}'
+            : null,
       _ => null, // Backend doesn't expose other provider usernames yet
     };
   }
@@ -234,7 +252,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final providerDisplayName = _providerName(provider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).profileSocialLinkFailed(providerDisplayName, e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).profileSocialLinkFailed(providerDisplayName, e.toString()),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -252,7 +274,9 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       builder: (dialogCtx) {
         final dialogL10n = AppLocalizations.of(dialogCtx);
         return AlertDialog(
-          title: Text(dialogL10n.profileSocialUnlinkConfirm(providerDisplayName)),
+          title: Text(
+            dialogL10n.profileSocialUnlinkConfirm(providerDisplayName),
+          ),
           content: Text(
             dialogL10n.profileSocialUnlinkDescription(providerDisplayName),
           ),
@@ -285,9 +309,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       if (!mounted) return;
       final providerDisplayName = _providerName(provider);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$providerDisplayName account unlinked'),
-        ),
+        SnackBar(content: Text('$providerDisplayName account unlinked')),
       );
     } catch (e) {
       AppLogger.error(
@@ -299,7 +321,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       final providerDisplayName = _providerName(provider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).profileSocialUnlinkFailed(providerDisplayName, e.toString())),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).profileSocialUnlinkFailed(providerDisplayName, e.toString()),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -311,6 +337,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
       OAuthProvider.telegram => 'Telegram',
       OAuthProvider.github => 'GitHub',
       OAuthProvider.google => 'Google',
+      OAuthProvider.facebook => 'Facebook',
       OAuthProvider.apple => 'Apple',
       OAuthProvider.discord => 'Discord',
       OAuthProvider.microsoft => 'Microsoft',
@@ -412,7 +439,9 @@ class _ProviderCard extends StatelessWidget {
                           const SizedBox(width: Spacing.xs),
                           // Status text
                           Text(
-                            isLinked ? l10n.profileSocialLinked : l10n.profileSocialNotLinked,
+                            isLinked
+                                ? l10n.profileSocialLinked
+                                : l10n.profileSocialNotLinked,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -482,6 +511,7 @@ class _ProviderCard extends StatelessWidget {
       OAuthProvider.telegram => Icons.telegram,
       OAuthProvider.github => Icons.code,
       OAuthProvider.google => Icons.g_mobiledata,
+      OAuthProvider.facebook => Icons.public,
       OAuthProvider.apple => Icons.apple,
       OAuthProvider.discord => Icons.discord,
       OAuthProvider.microsoft => Icons.window,
@@ -494,6 +524,7 @@ class _ProviderCard extends StatelessWidget {
       OAuthProvider.telegram => 'Telegram',
       OAuthProvider.github => 'GitHub',
       OAuthProvider.google => 'Google',
+      OAuthProvider.facebook => 'Facebook',
       OAuthProvider.apple => 'Apple',
       OAuthProvider.discord => 'Discord',
       OAuthProvider.microsoft => 'Microsoft',
@@ -523,11 +554,7 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.md),
             Text(
               message,
@@ -536,10 +563,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.md),
-              FilledButton.tonal(
-                onPressed: onRetry,
-                child: Text(l10n.retry),
-              ),
+              FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
             ],
           ],
         ),

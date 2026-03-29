@@ -37,7 +37,11 @@ abstract class ProfileRepository {
   Future<Result<String>> getOAuthAuthorizationUrl(OAuthProvider provider);
 
   /// Complete the OAuth linking flow with the authorization code from the callback.
-  Future<Result<void>> completeOAuthLink(OAuthProvider provider, String code);
+  Future<Result<void>> completeOAuthLink(
+    OAuthProvider provider,
+    String code,
+    String state,
+  );
 
   /// Unlink an OAuth provider from the user's account
   Future<Result<void>> unlinkOAuth(OAuthProvider provider);

@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Inserisci la tua email e ti invieremo un link di accesso monouso. Nessuna password necessaria.",
   "magicLinkSentTo": "Abbiamo inviato un link di accesso a {email}. Tocca il link nell'email per accedere.",
   "continueWithGoogle": "Continua con Google",
+  "continueWithFacebook": "Continua con Facebook",
   "backToLogin": "Torna al login",
   "rateLimitMessage": "Troppe richieste. Riprova tra {seconds} secondi.",
   "registerModeUsernameOnly": "Solo nome utente",

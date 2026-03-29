@@ -126,3 +126,59 @@ class TestOAuthStateService:
         assert len(state) > 20  # Should be a secure random token
         assert code_challenge is None  # No PKCE by default
         mock_redis.setex.assert_called_once()
+
+
+class TestOAuthRedirectValidation:
+    """Test OAuth redirect allowlist validation."""
+
+    def test_allows_trusted_web_callback_origin_and_mobile_deep_link(self):
+        """Trusted web callback URLs and exact deep links pass validation."""
+        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
+
+        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
+            mock_settings.cors_origins = [
+                "http://localhost:9001",
+                "https://vpn.ozoxy.ru",
+            ]
+            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+
+            assert _is_allowed_oauth_redirect_uri("http://localhost:9001/ru-RU/oauth/callback") is True
+            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/en-EN/oauth/callback") is True
+            assert _is_allowed_oauth_redirect_uri("cybervpn://oauth/callback") is True
+
+    def test_rejects_untrusted_redirect_origin(self):
+        """Unknown redirect origins are rejected."""
+        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
+
+        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
+            mock_settings.cors_origins = ["https://vpn.ozoxy.ru"]
+            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+
+            assert _is_allowed_oauth_redirect_uri("https://evil.example/en-EN/oauth/callback") is False
+
+    def test_rejects_wrong_path_on_trusted_origin(self):
+        """Only locale-aware OAuth callback paths are allowed on trusted origins."""
+        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
+
+        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
+            mock_settings.cors_origins = ["https://vpn.ozoxy.ru"]
+            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+
+            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/settings") is False
+            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/en-EN/oauth/callback?code=abc") is False
+
+
+class TestOAuthLoginProviderAvailability:
+    """Test active login provider gating."""
+
+    def test_apple_provider_stays_in_code_but_is_disabled_for_login(self):
+        """Apple remains supported in code but is blocked from the active login flow."""
+        from src.presentation.api.v1.oauth.routes import _is_oauth_login_provider_enabled
+
+        assert _is_oauth_login_provider_enabled("apple") is False
+
+    def test_facebook_provider_is_enabled_for_login(self):
+        """Facebook is part of the active login provider set."""
+        from src.presentation.api.v1.oauth.routes import _is_oauth_login_provider_enabled
+
+        assert _is_oauth_login_provider_enabled("facebook") is True

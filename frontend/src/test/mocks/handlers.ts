@@ -495,11 +495,18 @@ export const authHandlers = [
    */
   http.get(`${API_BASE}/oauth/:provider/login`, ({ params, request }) => {
     const provider = params.provider as string;
-    const validProviders = ['google', 'github', 'discord', 'apple', 'microsoft', 'twitter', 'telegram'];
+    const validProviders = ['google', 'github', 'discord', 'facebook', 'apple', 'microsoft', 'twitter'];
 
     if (!validProviders.includes(provider)) {
       return HttpResponse.json(
         { detail: 'Unsupported OAuth provider' },
+        { status: 400 },
+      );
+    }
+
+    if (provider === 'apple') {
+      return HttpResponse.json(
+        { detail: "Provider 'apple' is currently disabled." },
         { status: 400 },
       );
     }
@@ -518,6 +525,15 @@ export const authHandlers = [
    * Complete OAuth login callback.
    */
   http.post(`${API_BASE}/oauth/:provider/login/callback`, async ({ request }) => {
+    const provider = request.url.split('/').at(-3);
+
+    if (provider === 'apple') {
+      return HttpResponse.json(
+        { detail: "Provider 'apple' is currently disabled." },
+        { status: 400 },
+      );
+    }
+
     const body = (await request.json()) as { code?: string; state?: string };
 
     if (!body.code || !body.state) {
@@ -591,7 +607,7 @@ export const authHandlers = [
    */
   http.delete(`${API_BASE}/oauth/:provider`, ({ params }) => {
     const provider = params.provider as string;
-    const validProviders = ['google', 'github', 'discord', 'apple', 'microsoft', 'twitter', 'telegram'];
+    const validProviders = ['google', 'github', 'discord', 'facebook', 'apple', 'microsoft', 'twitter', 'telegram'];
 
     if (!validProviders.includes(provider)) {
       return HttpResponse.json(

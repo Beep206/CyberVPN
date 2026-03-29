@@ -255,62 +255,17 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Apple Sign-In (iOS Only)
+  // Apple Sign-In (Disabled)
   // -------------------------------------------------------------------------
 
-  group('Apple Sign-In (iOS)', () {
+  group('Apple Sign-In (Disabled)', () {
     testWidgets(
-      'Apple Sign-In button triggers native ASAuthorizationController',
+      'Apple Sign-In button is hidden on the login screen',
       (tester) async {
-        // Arrange: Pump login screen on iOS
-        // Act: Tap "Continue with Apple"
-        // Assert:
-        //   - Native Apple Sign-In sheet appears
-        //   - Requests email and full name scopes
+        // Arrange: Pump login screen
+        // Assert: Apple Sign-In button is not rendered
       },
-      skip: true, // Requires iOS device with Apple Sign-In capability
-    );
-
-    testWidgets(
-      'Apple Sign-In success exchanges identity token for JWT',
-      (tester) async {
-        // Arrange: Mock AppleSignInService to return valid credential
-        // Act: Complete Apple Sign-In flow
-        // Assert:
-        //   - identityToken sent to backend
-        //   - JWT tokens received and stored
-        //   - Navigate to home
-      },
-      skip: true, // Requires iOS device with Apple Sign-In capability
-    );
-
-    testWidgets(
-      'Apple Sign-In cancellation returns to login screen',
-      (tester) async {
-        // Arrange: User cancels Apple Sign-In dialog
-        // Act: Dialog dismissed
-        // Assert: Login screen still visible, no error shown
-      },
-      skip: true, // Requires iOS device with Apple Sign-In capability
-    );
-
-    testWidgets(
-      'Apple Sign-In with private relay email handled correctly',
-      (tester) async {
-        // Arrange: Apple returns privaterelay email
-        // Act: Complete sign-in
-        // Assert: Account created with relay email, login succeeds
-      },
-      skip: true, // Requires iOS device with Apple Sign-In capability
-    );
-
-    testWidgets(
-      'Apple Sign-In not available on Android',
-      (tester) async {
-        // Arrange: Pump login screen on Android
-        // Assert: Apple Sign-In button is not rendered or is hidden
-      },
-      skip: true, // Requires Android device to verify absence
+      skip: true, // Placeholder until mobile Facebook/browser OAuth is added
     );
   });
 

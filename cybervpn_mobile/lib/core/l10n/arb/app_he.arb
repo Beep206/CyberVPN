@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "הזן את כתובת האימייל שלך ונשלח לך קישור כניסה חד-פעמי. אין צורך בסיסמה.",
   "magicLinkSentTo": "שלחנו קישור כניסה אל {email}. הקש על הקישור באימייל כדי להיכנס.",
   "continueWithGoogle": "המשך עם Google",
+  "continueWithFacebook": "המשך עם Facebook",
   "backToLogin": "חזרה לכניסה",
   "rateLimitMessage": "יותר מדי בקשות. נסה שוב בעוד {seconds} שניות.",
   "registerModeUsernameOnly": "שם משתמש בלבד",

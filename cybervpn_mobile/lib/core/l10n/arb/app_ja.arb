@@ -1616,6 +1616,7 @@
   "magicLinkSubtitle": "メールアドレスを入力すると、使い捨てのログインリンクを送信します。パスワードは不要です。",
   "magicLinkSentTo": "{email} にログインリンクを送信しました。メール内のリンクをタップしてログインしてください。",
   "continueWithGoogle": "Google で続ける",
+  "continueWithFacebook": "Facebook で続ける",
   "backToLogin": "ログインに戻る",
   "rateLimitMessage": "リクエストが多すぎます。{seconds} 秒後に再試行してください。",
   "registerModeUsernameOnly": "ユーザー名のみ",

@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "أدخل بريدك الإلكتروني وسنرسل لك رابط تسجيل دخول لمرة واحدة. لا حاجة لكلمة مرور.",
   "magicLinkSentTo": "أرسلنا رابط تسجيل الدخول إلى {email}. اضغط على الرابط في البريد الإلكتروني لتسجيل الدخول.",
   "continueWithGoogle": "المتابعة مع Google",
+  "continueWithFacebook": "المتابعة مع Facebook",
   "backToLogin": "العودة لتسجيل الدخول",
   "rateLimitMessage": "طلبات كثيرة جدًا. يرجى المحاولة مرة أخرى بعد {seconds} ثانية.",
   "registerModeUsernameOnly": "اسم المستخدم فقط",

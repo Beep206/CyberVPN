@@ -2,14 +2,15 @@
 
 ## Overview
 
-CyberVPN uses a unified OAuth authentication system that supports **7 providers** for both the admin dashboard (web) and the mobile app (iOS/Android). The backend implements the OAuth 2.0 authorization code flow with CSRF state tokens (stored in Redis with 10-minute TTL) and optional PKCE (RFC 7636) for providers that require it.
+CyberVPN uses a unified OAuth authentication system that supports **8 providers in code** across the admin dashboard (web) and the mobile app (iOS/Android). Apple support is retained in the codebase but is currently disabled in the active login allowlist; Facebook is the active replacement for web OAuth. The backend implements the OAuth 2.0 authorization code flow with CSRF state tokens (stored in Redis with 10-minute TTL) and optional PKCE (RFC 7636) for providers that require it.
 
 **Supported providers:**
 
 | Provider | Flow Type | PKCE Required | Login | Account Linking |
 |----------|-----------|---------------|-------|-----------------|
 | Google | OAuth 2.0 Authorization Code | Yes | Yes | Yes |
-| Apple | OAuth 2.0 + JWT client secret | Yes | Yes | Yes |
+| Facebook | OAuth 2.0 Authorization Code | No | Yes | Yes |
+| Apple | OAuth 2.0 + JWT client secret | Yes | Disabled | Disabled |
 | GitHub | OAuth 2.0 Authorization Code | No | Yes | Yes |
 | Discord | OAuth 2.0 Authorization Code | No | Yes | Yes |
 | Microsoft | OAuth 2.0 Authorization Code | Yes | Yes | Yes |
@@ -36,6 +37,8 @@ All OAuth settings are defined in `backend/src/config/settings.py` and loaded fr
 |----------|------|---------|-------------|-------------|
 | `GOOGLE_CLIENT_ID` | `str` | `""` | Google | OAuth 2.0 Client ID |
 | `GOOGLE_CLIENT_SECRET` | `SecretStr` | `""` | Google | OAuth 2.0 Client Secret |
+| `FACEBOOK_CLIENT_ID` | `str` | `""` | Facebook | Meta App ID |
+| `FACEBOOK_CLIENT_SECRET` | `SecretStr` | `""` | Facebook | Meta App Secret |
 | `APPLE_CLIENT_ID` | `str` | `""` | Apple | Service ID (e.g., `com.cybervpn.auth`) |
 | `APPLE_TEAM_ID` | `str` | `""` | Apple | 10-character Apple Team ID |
 | `APPLE_KEY_ID` | `str` | `""` | Apple | Key ID from the .p8 key file |
@@ -52,6 +55,7 @@ All OAuth settings are defined in `backend/src/config/settings.py` and loaded fr
 | `TELEGRAM_BOT_TOKEN` | `SecretStr` | `""` | Telegram | Bot token from BotFather |
 | `TELEGRAM_BOT_USERNAME` | `str` | `""` | Telegram | Bot username without `@` prefix |
 | `TELEGRAM_AUTH_MAX_AGE_SECONDS` | `int` | `86400` | Telegram | Max age of auth_date (default 24h) |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | `list[str]` | `["cybervpn://oauth/callback"]` | OAuth login | Exact allowlist for non-HTTP redirect URIs |
 
 **Example `.env` block:**
 
@@ -59,6 +63,9 @@ All OAuth settings are defined in `backend/src/config/settings.py` and loaded fr
 # OAuth Configuration
 GOOGLE_CLIENT_ID=123456789-abcdef.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-your-secret-here
+
+FACEBOOK_CLIENT_ID=123456789012345
+FACEBOOK_CLIENT_SECRET=meta-app-secret
 
 APPLE_CLIENT_ID=com.cybervpn.auth
 APPLE_TEAM_ID=ABCDE12345
@@ -77,6 +84,8 @@ MICROSOFT_TENANT_ID=common
 
 TWITTER_CLIENT_ID=abcdefghijklmnopqrstuvwxyz
 TWITTER_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456789012345678
+
+OAUTH_ALLOWED_REDIRECT_URIS=cybervpn://oauth/callback
 
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_BOT_USERNAME=CyberVPNBot
@@ -127,9 +136,31 @@ GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
 
 ---
 
+### Facebook
+
+**Console:** [Meta for Developers](https://developers.facebook.com/) > My Apps > Facebook Login
+
+Facebook uses the standard authorization code flow for the web dashboard and mobile deep-link callbacks. CyberVPN requests `email` access and reads profile data from Graph API. The backend now supports Facebook both for login and authenticated account linking flows.
+
+**Required settings:**
+
+- Valid OAuth redirect URIs must point to the real web callback route: `/<locale>/oauth/callback`.
+- Mobile deep links must be present in `OAUTH_ALLOWED_REDIRECT_URIS` if mobile login uses a custom URI scheme.
+
+**Env vars:**
+
+```env
+FACEBOOK_CLIENT_ID=123456789012345
+FACEBOOK_CLIENT_SECRET=meta-app-secret
+```
+
+---
+
 ### Apple
 
 **Console:** [Apple Developer Portal](https://developer.apple.com/) > Certificates, Identifiers & Profiles
+
+> Apple login is currently disabled in the active login allowlist, but the implementation is intentionally kept in the codebase for future re-enable work.
 
 Apple Sign In is different from other providers. It uses a JWT-based client secret signed with an ES256 private key, and the user's identity is extracted from an `id_token` JWT validated against Apple's JWKS endpoint.
 
@@ -548,15 +579,16 @@ All OAuth providers redirect back to the app after authentication. The mobile ap
 
 | Provider | Web Redirect URI | Mobile Redirect URI | Dev Redirect URI |
 |----------|-----------------|---------------------|------------------|
-| Google | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| Apple | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| GitHub | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| Discord | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| Microsoft | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| X (Twitter) | `https://cybervpn.app/en/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:3001/en/oauth/callback` |
-| Telegram | `https://cybervpn.app` (widget origin) | `cybervpn://telegram/callback` | `http://localhost:3001` |
+| Google | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| Facebook | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| Apple | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| GitHub | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| Discord | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| Microsoft | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| X (Twitter) | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
+| Telegram | `https://cybervpn.app` (widget origin) | `cybervpn://telegram/callback` | `http://localhost:9001` |
 
-**Important:** Every redirect URI listed above must be registered in the corresponding provider's developer console. Missing or mismatched URIs are the most common cause of OAuth failures.
+**Important:** Every redirect URI listed above must be registered in the corresponding provider's developer console. The backend now validates web redirects against `CORS_ORIGINS` and exact deep links against `OAUTH_ALLOWED_REDIRECT_URIS`.
 
 ---
 
@@ -611,6 +643,7 @@ All OAuth providers redirect back to the app after authentication. The mobile ap
 | Provider | Gotcha |
 |----------|--------|
 | Google | Must set `prompt=consent` to get refresh tokens. Without it, refresh_token is only sent on first authorization. |
+| Facebook | Email can be absent if the app is not approved for `email` access or the user declines permission. The user will still be created without an email. |
 | Apple | User name is only provided on first authorization. Test with a fresh Apple ID or revoke access at `appleid.apple.com` > Security > Apps. |
 | GitHub | Email may be `null` if user has a private email. The user will be created without an email. |
 | Discord | Test with a verified email account; unverified emails are not returned. |
@@ -620,7 +653,7 @@ All OAuth providers redirect back to the app after authentication. The mobile ap
 
 ### Disabling a Provider
 
-To disable a specific provider, leave its environment variables empty (the default). The backend checks for non-empty `client_id` and `client_secret` before attempting code exchange and returns `None` if credentials are missing, which results in a `401 Unauthorized` response.
+Leaving credentials empty is still a valid soft-disable, but active login availability is now controlled separately in the backend login allowlist. This lets CyberVPN keep provider code in the repository while intentionally disabling it in the public login flow (for example, Apple).
 
 ---
 
@@ -630,6 +663,7 @@ To disable a specific provider, leave its environment variables empty (the defau
 - **PKCE** (RFC 7636, S256) is used for Google, Apple, Microsoft, and Twitter. The code verifier is stored in Redis alongside the state token.
 - **IP address logging:** The client IP is logged with the state token for audit purposes. IP changes during the OAuth flow are logged as warnings but do not block the flow (to accommodate mobile/NAT users).
 - **Apple client secret:** Generated as a JWT signed with ES256, valid for up to 6 months. Rotate the .p8 key if compromised.
+- **Redirect validation:** Web redirects must match the locale-aware `/oauth/callback` route on a trusted frontend origin, and non-HTTP deep links must be explicitly allowlisted.
 - **Telegram:** Uses constant-time HMAC comparison to prevent timing attacks.
 - All provider tokens (`access_token`, `refresh_token`) are stored in the `oauth_accounts` database table. Ensure the database is encrypted at rest in production.
 
@@ -641,6 +675,7 @@ To disable a specific provider, leave its environment variables empty (the defau
 |------|---------|
 | `backend/src/config/settings.py` | All OAuth env var definitions (lines 37-67) |
 | `backend/src/infrastructure/oauth/google.py` | Google provider implementation |
+| `backend/src/infrastructure/oauth/facebook.py` | Facebook provider implementation |
 | `backend/src/infrastructure/oauth/apple.py` | Apple provider implementation |
 | `backend/src/infrastructure/oauth/github.py` | GitHub provider implementation |
 | `backend/src/infrastructure/oauth/discord.py` | Discord provider implementation |

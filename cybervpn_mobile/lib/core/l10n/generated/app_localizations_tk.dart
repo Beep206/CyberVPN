@@ -4455,6 +4455,9 @@ class AppLocalizationsTk extends AppLocalizations {
   String get continueWithGoogle => 'Google bilen dowam et';
 
   @override
+  String get continueWithFacebook => 'Facebook bilen dowam et';
+
+  @override
   String get continueWithApple => 'Apple bilen dowam et';
 
   @override

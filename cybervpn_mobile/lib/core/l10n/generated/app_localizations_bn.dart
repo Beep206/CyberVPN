@@ -4455,6 +4455,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get continueWithGoogle => 'Google দিয়ে চালিয়ে যান';
 
   @override
+  String get continueWithFacebook => 'Facebook দিয়ে চালিয়ে যান';
+
+  @override
   String get continueWithApple => 'Apple দিয়ে চালিয়ে যান';
 
   @override

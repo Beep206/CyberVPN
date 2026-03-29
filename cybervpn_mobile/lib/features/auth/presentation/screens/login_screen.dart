@@ -20,6 +20,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/biometric_l
 import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/login_form.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/widgets/social_login_button.dart';
+import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 
 /// Full-screen login page with email/password form, social login options,
 /// and a link to the registration screen.
@@ -35,14 +36,15 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with ScreenProtection {
   bool _biometricChecked = false;
+  String? _lastProcessedOAuthCallback;
 
   @override
   void initState() {
     super.initState();
     unawaited(enableProtection());
-    // Check and auto-trigger biometric login after first frame
+    // Process pending OAuth callback or auto-trigger biometric login after first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_checkAndTriggerBiometric());
+      unawaited(_handleInitialAuthEntry());
     });
   }
 
@@ -53,6 +55,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   /// Checks if biometric login is available and auto-triggers it for returning users.
+  Future<void> _handleInitialAuthEntry() async {
+    final handledOAuth = await _processOAuthCallbackIfPresent();
+    if (!handledOAuth) {
+      await _checkAndTriggerBiometric();
+    }
+  }
+
+  Future<bool> _processOAuthCallbackIfPresent() async {
+    if (!mounted) return false;
+
+    final uri = GoRouterState.of(context).uri;
+    final code = uri.queryParameters['oauth_code'];
+    final stateToken = uri.queryParameters['oauth_state'];
+    if (code == null || stateToken == null) {
+      return false;
+    }
+
+    final callbackFingerprint = '$code::$stateToken';
+    if (_lastProcessedOAuthCallback == callbackFingerprint) {
+      return false;
+    }
+    _lastProcessedOAuthCallback = callbackFingerprint;
+
+    await ref
+        .read(authProvider.notifier)
+        .completeOAuthLoginCallback(code: code, stateToken: stateToken);
+
+    if (!mounted) return true;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    return true;
+  }
+
   Future<void> _checkAndTriggerBiometric() async {
     if (_biometricChecked) return;
     _biometricChecked = true;
@@ -69,13 +114,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _handleBiometricLogin() {
     final l10n = AppLocalizations.of(context);
-    unawaited(ref.read(biometricLoginProvider.notifier).authenticate(
-          reason: l10n.biometricSignInReason,
-        ));
+    unawaited(
+      ref
+          .read(biometricLoginProvider.notifier)
+          .authenticate(reason: l10n.biometricSignInReason),
+    );
   }
 
   void _handleTelegramLogin() {
     unawaited(ref.read(telegramAuthProvider.notifier).startLogin());
+  }
+
+  Future<void> _handleFacebookSignIn() async {
+    if (!mounted) return;
+
+    await ref
+        .read(authProvider.notifier)
+        .startOAuthLogin(OAuthProvider.facebook);
+
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider).value;
+    if (authState case AuthError(:final message)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showComingSoon() {
@@ -127,8 +195,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       // Step 4: Store tokens and navigate
       final secureStorage = ref.read(secureStorageProvider);
-      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
-      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+      await secureStorage.write(
+        key: 'access_token',
+        value: loginResponse.accessToken,
+      );
+      await secureStorage.write(
+        key: 'refresh_token',
+        value: loginResponse.refreshToken,
+      );
 
       if (!mounted) return;
 
@@ -145,6 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
+  // ignore: unused_element
   /// Handle Apple Sign-In with native SDK + backend OAuth flow.
   Future<void> _handleAppleSignIn() async {
     final l10n = AppLocalizations.of(context);
@@ -179,8 +254,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       // Step 4: Store tokens and navigate
       final secureStorage = ref.read(secureStorageProvider);
-      await secureStorage.write(key: 'access_token', value: loginResponse.accessToken);
-      await secureStorage.write(key: 'refresh_token', value: loginResponse.refreshToken);
+      await secureStorage.write(
+        key: 'access_token',
+        value: loginResponse.accessToken,
+      );
+      await secureStorage.write(
+        key: 'refresh_token',
+        value: loginResponse.refreshToken,
+      );
 
       if (!mounted) return;
 
@@ -202,40 +283,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(telegramAuthProvider.notifier);
 
-    unawaited(showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.telegramNotInstalledTitle),
-        content: Text(l10n.telegramNotInstalledMessage),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              notifier.cancel();
-            },
-            child: Text(
-              l10n.cancel,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.telegramNotInstalledTitle),
+          content: Text(l10n.telegramNotInstalledMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                notifier.cancel();
+              },
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              unawaited(notifier.useWebFallback());
-            },
-            child: Text(l10n.telegramUseWeb),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              unawaited(notifier.openAppStore());
-              notifier.cancel();
-            },
-            child: Text(l10n.telegramInstall),
-          ),
-        ],
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(notifier.useWebFallback());
+              },
+              child: Text(l10n.telegramUseWeb),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(notifier.openAppStore());
+                notifier.cancel();
+              },
+              child: Text(l10n.telegramInstall),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -245,13 +328,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final isTelegramAvailable = ref.watch(isTelegramLoginAvailableProvider);
     final isTelegramLoading = ref.watch(isTelegramAuthLoadingProvider);
     final biometricState = ref.watch(biometricLoginProvider);
-    final isBiometricAvailable = biometricState is BiometricLoginAvailable ||
+    final isBiometricAvailable =
+        biometricState is BiometricLoginAvailable ||
         biometricState is BiometricLoginCancelled;
-    final isBiometricLoading = biometricState is BiometricLoginAuthenticating ||
+    final isBiometricLoading =
+        biometricState is BiometricLoginAuthenticating ||
         biometricState is BiometricLoginLoggingIn;
     final authState = ref.watch(authProvider);
     final isAuthLoading = authState.value is AuthLoading;
     final isLoading = isTelegramLoading || isBiometricLoading || isAuthLoading;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_processOAuthCallbackIfPresent());
+    });
 
     // Listen for auth state changes to navigate on success.
     ref.listen<AsyncValue<AuthState>>(authProvider, (previous, next) {
@@ -299,8 +388,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     // Listen for Telegram auth state changes.
-    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider,
-        (previous, next) {
+    ref.listen<AsyncValue<TelegramAuthState>>(telegramAuthProvider, (
+      previous,
+      next,
+    ) {
       final state = next.value;
       if (state is TelegramAuthSuccess) {
         // Show welcome toast for new Telegram users
@@ -337,203 +428,239 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.xl),
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg,
+              vertical: Spacing.xl,
+            ),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // Use 90% of available width on phones, cap at 480 on tablets
-                final maxWidth = constraints.maxWidth > 600 ? 480.0 : constraints.maxWidth;
+                final maxWidth = constraints.maxWidth > 600
+                    ? 480.0
+                    : constraints.maxWidth;
                 return ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Logo / Branding ──────────────────────────────
-                  Icon(
-                    Icons.shield_outlined,
-                    size: 64,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(height: Spacing.md),
-                  Text(
-                    l10n.loginTitle,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                  Text(
-                    l10n.loginSubtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.xl + Spacing.sm),
-
-                  // ── Biometric Login Button ────────────────────────
-                  if (isBiometricAvailable) ...[
-                    _BiometricLoginButton(
-                      onPressed: isBiometricLoading ? null : _handleBiometricLogin,
-                      isLoading: isBiometricLoading,
-                    ),
-                    const SizedBox(height: Spacing.lg),
-                    Row(
-                      children: [
-                        Expanded(
-                            child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                          child: Text(
-                            l10n.loginOrUsePassword,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                            child: Divider(
-                                color: theme.colorScheme.outlineVariant)),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.lg),
-                  ],
-
-                  // ── Login Form ───────────────────────────────────
-                  LoginForm(
-                    onSuccess: () => context.go('/connection'),
-                    onForgotPassword: () {
-                      unawaited(context.push('/forgot-password'));
-                    },
-                  ),
-                  const SizedBox(height: Spacing.lg + Spacing.xs),
-
-                  // ── Divider ──────────────────────────────────────
-                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                          child: Divider(
-                              color: theme.colorScheme.outlineVariant)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                        child: Text(
-                          l10n.loginOrSeparator,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                          child: Divider(
-                              color: theme.colorScheme.outlineVariant)),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.lg + Spacing.xs),
-
-                  // ── Social Login — Telegram (first position) ──
-                  if (isTelegramAvailable) ...[
-                    SocialLoginButton.telegram(
-                      onPressed: isLoading ? null : _handleTelegramLogin,
-                      isLoading: isTelegramLoading,
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                  ],
-
-                  // ── Social Login — Google (full-width) ─────────
-                  _SocialOutlinedButton(
-                    icon: Icons.g_mobiledata,
-                    label: l10n.continueWithGoogle,
-                    onPressed: isLoading ? null : () => unawaited(_handleGoogleSignIn()),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-
-                  // ── Social Login — Apple (full-width, iOS only) ─
-                  if (Platform.isIOS) ...[
-                    _SocialOutlinedButton(
-                      icon: Icons.apple,
-                      label: l10n.continueWithApple,
-                      onPressed: isLoading ? null : () => unawaited(_handleAppleSignIn()),
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                  ],
-
-                  // ── Social Login — Compact icon row ────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _CompactSocialIcon(
-                        icon: Icons.code,
-                        tooltip: 'GitHub',
-                        onPressed: isLoading ? null : _showComingSoon,
-                      ),
-                      const SizedBox(width: Spacing.md),
-                      _CompactSocialIcon(
-                        icon: Icons.discord,
-                        tooltip: 'Discord',
-                        onPressed: isLoading ? null : _showComingSoon,
-                      ),
-                      const SizedBox(width: Spacing.md),
-                      _CompactSocialIcon(
-                        icon: Icons.window,
-                        tooltip: 'Microsoft',
-                        onPressed: isLoading ? null : _showComingSoon,
-                      ),
-                      const SizedBox(width: Spacing.md),
-                      _CompactSocialIcon(
-                        iconWidget: const Text(
-                          'X',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        tooltip: 'X',
-                        onPressed: isLoading ? null : _showComingSoon,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.sm),
-
-                  // ── Magic Link ─────────────────────────────────
-                  TextButton(
-                    onPressed: isLoading ? null : () => context.push('/magic-link'),
-                    child: Text(
-                      l10n.loginMagicLinkOption,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      // ── Logo / Branding ──────────────────────────────
+                      Icon(
+                        Icons.shield_outlined,
+                        size: 64,
                         color: theme.colorScheme.primary,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.lg),
-
-                  // ── Register Link ────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                      const SizedBox(height: Spacing.md),
                       Text(
-                        l10n.loginNoAccount,
-                        style: theme.textTheme.bodyMedium,
+                        l10n.loginTitle,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
-                      Semantics(
-                        button: true,
-                        label: l10n.loginRegisterLink,
-                        hint: l10n.register,
-                        child: GestureDetector(
-                          onTap: () => context.go('/register'),
-                          child: ExcludeSemantics(
+                      const SizedBox(height: Spacing.sm),
+                      Text(
+                        l10n.loginSubtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.xl + Spacing.sm),
+
+                      // ── Biometric Login Button ────────────────────────
+                      if (isBiometricAvailable) ...[
+                        _BiometricLoginButton(
+                          onPressed: isBiometricLoading
+                              ? null
+                              : _handleBiometricLogin,
+                          isLoading: isBiometricLoading,
+                        ),
+                        const SizedBox(height: Spacing.lg),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Spacing.md,
+                              ),
+                              child: Text(
+                                l10n.loginOrUsePassword,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: theme.colorScheme.outlineVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Spacing.lg),
+                      ],
+
+                      // ── Login Form ───────────────────────────────────
+                      LoginForm(
+                        onSuccess: () => context.go('/connection'),
+                        onForgotPassword: () {
+                          unawaited(context.push('/forgot-password'));
+                        },
+                      ),
+                      const SizedBox(height: Spacing.lg + Spacing.xs),
+
+                      // ── Divider ──────────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: Spacing.md,
+                            ),
                             child: Text(
-                              l10n.loginRegisterLink,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
+                              l10n.loginOrSeparator,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: Spacing.lg + Spacing.xs),
+
+                      // ── Social Login — Telegram (first position) ──
+                      if (isTelegramAvailable) ...[
+                        SocialLoginButton.telegram(
+                          onPressed: isLoading ? null : _handleTelegramLogin,
+                          isLoading: isTelegramLoading,
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
+
+                      // ── Social Login — Google (full-width) ─────────
+                      _SocialOutlinedButton(
+                        icon: Icons.g_mobiledata,
+                        label: l10n.continueWithGoogle,
+                        onPressed: isLoading
+                            ? null
+                            : () => unawaited(_handleGoogleSignIn()),
+                      ),
+                      const SizedBox(height: Spacing.sm),
+
+                      // ── Social Login — Facebook (browser OAuth) ──────
+                      _SocialOutlinedButton(
+                        icon: Icons.public,
+                        label: l10n.continueWithFacebook,
+                        onPressed: isLoading
+                            ? null
+                            : () => unawaited(_handleFacebookSignIn()),
+                      ),
+                      const SizedBox(height: Spacing.sm),
+
+                      // ── Social Login — Apple (kept in code, hidden) ──
+                      if (Platform.isIOS &&
+                          OAuthProvider.apple.isMobileAuthEntryEnabled) ...[
+                        _SocialOutlinedButton(
+                          icon: Icons.apple,
+                          label: l10n.continueWithApple,
+                          onPressed: isLoading
+                              ? null
+                              : () => unawaited(_handleAppleSignIn()),
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
+
+                      // ── Social Login — Compact icon row ────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _CompactSocialIcon(
+                            icon: Icons.code,
+                            tooltip: 'GitHub',
+                            onPressed: isLoading ? null : _showComingSoon,
+                          ),
+                          const SizedBox(width: Spacing.md),
+                          _CompactSocialIcon(
+                            icon: Icons.discord,
+                            tooltip: 'Discord',
+                            onPressed: isLoading ? null : _showComingSoon,
+                          ),
+                          const SizedBox(width: Spacing.md),
+                          _CompactSocialIcon(
+                            icon: Icons.window,
+                            tooltip: 'Microsoft',
+                            onPressed: isLoading ? null : _showComingSoon,
+                          ),
+                          const SizedBox(width: Spacing.md),
+                          _CompactSocialIcon(
+                            iconWidget: const Text(
+                              'X',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            tooltip: 'X',
+                            onPressed: isLoading ? null : _showComingSoon,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: Spacing.sm),
+
+                      // ── Magic Link ─────────────────────────────────
+                      TextButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => context.push('/magic-link'),
+                        child: Text(
+                          l10n.loginMagicLinkOption,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                       ),
+                      const SizedBox(height: Spacing.lg),
+
+                      // ── Register Link ────────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            l10n.loginNoAccount,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          Semantics(
+                            button: true,
+                            label: l10n.loginRegisterLink,
+                            hint: l10n.register,
+                            child: GestureDetector(
+                              onTap: () => context.go('/register'),
+                              child: ExcludeSemantics(
+                                child: Text(
+                                  l10n.loginRegisterLink,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                  ),
-                ],
                   ),
                 );
               },
@@ -689,7 +816,8 @@ class _CompactSocialIcon extends StatelessWidget {
               ),
             ),
             child: Center(
-              child: iconWidget ??
+              child:
+                  iconWidget ??
                   Icon(
                     icon,
                     size: 22,

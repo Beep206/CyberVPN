@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "ایمیل خود را وارد کنید و ما یک لینک ورود یکبار مصرف برایتان ارسال می‌کنیم. نیازی به رمز عبور نیست.",
   "magicLinkSentTo": "لینک ورود به {email} ارسال شد. برای ورود، روی لینک در ایمیل بزنید.",
   "continueWithGoogle": "ادامه با Google",
+  "continueWithFacebook": "ادامه با Facebook",
   "backToLogin": "بازگشت به ورود",
   "rateLimitMessage": "درخواست‌های زیادی ارسال شده. لطفاً {seconds} ثانیه دیگر تلاش کنید.",
   "registerModeUsernameOnly": "فقط نام کاربری",

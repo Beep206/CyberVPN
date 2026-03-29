@@ -4454,6 +4454,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get continueWithGoogle => 'Continuer avec Google';
 
   @override
+  String get continueWithFacebook => 'Continuer avec Facebook';
+
+  @override
   String get continueWithApple => 'Continuer avec Apple';
 
   @override

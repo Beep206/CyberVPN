@@ -2553,6 +2553,10 @@
   "@continueWithGoogle": {
     "description": "Label for Google social login button"
   },
+  "continueWithFacebook": "Continue with Facebook",
+  "@continueWithFacebook": {
+    "description": "Label for Facebook social login button"
+  },
   "continueWithApple": "Continue with Apple",
   "@continueWithApple": {
     "description": "Label for Apple social login button"
@@ -2893,7 +2897,6 @@
   "@subscriptionCancelDetails": {
     "description": "Details about what happens after cancellation"
   },
-  "subscriptionCancelButton": "Cancel Subscription",
   "@subscriptionCancelButton": {
     "description": "Button text to confirm subscription cancellation"
   },
@@ -2977,8 +2980,6 @@
   "partnerComingSoonTitle": "Partner Program Coming Soon",
   "partnerComingSoonDescription": "Join our partner program and earn commissions. Stay tuned for more details!",
   "commonCreate": "Create",
-  "commonSave": "Save",
-
   "profiles": "Profiles",
   "profilesSubtitle": "Manage your VPN subscriptions",
   "addProfile": "Add Profile",

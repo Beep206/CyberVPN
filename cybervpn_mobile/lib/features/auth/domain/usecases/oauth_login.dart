@@ -37,7 +37,7 @@ class OAuthLoginResult {
   });
 }
 
-/// Use case for web-based OAuth login flows (Discord, Microsoft, X/Twitter).
+/// Use case for web-based OAuth login flows (Facebook, Discord, Microsoft, X/Twitter).
 ///
 /// These providers lack native Flutter SDKs, so authentication is handled by:
 /// 1. Fetching the authorization URL from the CyberVPN backend
@@ -81,11 +81,12 @@ class OAuthLoginUseCase {
   const OAuthLoginUseCase({
     required OAuthRemoteDataSource oauthDataSource,
     required SecureStorageWrapper secureStorage,
-  })  : _oauthDataSource = oauthDataSource,
-        _secureStorage = secureStorage;
+  }) : _oauthDataSource = oauthDataSource,
+       _secureStorage = secureStorage;
 
   /// Supported providers for this web-based OAuth flow.
   static const Set<OAuthProvider> supportedProviders = {
+    OAuthProvider.facebook,
     OAuthProvider.discord,
     OAuthProvider.microsoft,
     OAuthProvider.twitter,
@@ -97,7 +98,7 @@ class OAuthLoginUseCase {
 
   /// Initiates the OAuth flow by launching the provider's authorization page.
   ///
-  /// [provider] must be one of [supportedProviders] (discord, microsoft, twitter).
+  /// [provider] must be one of [supportedProviders] (facebook, discord, microsoft, twitter).
   /// [redirectUri] is the deep link URI the provider redirects back to.
   ///
   /// Returns [Success] with `void` when the browser is launched successfully.
@@ -113,10 +114,13 @@ class OAuthLoginUseCase {
         'Unsupported OAuth provider for web flow: ${provider.name}',
         category: _logCategory,
       );
-      return Failure(AuthFailure(
-        message: 'Provider ${provider.name} is not supported for web-based '
-            'OAuth login. Supported: ${supportedProviders.map((p) => p.name).join(", ")}',
-      ));
+      return Failure(
+        AuthFailure(
+          message:
+              'Provider ${provider.name} is not supported for web-based '
+              'OAuth login. Supported: ${supportedProviders.map((p) => p.name).join(", ")}',
+        ),
+      );
     }
 
     try {
@@ -143,10 +147,13 @@ class OAuthLoginUseCase {
           category: _logCategory,
         );
         await _cleanup();
-        return const Failure(AuthFailure(
-          message: 'Unable to open the login page. '
-              'Please ensure you have a web browser installed.',
-        ));
+        return const Failure(
+          AuthFailure(
+            message:
+                'Unable to open the login page. '
+                'Please ensure you have a web browser installed.',
+          ),
+        );
       }
 
       final launched = await launchUrl(
@@ -159,9 +166,11 @@ class OAuthLoginUseCase {
           category: _logCategory,
         );
         await _cleanup();
-        return const Failure(AuthFailure(
-          message: 'Failed to open the login page in your browser.',
-        ));
+        return const Failure(
+          AuthFailure(
+            message: 'Failed to open the login page in your browser.',
+          ),
+        );
       }
 
       AppLogger.info(
@@ -177,9 +186,9 @@ class OAuthLoginUseCase {
         category: _logCategory,
       );
       await _cleanup();
-      return Failure(AuthFailure(
-        message: 'Could not start ${provider.name} login: $e',
-      ));
+      return Failure(
+        AuthFailure(message: 'Could not start ${provider.name} login: $e'),
+      );
     }
   }
 
@@ -212,10 +221,13 @@ class OAuthLoginUseCase {
           category: _logCategory,
         );
         await _cleanup();
-        return const Failure(AuthFailure(
-          message: 'Login session expired or was tampered with. '
-              'Please try again.',
-        ));
+        return const Failure(
+          AuthFailure(
+            message:
+                'Login session expired or was tampered with. '
+                'Please try again.',
+          ),
+        );
       }
 
       if (storedProvider == null) {
@@ -224,9 +236,9 @@ class OAuthLoginUseCase {
           category: _logCategory,
         );
         await _cleanup();
-        return const Failure(AuthFailure(
-          message: 'Login session is invalid. Please try again.',
-        ));
+        return const Failure(
+          AuthFailure(message: 'Login session is invalid. Please try again.'),
+        );
       }
 
       // Clear stored state before the network call (single-use)
@@ -268,9 +280,9 @@ class OAuthLoginUseCase {
         category: _logCategory,
       );
       await _cleanup();
-      return const Failure(AuthFailure(
-        message: 'Login failed. Please try again.',
-      ));
+      return const Failure(
+        AuthFailure(message: 'Login failed. Please try again.'),
+      );
     }
   }
 

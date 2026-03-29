@@ -3,16 +3,21 @@ import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart'
     show deviceServiceProvider, secureStorageProvider;
 import 'package:cybervpn_mobile/core/device/device_service.dart';
+import 'package:cybervpn_mobile/core/errors/failures.dart' show AuthFailure;
 import 'package:cybervpn_mobile/core/security/app_attestation.dart';
 import 'package:cybervpn_mobile/core/services/fcm_token_service.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/features/auth/data/datasources/oauth_remote_ds.dart';
+import 'package:cybervpn_mobile/features/auth/data/models/token_model.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show authRepositoryProvider;
+    show authRepositoryProvider, oauthLoginUseCaseProvider;
+import 'package:cybervpn_mobile/features/auth/domain/usecases/oauth_login.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
+import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -219,6 +224,15 @@ class FakeSecureStorage implements SecureStorageWrapper {
       _data['device_id'] ?? 'test-device-id';
 
   @override
+  Future<void> setTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    _data['access_token'] = accessToken;
+    _data['refresh_token'] = refreshToken;
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -235,6 +249,67 @@ class FakeTokenRefreshScheduler implements TokenRefreshScheduler {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeOAuthRemoteDataSource implements OAuthRemoteDataSource {
+  @override
+  Future<OAuthAuthorizeResponse> getAuthorizeUrl({
+    required String provider,
+    required String redirectUri,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<OAuthLoginResponse> loginCallback({
+    required String provider,
+    required String code,
+    required String state,
+    required String redirectUri,
+  }) {
+    throw UnimplementedError();
+  }
+}
+
+// ignore: must_be_immutable
+class FakeOAuthLoginUseCase extends OAuthLoginUseCase {
+  FakeOAuthLoginUseCase()
+    : super(
+        oauthDataSource: _FakeOAuthRemoteDataSource(),
+        secureStorage: FakeSecureStorage(),
+      );
+
+  Result<void> startFlowResult = const Success(null);
+  Result<OAuthLoginResult> processCallbackResult = const Failure(
+    AuthFailure(message: 'OAuth login failed'),
+  );
+  OAuthProvider? lastStartProvider;
+  String? lastStartRedirectUri;
+  String? lastCallbackCode;
+  String? lastCallbackState;
+  String? lastCallbackRedirectUri;
+
+  @override
+  Future<Result<void>> startFlow({
+    required OAuthProvider provider,
+    required String redirectUri,
+  }) async {
+    lastStartProvider = provider;
+    lastStartRedirectUri = redirectUri;
+    return startFlowResult;
+  }
+
+  @override
+  Future<Result<OAuthLoginResult>> processCallback({
+    required String code,
+    required String state,
+    required String redirectUri,
+  }) async {
+    lastCallbackCode = code;
+    lastCallbackState = state;
+    lastCallbackRedirectUri = redirectUri;
+    return processCallbackResult;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -259,13 +334,22 @@ ProviderContainer createContainer({
   FakeDeviceService? mockDevice,
   FakeSecureStorage? mockStorage,
   FakeTokenRefreshScheduler? mockScheduler,
+  FakeOAuthLoginUseCase? mockOAuthLogin,
 }) {
   return ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(mockRepo),
-      deviceServiceProvider.overrideWithValue(mockDevice ?? FakeDeviceService()),
-      secureStorageProvider.overrideWithValue(mockStorage ?? FakeSecureStorage()),
-      tokenRefreshSchedulerProvider.overrideWithValue(mockScheduler ?? FakeTokenRefreshScheduler()),
+      if (mockOAuthLogin != null)
+        oauthLoginUseCaseProvider.overrideWithValue(mockOAuthLogin),
+      deviceServiceProvider.overrideWithValue(
+        mockDevice ?? FakeDeviceService(),
+      ),
+      secureStorageProvider.overrideWithValue(
+        mockStorage ?? FakeSecureStorage(),
+      ),
+      tokenRefreshSchedulerProvider.overrideWithValue(
+        mockScheduler ?? FakeTokenRefreshScheduler(),
+      ),
       if (mockFcm != null) fcmTokenServiceProvider.overrideWithValue(mockFcm),
       if (mockAttestation != null)
         appAttestationServiceProvider.overrideWithValue(mockAttestation),
@@ -354,15 +438,18 @@ void main() {
       expect((state as AuthAuthenticated).user, equals(testUser));
     });
 
-    test('returns AuthUnauthenticated when authenticated but no user', () async {
-      mockRepo.isAuthenticatedValue = true;
-      mockRepo.currentUser = null;
+    test(
+      'returns AuthUnauthenticated when authenticated but no user',
+      () async {
+        mockRepo.isAuthenticatedValue = true;
+        mockRepo.currentUser = null;
 
-      container = createContainer(mockRepo: mockRepo);
-      final state = await waitForState(container);
+        container = createContainer(mockRepo: mockRepo);
+        final state = await waitForState(container);
 
-      expect(state, isA<AuthUnauthenticated>());
-    });
+        expect(state, isA<AuthUnauthenticated>());
+      },
+    );
 
     test('returns AuthError when isAuthenticated throws', () async {
       mockRepo.isAuthenticatedException = Exception('Auth check failed');
@@ -402,41 +489,40 @@ void main() {
       container.dispose();
     });
 
-    test('transitions to AuthLoading then AuthAuthenticated on success', () async {
-      mockRepo.isAuthenticatedValue = false;
-      mockRepo.loginUser = testUser;
+    test(
+      'transitions to AuthLoading then AuthAuthenticated on success',
+      () async {
+        mockRepo.isAuthenticatedValue = false;
+        mockRepo.loginUser = testUser;
 
-      container = createContainer(
-        mockRepo: mockRepo,
-        mockFcm: mockFcm,
-        mockAttestation: mockAttestation,
-      );
+        container = createContainer(
+          mockRepo: mockRepo,
+          mockFcm: mockFcm,
+          mockAttestation: mockAttestation,
+        );
 
-      await waitForState(container);
+        await waitForState(container);
 
-      // Track state changes
-      final states = <AuthState>[];
-      container.listen(
-        authProvider,
-        (_, next) {
+        // Track state changes
+        final states = <AuthState>[];
+        container.listen(authProvider, (_, next) {
           if (next.value != null) states.add(next.value!);
-        },
-        fireImmediately: false,
-      );
+        }, fireImmediately: false);
 
-      final notifier = container.read(authProvider.notifier);
-      await notifier.login('test@example.com', 'password123');
+        final notifier = container.read(authProvider.notifier);
+        await notifier.login('test@example.com', 'Password123');
 
-      // Verify final state
-      final finalState = container.read(authProvider).requireValue;
-      expect(finalState, isA<AuthAuthenticated>());
-      expect((finalState as AuthAuthenticated).user, equals(testUser));
+        // Verify final state
+        final finalState = container.read(authProvider).requireValue;
+        expect(finalState, isA<AuthAuthenticated>());
+        expect((finalState as AuthAuthenticated).user, equals(testUser));
 
-      // Verify repository was called with correct params
-      expect(mockRepo.loginCalled, isTrue);
-      expect(mockRepo.lastLoginEmail, equals('test@example.com'));
-      expect(mockRepo.lastLoginPassword, equals('password123'));
-    });
+        // Verify repository was called with correct params
+        expect(mockRepo.loginCalled, isTrue);
+        expect(mockRepo.lastLoginEmail, equals('test@example.com'));
+        expect(mockRepo.lastLoginPassword, equals('Password123'));
+      },
+    );
 
     test('transitions to AuthError on login failure', () async {
       mockRepo.isAuthenticatedValue = false;
@@ -447,11 +533,14 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.login('test@example.com', 'wrongpassword');
+      await notifier.login('test@example.com', 'WrongPassword123');
 
       final finalState = container.read(authProvider).requireValue;
       expect(finalState, isA<AuthError>());
-      expect((finalState as AuthError).message, contains('Invalid credentials'));
+      expect(
+        (finalState as AuthError).message,
+        contains('Invalid credentials'),
+      );
     });
   });
 
@@ -478,7 +567,7 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('new@example.com', 'password123');
+      await notifier.register('new@example.com', 'Password123');
 
       final finalState = container.read(authProvider).requireValue;
       expect(finalState, isA<AuthAuthenticated>());
@@ -487,7 +576,7 @@ void main() {
       // Verify repository was called
       expect(mockRepo.registerCalled, isTrue);
       expect(mockRepo.lastRegisterEmail, equals('new@example.com'));
-      expect(mockRepo.lastRegisterPassword, equals('password123'));
+      expect(mockRepo.lastRegisterPassword, equals('Password123'));
       expect(mockRepo.lastRegisterReferralCode, isNull);
     });
 
@@ -500,7 +589,11 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('new@example.com', 'password123', referralCode: 'REFERRAL123');
+      await notifier.register(
+        'new@example.com',
+        'Password123',
+        referralCode: 'REFERRAL123',
+      );
 
       expect(mockRepo.lastRegisterReferralCode, equals('REFERRAL123'));
     });
@@ -514,11 +607,14 @@ void main() {
       await waitForState(container);
 
       final notifier = container.read(authProvider.notifier);
-      await notifier.register('existing@example.com', 'password123');
+      await notifier.register('existing@example.com', 'Password123');
 
       final finalState = container.read(authProvider).requireValue;
       expect(finalState, isA<AuthError>());
-      expect((finalState as AuthError).message, contains('Email already exists'));
+      expect(
+        (finalState as AuthError).message,
+        contains('Email already exists'),
+      );
     });
   });
 
@@ -603,6 +699,117 @@ void main() {
     });
   });
 
+  group('AuthNotifier OAuth browser flow', () {
+    late MockAuthRepository mockRepo;
+    late ProviderContainer container;
+    late FakeSecureStorage fakeStorage;
+    late FakeOAuthLoginUseCase fakeOAuthLogin;
+
+    setUp(() {
+      mockRepo = MockAuthRepository();
+      fakeStorage = FakeSecureStorage();
+      fakeOAuthLogin = FakeOAuthLoginUseCase();
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('startOAuthLogin launches Facebook flow via OAuth use case', () async {
+      mockRepo.isAuthenticatedValue = false;
+      fakeOAuthLogin.startFlowResult = const Success(null);
+
+      container = createContainer(
+        mockRepo: mockRepo,
+        mockStorage: fakeStorage,
+        mockOAuthLogin: fakeOAuthLogin,
+      );
+
+      await waitForState(container);
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.startOAuthLogin(OAuthProvider.facebook);
+
+      expect(fakeOAuthLogin.lastStartProvider, OAuthProvider.facebook);
+      expect(fakeOAuthLogin.lastStartRedirectUri, 'cybervpn://oauth/callback');
+      expect(
+        container.read(authProvider).requireValue,
+        isA<AuthUnauthenticated>(),
+      );
+    });
+
+    test(
+      'completeOAuthLoginCallback stores tokens and authenticates user',
+      () async {
+        mockRepo.isAuthenticatedValue = false;
+        fakeOAuthLogin.processCallbackResult = Success(
+          OAuthLoginResult(
+            user: testUser,
+            tokens: const TokenModel(
+              accessToken: 'oauth-access',
+              refreshToken: 'oauth-refresh',
+              expiresIn: 3600,
+              tokenType: 'bearer',
+            ),
+            isNewUser: false,
+            requires2fa: false,
+          ),
+        );
+
+        container = createContainer(
+          mockRepo: mockRepo,
+          mockStorage: fakeStorage,
+          mockOAuthLogin: fakeOAuthLogin,
+        );
+
+        await waitForState(container);
+
+        final notifier = container.read(authProvider.notifier);
+        await notifier.completeOAuthLoginCallback(
+          code: 'fb-code',
+          stateToken: 'fb-state',
+        );
+
+        final finalState = container.read(authProvider).requireValue;
+        expect(finalState, isA<AuthAuthenticated>());
+        expect((finalState as AuthAuthenticated).user, testUser);
+        expect(await fakeStorage.getAccessToken(), 'oauth-access');
+        expect(await fakeStorage.getRefreshToken(), 'oauth-refresh');
+        expect(fakeOAuthLogin.lastCallbackCode, 'fb-code');
+        expect(fakeOAuthLogin.lastCallbackState, 'fb-state');
+        expect(
+          fakeOAuthLogin.lastCallbackRedirectUri,
+          'cybervpn://oauth/callback',
+        );
+      },
+    );
+
+    test('completeOAuthLoginCallback surfaces OAuth failures', () async {
+      mockRepo.isAuthenticatedValue = false;
+      fakeOAuthLogin.processCallbackResult = const Failure(
+        AuthFailure(message: 'OAuth callback failed'),
+      );
+
+      container = createContainer(
+        mockRepo: mockRepo,
+        mockStorage: fakeStorage,
+        mockOAuthLogin: fakeOAuthLogin,
+      );
+
+      await waitForState(container);
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.completeOAuthLoginCallback(
+        code: 'fb-code',
+        stateToken: 'fb-state',
+      );
+
+      final finalState = container.read(authProvider).requireValue;
+      expect(finalState, isA<AuthError>());
+      expect((finalState as AuthError).message, 'OAuth callback failed');
+    });
+  });
+
   group('Derived providers', () {
     late MockAuthRepository mockRepo;
     late ProviderContainer container;
@@ -638,16 +845,19 @@ void main() {
       expect(user, equals(testUser));
     });
 
-    test('isAuthenticatedProvider returns false when unauthenticated', () async {
-      mockRepo.isAuthenticatedValue = false;
+    test(
+      'isAuthenticatedProvider returns false when unauthenticated',
+      () async {
+        mockRepo.isAuthenticatedValue = false;
 
-      container = createContainer(mockRepo: mockRepo);
+        container = createContainer(mockRepo: mockRepo);
 
-      await waitForState(container);
+        await waitForState(container);
 
-      final isAuth = container.read(isAuthenticatedProvider);
-      expect(isAuth, isFalse);
-    });
+        final isAuth = container.read(isAuthenticatedProvider);
+        expect(isAuth, isFalse);
+      },
+    );
 
     test('isAuthenticatedProvider returns true when authenticated', () async {
       mockRepo.isAuthenticatedValue = true;

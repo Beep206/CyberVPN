@@ -35,6 +35,16 @@ final _testProfileLinked = Profile(
   createdAt: DateTime(2024, 1, 1),
 );
 
+final _testProfileAppleLinked = Profile(
+  id: 'user-1',
+  email: 'test@example.com',
+  username: 'testuser',
+  isEmailVerified: true,
+  is2FAEnabled: false,
+  linkedProviders: [OAuthProvider.apple],
+  createdAt: DateTime(2024, 1, 1),
+);
+
 // ---------------------------------------------------------------------------
 // Fake profile notifier
 // ---------------------------------------------------------------------------
@@ -57,15 +67,11 @@ class _FakeProfileNotifier extends AsyncNotifier<ProfileState>
 // Helper: build widget under test
 // ---------------------------------------------------------------------------
 
-Widget _buildTestWidget({
-  required ProfileState profileState,
-}) {
+Widget _buildTestWidget({required ProfileState profileState}) {
   final notifier = _FakeProfileNotifier(profileState);
 
   return ProviderScope(
-    overrides: [
-      profileProvider.overrideWith(() => notifier),
-    ],
+    overrides: [profileProvider.overrideWith(() => notifier)],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -81,7 +87,9 @@ Widget _buildTestWidget({
 
 void main() {
   group('SocialAccountsScreen', () {
-    testWidgets('shows Link button when provider is not linked', (tester) async {
+    testWidgets('shows Link button when provider is not linked', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileNotLinked),
@@ -112,10 +120,27 @@ void main() {
 
       // Verify GitHub provider is also shown
       expect(find.text('GitHub'), findsOneWidget);
+      expect(find.text('Facebook'), findsOneWidget);
+      expect(find.text('Apple'), findsNothing);
     });
 
-    testWidgets('shows Unlink button and username when provider is linked',
-        (tester) async {
+    testWidgets('shows linked Apple account but hides unlinked Apple option', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          profileState: ProfileState(profile: _testProfileAppleLinked),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Apple'), findsOneWidget);
+      expect(find.byKey(const Key('provider_apple')), findsOneWidget);
+    });
+
+    testWidgets('shows Unlink button and username when provider is linked', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileLinked),
@@ -134,14 +159,12 @@ void main() {
       expect(find.text('@telegram_user'), findsOneWidget);
 
       // Verify Unlink button is present for Telegram
-      expect(
-        find.widgetWithText(OutlinedButton, 'Unlink'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(OutlinedButton, 'Unlink'), findsOneWidget);
     });
 
-    testWidgets('shows confirmation dialog when Unlink button is tapped',
-        (tester) async {
+    testWidgets('shows confirmation dialog when Unlink button is tapped', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileLinked),
@@ -188,8 +211,9 @@ void main() {
       expect(find.text('Unlink Telegram?'), findsNothing);
     });
 
-    testWidgets('Telegram card is highlighted with neon cyan border',
-        (tester) async {
+    testWidgets('Telegram card is highlighted with neon cyan border', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileNotLinked),
@@ -215,41 +239,44 @@ void main() {
       expect(shape.side.width, 1.5);
     });
 
-    testWidgets('disables Unlink when Telegram is only login method (no email)',
-        (tester) async {
-      final telegramOnlyProfile = Profile(
-        id: 'user-1',
-        email: '',
-        username: 'testuser',
-        isEmailVerified: false,
-        is2FAEnabled: false,
-        linkedProviders: [OAuthProvider.telegram],
-        createdAt: DateTime(2024, 1, 1),
-      );
+    testWidgets(
+      'disables Unlink when Telegram is only login method (no email)',
+      (tester) async {
+        final telegramOnlyProfile = Profile(
+          id: 'user-1',
+          email: '',
+          username: 'testuser',
+          isEmailVerified: false,
+          is2FAEnabled: false,
+          linkedProviders: [OAuthProvider.telegram],
+          createdAt: DateTime(2024, 1, 1),
+        );
 
-      await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: telegramOnlyProfile),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _buildTestWidget(
+            profileState: ProfileState(profile: telegramOnlyProfile),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Verify Unlink button exists but is disabled
-      final unlinkButton = find.byKey(const Key('unlink_telegram'));
-      expect(unlinkButton, findsOneWidget);
+        // Verify Unlink button exists but is disabled
+        final unlinkButton = find.byKey(const Key('unlink_telegram'));
+        expect(unlinkButton, findsOneWidget);
 
-      final button = tester.widget<OutlinedButton>(unlinkButton);
-      expect(button.onPressed, isNull);
+        final button = tester.widget<OutlinedButton>(unlinkButton);
+        expect(button.onPressed, isNull);
 
-      // Verify warning message is shown
-      expect(
-        find.text('Cannot unlink — this is your only login method'),
-        findsOneWidget,
-      );
-    });
+        // Verify warning message is shown
+        expect(
+          find.text('Cannot unlink — this is your only login method'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('enables Unlink when email is verified (alternative login)',
-        (tester) async {
+    testWidgets('enables Unlink when email is verified (alternative login)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileLinked),
@@ -271,8 +298,9 @@ void main() {
       );
     });
 
-    testWidgets('enables Unlink when other providers are linked',
-        (tester) async {
+    testWidgets('enables Unlink when other providers are linked', (
+      tester,
+    ) async {
       final multiProviderProfile = Profile(
         id: 'user-1',
         email: '',
@@ -298,8 +326,9 @@ void main() {
       expect(button.onPressed, isNotNull);
     });
 
-    testWidgets('Telegram and GitHub provider cards are visible at top',
-        (tester) async {
+    testWidgets('Telegram and GitHub provider cards are visible at top', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildTestWidget(
           profileState: ProfileState(profile: _testProfileNotLinked),

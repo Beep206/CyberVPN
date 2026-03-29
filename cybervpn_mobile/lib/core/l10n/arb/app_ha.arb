@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Shigar da imel ɗinka kuma za mu aiko maka hanyar shiga ta sau ɗaya. Ba a buƙatar kalmar sirri.",
   "magicLinkSentTo": "Mun aika hanyar shiga zuwa {email}. Taɓa hanyar haɗin a cikin imel ɗin don shiga.",
   "continueWithGoogle": "Ci gaba da Google",
+  "continueWithFacebook": "Ci gaba da Facebook",
   "backToLogin": "Komawa zuwa shiga",
   "rateLimitMessage": "Buƙatun da yawa. Da fatan za a sake gwadawa bayan daƙiƙa {seconds}.",
   "registerModeUsernameOnly": "Sunan mai amfani kawai",

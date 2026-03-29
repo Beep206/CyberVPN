@@ -4485,6 +4485,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get continueWithGoogle => 'Продовжити з Google';
 
   @override
+  String get continueWithFacebook => 'Продовжити з Facebook';
+
+  @override
   String get continueWithApple => 'Продовжити з Apple';
 
   @override

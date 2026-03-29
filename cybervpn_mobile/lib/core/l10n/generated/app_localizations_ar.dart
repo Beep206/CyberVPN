@@ -4495,6 +4495,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get continueWithGoogle => 'المتابعة مع Google';
 
   @override
+  String get continueWithFacebook => 'المتابعة مع Facebook';
+
+  @override
   String get continueWithApple => 'المتابعة مع Apple';
 
   @override

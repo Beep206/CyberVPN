@@ -1210,10 +1210,12 @@ describe('Auth Store', () => {
         'telegram_magic_link_session',
         expect.stringContaining('magic_tg_token')
       );
-      expect(window.location.href).toBe('/ru-RU/telegram-link');
+      expect(window.location.href).toBe('/ru-RU/telegram-link?magic=magic_tg_token');
     });
 
     it('test_oauthLogin_stores_provider_in_sessionStorage_and_redirects', async () => {
+      window.location.pathname = '/ru-RU/login';
+
       mockOauthLoginAuthorize.mockResolvedValue({
         data: {
           authorize_url: 'https://accounts.google.com/oauth?state=csrf123',
@@ -1227,9 +1229,31 @@ describe('Auth Store', () => {
       // Should store CSRF state in sessionStorage
       expect(sessionStorage.setItem).toHaveBeenCalledWith('oauth_state', 'csrf123');
       expect(sessionStorage.setItem).toHaveBeenCalledWith('oauth_provider', 'google');
+      expect(mockOauthLoginAuthorize).toHaveBeenCalledWith(
+        'google',
+        'http://localhost:3000/ru-RU/oauth/callback'
+      );
 
       // Should redirect to the authorization URL
       expect(window.location.href).toBe('https://accounts.google.com/oauth?state=csrf123');
+    });
+
+    it('test_oauthLogin_uses_default_locale_callback_when_path_has_no_locale', async () => {
+      window.location.pathname = '/login';
+
+      mockOauthLoginAuthorize.mockResolvedValue({
+        data: {
+          authorize_url: 'https://github.com/login/oauth?state=csrf456',
+          state: 'csrf456',
+        },
+      });
+
+      await useAuthStore.getState().oauthLogin('github');
+
+      expect(mockOauthLoginAuthorize).toHaveBeenCalledWith(
+        'github',
+        'http://localhost:3000/en-EN/oauth/callback'
+      );
     });
 
     it('test_oauthLogin_sets_loading_state_during_request', async () => {
@@ -1333,6 +1357,7 @@ describe('Auth Store', () => {
     });
 
     it('test_oauthCallback_sets_user_on_success_without_2FA', async () => {
+      window.location.pathname = '/ru-RU/oauth/callback';
       sessionStorage.setItem('oauth_state', 'matched_state');
 
       mockOauthLoginCallback.mockResolvedValue({
@@ -1356,6 +1381,12 @@ describe('Auth Store', () => {
       });
 
       const result = await useAuthStore.getState().oauthCallback('github', 'valid_code', 'matched_state');
+
+      expect(mockOauthLoginCallback).toHaveBeenCalledWith('github', {
+        code: 'valid_code',
+        state: 'matched_state',
+        redirect_uri: 'http://localhost:3000/ru-RU/oauth/callback',
+      });
 
       // SEC-01: tokens delivered via httpOnly cookies, not localStorage
       expect(mockSetTokens).not.toHaveBeenCalled();

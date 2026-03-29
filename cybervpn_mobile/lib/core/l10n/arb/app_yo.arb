@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "Tẹ imeeli rẹ sii, a o fi ọna asopọ wiwọle ẹẹkan ranṣẹ si ọ. Ko nilo ọrọ igbaniwọle.",
   "magicLinkSentTo": "A ti fi ọna asopọ wiwọle ranṣẹ si {email}. Tẹ ọna asopọ ninu imeeli lati wọle.",
   "continueWithGoogle": "Tẹsiwaju pẹlu Google",
+  "continueWithFacebook": "Tẹsiwaju pẹlu Facebook",
   "backToLogin": "Pada si wiwọle",
   "rateLimitMessage": "Awọn ibeere pupọ ju. Jọwọ gbiyanju lẹhin iṣẹju-aaya {seconds}.",
   "registerModeUsernameOnly": "Orukọ olumulo nikan",

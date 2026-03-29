@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # CORS (SEC-013: Default to empty list, require explicit config)
     cors_origins: list[str] = []
 
+    # OAuth redirect allowlist for non-HTTP deep links (exact URI match)
+    oauth_allowed_redirect_uris: list[str] = ["cybervpn://oauth/callback"]
+
     # GitHub OAuth (optional)
     github_client_id: str = ""
     github_client_secret: SecretStr = SecretStr("")
@@ -50,6 +53,10 @@ class Settings(BaseSettings):
     # Discord OAuth (optional)
     discord_client_id: str = ""
     discord_client_secret: SecretStr = SecretStr("")
+
+    # Facebook OAuth (optional)
+    facebook_client_id: str = ""
+    facebook_client_secret: SecretStr = SecretStr("")
 
     # Apple Sign In (optional)
     apple_client_id: str = ""
@@ -130,9 +137,9 @@ class Settings(BaseSettings):
     otel_service_name: str = "cybervpn-backend"  # Service name in traces
     otel_enabled: bool = True  # Enable OpenTelemetry tracing
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", "oauth_allowed_redirect_uris", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+    def parse_str_list(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v

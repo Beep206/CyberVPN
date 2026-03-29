@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "ئیمەیڵەکەت بنووسە و ئێمە بەستەرێکی چوونەژوورەوەی یەک جاری بۆت دەنێرین. پێویستی بە وشەی نهێنی نییە.",
   "magicLinkSentTo": "بەستەرێکی چوونەژوورەوەمان بۆ {email} نارد. لە ئیمەیڵەکەدا بەستەرەکە بکە بۆ چوونەژوورەوە.",
   "continueWithGoogle": "بەردەوامبوون لەگەڵ Google",
+  "continueWithFacebook": "بەردەوامبوون لەگەڵ Facebook",
   "backToLogin": "گەڕانەوە بۆ چوونەژوورەوە",
   "rateLimitMessage": "داواکاری زۆر. تکایە دوای {seconds} چرکە دووبارە هەوڵ بدەرەوە.",
   "registerModeUsernameOnly": "تەنها ناوی بەکارهێنەر",

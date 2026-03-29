@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Nhập email và chúng tôi sẽ gửi cho bạn liên kết đăng nhập dùng một lần. Không cần mật khẩu.",
   "magicLinkSentTo": "Chúng tôi đã gửi liên kết đăng nhập tới {email}. Nhấn vào liên kết trong email để đăng nhập.",
   "continueWithGoogle": "Tiếp tục với Google",
+  "continueWithFacebook": "Tiếp tục với Facebook",
   "backToLogin": "Quay lại đăng nhập",
   "rateLimitMessage": "Quá nhiều yêu cầu. Vui lòng thử lại sau {seconds} giây.",
   "registerModeUsernameOnly": "Chỉ tên người dùng",

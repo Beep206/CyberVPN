@@ -15,10 +15,16 @@ import 'package:cybervpn_mobile/core/utils/performance_profiler.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/login.dart';
+import 'package:cybervpn_mobile/features/auth/domain/usecases/oauth_login.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/register.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show authRepositoryProvider, loginUseCaseProvider, registerUseCaseProvider;
+    show
+        authRepositoryProvider,
+        loginUseCaseProvider,
+        oauthLoginUseCaseProvider,
+        registerUseCaseProvider;
+import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Auth notifier
@@ -30,8 +36,12 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
 /// [login], [register], [logout], and [checkAuthStatus] for explicit
 /// auth operations.
 class AuthNotifier extends AsyncNotifier<AuthState> {
+  static const _mobileOAuthRedirectUri = 'cybervpn://oauth/callback';
+
   AuthRepository get _repo => ref.read(authRepositoryProvider);
   LoginUseCase get _loginUseCase => ref.read(loginUseCaseProvider);
+  OAuthLoginUseCase get _oauthLoginUseCase =>
+      ref.read(oauthLoginUseCaseProvider);
   RegisterUseCase get _registerUseCase => ref.read(registerUseCaseProvider);
   DeviceService get _deviceService => ref.read(deviceServiceProvider);
   SecureStorageWrapper get _storage => ref.read(secureStorageProvider);
@@ -276,6 +286,60 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
     } catch (e) {
       state = AsyncValue.data(AuthError(e.toString()));
+    }
+  }
+
+  /// Starts a browser-based OAuth login flow for providers without native SDKs.
+  Future<void> startOAuthLogin(OAuthProvider provider) async {
+    final previousState = state.value ?? const AuthUnauthenticated();
+    state = const AsyncValue.data(AuthLoading());
+
+    final result = await _oauthLoginUseCase.startFlow(
+      provider: provider,
+      redirectUri: _mobileOAuthRedirectUri,
+    );
+
+    switch (result) {
+      case Success():
+        state = AsyncValue.data(previousState);
+      case Failure(:final failure):
+        state = AsyncValue.data(AuthError(failure.message));
+    }
+  }
+
+  /// Completes a browser-based OAuth login after the app receives a deep link.
+  Future<void> completeOAuthLoginCallback({
+    required String code,
+    required String stateToken,
+  }) async {
+    state = const AsyncValue.data(AuthLoading());
+
+    final result = await _oauthLoginUseCase.processCallback(
+      code: code,
+      state: stateToken,
+      redirectUri: _mobileOAuthRedirectUri,
+    );
+
+    switch (result) {
+      case Success(:final data):
+        if (data.requires2fa) {
+          state = const AsyncValue.data(
+            AuthError(
+              'Two-factor authentication is not yet supported for mobile OAuth login.',
+            ),
+          );
+          return;
+        }
+
+        await _storage.setTokens(
+          accessToken: data.tokens.accessToken,
+          refreshToken: data.tokens.refreshToken,
+        );
+        state = AsyncValue.data(AuthAuthenticated(data.user));
+        _scheduleTokenRefresh();
+        _connectWebSocket();
+      case Failure(:final failure):
+        state = AsyncValue.data(AuthError(failure.message));
     }
   }
 

@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Introduceți emailul și vă vom trimite un link de autentificare de unică folosință. Fără parolă.",
   "magicLinkSentTo": "Am trimis un link de autentificare la {email}. Apăsați pe link din email pentru a vă conecta.",
   "continueWithGoogle": "Continuă cu Google",
+  "continueWithFacebook": "Continuă cu Facebook",
   "backToLogin": "Înapoi la autentificare",
   "rateLimitMessage": "Prea multe solicitări. Încercați din nou peste {seconds} secunde.",
   "registerModeUsernameOnly": "Doar nume de utilizator",

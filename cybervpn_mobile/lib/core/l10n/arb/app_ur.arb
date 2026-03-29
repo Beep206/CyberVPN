@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "اپنا ای میل درج کریں اور ہم آپ کو ایک بار استعمال ہونے والا لاگ ان لنک بھیجیں گے۔ پاس ورڈ کی ضرورت نہیں۔",
   "magicLinkSentTo": "ہم نے {email} پر لاگ ان لنک بھیجا ہے۔ سائن ان کرنے کے لیے ای میل میں لنک پر ٹیپ کریں۔",
   "continueWithGoogle": "Google کے ساتھ جاری رکھیں",
+  "continueWithFacebook": "Facebook کے ساتھ جاری رکھیں",
   "backToLogin": "لاگ ان پر واپس",
   "rateLimitMessage": "بہت زیادہ درخواستیں۔ {seconds} سیکنڈ بعد دوبارہ کوشش کریں۔",
   "registerModeUsernameOnly": "صرف صارف نام",

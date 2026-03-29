@@ -4454,6 +4454,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get continueWithGoogle => 'Doorgaan met Google';
 
   @override
+  String get continueWithFacebook => 'Doorgaan met Facebook';
+
+  @override
   String get continueWithApple => 'Doorgaan met Apple';
 
   @override

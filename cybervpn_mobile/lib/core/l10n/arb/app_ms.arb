@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Masukkan e-mel anda dan kami akan hantar pautan log masuk sekali guna. Tiada kata laluan diperlukan.",
   "magicLinkSentTo": "Kami telah menghantar pautan log masuk ke {email}. Ketik pautan dalam e-mel untuk log masuk.",
   "continueWithGoogle": "Teruskan dengan Google",
+  "continueWithFacebook": "Teruskan dengan Facebook",
   "backToLogin": "Kembali ke log masuk",
   "rateLimitMessage": "Terlalu banyak permintaan. Sila cuba lagi dalam {seconds} saat.",
   "registerModeUsernameOnly": "Nama pengguna sahaja",

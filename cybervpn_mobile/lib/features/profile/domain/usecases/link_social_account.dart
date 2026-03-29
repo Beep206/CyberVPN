@@ -41,7 +41,8 @@ class CompleteSocialAccountLinkUseCase {
   Future<Result<void>> call({
     required OAuthProvider provider,
     required String code,
+    required String state,
   }) async {
-    return _repository.completeOAuthLink(provider, code);
+    return _repository.completeOAuthLink(provider, code, state);
   }
 }

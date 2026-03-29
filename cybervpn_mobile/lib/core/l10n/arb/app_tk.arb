@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "E-poçtaňyzy giriziň, biz size bir gezeklik giriş baglanyşygyny ibereris. Parol gerek däl.",
   "magicLinkSentTo": "Giriş baglanyşygyny {email} salgysa iberdik. Girmek üçin e-poçtadaky baglanyşyga basyň.",
   "continueWithGoogle": "Google bilen dowam et",
+  "continueWithFacebook": "Facebook bilen dowam et",
   "backToLogin": "Girişe gaýdyp gel",
   "rateLimitMessage": "Haýyşlar juda köp. {seconds} sekuntdan soň täzeden synanyşyň.",
   "registerModeUsernameOnly": "Diňe ulanyjy ady",

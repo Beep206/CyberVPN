@@ -4498,6 +4498,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get continueWithGoogle => 'Google арқылы жалғастыру';
 
   @override
+  String get continueWithFacebook => 'Facebook арқылы жалғастыру';
+
+  @override
   String get continueWithApple => 'Apple арқылы жалғастыру';
 
   @override

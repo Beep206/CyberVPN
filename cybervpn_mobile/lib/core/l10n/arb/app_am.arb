@@ -2318,6 +2318,7 @@
   "magicLinkSubtitle": "ኢሜይልዎን ያስገቡ እና የአንድ ጊዜ የመግቢያ ማገናኛ እንልክልዎታለን። የይለፍ ቃል አያስፈልግም።",
   "magicLinkSentTo": "ወደ {email} የመግቢያ ማገናኛ ልከናል። ለመግባት በኢሜይሉ ውስጥ ያለውን ማገናኛ ይንኩ።",
   "continueWithGoogle": "በ Google ቀጥል",
+  "continueWithFacebook": "በ Facebook ቀጥል",
   "backToLogin": "ወደ መግቢያ ተመለስ",
   "rateLimitMessage": "ብዙ ጥያቄዎች። ከ{seconds} ሰከንዶች በኋላ እንደገና ይሞክሩ።",
   "registerModeUsernameOnly": "የተጠቃሚ ስም ብቻ",

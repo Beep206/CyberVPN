@@ -4445,6 +4445,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get continueWithGoogle => 'Teruskan dengan Google';
 
   @override
+  String get continueWithFacebook => 'Teruskan dengan Facebook';
+
+  @override
   String get continueWithApple => 'Teruskan dengan Apple';
 
   @override

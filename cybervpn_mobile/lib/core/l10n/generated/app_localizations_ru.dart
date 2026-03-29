@@ -4495,6 +4495,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get continueWithGoogle => 'Продолжить с Google';
 
   @override
+  String get continueWithFacebook => 'Продолжить с Facebook';
+
+  @override
   String get continueWithApple => 'Продолжить с Apple';
 
   @override

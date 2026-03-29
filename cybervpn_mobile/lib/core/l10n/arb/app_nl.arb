@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Voer je e-mail in en we sturen je een eenmalige inloglink. Geen wachtwoord nodig.",
   "magicLinkSentTo": "We hebben een inloglink naar {email} gestuurd. Tik op de link in de e-mail om in te loggen.",
   "continueWithGoogle": "Doorgaan met Google",
+  "continueWithFacebook": "Doorgaan met Facebook",
   "backToLogin": "Terug naar inloggen",
   "rateLimitMessage": "Te veel verzoeken. Probeer het over {seconds} seconden opnieuw.",
   "registerModeUsernameOnly": "Alleen gebruikersnaam",

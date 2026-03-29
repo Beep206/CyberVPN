@@ -1616,6 +1616,7 @@
   "magicLinkSubtitle": "E-postanızı girin, size tek kullanımlık bir giriş bağlantısı gönderelim. Şifre gerekmez.",
   "magicLinkSentTo": "{email} adresine giriş bağlantısı gönderdik. Giriş yapmak için e-postadaki bağlantıya dokunun.",
   "continueWithGoogle": "Google ile devam et",
+  "continueWithFacebook": "Facebook ile devam et",
   "backToLogin": "Girişe dön",
   "rateLimitMessage": "Çok fazla istek. Lütfen {seconds} saniye sonra tekrar deneyin.",
   "registerModeUsernameOnly": "Yalnızca kullanıcı adı",

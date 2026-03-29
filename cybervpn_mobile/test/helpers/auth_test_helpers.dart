@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
@@ -44,48 +45,60 @@ Finder findLoadingIndicator() => find.byType(CircularProgressIndicator);
 /// Configures [mockRepo] to return [AuthUnauthenticated] on initial check
 /// (isAuthenticated returns false).
 void stubUnauthenticated(MockAuthRepository mockRepo) {
-  when(() => mockRepo.isAuthenticated()).thenAnswer((_) async => const Success(false));
-  when(() => mockRepo.getCurrentUser()).thenAnswer((_) async => const Success(null));
+  when(
+    () => mockRepo.isAuthenticated(),
+  ).thenAnswer((_) async => const Success(false));
+  when(
+    () => mockRepo.getCurrentUser(),
+  ).thenAnswer((_) async => const Success(null));
 }
 
 /// Configures [mockRepo] so that [login] succeeds with a default user.
 void stubLoginSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
   final mockUser = user ?? createMockUser();
-  when(() => mockRepo.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        device: any(named: 'device'),
-      )).thenAnswer((_) async => Success((mockUser, 'mock-token')));
+  when(
+    () => mockRepo.login(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      device: any(named: 'device'),
+    ),
+  ).thenAnswer((_) async => Success((mockUser, 'mock-token')));
 }
 
 /// Configures [mockRepo] so that [login] throws an error.
 void stubLoginFailure(MockAuthRepository mockRepo, {String? message}) {
-  when(() => mockRepo.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        device: any(named: 'device'),
-      )).thenThrow(Exception(message ?? 'Invalid credentials'));
+  when(
+    () => mockRepo.login(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      device: any(named: 'device'),
+    ),
+  ).thenThrow(Exception(message ?? 'Invalid credentials'));
 }
 
 /// Configures [mockRepo] so that [register] succeeds with a default user.
 void stubRegisterSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
   final mockUser = user ?? createMockUser();
-  when(() => mockRepo.register(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        device: any(named: 'device'),
-        referralCode: any(named: 'referralCode'),
-      )).thenAnswer((_) async => Success((mockUser, 'mock-token')));
+  when(
+    () => mockRepo.register(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      device: any(named: 'device'),
+      referralCode: any(named: 'referralCode'),
+    ),
+  ).thenAnswer((_) async => Success((mockUser, 'mock-token')));
 }
 
 /// Configures [mockRepo] so that [register] throws an error.
 void stubRegisterFailure(MockAuthRepository mockRepo, {String? message}) {
-  when(() => mockRepo.register(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        device: any(named: 'device'),
-        referralCode: any(named: 'referralCode'),
-      )).thenThrow(Exception(message ?? 'Email already taken'));
+  when(
+    () => mockRepo.register(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      device: any(named: 'device'),
+      referralCode: any(named: 'referralCode'),
+    ),
+  ).thenThrow(Exception(message ?? 'Email already taken'));
 }
 
 // ---------------------------------------------------------------------------
@@ -134,8 +147,7 @@ GoRouter buildTestRouter({
       ),
       GoRoute(
         path: '/connection',
-        builder: (_, _) =>
-            const Scaffold(body: Text('Connection Screen')),
+        builder: (_, _) => const Scaffold(body: Text('Connection Screen')),
       ),
     ],
   );
@@ -154,6 +166,8 @@ Widget buildTestableAuthScreen({
     child: MaterialApp.router(
       routerConfig: router,
       theme: ThemeData.light(useMaterial3: true),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     ),
   );
 }

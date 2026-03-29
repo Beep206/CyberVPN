@@ -9,7 +9,9 @@ Security improvements:
 
 import json
 import logging
+import re
 import uuid
+from urllib.parse import urlparse
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -19,6 +21,7 @@ from src.application.services.auth_service import AuthService
 from src.application.services.oauth_state_service import OAuthStateService
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -26,6 +29,7 @@ from src.infrastructure.database.repositories.oauth_account_repo import OAuthAcc
 from src.infrastructure.monitoring.instrumentation.routes import track_oauth_attempt
 from src.infrastructure.oauth.apple import AppleOAuthProvider
 from src.infrastructure.oauth.discord import DiscordOAuthProvider
+from src.infrastructure.oauth.facebook import FacebookOAuthProvider
 from src.infrastructure.oauth.github import GitHubOAuthProvider
 from src.infrastructure.oauth.google import GoogleOAuthProvider
 from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
@@ -34,6 +38,7 @@ from src.infrastructure.oauth.twitter import TwitterOAuthProvider
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.presentation.api.v1.auth.cookies import set_auth_cookies
 from src.presentation.api.v1.oauth.schemas import (
+    FacebookCallbackRequest,
     GitHubCallbackRequest,
     OAuthAuthorizeResponse,
     OAuthLinkResponse,
@@ -55,15 +60,29 @@ from src.shared.security.fingerprint import generate_client_fingerprint
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
+_OAUTH_CALLBACK_PATH_RE = re.compile(r"^/(?:[a-z]{2,3}-[A-Z]{2}/)?oauth/callback/?$")
+
 # Provider class map: provider_name -> (ProviderClass, requires_pkce)
 _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
     "google": (GoogleOAuthProvider, True),
     "discord": (DiscordOAuthProvider, True),
+    "facebook": (FacebookOAuthProvider, False),
     "apple": (AppleOAuthProvider, True),
     "microsoft": (MicrosoftOAuthProvider, True),
     "twitter": (TwitterOAuthProvider, True),
     "github": (GitHubOAuthProvider, False),
 }
+
+_ENABLED_OAUTH_LOGIN_PROVIDERS = frozenset(
+    {
+        "google",
+        "discord",
+        "facebook",
+        "microsoft",
+        "twitter",
+        "github",
+    }
+)
 
 
 def _get_client_ip(request: Request) -> str:
@@ -78,6 +97,54 @@ def _get_magic_link_key(token: str) -> str:
     return f"auth_magic_link:{token}"
 
 
+def _is_allowed_oauth_redirect_uri(redirect_uri: str) -> bool:
+    if redirect_uri in settings.oauth_allowed_redirect_uris:
+        return True
+
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+
+    if parsed.params or parsed.query or parsed.fragment:
+        return False
+
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    if origin not in settings.cors_origins:
+        return False
+
+    return _OAUTH_CALLBACK_PATH_RE.fullmatch(parsed.path) is not None
+
+
+def _validate_oauth_redirect_uri(redirect_uri: str) -> None:
+    if _is_allowed_oauth_redirect_uri(redirect_uri):
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid OAuth redirect URI.",
+    )
+
+
+def _is_oauth_login_provider_enabled(provider: str) -> bool:
+    return provider in _ENABLED_OAUTH_LOGIN_PROVIDERS
+
+
+def _validate_oauth_login_provider(provider: OAuthProvider) -> None:
+    if provider.value not in _OAUTH_PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Provider '{provider.value}' does not support login flow.",
+        )
+
+    if _is_oauth_login_provider_enabled(provider.value):
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Provider '{provider.value}' is currently disabled.",
+    )
+
+
 def _build_magic_link_user_info(payload: TelegramMagicLinkCompleteRequest) -> dict[str, str | None]:
     return {
         "id": payload.id,
@@ -86,6 +153,95 @@ def _build_magic_link_user_info(payload: TelegramMagicLinkCompleteRequest) -> di
         "username": payload.username,
         "language_code": payload.language_code,
     }
+
+
+async def _build_code_oauth_authorize_response(
+    *,
+    provider_name: str,
+    provider_class: type,
+    redirect_uri: str,
+    request: Request,
+    redis_client: redis.Redis,
+    user: AdminUserModel,
+) -> OAuthAuthorizeResponse:
+    state_service = OAuthStateService(redis_client)
+    state, _ = await state_service.generate(
+        provider=provider_name,
+        user_id=str(user.id),
+        ip_address=_get_client_ip(request),
+    )
+
+    provider = provider_class()
+    authorize_url = provider.authorize_url(redirect_uri, state=state)
+    return OAuthAuthorizeResponse(authorize_url=authorize_url, state=state)
+
+
+async def _complete_code_oauth_link(
+    *,
+    provider_name: str,
+    provider_class: type,
+    callback_data: GitHubCallbackRequest | FacebookCallbackRequest,
+    request: Request,
+    user: AdminUserModel,
+    db: AsyncSession,
+    redis_client: redis.Redis,
+) -> OAuthLinkResponse:
+    state_service = OAuthStateService(redis_client)
+    if not await state_service.validate_and_consume(
+        state=callback_data.state,
+        provider=provider_name,
+        user_id=str(user.id),
+        ip_address=_get_client_ip(request),
+    ):
+        logger.warning(
+            "%s OAuth callback with invalid state",
+            provider_name.capitalize(),
+            extra={"user_id": str(user.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired OAuth state.",
+        )
+
+    provider = provider_class()
+    user_info = await provider.exchange_code(
+        code=callback_data.code,
+        redirect_uri=callback_data.redirect_uri,
+    )
+
+    if not user_info:
+        logger.warning(
+            "%s OAuth code exchange failed",
+            provider_name.capitalize(),
+            extra={"user_id": str(user.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OAuth authentication failed.",
+        )
+
+    uc = AccountLinkingUseCase(db)
+    await uc.link_account(
+        user_id=user.id,
+        provider=provider_name,
+        provider_user_id=str(user_info["id"]),
+        provider_username=user_info.get("username"),
+        provider_email=user_info.get("email"),
+        access_token=user_info.get("access_token", ""),
+        refresh_token=user_info.get("refresh_token"),
+    )
+
+    logger.info(
+        "%s account linked",
+        provider_name.capitalize(),
+        extra={"user_id": str(user.id), f"{provider_name}_id": user_info["id"]},
+    )
+
+    return OAuthLinkResponse(
+        status="linked",
+        provider=provider_name,
+        provider_user_id=str(user_info["id"]),
+    )
 
 
 @router.get("/telegram/authorize", response_model=OAuthAuthorizeResponse)
@@ -129,17 +285,35 @@ async def github_authorize(
 
     The state token must be included in the callback request.
     """
-    state_service = OAuthStateService(redis_client)
-    state, _ = await state_service.generate(
-        provider="github",
-        user_id=str(user.id),
-        ip_address=_get_client_ip(request),
+    return await _build_code_oauth_authorize_response(
+        provider_name="github",
+        provider_class=GitHubOAuthProvider,
+        redirect_uri=redirect_uri,
+        request=request,
+        redis_client=redis_client,
+        user=user,
     )
 
-    provider = GitHubOAuthProvider()
-    authorize_url = provider.authorize_url(redirect_uri, state=state)
 
-    return OAuthAuthorizeResponse(authorize_url=authorize_url, state=state)
+@router.get("/facebook/authorize", response_model=OAuthAuthorizeResponse)
+async def facebook_authorize(
+    request: Request,
+    redirect_uri: str = Query(..., description="Redirect URI after authentication"),
+    redis_client: redis.Redis = Depends(get_redis),
+    user: AdminUserModel = Depends(get_current_active_user),
+) -> OAuthAuthorizeResponse:
+    """Get Facebook OAuth authorization URL with CSRF state token.
+
+    The state token must be included in the callback request.
+    """
+    return await _build_code_oauth_authorize_response(
+        provider_name="facebook",
+        provider_class=FacebookOAuthProvider,
+        redirect_uri=redirect_uri,
+        request=request,
+        redis_client=redis_client,
+        user=user,
+    )
 
 
 @router.post("/telegram/callback", response_model=OAuthLinkResponse)
@@ -395,58 +569,34 @@ async def github_callback(
     2. Exchanges code for access token via GitHub API
     3. Fetches user info from GitHub API
     """
-    # Validate CSRF state token
-    state_service = OAuthStateService(redis_client)
-    if not await state_service.validate_and_consume(
-        state=callback_data.state,
-        provider="github",
-        user_id=str(user.id),
-        ip_address=_get_client_ip(request),
-    ):
-        logger.warning(
-            "GitHub OAuth callback with invalid state",
-            extra={"user_id": str(user.id)},
-        )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired OAuth state.",
-        )
-
-    # Exchange code for user info
-    provider = GitHubOAuthProvider()
-    user_info = await provider.exchange_code(
-        code=callback_data.code,
-        redirect_uri=callback_data.redirect_uri,
+    return await _complete_code_oauth_link(
+        provider_name="github",
+        provider_class=GitHubOAuthProvider,
+        callback_data=callback_data,
+        request=request,
+        user=user,
+        db=db,
+        redis_client=redis_client,
     )
 
-    if not user_info:
-        logger.warning(
-            "GitHub OAuth code exchange failed",
-            extra={"user_id": str(user.id)},
-        )
-        # Generic error to prevent information leakage
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="OAuth authentication failed.",
-        )
 
-    # Link the account
-    uc = AccountLinkingUseCase(db)
-    await uc.link_account(
-        user_id=user.id,
-        provider="github",
-        provider_user_id=str(user_info["id"]),
-    )
-
-    logger.info(
-        "GitHub account linked",
-        extra={"user_id": str(user.id), "github_id": user_info["id"]},
-    )
-
-    return OAuthLinkResponse(
-        status="linked",
-        provider="github",
-        provider_user_id=str(user_info["id"]),
+@router.post("/facebook/callback", response_model=OAuthLinkResponse)
+async def facebook_callback(
+    callback_data: FacebookCallbackRequest,
+    request: Request,
+    user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> OAuthLinkResponse:
+    """Process Facebook OAuth callback and link account."""
+    return await _complete_code_oauth_link(
+        provider_name="facebook",
+        provider_class=FacebookOAuthProvider,
+        callback_data=callback_data,
+        request=request,
+        user=user,
+        db=db,
+        redis_client=redis_client,
     )
 
 
@@ -482,11 +632,8 @@ async def oauth_login_authorize(
 
     Generates state token and PKCE challenge (when supported).
     """
-    if provider.value not in _OAUTH_PROVIDERS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Provider '{provider.value}' does not support login flow.",
-        )
+    _validate_oauth_redirect_uri(redirect_uri)
+    _validate_oauth_login_provider(provider)
 
     provider_class, requires_pkce = _OAUTH_PROVIDERS[provider.value]
     state_service = OAuthStateService(redis_client)
@@ -525,11 +672,8 @@ async def oauth_login_callback(
 
     Validates state, exchanges code with provider, finds or creates user.
     """
-    if provider.value not in _OAUTH_PROVIDERS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Provider '{provider.value}' does not support login flow.",
-        )
+    _validate_oauth_redirect_uri(callback_data.redirect_uri)
+    _validate_oauth_login_provider(provider)
 
     # Validate and consume state token
     state_service = OAuthStateService(redis_client)
@@ -670,3 +814,21 @@ async def github_callback_get_alias(
     """
     callback_data = GitHubCallbackRequest(code=code, state=state, redirect_uri=redirect_uri)
     return await github_callback(callback_data, request, user, db, redis_client)
+
+
+@router.get("/facebook/callback", response_model=OAuthLinkResponse, deprecated=True)
+async def facebook_callback_get_alias(
+    request: Request,
+    code: str = Query(...),
+    state: str = Query(...),
+    redirect_uri: str = Query(...),
+    user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> OAuthLinkResponse:
+    """Facebook OAuth callback (GET alias for mobile compatibility).
+
+    **DEPRECATED**: Use POST /oauth/facebook/callback instead.
+    """
+    callback_data = FacebookCallbackRequest(code=code, state=state, redirect_uri=redirect_uri)
+    return await facebook_callback(callback_data, request, user, db, redis_client)

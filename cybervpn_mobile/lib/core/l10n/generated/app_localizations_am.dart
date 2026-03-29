@@ -4445,6 +4445,9 @@ class AppLocalizationsAm extends AppLocalizations {
   String get continueWithGoogle => 'በ Google ቀጥል';
 
   @override
+  String get continueWithFacebook => 'በ Facebook ቀጥል';
+
+  @override
   String get continueWithApple => 'በ Apple ቀጥል';
 
   @override

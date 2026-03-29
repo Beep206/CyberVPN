@@ -1615,6 +1615,7 @@
   "magicLinkSubtitle": "Введите email, и мы отправим вам одноразовую ссылку для входа. Пароль не нужен.",
   "magicLinkSentTo": "Мы отправили ссылку для входа на {email}. Нажмите на ссылку в письме, чтобы войти.",
   "continueWithGoogle": "Продолжить с Google",
+  "continueWithFacebook": "Продолжить с Facebook",
   "backToLogin": "Назад к входу",
   "rateLimitMessage": "Слишком много запросов. Повторите через {seconds} секунд.",
   "registerModeUsernameOnly": "Только имя пользователя",

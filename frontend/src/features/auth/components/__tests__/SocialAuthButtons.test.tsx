@@ -20,14 +20,14 @@ vi.mock('@/lib/utils', () => ({
       .trim(),
 }));
 
-const EXPECTED_PROVIDERS = ['telegram', 'google', 'github', 'discord', 'apple', 'microsoft', 'twitter'] as const;
+const EXPECTED_PROVIDERS = ['telegram', 'google', 'github', 'discord', 'facebook', 'microsoft', 'twitter'] as const;
 
 const EXPECTED_ARIA_LABELS: Record<string, string> = {
   telegram: 'Sign in with Telegram',
   google: 'Sign in with Google',
   github: 'Sign in with GitHub',
   discord: 'Sign in with Discord',
-  apple: 'Sign in with Apple',
+  facebook: 'Sign in with Facebook',
   microsoft: 'Sign in with Microsoft',
   twitter: 'Sign in with X',
 };
@@ -95,10 +95,10 @@ describe('SocialAuthButtons', () => {
 
     handleClick.mockClear();
 
-    // Click Apple button
-    const appleButton = screen.getByLabelText('Sign in with Apple');
-    await user.click(appleButton);
-    expect(handleClick).toHaveBeenCalledWith('apple');
+    // Click Facebook button
+    const facebookButton = screen.getByLabelText('Sign in with Facebook');
+    await user.click(facebookButton);
+    expect(handleClick).toHaveBeenCalledWith('facebook');
 
     handleClick.mockClear();
 
@@ -173,5 +173,11 @@ describe('SocialAuthButtons', () => {
     for (const button of buttons) {
       expect(button).toHaveAttribute('type', 'button');
     }
+  });
+
+  it('does not render the disabled Apple button', () => {
+    render(<SocialAuthButtons />);
+
+    expect(screen.queryByLabelText('Sign in with Apple')).not.toBeInTheDocument();
   });
 });

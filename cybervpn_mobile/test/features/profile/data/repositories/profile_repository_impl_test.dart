@@ -38,50 +38,59 @@ void main() {
     when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
   }
 
-  const tProfile = Profile(
-    id: 'user-1',
-    email: 'test@example.com',
-  );
+  const tProfile = Profile(id: 'user-1', email: 'test@example.com');
 
   const tSetup2FA = Setup2FAResult(
     secret: 'SECRET',
     qrCodeUri: 'otpauth://totp/test',
   );
 
-  final tDevices = [
-    const Device(id: 'dev-1', name: 'Phone', platform: 'iOS'),
-  ];
+  final tDevices = [const Device(id: 'dev-1', name: 'Phone', platform: 'iOS')];
 
   // ---------------------------------------------------------------------------
   // Network connectivity checks
   // ---------------------------------------------------------------------------
   group('network connectivity', () {
-    test('returns Failure with NetworkFailure when offline for getProfile', () async {
-      stubOffline();
+    test(
+      'returns Failure with NetworkFailure when offline for getProfile',
+      () async {
+        stubOffline();
 
-      final result = await repository.getProfile();
+        final result = await repository.getProfile();
 
-      expect(result, isA<Failure<Profile>>());
-      expect((result as Failure<Profile>).failure, isA<NetworkFailure>());
-    });
+        expect(result, isA<Failure<Profile>>());
+        expect((result as Failure<Profile>).failure, isA<NetworkFailure>());
+      },
+    );
 
-    test('returns Failure with NetworkFailure when offline for setup2FA', () async {
-      stubOffline();
+    test(
+      'returns Failure with NetworkFailure when offline for setup2FA',
+      () async {
+        stubOffline();
 
-      final result = await repository.setup2FA();
+        final result = await repository.setup2FA();
 
-      expect(result, isA<Failure<Setup2FAResult>>());
-      expect((result as Failure<Setup2FAResult>).failure, isA<NetworkFailure>());
-    });
+        expect(result, isA<Failure<Setup2FAResult>>());
+        expect(
+          (result as Failure<Setup2FAResult>).failure,
+          isA<NetworkFailure>(),
+        );
+      },
+    );
 
-    test('returns Failure with NetworkFailure when offline for getOAuthAuthorizationUrl', () async {
-      stubOffline();
+    test(
+      'returns Failure with NetworkFailure when offline for getOAuthAuthorizationUrl',
+      () async {
+        stubOffline();
 
-      final result = await repository.getOAuthAuthorizationUrl(OAuthProvider.github);
+        final result = await repository.getOAuthAuthorizationUrl(
+          OAuthProvider.github,
+        );
 
-      expect(result, isA<Failure<String>>());
-      expect((result as Failure<String>).failure, isA<NetworkFailure>());
-    });
+        expect(result, isA<Failure<String>>());
+        expect((result as Failure<String>).failure, isA<NetworkFailure>());
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -101,8 +110,9 @@ void main() {
 
     test('maps ServerException to Failure with ServerFailure', () async {
       stubOnline();
-      when(() => mockRemoteDs.getProfile())
-          .thenThrow(const ServerException(message: 'Server error', code: 500));
+      when(
+        () => mockRemoteDs.getProfile(),
+      ).thenThrow(const ServerException(message: 'Server error', code: 500));
 
       final result = await repository.getProfile();
 
@@ -112,8 +122,9 @@ void main() {
 
     test('maps AuthException to Failure with AuthFailure', () async {
       stubOnline();
-      when(() => mockRemoteDs.getProfile())
-          .thenThrow(const AuthException(message: 'Unauthorized', code: 401));
+      when(
+        () => mockRemoteDs.getProfile(),
+      ).thenThrow(const AuthException(message: 'Unauthorized', code: 401));
 
       final result = await repository.getProfile();
 
@@ -123,8 +134,9 @@ void main() {
 
     test('maps NetworkException to Failure with NetworkFailure', () async {
       stubOnline();
-      when(() => mockRemoteDs.getProfile())
-          .thenThrow(const NetworkException(message: 'Timeout'));
+      when(
+        () => mockRemoteDs.getProfile(),
+      ).thenThrow(const NetworkException(message: 'Timeout'));
 
       final result = await repository.getProfile();
 
@@ -137,17 +149,20 @@ void main() {
   // setup2FA
   // ---------------------------------------------------------------------------
   group('setup2FA', () {
-    test('returns Success with Setup2FAResult from remote data source', () async {
-      stubOnline();
-      when(() => mockRemoteDs.setup2FA()).thenAnswer((_) async => tSetup2FA);
+    test(
+      'returns Success with Setup2FAResult from remote data source',
+      () async {
+        stubOnline();
+        when(() => mockRemoteDs.setup2FA()).thenAnswer((_) async => tSetup2FA);
 
-      final result = await repository.setup2FA();
+        final result = await repository.setup2FA();
 
-      expect(result, isA<Success<Setup2FAResult>>());
-      final data = (result as Success<Setup2FAResult>).data;
-      expect(data.secret, 'SECRET');
-      expect(data.qrCodeUri, 'otpauth://totp/test');
-    });
+        expect(result, isA<Success<Setup2FAResult>>());
+        final data = (result as Success<Setup2FAResult>).data;
+        expect(data.secret, 'SECRET');
+        expect(data.qrCodeUri, 'otpauth://totp/test');
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -156,8 +171,9 @@ void main() {
   group('verify2FA', () {
     test('delegates to remote data source and returns Success', () async {
       stubOnline();
-      when(() => mockRemoteDs.verify2FA('123456'))
-          .thenAnswer((_) async => true);
+      when(
+        () => mockRemoteDs.verify2FA('123456'),
+      ).thenAnswer((_) async => true);
 
       final result = await repository.verify2FA('123456');
 
@@ -172,8 +188,9 @@ void main() {
   group('validate2FA', () {
     test('delegates to remote data source and returns Success', () async {
       stubOnline();
-      when(() => mockRemoteDs.validate2FA('654321'))
-          .thenAnswer((_) async => false);
+      when(
+        () => mockRemoteDs.validate2FA('654321'),
+      ).thenAnswer((_) async => false);
 
       final result = await repository.validate2FA('654321');
 
@@ -188,8 +205,7 @@ void main() {
   group('disable2FA', () {
     test('delegates to remote data source', () async {
       stubOnline();
-      when(() => mockRemoteDs.disable2FA('111111'))
-          .thenAnswer((_) async {});
+      when(() => mockRemoteDs.disable2FA('111111')).thenAnswer((_) async {});
 
       final result = await repository.disable2FA('111111');
 
@@ -197,16 +213,20 @@ void main() {
       verify(() => mockRemoteDs.disable2FA('111111')).called(1);
     });
 
-    test('maps ServerException with 403 to Failure with AccessDeniedFailure', () async {
-      stubOnline();
-      when(() => mockRemoteDs.disable2FA(any()))
-          .thenThrow(const ServerException(message: 'Forbidden', code: 403));
+    test(
+      'maps ServerException with 403 to Failure with AccessDeniedFailure',
+      () async {
+        stubOnline();
+        when(
+          () => mockRemoteDs.disable2FA(any()),
+        ).thenThrow(const ServerException(message: 'Forbidden', code: 403));
 
-      final result = await repository.disable2FA('bad');
+        final result = await repository.disable2FA('bad');
 
-      expect(result, isA<Failure<void>>());
-      expect((result as Failure<void>).failure, isA<AccessDeniedFailure>());
-    });
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure<void>).failure, isA<AccessDeniedFailure>());
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -215,14 +235,53 @@ void main() {
   group('getOAuthAuthorizationUrl', () {
     test('delegates to remote data source', () async {
       stubOnline();
-      when(() => mockRemoteDs.getOAuthAuthorizationUrl(OAuthProvider.github))
-          .thenAnswer((_) async => 'https://auth.example.com/github');
+      when(
+        () => mockRemoteDs.getOAuthAuthorizationUrl(OAuthProvider.github),
+      ).thenAnswer((_) async => 'https://auth.example.com/github');
 
-      final result = await repository.getOAuthAuthorizationUrl(OAuthProvider.github);
+      final result = await repository.getOAuthAuthorizationUrl(
+        OAuthProvider.github,
+      );
 
       expect(result, isA<Success<String>>());
-      expect((result as Success<String>).data, 'https://auth.example.com/github');
-      verify(() => mockRemoteDs.getOAuthAuthorizationUrl(OAuthProvider.github)).called(1);
+      expect(
+        (result as Success<String>).data,
+        'https://auth.example.com/github',
+      );
+      verify(
+        () => mockRemoteDs.getOAuthAuthorizationUrl(OAuthProvider.github),
+      ).called(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // completeOAuthLink
+  // ---------------------------------------------------------------------------
+  group('completeOAuthLink', () {
+    test('delegates to remote data source with state token', () async {
+      stubOnline();
+      when(
+        () => mockRemoteDs.completeOAuthLink(
+          OAuthProvider.facebook,
+          'fb-code',
+          'fb-state',
+        ),
+      ).thenAnswer((_) async {});
+
+      final result = await repository.completeOAuthLink(
+        OAuthProvider.facebook,
+        'fb-code',
+        'fb-state',
+      );
+
+      expect(result, isA<Success<void>>());
+      verify(
+        () => mockRemoteDs.completeOAuthLink(
+          OAuthProvider.facebook,
+          'fb-code',
+          'fb-state',
+        ),
+      ).called(1);
     });
   });
 
@@ -232,8 +291,9 @@ void main() {
   group('unlinkOAuth', () {
     test('delegates to remote data source', () async {
       stubOnline();
-      when(() => mockRemoteDs.unlinkOAuth(OAuthProvider.google))
-          .thenAnswer((_) async {});
+      when(
+        () => mockRemoteDs.unlinkOAuth(OAuthProvider.google),
+      ).thenAnswer((_) async {});
 
       final result = await repository.unlinkOAuth(OAuthProvider.google);
 
@@ -265,8 +325,7 @@ void main() {
   group('removeDevice', () {
     test('delegates to remote data source', () async {
       stubOnline();
-      when(() => mockRemoteDs.removeDevice('dev-1'))
-          .thenAnswer((_) async {});
+      when(() => mockRemoteDs.removeDevice('dev-1')).thenAnswer((_) async {});
 
       final result = await repository.removeDevice('dev-1');
 
@@ -281,25 +340,34 @@ void main() {
   group('deleteAccount', () {
     test('delegates with password and optional totp code', () async {
       stubOnline();
-      when(() => mockRemoteDs.deleteAccount('pass', totpCode: '123456'))
-          .thenAnswer((_) async {});
+      when(
+        () => mockRemoteDs.deleteAccount('pass', totpCode: '123456'),
+      ).thenAnswer((_) async {});
 
       final result = await repository.deleteAccount('pass', totpCode: '123456');
 
       expect(result, isA<Success<void>>());
-      verify(() => mockRemoteDs.deleteAccount('pass', totpCode: '123456'))
-          .called(1);
+      verify(
+        () => mockRemoteDs.deleteAccount('pass', totpCode: '123456'),
+      ).called(1);
     });
 
-    test('maps ServerException with 429 to Failure with RateLimitFailure', () async {
-      stubOnline();
-      when(() => mockRemoteDs.deleteAccount(any(), totpCode: any(named: 'totpCode')))
-          .thenThrow(const ServerException(message: 'Rate limited', code: 429));
+    test(
+      'maps ServerException with 429 to Failure with RateLimitFailure',
+      () async {
+        stubOnline();
+        when(
+          () => mockRemoteDs.deleteAccount(
+            any(),
+            totpCode: any(named: 'totpCode'),
+          ),
+        ).thenThrow(const ServerException(message: 'Rate limited', code: 429));
 
-      final result = await repository.deleteAccount('pass');
+        final result = await repository.deleteAccount('pass');
 
-      expect(result, isA<Failure<void>>());
-      expect((result as Failure<void>).failure, isA<RateLimitFailure>());
-    });
+        expect(result, isA<Failure<void>>());
+        expect((result as Failure<void>).failure, isA<RateLimitFailure>());
+      },
+    );
   });
 }

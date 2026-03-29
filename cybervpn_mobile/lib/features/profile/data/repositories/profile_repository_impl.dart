@@ -28,8 +28,8 @@ class ProfileRepositoryImpl
   ProfileRepositoryImpl({
     required ProfileRemoteDataSource remoteDataSource,
     required NetworkInfo networkInfo,
-  })  : _remoteDataSource = remoteDataSource,
-        _networkInfo = networkInfo;
+  }) : _remoteDataSource = remoteDataSource,
+       _networkInfo = networkInfo;
 
   // -- Profile --
 
@@ -43,7 +43,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -60,7 +64,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -75,7 +83,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -90,7 +102,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -106,7 +122,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -127,7 +147,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -136,17 +160,22 @@ class ProfileRepositoryImpl
   Future<Result<void>> completeOAuthLink(
     OAuthProvider provider,
     String code,
+    String state,
   ) async {
     if (!await _networkInfo.isConnected) {
       return const Failure(NetworkFailure(message: 'No internet connection'));
     }
     try {
-      await _remoteDataSource.completeOAuthLink(provider, code);
+      await _remoteDataSource.completeOAuthLink(provider, code, state);
       return const Success(null);
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -162,7 +191,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -179,7 +212,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -194,15 +231,21 @@ class ProfileRepositoryImpl
       return const Failure(NetworkFailure(message: 'No internet connection'));
     }
     try {
-      return Success(await _remoteDataSource.registerDevice(
-        deviceName: deviceName,
-        platform: platform,
-        deviceId: deviceId,
-      ));
+      return Success(
+        await _remoteDataSource.registerDevice(
+          deviceName: deviceName,
+          platform: platform,
+          deviceId: deviceId,
+        ),
+      );
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -218,7 +261,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
@@ -239,7 +286,11 @@ class ProfileRepositoryImpl
     } on AppException catch (e) {
       return Failure(mapExceptionToFailure(e));
     } catch (e, st) {
-      AppLogger.warning('Unexpected error in ProfileRepository', error: e, stackTrace: st);
+      AppLogger.warning(
+        'Unexpected error in ProfileRepository',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(UnknownFailure(message: e.toString()));
     }
   }
