@@ -208,6 +208,8 @@ pub async fn connect_profile(
             &store_data.split_tunneling_mode,
             store_data.stealth_mode_enabled,
             store_data.pqc_enforcement_mode,
+            &store_data.privacy_shield_level,
+            Some(app_dir.as_path()),
         )
     };
 
@@ -608,5 +610,38 @@ pub async fn audit_quantum_readiness(app: tauri::AppHandle) -> Result<Vec<models
     }).collect();
 
     Ok(results)
+}
+
+#[tauri::command]
+pub async fn get_privacy_shield_level(app: tauri::AppHandle) -> Result<String, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.privacy_shield_level)
+}
+
+#[tauri::command]
+pub async fn set_privacy_shield_level(level: String, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.privacy_shield_level = level;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn force_update_blocklists(app: tauri::AppHandle) -> Result<(), AppError> {
+    let level = get_privacy_shield_level(app.clone()).await?;
+    crate::engine::sys::adblock::download_blocklists(&app, &level).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_threat_count(state: State<'_, AppState>) -> Result<u64, AppError> {
+    use std::sync::atomic::Ordering;
+    Ok(state.process_manager.threats_blocked.load(Ordering::Relaxed))
 }
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`

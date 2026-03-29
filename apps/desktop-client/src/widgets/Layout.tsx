@@ -72,6 +72,7 @@ export function Layout() {
   const navItems = [
     { path: "/", label: "Dashboard", icon: Activity },
     { path: "/security", label: "Safety Center", icon: Shield },
+    { path: "/privacy-shield", label: "Privacy Shield", icon: Shield },
     { path: "/profiles", label: "Profiles", icon: Shield },
     { path: "/routing", label: "Routing", icon: Route },
     { path: "/hotspot", label: "Hotspot", icon: WifiHigh },

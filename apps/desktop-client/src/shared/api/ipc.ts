@@ -250,3 +250,28 @@ export interface AuditResult {
 export const auditQuantumReadiness = async (): Promise<AuditResult[]> => {
   return await invoke("audit_quantum_readiness");
 };
+
+export const getPrivacyShieldLevel = async (): Promise<string> => {
+  return await invoke("get_privacy_shield_level");
+};
+
+export const setPrivacyShieldLevel = async (level: string): Promise<void> => {
+  return await invoke("set_privacy_shield_level", { level });
+};
+
+export const forceUpdateBlocklists = async (): Promise<void> => {
+  return await invoke("force_update_blocklists");
+};
+
+export const getThreatCount = async (): Promise<number> => {
+  return await invoke("get_threat_count");
+};
+
+export const listenTrackerBlocked = (callback: (domain: string) => void) => {
+  const unlistenPromise = listen<string>("tracker-blocked", (event) => {
+    callback(event.payload);
+  });
+  return () => {
+    unlistenPromise.then((f) => f());
+  };
+};
