@@ -183,6 +183,7 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
+                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
                                         }
                                     } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
                                         if let (Ok(down), Ok(up)) =
@@ -190,6 +191,7 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
+                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
                                         }
                                     }
                                     let _ = app_clone.emit("singbox-log", trimmed);
@@ -306,10 +308,12 @@ impl ProcessManager {
                 if let Some(caps) = TRAFFIC_REGEX.captures(&line) {
                     if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone1.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(&line) {
                     if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone1.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 }
 
@@ -340,10 +344,12 @@ impl ProcessManager {
                 if let Some(caps) = TRAFFIC_REGEX.captures(&line) {
                     if let (Ok(up), Ok(down)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone2.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(&line) {
                     if let (Ok(down), Ok(up)) = (caps[1].parse::<u64>(), caps[2].parse::<u64>()) {
                         let _ = app_clone2.emit("traffic_update", TrafficUpdate { up, down });
+                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                     }
                 }
 

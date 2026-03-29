@@ -331,3 +331,20 @@ export const listenStealthProbeLog = (callback: (log: string) => void) => {
     const unlistenPromise = listen<string>("stealth-probe-log", (event) => callback(event.payload));
     return () => { unlistenPromise.then(f => f()); };
 };
+
+// Phase 30 - Telemetry & Analytics
+export interface UsageRecord {
+  date: string;
+  bytes_up: number;
+  bytes_down: number;
+  protocol: string;
+  country_code: string;
+}
+
+export const getUsageHistory = async (period: string): Promise<UsageRecord[]> => {
+  return await invoke("get_usage_history", { period });
+};
+
+export const getGlobalFootprint = async (): Promise<Record<string, number>> => {
+    return await invoke("get_global_footprint");
+};

@@ -12,6 +12,7 @@ import { HotspotPage } from "./pages/Hotspot";
 import { SplitTunnelingPage } from "./pages/SplitTunneling";
 import { PrivacyShieldPage } from "./pages/PrivacyShield";
 import { SecurityPage } from "./pages/Security";
+import { AnalyticsPage } from "./pages/Analytics";
 import { AutomationPage } from "./pages/Automation";
 import { StealthLabPage } from "./pages/StealthLab";
 import { AccountPage } from "./pages/Account";
@@ -27,6 +28,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="stealth-lab" element={<StealthLabPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="account" element={<AccountPage />} />

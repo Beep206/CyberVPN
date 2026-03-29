@@ -137,6 +137,9 @@ pub fn run() {
                 std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false))
             );
 
+            // Start Telemetry Histogram Flusher Phase 30
+            crate::engine::sys::stats::spawn_flush_interval(app.handle().clone());
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -216,7 +219,9 @@ pub fn run() {
             ipc::get_network_rules,
             ipc::update_network_rule,
             ipc::run_stealth_diagnostics,
-            ipc::apply_stealth_fix
+            ipc::apply_stealth_fix,
+            crate::engine::sys::stats::get_usage_history, // Mapped natively on stats
+            crate::engine::sys::stats::get_global_footprint
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
