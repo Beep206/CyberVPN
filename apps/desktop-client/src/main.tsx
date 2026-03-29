@@ -16,6 +16,7 @@ import { AnalyticsPage } from "./pages/Analytics";
 import { AutomationPage } from "./pages/Automation";
 import { StealthLabPage } from "./pages/StealthLab";
 import { AccountPage } from "./pages/Account";
+import { RemotePage } from "./pages/Remote";
 import { RoutingPage } from "./pages/Routing";
 import { SubscriptionsPage } from "./pages/Subscriptions";
 import "./index.css";
@@ -29,6 +30,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="remote" element={<RemotePage />} />
           <Route path="stealth-lab" element={<StealthLabPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="account" element={<AccountPage />} />

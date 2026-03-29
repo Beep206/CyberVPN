@@ -725,4 +725,15 @@ pub async fn apply_stealth_fix(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn start_remote_server(app: tauri::AppHandle) -> Result<String, AppError> {
+    crate::engine::sys::remote_control::start_remote_server(app).await
+}
+
+#[tauri::command]
+pub async fn stop_remote_server() -> Result<(), AppError> {
+    crate::engine::sys::remote_control::stop_remote_server().await;
+    Ok(())
+}
+
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`
