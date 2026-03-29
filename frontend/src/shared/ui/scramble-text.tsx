@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'motion/react';
+import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
 
 interface ScrambleTextProps {
     text: string;
@@ -9,9 +10,11 @@ interface ScrambleTextProps {
     revealDelay?: number;
     scrambleSpeed?: number;
     triggerOnHover?: boolean;
-    loop?: boolean; // NEW: infinite loop animation
-    loopDelay?: number; // Delay between loops
+    loop?: boolean;
+    loopDelay?: number;
 }
+
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
 
 export function ScrambleText({
     text,
@@ -20,86 +23,116 @@ export function ScrambleText({
     scrambleSpeed = 30,
     triggerOnHover = false,
     loop = false,
-    loopDelay = 2000
+    loopDelay = 2000,
 }: ScrambleTextProps) {
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
+    const { allowAmbientAnimations, allowPointerEffects } = useMotionCapability();
     const [display, setDisplay] = useState(text);
-    const ref = useRef(null);
+    const ref = useRef<HTMLSpanElement>(null);
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isAnimatingRef = useRef(false);
     const isInView = useInView(ref, { once: !loop, amount: 0.5 });
-    // Internal state to track if interaction is happening
-    const isAnimating = useRef(false);
+    const textChars = useMemo(() => text.split(''), [text]);
+
+    const queueDisplayReset = useCallback(() => {
+        const timeout = setTimeout(() => {
+            setDisplay(text);
+        }, 0);
+
+        timersRef.current.push(timeout);
+    }, [text]);
+
+    const clearTimers = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+        isAnimatingRef.current = false;
+    }, []);
 
     const scramble = useCallback(() => {
-        if (isAnimating.current) return;
-        isAnimating.current = true;
+        if (!allowAmbientAnimations || isAnimatingRef.current) {
+            return;
+        }
+
+        clearTimers();
+        isAnimatingRef.current = true;
 
         let iterations = 0;
-        const interval = setInterval(() => {
+
+        intervalRef.current = setInterval(() => {
             setDisplay(
-                text
-                    .split("")
+                textChars
                     .map((letter, index) => {
                         if (index < iterations) {
-                            return text[index];
+                            return letter;
                         }
-                        return letters[Math.floor(Math.random() * letters.length)];
+
+                        return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
                     })
-                    .join("")
+                    .join(''),
             );
 
-            if (iterations >= text.length) {
-                clearInterval(interval);
-                isAnimating.current = false;
+            if (iterations >= textChars.length) {
+                clearTimers();
+                setDisplay(text);
             }
+
             iterations += 1 / 3;
         }, scrambleSpeed);
+    }, [allowAmbientAnimations, clearTimers, scrambleSpeed, text, textChars]);
 
-        return () => clearInterval(interval);
-    }, [text, scrambleSpeed]);
-
-    // Initial animation on view
     useEffect(() => {
-        if (isInView && !loop) {
-            const timeout = setTimeout(() => {
-                scramble();
-            }, revealDelay);
-            return () => clearTimeout(timeout);
+        clearTimers();
+        queueDisplayReset();
+    }, [clearTimers, queueDisplayReset, text]);
+
+    useEffect(() => {
+        if (!allowAmbientAnimations || !isInView) {
+            clearTimers();
+            queueDisplayReset();
+            return;
         }
-    }, [isInView, text, revealDelay, scramble, loop]);
 
-    // Loop animation
+        const timeout = setTimeout(() => {
+            scramble();
+        }, revealDelay);
+
+        timersRef.current.push(timeout);
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [allowAmbientAnimations, clearTimers, isInView, queueDisplayReset, revealDelay, scramble, text]);
+
     useEffect(() => {
-        if (!loop || !isInView) return;
+        if (!allowAmbientAnimations || !loop || !isInView) {
+            return;
+        }
 
-        // Start immediately
-        scramble();
-
-        // Then loop
         const loopInterval = setInterval(() => {
             scramble();
-        }, loopDelay + (text.length * scrambleSpeed / 3));
+        }, loopDelay + (textChars.length * scrambleSpeed) / 3);
 
-        return () => clearInterval(loopInterval);
-    }, [loop, isInView, scramble, loopDelay, text.length, scrambleSpeed]);
+        return () => {
+            clearInterval(loopInterval);
+        };
+    }, [allowAmbientAnimations, isInView, loop, loopDelay, scramble, scrambleSpeed, textChars.length]);
+
+    useEffect(() => clearTimers, [clearTimers]);
 
     const handleMouseEnter = () => {
-        if (triggerOnHover) {
+        if (allowPointerEffects && triggerOnHover) {
             scramble();
         }
-    };
-
-    const handleMouseLeave = () => {
     };
 
     return (
-        <span
-            ref={ref}
-            className={className}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-        >
+        <span ref={ref} className={className} onMouseEnter={handleMouseEnter}>
             {display}
         </span>
     );
 }
-

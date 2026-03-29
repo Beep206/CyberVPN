@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
 export const alt = 'CyberVPN - Advanced VPN Service';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -22,7 +21,7 @@ export default function OGImage() {
           fontFamily: 'monospace',
         }}
       >
-        <div style={{ fontSize: 80, fontWeight: 'bold', marginBottom: 20 }}>
+        <div style={{ fontSize: 80, fontWeight: 'bold', marginBottom: 20, display: 'flex' }}>
           CYBER<span style={{ color: '#00ff88' }}>VPN</span>
         </div>
         <div style={{ fontSize: 32, color: '#888', marginTop: 10 }}>

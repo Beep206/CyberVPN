@@ -2,10 +2,11 @@
 
 import { motion, useMotionValue, useSpring } from 'motion/react';
 import React, { useRef } from 'react';
+import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
 
 interface MagneticButtonProps {
     children: React.ReactNode;
-    strength?: number; // How strong the magnetic pull is (default: 30)
+    strength?: number;
     className?: string;
     onClick?: () => void;
 }
@@ -14,31 +15,33 @@ export function MagneticButton({
     children,
     strength = 30,
     className,
-    onClick
+    onClick,
 }: MagneticButtonProps) {
     const ref = useRef<HTMLDivElement>(null);
-
-    // Motion values for the button position
+    const { allowPointerEffects } = useMotionCapability();
     const x = useMotionValue(0);
     const y = useMotionValue(0);
-
-    // Spring physics for smooth return
     const springConfig = { damping: 15, stiffness: 150, mass: 0.1 };
     const springX = useSpring(x, springConfig);
     const springY = useSpring(y, springConfig);
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        const { clientX, clientY } = e;
-        const { left, top, width, height } = ref.current?.getBoundingClientRect() || { left: 0, top: 0, width: 0, height: 0 };
+    const handleMouseMove = (event: React.MouseEvent) => {
+        if (!allowPointerEffects) {
+            return;
+        }
 
-        const centerX = left + width / 2;
-        const centerY = top + height / 2;
+        const { clientX, clientY } = event;
+        const bounds = ref.current?.getBoundingClientRect();
 
-        const distanceX = clientX - centerX;
-        const distanceY = clientY - centerY;
+        if (!bounds) {
+            return;
+        }
 
-        x.set(distanceX / strength);
-        y.set(distanceY / strength);
+        const centerX = bounds.left + bounds.width / 2;
+        const centerY = bounds.top + bounds.height / 2;
+
+        x.set((clientX - centerX) / strength);
+        y.set((clientY - centerY) / strength);
     };
 
     const handleMouseLeave = () => {
@@ -49,9 +52,9 @@ export function MagneticButton({
     return (
         <motion.div
             ref={ref}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{ x: springX, y: springY }}
+            onMouseMove={allowPointerEffects ? handleMouseMove : undefined}
+            onMouseLeave={allowPointerEffects ? handleMouseLeave : undefined}
+            style={allowPointerEffects ? { x: springX, y: springY } : undefined}
             className={className}
             onClick={onClick}
         >

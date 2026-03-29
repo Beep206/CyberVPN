@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { PartnerClient } from './components/PartnerClient';
+import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 interface PartnerPageProps {
   params: Promise<{
@@ -11,10 +12,10 @@ export async function generateMetadata({ params }: PartnerPageProps) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'Partner' });
 
-  return {
+  return withSiteMetadata({
     title: t('pageTitle') || 'Partner Dashboard - CyberVPN',
     description: t('pageDescription') || 'Manage your partner codes and track earnings',
-  };
+  });
 }
 
 export default async function PartnerPage({ params }: PartnerPageProps) {

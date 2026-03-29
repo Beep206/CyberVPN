@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
 
 const GlobalNetworkScene = dynamic(() => import("@/3d/scenes/GlobalNetwork"), {

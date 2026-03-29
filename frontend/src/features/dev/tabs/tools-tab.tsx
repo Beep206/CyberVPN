@@ -32,7 +32,7 @@ export function ToolsTab({ isDark }: { isDark: boolean }) {
                 style.id = styleId;
                 document.head.appendChild(style);
             }
-            style.innerHTML = `* { outline: 1px solid ${isDark ? 'rgba(0, 255, 255, 0.4)' : 'rgba(0, 0, 255, 0.4)'} !important; }`;
+            style.textContent = `* { outline: 1px solid ${isDark ? 'rgba(0, 255, 255, 0.4)' : 'rgba(0, 0, 255, 0.4)'} !important; }`;
         } else {
             localStorage.removeItem('DEV_OUTLINES');
             style?.remove();
@@ -47,7 +47,7 @@ export function ToolsTab({ isDark }: { isDark: boolean }) {
         if (rscActive) {
             const style = document.createElement('style');
             style.id = styleId;
-            style.innerHTML = `
+            style.textContent = `
                 body *:not(#dev-panel-root):not(#dev-panel-root *) {
                     outline: 2px solid rgba(59, 130, 246, 0.4) !important; /* Server (Blue) */
                     outline-offset: -2px;

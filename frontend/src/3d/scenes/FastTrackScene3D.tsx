@@ -1,11 +1,17 @@
 'use client';
 
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useInView } from 'motion/react';
 import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { PerformanceMonitor, Line } from '@react-three/drei';
+import { ScenePerformanceMetrics } from '@/3d/components/scene-performance-metrics';
+import {
+    MARKETING_SCENE_CANVAS_PERFORMANCE,
+    MARKETING_SCENE_GL,
+    useAdaptiveSceneDpr,
+} from '@/3d/lib/scene-performance';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
@@ -160,28 +166,20 @@ function Hub() {
 export default function FastTrackScene3D() {
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "100px" });
-    const [dpr, setDpr] = useState(1);
+    const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.5 });
     const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.003, 0.003);
 
     return (
         <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg border-grid-line overflow-hidden">
             <Canvas
                 frameloop={isInView ? 'always' : 'never'}
-                performance={{ min: 0.5 }}
+                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 0, 8], fov: 60 }} // Looking down the Z axis
-                gl={{
-                    antialias: false,
-                    alpha: true,
-                    powerPreference: "high-performance",
-                    stencil: false,
-                    depth: true
-                }}
+                gl={MARKETING_SCENE_GL}
                 dpr={dpr}
             >
-                <PerformanceMonitor 
-                    onDecline={() => setDpr(0.75)} 
-                    onIncline={() => setDpr(1.5)} 
-                />
+                <ScenePerformanceMetrics sceneName="fast-track" />
+                <PerformanceMonitor {...monitorProps} />
                 
                 <fog attach="fog" args={['#050510', 5, 20]} />
                 <ambientLight intensity={0.2} />

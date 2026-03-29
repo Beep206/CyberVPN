@@ -21,7 +21,7 @@ export function XRayTab({ isDark }: { isDark: boolean }) {
         if (is3dActive) {
             const style = document.createElement('style');
             style.id = styleId;
-            style.innerHTML = `
+            style.textContent = `
                 body {
                     perspective: 3000px;
                     overflow-x: hidden;
