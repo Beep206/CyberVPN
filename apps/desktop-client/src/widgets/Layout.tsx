@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh, Brain, Terminal, Smartphone } from "lucide-react";
@@ -12,6 +12,13 @@ import { Titlebar } from "./Titlebar";
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!localStorage.getItem("onboarding_complete")) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     async function checkForUpdates() {

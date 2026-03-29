@@ -17,6 +17,7 @@ import { AutomationPage } from "./pages/Automation";
 import { StealthLabPage } from "./pages/StealthLab";
 import { AccountPage } from "./pages/Account";
 import { RemotePage } from "./pages/Remote";
+import { OnboardingPage } from "./pages/Onboarding";
 import { RoutingPage } from "./pages/Routing";
 import { SubscriptionsPage } from "./pages/Subscriptions";
 import "./index.css";
@@ -27,6 +28,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />

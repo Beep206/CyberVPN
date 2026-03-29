@@ -23,7 +23,7 @@ pub async fn run_stealth_diagnostics(
     let _ = app_handle.emit("stealth-probe-log", "Initializing Parallel Probes...");
 
     let ip = node.server.clone();
-    let port = node.port as u16;
+    let port = node.port;
 
     // 1. IP Connectivity Probe
     let app_ip = app_handle.clone();
@@ -59,7 +59,7 @@ pub async fn run_stealth_diagnostics(
             .unwrap();
 
         let forbidden = client.get("https://google.com").send().await;
-        let sni_filtered = if let Err(e) = forbidden {
+        if let Err(e) = forbidden {
             let error_msg = e.to_string().to_lowercase();
             // A hard reset during negotiation strongly implies SNI filter
             if error_msg.contains("reset")
@@ -79,8 +79,7 @@ pub async fn run_stealth_diagnostics(
         } else {
             let _ = app_sni.emit("stealth-probe-log", "Analyzing SNI Filtering... [OK]");
             false
-        };
-        sni_filtered
+        }
     });
 
     // 3. UDP/QUIC Block Probe
@@ -129,6 +128,7 @@ pub async fn run_stealth_diagnostics(
         false
     });
 
+    #[allow(clippy::type_complexity)]
     let (ip_blocked_res, sni_filtered_res, udp_blocked_res, tls_intercepted_res): (
         Result<bool, tokio::task::JoinError>,
         Result<bool, tokio::task::JoinError>,
@@ -167,7 +167,7 @@ pub async fn run_stealth_diagnostics(
 
     let _ = app_handle.emit(
         "stealth-probe-log",
-        format!("Diagnostic Complete. Applying intelligent resolver mappings."),
+        "Diagnostic Complete. Applying intelligent resolver mappings.".to_string(),
     );
 
     Ok(CensorshipReport {

@@ -115,8 +115,8 @@ pub fn get_current_ssid() -> Result<String, AppError> {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 for line in stdout.lines() {
                     let trimmed = line.trim();
-                    if trimmed.starts_with("SSID:") {
-                        let ssid = trimmed["SSID:".len()..].trim();
+                    if let Some(stripped) = trimmed.strip_prefix("SSID:") {
+                        let ssid = stripped.trim();
                         if !ssid.is_empty() {
                             return Ok(ssid.to_string());
                         }
@@ -126,13 +126,13 @@ pub fn get_current_ssid() -> Result<String, AppError> {
         } else {
             // Assume Linux
             if let Ok(output) = std::process::Command::new("nmcli")
-                .args(&["-t", "-f", "active,ssid", "dev", "wifi"])
+                .args(["-t", "-f", "active,ssid", "dev", "wifi"])
                 .output()
             {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 for line in stdout.lines() {
-                    if line.starts_with("yes:") {
-                        let ssid = line["yes:".len()..].trim();
+                    if let Some(stripped) = line.strip_prefix("yes:") {
+                        let ssid = stripped.trim();
                         if !ssid.is_empty() {
                             return Ok(ssid.to_string());
                         }
