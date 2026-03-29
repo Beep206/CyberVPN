@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh } from "lucide-react";
+import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh, Brain } from "lucide-react";
 import { Toaster } from "../components/ui/sonner";
 import { toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
@@ -71,6 +71,7 @@ export function Layout() {
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: Activity },
+    { path: "/automation", label: "Smart Connect", icon: Brain },
     { path: "/security", label: "Safety Center", icon: Shield },
     { path: "/privacy-shield", label: "Privacy Shield", icon: Shield },
     { path: "/profiles", label: "Profiles", icon: Shield },

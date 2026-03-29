@@ -12,6 +12,7 @@ import { HotspotPage } from "./pages/Hotspot";
 import { SplitTunnelingPage } from "./pages/SplitTunneling";
 import { PrivacyShieldPage } from "./pages/PrivacyShield";
 import { SecurityPage } from "./pages/Security";
+import { AutomationPage } from "./pages/Automation";
 import { AccountPage } from "./pages/Account";
 import { RoutingPage } from "./pages/Routing";
 import { SubscriptionsPage } from "./pages/Subscriptions";
@@ -27,6 +28,7 @@ function AnimatedRoutes() {
           <Route index element={<DashboardPage />} />
           <Route path="security" element={<SecurityPage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="automation" element={<AutomationPage />} />
           <Route path="profiles" element={<ProfilesPage />} />
           <Route path="routing" element={<RoutingPage />} />
           <Route path="hotspot" element={<HotspotPage />} />

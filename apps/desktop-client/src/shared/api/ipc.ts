@@ -275,3 +275,36 @@ export const listenTrackerBlocked = (callback: (domain: string) => void) => {
     unlistenPromise.then((f) => f());
   };
 };
+
+// Phase 28 - Smart Connect
+export interface NetworkProfile {
+  auto_connect: boolean;
+  stealth_required: boolean;
+  kill_switch_required: boolean;
+  icon_type: string;
+}
+
+export const getSmartConnectStatus = async (): Promise<boolean> => {
+  return await invoke("get_smart_connect_status");
+};
+
+export const setSmartConnectStatus = async (enabled: boolean): Promise<void> => {
+  return await invoke("set_smart_connect_status", { enabled });
+};
+
+export const getNetworkRules = async (): Promise<Record<string, NetworkProfile>> => {
+  return await invoke("get_network_rules");
+};
+
+export const updateNetworkRule = async (ssid: string, profile: NetworkProfile): Promise<void> => {
+  return await invoke("update_network_rule", { ssid, profile });
+};
+
+export const listenNetworkChanged = (callback: (event: { ssid: string, is_trusted: boolean }) => void) => {
+  const unlistenPromise = listen<{ ssid: string, is_trusted: boolean }>("network-changed", (event) => {
+    callback(event.payload);
+  });
+  return () => {
+    unlistenPromise.then((f) => f());
+  };
+};
