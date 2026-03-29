@@ -131,6 +131,12 @@ pub fn run() {
 
             crate::tray::setup(app.handle())?;
 
+            // Start Network Monitor Phase 28
+            crate::engine::sys::net_monitor::start_network_monitor(
+                app.handle().clone(),
+                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false))
+            );
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -204,7 +210,11 @@ pub fn run() {
             crate::engine::sys::sync::get_sync_password,
             crate::engine::sys::sync::delete_sync_password,
             crate::engine::sys::sync::generate_pairing_qr,
-            ipc::audit_quantum_readiness
+            ipc::audit_quantum_readiness,
+            ipc::get_smart_connect_status,
+            ipc::set_smart_connect_status,
+            ipc::get_network_rules,
+            ipc::update_network_rule
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -1,6 +1,8 @@
 use crate::engine::error::AppError;
-use crate::ipc::models::ProxyNode;
+use crate::engine::sys::net_monitor::NetworkProfile;
+use crate::ipc::models::{ProxyNode, RoutingRule, Subscription};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -30,6 +32,12 @@ pub struct AppDataStore {
     pub pqc_enforcement_mode: bool,
     #[serde(default = "default_privacy_shield_level")]
     pub privacy_shield_level: String,
+    
+    // Phase 28 features
+    #[serde(default)]
+    pub smart_connect_enabled: bool,
+    #[serde(default)]
+    pub network_rules: HashMap<String, NetworkProfile>,
 }
 
 fn default_privacy_shield_level() -> String {
@@ -61,6 +69,8 @@ impl Default for AppDataStore {
             stealth_mode_enabled: false,
             pqc_enforcement_mode: false,
             privacy_shield_level: default_privacy_shield_level(),
+            smart_connect_enabled: false,
+            network_rules: HashMap::new(),
         }
     }
 }

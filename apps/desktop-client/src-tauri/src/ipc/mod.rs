@@ -644,4 +644,49 @@ pub async fn get_threat_count(state: State<'_, AppState>) -> Result<u64, AppErro
     use std::sync::atomic::Ordering;
     Ok(state.process_manager.threats_blocked.load(Ordering::Relaxed))
 }
+
+#[tauri::command]
+pub async fn get_smart_connect_status(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.smart_connect_enabled)
+}
+
+#[tauri::command]
+pub async fn set_smart_connect_status(enabled: bool, app: tauri::AppHandle) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.smart_connect_enabled = enabled;
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_network_rules(app: tauri::AppHandle) -> Result<std::collections::HashMap<String, crate::engine::sys::net_monitor::NetworkProfile>, AppError> {
+    let store = tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app))
+        .await
+        .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(store.network_rules)
+}
+
+#[tauri::command]
+pub async fn update_network_rule(
+    ssid: String,
+    profile: crate::engine::sys::net_monitor::NetworkProfile,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.network_rules.insert(ssid, profile);
+        crate::engine::store::save_store(&app, &store)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    Ok(())
+}
+
 // Removed redundant wrappers, these are exposed natively by `crate::engine::sys::net` and `discovery`
