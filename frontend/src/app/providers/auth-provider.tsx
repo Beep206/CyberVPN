@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+
+const TELEGRAM_LINK_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?telegram-link(?:\/|$)/;
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -16,6 +19,7 @@ interface AuthProviderProps {
  */
 export function AuthProvider({ children, skeleton }: AuthProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const pathname = usePathname();
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
   // Handle hydration
@@ -27,12 +31,12 @@ export function AuthProvider({ children, skeleton }: AuthProviderProps) {
 
   // Check session on mount
   useEffect(() => {
-    if (isHydrated) {
+    if (isHydrated && !TELEGRAM_LINK_ROUTE_RE.test(pathname)) {
       // SEC-01: httpOnly cookies are source of truth and cannot be inspected
       // from JS, so always ask the backend for current session.
       fetchUser();
     }
-  }, [isHydrated, fetchUser]);
+  }, [fetchUser, isHydrated, pathname]);
 
   // Show skeleton until hydrated to prevent flash of unauthenticated state
   if (!isHydrated) {

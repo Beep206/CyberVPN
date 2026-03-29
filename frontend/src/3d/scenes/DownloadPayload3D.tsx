@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Environment, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { OSPlatform } from '@/widgets/download/download-dashboard';
 
 interface PayloadProps {
@@ -139,11 +140,11 @@ export function DownloadPayload3D({ selectedOS }: PayloadProps) {
                 minPolarAngle={Math.PI / 2 - 0.5}
             />
 
-            <EffectComposer enableNormalPass={false}>
+            <SafeEffectComposer enableNormalPass={false}>
                 <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
                 <Noise opacity={0.02} />
                 <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
-            </EffectComposer>
+            </SafeEffectComposer>
         </Canvas>
     );
 }

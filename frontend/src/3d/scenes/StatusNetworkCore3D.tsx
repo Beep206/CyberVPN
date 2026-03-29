@@ -5,7 +5,8 @@ import { useFrame } from '@react-three/fiber';
 import { Canvas } from '@react-three/fiber';
 import { Float, Stars, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 
 // Configuration
@@ -233,12 +234,12 @@ export function NetworkCore3D() {
                 <Stars radius={50} depth={50} count={3000} factor={4} saturation={1} fade speed={globalStatus === 'outage' ? 3 : 1} />
             </CameraRig>
 
-            <EffectComposer enableNormalPass={false}>
+            <SafeEffectComposer enableNormalPass={false}>
                 <Bloom luminanceThreshold={0.5} mipmapBlur intensity={globalStatus === 'outage' ? 3.0 : 1.5} />
                 <Glitch active={globalStatus === 'outage'} delay={new THREE.Vector2(0.5, 2.0)} duration={new THREE.Vector2(0.1, 0.3)} />
                 <Noise opacity={0.03} />
                 <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} />
-            </EffectComposer>
+            </SafeEffectComposer>
         </Canvas>
     );
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { usePathname } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -12,6 +12,7 @@ import { Check, Shield, Zap } from 'lucide-react';
 import { TiltCard } from '@/shared/ui/tilt-card';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { useInView } from 'motion/react';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
 // Types
 interface ServerInfo {
@@ -188,14 +189,14 @@ function SpeedTunnelScene() {
 
                     {/* Only enable intensive bloom in dark mode to avoid "blinding white" effect */}
                     {isDark ? (
-                        <EffectComposer multisampling={0} enableNormalPass={false}>
+                        <SafeEffectComposer multisampling={0} enableNormalPass={false}>
                             <Bloom luminanceThreshold={0.5} radius={0.8} intensity={2} resolutionScale={0.5} />
-                        </EffectComposer>
+                        </SafeEffectComposer>
                     ) : (
                         // Minimal or no bloom for light mode
-                        <EffectComposer multisampling={0} enableNormalPass={false}>
+                        <SafeEffectComposer multisampling={0} enableNormalPass={false}>
                             <Bloom luminanceThreshold={1.1} radius={0.5} intensity={0.5} resolutionScale={0.5} />
-                        </EffectComposer>
+                        </SafeEffectComposer>
                     )}
                 </Canvas>
             </ErrorBoundary>

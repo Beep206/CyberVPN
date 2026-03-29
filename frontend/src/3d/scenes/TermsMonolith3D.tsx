@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { Float, Preload } from '@react-three/drei';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 
@@ -210,7 +211,7 @@ export default function TermsMonolith3D({
             
             <CameraController scrollDepth={scrollDepth} />
 
-            <EffectComposer enableNormalPass={false} multisampling={0}>
+            <SafeEffectComposer enableNormalPass={false} multisampling={0}>
                 <Bloom 
                     luminanceThreshold={isAccepted ? 0.3 : 0.5} 
                     mipmapBlur 
@@ -220,7 +221,7 @@ export default function TermsMonolith3D({
                     offset={new THREE.Vector2(0.003, 0.003)}
                 />
                 <Noise opacity={0.03} />
-            </EffectComposer>
+            </SafeEffectComposer>
             <Preload all />
         </Canvas>
     );

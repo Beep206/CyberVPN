@@ -3,7 +3,8 @@
 import { Suspense, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
-import { Bloom, EffectComposer, ToneMapping } from '@react-three/postprocessing';
+import { Bloom, ToneMapping } from '@react-three/postprocessing';
+import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import * as THREE from 'three';
 
 // Mapping sections to distinct visual 3D elements
@@ -51,10 +52,10 @@ export function DocsScene({ activeSection }: DocsSceneProps) {
 
                     <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} color={config.color} />
 
-                    <EffectComposer multisampling={4}>
+                    <SafeEffectComposer multisampling={4}>
                         <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.5} />
                         <ToneMapping />
-                    </EffectComposer>
+                    </SafeEffectComposer>
                 </Suspense>
             </Canvas>
         </div>

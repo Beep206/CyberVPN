@@ -43,6 +43,7 @@ function applyTelegramLoginResult(result: OAuthLoginResponse): void {
 function openTelegram(session: TelegramMagicLinkSession, allowRedirectFallback: boolean): void {
   const telegramTarget = session.deepLinkUrl ?? session.botUrl;
   const popup = window.open(telegramTarget, '_blank', 'noopener,noreferrer');
+
   if (!popup && allowRedirectFallback) {
     window.location.href = telegramTarget;
 
@@ -65,7 +66,8 @@ export default function TelegramLinkPage() {
   const [magicLinkSession, setMagicLinkSession] = useState<TelegramMagicLinkSession | null>(() =>
     readTelegramMagicLinkSession()
   );
-  const hasProcessed = useRef(false);
+  const processedRouteTokenRef = useRef<string | null>(null);
+  const activePollingTokenRef = useRef<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
   const pollInFlightRef = useRef(false);
@@ -80,34 +82,59 @@ export default function TelegramLinkPage() {
   }, []);
 
   useEffect(() => {
-    if (hasProcessed.current) return;
-    hasProcessed.current = true;
+    const syncSessionFromStorage = () => {
+      const storedSession = readTelegramMagicLinkSession();
+      setMagicLinkSession((currentSession) => {
+        const currentToken = currentSession?.token ?? null;
+        const storedToken = storedSession?.token ?? null;
+        return currentToken === storedToken ? currentSession : storedSession;
+      });
+    };
 
+    syncSessionFromStorage();
+    window.addEventListener('pageshow', syncSessionFromStorage);
+
+    return () => {
+      window.removeEventListener('pageshow', syncSessionFromStorage);
+    };
+  }, []);
+
+  useEffect(() => {
     const token = searchParams.get('token');
-    if (token) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-      const handleBotLinkAuth = async () => {
-        try {
-          await loginWithBotLink(token);
-          router.push('/dashboard');
-        } catch (err: unknown) {
-          const axiosError = err as { response?: { data?: { detail?: string } } };
-          const detail = axiosError?.response?.data?.detail;
-          if (detail?.toLowerCase().includes('expired')) {
-            setError(t('botLinkExpired'));
-          } else {
-            setError(detail || t('botLinkInvalid'));
-          }
-        }
-      };
-
-      void handleBotLinkAuth();
+    if (!token || processedRouteTokenRef.current === token) {
       return;
     }
 
-    const session = magicLinkSession;
+    processedRouteTokenRef.current = token;
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    const handleBotLinkAuth = async () => {
+      try {
+        await loginWithBotLink(token);
+        router.push('/dashboard');
+      } catch (err: unknown) {
+        const axiosError = err as { response?: { data?: { detail?: string } } };
+        const detail = axiosError?.response?.data?.detail;
+        if (detail?.toLowerCase().includes('expired')) {
+          setError(t('botLinkExpired'));
+        } else {
+          setError(detail || t('botLinkInvalid'));
+        }
+      }
+    };
+
+    void handleBotLinkAuth();
+  }, [loginWithBotLink, router, searchParams, t]);
+
+  useEffect(() => {
+    if (searchParams.get('token')) {
+      return;
+    }
+
+    const session = magicLinkSession ?? readTelegramMagicLinkSession();
     if (!session) {
+      activePollingTokenRef.current = null;
+      resumePollingRef.current = null;
       startTransition(() => {
         setError(t('botLinkInvalid'));
       });
@@ -116,11 +143,22 @@ export default function TelegramLinkPage() {
 
     if (Date.now() - session.requestedAt > MAGIC_LINK_TTL_MS) {
       clearTelegramMagicLinkSession();
+      activePollingTokenRef.current = null;
+      resumePollingRef.current = null;
+      setMagicLinkSession(null);
       startTransition(() => {
         setError(t('botLinkExpired'));
       });
       return;
     }
+
+    if (activePollingTokenRef.current === session.token && resumePollingRef.current) {
+      return;
+    }
+
+    activePollingTokenRef.current = session.token;
+    attemptRef.current = 0;
+    setError(null);
 
     let cancelled = false;
 
@@ -138,6 +176,7 @@ export default function TelegramLinkPage() {
 
       if (attempt >= MAX_POLL_ATTEMPTS) {
         clearTelegramMagicLinkSession();
+        activePollingTokenRef.current = null;
         setMagicLinkSession(null);
         setError(t('botLinkExpired'));
         pollInFlightRef.current = false;
@@ -149,6 +188,8 @@ export default function TelegramLinkPage() {
 
         if (data.status === 'completed' && data.login_result) {
           clearTelegramMagicLinkSession();
+          activePollingTokenRef.current = null;
+          setMagicLinkSession(null);
 
           if (data.login_result.requires_2fa) {
             sessionStorage.setItem('tfa_token', data.login_result.tfa_token || '');
@@ -165,6 +206,7 @@ export default function TelegramLinkPage() {
 
         if (data.status === 'expired') {
           clearTelegramMagicLinkSession();
+          activePollingTokenRef.current = null;
           setMagicLinkSession(null);
           setError(t('botLinkExpired'));
           pollInFlightRef.current = false;
@@ -173,6 +215,7 @@ export default function TelegramLinkPage() {
       } catch {
         if (attempt + 1 >= MAX_POLL_ATTEMPTS) {
           clearTelegramMagicLinkSession();
+          activePollingTokenRef.current = null;
           setMagicLinkSession(null);
           setError(t('errors.authFailed'));
           pollInFlightRef.current = false;
@@ -213,10 +256,12 @@ export default function TelegramLinkPage() {
         clearTimeout(pollTimeoutRef.current);
       }
     };
-  }, [loginWithBotLink, magicLinkSession, router, searchParams, t]);
+  }, [magicLinkSession, router, searchParams, t]);
 
   const handleRetry = () => {
     clearTelegramMagicLinkSession();
+    activePollingTokenRef.current = null;
+    processedRouteTokenRef.current = null;
     setMagicLinkSession(null);
     setError(null);
     router.push('/login');
@@ -228,6 +273,7 @@ export default function TelegramLinkPage() {
   };
 
   const handleCheckNow = () => {
+    setMagicLinkSession(readTelegramMagicLinkSession());
     resumePollingRef.current?.();
   };
 
