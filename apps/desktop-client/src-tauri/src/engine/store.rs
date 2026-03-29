@@ -28,6 +28,12 @@ pub struct AppDataStore {
     pub stealth_mode_enabled: bool,
     #[serde(default)]
     pub pqc_enforcement_mode: bool,
+    #[serde(default = "default_privacy_shield_level")]
+    pub privacy_shield_level: String,
+}
+
+fn default_privacy_shield_level() -> String {
+    "standard".to_string()
 }
 
 fn default_split_tunneling_mode() -> String {
@@ -54,6 +60,7 @@ impl Default for AppDataStore {
             split_tunneling_mode: default_split_tunneling_mode(),
             stealth_mode_enabled: false,
             pqc_enforcement_mode: false,
+            privacy_shield_level: default_privacy_shield_level(),
         }
     }
 }

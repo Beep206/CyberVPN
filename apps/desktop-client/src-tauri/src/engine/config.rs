@@ -279,7 +279,7 @@ fn create_outbound(node: &ProxyNode, tag: &str, detour: Option<&str>, stealth_mo
 ///     plugin: None, plugin_opts: None, tls_fragment: None, tls_record_fragment: None,
 /// };
 ///
-/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow", false, false);
+/// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow", false, false, "disabled", None);
 /// assert_eq!(config["outbounds"][0]["tag"], "proxy");
 /// ```
 pub fn generate_singbox_config(
@@ -294,6 +294,8 @@ pub fn generate_singbox_config(
     split_mode: &str,
     stealth_mode_enabled: bool,
     pqc_enforcement_mode: bool,
+    privacy_shield_level: &str,
+    app_data_dir: Option<&std::path::Path>,
 ) -> Value {
     let mut outbounds = Vec::new();
 
@@ -347,7 +349,15 @@ pub fn generate_singbox_config(
     // 3. Transform user RoutingRules into sing-box route rules using idiomatic Iterators
     let mut route_rules: Vec<Value> = Vec::new();
 
-    // 3a. Inject Split Tunneling rules FIRST
+    // 3a. Inject Privacy Shield rule FIRST
+    if privacy_shield_level != "disabled" && app_data_dir.is_some() {
+        route_rules.push(json!({
+            "rule_set": "adblock-standard",
+            "outbound": "block"
+        }));
+    }
+
+    // 3b. Inject Split Tunneling rules
     if !split_apps.is_empty() {
         if split_mode == "allow" {
             route_rules.push(json!({
@@ -411,6 +421,26 @@ pub fn generate_singbox_config(
     }
 
     // 4. Final configuration assembly
+    let mut route_obj = json!({
+        "rules": route_rules,
+        "final": if split_mode == "allow" && !split_apps.is_empty() { "direct" } else { "proxy" },
+        "auto_detect_interface": true
+    });
+
+    if privacy_shield_level != "disabled" {
+        if let Some(dir) = app_data_dir {
+            let rs_path = dir.join("bin").join("adblock-standard.json");
+            route_obj.as_object_mut().unwrap().insert("rule_set".to_string(), json!([
+                {
+                    "tag": "adblock-standard",
+                    "type": "local",
+                    "format": "source",
+                    "path": rs_path.to_string_lossy()
+                }
+            ]));
+        }
+    }
+
     json!({
         "log": log_obj,
         "dns": {
@@ -439,11 +469,7 @@ pub fn generate_singbox_config(
         },
         "inbounds": inbounds,
         "outbounds": outbounds,
-        "route": {
-            "rules": route_rules,
-            "final": if split_mode == "allow" && !split_apps.is_empty() { "direct" } else { "proxy" },
-            "auto_detect_interface": true
-        }
+        "route": route_obj
     })
 }
 
@@ -498,7 +524,7 @@ mod tests {
     #[test]
     fn generate_config_should_append_tun_inbounds() {
         let node = create_mock_node("1", None);
-        let config = generate_singbox_config(&node, &[], true, &[], None, None, false, &[], "allow", false, false);
+        let config = generate_singbox_config(&node, &[], true, &[], None, None, false, &[], "allow", false, false, "disabled", None);
 
         let inbounds = config.get("inbounds").unwrap().as_array().unwrap();
         assert_eq!(inbounds.len(), 2, "Expected 2 inbounds (mixed + tun)");
@@ -537,7 +563,7 @@ mod tests {
             domain_regex: vec![],
         };
 
-        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false, &[], "allow", false, false);
+        let config = generate_singbox_config(&node, &[], false, &[rule1, rule2], None, None, false, &[], "allow", false, false, "disabled", None);
         let rules = config["route"]["rules"].as_array().unwrap();
 
         // Custom rule should be first
@@ -559,7 +585,7 @@ mod tests {
         let node_a = create_mock_node("A", Some("B"));
         let node_b = create_mock_node("B", None);
 
-        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false, &[], "allow", false, false);
+        let config = generate_singbox_config(&node_a, &[node_a.clone(), node_b], false, &[], None, None, false, &[], "allow", false, false, "disabled", None);
         let outbounds = config["outbounds"].as_array().unwrap();
 
         // We should have proxy and proxy-next.
