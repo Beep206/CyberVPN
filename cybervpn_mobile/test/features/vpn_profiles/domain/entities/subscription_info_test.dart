@@ -37,7 +37,7 @@ void main() {
     });
 
     test('copyWith preserves unchanged fields', () {
-      final info = SubscriptionInfo(
+      const info = SubscriptionInfo(
         title: 'Plan A',
         uploadBytes: 500,
         downloadBytes: 1000,
@@ -82,10 +82,7 @@ void main() {
 
   group('SubscriptionInfo.consumedBytes', () {
     test('returns sum of upload and download', () {
-      const info = SubscriptionInfo(
-        uploadBytes: 1000,
-        downloadBytes: 2000,
-      );
+      const info = SubscriptionInfo(uploadBytes: 1000, downloadBytes: 2000);
 
       expect(info.consumedBytes, 3000);
     });
@@ -172,17 +169,13 @@ void main() {
     });
 
     test('returns true when expiresAt is in the past', () {
-      final info = SubscriptionInfo(
-        expiresAt: DateTime(2020, 1, 1),
-      );
+      final info = SubscriptionInfo(expiresAt: DateTime(2020, 1, 1));
 
       expect(info.isExpired, true);
     });
 
     test('returns false when expiresAt is in the future', () {
-      final info = SubscriptionInfo(
-        expiresAt: DateTime(2099, 12, 31),
-      );
+      final info = SubscriptionInfo(expiresAt: DateTime(2099, 12, 31));
 
       expect(info.isExpired, false);
     });
@@ -196,25 +189,19 @@ void main() {
     });
 
     test('returns Duration.zero when already expired', () {
-      final info = SubscriptionInfo(
-        expiresAt: DateTime(2020, 1, 1),
-      );
+      final info = SubscriptionInfo(expiresAt: DateTime(2020, 1, 1));
 
       expect(info.remaining, Duration.zero);
     });
 
     test('returns positive duration when not expired', () {
-      final info = SubscriptionInfo(
-        expiresAt: DateTime(2099, 12, 31),
-      );
+      final info = SubscriptionInfo(expiresAt: DateTime(2099, 12, 31));
 
       expect(info.remaining.inDays, greaterThan(0));
     });
 
     test('remaining is non-negative', () {
-      final info = SubscriptionInfo(
-        expiresAt: DateTime(2020, 6, 15),
-      );
+      final info = SubscriptionInfo(expiresAt: DateTime(2020, 6, 15));
 
       expect(info.remaining.isNegative, false);
     });

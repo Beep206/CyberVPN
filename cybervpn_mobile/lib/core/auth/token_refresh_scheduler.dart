@@ -3,10 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/auth/jwt_parser.dart';
-import 'package:cybervpn_mobile/core/device/device_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show authRepositoryProvider, secureStorageProvider;
+    show secureStorageProvider, tokenRefreshCoordinatorProvider;
 
 /// How many minutes before expiry to trigger proactive refresh.
 const int _refreshBufferMinutes = 5;
@@ -52,7 +51,9 @@ class TokenRefreshScheduler {
       }
 
       if (payload.isExpired) {
-        AppLogger.info('Access token already expired, triggering immediate refresh');
+        AppLogger.info(
+          'Access token already expired, triggering immediate refresh',
+        );
         unawaited(_triggerRefresh());
         return;
       }
@@ -102,27 +103,19 @@ class TokenRefreshScheduler {
 
     _isRefreshing = true;
     try {
-      final storage = _ref.read(secureStorageProvider);
-      final deviceService = _ref.read(deviceServiceProvider);
-      final repo = _ref.read(authRepositoryProvider);
+      final coordinator = _ref.read(tokenRefreshCoordinatorProvider);
 
-      final refreshToken = await storage.getRefreshToken();
-      final deviceId = await deviceService.getDeviceId();
-
-      if (refreshToken == null || refreshToken.isEmpty) {
-        AppLogger.warning('No refresh token available for proactive refresh');
-        return;
-      }
-
-      AppLogger.info('Executing proactive token refresh', category: 'auth.refresh');
-
-      // Perform the refresh
-      await repo.refreshToken(
-        refreshToken: refreshToken,
-        deviceId: deviceId,
+      AppLogger.info(
+        'Executing proactive token refresh',
+        category: 'auth.refresh',
       );
 
-      AppLogger.info('Proactive token refresh successful', category: 'auth.refresh');
+      await coordinator.refresh(reason: 'proactive-scheduler');
+
+      AppLogger.info(
+        'Proactive token refresh successful',
+        category: 'auth.refresh',
+      );
 
       // Schedule the next refresh based on the new token
       await scheduleRefresh();

@@ -15,10 +15,7 @@ class MainShellScreen extends ConsumerStatefulWidget {
   /// The navigation shell provided by [StatefulShellRoute.indexedStack].
   final StatefulNavigationShell navigationShell;
 
-  const MainShellScreen({
-    super.key,
-    required this.navigationShell,
-  });
+  const MainShellScreen({super.key, required this.navigationShell});
 
   @override
   ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
@@ -28,19 +25,17 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   /// Track whether auto-connect notification was shown.
   bool _autoConnectNotificationShown = false;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  ProviderSubscription<AsyncValue<VpnConnectionState>>? _vpnStateSubscription;
 
-    // Listen to VPN connection state for auto-connect notifications.
-    ref.listen<AsyncValue<VpnConnectionState>>(
+  @override
+  void initState() {
+    super.initState();
+    _vpnStateSubscription = ref.listenManual<AsyncValue<VpnConnectionState>>(
       vpnConnectionProvider,
       (previous, next) {
         final prevState = previous?.value;
         final nextState = next.value;
 
-        // Show notification when transitioning from disconnected to connecting
-        // during app startup (auto-connect scenario).
         if (!_autoConnectNotificationShown &&
             prevState is VpnDisconnected &&
             nextState is VpnConnecting) {
@@ -48,18 +43,27 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           _showAutoConnectNotification(context, nextState.server?.name);
         }
 
-        // Show error notification if auto-connect fails.
         if (nextState is VpnError && !_autoConnectNotificationShown) {
           _autoConnectNotificationShown = true;
           _showAutoConnectError(context, nextState.message);
         }
 
-        // Show success notification when auto-connect succeeds.
         if (prevState is VpnConnecting && nextState is VpnConnected) {
           _showAutoConnectSuccess(context, nextState.server.name);
         }
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _vpnStateSubscription?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
     final l10n = AppLocalizations.of(context);
 
@@ -73,59 +77,60 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         if (isWide) {
           return Scaffold(
             body: Row(
-                    children: [
-                      NavigationRail(
-                        selectedIndex: widget.navigationShell.currentIndex,
-                        onDestinationSelected: _onTabSelected,
-                        labelType: NavigationRailLabelType.all,
-                        indicatorColor: theme.colorScheme.primary
-                            .withValues(alpha: 0.15),
-                        destinations: [
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.power_settings_new),
-                            selectedIcon: Icon(
-                              Icons.power_settings_new,
-                              color: theme.colorScheme.primary,
-                            ),
-                            label: Text(l10n.navConnection),
-                          ),
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.public),
-                            selectedIcon: Icon(
-                              Icons.public,
-                              color: theme.colorScheme.primary,
-                            ),
-                            label: Text(l10n.servers),
-                          ),
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.layers_outlined),
-                            selectedIcon: Icon(
-                              Icons.layers,
-                              color: theme.colorScheme.primary,
-                            ),
-                            label: Text(l10n.profiles),
-                          ),
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.person),
-                            selectedIcon: Icon(
-                              Icons.person,
-                              color: theme.colorScheme.primary,
-                            ),
-                            label: Text(l10n.profile),
-                          ),
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.settings),
-                            selectedIcon: Icon(
-                              Icons.settings,
-                              color: theme.colorScheme.primary,
-                            ),
-                            label: Text(l10n.settings),
-                          ),
-                        ],
+              children: [
+                NavigationRail(
+                  selectedIndex: widget.navigationShell.currentIndex,
+                  onDestinationSelected: _onTabSelected,
+                  labelType: NavigationRailLabelType.all,
+                  indicatorColor: theme.colorScheme.primary.withValues(
+                    alpha: 0.15,
+                  ),
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.power_settings_new),
+                      selectedIcon: Icon(
+                        Icons.power_settings_new,
+                        color: theme.colorScheme.primary,
                       ),
-                      const VerticalDivider(thickness: 1, width: 1),
-                      Expanded(child: widget.navigationShell),
-                    ],
+                      label: Text(l10n.navConnection),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.public),
+                      selectedIcon: Icon(
+                        Icons.public,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: Text(l10n.servers),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.layers_outlined),
+                      selectedIcon: Icon(
+                        Icons.layers,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: Text(l10n.profiles),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.person),
+                      selectedIcon: Icon(
+                        Icons.person,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: Text(l10n.profile),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.settings),
+                      selectedIcon: Icon(
+                        Icons.settings,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: Text(l10n.settings),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(child: widget.navigationShell),
+              ],
             ),
           );
         }
@@ -135,8 +140,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           bottomNavigationBar: NavigationBar(
             selectedIndex: widget.navigationShell.currentIndex,
             onDestinationSelected: _onTabSelected,
-            indicatorColor:
-                theme.colorScheme.primary.withValues(alpha: 0.15),
+            indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.15),
             destinations: [
               NavigationDestination(
                 icon: Icon(
@@ -150,10 +154,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 label: l10n.navConnection,
               ),
               NavigationDestination(
-                icon: Icon(
-                  Icons.public,
-                  color: _iconColor(context, 1),
-                ),
+                icon: Icon(Icons.public, color: _iconColor(context, 1)),
                 selectedIcon: Icon(
                   Icons.public,
                   color: theme.colorScheme.primary,
@@ -172,10 +173,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 label: l10n.profiles,
               ),
               NavigationDestination(
-                icon: Icon(
-                  Icons.person,
-                  color: _iconColor(context, 3),
-                ),
+                icon: Icon(Icons.person, color: _iconColor(context, 3)),
                 selectedIcon: Icon(
                   Icons.person,
                   color: theme.colorScheme.primary,
@@ -183,10 +181,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                 label: l10n.profile,
               ),
               NavigationDestination(
-                icon: Icon(
-                  Icons.settings,
-                  color: _iconColor(context, 4),
-                ),
+                icon: Icon(Icons.settings, color: _iconColor(context, 4)),
                 selectedIcon: Icon(
                   Icons.settings,
                   color: theme.colorScheme.primary,
@@ -309,7 +304,11 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

@@ -7,10 +7,12 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/subscripti
 
 abstract class SubscriptionLocalDataSource {
   Future<void> cachePlans(List<PlanEntity> plans);
-  Future<List<PlanEntity>?> getCachedPlans();
+  Future<List<PlanEntity>?> getCachedPlans({bool allowExpired = false});
   Future<void> cacheSubscription(SubscriptionEntity? subscription);
-  Future<SubscriptionEntity?> getCachedSubscription();
-  Future<bool> hasSubscriptionCache();
+  Future<SubscriptionEntity?> getCachedSubscription({
+    bool allowExpired = false,
+  });
+  Future<bool> hasSubscriptionCache({bool allowExpired = false});
   Future<void> clearCache();
 }
 
@@ -20,9 +22,14 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   static const String _plansKey = 'cached_plans';
   static const String _plansCacheTimestampKey = 'plans_cache_timestamp';
   static const String _subscriptionKey = 'cached_subscription';
-  static const String _subscriptionCacheTimestampKey = 'subscription_cache_timestamp';
+  static const String _subscriptionCacheTimestampKey =
+      'subscription_cache_timestamp';
+  static const String _cacheVersionKey = 'subscription_cache_version';
+  static const int _cacheVersion = 2;
+
   /// Cache validity in minutes, derived from [CacheConstants.subscriptionCacheTtl].
-  static final int _cacheValidityMinutes = CacheConstants.subscriptionCacheTtl.inMinutes;
+  static final int _cacheValidityMinutes =
+      CacheConstants.subscriptionCacheTtl.inMinutes;
 
   SubscriptionLocalDataSourceImpl(this._localStorage);
 
@@ -30,6 +37,7 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
 
   @override
   Future<void> cachePlans(List<PlanEntity> plans) async {
+    await _ensureCacheVersion();
     final jsonList = plans.map(_planToJson).toList();
     await _localStorage.setString(_plansKey, jsonEncode(jsonList));
     await _localStorage.setString(
@@ -39,22 +47,31 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   }
 
   @override
-  Future<List<PlanEntity>?> getCachedPlans() async {
-    if (!await _isCacheValid(_plansCacheTimestampKey)) return null;
+  Future<List<PlanEntity>?> getCachedPlans({bool allowExpired = false}) async {
+    await _ensureCacheVersion();
+    if (!allowExpired && !await _isCacheValid(_plansCacheTimestampKey)) {
+      return null;
+    }
     final jsonStr = await _localStorage.getString(_plansKey);
     if (jsonStr == null) return null;
     final jsonList = jsonDecode(jsonStr) as List<dynamic>;
-    return jsonList.map((json) => _planFromJson(json as Map<String, dynamic>)).toList();
+    return jsonList
+        .map((json) => _planFromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Subscription cache ───────────────────────────────────────────────────
 
   @override
   Future<void> cacheSubscription(SubscriptionEntity? subscription) async {
+    await _ensureCacheVersion();
     if (subscription == null) {
       await _localStorage.setString(_subscriptionKey, 'null');
     } else {
-      await _localStorage.setString(_subscriptionKey, jsonEncode(_subscriptionToJson(subscription)));
+      await _localStorage.setString(
+        _subscriptionKey,
+        jsonEncode(_subscriptionToJson(subscription)),
+      );
     }
     await _localStorage.setString(
       _subscriptionCacheTimestampKey,
@@ -63,8 +80,13 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   }
 
   @override
-  Future<SubscriptionEntity?> getCachedSubscription() async {
-    if (!await _isCacheValid(_subscriptionCacheTimestampKey)) return null;
+  Future<SubscriptionEntity?> getCachedSubscription({
+    bool allowExpired = false,
+  }) async {
+    await _ensureCacheVersion();
+    if (!allowExpired && !await _isCacheValid(_subscriptionCacheTimestampKey)) {
+      return null;
+    }
     final jsonStr = await _localStorage.getString(_subscriptionKey);
     if (jsonStr == null) return null;
     if (jsonStr == 'null') return null;
@@ -73,8 +95,11 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   }
 
   @override
-  Future<bool> hasSubscriptionCache() async {
-    if (!await _isCacheValid(_subscriptionCacheTimestampKey)) return false;
+  Future<bool> hasSubscriptionCache({bool allowExpired = false}) async {
+    await _ensureCacheVersion();
+    if (!allowExpired && !await _isCacheValid(_subscriptionCacheTimestampKey)) {
+      return false;
+    }
     final jsonStr = await _localStorage.getString(_subscriptionKey);
     return jsonStr != null;
   }
@@ -83,6 +108,10 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
 
   @override
   Future<void> clearCache() async {
+    await _clearCacheEntries();
+  }
+
+  Future<void> _clearCacheEntries() async {
     await _localStorage.remove(_plansKey);
     await _localStorage.remove(_plansCacheTimestampKey);
     await _localStorage.remove(_subscriptionKey);
@@ -95,60 +124,71 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
     final timestampStr = await _localStorage.getString(timestampKey);
     if (timestampStr == null) return false;
     final timestamp = DateTime.parse(timestampStr);
-    return DateTime.now().difference(timestamp).inMinutes < _cacheValidityMinutes;
+    return DateTime.now().difference(timestamp).inMinutes <
+        _cacheValidityMinutes;
+  }
+
+  Future<void> _ensureCacheVersion() async {
+    final version = await _localStorage.getInt(_cacheVersionKey);
+    if (version == _cacheVersion) {
+      return;
+    }
+
+    await _clearCacheEntries();
+    await _localStorage.setInt(_cacheVersionKey, _cacheVersion);
   }
 
   // ── Serialization helpers ────────────────────────────────────────────────
 
   static Map<String, dynamic> _planToJson(PlanEntity plan) => {
-        'id': plan.id,
-        'name': plan.name,
-        'description': plan.description,
-        'price': plan.price,
-        'currency': plan.currency,
-        'duration': plan.duration.name,
-        'durationDays': plan.durationDays,
-        'maxDevices': plan.maxDevices,
-        'trafficLimitGb': plan.trafficLimitGb,
-        'isPopular': plan.isPopular,
-        'isTrial': plan.isTrial,
-        'storeProductId': plan.storeProductId,
-        'features': plan.features,
-      };
+    'id': plan.id,
+    'name': plan.name,
+    'description': plan.description,
+    'price': plan.price,
+    'currency': plan.currency,
+    'duration': plan.duration.name,
+    'durationDays': plan.durationDays,
+    'maxDevices': plan.maxDevices,
+    'trafficLimitGb': plan.trafficLimitGb,
+    'isPopular': plan.isPopular,
+    'isTrial': plan.isTrial,
+    'storeProductId': plan.storeProductId,
+    'features': plan.features,
+  };
 
   static PlanEntity _planFromJson(Map<String, dynamic> m) => PlanEntity(
-        id: m['id'] as String,
-        name: m['name'] as String,
-        description: m['description'] as String? ?? '',
-        price: (m['price'] as num).toDouble(),
-        currency: m['currency'] as String? ?? 'USD',
-        duration: PlanDuration.values.firstWhere(
-          (e) => e.name == (m['duration'] as String?),
-          orElse: () => PlanDuration.monthly,
-        ),
-        durationDays: (m['durationDays'] as num?)?.toInt() ?? 30,
-        maxDevices: (m['maxDevices'] as num?)?.toInt() ?? 1,
-        trafficLimitGb: (m['trafficLimitGb'] as num?)?.toInt() ?? 0,
-        isPopular: m['isPopular'] as bool? ?? false,
-        isTrial: m['isTrial'] as bool? ?? false,
-        storeProductId: m['storeProductId'] as String?,
-        features: (m['features'] as List<dynamic>?)?.cast<String>(),
-      );
+    id: m['id'] as String,
+    name: m['name'] as String,
+    description: m['description'] as String? ?? '',
+    price: (m['price'] as num).toDouble(),
+    currency: m['currency'] as String? ?? 'USD',
+    duration: PlanDuration.values.firstWhere(
+      (e) => e.name == (m['duration'] as String?),
+      orElse: () => PlanDuration.monthly,
+    ),
+    durationDays: (m['durationDays'] as num?)?.toInt() ?? 30,
+    maxDevices: (m['maxDevices'] as num?)?.toInt() ?? 1,
+    trafficLimitGb: (m['trafficLimitGb'] as num?)?.toInt() ?? 0,
+    isPopular: m['isPopular'] as bool? ?? false,
+    isTrial: m['isTrial'] as bool? ?? false,
+    storeProductId: m['storeProductId'] as String?,
+    features: (m['features'] as List<dynamic>?)?.cast<String>(),
+  );
 
   static Map<String, dynamic> _subscriptionToJson(SubscriptionEntity sub) => {
-        'id': sub.id,
-        'planId': sub.planId,
-        'userId': sub.userId,
-        'status': sub.status.name,
-        'startDate': sub.startDate.toIso8601String(),
-        'endDate': sub.endDate.toIso8601String(),
-        'trafficUsedBytes': sub.trafficUsedBytes,
-        'trafficLimitBytes': sub.trafficLimitBytes,
-        'devicesConnected': sub.devicesConnected,
-        'maxDevices': sub.maxDevices,
-        'subscriptionLink': sub.subscriptionLink,
-        'cancelledAt': sub.cancelledAt?.toIso8601String(),
-      };
+    'id': sub.id,
+    'planId': sub.planId,
+    'userId': sub.userId,
+    'status': sub.status.name,
+    'startDate': sub.startDate.toIso8601String(),
+    'endDate': sub.endDate.toIso8601String(),
+    'trafficUsedBytes': sub.trafficUsedBytes,
+    'trafficLimitBytes': sub.trafficLimitBytes,
+    'devicesConnected': sub.devicesConnected,
+    'maxDevices': sub.maxDevices,
+    'subscriptionLink': sub.subscriptionLink,
+    'cancelledAt': sub.cancelledAt?.toIso8601String(),
+  };
 
   static SubscriptionEntity _subscriptionFromJson(Map<String, dynamic> m) =>
       SubscriptionEntity(

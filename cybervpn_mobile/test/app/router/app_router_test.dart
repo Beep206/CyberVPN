@@ -25,6 +25,7 @@ String? resolveRedirect({
   required bool isAuthLoading,
   required String path,
   bool shouldShowQuickSetup = false,
+  String? postAuthRedirect,
 }) {
   final isAuthRoute = path == '/login' || path == '/register';
   final isOnboardingRoute = path == '/onboarding';
@@ -37,24 +38,36 @@ String? resolveRedirect({
 
   // 1. Onboarding not completed -> show onboarding
   if (shouldShowOnboarding && !isOnboardingRoute) {
-    return '/onboarding';
+    return postAuthRedirect == null
+        ? '/onboarding'
+        : '/onboarding?next=${Uri.encodeComponent(postAuthRedirect)}';
   }
 
   // 2. Onboarding complete, not authenticated -> show login
   if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
-    return '/login';
+    return postAuthRedirect == null
+        ? '/login'
+        : '/login?next=${Uri.encodeComponent(postAuthRedirect)}';
   }
 
   // 3. Authenticated user on auth/onboarding routes -> go to app
   if (isAuthenticated && (isAuthRoute || isOnboardingRoute)) {
-    if (shouldShowQuickSetup && !isQuickSetupRoute) return '/quick-setup';
-    return '/connection';
+    if (shouldShowQuickSetup && !isQuickSetupRoute) {
+      return postAuthRedirect == null
+          ? '/quick-setup'
+          : '/quick-setup?next=${Uri.encodeComponent(postAuthRedirect)}';
+    }
+    return postAuthRedirect ?? '/connection';
   }
 
   // 4. Authenticated user on root -> go to connection
   if (isAuthenticated && path == '/') {
-    if (shouldShowQuickSetup && !isQuickSetupRoute) return '/quick-setup';
-    return '/connection';
+    if (shouldShowQuickSetup && !isQuickSetupRoute) {
+      return postAuthRedirect == null
+          ? '/quick-setup'
+          : '/quick-setup?next=${Uri.encodeComponent(postAuthRedirect)}';
+    }
+    return postAuthRedirect ?? '/connection';
   }
 
   return null;
@@ -111,28 +124,31 @@ void main() {
 
     // ----- Onboarding completed, not authenticated -------------------------
 
-    test('after onboarding, not authenticated -> redirects to /login from /',
-        () {
-      final result = resolveRedirect(
-        isAuthenticated: false,
-        shouldShowOnboarding: false,
-        isAuthLoading: false,
-        path: '/',
-      );
-      expect(result, '/login');
-    });
+    test(
+      'after onboarding, not authenticated -> redirects to /login from /',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: false,
+          shouldShowOnboarding: false,
+          isAuthLoading: false,
+          path: '/',
+        );
+        expect(result, '/login');
+      },
+    );
 
     test(
-        'after onboarding, not authenticated -> redirects to /login from /connection',
-        () {
-      final result = resolveRedirect(
-        isAuthenticated: false,
-        shouldShowOnboarding: false,
-        isAuthLoading: false,
-        path: '/connection',
-      );
-      expect(result, '/login');
-    });
+      'after onboarding, not authenticated -> redirects to /login from /connection',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: false,
+          shouldShowOnboarding: false,
+          isAuthLoading: false,
+          path: '/connection',
+        );
+        expect(result, '/login');
+      },
+    );
 
     test('after onboarding, not authenticated -> stays on /login', () {
       final result = resolveRedirect(
@@ -229,28 +245,30 @@ void main() {
     // ----- Edge case: authenticated but shouldShowOnboarding is true --------
 
     test(
-        'authenticated with shouldShowOnboarding -> redirects to /onboarding',
-        () {
-      final result = resolveRedirect(
-        isAuthenticated: true,
-        shouldShowOnboarding: true,
-        isAuthLoading: false,
-        path: '/connection',
-      );
-      expect(result, '/onboarding');
-    });
+      'authenticated with shouldShowOnboarding -> redirects to /onboarding',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: true,
+          shouldShowOnboarding: true,
+          isAuthLoading: false,
+          path: '/connection',
+        );
+        expect(result, '/onboarding');
+      },
+    );
 
     test(
-        'authenticated on /onboarding with shouldShowOnboarding -> redirects to /connection',
-        () {
-      final result = resolveRedirect(
-        isAuthenticated: true,
-        shouldShowOnboarding: true,
-        isAuthLoading: false,
-        path: '/onboarding',
-      );
-      expect(result, '/connection');
-    });
+      'authenticated on /onboarding with shouldShowOnboarding -> redirects to /connection',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: true,
+          shouldShowOnboarding: true,
+          isAuthLoading: false,
+          path: '/onboarding',
+        );
+        expect(result, '/connection');
+      },
+    );
   });
 
   group('Splash screen handling', () {
@@ -286,20 +304,21 @@ void main() {
   });
 
   group('Quick setup flow', () {
-    test('authenticated on /login with quickSetup -> redirects to /quick-setup',
-        () {
-      final result = resolveRedirect(
-        isAuthenticated: true,
-        shouldShowOnboarding: false,
-        isAuthLoading: false,
-        shouldShowQuickSetup: true,
-        path: '/login',
-      );
-      expect(result, '/quick-setup');
-    });
+    test(
+      'authenticated on /login with quickSetup -> redirects to /quick-setup',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: true,
+          shouldShowOnboarding: false,
+          isAuthLoading: false,
+          shouldShowQuickSetup: true,
+          path: '/login',
+        );
+        expect(result, '/quick-setup');
+      },
+    );
 
-    test('authenticated on / with quickSetup -> redirects to /quick-setup',
-        () {
+    test('authenticated on / with quickSetup -> redirects to /quick-setup', () {
       final result = resolveRedirect(
         isAuthenticated: true,
         shouldShowOnboarding: false,
@@ -331,6 +350,56 @@ void main() {
         path: '/connection',
       );
       expect(result, '/login');
+    });
+
+    test(
+      'authenticated auth route with deferred destination keeps it via quick setup',
+      () {
+        final result = resolveRedirect(
+          isAuthenticated: true,
+          shouldShowOnboarding: false,
+          isAuthLoading: false,
+          shouldShowQuickSetup: true,
+          path: '/login',
+          postAuthRedirect: '/servers/42',
+        );
+        expect(result, '/quick-setup?next=%2Fservers%2F42');
+      },
+    );
+  });
+
+  group('Deferred destinations', () {
+    test('unauthenticated protected route redirects to login with next', () {
+      final result = resolveRedirect(
+        isAuthenticated: false,
+        shouldShowOnboarding: false,
+        isAuthLoading: false,
+        path: '/settings',
+        postAuthRedirect: '/settings',
+      );
+      expect(result, '/login?next=%2Fsettings');
+    });
+
+    test('authenticated auth route redirects to deferred destination', () {
+      final result = resolveRedirect(
+        isAuthenticated: true,
+        shouldShowOnboarding: false,
+        isAuthLoading: false,
+        path: '/login',
+        postAuthRedirect: '/servers/42',
+      );
+      expect(result, '/servers/42');
+    });
+
+    test('onboarding guard preserves deferred destination', () {
+      final result = resolveRedirect(
+        isAuthenticated: false,
+        shouldShowOnboarding: true,
+        isAuthLoading: false,
+        path: '/',
+        postAuthRedirect: '/servers/42',
+      );
+      expect(result, '/onboarding?next=%2Fservers%2F42');
     });
   });
 

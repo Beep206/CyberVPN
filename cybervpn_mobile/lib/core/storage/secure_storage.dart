@@ -49,13 +49,14 @@ class SecureStorageWrapper {
   static const _ttlKeys = {accessTokenKey, refreshTokenKey, deviceTokenKey};
 
   SecureStorageWrapper({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(),
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock,
-              ),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
+            ),
+          );
 
   /// Writes a value and updates the cache.
   Future<void> write({required String key, required String value}) async {
@@ -147,16 +148,10 @@ class SecureStorageWrapper {
   ///
   /// Call this during app initialization to minimize latency
   /// on first auth check. Reads are performed in parallel.
-  Future<void> prewarmCache() async {
-    final criticalKeys = [
-      accessTokenKey,
-      refreshTokenKey,
-      cachedUserKey,
-    ];
-
-    await Future.wait(
-      criticalKeys.map((key) => read(key: key)),
-    );
+  Future<void> prewarmCache({
+    Iterable<String> keys = const [accessTokenKey, refreshTokenKey],
+  }) async {
+    await Future.wait(keys.map((key) => read(key: key)));
   }
 
   /// Migrates from plaintext biometric credentials to device token auth.

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
+import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/entities/onboarding_page.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
@@ -98,9 +100,7 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingState> {
     if (current == null) return;
     if (current.isLastPage) return;
 
-    state = AsyncData(
-      current.copyWith(currentPage: current.currentPage + 1),
-    );
+    state = AsyncData(current.copyWith(currentPage: current.currentPage + 1));
     AppLogger.debug('Onboarding: moved to page ${current.currentPage + 1}');
   }
 
@@ -110,9 +110,7 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingState> {
     if (current == null) return;
     if (current.isFirstPage) return;
 
-    state = AsyncData(
-      current.copyWith(currentPage: current.currentPage - 1),
-    );
+    state = AsyncData(current.copyWith(currentPage: current.currentPage - 1));
     AppLogger.debug('Onboarding: moved to page ${current.currentPage - 1}');
   }
 
@@ -166,8 +164,8 @@ class OnboardingNotifier extends AsyncNotifier<OnboardingState> {
 /// Provides the [OnboardingNotifier] managing [OnboardingState].
 final onboardingProvider =
     AsyncNotifierProvider<OnboardingNotifier, OnboardingState>(
-  OnboardingNotifier.new,
-);
+      OnboardingNotifier.new,
+    );
 
 // ---------------------------------------------------------------------------
 // Derived providers
@@ -178,10 +176,11 @@ final onboardingProvider =
 /// Returns `true` when onboarding has **not** been completed yet,
 /// `false` after the user has completed or skipped onboarding.
 ///
-/// This provider performs an async check against the repository so that
-/// the app can decide at startup whether to show the onboarding screen.
-final shouldShowOnboardingProvider = FutureProvider<bool>((ref) async {
-  final repository = ref.watch(onboardingRepositoryProvider);
-  final hasCompleted = await repository.hasCompletedOnboarding();
+/// This provider reads from already-initialized SharedPreferences so the router
+/// can evaluate onboarding synchronously during startup.
+final shouldShowOnboardingProvider = Provider<bool>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final hasCompleted =
+      prefs.getBool(LocalStorageWrapper.onboardingCompleteKey) ?? false;
   return !hasCompleted;
 });

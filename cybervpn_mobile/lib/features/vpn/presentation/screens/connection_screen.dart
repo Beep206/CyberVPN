@@ -47,10 +47,41 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
   /// Track previous state to detect transitions.
   VpnConnectionState? _prevVpnState;
 
+  ProviderSubscription<AsyncValue<VpnConnectionState>>? _vpnStateSubscription;
+
   @override
   void initState() {
     super.initState();
     _successAnimController = AnimationController(vsync: this);
+    _vpnStateSubscription = ref.listenManual<AsyncValue<VpnConnectionState>>(
+      vpnConnectionProvider,
+      (prev, next) {
+        final previousState = prev?.value ?? _prevVpnState;
+        final currentState = next.value;
+        if (currentState == null) {
+          return;
+        }
+
+        if (currentState is VpnForceDisconnected) {
+          _showForceDisconnectDialog(context, currentState.reason);
+        }
+
+        final disableAnimations =
+            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (previousState is VpnConnecting &&
+            currentState is VpnConnected &&
+            !disableAnimations) {
+          setState(() {
+            _showSuccessAnim = true;
+          });
+          _successAnimController.reset();
+          unawaited(_successAnimController.forward());
+        }
+
+        _prevVpnState = currentState;
+      },
+    );
+
     // Show tooltip after first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_showTooltipIfNeeded());
@@ -59,28 +90,31 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
 
   @override
   void dispose() {
+    _vpnStateSubscription?.close();
     _successAnimController.dispose();
     super.dispose();
   }
 
   void _showForceDisconnectDialog(BuildContext context, String reason) {
     final l10n = AppLocalizations.of(context);
-    unawaited(showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.forceDisconnectTitle),
-        content: Text(
-          reason.isNotEmpty ? reason : l10n.forceDisconnectMessage,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.commonOk),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.forceDisconnectTitle),
+          content: Text(
+            reason.isNotEmpty ? reason : l10n.forceDisconnectMessage,
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> _showTooltipIfNeeded() async {
@@ -102,30 +136,8 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Listen for force-disconnect events and show an alert dialog.
-    ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider,
-        (prev, next) {
-      final state = next.value;
-      if (state is VpnForceDisconnected) {
-        _showForceDisconnectDialog(context, state.reason);
-      }
-    });
-
     final asyncState = ref.watch(vpnConnectionProvider);
     final vpnState = asyncState.value ?? const VpnDisconnected();
-    final duration = ref.watch(sessionDurationProvider);
-    final usage = ref.watch(sessionUsageProvider);
-
-    // Detect connecting→connected transition for one-shot success animation.
-    // Skip animation when the user has disabled animations in accessibility settings.
-    if (_prevVpnState is VpnConnecting &&
-        vpnState is VpnConnected &&
-        !MediaQuery.of(context).disableAnimations) {
-      _showSuccessAnim = true;
-      _successAnimController.reset();
-      unawaited(_successAnimController.forward());
-    }
-    _prevVpnState = vpnState;
 
     final isConnecting =
         vpnState is VpnConnecting || vpnState is VpnReconnecting;
@@ -164,15 +176,11 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                   fit: BoxFit.contain,
                   repeat: false,
                   onLoaded: (composition) {
-                    _successAnimController.duration =
-                        composition.duration;
+                    _successAnimController.duration = composition.duration;
                     unawaited(
-                      _successAnimController
-                          .forward()
-                          .whenComplete(() {
+                      _successAnimController.forward().whenComplete(() {
                         if (mounted) {
-                          setState(
-                              () => _showSuccessAnim = false);
+                          setState(() => _showSuccessAnim = false);
                         }
                       }),
                     );
@@ -223,7 +231,8 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                           child: Center(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: Spacing.lg),
+                                horizontal: Spacing.lg,
+                              ),
                               child: connectButtonArea,
                             ),
                           ),
@@ -233,7 +242,8 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                           child: Center(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: Spacing.lg),
+                                horizontal: Spacing.lg,
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -242,8 +252,6 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                                   _BottomStatsSection(
                                     key: _speedIndicatorKey,
                                     vpnState: vpnState,
-                                    duration: duration,
-                                    totalUsage: usage.total,
                                   ),
                                 ],
                               ),
@@ -264,8 +272,9 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.lg,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -281,8 +290,6 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
                 _BottomStatsSection(
                   key: _speedIndicatorKey,
                   vpnState: vpnState,
-                  duration: duration,
-                  totalUsage: usage.total,
                 ),
               ],
             );
@@ -309,13 +316,13 @@ class _TopBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 4),
-      child: Row(
-        children: [
-          // Status indicator dot
-          _StatusDot(vpnState: vpnState),
-          const SizedBox(width: Spacing.sm),
-          Semantics(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.md,
+        vertical: Spacing.sm + 4,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final statusText = Semantics(
             label: l10n.a11yConnectionStatus(label),
             hint: 'Shows current VPN protection status',
             readOnly: true,
@@ -337,15 +344,43 @@ class _TopBar extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-          ),
-          const Spacer(),
-          // Active profile selector
-          const ProfileSelectorWidget(),
-          const SizedBox(width: Spacing.sm),
-          // Subscription badge
-          const _SubscriptionBadge(),
-        ],
+          );
+
+          const actions = Wrap(
+            spacing: Spacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [ProfileSelectorWidget(), _SubscriptionBadge()],
+          );
+
+          if (constraints.maxWidth < 420) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _StatusDot(vpnState: vpnState),
+                    const SizedBox(width: Spacing.sm),
+                    Expanded(child: statusText),
+                  ],
+                ),
+                const SizedBox(height: Spacing.sm),
+                const Align(alignment: Alignment.centerRight, child: actions),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              _StatusDot(vpnState: vpnState),
+              const SizedBox(width: Spacing.sm),
+              Expanded(child: statusText),
+              const SizedBox(width: Spacing.sm),
+              const Flexible(child: actions),
+            ],
+          );
+        },
       ),
     );
   }
@@ -357,7 +392,8 @@ class _TopBar extends StatelessWidget {
       VpnConnected() => l10n.connectionStatusProtected,
       VpnDisconnecting() => l10n.disconnecting,
       VpnReconnecting() => l10n.connectionStatusReconnecting,
-      VpnError() || VpnForceDisconnected() => l10n.connectionStatusConnectionError,
+      VpnError() ||
+      VpnForceDisconnected() => l10n.connectionStatusConnectionError,
     };
   }
 
@@ -397,13 +433,17 @@ class _StatusDotState extends State<_StatusDot>
     // Pulse scale: 1.0 -> 1.1 -> 1.0 using a TweenSequence for smooth looping.
     _pulseScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.1)
-            .chain(CurveTween(curve: CyberEffects.pulseCurve)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.1,
+        ).chain(CurveTween(curve: CyberEffects.pulseCurve)),
         weight: 50,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.1, end: 1.0)
-            .chain(CurveTween(curve: CyberEffects.pulseCurve)),
+        tween: Tween<double>(
+          begin: 1.1,
+          end: 1.0,
+        ).chain(CurveTween(curve: CyberEffects.pulseCurve)),
         weight: 50,
       ),
     ]).animate(_pulseController);
@@ -446,8 +486,10 @@ class _StatusDotState extends State<_StatusDot>
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        _TopBar._statusColor(widget.vpnState, Theme.of(context).colorScheme);
+    final color = _TopBar._statusColor(
+      widget.vpnState,
+      Theme.of(context).colorScheme,
+    );
 
     return RepaintBoundary(
       child: ExcludeSemantics(
@@ -488,7 +530,10 @@ class _SubscriptionBadge extends StatelessWidget {
       hint: 'Shows your current subscription tier',
       readOnly: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm + 2, vertical: Spacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.sm + 2,
+          vertical: Spacing.xs,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -497,9 +542,7 @@ class _SubscriptionBadge extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
           boxShadow: CyberColors.isCyberpunkTheme(context)
               ? CyberEffects.neonGlow(colorScheme.primary, intensity: 0.35)
               : null,
@@ -508,8 +551,11 @@ class _SubscriptionBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ExcludeSemantics(
-              child: Icon(Icons.star_rounded,
-                  color: colorScheme.primary, size: 14),
+              child: Icon(
+                Icons.star_rounded,
+                color: colorScheme.primary,
+                size: 14,
+              ),
             ),
             const SizedBox(width: Spacing.xs),
             Text(
@@ -555,7 +601,11 @@ class _ErrorBanner extends StatelessWidget {
         child: Row(
           children: [
             ExcludeSemantics(
-              child: Icon(Icons.error_outline, color: colorScheme.error, size: 18),
+              child: Icon(
+                Icons.error_outline,
+                color: colorScheme.error,
+                size: 18,
+              ),
             ),
             const SizedBox(width: Spacing.sm),
             Expanded(
@@ -578,31 +628,32 @@ class _ErrorBanner extends StatelessWidget {
 // Bottom stats section
 // ---------------------------------------------------------------------------
 
-class _BottomStatsSection extends StatelessWidget {
+class _BottomStatsSection extends ConsumerWidget {
   final VpnConnectionState vpnState;
-  final String duration;
-  final String totalUsage;
 
-  const _BottomStatsSection({
-    super.key,
-    required this.vpnState,
-    required this.duration,
-    required this.totalUsage,
-  });
+  const _BottomStatsSection({super.key, required this.vpnState});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final duration = ref.watch(sessionDurationProvider);
+    final totalUsage = ref.watch(
+      sessionUsageProvider.select((usage) => usage.total),
+    );
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg - 4, Spacing.lg, Spacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.lg - 4,
+        Spacing.lg,
+        Spacing.md,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outlineVariant,
-          ),
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
       ),
       child: Column(
@@ -615,10 +666,7 @@ class _BottomStatsSection extends StatelessWidget {
 
           // Session summary row
           if (vpnState.isConnected || vpnState.isReconnecting)
-            _SessionSummaryRow(
-              duration: duration,
-              totalUsage: totalUsage,
-            ),
+            _SessionSummaryRow(duration: duration, totalUsage: totalUsage),
         ],
       ),
     );
@@ -629,34 +677,52 @@ class _SessionSummaryRow extends StatelessWidget {
   final String duration;
   final String totalUsage;
 
-  const _SessionSummaryRow({
-    required this.duration,
-    required this.totalUsage,
-  });
+  const _SessionSummaryRow({required this.duration, required this.totalUsage});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _SummaryItem(
-          icon: Icons.timer_outlined,
-          label: l10n.connectionDuration,
-          value: duration,
-        ),
-        Container(
-          width: 1,
-          height: 28,
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-        _SummaryItem(
-          icon: Icons.data_usage,
-          label: l10n.dataUsed,
-          value: totalUsage,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final items = [
+          _SummaryItem(
+            icon: Icons.timer_outlined,
+            label: l10n.connectionDuration,
+            value: duration,
+          ),
+          _SummaryItem(
+            icon: Icons.data_usage,
+            label: l10n.dataUsed,
+            value: totalUsage,
+          ),
+        ];
+
+        if (constraints.maxWidth < 340) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              items[0],
+              const SizedBox(height: Spacing.sm),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+              const SizedBox(height: Spacing.sm),
+              items[1],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: Center(child: items[0])),
+            Container(
+              width: 1,
+              height: 28,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+            Expanded(child: Center(child: items[1])),
+          ],
+        );
+      },
     );
   }
 }
@@ -679,36 +745,81 @@ class _SummaryItem extends StatelessWidget {
       label: '$label: $value',
       hint: 'Shows current $label',
       readOnly: true,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ExcludeSemantics(
-            child: Icon(icon, color: colorScheme.onSurfaceVariant, size: 16),
-          ),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 120) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Icon(
+                    icon,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: TextStyle(
+              ExcludeSemantics(
+                child: Icon(
+                  icon,
                   color: colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                  letterSpacing: 0.5,
+                  size: 16,
                 ),
               ),
-              Text(
-                value,
-                style: TextStyle(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              const SizedBox(width: 6),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

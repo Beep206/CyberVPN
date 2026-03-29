@@ -21,10 +21,7 @@ abstract class AuthRemoteDataSource {
     required String refreshToken,
     required String deviceId,
   });
-  Future<void> logout({
-    required String refreshToken,
-    required String deviceId,
-  });
+  Future<void> logout({required String refreshToken, required String deviceId});
   Future<UserModel> getCurrentUser();
   Future<(UserModel, TokenModel)> loginWithBotLink({required String token});
 }
@@ -73,7 +70,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'email': email,
         'password': password,
         'device': device.toJson(),
-        if (referralCode != null) 'referral_code': referralCode,
+        ...?referralCode == null
+            ? null
+            : <String, dynamic>{'referral_code': referralCode},
       },
     );
     final data = response.data;
@@ -93,10 +92,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       ApiConstants.refresh,
-      data: {
-        'refresh_token': refreshToken,
-        'device_id': deviceId,
-      },
+      data: {'refresh_token': refreshToken, 'device_id': deviceId},
     );
     final data = response.data;
     if (data is! Map<String, dynamic>) {
@@ -112,10 +108,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     await _apiClient.post<Map<String, dynamic>>(
       ApiConstants.logout,
-      data: {
-        'refresh_token': refreshToken,
-        'device_id': deviceId,
-      },
+      data: {'refresh_token': refreshToken, 'device_id': deviceId},
     );
   }
 
@@ -139,7 +132,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> getCurrentUser() async {
-    final response = await _apiClient.get<Map<String, dynamic>>(ApiConstants.me);
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      ApiConstants.me,
+    );
     final data = response.data;
     if (data is! Map<String, dynamic>) {
       throw FormatException('Expected Map response, got ${data.runtimeType}');

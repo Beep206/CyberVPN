@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/permission_request_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/permission_card.dart';
 
@@ -14,6 +15,14 @@ import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/permiss
 /// Handles both granted and denied scenarios gracefully.
 class PermissionRequestScreen extends ConsumerWidget {
   const PermissionRequestScreen({super.key});
+
+  String _loginDestination(BuildContext context) {
+    final uri = GoRouterState.of(context).uri;
+    return buildAuthRouteLocation(
+      authPath: '/login',
+      postAuthRedirect: readPostAuthRedirect(uri),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,11 +48,7 @@ class PermissionRequestScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.lg),
             Text(
               l10n.errorGeneric,
@@ -60,7 +65,7 @@ class PermissionRequestScreen extends ConsumerWidget {
             ),
             const SizedBox(height: Spacing.xl),
             ElevatedButton(
-              onPressed: () => context.go('/login'),
+              onPressed: () => context.go(_loginDestination(context)),
               child: Text(l10n.permissionContinueAnyway),
             ),
           ],
@@ -180,9 +185,7 @@ class PermissionRequestScreen extends ConsumerWidget {
           ),
           const SizedBox(height: Spacing.md),
           Text(
-            someDenied
-                ? l10n.permissionEnableLater
-                : l10n.permissionAppReady,
+            someDenied ? l10n.permissionEnableLater : l10n.permissionAppReady,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -218,7 +221,7 @@ class PermissionRequestScreen extends ConsumerWidget {
   Future<void> _handleContinue(BuildContext context, WidgetRef ref) async {
     await ref.read(permissionRequestProvider.notifier).complete();
     if (context.mounted) {
-      context.go('/login');
+      context.go(_loginDestination(context));
     }
   }
 
@@ -227,10 +230,8 @@ class PermissionRequestScreen extends ConsumerWidget {
     // This would use a package like app_settings or url_launcher
     // to open the device's app settings page
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.permissionEnableInSettings),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.permissionEnableInSettings)));
   }
 }

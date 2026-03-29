@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/onboarding_page_widget.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/widgets/page_indicator.dart';
@@ -42,17 +43,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
   }
 
+  String get _permissionsDestination {
+    final uri = GoRouterState.of(context).uri;
+    return buildPermissionsLocation(
+      postAuthRedirect: readPostAuthRedirect(uri),
+    );
+  }
+
   Future<void> _handleSkip() async {
     try {
       await ref.read(onboardingProvider.notifier).skip();
       if (mounted) {
-        context.go('/permissions');
+        context.go(_permissionsDestination);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     }
   }
@@ -61,13 +69,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       await ref.read(onboardingProvider.notifier).complete();
       if (mounted) {
-        context.go('/permissions');
+        context.go(_permissionsDestination);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     }
   }
@@ -81,7 +89,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: asyncState.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
-            child: Text('${AppLocalizations.of(context).errorOccurred}: $error'),
+            child: Text(
+              '${AppLocalizations.of(context).errorOccurred}: $error',
+            ),
           ),
           data: (state) => _buildContent(context, state),
         ),
@@ -165,10 +175,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           child: Text(l10n.onboardingGetStarted),
                         ),
                       )
-                    : const SizedBox(
-                        key: ValueKey('spacer'),
-                        height: 48,
-                      ),
+                    : const SizedBox(key: ValueKey('spacer'), height: 48),
               ),
             ],
           ),

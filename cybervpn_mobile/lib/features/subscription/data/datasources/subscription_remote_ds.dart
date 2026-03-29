@@ -53,7 +53,10 @@ class PaginatedPaymentHistory {
 abstract class SubscriptionRemoteDataSource {
   Future<List<PlanEntity>> fetchPlans();
   Future<SubscriptionEntity?> fetchActiveSubscription();
-  Future<SubscriptionEntity> createSubscription(String planId, {String? paymentMethod});
+  Future<SubscriptionEntity> createSubscription(
+    String planId, {
+    String? paymentMethod,
+  });
   Future<void> cancelSubscription(String subscriptionId);
   Future<PaginatedPaymentHistory> fetchPaymentHistory({
     int offset = 0,
@@ -87,7 +90,8 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
         price: (m['price'] as num).toDouble(),
         currency: m['currency'] as String? ?? 'USD',
         duration: duration,
-        durationDays: (m['duration_days'] as num?)?.toInt() ?? _durationToDays(duration),
+        durationDays:
+            (m['duration_days'] as num?)?.toInt() ?? _durationToDays(duration),
         trafficLimitGb: (m['traffic_limit_gb'] as num?)?.toInt() ?? 0,
         maxDevices: (m['max_devices'] as num?)?.toInt() ?? 1,
         features: (m['features'] as List<dynamic>?)?.cast<String>() ?? [],
@@ -107,7 +111,9 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   @override
   Future<SubscriptionEntity?> fetchActiveSubscription() async {
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>('/subscription/active');
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/subscription/active',
+      );
       final data = response.data as Map<String, dynamic>;
       return SubscriptionEntity(
         id: data['id'] as String,
@@ -124,16 +130,29 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
         maxDevices: (data['max_devices'] as num?)?.toInt() ?? 1,
       );
     } catch (e) {
-      AppLogger.warning('Failed to parse subscription data', error: e, category: 'subscription');
+      AppLogger.warning(
+        'Failed to parse subscription data',
+        error: e,
+        category: 'subscription',
+      );
       return null;
     }
   }
 
   @override
-  Future<SubscriptionEntity> createSubscription(String planId, {String? paymentMethod}) async {
-    final response = await _apiClient.post<Map<String, dynamic>>('/subscription', data: {
-      'plan_id': planId, if (paymentMethod != null) 'payment_method': paymentMethod,
-    });
+  Future<SubscriptionEntity> createSubscription(
+    String planId, {
+    String? paymentMethod,
+  }) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/subscription',
+      data: {
+        'plan_id': planId,
+        ...?paymentMethod == null
+            ? null
+            : <String, dynamic>{'payment_method': paymentMethod},
+      },
+    );
     final data = response.data as Map<String, dynamic>;
     return SubscriptionEntity(
       id: data['id'] as String,
@@ -150,7 +169,9 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
-    await _apiClient.post<Map<String, dynamic>>('/subscription/$subscriptionId/cancel');
+    await _apiClient.post<Map<String, dynamic>>(
+      '/subscription/$subscriptionId/cancel',
+    );
   }
 
   @override
@@ -168,7 +189,10 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
     return PaginatedPaymentHistory(
       items: data
-          .map((json) => PaymentHistoryEntry.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                PaymentHistoryEntry.fromJson(json as Map<String, dynamic>),
+          )
           .toList(),
       total: total,
       offset: offset,
@@ -189,7 +213,10 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> applyPromoCode(String code, String planId) async {
+  Future<Map<String, dynamic>> applyPromoCode(
+    String code,
+    String planId,
+  ) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/promo/validate',
       data: {'code': code, 'plan_id': planId},
@@ -205,7 +232,9 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> getTrialStatus() async {
-    final response = await _apiClient.get<Map<String, dynamic>>('/trial/status');
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/trial/status',
+    );
     final body = response.data!;
     return {
       'is_eligible': body['is_eligible'] as bool? ?? false,
@@ -216,7 +245,9 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
 
   @override
   Future<SubscriptionEntity> activateTrial() async {
-    final response = await _apiClient.post<Map<String, dynamic>>('/trial/activate');
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/trial/activate',
+    );
     final body = response.data!;
     final subData = body['subscription'] as Map<String, dynamic>;
     AppLogger.info('Trial activated successfully');

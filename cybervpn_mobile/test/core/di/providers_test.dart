@@ -15,7 +15,11 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 // All repository and infrastructure providers are now in core/di/providers.dart (imported above)
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 
+import '../../helpers/fakes/fake_secure_storage.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('DI providers', () {
     late ProviderContainer container;
 
@@ -24,10 +28,12 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      final overrides = await buildProviderOverrides(prefs);
-      container = ProviderContainer(
-        overrides: overrides,
+      final overrides = await buildProviderOverrides(
+        prefs,
+        secureStorage: FakeSecureStorage(),
+        prewarmSecureStorage: false,
       );
+      container = ProviderContainer(overrides: overrides);
     });
 
     tearDown(() {
@@ -74,29 +80,28 @@ void main() {
       expect(repo, isA<ServerRepository>());
     });
 
-    test('subscriptionRepositoryProvider resolves without UnimplementedError',
-        () {
-      final repo = container.read(subscriptionRepositoryProvider);
-      expect(repo, isA<SubscriptionRepository>());
-    });
+    test(
+      'subscriptionRepositoryProvider resolves without UnimplementedError',
+      () {
+        final repo = container.read(subscriptionRepositoryProvider);
+        expect(repo, isA<SubscriptionRepository>());
+      },
+    );
 
     test('all providers resolve without throwing', () {
       // This test attempts to read every overridden provider to ensure
       // the full dependency graph is valid and no UnimplementedError is thrown.
-      expect(
-        () {
-          container.read(sharedPreferencesProvider);
-          container.read(secureStorageProvider);
-          container.read(localStorageProvider);
-          container.read(networkInfoProvider);
-          container.read(apiClientProvider);
-          container.read(authRepositoryProvider);
-          container.read(vpnRepositoryProvider);
-          container.read(serverRepositoryProvider);
-          container.read(subscriptionRepositoryProvider);
-        },
-        returnsNormally,
-      );
+      expect(() {
+        container.read(sharedPreferencesProvider);
+        container.read(secureStorageProvider);
+        container.read(localStorageProvider);
+        container.read(networkInfoProvider);
+        container.read(apiClientProvider);
+        container.read(authRepositoryProvider);
+        container.read(vpnRepositoryProvider);
+        container.read(serverRepositoryProvider);
+        container.read(subscriptionRepositoryProvider);
+      }, returnsNormally);
     });
   });
 }

@@ -105,6 +105,9 @@ class _GlitchTextState extends State<GlitchText> {
     if (!widget.isActive) return false;
     // Only animate in the cyberpunk theme; render plain text in Material You.
     if (!CyberColors.isCyberpunkTheme(context)) return false;
+    // Pause the effect when this subtree is tick-disabled (inactive route/tab).
+    // ignore: deprecated_member_use
+    if (!TickerMode.getNotifier(context).value) return false;
     // Respect the system "reduce motion" / "disable animations" setting.
     final mq = MediaQuery.maybeOf(context);
     if (mq != null && mq.disableAnimations) return false;
@@ -159,12 +162,7 @@ class _GlitchTextState extends State<GlitchText> {
   Widget build(BuildContext context) {
     // Fast path: no animation requested -- render plain text.
     if (!_shouldAnimate) {
-      return RepaintBoundary(
-        child: Text(
-          widget.text,
-          style: widget.style,
-        ),
-      );
+      return RepaintBoundary(child: Text(widget.text, style: widget.style));
     }
 
     final baseStyle = (widget.style ?? const TextStyle()).copyWith(
@@ -188,10 +186,7 @@ class _GlitchTextState extends State<GlitchText> {
           ),
 
           // --- Green / original layer (on top) ---
-          Text(
-            widget.text,
-            style: baseStyle,
-          ),
+          Text(widget.text, style: baseStyle),
 
           // --- Blue channel layer ---
           Transform.translate(

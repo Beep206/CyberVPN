@@ -101,15 +101,25 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    final sanitizedMessage = _sanitizePii(message);
+    final sanitizedData = _sanitizeData(data);
+    final sanitizedError = error == null
+        ? null
+        : _sanitizePii(error.toString());
     developer.log(
-      message,
+      sanitizedMessage,
       name: _name,
       level: 500,
-      error: error,
+      error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('debug', message, data: data);
-    _addBreadcrumb(message, SentryLevel.debug, category: category, data: data);
+    _addToBuffer('debug', sanitizedMessage, data: sanitizedData);
+    _addBreadcrumb(
+      sanitizedMessage,
+      SentryLevel.debug,
+      category: category,
+      data: sanitizedData,
+    );
   }
 
   /// Logs an informational message.
@@ -123,15 +133,25 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    final sanitizedMessage = _sanitizePii(message);
+    final sanitizedData = _sanitizeData(data);
+    final sanitizedError = error == null
+        ? null
+        : _sanitizePii(error.toString());
     developer.log(
-      message,
+      sanitizedMessage,
       name: _name,
       level: 800,
-      error: error,
+      error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('info', message, data: data);
-    _addBreadcrumb(message, SentryLevel.info, category: category, data: data);
+    _addToBuffer('info', sanitizedMessage, data: sanitizedData);
+    _addBreadcrumb(
+      sanitizedMessage,
+      SentryLevel.info,
+      category: category,
+      data: sanitizedData,
+    );
   }
 
   /// Logs a warning message.
@@ -145,19 +165,24 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    final sanitizedMessage = _sanitizePii(message);
+    final sanitizedData = _sanitizeData(data);
+    final sanitizedError = error == null
+        ? null
+        : _sanitizePii(error.toString());
     developer.log(
-      message,
+      sanitizedMessage,
       name: _name,
       level: 900,
-      error: error,
+      error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('warning', message, data: data);
+    _addToBuffer('warning', sanitizedMessage, data: sanitizedData);
     _addBreadcrumb(
-      message,
+      sanitizedMessage,
       SentryLevel.warning,
       category: category,
-      data: data,
+      data: sanitizedData,
     );
   }
 
@@ -172,19 +197,24 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    final sanitizedMessage = _sanitizePii(message);
+    final sanitizedData = _sanitizeData(data);
+    final sanitizedError = error == null
+        ? null
+        : _sanitizePii(error.toString());
     developer.log(
-      message,
+      sanitizedMessage,
       name: _name,
       level: 1000,
-      error: error,
+      error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('error', message, data: data);
+    _addToBuffer('error', sanitizedMessage, data: sanitizedData);
     _addBreadcrumb(
-      message,
+      sanitizedMessage,
       SentryLevel.error,
       category: category,
-      data: data,
+      data: sanitizedData,
     );
   }
 
@@ -207,13 +237,63 @@ class AppLogger {
   }
 
   /// Replaces PII patterns in a string with redaction markers.
-  static final _jwtPattern = RegExp(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}');
-  static final _emailPattern = RegExp(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+  static final _jwtPattern = RegExp(
+    r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}',
+  );
+  static final _emailPattern = RegExp(
+    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+  );
+  static final _bearerPattern = RegExp(r'Bearer\s+[A-Za-z0-9._\-]+');
+  static final _queryTokenPattern = RegExp(
+    r'([?&](?:ticket|token|access_token|refresh_token|oauth_code|oauth_state|telegram_auth_data|telegram_bot_token)=)[^&\s]+',
+    caseSensitive: false,
+  );
+  static final _jsonTokenPattern = RegExp(
+    r'("(?:access_token|refresh_token|ticket|token|oauth_code|oauth_state|telegram_auth_data|telegram_bot_token)"\s*:\s*")[^"]+(")',
+    caseSensitive: false,
+  );
+  static final _mapTokenPattern = RegExp(
+    r'((?:access_token|refresh_token|ticket|token|oauth_code|oauth_state|telegram_auth_data|telegram_bot_token):\s*)[^,}\]]+',
+    caseSensitive: false,
+  );
 
   static String _sanitizePii(String input) {
     return input
         .replaceAll(_jwtPattern, '***JWT***')
-        .replaceAll(_emailPattern, '***EMAIL***');
+        .replaceAll(_emailPattern, '***EMAIL***')
+        .replaceAll(_bearerPattern, 'Bearer ***REDACTED***')
+        .replaceAllMapped(
+          _queryTokenPattern,
+          (match) => '${match.group(1)}***REDACTED***',
+        )
+        .replaceAllMapped(
+          _jsonTokenPattern,
+          (match) => '${match.group(1)}***REDACTED***${match.group(2)}',
+        )
+        .replaceAllMapped(
+          _mapTokenPattern,
+          (match) => '${match.group(1)}***REDACTED***',
+        );
+  }
+
+  static Map<String, dynamic>? _sanitizeData(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    return data.map<String, dynamic>((key, value) {
+      return MapEntry<String, dynamic>(key, _sanitizeValue(value));
+    });
+  }
+
+  static dynamic _sanitizeValue(dynamic value) {
+    if (value is String) {
+      return _sanitizePii(value);
+    }
+    if (value is Map<String, dynamic>) {
+      return _sanitizeData(value);
+    }
+    if (value is Iterable) {
+      return value.map(_sanitizeValue).toList(growable: false);
+    }
+    return value;
   }
 
   /// Removes all entries from the ring buffer.
@@ -251,15 +331,17 @@ class AppLogger {
     Map<String, dynamic>? data,
   }) {
     if (!_sentryEnabled) return;
-    unawaited(Sentry.addBreadcrumb(
-      Breadcrumb(
-        message: message,
-        level: level,
-        category: category ?? _name,
-        timestamp: DateTime.now().toUtc(),
-        data: data,
+    unawaited(
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: message,
+          level: level,
+          category: category ?? _name,
+          timestamp: DateTime.now().toUtc(),
+          data: data,
+        ),
       ),
-    ));
+    );
   }
 }
 

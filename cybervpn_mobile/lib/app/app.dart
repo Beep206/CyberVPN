@@ -12,7 +12,9 @@ import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
 import 'package:cybervpn_mobile/app/router/app_router.dart';
 import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/widgets/clipboard_import_button.dart';
+import 'package:cybervpn_mobile/core/startup/startup_providers.dart';
 import 'package:cybervpn_mobile/core/platform/quick_settings_channel.dart';
+import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_handler.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_listener.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
@@ -105,7 +107,10 @@ class CyberVpnApp extends ConsumerWidget {
 
               // Get the system text scale to use as fallback
               final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
-              final scaleFactor = _textScaleToDouble(textScale, systemTextScale);
+              final scaleFactor = _textScaleToDouble(
+                textScale,
+                systemTextScale,
+              );
 
               Widget appChild = _AppLifecycleManager(
                 child: child ?? const SizedBox.shrink(),
@@ -124,9 +129,9 @@ class CyberVpnApp extends ConsumerWidget {
               return Directionality(
                 textDirection: textDirection,
                 child: MediaQuery(
-                  data: MediaQuery.of(context).copyWith(
-                    textScaler: TextScaler.linear(scaleFactor),
-                  ),
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(scaleFactor)),
                   child: RepaintBoundary(child: appChild),
                 ),
               );
@@ -254,14 +259,16 @@ class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
         'App resumed from background, reconnecting WebSocket',
         category: 'lifecycle.websocket',
       );
-      unawaited(client.connect().catchError((Object e, StackTrace st) {
-        AppLogger.warning(
-          'WebSocket reconnect on foreground failed',
-          error: e,
-          stackTrace: st,
-          category: 'lifecycle.websocket',
-        );
-      }));
+      unawaited(
+        client.connect().catchError((Object e, StackTrace st) {
+          AppLogger.warning(
+            'WebSocket reconnect on foreground failed',
+            error: e,
+            stackTrace: st,
+            category: 'lifecycle.websocket',
+          );
+        }),
+      );
     } catch (e, st) {
       AppLogger.error(
         'WebSocket foreground reconnect handler failed',
@@ -308,34 +315,49 @@ class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
 
   @override
   Widget build(BuildContext context) {
-    // Each _LifecycleWatcher is a separate Consumer that watches a single
-    // provider. This prevents one provider change from rebuilding all others.
-    return _LifecycleWatcher(
-      name: 'quickActionsListener',
-      watch: (ref) => ref.watch(quickActionsListenerProvider),
-      child: _LifecycleWatcher(
-        name: 'widgetStateListener',
-        watch: (ref) => ref.watch(widgetStateListenerProvider),
+    final deferredStartupReady = ref.watch(deferredStartupReadyProvider);
+    final isAuthenticated = deferredStartupReady
+        ? ref.watch(isAuthenticatedProvider)
+        : false;
+
+    Widget child = widget.child;
+
+    if (!deferredStartupReady) {
+      return child;
+    }
+
+    child = _LifecycleWatcher(
+      name: 'quickActionsHandler',
+      watch: (ref) => ref.watch(quickActionsHandlerProvider),
+      child: child,
+    );
+
+    if (isAuthenticated) {
+      child = _LifecycleWatcher(
+        name: 'quickActionsListener',
+        watch: (ref) => ref.watch(quickActionsListenerProvider),
         child: _LifecycleWatcher(
-          name: 'widgetToggleHandler',
-          watch: (ref) => ref.watch(widgetToggleHandlerProvider),
+          name: 'widgetStateListener',
+          watch: (ref) => ref.watch(widgetStateListenerProvider),
           child: _LifecycleWatcher(
-            name: 'quickSettingsChannel',
-            watch: (ref) => ref.watch(quickSettingsChannelProvider),
+            name: 'widgetToggleHandler',
+            watch: (ref) => ref.watch(widgetToggleHandlerProvider),
             child: _LifecycleWatcher(
-              name: 'untrustedWifiHandler',
-              watch: (ref) => ref.watch(untrustedWifiHandlerProvider),
+              name: 'quickSettingsChannel',
+              watch: (ref) => ref.watch(quickSettingsChannelProvider),
               child: _LifecycleWatcher(
-                name: 'fcmTopicSync',
-                watch: (ref) => ref.watch(fcmTopicSyncProvider),
+                name: 'untrustedWifiHandler',
+                watch: (ref) => ref.watch(untrustedWifiHandlerProvider),
                 child: _LifecycleWatcher(
-                  name: 'notification',
-                  watch: (ref) => ref.watch(notificationProvider),
-                  child: _NotificationBannerListener(
-                    child: _ForceDisconnectListener(
-                      onForceDisconnect: _showForceDisconnectDialog,
-                      child: _BiometricEnrollmentListener(
-                        child: widget.child,
+                  name: 'fcmTopicSync',
+                  watch: (ref) => ref.watch(fcmTopicSyncProvider),
+                  child: _LifecycleWatcher(
+                    name: 'notification',
+                    watch: (ref) => ref.watch(notificationProvider),
+                    child: _NotificationBannerListener(
+                      child: _ForceDisconnectListener(
+                        onForceDisconnect: _showForceDisconnectDialog,
+                        child: child,
                       ),
                     ),
                   ),
@@ -344,8 +366,10 @@ class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
+
+    return _BiometricEnrollmentListener(child: child);
   }
 }
 
@@ -386,26 +410,28 @@ class _NotificationBannerListener extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     try {
-      ref.listen<AsyncValue<NotificationReceived>>(
-        notificationEventsProvider,
-        (_, next) {
-          if (!next.hasValue) return;
-          final event = next.value;
-          if (event == null) return;
+      ref.listen<AsyncValue<NotificationReceived>>(notificationEventsProvider, (
+        _,
+        next,
+      ) {
+        if (!next.hasValue) return;
+        final event = next.value;
+        if (event == null) return;
 
-          final title = event.title.isNotEmpty ? event.title : AppLocalizations.of(context).notificationFallbackTitle;
-          final body = event.body.isNotEmpty ? event.body : '';
+        final title = event.title.isNotEmpty
+            ? event.title
+            : AppLocalizations.of(context).notificationFallbackTitle;
+        final body = event.body.isNotEmpty ? event.body : '';
 
-          InAppBanner.show(
-            context,
-            BannerConfig(
-              type: BannerNotificationType.info,
-              title: title,
-              message: body,
-            ),
-          );
-        },
-      );
+        InAppBanner.show(
+          context,
+          BannerConfig(
+            type: BannerNotificationType.info,
+            title: title,
+            message: body,
+          ),
+        );
+      });
     } catch (e, st) {
       AppLogger.error(
         'WebSocket notification banner listener failed',
@@ -431,20 +457,20 @@ class _ForceDisconnectListener extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     try {
-      ref.listen<AsyncValue<ForceDisconnect>>(
-        forceDisconnectEventsProvider,
-        (_, next) {
-          if (!next.hasValue) return;
-          final event = next.value;
-          if (event == null) return;
+      ref.listen<AsyncValue<ForceDisconnect>>(forceDisconnectEventsProvider, (
+        _,
+        next,
+      ) {
+        if (!next.hasValue) return;
+        final event = next.value;
+        if (event == null) return;
 
-          AppLogger.warning(
-            'ForceDisconnect event received: ${event.reason}',
-            category: 'lifecycle.websocket',
-          );
-          onForceDisconnect(event);
-        },
-      );
+        AppLogger.warning(
+          'ForceDisconnect event received: ${event.reason}',
+          category: 'lifecycle.websocket',
+        );
+        onForceDisconnect(event);
+      });
     } catch (e, st) {
       AppLogger.error(
         'ForceDisconnect listener failed',

@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'package:meta/meta.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
+import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/security/certificate_pinner.dart';
@@ -55,13 +57,23 @@ final webSocketClientProvider = Provider<WebSocketClient>((ref) {
 
 /// Requests a single-use WebSocket ticket from the backend.
 ///
-/// Calls POST /api/v1/ws/ticket with the user's JWT. Returns the ticket
-/// string, or falls back to the raw access token if the endpoint is not
-/// yet implemented on the server.
-Future<String?> _requestWsTicket(
+/// Calls POST /api/v1/ws/ticket with the user's JWT. Returns `null` when the
+/// user is effectively signed out or the backend rejects the current session.
+/// Transient failures are rethrown so the caller can apply reconnect backoff.
+@visibleForTesting
+Future<String?> requestWebSocketTicket(
   ApiClient apiClient,
   SecureStorageWrapper secureStorage,
 ) async {
+  final accessToken = await secureStorage.getAccessToken();
+  if (accessToken == null || accessToken.isEmpty) {
+    AppLogger.info(
+      'Skipping WebSocket ticket request because no access token is available',
+      category: 'websocket',
+    );
+    return null;
+  }
+
   try {
     final response = await apiClient.post<Map<String, dynamic>>(
       ApiConstants.wsTicket,
@@ -70,16 +82,24 @@ Future<String?> _requestWsTicket(
     if (data != null && data['ticket'] is String) {
       return data['ticket'] as String;
     }
-  } catch (e) {
-    // Ticket endpoint may not be implemented yet — fall back to raw token.
+
+    throw StateError('WebSocket ticket response did not include a ticket');
+  } on AuthException catch (e, st) {
     AppLogger.warning(
-      'WebSocket ticket request failed, falling back to access token',
+      'WebSocket ticket request rejected by auth state',
       error: e,
+      stackTrace: st,
       category: 'websocket',
     );
+    return null;
   }
-  // Fallback: use the stored access token directly.
-  return secureStorage.read(key: SecureStorageWrapper.accessTokenKey);
+}
+
+Future<String?> _requestWsTicket(
+  ApiClient apiClient,
+  SecureStorageWrapper secureStorage,
+) {
+  return requestWebSocketTicket(apiClient, secureStorage);
 }
 
 /// Provides a stream of [WebSocketConnectionState] changes.
@@ -87,9 +107,9 @@ Future<String?> _requestWsTicket(
 /// Consumers can watch this to reactively update UI based on connectivity.
 final webSocketConnectionStateProvider =
     StreamProvider<WebSocketConnectionState>((ref) {
-  final client = ref.watch(webSocketClientProvider);
-  return client.connectionStateStream;
-});
+      final client = ref.watch(webSocketClientProvider);
+      return client.connectionStateStream;
+    });
 
 /// Provides a stream of all [WebSocketEvent] instances.
 ///
@@ -107,22 +127,21 @@ final serverStatusEventsProvider = StreamProvider<ServerStatusChanged>((ref) {
 });
 
 /// Provides a stream of [SubscriptionUpdated] events.
-final subscriptionUpdatedEventsProvider =
-    StreamProvider<SubscriptionUpdated>((ref) {
+final subscriptionUpdatedEventsProvider = StreamProvider<SubscriptionUpdated>((
+  ref,
+) {
   final client = ref.watch(webSocketClientProvider);
   return client.subscriptionEvents;
 });
 
 /// Provides a stream of [NotificationReceived] events.
-final notificationEventsProvider =
-    StreamProvider<NotificationReceived>((ref) {
+final notificationEventsProvider = StreamProvider<NotificationReceived>((ref) {
   final client = ref.watch(webSocketClientProvider);
   return client.notificationEvents;
 });
 
 /// Provides a stream of [ForceDisconnect] events.
-final forceDisconnectEventsProvider =
-    StreamProvider<ForceDisconnect>((ref) {
+final forceDisconnectEventsProvider = StreamProvider<ForceDisconnect>((ref) {
   final client = ref.watch(webSocketClientProvider);
   return client.forceDisconnectEvents;
 });

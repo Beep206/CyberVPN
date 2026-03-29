@@ -8,7 +8,6 @@ import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
-import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
@@ -46,8 +45,6 @@ class ServerListScreen extends ConsumerStatefulWidget {
 }
 
 class _ServerListScreenState extends ConsumerState<ServerListScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   bool _favoritesExpanded = true;
 
   /// Selected server ID for master-detail layout on wide screens.
@@ -88,7 +85,6 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -131,10 +127,11 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   void _onServerTap(ServerEntity server) {
     if (_isWideLayout(context)) {
       setState(() => _selectedServerId = server.id);
-      unawaited(ref.read(sharedPreferencesProvider).setString(
-        _selectedServerKey,
-        server.id,
-      ));
+      unawaited(
+        ref
+            .read(sharedPreferencesProvider)
+            .setString(_selectedServerKey, server.id),
+      );
     } else {
       unawaited(context.push('/servers/${server.id}'));
     }
@@ -169,13 +166,19 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
     // Connect to the custom server using VPN connection provider
     try {
-      await ref.read(vpnConnectionProvider.notifier).connectFromCustomServer(config);
+      await ref
+          .read(vpnConnectionProvider.notifier)
+          .connectFromCustomServer(config);
 
       // Show success snackbar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).serverDetailConnectingTo(config.name)),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).serverDetailConnectingTo(config.name),
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -188,7 +191,11 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).serverDetailFailedToConnect(e.toString())),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).serverDetailFailedToConnect(e.toString()),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 3),
           ),
@@ -211,75 +218,6 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     };
   }
 
-  bool _matchesSearch(ServerEntity server) {
-    if (_searchQuery.isEmpty) return true;
-    final q = _searchQuery.toLowerCase();
-    return server.name.toLowerCase().contains(q) ||
-        server.city.toLowerCase().contains(q) ||
-        server.countryName.toLowerCase().contains(q);
-  }
-
-  /// Extract country code from custom server name if possible.
-  /// Looks for common patterns like "US", "UK", "JP" in the name.
-  /// Returns null if no country code can be extracted.
-  String? _extractCountryCode(String name) {
-    // Common 2-letter country codes
-    final countryPattern = RegExp(r'\b([A-Z]{2})\b');
-    final match = countryPattern.firstMatch(name.toUpperCase());
-    return match?.group(1);
-  }
-
-  /// Convert ImportedConfig to ServerEntity for unified display.
-  ServerEntity _customConfigToServer(ImportedConfig config) {
-    final countryCode = _extractCountryCode(config.name) ?? 'XX';
-    final countryName = countryCode == 'XX' ? AppLocalizations.of(context).serverCustomCountry : countryCode;
-
-    return ServerEntity(
-      id: config.id,
-      name: config.name,
-      countryCode: countryCode,
-      countryName: countryName,
-      city: config.serverAddress,
-      address: config.serverAddress,
-      port: config.port,
-      protocol: config.protocol,
-      isAvailable: config.isReachable ?? true,
-    );
-  }
-
-  /// Build a merged map of servers grouped by country, including custom servers.
-  Map<String, List<Map<String, dynamic>>> _getMergedGroupedServers(
-    Map<String, List<ServerEntity>> grouped,
-  ) {
-    final customServers = ref.watch(importedConfigsProvider);
-    final result = <String, List<Map<String, dynamic>>>{};
-
-    // Add regular servers
-    grouped.forEach((countryCode, servers) {
-      result[countryCode] = servers
-          .map((s) => {
-                'server': s,
-                'isCustom': false,
-                'configId': null,
-              })
-          .toList();
-    });
-
-    // Add custom servers to their respective country groups
-    for (final config in customServers) {
-      final countryCode = _extractCountryCode(config.name) ?? 'XX';
-      final serverEntity = _customConfigToServer(config);
-
-      result.putIfAbsent(countryCode, () => []).add({
-        'server': serverEntity,
-        'isCustom': true,
-        'configId': config.id,
-      });
-    }
-
-    return result;
-  }
-
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
@@ -298,8 +236,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           children: [
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.sm),
-            Text(AppLocalizations.of(context).serverFailedToLoad,
-                style: theme.textTheme.bodyLarge),
+            Text(
+              AppLocalizations.of(context).serverFailedToLoad,
+              style: theme.textTheme.bodyLarge,
+            ),
             const SizedBox(height: Spacing.sm),
             FilledButton.tonal(
               onPressed: () {
@@ -318,15 +258,17 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
       return Scaffold(
         appBar: AppBar(
           title: GlitchText(
-          text: AppLocalizations.of(context).servers,
-          style: Theme.of(context).appBarTheme.titleTextStyle,
-        ),
+            text: AppLocalizations.of(context).servers,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
+          ),
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             // Use ~28% of available width, clamped to [280, 400].
-            final sidebarWidth =
-                (constraints.maxWidth * 0.28).clamp(280.0, 400.0);
+            final sidebarWidth = (constraints.maxWidth * 0.28).clamp(
+              280.0,
+              400.0,
+            );
 
             return Row(
               children: [
@@ -335,10 +277,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                     minWidth: 280,
                     maxWidth: 400,
                   ),
-                  child: SizedBox(
-                    width: sidebarWidth,
-                    child: listContent,
-                  ),
+                  child: SizedBox(width: sidebarWidth, child: listContent),
                 ),
                 const VerticalDivider(thickness: 1, width: 1),
                 Expanded(
@@ -378,7 +317,11 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             icon: Icon(preferMap ? Icons.list : Icons.map_outlined),
             tooltip: preferMap ? 'List view' : 'Map view',
             onPressed: () {
-              unawaited(ref.read(settingsProvider.notifier).updatePreferMapView(!preferMap));
+              unawaited(
+                ref
+                    .read(settingsProvider.notifier)
+                    .updatePreferMapView(!preferMap),
+              );
             },
           ),
         ],
@@ -389,8 +332,11 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
 
   Widget _buildBody(BuildContext context, ServerListState state) {
     final theme = Theme.of(context);
-    final favorites = ref.watch(favoriteServersProvider);
-    final grouped = ref.watch(groupedByCountryProvider);
+    final viewModel = ref.watch(serverListViewProvider);
+    final favorites = viewModel.favoriteServers;
+    final filteredGroupedServers = viewModel.groupedServers;
+    final hasSearchResults = !viewModel.hasActiveSearch || viewModel.hasResults;
+
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollEndNotification &&
@@ -402,283 +348,267 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
         return false;
       },
       child: CyberRefreshIndicator(
-      onRefresh: _onRefresh,
-      child: CustomScrollView(
-        slivers: [
-          // --- Search bar + Sort dropdown ---
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.sm + 4, Spacing.md, Spacing.xs),
-              child: Row(
-                children: [
-                  // Search
-                  Expanded(
-                    child: Semantics(
-                      label: AppLocalizations.of(context).a11ySearchField,
-                      hint: 'Type to filter servers by name, city, or country',
-                      textField: true,
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: AppLocalizations.of(context).serverListSearchHint,
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? Semantics(
-                                  label: 'Clear search',
-                                  hint: 'Double tap to clear search text',
-                                  button: true,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          slivers: [
+            // --- Search bar + Sort dropdown ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.md,
+                  Spacing.sm + 4,
+                  Spacing.md,
+                  Spacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    // Search
+                    Expanded(
+                      child: Semantics(
+                        label: AppLocalizations.of(context).a11ySearchField,
+                        hint:
+                            'Type to filter servers by name, city, or country',
+                        textField: true,
+                        child: const _ServerSearchField(),
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.sm),
+
+                    // Sort dropdown
+                    Flexible(
+                      flex: 0,
+                      child: Semantics(
+                        label:
+                            'Sort servers by ${_sortModeLabel(state.sortMode)}',
+                        hint: 'Double tap to change sort order',
+                        button: true,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<SortMode>(
+                            value: state.sortMode,
+                            onChanged: _onSortChanged,
+                            borderRadius: BorderRadius.circular(Radii.md),
+                            items: SortMode.values
+                                .map(
+                                  (mode) => DropdownMenuItem(
+                                    value: mode,
+                                    child: Text(
+                                      _sortModeLabel(mode),
+                                      style: theme.textTheme.bodyMedium,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 )
-                              : null,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
+                                .toList(),
                           ),
                         ),
-                        onChanged: (value) =>
-                            setState(() => _searchQuery = value),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: Spacing.sm),
+                  ],
+                ),
+              ),
+            ),
 
-                  // Sort dropdown
-                  Flexible(
-                    flex: 0,
-                    child: Semantics(
-                      label: 'Sort servers by ${_sortModeLabel(state.sortMode)}',
-                      hint: 'Double tap to change sort order',
-                      button: true,
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<SortMode>(
-                          value: state.sortMode,
-                          onChanged: _onSortChanged,
-                          borderRadius: BorderRadius.circular(Radii.md),
-                          items: SortMode.values
-                              .map(
-                                (mode) => DropdownMenuItem(
-                                  value: mode,
-                                  child: Text(
-                                    _sortModeLabel(mode),
-                                    style: theme.textTheme.bodyMedium,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
+            // --- Server count + Fastest chip ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.xs,
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (state.totalServerCount > 0)
+                      Text(
+                        AppLocalizations.of(context).serverListCount(
+                          state.servers.length,
+                          state.totalServerCount,
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
+                    Semantics(
+                      label: AppLocalizations.of(
+                        context,
+                      ).a11ySelectFastestServer,
+                      button: true,
+                      hint: AppLocalizations.of(
+                        context,
+                      ).a11ySelectFastestServerHint,
+                      child: ActionChip(
+                        key: _fastestButtonKey,
+                        avatar: const ExcludeSemantics(
+                          child: Icon(
+                            Icons.bolt,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                        ),
+                        label: Text(AppLocalizations.of(context).serverFastest),
+                        onPressed: _onFastestTap,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // --- Server count + Fastest chip ---
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.xs),
-              child: Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (state.totalServerCount > 0)
-                    Text(
-                      AppLocalizations.of(context).serverListCount(
-                        state.servers.length,
-                        state.totalServerCount,
+            // --- Recent servers carousel ---
+            _RecentServersCarousel(
+              onServerTap: _onServerTap,
+              onServerLongPress: (server) =>
+                  unawaited(context.push('/servers/${server.id}')),
+            ),
+
+            // --- Favorites section (collapsible) ---
+            if (favorites.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: _buildFavoritesHeader(favorites.length),
+              ),
+              if (_favoritesExpanded)
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final server = favorites[index];
+                    return StaggeredListItem(
+                      index: index,
+                      child: ServerCard(
+                        server: server,
+                        onTap: () => _onServerTap(server),
                       ),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    );
+                  }, childCount: favorites.length),
+                ),
+              const SliverToBoxAdapter(
+                child: Divider(indent: 16, endIndent: 16),
+              ),
+            ],
+
+            // --- Merged grouped server list (includes custom servers) ---
+            if (!hasSearchResults)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Lottie.asset(
+                        'assets/animations/empty_state.json',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.contain,
+                        animate: !MediaQuery.of(context).disableAnimations,
                       ),
-                    ),
-                  Semantics(
-                    label: AppLocalizations.of(context).a11ySelectFastestServer,
-                    button: true,
-                    hint: AppLocalizations.of(context).a11ySelectFastestServerHint,
-                    child: ActionChip(
-                      key: _fastestButtonKey,
-                      avatar: const ExcludeSemantics(
-                        child: Icon(Icons.bolt,
-                            size: 16, color: Colors.amber),
+                      const SizedBox(height: Spacing.md),
+                      Text(
+                        AppLocalizations.of(context).serverListNoResults,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                      label: Text(AppLocalizations.of(context).serverFastest),
-                      onPressed: _onFastestTap,
+                      const SizedBox(height: Spacing.sm),
+                      TextButton(
+                        onPressed: () => ref
+                            .read(serverSearchQueryProvider.notifier)
+                            .clear(),
+                        child: Text(
+                          AppLocalizations.of(context).serverListClearSearch,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...filteredGroupedServers.entries.expand((entry) {
+                final countryCode = entry.key;
+                final serverData = entry.value;
+
+                final isExpanded = _expandedCountries[countryCode] ?? true;
+                final countryName = serverData.isNotEmpty
+                    ? serverData.first.server.countryName
+                    : countryCode;
+
+                final headerKey = _countryHeaderKeys.putIfAbsent(
+                  countryCode,
+                  GlobalKey.new,
+                );
+
+                return [
+                  SliverToBoxAdapter(
+                    child: CountryGroupHeader(
+                      key: headerKey,
+                      countryCode: countryCode,
+                      countryName: countryName,
+                      serverCount: serverData.length,
+                      isExpanded: isExpanded,
+                      onToggle: () {
+                        final wasCollapsed = !isExpanded;
+                        setState(() {
+                          _expandedCountries[countryCode] = !isExpanded;
+                        });
+                        // Auto-scroll to keep header visible after expanding.
+                        if (wasCollapsed) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            final ctx = headerKey.currentContext;
+                            if (ctx != null) {
+                              unawaited(
+                                Scrollable.ensureVisible(
+                                  ctx,
+                                  duration: AnimDurations.medium,
+                                  curve: Curves.easeInOut,
+                                  alignmentPolicy: ScrollPositionAlignmentPolicy
+                                      .keepVisibleAtEnd,
+                                ),
+                              );
+                            }
+                          });
+                        }
+                      },
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                  if (isExpanded)
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final data = serverData[index];
+                        final server = data.server;
+                        final isCustom = data.isCustom;
+                        final configId = data.configId;
 
-          // --- Recent servers carousel ---
-          _RecentServersCarousel(
-            onServerTap: _onServerTap,
-            onServerLongPress: (server) =>
-                unawaited(context.push('/servers/${server.id}')),
-          ),
-
-          // --- Favorites section (collapsible) ---
-          if (favorites.isNotEmpty) ...[
-            SliverToBoxAdapter(
-              child: _buildFavoritesHeader(favorites.length),
-            ),
-            SliverToBoxAdapter(
-              child: _AnimatedExpandSection(
-                isExpanded: _favoritesExpanded,
-                child: Column(
-                  children: [
-                    for (int index = 0; index < favorites.length; index++)
-                      if (_matchesSearch(favorites[index]))
-                        StaggeredListItem(
+                        return StaggeredListItem(
                           index: index,
                           child: ServerCard(
-                            server: favorites[index],
-                            onTap: () => _onServerTap(favorites[index]),
+                            server: server,
+                            onTap: isCustom && configId != null
+                                ? () => _onCustomServerTap(configId)
+                                : () => _onServerTap(server),
+                            isCustomServer: isCustom,
                           ),
-                        ),
-                  ],
+                        );
+                      }, childCount: serverData.length),
+                    ),
+                ];
+              }),
+
+            // Loading indicator for infinite scroll
+            if (state.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: Spacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(
-              child: Divider(indent: 16, endIndent: 16),
+
+            // Bottom padding
+            SliverPadding(
+              padding: EdgeInsets.only(
+                bottom: Spacing.navBarClearance(context),
+              ),
             ),
           ],
-
-          // --- Merged grouped server list (includes custom servers) ---
-          if (_searchQuery.isNotEmpty && _getMergedGroupedServers(grouped).entries.every((entry) =>
-              entry.value.where((data) => _matchesSearch(data['server'] as ServerEntity)).isEmpty))
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Lottie.asset(
-                      'assets/animations/empty_state.json',
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.contain,
-                      animate: !MediaQuery.of(context).disableAnimations,
-                    ),
-                    const SizedBox(height: Spacing.md),
-                    Text(
-                      AppLocalizations.of(context).serverListNoResults,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                    TextButton(
-                      onPressed: () => setState(() => _searchQuery = ''),
-                      child: Text(AppLocalizations.of(context).serverListClearSearch),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            ..._getMergedGroupedServers(grouped).entries.expand((entry) {
-              final countryCode = entry.key;
-              final serverData = entry.value
-                  .where((data) => _matchesSearch(data['server'] as ServerEntity))
-                  .toList();
-              if (serverData.isEmpty) return <Widget>[];
-
-              final isExpanded = _expandedCountries[countryCode] ?? true;
-              final countryName = serverData.isNotEmpty
-                  ? (serverData.first['server'] as ServerEntity).countryName
-                  : countryCode;
-
-              final headerKey = _countryHeaderKeys.putIfAbsent(
-                countryCode,
-                GlobalKey.new,
-              );
-
-              return [
-                SliverToBoxAdapter(
-                  child: CountryGroupHeader(
-                    key: headerKey,
-                    countryCode: countryCode,
-                    countryName: countryName,
-                    serverCount: serverData.length,
-                    isExpanded: isExpanded,
-                    onToggle: () {
-                      final wasCollapsed = !isExpanded;
-                      setState(() {
-                        _expandedCountries[countryCode] = !isExpanded;
-                      });
-                      // Auto-scroll to keep header visible after expanding.
-                      if (wasCollapsed) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          final ctx = headerKey.currentContext;
-                          if (ctx != null) {
-                            unawaited(Scrollable.ensureVisible(
-                              ctx,
-                              duration: AnimDurations.medium,
-                              curve: Curves.easeInOut,
-                              alignmentPolicy:
-                                  ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-                            ));
-                          }
-                        });
-                      }
-                    },
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _AnimatedExpandSection(
-                    isExpanded: isExpanded,
-                    child: Column(
-                      children: [
-                        for (int index = 0; index < serverData.length; index++)
-                          Builder(builder: (context) {
-                            final data = serverData[index];
-                            final server = data['server'] as ServerEntity;
-                            final isCustom = data['isCustom'] as bool;
-                            final configId = data['configId'] as String?;
-
-                            return StaggeredListItem(
-                              index: index,
-                              child: ServerCard(
-                                server: server,
-                                onTap: isCustom && configId != null
-                                    ? () => _onCustomServerTap(configId)
-                                    : () => _onServerTap(server),
-                                isCustomServer: isCustom,
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
-                  ),
-                ),
-              ];
-            }),
-
-          // Loading indicator for infinite scroll
-          if (state.isLoadingMore)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: Spacing.lg),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-
-          // Bottom padding
-          SliverPadding(padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context))),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -692,14 +622,19 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     final colorScheme = theme.colorScheme;
 
     return Semantics(
-      label: '${AppLocalizations.of(context).serverFavoritesTitle}, $count servers',
-      hint: 'Double tap to ${_favoritesExpanded ? 'collapse' : 'expand'} favorites',
+      label:
+          '${AppLocalizations.of(context).serverFavoritesTitle}, $count servers',
+      hint:
+          'Double tap to ${_favoritesExpanded ? 'collapse' : 'expand'} favorites',
       button: true,
       expanded: _favoritesExpanded,
       child: InkWell(
         onTap: () => setState(() => _favoritesExpanded = !_favoritesExpanded),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm + 2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.sm + 2,
+          ),
           child: Row(
             children: [
               const ExcludeSemantics(
@@ -717,7 +652,10 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
               const SizedBox(width: Spacing.sm),
               ExcludeSemantics(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm - 1, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.sm - 1,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(Radii.sm + 2),
@@ -750,66 +688,88 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   }
 }
 
-/// Smoothly animates the height of [child] between 0 and its intrinsic size.
-///
-/// Used inside [SliverToBoxAdapter] to animate expand/collapse of server
-/// groups without breaking the sliver layout.
-class _AnimatedExpandSection extends StatefulWidget {
-  const _AnimatedExpandSection({
-    required this.isExpanded,
-    required this.child,
-  });
-
-  final bool isExpanded;
-  final Widget child;
+class _ServerSearchField extends ConsumerStatefulWidget {
+  const _ServerSearchField();
 
   @override
-  State<_AnimatedExpandSection> createState() => _AnimatedExpandSectionState();
+  ConsumerState<_ServerSearchField> createState() => _ServerSearchFieldState();
 }
 
-class _AnimatedExpandSectionState extends State<_AnimatedExpandSection>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _sizeFactor;
+class _ServerSearchFieldState extends ConsumerState<_ServerSearchField> {
+  static const _debounceDuration = Duration(milliseconds: 180);
+
+  late final TextEditingController _controller;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AnimDurations.medium,
-      value: widget.isExpanded ? 1.0 : 0.0,
-    );
-    _sizeFactor = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant _AnimatedExpandSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isExpanded != oldWidget.isExpanded) {
-      if (widget.isExpanded) {
-        unawaited(_controller.forward());
-      } else {
-        unawaited(_controller.reverse());
-      }
-    }
+    _controller = TextEditingController(
+      text: ref.read(serverSearchQueryProvider),
+    )..addListener(_handleControllerChanged);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _debounce?.cancel();
+    _controller
+      ..removeListener(_handleControllerChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _handleControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _scheduleSearch(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(_debounceDuration, () {
+      ref.read(serverSearchQueryProvider.notifier).setQuery(value);
+    });
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+    _controller.clear();
+    ref.read(serverSearchQueryProvider.notifier).clear();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizeTransition(
-      sizeFactor: _sizeFactor,
-      axisAlignment: -1.0,
-      child: widget.child,
+    final activeQuery = ref.watch(serverSearchQueryProvider);
+    if (_controller.text != activeQuery) {
+      _controller.value = TextEditingValue(
+        text: activeQuery,
+        selection: TextSelection.collapsed(offset: activeQuery.length),
+      );
+    }
+
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        hintText: AppLocalizations.of(context).serverListSearchHint,
+        prefixIcon: const Icon(Icons.search, size: 20),
+        suffixIcon: _controller.text.isNotEmpty
+            ? Semantics(
+                label: 'Clear search',
+                hint: 'Double tap to clear search text',
+                button: true,
+                child: IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: _clearSearch,
+                ),
+              )
+            : null,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+      onChanged: _scheduleSearch,
     );
   }
 }
@@ -860,7 +820,10 @@ class _RecentServersCarousel extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              Spacing.md, Spacing.xs, Spacing.md, Spacing.xs,
+              Spacing.md,
+              Spacing.xs,
+              Spacing.md,
+              Spacing.xs,
             ),
             child: Text(
               l10n.serverRecentServers,
@@ -875,8 +838,7 @@ class _RecentServersCarousel extends ConsumerWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               itemCount: recentServers.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(width: Spacing.sm),
+              separatorBuilder: (_, _) => const SizedBox(width: Spacing.sm),
               itemBuilder: (context, index) {
                 final server = recentServers[index];
                 return ServerMiniCard(

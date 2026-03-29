@@ -148,9 +148,7 @@ class ForceDisconnect extends WebSocketEvent {
 
   factory ForceDisconnect.fromJson(Map<String, dynamic> json) {
     final payload = json['data'] as Map<String, dynamic>? ?? json;
-    return ForceDisconnect(
-      reason: payload['reason'] as String? ?? '',
-    );
+    return ForceDisconnect(reason: payload['reason'] as String? ?? '');
   }
 
   @override
@@ -260,10 +258,9 @@ class WebSocketClient {
       events.where((e) => e is SubscriptionUpdated).cast<SubscriptionUpdated>();
 
   /// Convenience stream that emits only [NotificationReceived] events.
-  Stream<NotificationReceived> get notificationEvents =>
-      events
-          .where((e) => e is NotificationReceived)
-          .cast<NotificationReceived>();
+  Stream<NotificationReceived> get notificationEvents => events
+      .where((e) => e is NotificationReceived)
+      .cast<NotificationReceived>();
 
   /// Convenience stream that emits only [ForceDisconnect] events.
   Stream<ForceDisconnect> get forceDisconnectEvents =>
@@ -331,20 +328,24 @@ class WebSocketClient {
 
     final ticket = await ticketProvider();
     if (ticket == null || ticket.isEmpty) {
-      AppLogger.warning('WebSocket: no auth ticket available, aborting connect');
+      AppLogger.warning(
+        'WebSocket: no auth ticket available, aborting connect',
+      );
       _setConnectionState(WebSocketConnectionState.disconnected);
       return;
     }
 
     final wsUrl = _buildWsUrl(ticket);
-    AppLogger.debug('WebSocket connecting to: $wsUrl');
+    final wsUri = Uri.parse(wsUrl);
+    AppLogger.debug(
+      'WebSocket connecting',
+      category: 'websocket',
+      data: {'path': wsUri.path, 'host': wsUri.host},
+    );
 
     try {
       if (_httpClient != null) {
-        _channel = IOWebSocketChannel.connect(
-          wsUrl,
-          customClient: _httpClient,
-        );
+        _channel = IOWebSocketChannel.connect(wsUrl, customClient: _httpClient);
       } else {
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       }
@@ -402,7 +403,8 @@ class WebSocketClient {
       final event = WebSocketEvent.fromJson(json);
       if (event == null) {
         AppLogger.debug(
-            'WebSocket: unknown message type "${json['type']}", ignoring');
+          'WebSocket: unknown message type "${json['type']}", ignoring',
+        );
         return;
       }
 
@@ -410,7 +412,8 @@ class WebSocketClient {
       if (event is ForceDisconnect) {
         _eventController.add(event);
         AppLogger.warning(
-            'WebSocket: force disconnect received: ${event.reason}');
+          'WebSocket: force disconnect received: ${event.reason}',
+        );
         _intentionalClose = true; // Do not reconnect after force disconnect.
         unawaited(_closeChannel());
         _setConnectionState(WebSocketConnectionState.disconnected);
@@ -466,7 +469,8 @@ class WebSocketClient {
   static final _random = math.Random();
 
   Duration _calculateBackoff() {
-    final seconds = _initialBackoff.inSeconds *
+    final seconds =
+        _initialBackoff.inSeconds *
         math.pow(_backoffMultiplier, _reconnectAttempt).toInt();
     final capped = math.min(seconds, _maxBackoff.inSeconds);
     // Add 0-50% jitter to prevent thundering herd on mass reconnect.

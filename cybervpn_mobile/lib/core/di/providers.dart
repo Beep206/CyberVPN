@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/auth/token_refresh_coordinator.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/network/auth_interceptor.dart';
 import 'package:cybervpn_mobile/core/network/retry_interceptor.dart';
+import 'package:cybervpn_mobile/core/device/device_service.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -75,7 +77,7 @@ import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_servic
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 
 import 'package:cybervpn_mobile/core/device/device_provider.dart'
-    show secureStorageProvider;
+    show deviceServiceProvider, secureStorageProvider;
 // Re-export so downstream files can access it via core/di/providers.dart.
 export 'package:cybervpn_mobile/core/device/device_provider.dart'
     show secureStorageProvider;
@@ -377,6 +379,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     localDataSource: ref.watch(authLocalDataSourceProvider),
     networkInfo: ref.watch(networkInfoProvider),
+    tokenRefreshCoordinator: ref.watch(tokenRefreshCoordinatorProvider),
+  );
+});
+
+final tokenRefreshCoordinatorProvider = Provider<TokenRefreshCoordinator>((
+  ref,
+) {
+  return TokenRefreshCoordinator(
+    dio: ref.watch(dioProvider),
+    localDataSource: ref.watch(authLocalDataSourceProvider),
+    deviceService: ref.watch(deviceServiceProvider),
   );
 });
 
@@ -545,10 +558,21 @@ final partnerRemoteDataSourceProvider = Provider<PartnerRemoteDataSource>((
 /// access to pre-initialized resources are eagerly created here.
 /// Data sources, repositories, and services are lazily initialized via
 /// [ref.watch] chains when first accessed.
-Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
+Future<List<Override>> buildProviderOverrides(
+  SharedPreferences prefs, {
+  SecureStorageWrapper? secureStorage,
+  bool prewarmSecureStorage = true,
+}) async {
   // --- Eager: requires async pre-warming ---
-  final secureStorage = SecureStorageWrapper();
-  await secureStorage.prewarmCache();
+  final resolvedSecureStorage = secureStorage ?? SecureStorageWrapper();
+  if (prewarmSecureStorage) {
+    await resolvedSecureStorage.prewarmCache();
+  }
+  final localStorage = LocalStorageWrapper(prefs: prefs);
+  final authLocalDataSource = AuthLocalDataSourceImpl(
+    secureStorage: resolvedSecureStorage,
+    localStorage: localStorage,
+  );
 
   // --- Eager: requires pre-initialized SharedPreferences ---
   final dio = Dio(
@@ -559,19 +583,29 @@ Future<List<Override>> buildProviderOverrides(SharedPreferences prefs) async {
     ),
   );
   final apiClient = ApiClient(dio: dio, baseUrl: EnvironmentConfig.baseUrl);
+  final tokenRefreshCoordinator = TokenRefreshCoordinator(
+    dio: dio,
+    localDataSource: authLocalDataSource,
+    deviceService: DeviceService(storage: resolvedSecureStorage),
+  );
   // Interceptor order is intentional:
   // 1. Auth: attaches/refreshes JWT on every request.
   // 2. Retry: retries on transient failures (after auth is attached).
   // If retry triggers a new request, Auth re-evaluates the token.
   apiClient.addInterceptor(
-    AuthInterceptor(secureStorage: secureStorage, dio: dio),
+    AuthInterceptor(
+      secureStorage: resolvedSecureStorage,
+      dio: dio,
+      tokenRefreshCoordinator: tokenRefreshCoordinator,
+    ),
   );
   apiClient.addInterceptor(RetryInterceptor(dio: dio, maxRetries: 3));
 
   return [
     // Eager infrastructure (async-init or sync-critical)
     sharedPreferencesProvider.overrideWithValue(prefs),
-    secureStorageProvider.overrideWithValue(secureStorage),
+    secureStorageProvider.overrideWithValue(resolvedSecureStorage),
+    tokenRefreshCoordinatorProvider.overrideWithValue(tokenRefreshCoordinator),
     dioProvider.overrideWithValue(dio),
     apiClientProvider.overrideWithValue(apiClient),
   ];

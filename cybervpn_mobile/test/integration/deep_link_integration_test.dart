@@ -1,20 +1,9 @@
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Deep Link Integration Tests', () {
-    late ProviderContainer container;
-
-    setUp(() {
-      container = ProviderContainer();
-    });
-
-    tearDown(() {
-      container.dispose();
-    });
-
     // -------------------------------------------------------------------------
     // Route resolution tests
     // -------------------------------------------------------------------------
@@ -86,58 +75,42 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Pending deep link state management
+    // Auth route forwarding helpers
     // -------------------------------------------------------------------------
-    group('PendingDeepLinkNotifier', () {
-      test('initial state is null', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        expect(notifier.state, isNull);
+    group('auth route forwarding', () {
+      test('builds login route with deferred destination', () {
+        final route = buildAuthRouteLocation(
+          authPath: '/login',
+          postAuthRedirect: '/servers/test-123',
+        );
+
+        expect(route, '/login?next=%2Fservers%2Ftest-123');
       });
 
-      test('setPending stores a deep link route', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        const route = ConnectRoute(serverId: 'test-123');
+      test('builds register route with referral code', () {
+        final route = buildAuthRouteLocation(
+          authPath: '/register',
+          referralCode: 'REF-ABC',
+        );
 
-        notifier.setPending(route);
-        expect(container.read(pendingDeepLinkProvider), equals(route));
+        expect(route, '/register?referral_code=REF-ABC');
       });
 
-      test('consume returns and clears the pending route', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        const route = ReferralRoute(code: 'REF-ABC');
+      test('builds auth route with telegram callback data', () {
+        final route = buildAuthRouteLocation(
+          authPath: '/login',
+          telegramAuthData: 'auth-payload',
+        );
 
-        notifier.setPending(route);
-        final consumed = notifier.consume();
-
-        expect(consumed, equals(route));
-        expect(container.read(pendingDeepLinkProvider), isNull);
+        expect(route, '/login?telegram_auth_data=auth-payload');
       });
 
-      test('consume returns null when no pending route', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        final consumed = notifier.consume();
-        expect(consumed, isNull);
-      });
+      test('readPostAuthRedirect extracts next path from auth uri', () {
+        final redirect = readPostAuthRedirect(
+          Uri.parse('/login?next=%2Fsettings'),
+        );
 
-      test('clear removes pending route without consuming', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        const route = SubscribeRoute(planId: 'basic');
-
-        notifier.setPending(route);
-        notifier.clear();
-
-        expect(container.read(pendingDeepLinkProvider), isNull);
-      });
-
-      test('multiple setPending overwrites previous route', () {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
-        const route1 = ConnectRoute(serverId: 'first');
-        const route2 = ConnectRoute(serverId: 'second');
-
-        notifier.setPending(route1);
-        notifier.setPending(route2);
-
-        expect(container.read(pendingDeepLinkProvider), equals(route2));
+        expect(redirect, '/settings');
       });
     });
 
@@ -145,8 +118,9 @@ void main() {
     // Cold start scenario (app launches from deep link)
     // -------------------------------------------------------------------------
     group('Cold Start Deep Link', () {
-      testWidgets('deep link opens correct screen when authenticated',
-          (tester) async {
+      testWidgets('deep link opens correct screen when authenticated', (
+        tester,
+      ) async {
         // Simulate cold start with deep link: cybervpn://settings
         final uri = Uri.parse('cybervpn://settings');
         final path = resolveDeepLinkFromUri(uri);
@@ -160,8 +134,9 @@ void main() {
         // This is a unit-level verification of path resolution.
       });
 
-      testWidgets('invalid deep link returns null and shows no navigation',
-          (tester) async {
+      testWidgets('invalid deep link returns null and shows no navigation', (
+        tester,
+      ) async {
         // Simulate cold start with malformed deep link
         final uri = Uri.parse('cybervpn://unknown-route');
         final path = resolveDeepLinkFromUri(uri);
@@ -174,8 +149,9 @@ void main() {
     // Warm start scenario (app is already running, receives deep link)
     // -------------------------------------------------------------------------
     group('Warm Start Deep Link', () {
-      testWidgets('deep link while authenticated navigates immediately',
-          (tester) async {
+      testWidgets('deep link while authenticated navigates immediately', (
+        tester,
+      ) async {
         // Simulate receiving deep link while app is running
         final uri = Uri.parse('cybervpn://referral?code=WARM-START-123');
         final result = DeepLinkParser.parseUri(uri);
@@ -192,27 +168,22 @@ void main() {
         // 2. Verify the correct screen is displayed
       });
 
-      testWidgets('deep link while unauthenticated stores pending route',
-          (tester) async {
-        final notifier = container.read(pendingDeepLinkProvider.notifier);
+      testWidgets('deep link while unauthenticated stores pending route', (
+        tester,
+      ) async {
         final uri = Uri.parse('cybervpn://connect?server=warm-srv');
         final result = DeepLinkParser.parseUri(uri);
+        final path = resolveDeepLinkPath(result.route!);
 
-        // Simulate unauthenticated state: store pending route
-        if (result.route != null) {
-          notifier.setPending(result.route!);
-        }
-
-        expect(container.read(pendingDeepLinkProvider), isNotNull);
-        expect(
-          container.read(pendingDeepLinkProvider),
-          equals(const ConnectRoute(serverId: 'warm-srv')),
+        final authRoute = buildAuthRouteLocation(
+          authPath: '/login',
+          postAuthRedirect: path,
         );
+        expect(authRoute, '/login?next=%2Fservers%2Fwarm-srv');
 
-        // After login, consume the pending route
-        final pending = notifier.consume();
-        expect(pending, isNotNull);
-        final path = resolveDeepLinkPath(pending!);
+        final postLoginTarget = readPostAuthRedirect(Uri.parse(authRoute));
+        expect(postLoginTarget, isNotNull);
+        expect(postLoginTarget, '/servers/warm-srv');
         expect(path, '/servers/warm-srv');
       });
     });
