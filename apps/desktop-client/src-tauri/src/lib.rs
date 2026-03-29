@@ -188,6 +188,8 @@ pub fn run() {
             ipc::save_split_tunneling_mode,
             ipc::get_stealth_mode,
             ipc::save_stealth_mode,
+            ipc::get_pqc_enforcement_mode,
+            ipc::save_pqc_enforcement_mode,
             crate::engine::sys::net::get_lan_connection_info,
             crate::engine::sys::net::enable_lan_forwarding,
             crate::engine::sys::net::disable_lan_forwarding,
@@ -201,7 +203,8 @@ pub fn run() {
             crate::engine::sys::sync::save_sync_password,
             crate::engine::sys::sync::get_sync_password,
             crate::engine::sys::sync::delete_sync_password,
-            crate::engine::sys::sync::generate_pairing_qr
+            crate::engine::sys::sync::generate_pairing_qr,
+            ipc::audit_quantum_readiness
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
