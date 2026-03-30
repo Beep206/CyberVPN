@@ -50,11 +50,14 @@ class GlitchText extends StatefulWidget {
 
 class _GlitchTextState extends State<GlitchText> {
   static const double _maxOffset = 2.0;
-  static const Duration _interval = Duration(milliseconds: 100);
+  static const Duration _frameInterval = Duration(milliseconds: 140);
+  static const Duration _burstDuration = Duration(milliseconds: 420);
+  static const Duration _idleDuration = Duration(milliseconds: 2200);
 
   final Random _rng = Random();
 
-  Timer? _timer;
+  Timer? _frameTimer;
+  Timer? _cycleTimer;
 
   /// Current pixel offsets for the red channel layer.
   double _redDx = 0;
@@ -63,6 +66,8 @@ class _GlitchTextState extends State<GlitchText> {
   /// Current pixel offsets for the blue channel layer.
   double _blueDx = 0;
   double _blueDy = 0;
+
+  bool _isBursting = false;
 
   // ------------------------------------------------------------------
   // Lifecycle
@@ -91,8 +96,7 @@ class _GlitchTextState extends State<GlitchText> {
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _timer = null;
+    _cancelTimers();
     super.dispose();
   }
 
@@ -116,31 +120,71 @@ class _GlitchTextState extends State<GlitchText> {
 
   void _syncTimer() {
     if (_shouldAnimate) {
-      _startTimer();
+      _ensureBurstScheduled();
     } else {
       _stopTimer();
     }
   }
 
-  void _startTimer() {
-    if (_timer != null) return; // already running
-    _timer = Timer.periodic(_interval, (_) => _randomizeOffsets());
-    // Immediately show a glitch frame rather than waiting 100 ms.
+  void _ensureBurstScheduled() {
+    if (_frameTimer != null || _cycleTimer != null) {
+      return;
+    }
+
+    _startBurst();
+  }
+
+  void _startBurst() {
+    if (!_shouldAnimate) {
+      _stopTimer();
+      return;
+    }
+
+    _frameTimer?.cancel();
+    _isBursting = true;
+    _frameTimer = Timer.periodic(_frameInterval, (_) => _randomizeOffsets());
     _randomizeOffsets();
+
+    _cycleTimer?.cancel();
+    _cycleTimer = Timer(_burstDuration, () {
+      _frameTimer?.cancel();
+      _frameTimer = null;
+      _isBursting = false;
+      _resetOffsets();
+
+      if (!_shouldAnimate) {
+        _cycleTimer = null;
+        return;
+      }
+
+      _cycleTimer = Timer(_idleDuration, _startBurst);
+    });
   }
 
   void _stopTimer() {
-    _timer?.cancel();
-    _timer = null;
-    // Reset offsets so the text sits cleanly when animation is off.
-    if (_redDx != 0 || _redDy != 0 || _blueDx != 0 || _blueDy != 0) {
-      setState(() {
-        _redDx = 0;
-        _redDy = 0;
-        _blueDx = 0;
-        _blueDy = 0;
-      });
+    _cancelTimers();
+    _resetOffsets();
+  }
+
+  void _cancelTimers() {
+    _frameTimer?.cancel();
+    _cycleTimer?.cancel();
+    _frameTimer = null;
+    _cycleTimer = null;
+    _isBursting = false;
+  }
+
+  void _resetOffsets() {
+    if (_redDx == 0 && _redDy == 0 && _blueDx == 0 && _blueDy == 0) {
+      return;
     }
+
+    setState(() {
+      _redDx = 0;
+      _redDy = 0;
+      _blueDx = 0;
+      _blueDy = 0;
+    });
   }
 
   /// Pick new random offsets in the range [-_maxOffset, _maxOffset].
@@ -161,7 +205,7 @@ class _GlitchTextState extends State<GlitchText> {
   @override
   Widget build(BuildContext context) {
     // Fast path: no animation requested -- render plain text.
-    if (!_shouldAnimate) {
+    if (!_shouldAnimate || !_isBursting) {
       return RepaintBoundary(child: Text(widget.text, style: widget.style));
     }
 

@@ -123,11 +123,9 @@ flutter:
     # because assets are extractable from APK/IPA. Use --dart-define for
     # compile-time config. The .env file is only loaded at runtime in debug
     # builds via flutter_dotenv for local development convenience.
-    - assets/images/
     - assets/images/flags/
     - assets/animations/
     - assets/icons/
-    - assets/fonts/
 
   fonts:
     - family: Orbitron

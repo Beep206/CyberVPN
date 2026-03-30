@@ -15,9 +15,6 @@ Future<void> verifyAnimations() async {
     'assets/animations/connected_success.json',
     'assets/animations/speed_test.json',
     'assets/animations/empty_state.json',
-    'assets/animations/privacy.json',
-    'assets/animations/connect.json',
-    'assets/animations/globe.json',
     'assets/animations/get_started.json',
   ];
 

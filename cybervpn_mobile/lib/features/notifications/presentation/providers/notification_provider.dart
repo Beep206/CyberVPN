@@ -37,6 +37,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
 
   StreamSubscription<AppNotification>? _incomingSub;
   StreamSubscription<NotificationReceived>? _webSocketSub;
+  StreamSubscription<String>? _tokenRefreshSub;
 
   // ---- Lifecycle -----------------------------------------------------------
 
@@ -163,7 +164,8 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
       }
 
       // Also listen for token refreshes.
-      fcm.onTokenRefresh.listen((newToken) async {
+      await _tokenRefreshSub?.cancel();
+      _tokenRefreshSub = fcm.onTokenRefresh.listen((newToken) async {
         try {
           await _repo.registerFcmToken(newToken);
           AppLogger.info('Refreshed FCM token registered with backend');
@@ -234,6 +236,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   void _dispose() {
     unawaited(_incomingSub?.cancel());
     unawaited(_webSocketSub?.cancel());
+    unawaited(_tokenRefreshSub?.cancel());
   }
 }
 

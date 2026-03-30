@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_ds.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/servers/domain/repositories/server_repository.dart';
 import 'package:cybervpn_mobile/features/servers/data/datasources/ping_service.dart';
@@ -31,6 +32,26 @@ class MockServerRepository implements ServerRepository {
     CacheStrategy strategy = CacheStrategy.staleWhileRevalidate,
   }) async {
     return Success(List.from(_servers));
+  }
+
+  @override
+  Future<Result<PaginatedResponse<ServerEntity>>> getServersPaginated({
+    int offset = 0,
+    int limit = 50,
+  }) async {
+    final end = (offset + limit).clamp(0, _servers.length);
+    final items = offset >= _servers.length
+        ? const <ServerEntity>[]
+        : _servers.sublist(offset, end);
+
+    return Success(
+      PaginatedResponse<ServerEntity>(
+        items: List<ServerEntity>.from(items),
+        total: _servers.length,
+        offset: offset,
+        limit: limit,
+      ),
+    );
   }
 
   @override
@@ -177,10 +198,7 @@ void main() {
 
       // Emit server_status_changed event for server-1 to 'offline'.
       wsClient.emitServerStatusChanged(
-        const ServerStatusChanged(
-          serverId: 'server-1',
-          status: 'offline',
-        ),
+        const ServerStatusChanged(serverId: 'server-1', status: 'offline'),
       );
 
       // Give the stream a tick to process.
@@ -194,35 +212,35 @@ void main() {
       expect(state.servers[1].isAvailable, isTrue);
     });
 
-    test('server_status_changed event with "online" status marks server available', () async {
-      // Seed repository with an offline server.
-      repo.seed([
-        _makeServer(id: 'server-1', name: 'Server 1', isAvailable: false),
-      ]);
+    test(
+      'server_status_changed event with "online" status marks server available',
+      () async {
+        // Seed repository with an offline server.
+        repo.seed([
+          _makeServer(id: 'server-1', name: 'Server 1', isAvailable: false),
+        ]);
 
-      container = createContainer(
-        repo: repo,
-        pingService: pingService,
-        wsClient: wsClient,
-        prefs: prefs,
-      );
+        container = createContainer(
+          repo: repo,
+          pingService: pingService,
+          wsClient: wsClient,
+          prefs: prefs,
+        );
 
-      var state = await waitForState(container);
-      expect(state.servers[0].isAvailable, isFalse);
+        var state = await waitForState(container);
+        expect(state.servers[0].isAvailable, isFalse);
 
-      // Emit server_status_changed event for server-1 to 'online'.
-      wsClient.emitServerStatusChanged(
-        const ServerStatusChanged(
-          serverId: 'server-1',
-          status: 'online',
-        ),
-      );
+        // Emit server_status_changed event for server-1 to 'online'.
+        wsClient.emitServerStatusChanged(
+          const ServerStatusChanged(serverId: 'server-1', status: 'online'),
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      state = container.read(serverListProvider).requireValue;
-      expect(state.servers[0].isAvailable, isTrue);
-    });
+        state = container.read(serverListProvider).requireValue;
+        expect(state.servers[0].isAvailable, isTrue);
+      },
+    );
 
     test('server_status_changed event for unknown server is ignored', () async {
       // Seed repository with one server.
@@ -257,32 +275,35 @@ void main() {
       expect(state.servers[0].isAvailable, isTrue);
     });
 
-    test('server_status_changed event with "maintenance" status marks server unavailable', () async {
-      repo.seed([
-        _makeServer(id: 'server-1', name: 'Server 1', isAvailable: true),
-      ]);
+    test(
+      'server_status_changed event with "maintenance" status marks server unavailable',
+      () async {
+        repo.seed([
+          _makeServer(id: 'server-1', name: 'Server 1', isAvailable: true),
+        ]);
 
-      container = createContainer(
-        repo: repo,
-        pingService: pingService,
-        wsClient: wsClient,
-        prefs: prefs,
-      );
+        container = createContainer(
+          repo: repo,
+          pingService: pingService,
+          wsClient: wsClient,
+          prefs: prefs,
+        );
 
-      await waitForState(container);
+        await waitForState(container);
 
-      // Emit maintenance status.
-      wsClient.emitServerStatusChanged(
-        const ServerStatusChanged(
-          serverId: 'server-1',
-          status: 'maintenance',
-        ),
-      );
+        // Emit maintenance status.
+        wsClient.emitServerStatusChanged(
+          const ServerStatusChanged(
+            serverId: 'server-1',
+            status: 'maintenance',
+          ),
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(serverListProvider).requireValue;
-      expect(state.servers[0].isAvailable, isFalse);
-    });
+        final state = container.read(serverListProvider).requireValue;
+        expect(state.servers[0].isAvailable, isFalse);
+      },
+    );
   });
 }

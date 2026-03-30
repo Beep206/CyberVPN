@@ -24,9 +24,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required ProfileLocalDataSource localDataSource,
     required SubscriptionFetcher subscriptionFetcher,
     required EncryptedFieldService encryptedField,
-  })  : _localDs = localDataSource,
-        _fetcher = subscriptionFetcher,
-        _encField = encryptedField;
+  }) : _localDs = localDataSource,
+       _fetcher = subscriptionFetcher,
+       _encField = encryptedField;
 
   final ProfileLocalDataSource _localDs;
   final SubscriptionFetcher _fetcher;
@@ -37,12 +37,17 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Stream<List<VpnProfile>> watchAll() {
     return _localDs.watchAll().asyncMap((profiles) async {
-      final result = <VpnProfile>[];
-      for (final profile in profiles) {
-        final configs = await _localDs.getConfigsByProfileId(profile.id);
-        result.add(ProfileMapper.toDomain(profile, configs));
-      }
-      return result;
+      final configsByProfileId = await _localDs.getConfigsByProfileIds(
+        profiles.map((profile) => profile.id).toList(growable: false),
+      );
+
+      return profiles
+          .map((profile) {
+            final configs =
+                configsByProfileId[profile.id] ?? const <ProfileConfig>[];
+            return ProfileMapper.toDomain(profile, configs);
+          })
+          .toList(growable: false);
     });
   }
 
@@ -62,9 +67,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final profile = await _localDs.getById(id);
       if (profile == null) {
-        return const Failure(
-          CacheFailure(message: 'Profile not found'),
-        );
+        return const Failure(CacheFailure(message: 'Profile not found'));
       }
       final configs = await _localDs.getConfigsByProfileId(id);
       return Success(ProfileMapper.toDomain(profile, configs));
@@ -131,17 +134,19 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final configCompanions = fetchResult.servers
           .asMap()
           .entries
-          .map((e) => ProfileConfigsCompanion.insert(
-                id: _generateId(),
-                profileId: profileId,
-                name: e.value.name,
-                serverAddress: e.value.serverAddress,
-                port: e.value.port,
-                protocol: e.value.protocol,
-                configData: jsonEncode(e.value.configData),
-                sortOrder: Value(e.key),
-                createdAt: now,
-              ))
+          .map(
+            (e) => ProfileConfigsCompanion.insert(
+              id: _generateId(),
+              profileId: profileId,
+              name: e.value.name,
+              serverAddress: e.value.serverAddress,
+              port: e.value.port,
+              protocol: e.value.protocol,
+              configData: jsonEncode(e.value.configData),
+              sortOrder: Value(e.key),
+              createdAt: now,
+            ),
+          )
           .toList();
 
       await _localDs.insertConfigs(configCompanions);
@@ -175,14 +180,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final configCompanions = servers
           .asMap()
           .entries
-          .map((e) => ProfileMapper.serverToCompanion(
-                e.value.copyWith(
-                  id: _generateId(),
-                  profileId: profileId,
-                  sortOrder: e.key,
-                  createdAt: now,
-                ),
-              ))
+          .map(
+            (e) => ProfileMapper.serverToCompanion(
+              e.value.copyWith(
+                id: _generateId(),
+                profileId: profileId,
+                sortOrder: e.key,
+                createdAt: now,
+              ),
+            ),
+          )
           .toList();
 
       await _localDs.insertConfigs(configCompanions);
@@ -247,8 +254,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
           downloadBytes: Value(fetchResult.info.downloadBytes),
           totalBytes: Value(fetchResult.info.totalBytes),
           expiresAt: Value(fetchResult.info.expiresAt),
-          updateIntervalMinutes:
-              Value(fetchResult.info.updateIntervalMinutes),
+          updateIntervalMinutes: Value(fetchResult.info.updateIntervalMinutes),
           supportUrl: Value(fetchResult.info.supportUrl),
         ),
       );
@@ -257,17 +263,19 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final configCompanions = fetchResult.servers
           .asMap()
           .entries
-          .map((e) => ProfileConfigsCompanion.insert(
-                id: _generateId(),
-                profileId: profileId,
-                name: e.value.name,
-                serverAddress: e.value.serverAddress,
-                port: e.value.port,
-                protocol: e.value.protocol,
-                configData: jsonEncode(e.value.configData),
-                sortOrder: Value(e.key),
-                createdAt: now,
-              ))
+          .map(
+            (e) => ProfileConfigsCompanion.insert(
+              id: _generateId(),
+              profileId: profileId,
+              name: e.value.name,
+              serverAddress: e.value.serverAddress,
+              port: e.value.port,
+              protocol: e.value.protocol,
+              configData: jsonEncode(e.value.configData),
+              sortOrder: Value(e.key),
+              createdAt: now,
+            ),
+          )
           .toList();
 
       await _localDs.replaceConfigs(profileId, configCompanions);
@@ -379,8 +387,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex =
-        bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20)}';

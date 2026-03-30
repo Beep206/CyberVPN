@@ -107,9 +107,7 @@ class _ProfileList extends StatelessWidget {
 
           // Bottom clearance
           SliverPadding(
-            padding: EdgeInsets.only(
-              bottom: Spacing.navBarClearance(context),
-            ),
+            padding: EdgeInsets.only(bottom: Spacing.navBarClearance(context)),
           ),
         ],
       ),
@@ -139,6 +137,8 @@ class _EmptyState extends StatelessWidget {
               height: 160,
               fit: BoxFit.contain,
               animate: !MediaQuery.of(context).disableAnimations,
+              frameRate: const FrameRate(24),
+              backgroundLoading: true,
             ),
             const SizedBox(height: Spacing.lg),
             Text(
@@ -180,10 +180,7 @@ class ProfileListSkeleton extends StatelessWidget {
             horizontal: Spacing.md,
             vertical: Spacing.xs,
           ),
-          child: SkeletonCard(
-            height: 130,
-            borderRadius: Radii.md,
-          ),
+          child: SkeletonCard(height: 130, borderRadius: Radii.md),
         );
       },
     );

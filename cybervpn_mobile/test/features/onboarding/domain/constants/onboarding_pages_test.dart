@@ -12,7 +12,10 @@ void main() {
       final pages = getDefaultOnboardingPages();
       expect(pages[0].titleKey, 'onboarding.privacy.title');
       expect(pages[0].descriptionKey, 'onboarding.privacy.description');
-      expect(pages[0].animationAsset, 'assets/animations/privacy.json');
+      expect(
+        pages[0].animationAsset,
+        'assets/animations/onboarding_privacy.json',
+      );
       expect(pages[0].actionLabel, isNull);
     });
 
@@ -20,7 +23,10 @@ void main() {
       final pages = getDefaultOnboardingPages();
       expect(pages[1].titleKey, 'onboarding.connect.title');
       expect(pages[1].descriptionKey, 'onboarding.connect.description');
-      expect(pages[1].animationAsset, 'assets/animations/connect.json');
+      expect(
+        pages[1].animationAsset,
+        'assets/animations/onboarding_connect.json',
+      );
       expect(pages[1].actionLabel, isNull);
     });
 
@@ -28,7 +34,10 @@ void main() {
       final pages = getDefaultOnboardingPages();
       expect(pages[2].titleKey, 'onboarding.globe.title');
       expect(pages[2].descriptionKey, 'onboarding.globe.description');
-      expect(pages[2].animationAsset, 'assets/animations/globe.json');
+      expect(
+        pages[2].animationAsset,
+        'assets/animations/onboarding_globe.json',
+      );
       expect(pages[2].actionLabel, isNull);
     });
 
@@ -43,8 +52,11 @@ void main() {
     test('only the last page has a non-null actionLabel', () {
       final pages = getDefaultOnboardingPages();
       for (var i = 0; i < pages.length - 1; i++) {
-        expect(pages[i].actionLabel, isNull,
-            reason: 'Page $i should not have an actionLabel');
+        expect(
+          pages[i].actionLabel,
+          isNull,
+          reason: 'Page $i should not have an actionLabel',
+        );
       }
       expect(pages.last.actionLabel, isNotNull);
     });

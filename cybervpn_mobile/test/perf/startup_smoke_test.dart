@@ -11,6 +11,21 @@ import 'package:cybervpn_mobile/core/utils/startup_metrics.dart';
 
 import '../helpers/fakes/fake_secure_storage.dart';
 
+class _CountingSecureStorage extends FakeSecureStorage {
+  int prewarmCallCount = 0;
+
+  @override
+  Future<void> prewarmCache({
+    Iterable<String> keys = const [
+      SecureStorageWrapper.accessTokenKey,
+      SecureStorageWrapper.refreshTokenKey,
+    ],
+  }) async {
+    prewarmCallCount++;
+    await super.prewarmCache(keys: keys);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -64,5 +79,39 @@ void main() {
         isA<SecureStorageWrapper>(),
       );
     });
+
+    test(
+      'provider overrides skip secure storage prewarm when disabled',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final prefs = await SharedPreferences.getInstance();
+        final secureStorage = _CountingSecureStorage();
+
+        await buildProviderOverrides(
+          prefs,
+          secureStorage: secureStorage,
+          prewarmSecureStorage: false,
+        );
+
+        expect(secureStorage.prewarmCallCount, 0);
+      },
+    );
+
+    test(
+      'provider overrides can still opt into secure storage prewarm',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final prefs = await SharedPreferences.getInstance();
+        final secureStorage = _CountingSecureStorage();
+
+        await buildProviderOverrides(
+          prefs,
+          secureStorage: secureStorage,
+          prewarmSecureStorage: true,
+        );
+
+        expect(secureStorage.prewarmCallCount, 1);
+      },
+    );
   });
 }

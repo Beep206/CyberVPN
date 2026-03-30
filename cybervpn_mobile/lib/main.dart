@@ -1,10 +1,12 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -38,6 +40,7 @@ Future<void> main() async {
 
   // Use bundled fonts only. Prevent runtime HTTP requests to fonts.gstatic.com.
   GoogleFonts.config.allowRuntimeFetching = false;
+  _configureRuntimeCaches();
 
   // Load .env file for local development fallback values.
   await startupMetrics.measureAsync(
@@ -53,12 +56,15 @@ Future<void> main() async {
   );
 
   // Create the provider container with all overrides.
-  // buildProviderOverrides is async because it awaits SecureStorage
-  // prewarmCache to prevent race conditions during auth resolution.
+  // Keep the pre-run bootstrap minimal. SecureStorage warmup happens after the
+  // first frame so auth restoration no longer blocks runApp on cold start.
   await startupMetrics.measureAsync(
     'buildProviderOverrides + ProviderContainer',
     () async {
-      final builtOverrides = await buildProviderOverrides(prefs);
+      final builtOverrides = await buildProviderOverrides(
+        prefs,
+        prewarmSecureStorage: false,
+      );
       _globalContainer = ProviderContainer(overrides: builtOverrides);
     },
   );
@@ -108,6 +114,26 @@ Future<void> main() async {
   startupMetrics.logBootstrapComplete(modeLabel: isDebug ? 'debug' : 'release');
 }
 
+void _configureRuntimeCaches() {
+  final imageCache = PaintingBinding.instance.imageCache;
+  final isDesktop =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.windows);
+
+  final maxEntries = isDesktop ? 200 : 120;
+  final maxBytes = isDesktop ? 120 << 20 : 80 << 20;
+  final maxLottieEntries = isDesktop ? 64 : 32;
+
+  imageCache.maximumSize = math.min(imageCache.maximumSize, maxEntries);
+  imageCache.maximumSizeBytes = math.min(imageCache.maximumSizeBytes, maxBytes);
+  Lottie.cache.maximumSize = math.min(
+    Lottie.cache.maximumSize,
+    maxLottieEntries,
+  );
+}
+
 /// Initializes non-critical services after the first frame is rendered.
 ///
 /// Deferred services include:
@@ -138,6 +164,11 @@ Future<void> _initializeDeferredServices(StartupMetrics startupMetrics) async {
   }
 
   try {
+    await runDeferredStep('SecureStorage.prewarmCache', () async {
+      final secureStorage = _globalContainer.read(secureStorageProvider);
+      await secureStorage.prewarmCache();
+    });
+
     // Initialize Firebase Core. This must happen before any other Firebase
     // service (Messaging, Analytics, etc.) is used.
     await runDeferredStep('Firebase.initializeApp', _initializeFirebase);

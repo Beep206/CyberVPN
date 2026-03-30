@@ -15,6 +15,15 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 /// Phase of the speed test currently executing.
 enum SpeedTestPhase { download, upload, latency, idle }
 
+class SpeedTestCancelledException implements Exception {
+  const SpeedTestCancelledException([this.message = 'Speed test cancelled.']);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Progress update emitted during a speed test run.
 class SpeedTestProgress {
   const SpeedTestProgress({
@@ -70,8 +79,8 @@ class SpeedTestService {
     this.pingCount = 10,
     this.pingTimeout = const Duration(seconds: 5),
     this.maxHistorySize = 20,
-  })  : _dio = dio,
-        _prefs = sharedPreferences;
+  }) : _dio = dio,
+       _prefs = sharedPreferences;
 
   // ── Default endpoints ────────────────────────────────────────────────
 
@@ -119,9 +128,19 @@ class SpeedTestService {
   // ── State ────────────────────────────────────────────────────────────
 
   bool _isRunning = false;
+  CancelToken? _activeCancelToken;
+  Uint8List? _uploadPayload;
+  List<SpeedTestResult>? _historyCache;
 
   /// Whether a speed test is currently in progress.
   bool get isRunning => _isRunning;
+
+  void cancelRunningTest([String reason = 'Speed test cancelled.']) {
+    final token = _activeCancelToken;
+    if (token != null && !token.isCancelled) {
+      token.cancel(reason);
+    }
+  }
 
   // ====================================================================
   // Public API
@@ -140,17 +159,26 @@ class SpeedTestService {
     if (_isRunning) {
       throw StateError('A speed test is already running.');
     }
+
+    final cancelToken = CancelToken();
     _isRunning = true;
+    _activeCancelToken = cancelToken;
 
     try {
       // 1. Download
-      final downloadMbps = await _measureDownload(progressController);
+      final downloadMbps = await _measureDownload(
+        progressController,
+        cancelToken,
+      );
 
       // 2. Upload
-      final uploadMbps = await _measureUpload(progressController);
+      final uploadMbps = await _measureUpload(progressController, cancelToken);
 
       // 3. Latency + Jitter
-      final latencyResult = await _measureLatency(progressController);
+      final latencyResult = await _measureLatency(
+        progressController,
+        cancelToken,
+      );
 
       final result = SpeedTestResult(
         downloadMbps: downloadMbps,
@@ -167,6 +195,7 @@ class SpeedTestService {
 
       return result;
     } finally {
+      _activeCancelToken = null;
       _isRunning = false;
     }
   }
@@ -180,6 +209,7 @@ class SpeedTestService {
   /// Returns speed in Mbps.
   Future<double> _measureDownload(
     StreamController<SpeedTestProgress>? progressController,
+    CancelToken cancelToken,
   ) async {
     final stopwatch = Stopwatch()..start();
     int totalBytes = 0;
@@ -188,6 +218,7 @@ class SpeedTestService {
     try {
       final response = await _dio.get<ResponseBody>(
         downloadUrl,
+        cancelToken: cancelToken,
         options: Options(
           responseType: ResponseType.stream,
           receiveTimeout: testDuration + const Duration(seconds: 5),
@@ -198,22 +229,29 @@ class SpeedTestService {
       if (stream == null) return 0;
 
       await for (final chunk in stream) {
+        _throwIfCancelled(cancelToken);
         totalBytes += chunk.length;
         final elapsedMs = stopwatch.elapsedMilliseconds;
 
         // Emit progress approximately every second.
         if (progressController != null && !progressController.isClosed) {
           final currentMbps = _bytesToMbps(totalBytes, elapsedMs);
-          progressController.add(SpeedTestProgress(
-            phase: SpeedTestPhase.download,
-            progressFraction: (elapsedMs / durationMs).clamp(0.0, 1.0),
-            currentSpeedMbps: currentMbps,
-          ));
+          progressController.add(
+            SpeedTestProgress(
+              phase: SpeedTestPhase.download,
+              progressFraction: (elapsedMs / durationMs).clamp(0.0, 1.0),
+              currentSpeedMbps: currentMbps,
+            ),
+          );
         }
 
         if (elapsedMs >= durationMs) break;
       }
-    } on DioException {
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        throw const SpeedTestCancelledException();
+      }
+
       // Network error during download -- return whatever we measured.
     } finally {
       stopwatch.stop();
@@ -232,18 +270,21 @@ class SpeedTestService {
   /// Returns speed in Mbps.
   Future<double> _measureUpload(
     StreamController<SpeedTestProgress>? progressController,
+    CancelToken cancelToken,
   ) async {
     // Generate a 1 MB payload of random data that we will send repeatedly.
     const chunkSize = 1024 * 1024; // 1 MB
-    final payload = _generateRandomBytes(chunkSize);
+    final payload = _uploadPayload ??= _generateRandomBytes(chunkSize);
     final stopwatch = Stopwatch()..start();
     int totalBytes = 0;
     final durationMs = testDuration.inMilliseconds;
 
     try {
       while (stopwatch.elapsedMilliseconds < durationMs) {
+        _throwIfCancelled(cancelToken);
         await _dio.post<void>(
           uploadUrl,
+          cancelToken: cancelToken,
           data: Stream.fromIterable([payload]),
           options: Options(
             contentType: 'application/octet-stream',
@@ -254,14 +295,20 @@ class SpeedTestService {
 
         if (progressController != null && !progressController.isClosed) {
           final elapsedMs = stopwatch.elapsedMilliseconds;
-          progressController.add(SpeedTestProgress(
-            phase: SpeedTestPhase.upload,
-            progressFraction: (elapsedMs / durationMs).clamp(0.0, 1.0),
-            currentSpeedMbps: _bytesToMbps(totalBytes, elapsedMs),
-          ));
+          progressController.add(
+            SpeedTestProgress(
+              phase: SpeedTestPhase.upload,
+              progressFraction: (elapsedMs / durationMs).clamp(0.0, 1.0),
+              currentSpeedMbps: _bytesToMbps(totalBytes, elapsedMs),
+            ),
+          );
         }
       }
-    } on DioException {
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        throw const SpeedTestCancelledException();
+      }
+
       // Network error during upload -- return whatever we measured.
     } finally {
       stopwatch.stop();
@@ -278,25 +325,30 @@ class SpeedTestService {
   /// and the jitter (standard deviation) across all pings.
   Future<_LatencyResult> _measureLatency(
     StreamController<SpeedTestProgress>? progressController,
+    CancelToken cancelToken,
   ) async {
     final pings = <int>[];
 
     for (var i = 0; i < pingCount; i++) {
-      final rtt = await _singlePing();
+      _throwIfCancelled(cancelToken);
+      final rtt = await _singlePing(cancelToken);
       if (rtt != null) {
         pings.add(rtt);
       }
 
       if (progressController != null && !progressController.isClosed) {
-        final avgSoFar =
-            pings.isEmpty ? 0 : pings.reduce((a, b) => a + b) ~/ pings.length;
-        progressController.add(SpeedTestProgress(
-          phase: SpeedTestPhase.latency,
-          progressFraction: (i + 1) / pingCount,
-          currentSpeedMbps: 0,
-          currentLatencyMs: avgSoFar,
-          pingCount: i + 1,
-        ));
+        final avgSoFar = pings.isEmpty
+            ? 0
+            : pings.reduce((a, b) => a + b) ~/ pings.length;
+        progressController.add(
+          SpeedTestProgress(
+            phase: SpeedTestPhase.latency,
+            progressFraction: (i + 1) / pingCount,
+            currentSpeedMbps: 0,
+            currentLatencyMs: avgSoFar,
+            pingCount: i + 1,
+          ),
+        );
       }
     }
 
@@ -312,16 +364,21 @@ class SpeedTestService {
 
   /// Performs a single HTTP HEAD request and returns RTT in milliseconds,
   /// or `null` on failure.
-  Future<int?> _singlePing() async {
+  Future<int?> _singlePing(CancelToken cancelToken) async {
     try {
       final stopwatch = Stopwatch()..start();
       await _dio.head<void>(
         pingUrl,
+        cancelToken: cancelToken,
         options: Options(receiveTimeout: pingTimeout),
       );
       stopwatch.stop();
       return stopwatch.elapsedMilliseconds;
-    } on DioException {
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        throw const SpeedTestCancelledException();
+      }
+
       return null;
     }
   }
@@ -347,38 +404,53 @@ class SpeedTestService {
   /// entries (oldest entries are removed first).
   Future<void> saveResult(SpeedTestResult result) async {
     final history = await getHistory();
-    history.insert(0, result);
+    final updatedHistory = <SpeedTestResult>[result, ...history];
 
     // Trim to max size.
-    while (history.length > maxHistorySize) {
-      history.removeLast();
+    while (updatedHistory.length > maxHistorySize) {
+      updatedHistory.removeLast();
     }
 
-    final jsonList = history.map(_resultToJson).toList();
+    _historyCache = List<SpeedTestResult>.unmodifiable(updatedHistory);
+
+    final jsonList = updatedHistory.map(_resultToJson).toList(growable: false);
     await _prefs.setString(_historyKey, jsonEncode(jsonList));
   }
 
   /// Returns the stored speed test history sorted by timestamp descending
   /// (most recent first).
   Future<List<SpeedTestResult>> getHistory() async {
+    final cachedHistory = _historyCache;
+    if (cachedHistory != null) {
+      return List<SpeedTestResult>.from(cachedHistory);
+    }
+
     final raw = _prefs.getString(_historyKey);
     if (raw == null || raw.isEmpty) return [];
 
     try {
       final List<dynamic> jsonList = jsonDecode(raw) as List<dynamic>;
-      return jsonList
+      final history = jsonList
           .map((e) => _resultFromJson(e as Map<String, dynamic>))
-          .toList();
+          .toList(growable: false);
+      _historyCache = List<SpeedTestResult>.unmodifiable(history);
+      return List<SpeedTestResult>.from(history);
     } catch (e) {
       // Corrupt data -- wipe and return empty.
-      AppLogger.warning('Corrupt speed test history data, clearing', error: e, category: 'diagnostics');
+      AppLogger.warning(
+        'Corrupt speed test history data, clearing',
+        error: e,
+        category: 'diagnostics',
+      );
       await _prefs.remove(_historyKey);
+      _historyCache = const <SpeedTestResult>[];
       return [];
     }
   }
 
   /// Clears all stored speed test history.
   Future<void> clearHistory() async {
+    _historyCache = const <SpeedTestResult>[];
     await _prefs.remove(_historyKey);
   }
 
@@ -387,14 +459,14 @@ class SpeedTestService {
   // ====================================================================
 
   static Map<String, dynamic> _resultToJson(SpeedTestResult r) => {
-        'downloadMbps': r.downloadMbps,
-        'uploadMbps': r.uploadMbps,
-        'latencyMs': r.latencyMs,
-        'jitterMs': r.jitterMs,
-        'testedAt': r.testedAt.toIso8601String(),
-        'vpnActive': r.vpnActive,
-        'serverName': r.serverName,
-      };
+    'downloadMbps': r.downloadMbps,
+    'uploadMbps': r.uploadMbps,
+    'latencyMs': r.latencyMs,
+    'jitterMs': r.jitterMs,
+    'testedAt': r.testedAt.toIso8601String(),
+    'vpnActive': r.vpnActive,
+    'serverName': r.serverName,
+  };
 
   static SpeedTestResult _resultFromJson(Map<String, dynamic> json) =>
       SpeedTestResult(
@@ -424,6 +496,12 @@ class SpeedTestService {
     return Uint8List.fromList(
       List<int>.generate(size, (_) => random.nextInt(256)),
     );
+  }
+
+  static void _throwIfCancelled(CancelToken cancelToken) {
+    if (cancelToken.isCancelled) {
+      throw const SpeedTestCancelledException();
+    }
   }
 }
 

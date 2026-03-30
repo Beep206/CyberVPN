@@ -27,10 +27,10 @@ class LogEntry {
   final String message;
 
   Map<String, dynamic> toJson() => {
-        'timestamp': timestamp.toIso8601String(),
-        'level': level,
-        'message': message,
-      };
+    'timestamp': timestamp.toIso8601String(),
+    'level': level,
+    'message': message,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -112,8 +112,8 @@ final diagnosticServiceProvider = Provider<DiagnosticService>((ref) {
 
 final diagnosticsProvider =
     AsyncNotifierProvider.autoDispose<DiagnosticsNotifier, DiagnosticsState>(
-  DiagnosticsNotifier.new,
-);
+      DiagnosticsNotifier.new,
+    );
 
 /// Manages speed test and diagnostics state.
 ///
@@ -125,11 +125,17 @@ final diagnosticsProvider =
 class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
   late final SpeedTestService _speedTestService;
   late final DiagnosticService _diagnosticService;
+  bool _disposed = false;
 
   @override
   Future<DiagnosticsState> build() async {
+    _disposed = false;
     _speedTestService = ref.watch(speedTestServiceProvider);
     _diagnosticService = ref.watch(diagnosticServiceProvider);
+    ref.onDispose(() {
+      _disposed = true;
+      _speedTestService.cancelRunningTest();
+    });
 
     // Load persisted speed test history on init.
     final history = await _speedTestService.getHistory();
@@ -162,13 +168,16 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
 
       // Reload history from persistence (service already saved the result).
       final updatedHistory = await _speedTestService.getHistory();
+      if (_disposed) return;
 
       final updated = state.value ?? current;
-      _updateState(updated.copyWith(
-        speedTestResult: () => result,
-        isRunningSpeedTest: false,
-        speedHistory: updatedHistory,
-      ));
+      _updateState(
+        updated.copyWith(
+          speedTestResult: () => result,
+          isRunningSpeedTest: false,
+          speedHistory: updatedHistory,
+        ),
+      );
 
       _addLog(
         'info',
@@ -177,8 +186,15 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
             '${result.uploadMbps.toStringAsFixed(1)} Mbps up, '
             '${result.latencyMs} ms latency',
       );
+    } on SpeedTestCancelledException {
+      if (_disposed) return;
+
+      final updated = state.value ?? current;
+      _updateState(updated.copyWith(isRunningSpeedTest: false));
+      _addLog('info', 'Speed test cancelled');
     } catch (e, st) {
       AppLogger.error('Speed test failed', error: e, stackTrace: st);
+      if (_disposed) return;
 
       final updated = state.value ?? current;
       _updateState(updated.copyWith(isRunningSpeedTest: false));
@@ -191,9 +207,7 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
   /// Updates [DiagnosticsState.isRunningDiagnostics] during execution and
   /// stores the aggregated result in [DiagnosticsState.diagnosticResult].
   /// Each step completion is logged.
-  Future<void> runDiagnostics({
-    DiagnosticServerTarget? serverTarget,
-  }) async {
+  Future<void> runDiagnostics({DiagnosticServerTarget? serverTarget}) async {
     final current = state.value;
     if (current == null || current.isRunningDiagnostics) return;
 
@@ -204,15 +218,18 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
       final startTime = DateTime.now();
       final steps = <DiagnosticStep>[];
 
-      await for (final step
-          in _diagnosticService.runDiagnostics(serverTarget: serverTarget)) {
+      await for (final step in _diagnosticService.runDiagnostics(
+        serverTarget: serverTarget,
+      )) {
+        if (_disposed) return;
+
         steps.add(step);
 
         // Log each step as it completes.
         _addLog(
           step.status == DiagnosticStepStatus.failed ? 'error' : 'info',
           '${step.name}: ${step.status.name}'
-              '${step.message != null ? ' - ${step.message}' : ''}',
+          '${step.message != null ? ' - ${step.message}' : ''}',
         );
 
         // Update state with partial result so UI can show progress.
@@ -223,9 +240,7 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
         );
 
         final updated = state.value ?? current;
-        _updateState(updated.copyWith(
-          diagnosticResult: () => partialResult,
-        ));
+        _updateState(updated.copyWith(diagnosticResult: () => partialResult));
       }
 
       final totalDuration = DateTime.now().difference(startTime);
@@ -234,16 +249,20 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
         ranAt: startTime,
         totalDuration: totalDuration,
       );
+      if (_disposed) return;
 
       final updated = state.value ?? current;
-      _updateState(updated.copyWith(
-        diagnosticResult: () => finalResult,
-        isRunningDiagnostics: false,
-      ));
+      _updateState(
+        updated.copyWith(
+          diagnosticResult: () => finalResult,
+          isRunningDiagnostics: false,
+        ),
+      );
 
       _addLog('info', 'Diagnostics completed in ${totalDuration.inSeconds}s');
     } catch (e, st) {
       AppLogger.error('Diagnostics failed', error: e, stackTrace: st);
+      if (_disposed) return;
 
       final updated = state.value ?? current;
       _updateState(updated.copyWith(isRunningDiagnostics: false));
@@ -288,9 +307,7 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
       message: message,
     );
 
-    _updateState(current.copyWith(
-      logEntries: [...current.logEntries, entry],
-    ));
+    _updateState(current.copyWith(logEntries: [...current.logEntries, entry]));
   }
 }
 
@@ -307,7 +324,9 @@ final speedTestProgressProvider = Provider.autoDispose<bool>((ref) {
 /// Current diagnostic steps from the most recent diagnostic run.
 ///
 /// Returns an empty list if no diagnostics have been run.
-final diagnosticStepsProvider = Provider.autoDispose<List<DiagnosticStep>>((ref) {
+final diagnosticStepsProvider = Provider.autoDispose<List<DiagnosticStep>>((
+  ref,
+) {
   final asyncState = ref.watch(diagnosticsProvider);
   return asyncState.value?.diagnosticResult?.steps ?? [];
 });

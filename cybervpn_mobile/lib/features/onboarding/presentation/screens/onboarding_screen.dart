@@ -139,7 +139,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             itemBuilder: (context, index) {
               return OnboardingPageWidget(
                 page: pages[index],
-                pageIndex: index,
                 isVisible: index == _currentPageIndex,
               );
             },

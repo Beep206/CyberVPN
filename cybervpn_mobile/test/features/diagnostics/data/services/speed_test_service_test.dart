@@ -22,12 +22,14 @@ class MockDio extends Mock implements Dio {}
 /// Creates a [ResponseBody] that emits [chunks] of bytes.
 ResponseBody _streamedResponse(List<List<int>> chunks) {
   final controller = StreamController<Uint8List>();
-  unawaited(Future.microtask(() async {
-    for (final chunk in chunks) {
-      controller.add(Uint8List.fromList(chunk));
-    }
-    await controller.close();
-  }));
+  unawaited(
+    Future.microtask(() async {
+      for (final chunk in chunks) {
+        controller.add(Uint8List.fromList(chunk));
+      }
+      await controller.close();
+    }),
+  );
   return ResponseBody(controller.stream, 200);
 }
 
@@ -38,6 +40,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(Options());
+    registerFallbackValue(CancelToken());
   });
 
   setUp(() async {
@@ -89,14 +92,19 @@ void main() {
       const chunkSize = 100 * 1024; // 100 KB
       final chunks = List.generate(5, (_) => List.filled(chunkSize, 0));
 
-      when(() => mockDio.get<ResponseBody>(
-            any(),
-            options: any(named: 'options'),
-          )).thenAnswer((_) async => Response<ResponseBody>(
-            data: _streamedResponse(chunks),
-            statusCode: 200,
-            requestOptions: RequestOptions(),
-          ));
+      when(
+        () => mockDio.get<ResponseBody>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<ResponseBody>(
+          data: _streamedResponse(chunks),
+          statusCode: 200,
+          requestOptions: RequestOptions(),
+        ),
+      );
 
       // We test the full runSpeedTest which includes download.
       // But first, stub upload and latency too.
@@ -110,13 +118,18 @@ void main() {
     });
 
     test('handles network error gracefully', () async {
-      when(() => mockDio.get<ResponseBody>(
-            any(),
-            options: any(named: 'options'),
-          )).thenThrow(DioException(
-        requestOptions: RequestOptions(),
-        type: DioExceptionType.connectionTimeout,
-      ));
+      when(
+        () => mockDio.get<ResponseBody>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(),
+          type: DioExceptionType.connectionTimeout,
+        ),
+      );
 
       _stubUpload(mockDio);
       _stubLatency(mockDio, count: 5);
@@ -138,14 +151,17 @@ void main() {
       _stubLatency(mockDio, count: 5);
 
       // Stub upload to succeed.
-      when(() => mockDio.post<void>(
-            any(),
-            data: any(named: 'data'),
-            options: any(named: 'options'),
-          )).thenAnswer((_) async => Response<void>(
-            statusCode: 200,
-            requestOptions: RequestOptions(),
-          ));
+      when(
+        () => mockDio.post<void>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            Response<void>(statusCode: 200, requestOptions: RequestOptions()),
+      );
 
       final result = await service.runSpeedTest();
 
@@ -157,14 +173,19 @@ void main() {
       _stubDownload(mockDio);
       _stubLatency(mockDio, count: 5);
 
-      when(() => mockDio.post<void>(
-            any(),
-            data: any(named: 'data'),
-            options: any(named: 'options'),
-          )).thenThrow(DioException(
-        requestOptions: RequestOptions(),
-        type: DioExceptionType.sendTimeout,
-      ));
+      when(
+        () => mockDio.post<void>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(),
+          type: DioExceptionType.sendTimeout,
+        ),
+      );
 
       final result = await service.runSpeedTest();
 
@@ -184,10 +205,13 @@ void main() {
 
       // Simulate 5 pings with controlled delays.
       var pingCallCount = 0;
-      when(() => mockDio.head<void>(
-            any(),
-            options: any(named: 'options'),
-          )).thenAnswer((_) async {
+      when(
+        () => mockDio.head<void>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer((_) async {
         pingCallCount++;
         // Each ping is near-instant in tests, so latency will be very low.
         return Response<void>(
@@ -208,13 +232,18 @@ void main() {
       _stubDownload(mockDio);
       _stubUpload(mockDio);
 
-      when(() => mockDio.head<void>(
-            any(),
-            options: any(named: 'options'),
-          )).thenThrow(DioException(
-        requestOptions: RequestOptions(),
-        type: DioExceptionType.receiveTimeout,
-      ));
+      when(
+        () => mockDio.head<void>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(),
+          type: DioExceptionType.receiveTimeout,
+        ),
+      );
 
       final result = await service.runSpeedTest();
 
@@ -360,9 +389,7 @@ void main() {
     });
 
     test('clears history', () async {
-      await service.saveResult(
-        makeResult(testedAt: DateTime(2026, 1, 1)),
-      );
+      await service.saveResult(makeResult(testedAt: DateTime(2026, 1, 1)));
 
       await service.clearHistory();
       final history = await service.getHistory();
@@ -436,13 +463,42 @@ void main() {
       final firstTest = service.runSpeedTest();
 
       // Immediately try to start another.
-      expect(
-        () => service.runSpeedTest(),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => service.runSpeedTest(), throwsA(isA<StateError>()));
 
       // Let the first one finish.
       await firstTest;
+    });
+
+    test('cancelRunningTest aborts an in-flight test', () async {
+      when(
+        () => mockDio.get<ResponseBody>(
+          any(),
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer((invocation) {
+        final cancelToken =
+            invocation.namedArguments[#cancelToken] as CancelToken;
+        final completer = Completer<Response<ResponseBody>>();
+
+        unawaited(
+          cancelToken.whenCancel.then((error) {
+            if (!completer.isCompleted) {
+              completer.completeError(error);
+            }
+          }),
+        );
+
+        return completer.future;
+      });
+
+      final future = service.runSpeedTest();
+      await Future<void>.delayed(Duration.zero);
+
+      service.cancelRunningTest();
+
+      await expectLater(future, throwsA(isA<SpeedTestCancelledException>()));
+      expect(service.isRunning, isFalse);
     });
   });
 }
@@ -453,22 +509,30 @@ void main() {
 
 /// Stubs the download endpoint with a quick empty stream response.
 void _stubDownload(MockDio dio) {
-  when(() => dio.get<ResponseBody>(
-        any(),
-        options: any(named: 'options'),
-      )).thenAnswer((_) async => Response<ResponseBody>(
-        data: _streamedResponse([]),
-        statusCode: 200,
-        requestOptions: RequestOptions(),
-      ));
+  when(
+    () => dio.get<ResponseBody>(
+      any(),
+      cancelToken: any(named: 'cancelToken'),
+      options: any(named: 'options'),
+    ),
+  ).thenAnswer(
+    (_) async => Response<ResponseBody>(
+      data: _streamedResponse([]),
+      statusCode: 200,
+      requestOptions: RequestOptions(),
+    ),
+  );
 }
 
 /// Stubs the download endpoint with a slow stream (for concurrency testing).
 void _stubDownloadSlow(MockDio dio) {
-  when(() => dio.get<ResponseBody>(
-        any(),
-        options: any(named: 'options'),
-      )).thenAnswer((_) async {
+  when(
+    () => dio.get<ResponseBody>(
+      any(),
+      cancelToken: any(named: 'cancelToken'),
+      options: any(named: 'options'),
+    ),
+  ).thenAnswer((_) async {
     // Simulate a slow download.
     await Future<void>.delayed(const Duration(milliseconds: 100));
     return Response<ResponseBody>(
@@ -481,23 +545,29 @@ void _stubDownloadSlow(MockDio dio) {
 
 /// Stubs the upload endpoint.
 void _stubUpload(MockDio dio) {
-  when(() => dio.post<void>(
-        any(),
-        data: any(named: 'data'),
-        options: any(named: 'options'),
-      )).thenAnswer((_) async => Response<void>(
-        statusCode: 200,
-        requestOptions: RequestOptions(),
-      ));
+  when(
+    () => dio.post<void>(
+      any(),
+      cancelToken: any(named: 'cancelToken'),
+      data: any(named: 'data'),
+      options: any(named: 'options'),
+    ),
+  ).thenAnswer(
+    (_) async =>
+        Response<void>(statusCode: 200, requestOptions: RequestOptions()),
+  );
 }
 
 /// Stubs the latency ping endpoint.
 void _stubLatency(MockDio dio, {required int count}) {
-  when(() => dio.head<void>(
-        any(),
-        options: any(named: 'options'),
-      )).thenAnswer((_) async => Response<void>(
-        statusCode: 200,
-        requestOptions: RequestOptions(),
-      ));
+  when(
+    () => dio.head<void>(
+      any(),
+      cancelToken: any(named: 'cancelToken'),
+      options: any(named: 'options'),
+    ),
+  ).thenAnswer(
+    (_) async =>
+        Response<void>(statusCode: 200, requestOptions: RequestOptions()),
+  );
 }

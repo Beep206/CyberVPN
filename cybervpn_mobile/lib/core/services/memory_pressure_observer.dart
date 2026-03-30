@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -12,7 +13,7 @@ class MemoryPressureObserver with WidgetsBindingObserver {
   final SecureStorageWrapper _secureStorage;
 
   MemoryPressureObserver({required SecureStorageWrapper secureStorage})
-      : _secureStorage = secureStorage;
+    : _secureStorage = secureStorage;
 
   /// Registers this observer with the [WidgetsBinding].
   void register() {
@@ -27,9 +28,12 @@ class MemoryPressureObserver with WidgetsBindingObserver {
   @override
   void didHaveMemoryPressure() {
     AppLogger.warning(
-      'Memory pressure detected — invalidating secure storage cache',
+      'Memory pressure detected — clearing runtime caches',
       category: 'memory',
     );
     _secureStorage.invalidateCache();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+    Lottie.cache.clear();
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/constants/onboarding_pages.dart';
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -23,13 +24,14 @@ class MockOnboardingRepository extends Mock implements OnboardingRepository {}
 /// Default stub: onboarding not yet completed, returns 4 pages.
 void stubOnboardingDefaults(MockOnboardingRepository mock) {
   when(() => mock.hasCompletedOnboarding()).thenAnswer((_) async => false);
-  when(() => mock.getPages())
-      .thenAnswer((_) async => getDefaultOnboardingPages());
+  when(
+    () => mock.getPages(),
+  ).thenAnswer((_) async => getDefaultOnboardingPages());
   when(() => mock.completeOnboarding()).thenAnswer((_) async {});
 }
 
 /// Builds a testable widget tree with the [OnboardingScreen] at `/onboarding`,
-/// with placeholder routes for `/login` so navigation assertions work.
+/// with placeholder routes for `/permissions` so navigation assertions work.
 Widget buildTestableOnboardingScreen({
   required MockOnboardingRepository mockRepo,
 }) {
@@ -41,19 +43,21 @@ Widget buildTestableOnboardingScreen({
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const Scaffold(body: Text('Login Screen')),
+        path: '/permissions',
+        builder: (context, state) =>
+            const Scaffold(body: Text('Permissions Screen')),
       ),
     ],
   );
 
   return ProviderScope(
-    overrides: [
-      onboardingRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [onboardingRepositoryProvider.overrideWithValue(mockRepo)],
     child: MaterialApp.router(
       routerConfig: router,
       theme: ThemeData.light(useMaterial3: true),
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     ),
   );
 }
@@ -67,6 +71,17 @@ void ignoreOverflowErrors() {
       throw details.exception;
     }
   };
+}
+
+Future<void> pumpOnboardingScreen(WidgetTester tester, Widget widget) async {
+  await tester.pumpWidget(widget);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
+Future<void> settleOnboardingTransition(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 450));
 }
 
 // ---------------------------------------------------------------------------
@@ -84,15 +99,22 @@ void main() {
   group('OnboardingScreen', () {
     testWidgets('renders 4 pages and page indicator', (tester) async {
       ignoreOverflowErrors();
-      await tester.pumpWidget(buildTestableOnboardingScreen(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
+      await pumpOnboardingScreen(
+        tester,
+        buildTestableOnboardingScreen(mockRepo: mockRepo),
+      );
 
       // Page indicator should be present.
       expect(find.byType(PageIndicator), findsOneWidget);
 
       // First page content should be visible.
-      expect(find.text('Privacy Title'), findsOneWidget);
-      expect(find.text('Privacy Description'), findsOneWidget);
+      expect(find.text('Your Privacy Matters'), findsOneWidget);
+      expect(
+        find.text(
+          'Zero-log policy. We never track, store, or share your browsing data.',
+        ),
+        findsOneWidget,
+      );
 
       // Skip button visible on first page.
       expect(find.text('Skip'), findsOneWidget);
@@ -100,86 +122,97 @@ void main() {
 
     testWidgets('can swipe through all 4 pages', (tester) async {
       ignoreOverflowErrors();
-      await tester.pumpWidget(buildTestableOnboardingScreen(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
+      await pumpOnboardingScreen(
+        tester,
+        buildTestableOnboardingScreen(mockRepo: mockRepo),
+      );
 
       // Page 1: Privacy
-      expect(find.text('Privacy Title'), findsOneWidget);
+      expect(find.text('Your Privacy Matters'), findsOneWidget);
 
       // Swipe to page 2: Connect
-      await tester.drag(find.byType(PageView), const Offset(-400, 0));
-      await tester.pumpAndSettle();
-      expect(find.text('Connect Title'), findsOneWidget);
+      await tester.drag(find.byType(PageView), const Offset(-800, 0));
+      await settleOnboardingTransition(tester);
+      expect(find.text('One Tap Connect'), findsOneWidget);
 
       // Swipe to page 3: Globe
-      await tester.drag(find.byType(PageView), const Offset(-400, 0));
-      await tester.pumpAndSettle();
-      expect(find.text('Globe Title'), findsOneWidget);
+      await tester.drag(find.byType(PageView), const Offset(-800, 0));
+      await settleOnboardingTransition(tester);
+      expect(find.text('Global Network'), findsOneWidget);
 
       // Swipe to page 4: GetStarted
-      await tester.drag(find.byType(PageView), const Offset(-400, 0));
-      await tester.pumpAndSettle();
-      expect(find.text('GetStarted Title'), findsOneWidget);
-    });
-
-    testWidgets('Skip button completes onboarding and navigates to login',
-        (tester) async {
-      ignoreOverflowErrors();
-      await tester.pumpWidget(buildTestableOnboardingScreen(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Skip'));
-      await tester.pumpAndSettle();
-
-      // Should have called completeOnboarding.
-      verify(() => mockRepo.completeOnboarding()).called(1);
-
-      // Should navigate to login screen.
-      expect(find.text('Login Screen'), findsOneWidget);
+      await tester.drag(find.byType(PageView), const Offset(-800, 0));
+      await settleOnboardingTransition(tester);
+      expect(find.text('Get Started'), findsOneWidget);
     });
 
     testWidgets(
-        'Get Started button visible on last page and navigates to login',
-        (tester) async {
-      ignoreOverflowErrors();
-      await tester.pumpWidget(buildTestableOnboardingScreen(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
+      'Skip button completes onboarding and navigates to permissions',
+      (tester) async {
+        ignoreOverflowErrors();
+        await pumpOnboardingScreen(
+          tester,
+          buildTestableOnboardingScreen(mockRepo: mockRepo),
+        );
 
-      // Get Started should not be visible on first page.
-      expect(find.text('Get Started'), findsNothing);
+        await tester.tap(find.text('Skip'));
+        await settleOnboardingTransition(tester);
 
-      // Swipe to last page.
-      for (var i = 0; i < 3; i++) {
-        await tester.drag(find.byType(PageView), const Offset(-400, 0));
-        await tester.pumpAndSettle();
-      }
+        // Should have called completeOnboarding.
+        verify(() => mockRepo.completeOnboarding()).called(1);
 
-      // Get Started should now be visible.
-      expect(find.text('Get Started'), findsOneWidget);
+        // Should navigate to permissions screen.
+        expect(find.text('Permissions Screen'), findsOneWidget);
+      },
+    );
 
-      // Skip should be hidden (opacity 0).
-      // We verify by checking that Skip button is not tappable.
-      // The button exists but is wrapped in IgnorePointer when on last page.
+    testWidgets(
+      'Get Started button visible on last page and navigates to permissions',
+      (tester) async {
+        ignoreOverflowErrors();
+        await pumpOnboardingScreen(
+          tester,
+          buildTestableOnboardingScreen(mockRepo: mockRepo),
+        );
 
-      await tester.tap(find.text('Get Started'));
-      await tester.pumpAndSettle();
+        // Get Started should not be visible on first page.
+        expect(find.text('Get Started'), findsNothing);
 
-      // Should have called completeOnboarding.
-      verify(() => mockRepo.completeOnboarding()).called(1);
+        // Swipe to last page.
+        for (var i = 0; i < 3; i++) {
+          await tester.drag(find.byType(PageView), const Offset(-800, 0));
+          await settleOnboardingTransition(tester);
+        }
 
-      // Should navigate to login screen.
-      expect(find.text('Login Screen'), findsOneWidget);
-    });
+        // Get Started should now be visible.
+        expect(find.text('Get Started'), findsOneWidget);
+
+        // Skip should be hidden (opacity 0).
+        // We verify by checking that Skip button is not tappable.
+        // The button exists but is wrapped in IgnorePointer when on last page.
+
+        await tester.tap(find.text('Get Started'));
+        await settleOnboardingTransition(tester);
+
+        // Should have called completeOnboarding.
+        verify(() => mockRepo.completeOnboarding()).called(1);
+
+        // Should navigate to permissions screen.
+        expect(find.text('Permissions Screen'), findsOneWidget);
+      },
+    );
 
     testWidgets('Skip button is hidden on last page', (tester) async {
       ignoreOverflowErrors();
-      await tester.pumpWidget(buildTestableOnboardingScreen(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
+      await pumpOnboardingScreen(
+        tester,
+        buildTestableOnboardingScreen(mockRepo: mockRepo),
+      );
 
       // Swipe to last page.
       for (var i = 0; i < 3; i++) {
-        await tester.drag(find.byType(PageView), const Offset(-400, 0));
-        await tester.pumpAndSettle();
+        await tester.drag(find.byType(PageView), const Offset(-800, 0));
+        await settleOnboardingTransition(tester);
       }
 
       // The Skip TextButton widget is still in the tree but wrapped in
@@ -187,13 +220,13 @@ void main() {
       // Verify that tapping Skip on the last page does nothing.
       // The text still exists in the widget tree, but it is not interactive.
       // We can verify by checking IgnorePointer state.
-      final ignorePointer = tester.widget<IgnorePointer>(
+      final ignorePointers = tester.widgetList<IgnorePointer>(
         find.ancestor(
           of: find.widgetWithText(TextButton, 'Skip'),
           matching: find.byType(IgnorePointer),
         ),
       );
-      expect(ignorePointer.ignoring, isTrue);
+      expect(ignorePointers.any((widget) => widget.ignoring), isTrue);
     });
   });
 }

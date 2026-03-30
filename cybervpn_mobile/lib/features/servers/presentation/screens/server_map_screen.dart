@@ -11,6 +11,37 @@ import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.d
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
+final countryServersByCodeProvider =
+    Provider.family<List<ServerEntity>, String>((ref, String countryCode) {
+      final grouped = ref.watch(groupedByCountryProvider);
+      return grouped[countryCode] ?? const <ServerEntity>[];
+    });
+
+final serverMapCountriesProvider = Provider<List<_ServerMapCountryData>>((ref) {
+  final grouped = ref.watch(groupedByCountryProvider);
+
+  return grouped.entries
+      .map((entry) {
+        final coords = _countryCoordinates[entry.key.toUpperCase()];
+        if (coords == null) {
+          return null;
+        }
+
+        final servers = entry.value;
+        return _ServerMapCountryData(
+          countryCode: entry.key,
+          countryName: servers.isNotEmpty
+              ? servers.first.countryName
+              : entry.key,
+          coords: coords,
+          serverCount: servers.length,
+          latencyBand: _latencyBand(_bestPing(servers)),
+        );
+      })
+      .whereType<_ServerMapCountryData>()
+      .toList(growable: false);
+});
+
 /// World map view of VPN servers grouped by country.
 ///
 /// Each country with available servers is represented by a colored marker.
@@ -33,37 +64,30 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = ref.watch(groupedByCountryProvider);
+    final countries = ref.watch(serverMapCountriesProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final retinaMode = MediaQuery.devicePixelRatioOf(context) > 1.5;
 
-    final markers = <Marker>[];
-
-    for (final entry in grouped.entries) {
-      final countryCode = entry.key;
-      final servers = entry.value;
-      final coords = _countryCoordinates[countryCode.toUpperCase()];
-      if (coords == null) continue;
-
-      // Use best ping among servers in this country.
-      final bestPing = _bestPing(servers);
-      final markerColor = _latencyColor(bestPing);
-
-      markers.add(
-        Marker(
-          point: coords,
-          width: 32,
-          height: 32,
-          child: GestureDetector(
-            key: ValueKey<String>(
-              'server-map-country-${countryCode.toUpperCase()}',
+    final markers = countries
+        .map(
+          (country) => Marker(
+            point: country.coords,
+            width: 32,
+            height: 32,
+            child: GestureDetector(
+              key: ValueKey<String>(
+                'server-map-country-${country.countryCode.toUpperCase()}',
+              ),
+              onTap: () => _showCountrySheet(context, country.countryCode),
+              child: _MapMarker(
+                color: _latencyColor(country.latencyBand),
+                serverCount: country.serverCount,
+              ),
             ),
-            onTap: () => _showCountrySheet(context, countryCode, servers),
-            child: _MapMarker(color: markerColor, serverCount: servers.length),
           ),
-        ),
-      );
-    }
+        )
+        .toList(growable: false);
 
     return FlutterMap(
       mapController: _mapController,
@@ -82,39 +106,20 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
       children: [
         TileLayer(
           urlTemplate: isDark
-              ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png'
-              : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}@2x.png',
+              ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
           subdomains: const ['a', 'b', 'c', 'd'],
           userAgentPackageName: 'com.cybervpn.mobile',
           maxZoom: 18,
+          retinaMode: retinaMode,
         ),
         MarkerLayer(markers: markers),
       ],
     );
   }
 
-  int? _bestPing(List<ServerEntity> servers) {
-    int? best;
-    for (final s in servers) {
-      if (s.ping != null && (best == null || s.ping! < best)) {
-        best = s.ping;
-      }
-    }
-    return best;
-  }
-
-  Color _latencyColor(int? ping) {
-    if (ping == null) return Colors.grey;
-    if (ping < 50) return CyberColors.matrixGreen;
-    if (ping < 100) return Colors.amber;
-    return const Color(0xFFFF5252);
-  }
-
-  void _showCountrySheet(
-    BuildContext context,
-    String countryCode,
-    List<ServerEntity> servers,
-  ) {
+  void _showCountrySheet(BuildContext context, String countryCode) {
+    final servers = ref.read(countryServersByCodeProvider(countryCode));
     final theme = Theme.of(context);
     final countryName = servers.isNotEmpty
         ? servers.first.countryName
@@ -137,7 +142,6 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
             builder: (context, scrollController) {
               return Column(
                 children: [
-                  // Handle bar
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
                     child: Container(
@@ -151,8 +155,6 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
                       ),
                     ),
                   ),
-
-                  // Title
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.md,
@@ -187,10 +189,7 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
                       ],
                     ),
                   ),
-
                   const Divider(),
-
-                  // Server list
                   Expanded(
                     child: ListView.builder(
                       controller: scrollController,
@@ -219,6 +218,48 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
       ),
     );
   }
+}
+
+int? _bestPing(List<ServerEntity> servers) {
+  int? best;
+  for (final s in servers) {
+    if (s.ping != null && (best == null || s.ping! < best)) {
+      best = s.ping;
+    }
+  }
+  return best;
+}
+
+_LatencyBand _latencyBand(int? ping) {
+  if (ping == null) return _LatencyBand.unknown;
+  if (ping < 50) return _LatencyBand.fast;
+  if (ping < 100) return _LatencyBand.moderate;
+  return _LatencyBand.slow;
+}
+
+Color _latencyColor(_LatencyBand band) {
+  if (band == _LatencyBand.unknown) return Colors.grey;
+  if (band == _LatencyBand.fast) return CyberColors.matrixGreen;
+  if (band == _LatencyBand.moderate) return Colors.amber;
+  return const Color(0xFFFF5252);
+}
+
+enum _LatencyBand { unknown, fast, moderate, slow }
+
+class _ServerMapCountryData {
+  const _ServerMapCountryData({
+    required this.countryCode,
+    required this.countryName,
+    required this.coords,
+    required this.serverCount,
+    required this.latencyBand,
+  });
+
+  final String countryCode;
+  final String countryName;
+  final LatLng coords;
+  final int serverCount;
+  final _LatencyBand latencyBand;
 }
 
 // ---------------------------------------------------------------------------

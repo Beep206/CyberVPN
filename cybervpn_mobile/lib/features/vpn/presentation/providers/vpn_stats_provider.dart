@@ -16,11 +16,45 @@ import 'package:cybervpn_mobile/features/widgets/data/widget_bridge_service.dart
 
 final vpnStatsProvider =
     NotifierProvider<VpnStatsNotifier, ConnectionStatsEntity?>(
-  VpnStatsNotifier.new,
-);
+      VpnStatsNotifier.new,
+    );
+
+class VpnStatsSnapshotAtNotifier extends Notifier<DateTime?> {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) {
+    state = value;
+  }
+}
+
+final vpnStatsSnapshotAtProvider =
+    NotifierProvider<VpnStatsSnapshotAtNotifier, DateTime?>(
+      VpnStatsSnapshotAtNotifier.new,
+    );
+
+final _sessionDurationTickerProvider = StreamProvider.autoDispose<DateTime>((
+  ref,
+) {
+  final controller = StreamController<DateTime>();
+  controller.add(DateTime.now());
+
+  final timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    controller.add(DateTime.now());
+  });
+
+  ref.onDispose(() {
+    timer.cancel();
+    unawaited(controller.close());
+  });
+
+  return controller.stream;
+});
 
 class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
-  Timer? _pollTimer;
+  static const _widgetUpdateInterval = Duration(seconds: 5);
+
+  Timer? _widgetUpdateTimer;
   StreamSubscription<ConnectionStatsEntity>? _streamSub;
 
   /// Previous snapshot used for delta-based speed calculation.
@@ -30,6 +64,9 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
   /// Timestamp when the current session started.
   DateTime? _sessionStartTime;
 
+  DateTime? _lastWidgetUpdateAt;
+  String? _lastWidgetServerName;
+
   late final WidgetBridgeService _widgetBridge;
 
   @override
@@ -37,18 +74,17 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
     _widgetBridge = ref.watch(widgetBridgeServiceProvider);
 
     // Listen to the connection provider and start/stop polling accordingly.
-    ref.listen<AsyncValue<VpnConnectionState>>(
-      vpnConnectionProvider,
-      (previous, next) {
-        final current = next.value;
-        if (current is VpnConnected) {
-          _startPolling();
-        } else {
-          _stopPolling();
-        }
-      },
-      fireImmediately: true,
-    );
+    ref.listen<AsyncValue<VpnConnectionState>>(vpnConnectionProvider, (
+      previous,
+      next,
+    ) {
+      final current = next.value;
+      if (current is VpnConnected) {
+        _startPolling();
+      } else {
+        _stopPolling();
+      }
+    }, fireImmediately: true);
 
     ref.onDispose(_dispose);
 
@@ -58,8 +94,7 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
   // -- Polling lifecycle ----------------------------------------------------
 
   void _startPolling() {
-    // Avoid double-start.
-    final timer = _pollTimer;
+    final timer = _widgetUpdateTimer;
     if (timer != null && timer.isActive) return;
 
     AppLogger.info('VPN stats: starting polling');
@@ -79,32 +114,44 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
       },
     );
 
-    // Poll every 1 second to keep the duration ticker alive even when no
-    // new stats arrive from the platform layer.
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _updateDuration();
+    // Update the home-screen widget on a coarse cadence without keeping a
+    // 1 Hz app-wide timer alive for the entire connection session.
+    _widgetUpdateTimer = Timer.periodic(_widgetUpdateInterval, (_) {
+      final current = state;
+      if (current == null) {
+        return;
+      }
+
+      final liveStats = _liveStatsFromSnapshot(current, DateTime.now());
+      _pushWidgetUpdate(liveStats);
     });
   }
 
   void _stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
+    _widgetUpdateTimer?.cancel();
+    _widgetUpdateTimer = null;
     unawaited(_streamSub?.cancel());
     _streamSub = null;
     _previousSnapshot = null;
     _previousTimestamp = null;
+    _sessionStartTime = null;
+    _lastWidgetUpdateAt = null;
+    _lastWidgetServerName = null;
+    ref.read(vpnStatsSnapshotAtProvider.notifier).set(null);
 
     // Clear stats when disconnected.
     state = null;
 
     // Notify the native widget that the VPN is disconnected.
-    unawaited(_widgetBridge.updateWidgetState(
-      vpnStatus: 'disconnected',
-      serverName: '',
-      uploadSpeed: 0,
-      downloadSpeed: 0,
-      sessionDuration: Duration.zero,
-    ));
+    unawaited(
+      _widgetBridge.updateWidgetState(
+        vpnStatus: 'disconnected',
+        serverName: '',
+        uploadSpeed: 0,
+        downloadSpeed: 0,
+        sessionDuration: Duration.zero,
+      ),
+    );
   }
 
   // -- Stats processing -----------------------------------------------------
@@ -132,6 +179,7 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
 
     _previousSnapshot = raw;
     _previousTimestamp = now;
+    ref.read(vpnStatsSnapshotAtProvider.notifier).set(now);
 
     final startTime = _sessionStartTime;
     final sessionDuration = startTime != null
@@ -150,40 +198,64 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
     );
     state = updated;
 
-    // Push latest stats to the native home-screen widget.
-    unawaited(_widgetBridge.updateWidgetState(
-      vpnStatus: 'connected',
-      serverName: updated.serverName ?? '',
-      uploadSpeed: updated.uploadSpeed.toDouble(),
-      downloadSpeed: updated.downloadSpeed.toDouble(),
-      sessionDuration: updated.connectionDuration,
-    ));
+    _pushWidgetUpdate(updated);
   }
 
-  /// Called every second by the poll timer to keep the duration ticking even
-  /// when no new stats arrive from the platform layer.
-  void _updateDuration() {
-    final current = state;
+  ConnectionStatsEntity _liveStatsFromSnapshot(
+    ConnectionStatsEntity current,
+    DateTime now,
+  ) {
+    final anchor = ref.read(vpnStatsSnapshotAtProvider);
     final startTime = _sessionStartTime;
-    if (current == null || startTime == null) return;
+    if (anchor == null || startTime == null) {
+      return current;
+    }
 
-    final now = DateTime.now();
-    final sessionDuration = now.difference(startTime);
+    final liveDuration = now.difference(startTime);
+    if (liveDuration == current.connectionDuration) {
+      return current;
+    }
 
-    state = ConnectionStatsEntity(
+    return ConnectionStatsEntity(
       downloadSpeed: current.downloadSpeed,
       uploadSpeed: current.uploadSpeed,
       totalDownload: current.totalDownload,
       totalUpload: current.totalUpload,
-      connectionDuration: sessionDuration,
+      connectionDuration: liveDuration,
       serverName: current.serverName,
       protocol: current.protocol,
       ipAddress: current.ipAddress,
     );
   }
 
+  void _pushWidgetUpdate(ConnectionStatsEntity stats) {
+    final now = DateTime.now();
+    final serverName = stats.serverName ?? '';
+    final shouldUpdate =
+        _lastWidgetUpdateAt == null ||
+        serverName != _lastWidgetServerName ||
+        now.difference(_lastWidgetUpdateAt!) >= _widgetUpdateInterval;
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    _lastWidgetUpdateAt = now;
+    _lastWidgetServerName = serverName;
+
+    unawaited(
+      _widgetBridge.updateWidgetState(
+        vpnStatus: 'connected',
+        serverName: serverName,
+        uploadSpeed: stats.uploadSpeed.toDouble(),
+        downloadSpeed: stats.downloadSpeed.toDouble(),
+        sessionDuration: stats.connectionDuration,
+      ),
+    );
+  }
+
   void _dispose() {
-    _pollTimer?.cancel();
+    _widgetUpdateTimer?.cancel();
     unawaited(_streamSub?.cancel());
   }
 }
@@ -193,34 +265,56 @@ class VpnStatsNotifier extends Notifier<ConnectionStatsEntity?> {
 // ---------------------------------------------------------------------------
 
 /// Current download and upload speed formatted as human-readable strings.
-final currentSpeedProvider = Provider<({String download, String upload})>((ref) {
-  final stats = ref.watch(vpnStatsProvider);
-  if (stats == null) {
-    return (download: '0 B/s', upload: '0 B/s');
-  }
+final currentSpeedProvider = Provider<({String download, String upload})>((
+  ref,
+) {
+  final downloadSpeed = ref.watch(
+    vpnStatsProvider.select((stats) => stats?.downloadSpeed ?? 0),
+  );
+  final uploadSpeed = ref.watch(
+    vpnStatsProvider.select((stats) => stats?.uploadSpeed ?? 0),
+  );
+
   return (
-    download: DataFormatters.formatSpeed(stats.downloadSpeed.toDouble()),
-    upload: DataFormatters.formatSpeed(stats.uploadSpeed.toDouble()),
+    download: DataFormatters.formatSpeed(downloadSpeed.toDouble()),
+    upload: DataFormatters.formatSpeed(uploadSpeed.toDouble()),
   );
 });
 
 /// Session data usage (total download + upload since this connection started).
 final sessionUsageProvider =
     Provider<({String download, String upload, String total})>((ref) {
-  final stats = ref.watch(vpnStatsProvider);
-  if (stats == null) {
-    return (download: '0 B', upload: '0 B', total: '0 B');
-  }
-  return (
-    download: DataFormatters.formatBytes(stats.totalDownload),
-    upload: DataFormatters.formatBytes(stats.totalUpload),
-    total: DataFormatters.formatBytes(stats.totalDownload + stats.totalUpload),
-  );
-});
+      final totalDownload = ref.watch(
+        vpnStatsProvider.select((stats) => stats?.totalDownload ?? 0),
+      );
+      final totalUpload = ref.watch(
+        vpnStatsProvider.select((stats) => stats?.totalUpload ?? 0),
+      );
+
+      return (
+        download: DataFormatters.formatBytes(totalDownload),
+        upload: DataFormatters.formatBytes(totalUpload),
+        total: DataFormatters.formatBytes(totalDownload + totalUpload),
+      );
+    });
 
 /// Session duration formatted as a human-readable string.
-final sessionDurationProvider = Provider<String>((ref) {
-  final stats = ref.watch(vpnStatsProvider);
-  if (stats == null) return '0s';
-  return DataFormatters.formatDuration(stats.connectionDuration);
+final sessionDurationProvider = Provider.autoDispose<String>((ref) {
+  ref.watch(_sessionDurationTickerProvider);
+
+  final baseDuration = ref.watch(
+    vpnStatsProvider.select(
+      (stats) => stats?.connectionDuration ?? Duration.zero,
+    ),
+  );
+  final snapshotAt = ref.watch(vpnStatsSnapshotAtProvider);
+  final sessionStartTime = snapshotAt == null
+      ? null
+      : DateTime.now().subtract(baseDuration);
+
+  final duration = sessionStartTime == null
+      ? baseDuration
+      : DateTime.now().difference(sessionStartTime);
+
+  return DataFormatters.formatDuration(duration);
 });

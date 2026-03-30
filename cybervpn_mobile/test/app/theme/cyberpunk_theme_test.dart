@@ -88,15 +88,15 @@ void main() {
     });
 
     test('primary color is matrixGreen', () {
-      expect(theme.colorScheme.primary, CyberColors.matrixGreen);
+      expect(theme.colorScheme.primary, CyberColors.matrixGreenDark);
     });
 
     test('secondary color is neonCyan', () {
-      expect(theme.colorScheme.secondary, CyberColors.neonCyan);
+      expect(theme.colorScheme.secondary, CyberColors.neonCyanDark);
     });
 
     test('tertiary color is neonPink', () {
-      expect(theme.colorScheme.tertiary, CyberColors.neonPink);
+      expect(theme.colorScheme.tertiary, CyberColors.neonPinkDark);
     });
 
     test('scaffold background is light gray', () {
@@ -130,7 +130,7 @@ void main() {
     test('bottomNavigationBar selectedItemColor is matrixGreen', () {
       expect(
         theme.bottomNavigationBarTheme.selectedItemColor,
-        CyberColors.matrixGreen,
+        CyberColors.matrixGreenDark,
       );
     });
   });
@@ -152,10 +152,7 @@ void main() {
                 ),
               ),
               TextField(decoration: InputDecoration(hintText: 'Input')),
-              ElevatedButton(
-                onPressed: null,
-                child: Text('Connect'),
-              ),
+              ElevatedButton(onPressed: null, child: Text('Connect')),
             ],
           ),
         ),

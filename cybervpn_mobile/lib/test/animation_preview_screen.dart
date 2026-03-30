@@ -53,21 +53,6 @@ class AnimationPreviewScreen extends StatelessWidget {
           ),
           _buildAnimationCard(
             context,
-            'Privacy (onboarding alt)',
-            'assets/animations/privacy.json',
-          ),
-          _buildAnimationCard(
-            context,
-            'Connect (onboarding alt)',
-            'assets/animations/connect.json',
-          ),
-          _buildAnimationCard(
-            context,
-            'Globe (onboarding alt)',
-            'assets/animations/globe.json',
-          ),
-          _buildAnimationCard(
-            context,
             'Get Started',
             'assets/animations/get_started.json',
           ),
@@ -90,16 +75,16 @@ class AnimationPreviewScreen extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               assetPath,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             Center(

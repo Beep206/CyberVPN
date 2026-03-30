@@ -12,9 +12,28 @@ void main() {
 
   tearDown(() {
     storage.reset();
+    SecureStorageWrapper.debugUseInMemoryFallbackOverride = null;
   });
 
   group('SecureStorageWrapper', () {
+    test('supports deterministic in-memory fallback backend', () async {
+      SecureStorageWrapper.debugUseInMemoryFallbackOverride = true;
+      final wrapper = SecureStorageWrapper();
+
+      await wrapper.setTokens(
+        accessToken: 'fallback-access',
+        refreshToken: 'fallback-refresh',
+      );
+
+      expect(await wrapper.getAccessToken(), 'fallback-access');
+      expect(await wrapper.getRefreshToken(), 'fallback-refresh');
+
+      await wrapper.clearTokens();
+
+      expect(await wrapper.getAccessToken(), isNull);
+      expect(await wrapper.getRefreshToken(), isNull);
+    });
+
     group('Token Management', () {
       test('setTokens stores both access and refresh tokens', () async {
         await storage.setTokens(
@@ -22,8 +41,14 @@ void main() {
           refreshToken: 'refresh_456',
         );
 
-        expect(storage.store[SecureStorageWrapper.accessTokenKey], 'access_123');
-        expect(storage.store[SecureStorageWrapper.refreshTokenKey], 'refresh_456');
+        expect(
+          storage.store[SecureStorageWrapper.accessTokenKey],
+          'access_123',
+        );
+        expect(
+          storage.store[SecureStorageWrapper.refreshTokenKey],
+          'refresh_456',
+        );
       });
 
       test('getAccessToken returns stored token', () async {
@@ -41,7 +66,9 @@ void main() {
       });
 
       test('getRefreshToken returns stored token', () async {
-        storage.seed({SecureStorageWrapper.refreshTokenKey: 'my_refresh_token'});
+        storage.seed({
+          SecureStorageWrapper.refreshTokenKey: 'my_refresh_token',
+        });
 
         final token = await storage.getRefreshToken();
 
@@ -54,17 +81,20 @@ void main() {
         expect(token, isNull);
       });
 
-      test('setTokens writes both tokens in parallel via Future.wait', () async {
-        // Verify both tokens are written (parallel execution)
-        await storage.setTokens(
-          accessToken: 'at_parallel',
-          refreshToken: 'rt_parallel',
-        );
+      test(
+        'setTokens writes both tokens in parallel via Future.wait',
+        () async {
+          // Verify both tokens are written (parallel execution)
+          await storage.setTokens(
+            accessToken: 'at_parallel',
+            refreshToken: 'rt_parallel',
+          );
 
-        // Both should be present after the call
-        expect(await storage.getAccessToken(), 'at_parallel');
-        expect(await storage.getRefreshToken(), 'rt_parallel');
-      });
+          // Both should be present after the call
+          expect(await storage.getAccessToken(), 'at_parallel');
+          expect(await storage.getRefreshToken(), 'rt_parallel');
+        },
+      );
 
       test('setTokens propagates error if one write fails', () async {
         final failingStorage = _FailOnKeyStorage(
@@ -98,9 +128,14 @@ void main() {
         final deviceId = await storage.getOrCreateDeviceId();
 
         expect(deviceId, isNotEmpty);
-        expect(deviceId, matches(RegExp(
-          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
-        )));
+        expect(
+          deviceId,
+          matches(
+            RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+            ),
+          ),
+        );
       });
 
       test('getOrCreateDeviceId returns same ID on subsequent calls', () async {
@@ -197,7 +232,10 @@ void main() {
         });
 
         expect(storage.store[SecureStorageWrapper.cachedUserKey], isNotNull);
-        expect(storage.store[SecureStorageWrapper.cachedUserKey], contains('user-123'));
+        expect(
+          storage.store[SecureStorageWrapper.cachedUserKey],
+          contains('user-123'),
+        );
       });
 
       test('getCachedUser returns stored user data', () async {
@@ -248,7 +286,10 @@ void main() {
           accessToken: 'access_token',
           refreshToken: 'refresh_token',
         );
-        await storage.write(key: SecureStorageWrapper.userIdKey, value: 'user-123');
+        await storage.write(
+          key: SecureStorageWrapper.userIdKey,
+          value: 'user-123',
+        );
         await storage.setDeviceToken('device-token-test');
         await storage.setAppLockEnabled(true);
         await storage.setCachedUser({'id': '123'});

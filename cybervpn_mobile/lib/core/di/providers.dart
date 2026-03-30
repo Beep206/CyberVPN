@@ -6,9 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
 import 'package:cybervpn_mobile/core/auth/token_refresh_coordinator.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
-import 'package:cybervpn_mobile/core/network/auth_interceptor.dart';
-import 'package:cybervpn_mobile/core/network/retry_interceptor.dart';
-import 'package:cybervpn_mobile/core/device/device_service.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -554,59 +551,22 @@ final partnerRemoteDataSourceProvider = Provider<PartnerRemoteDataSource>((
 /// [prefs] must be an already-initialized [SharedPreferences] instance
 /// obtained via `await SharedPreferences.getInstance()` before `runApp`.
 ///
-/// Only infrastructure providers that require async init or synchronous
-/// access to pre-initialized resources are eagerly created here.
-/// Data sources, repositories, and services are lazily initialized via
-/// [ref.watch] chains when first accessed.
+/// Only providers that need pre-initialized resources are overridden here.
+/// The rest of the dependency graph stays lazy so startup doesn't pay for the
+/// network stack and related services before the first frame.
 Future<List<Override>> buildProviderOverrides(
   SharedPreferences prefs, {
   SecureStorageWrapper? secureStorage,
   bool prewarmSecureStorage = true,
 }) async {
-  // --- Eager: requires async pre-warming ---
   final resolvedSecureStorage = secureStorage ?? SecureStorageWrapper();
   if (prewarmSecureStorage) {
     await resolvedSecureStorage.prewarmCache();
   }
-  final localStorage = LocalStorageWrapper(prefs: prefs);
-  final authLocalDataSource = AuthLocalDataSourceImpl(
-    secureStorage: resolvedSecureStorage,
-    localStorage: localStorage,
-  );
-
-  // --- Eager: requires pre-initialized SharedPreferences ---
-  final dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 10),
-    ),
-  );
-  final apiClient = ApiClient(dio: dio, baseUrl: EnvironmentConfig.baseUrl);
-  final tokenRefreshCoordinator = TokenRefreshCoordinator(
-    dio: dio,
-    localDataSource: authLocalDataSource,
-    deviceService: DeviceService(storage: resolvedSecureStorage),
-  );
-  // Interceptor order is intentional:
-  // 1. Auth: attaches/refreshes JWT on every request.
-  // 2. Retry: retries on transient failures (after auth is attached).
-  // If retry triggers a new request, Auth re-evaluates the token.
-  apiClient.addInterceptor(
-    AuthInterceptor(
-      secureStorage: resolvedSecureStorage,
-      dio: dio,
-      tokenRefreshCoordinator: tokenRefreshCoordinator,
-    ),
-  );
-  apiClient.addInterceptor(RetryInterceptor(dio: dio, maxRetries: 3));
 
   return [
-    // Eager infrastructure (async-init or sync-critical)
+    // Sync-critical resources only. Keep everything else lazy.
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureStorageProvider.overrideWithValue(resolvedSecureStorage),
-    tokenRefreshCoordinatorProvider.overrideWithValue(tokenRefreshCoordinator),
-    dioProvider.overrideWithValue(dio),
-    apiClientProvider.overrideWithValue(apiClient),
   ];
 }

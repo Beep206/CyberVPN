@@ -24,9 +24,9 @@ class ProfileLocalDataSource {
   /// Emits a new list whenever any profile row is inserted, updated,
   /// or deleted.
   Stream<List<Profile>> watchAll() {
-    return (_db.select(_db.profiles)
-          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-        .watch();
+    return (_db.select(
+      _db.profiles,
+    )..orderBy([(t) => OrderingTerm.asc(t.sortOrder)])).watch();
   }
 
   /// Watches the currently active profile (where `isActive == true`).
@@ -51,8 +51,9 @@ class ProfileLocalDataSource {
 
   /// Returns a single profile by its [id], or `null` if not found.
   Future<Profile?> getById(String id) {
-    return (_db.select(_db.profiles)..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.profiles,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   /// Returns the profile with the given [subscriptionUrl], or `null`.
@@ -80,6 +81,33 @@ class ProfileLocalDataSource {
         .get();
   }
 
+  /// Returns all server configs grouped by profile ID.
+  ///
+  /// Uses a single SQL query for all requested profile IDs to avoid N+1 reads
+  /// when mapping a list of profiles into domain entities.
+  Future<Map<String, List<ProfileConfig>>> getConfigsByProfileIds(
+    List<String> profileIds,
+  ) async {
+    if (profileIds.isEmpty) {
+      return const <String, List<ProfileConfig>>{};
+    }
+
+    final rows =
+        await (_db.select(_db.profileConfigs)
+              ..where((t) => t.profileId.isIn(profileIds))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.profileId),
+                (t) => OrderingTerm.asc(t.sortOrder),
+              ]))
+            .get();
+
+    final grouped = <String, List<ProfileConfig>>{};
+    for (final row in rows) {
+      grouped.putIfAbsent(row.profileId, () => <ProfileConfig>[]).add(row);
+    }
+    return grouped;
+  }
+
   // ── Write Operations ──────────────────────────────────────────────
 
   /// Inserts a new profile.
@@ -101,9 +129,9 @@ class ProfileLocalDataSource {
   /// Only the fields present in [companion] are updated.
   /// Returns `true` if a row was updated.
   Future<bool> update(String id, ProfilesCompanion companion) async {
-    final count = await (_db.update(_db.profiles)
-          ..where((t) => t.id.equals(id)))
-        .write(companion);
+    final count = await (_db.update(
+      _db.profiles,
+    )..where((t) => t.id.equals(id))).write(companion);
     return count > 0;
   }
 
@@ -113,12 +141,11 @@ class ProfileLocalDataSource {
   Future<void> setActive(String profileId) {
     return _db.transaction(() async {
       // Deactivate all profiles.
-      await _db.update(_db.profiles).write(
-            const ProfilesCompanion(isActive: Value(false)),
-          );
+      await _db
+          .update(_db.profiles)
+          .write(const ProfilesCompanion(isActive: Value(false)));
       // Activate the target profile.
-      await (_db.update(_db.profiles)
-            ..where((t) => t.id.equals(profileId)))
+      await (_db.update(_db.profiles)..where((t) => t.id.equals(profileId)))
           .write(const ProfilesCompanion(isActive: Value(true)));
     });
   }
@@ -128,9 +155,9 @@ class ProfileLocalDataSource {
   /// Returns the number of deleted profile rows (0 or 1).
   Future<int> delete(String id) {
     return _db.transaction(() async {
-      await (_db.delete(_db.profileConfigs)
-            ..where((t) => t.profileId.equals(id)))
-          .go();
+      await (_db.delete(
+        _db.profileConfigs,
+      )..where((t) => t.profileId.equals(id))).go();
       return (_db.delete(_db.profiles)..where((t) => t.id.equals(id))).go();
     });
   }
@@ -139,9 +166,9 @@ class ProfileLocalDataSource {
   ///
   /// Useful before replacing configs during a subscription refresh.
   Future<int> deleteConfigsByProfileId(String profileId) {
-    return (_db.delete(_db.profileConfigs)
-          ..where((t) => t.profileId.equals(profileId)))
-        .go();
+    return (_db.delete(
+      _db.profileConfigs,
+    )..where((t) => t.profileId.equals(profileId))).go();
   }
 
   /// Updates sort orders for multiple profiles in a batch.
@@ -168,9 +195,9 @@ class ProfileLocalDataSource {
     List<ProfileConfigsCompanion> newConfigs,
   ) {
     return _db.transaction(() async {
-      await (_db.delete(_db.profileConfigs)
-            ..where((t) => t.profileId.equals(profileId)))
-          .go();
+      await (_db.delete(
+        _db.profileConfigs,
+      )..where((t) => t.profileId.equals(profileId))).go();
       await _db.batch((batch) {
         batch.insertAll(_db.profileConfigs, newConfigs);
       });

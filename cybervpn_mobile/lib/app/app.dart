@@ -150,8 +150,17 @@ class CyberVpnApp extends ConsumerWidget {
     ColorScheme? lightDynamic,
     ColorScheme? darkDynamic,
   ) {
+    final next = DynamicColorSchemes(light: lightDynamic, dark: darkDynamic);
+    if (ref.read(dynamicColorProvider) == next) {
+      return;
+    }
+
     // Use addPostFrameCallback to avoid modifying provider state during build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(dynamicColorProvider) == next) {
+        return;
+      }
+
       ref
           .read(dynamicColorProvider.notifier)
           .update(light: lightDynamic, dark: darkDynamic);

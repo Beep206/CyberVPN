@@ -20,6 +20,7 @@ class FlagWidget extends StatelessWidget {
     super.key,
     required this.countryCode,
     this.size = FlagSize.medium,
+    this.renderMode = FlagRenderMode.vector,
     this.placeholder,
     this.heroTag,
   });
@@ -29,6 +30,9 @@ class FlagWidget extends StatelessWidget {
 
   /// Size preset for the flag.
   final FlagSize size;
+
+  /// Rendering strategy for the flag.
+  final FlagRenderMode renderMode;
 
   /// Optional custom placeholder widget when flag is not found.
   /// Defaults to a circle with country code text.
@@ -44,7 +48,9 @@ class FlagWidget extends StatelessWidget {
     final dimension = size.dimension;
 
     Widget flagContent;
-    if (flagPath == null) {
+    if (renderMode == FlagRenderMode.compactEmoji) {
+      flagContent = _buildCompactFlag(context, dimension);
+    } else if (flagPath == null) {
       flagContent = _buildPlaceholder(context, dimension);
     } else {
       // Flags should always remain LTR regardless of app text direction
@@ -59,10 +65,8 @@ class FlagWidget extends StatelessWidget {
               width: dimension,
               height: dimension,
               fit: BoxFit.cover,
-              placeholderBuilder: (BuildContext context) => _buildPlaceholder(
-                context,
-                dimension,
-              ),
+              placeholderBuilder: (BuildContext context) =>
+                  _buildPlaceholder(context, dimension),
             ),
           ),
         ),
@@ -70,14 +74,39 @@ class FlagWidget extends StatelessWidget {
     }
 
     // Wrap in Hero if tag is provided
-    if (heroTag != null) {
-      return Hero(
-        tag: heroTag!,
-        child: flagContent,
-      );
+    if (heroTag != null && renderMode == FlagRenderMode.vector) {
+      return Hero(tag: heroTag!, child: flagContent);
     }
 
     return flagContent;
+  }
+
+  Widget _buildCompactFlag(BuildContext context, double dimension) {
+    final emoji = _flagEmoji(countryCode);
+    if (emoji == null) {
+      return _buildPlaceholder(context, dimension);
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: dimension,
+      height: dimension,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: colorScheme.surfaceContainerHighest,
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.18),
+          width: 1,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        emoji,
+        style: TextStyle(fontSize: dimension * 0.62, height: 1),
+      ),
+    );
   }
 
   Widget _buildPlaceholder(BuildContext context, double dimension) {
@@ -110,7 +139,23 @@ class FlagWidget extends StatelessWidget {
       ),
     );
   }
+
+  static String? _flagEmoji(String code) {
+    final normalized = code.trim().toUpperCase();
+    if (normalized.length != 2) {
+      return null;
+    }
+
+    final chars = normalized.codeUnits;
+    if (chars.any((unit) => unit < 65 || unit > 90)) {
+      return null;
+    }
+
+    return String.fromCharCodes(chars.map((unit) => unit + 0x1F1A5));
+  }
 }
+
+enum FlagRenderMode { vector, compactEmoji }
 
 /// Predefined flag size presets.
 enum FlagSize {
