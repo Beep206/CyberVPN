@@ -79,9 +79,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final asyncProfile = ref.watch(profileProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileDeviceManagement),
-      ),
+      appBar: AppBar(title: Text(l10n.profileDeviceManagement)),
       body: asyncProfile.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBody(
@@ -103,42 +101,58 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
               await ref.read(profileProvider.notifier).refreshProfile();
             },
-            child: ListView(
-              padding: const EdgeInsets.all(Spacing.md),
-              children: [
-                // Warning banner if device limit reached
-                // Assuming max 5 devices (this should come from backend)
-                if (devices.length >= 5) ...[
-                  _DeviceLimitWarning(),
-                  const SizedBox(height: Spacing.md),
-                ],
-
-                // Device count header
-                Text(
-                  l10n.profileDevicesConnected(devices.length),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Spacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (devices.length >= 5) ...[
+                          _DeviceLimitWarning(),
+                          const SizedBox(height: Spacing.md),
+                        ],
+                        Text(
+                          l10n.profileDevicesConnected(devices.length),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: Spacing.md),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: Spacing.md),
-
-                // Device list
                 if (devices.isEmpty)
-                  const _EmptyDeviceList()
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: Spacing.md),
+                      child: _EmptyDeviceList(),
+                    ),
+                  )
                 else
-                  ...devices.map((device) {
-                    final isCurrent = _isCurrentDevice(device);
-                    return _DeviceCard(
-                      key: Key('device_${device.id}'),
-                      device: device,
-                      isCurrent: isCurrent,
-                      currentDeviceId: _currentDeviceId ?? '',
-                      onRemove: isCurrent ? null : () => _showRemoveDialog(device),
-                    );
-                  }),
-
-                // Bottom padding for safe area
-                SizedBox(height: Spacing.navBarClearance(context)),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final device = devices[index];
+                        final isCurrent = _isCurrentDevice(device);
+                        return _DeviceCard(
+                          key: Key('device_${device.id}'),
+                          device: device,
+                          isCurrent: isCurrent,
+                          currentDeviceId: _currentDeviceId ?? '',
+                          onRemove: isCurrent
+                              ? null
+                              : () => _showRemoveDialog(device),
+                        );
+                      }, childCount: devices.length),
+                    ),
+                  ),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: Spacing.navBarClearance(context)),
+                ),
               ],
             ),
           );
@@ -167,9 +181,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.profileRemoveDevice),
-        content: Text(
-          l10n.profileRemoveDeviceConfirm(device.name),
-        ),
+        content: Text(l10n.profileRemoveDeviceConfirm(device.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -206,7 +218,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       }
 
       // Call removeDevice method on ProfileNotifier
-      await ref.read(profileProvider.notifier).removeDevice(
+      await ref
+          .read(profileProvider.notifier)
+          .removeDevice(
             deviceId: device.id,
             currentDeviceId: _currentDeviceId ?? '',
           );
@@ -254,16 +268,11 @@ class _DeviceLimitWarning extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFF5252).withAlpha(25),
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-          color: const Color(0xFFFF5252).withAlpha(80),
-        ),
+        border: Border.all(color: const Color(0xFFFF5252).withAlpha(80)),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            color: Color(0xFFFF5252),
-          ),
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF5252)),
           const SizedBox(width: Spacing.md),
           Expanded(
             child: Text(
@@ -344,7 +353,9 @@ class _DeviceCard extends StatelessWidget {
                 );
               },
         onDismissed: isCurrent ? null : (direction) => onRemove?.call(),
-        direction: isCurrent ? DismissDirection.none : DismissDirection.endToStart,
+        direction: isCurrent
+            ? DismissDirection.none
+            : DismissDirection.endToStart,
         background: Container(
           alignment: AlignmentDirectional.centerEnd,
           padding: const EdgeInsetsDirectional.only(end: Spacing.md),
@@ -495,7 +506,8 @@ class _DeviceCard extends StatelessWidget {
       return Icons.phone_android;
     } else if (platformLower.contains('windows')) {
       return Icons.computer;
-    } else if (platformLower.contains('mac') || platformLower.contains('macos')) {
+    } else if (platformLower.contains('mac') ||
+        platformLower.contains('macos')) {
       return Icons.laptop_mac;
     } else if (platformLower.contains('linux')) {
       return Icons.computer;
@@ -590,11 +602,7 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.md),
             Text(
               message,
@@ -603,10 +611,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.md),
-              FilledButton.tonal(
-                onPressed: onRetry,
-                child: Text(l10n.retry),
-              ),
+              FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
             ],
           ],
         ),

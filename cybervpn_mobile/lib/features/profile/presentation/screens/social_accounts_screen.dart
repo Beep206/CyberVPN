@@ -66,53 +66,53 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
               )
               .toList(growable: false);
 
-          return ListView(
+          return ListView.builder(
             padding: const EdgeInsets.all(Spacing.md),
-            children: [
-              // Header description
-              Text(
-                l10n.profileSocialAccountsDescription,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: Spacing.lg),
-
-              // Provider cards for all supported OAuth providers
-              // Telegram is first (already first in enum) and highlighted
-              ...visibleProviders.map((provider) {
-                final isLinked = linkedProviders.contains(provider);
-                // Check if this is the only login method
-                final hasEmail =
-                    profile != null &&
-                    profile.email.isNotEmpty &&
-                    profile.isEmailVerified;
-                final otherLinked = linkedProviders
-                    .where((p) => p != provider)
-                    .toList();
-                final canUnlink =
-                    isLinked && (hasEmail || otherLinked.isNotEmpty);
-
+            itemCount: visibleProviders.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: Spacing.md),
-                  child: _ProviderCard(
-                    key: Key('provider_${provider.name}'),
-                    provider: provider,
-                    isLinked: isLinked,
-                    isHighlighted: provider == OAuthProvider.telegram,
-                    canUnlink: canUnlink,
-                    cantUnlinkReason: (!canUnlink && isLinked)
-                        ? l10n.cantUnlinkOnlyMethod
-                        : null,
-                    linkedUsername: _getLinkedUsername(profile, provider),
-                    onLinkTap: () => _handleLinkProvider(context, provider),
-                    onUnlinkTap: canUnlink
-                        ? () => _showUnlinkDialog(context, provider)
-                        : null,
+                  padding: const EdgeInsets.only(bottom: Spacing.lg),
+                  child: Text(
+                    l10n.profileSocialAccountsDescription,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 );
-              }),
-            ],
+              }
+
+              final provider = visibleProviders[index - 1];
+              final isLinked = linkedProviders.contains(provider);
+              final hasEmail =
+                  profile != null &&
+                  profile.email.isNotEmpty &&
+                  profile.isEmailVerified;
+              final otherLinked = linkedProviders
+                  .where((p) => p != provider)
+                  .toList(growable: false);
+              final canUnlink =
+                  isLinked && (hasEmail || otherLinked.isNotEmpty);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: Spacing.md),
+                child: _ProviderCard(
+                  key: Key('provider_${provider.name}'),
+                  provider: provider,
+                  isLinked: isLinked,
+                  isHighlighted: provider == OAuthProvider.telegram,
+                  canUnlink: canUnlink,
+                  cantUnlinkReason: (!canUnlink && isLinked)
+                      ? l10n.cantUnlinkOnlyMethod
+                      : null,
+                  linkedUsername: _getLinkedUsername(profile, provider),
+                  onLinkTap: () => _handleLinkProvider(context, provider),
+                  onUnlinkTap: canUnlink
+                      ? () => _showUnlinkDialog(context, provider)
+                      : null,
+                ),
+              );
+            },
           );
         },
       ),

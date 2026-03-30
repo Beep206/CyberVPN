@@ -28,8 +28,7 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
 /// inner [SubscriptionState.purchaseState] so the UI can show inline
 /// loading / error indicators without losing the list of plans.
 class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
-  SubscriptionRepository get _repo =>
-      ref.read(subscriptionRepositoryProvider);
+  SubscriptionRepository get _repo => ref.read(subscriptionRepositoryProvider);
 
   RevenueCatDataSource get _revenueCat =>
       ref.read(revenueCatDataSourceProvider);
@@ -61,8 +60,7 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
 
     // Determine trial eligibility: eligible when there is no active
     // subscription and at least one plan is marked as a trial.
-    final trialEligible =
-        subscription == null && plans.any((p) => p.isTrial);
+    final trialEligible = subscription == null && plans.any((p) => p.isTrial);
 
     // Listen to WebSocket subscription_updated events.
     _listenToWebSocketEvents();
@@ -105,8 +103,8 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
           current.copyWith(
             currentSubscription: data,
             clearSubscription: data == null,
-            trialEligibility: data == null &&
-                current.availablePlans.any((p) => p.isTrial),
+            trialEligibility:
+                data == null && current.availablePlans.any((p) => p.isTrial),
           ),
         );
       case Failure(:final failure):
@@ -306,6 +304,7 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
   void _listenToWebSocketEvents() {
     try {
       final client = ref.read(webSocketClientProvider);
+      unawaited(_webSocketSubscription?.cancel());
       _webSocketSubscription = client.subscriptionEvents.listen(
         _onSubscriptionUpdated,
         onError: (Object e) {
@@ -372,31 +371,43 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionState> {
 /// Primary subscription state provider backed by [SubscriptionNotifier].
 final subscriptionProvider =
     AsyncNotifierProvider<SubscriptionNotifier, SubscriptionState>(
-  SubscriptionNotifier.new,
-);
+      SubscriptionNotifier.new,
+    );
 
 /// The current [SubscriptionStatus], or `null` when no subscription exists.
 final subscriptionStatusProvider = Provider<SubscriptionStatus?>((ref) {
-  final subState = ref.watch(subscriptionProvider).value;
-  return subState?.currentSubscription?.status;
+  return ref.watch(
+    subscriptionProvider.select(
+      (asyncState) => asyncState.value?.currentSubscription?.status,
+    ),
+  );
 });
 
 /// `true` when the user has an active or trial subscription.
 final isSubscriptionActiveProvider = Provider<bool>((ref) {
-  final subState = ref.watch(subscriptionProvider).value;
-  return subState?.isActive ?? false;
+  return ref.watch(
+    subscriptionProvider.select(
+      (asyncState) => asyncState.value?.isActive ?? false,
+    ),
+  );
 });
 
 /// Full days remaining on the current subscription (0 when none).
 final daysRemainingProvider = Provider<int>((ref) {
-  final subState = ref.watch(subscriptionProvider).value;
-  return subState?.daysRemaining ?? 0;
+  return ref.watch(
+    subscriptionProvider.select(
+      (asyncState) => asyncState.value?.daysRemaining ?? 0,
+    ),
+  );
 });
 
 /// Traffic usage ratio `[0.0, 1.0]` for the current subscription.
 final trafficUsageProvider = Provider<double>((ref) {
-  final subState = ref.watch(subscriptionProvider).value;
-  return subState?.trafficUsageRatio ?? 0.0;
+  return ref.watch(
+    subscriptionProvider.select(
+      (asyncState) => asyncState.value?.trafficUsageRatio ?? 0.0,
+    ),
+  );
 });
 
 // ---------------------------------------------------------------------------
