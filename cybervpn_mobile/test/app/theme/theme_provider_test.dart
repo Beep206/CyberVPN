@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
@@ -14,7 +13,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/providers/setting
 
 class _FakeSettingsNotifier extends SettingsNotifier {
   _FakeSettingsNotifier([AppSettings? initial])
-      : _settings = initial ?? const AppSettings();
+    : _settings = initial ?? const AppSettings();
 
   final AppSettings _settings;
 
@@ -27,12 +26,6 @@ class _FakeSettingsNotifier extends SettingsNotifier {
 // ---------------------------------------------------------------------------
 
 void main() {
-  setUpAll(() {
-    // Prevent GoogleFonts from making real HTTP calls in tests.
-    // Font loading errors are logged but don't crash the provider logic.
-    GoogleFonts.config.allowRuntimeFetching = false;
-  });
-
   // ══════════════════════════════════════════════════════════════════════════
   // Group 1: Bug reproduction (historical — proves the old bug pattern)
   // ══════════════════════════════════════════════════════════════════════════
@@ -71,40 +64,45 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
 
   group('Group 2: Synchronization verification', () {
-    testWidgets('2.1: settingsProvider themeMode change propagates to currentThemeDataProvider', (tester) async {
-      late ThemeDataPair pair;
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-              )),
+    testWidgets(
+      '2.1: settingsProvider themeMode change propagates to currentThemeDataProvider',
+      (tester) async {
+        late ThemeDataPair pair;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(
+                () => _FakeSettingsNotifier(
+                  const AppSettings(themeMode: AppThemeMode.materialYou),
+                ),
+              ),
+            ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                pair = ref.watch(currentThemeDataProvider);
+                return const SizedBox.shrink();
+              },
             ),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              pair = ref.watch(currentThemeDataProvider);
-              return const SizedBox.shrink();
-            },
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(pair.light, isA<ThemeData>());
-      expect(pair.dark, isA<ThemeData>());
-      expect(pair.themeMode, ThemeMode.system);
-    });
+        );
+        await tester.pumpAndSettle();
+        expect(pair.light, isA<ThemeData>());
+        expect(pair.dark, isA<ThemeData>());
+        expect(pair.themeMode, ThemeMode.system);
+      },
+    );
 
-    testWidgets('2.2: cyberpunk themeMode produces cyberpunk ThemeDataPair', (tester) async {
+    testWidgets('2.2: cyberpunk themeMode produces cyberpunk ThemeDataPair', (
+      tester,
+    ) async {
       late ThemeDataPair pair;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(themeMode: AppThemeMode.cyberpunk),
+              ),
             ),
           ],
           child: Consumer(
@@ -129,9 +127,9 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                brightness: AppBrightness.dark,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(brightness: AppBrightness.dark),
+              ),
             ),
           ],
           child: Consumer(
@@ -146,17 +144,21 @@ void main() {
       expect(pair.themeMode, ThemeMode.dark);
     });
 
-    testWidgets('2.4: OLED mode produces pure black scaffold background', (tester) async {
+    testWidgets('2.4: OLED mode produces pure black scaffold background', (
+      tester,
+    ) async {
       late ThemeDataPair pair;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-                oledMode: true,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                  oledMode: true,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -183,10 +185,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-                brightness: AppBrightness.system,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.materialYou,
+                  brightness: AppBrightness.system,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -209,10 +213,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-                brightness: AppBrightness.light,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.materialYou,
+                  brightness: AppBrightness.light,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -233,10 +239,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-                brightness: AppBrightness.dark,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.materialYou,
+                  brightness: AppBrightness.dark,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -257,10 +265,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.system,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.system,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -283,10 +293,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.light,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.light,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -307,10 +319,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -331,11 +345,13 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-                oledMode: true,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                  oledMode: true,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -357,17 +373,21 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
 
   group('Group 4: Persistence', () {
-    testWidgets('4.1: theme state survives provider reconstruction', (tester) async {
+    testWidgets('4.1: theme state survives provider reconstruction', (
+      tester,
+    ) async {
       // First render with cyberpunk + dark
       late ThemeDataPair pair1;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -387,10 +407,12 @@ void main() {
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -405,17 +427,21 @@ void main() {
       expect(pair2.themeMode, ThemeMode.dark);
     });
 
-    testWidgets('4.2: OLED mode survives provider reconstruction', (tester) async {
+    testWidgets('4.2: OLED mode survives provider reconstruction', (
+      tester,
+    ) async {
       late ThemeDataPair pair;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-                oledMode: true,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                  oledMode: true,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -430,15 +456,13 @@ void main() {
       expect(pair.dark.scaffoldBackgroundColor, CyberColors.oledBlack);
     });
 
-    testWidgets('4.3: default AppSettings produces valid ThemeDataPair', (tester) async {
+    testWidgets('4.3: default AppSettings produces valid ThemeDataPair', (
+      tester,
+    ) async {
       late ThemeDataPair pair;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(
-              _FakeSettingsNotifier.new,
-            ),
-          ],
+          overrides: [settingsProvider.overrideWith(_FakeSettingsNotifier.new)],
           child: Consumer(
             builder: (context, ref, _) {
               pair = ref.watch(currentThemeDataProvider);
@@ -460,50 +484,59 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
 
   group('Group 5: Widget integration', () {
-    testWidgets('5.1: MaterialApp receives correct theme from currentThemeDataProvider', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-              )),
-            ),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final themePair = ref.watch(currentThemeDataProvider);
-              return MaterialApp(
-                theme: themePair.light,
-                darkTheme: themePair.dark,
-                themeMode: themePair.themeMode,
-                home: Builder(
-                  builder: (context) {
-                    return Text(
-                      Theme.of(context).brightness.name,
-                      textDirection: TextDirection.ltr,
-                    );
-                  },
+    testWidgets(
+      '5.1: MaterialApp receives correct theme from currentThemeDataProvider',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(
+                () => _FakeSettingsNotifier(
+                  const AppSettings(
+                    themeMode: AppThemeMode.cyberpunk,
+                    brightness: AppBrightness.dark,
+                  ),
                 ),
-              );
-            },
+              ),
+            ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final themePair = ref.watch(currentThemeDataProvider);
+                return MaterialApp(
+                  theme: themePair.light,
+                  darkTheme: themePair.dark,
+                  themeMode: themePair.themeMode,
+                  home: Builder(
+                    builder: (context) {
+                      return Text(
+                        Theme.of(context).brightness.name,
+                        textDirection: TextDirection.ltr,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('dark'), findsOneWidget);
-    });
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('dark'), findsOneWidget);
+      },
+    );
 
-    testWidgets('5.2: MaterialApp receives light theme when brightness=light', (tester) async {
+    testWidgets('5.2: MaterialApp receives light theme when brightness=light', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-                brightness: AppBrightness.light,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.materialYou,
+                  brightness: AppBrightness.light,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -530,15 +563,19 @@ void main() {
       expect(find.text('light'), findsOneWidget);
     });
 
-    testWidgets('5.3: dynamicColor=false does not use dynamic colors', (tester) async {
+    testWidgets('5.3: dynamicColor=false does not use dynamic colors', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.materialYou,
-                dynamicColor: false,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.materialYou,
+                  dynamicColor: false,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -558,16 +595,20 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('5.4: cyberpunk OLED theme applies pure black background', (tester) async {
+    testWidgets('5.4: cyberpunk OLED theme applies pure black background', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.dark,
-                oledMode: true,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.dark,
+                  oledMode: true,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -579,12 +620,11 @@ void main() {
                 themeMode: themePair.themeMode,
                 home: Builder(
                   builder: (context) {
-                    final scaffoldBg =
-                        Theme.of(context).scaffoldBackgroundColor;
+                    final scaffoldBg = Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor;
                     return Text(
-                      scaffoldBg == CyberColors.oledBlack
-                          ? 'oled'
-                          : 'not_oled',
+                      scaffoldBg == CyberColors.oledBlack ? 'oled' : 'not_oled',
                       textDirection: TextDirection.ltr,
                     );
                   },
@@ -598,16 +638,20 @@ void main() {
       expect(find.text('oled'), findsOneWidget);
     });
 
-    testWidgets('5.5: ThemeDataPair has consistent light/dark brightness', (tester) async {
+    testWidgets('5.5: ThemeDataPair has consistent light/dark brightness', (
+      tester,
+    ) async {
       late ThemeDataPair pair;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsProvider.overrideWith(
-              () => _FakeSettingsNotifier(const AppSettings(
-                themeMode: AppThemeMode.cyberpunk,
-                brightness: AppBrightness.system,
-              )),
+              () => _FakeSettingsNotifier(
+                const AppSettings(
+                  themeMode: AppThemeMode.cyberpunk,
+                  brightness: AppBrightness.system,
+                ),
+              ),
             ),
           ],
           child: Consumer(
@@ -623,17 +667,18 @@ void main() {
       expect(pair.dark.brightness, Brightness.dark);
     });
 
-    testWidgets('5.6: all theme combinations render without crash', (tester) async {
+    testWidgets('5.6: all theme combinations render without crash', (
+      tester,
+    ) async {
       for (final mode in AppThemeMode.values) {
         for (final brightness in AppBrightness.values) {
           await tester.pumpWidget(
             ProviderScope(
               overrides: [
                 settingsProvider.overrideWith(
-                  () => _FakeSettingsNotifier(AppSettings(
-                    themeMode: mode,
-                    brightness: brightness,
-                  )),
+                  () => _FakeSettingsNotifier(
+                    AppSettings(themeMode: mode, brightness: brightness),
+                  ),
                 ),
               ],
               child: Consumer(
@@ -650,8 +695,11 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          expect(find.byType(MaterialApp), findsOneWidget,
-              reason: 'Failed for $mode + $brightness');
+          expect(
+            find.byType(MaterialApp),
+            findsOneWidget,
+            reason: 'Failed for $mode + $brightness',
+          );
         }
       }
     });

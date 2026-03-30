@@ -5,7 +5,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,8 +37,6 @@ Future<void> main() async {
   final startupMetrics = StartupMetrics();
   startupMetrics.attachFirstFrameListener();
 
-  // Use bundled fonts only. Prevent runtime HTTP requests to fonts.gstatic.com.
-  GoogleFonts.config.allowRuntimeFetching = false;
   _configureRuntimeCaches();
 
   // Load .env file for local development fallback values.
