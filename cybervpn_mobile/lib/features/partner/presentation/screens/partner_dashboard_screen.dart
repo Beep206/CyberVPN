@@ -28,8 +28,7 @@ class PartnerDashboardScreen extends ConsumerStatefulWidget {
       _PartnerDashboardScreenState();
 }
 
-class _PartnerDashboardScreenState
-    extends ConsumerState<PartnerDashboardScreen>
+class _PartnerDashboardScreenState extends ConsumerState<PartnerDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -73,10 +72,7 @@ class _PartnerDashboardScreenState
                     key: const Key('tab_dashboard'),
                     text: l10n.partnerDashboardTab,
                   ),
-                  Tab(
-                    key: const Key('tab_codes'),
-                    text: l10n.partnerCodesTab,
-                  ),
+                  Tab(key: const Key('tab_codes'), text: l10n.partnerCodesTab),
                   Tab(
                     key: const Key('tab_earnings'),
                     text: l10n.partnerEarningsTab,
@@ -137,70 +133,77 @@ class _PartnerDashboardScreenState
     final markupController = TextEditingController();
     final descriptionController = TextEditingController();
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.partnerCreateCode),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: markupController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: l10n.partnerMarkupPercentage,
-                suffixText: '%',
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.partnerCreateCode),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: markupController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: l10n.partnerMarkupPercentage,
+                  suffixText: '%',
+                ),
               ),
+              const SizedBox(height: Spacing.md),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: l10n.partnerCodeDescription,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
             ),
-            const SizedBox(height: Spacing.md),
-            TextField(
-              controller: descriptionController,
-              decoration: InputDecoration(
-                labelText: l10n.partnerCodeDescription,
-              ),
+            FilledButton(
+              onPressed: () {
+                final markup = double.tryParse(markupController.text);
+                if (markup != null && markup >= 0 && markup <= 100) {
+                  Navigator.of(context).pop(true);
+                }
+              },
+              child: Text(l10n.commonCreate),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final markup = double.tryParse(markupController.text);
-              if (markup != null && markup >= 0 && markup <= 100) {
-                Navigator.of(context).pop(true);
-              }
-            },
-            child: Text(l10n.commonCreate),
-          ),
-        ],
-      ),
-    );
+      );
 
-    if (result == true && context.mounted) {
-      final markup = double.parse(markupController.text);
-      final description = descriptionController.text.trim();
+      if (result == true && context.mounted) {
+        final markup = double.parse(markupController.text);
+        final description = descriptionController.text.trim();
 
-      final createResult = await ref.read(partnerProvider.notifier).createCode(
-            markup: markup,
-            description: description.isEmpty ? null : description,
-          );
+        final createResult = await ref
+            .read(partnerProvider.notifier)
+            .createCode(
+              markup: markup,
+              description: description.isEmpty ? null : description,
+            );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              createResult is Success
-                  ? l10n.partnerCodeCreated
-                  : l10n.errorOccurred,
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                createResult is Success
+                    ? l10n.partnerCodeCreated
+                    : l10n.errorOccurred,
+              ),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
             ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+          );
+        }
       }
+    } finally {
+      markupController.dispose();
+      descriptionController.dispose();
     }
   }
 }
@@ -248,7 +251,9 @@ class _DashboardTab extends StatelessWidget {
         if (state.partnerCodes.isEmpty)
           _EmptyPlaceholder(message: l10n.partnerNoCodesYet)
         else
-          ...state.partnerCodes.take(3).map(
+          ...state.partnerCodes
+              .take(3)
+              .map(
                 (code) => PartnerCodeCard(
                   key: ValueKey('code_${code.code}'),
                   code: code,
@@ -273,23 +278,30 @@ class _CodesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.md,
+    if (state.partnerCodes.isEmpty) {
+      return ListView(
+        padding: EdgeInsets.fromLTRB(
+          Spacing.md,
+          Spacing.md,
+          Spacing.md,
+          Spacing.navBarClearance(context) + 80,
+        ),
+        children: [_EmptyPlaceholder(message: l10n.partnerNoCodesYet)],
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(
+        Spacing.md,
+        Spacing.md,
+        Spacing.md,
+        Spacing.navBarClearance(context) + 80,
       ),
-      children: [
-        if (state.partnerCodes.isEmpty)
-          _EmptyPlaceholder(message: l10n.partnerNoCodesYet)
-        else
-          ...state.partnerCodes.map(
-            (code) => PartnerCodeCard(
-              key: ValueKey('code_${code.code}'),
-              code: code,
-            ),
-          ),
-        SizedBox(height: Spacing.navBarClearance(context) + 80),
-      ],
+      itemCount: state.partnerCodes.length,
+      itemBuilder: (context, index) {
+        final code = state.partnerCodes[index];
+        return PartnerCodeCard(key: ValueKey('code_${code.code}'), code: code);
+      },
     );
   }
 }
@@ -307,23 +319,33 @@ class _EarningsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.md,
+    if (state.earnings.isEmpty) {
+      return ListView(
+        padding: EdgeInsets.fromLTRB(
+          Spacing.md,
+          Spacing.md,
+          Spacing.md,
+          Spacing.navBarClearance(context),
+        ),
+        children: [_EmptyPlaceholder(message: l10n.partnerNoEarningsYet)],
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(
+        Spacing.md,
+        Spacing.md,
+        Spacing.md,
+        Spacing.navBarClearance(context),
       ),
-      children: [
-        if (state.earnings.isEmpty)
-          _EmptyPlaceholder(message: l10n.partnerNoEarningsYet)
-        else
-          ...state.earnings.map(
-            (earning) => EarningsListItem(
-              key: ValueKey('earning_${earning.period}_${earning.date}'),
-              earnings: earning,
-            ),
-          ),
-        SizedBox(height: Spacing.navBarClearance(context)),
-      ],
+      itemCount: state.earnings.length,
+      itemBuilder: (context, index) {
+        final earning = state.earnings[index];
+        return EarningsListItem(
+          key: ValueKey('earning_${earning.period}_${earning.date}'),
+          earnings: earning,
+        );
+      },
     );
   }
 }
@@ -559,11 +581,7 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.md),
             Text(
               message,
@@ -572,10 +590,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.md),
-              FilledButton.tonal(
-                onPressed: onRetry,
-                child: Text(l10n.retry),
-              ),
+              FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
             ],
           ],
         ),

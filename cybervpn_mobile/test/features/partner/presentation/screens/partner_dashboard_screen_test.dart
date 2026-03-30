@@ -21,28 +21,39 @@ class MockPartnerRepository implements PartnerRepository {
   List<PartnerCode> codes = [];
   List<Earnings> earningsList = [];
   bool shouldFail = false;
+  Duration responseDelay = Duration.zero;
+
+  Future<void> _maybeDelay() async {
+    if (responseDelay > Duration.zero) {
+      await Future<void>.delayed(responseDelay);
+    }
+  }
 
   @override
-  Future<Result<bool>> isAvailable() async =>
-      shouldFail
-          ? const Failure(failures.ServerFailure(message: 'Error'))
-          : Success(_isAvailable);
+  Future<Result<bool>> isAvailable() async {
+    await _maybeDelay();
+    return shouldFail
+        ? const Failure(failures.ServerFailure(message: 'Error'))
+        : Success(_isAvailable);
+  }
 
   @override
   Future<Result<bool>> isPartner({
     CacheStrategy strategy = CacheStrategy.networkFirst,
-  }) async =>
-      shouldFail
-          ? const Failure(failures.ServerFailure(message: 'Error'))
-          : Success(_isPartner);
+  }) async {
+    await _maybeDelay();
+    return shouldFail
+        ? const Failure(failures.ServerFailure(message: 'Error'))
+        : Success(_isPartner);
+  }
 
   @override
   Future<Result<PartnerInfo>> getPartnerInfo({
     CacheStrategy strategy = CacheStrategy.networkFirst,
   }) async {
+    await _maybeDelay();
     if (shouldFail || partnerInfo == null) {
-      return const Failure(
-          failures.ServerFailure(message: 'Not a partner'));
+      return const Failure(failures.ServerFailure(message: 'Not a partner'));
     }
     return Success(partnerInfo!);
   }
@@ -50,44 +61,47 @@ class MockPartnerRepository implements PartnerRepository {
   @override
   Future<Result<List<PartnerCode>>> getPartnerCodes({
     CacheStrategy strategy = CacheStrategy.networkFirst,
-  }) async =>
-      shouldFail
-          ? const Failure(failures.ServerFailure(message: 'Error'))
-          : Success(codes);
+  }) async {
+    await _maybeDelay();
+    return shouldFail
+        ? const Failure(failures.ServerFailure(message: 'Error'))
+        : Success(codes);
+  }
 
   @override
   Future<Result<PartnerCode>> createPartnerCode({
     required double markup,
     String? description,
-  }) async =>
-      const Failure(failures.ServerFailure(message: 'Not implemented'));
+  }) async => const Failure(failures.ServerFailure(message: 'Not implemented'));
 
   @override
   Future<Result<PartnerCode>> updateCodeMarkup({
     required String code,
     required double markup,
-  }) async =>
-      const Failure(failures.ServerFailure(message: 'Not implemented'));
+  }) async => const Failure(failures.ServerFailure(message: 'Not implemented'));
 
   @override
   Future<Result<PartnerCode>> toggleCodeStatus({
     required String code,
     required bool isActive,
-  }) async =>
-      const Failure(failures.ServerFailure(message: 'Not implemented'));
+  }) async => const Failure(failures.ServerFailure(message: 'Not implemented'));
 
   @override
-  Future<Result<List<Earnings>>> getEarnings({int limit = 50}) async =>
-      shouldFail
-          ? const Failure(failures.ServerFailure(message: 'Error'))
-          : Success(earningsList);
+  Future<Result<List<Earnings>>> getEarnings({int limit = 50}) async {
+    await _maybeDelay();
+    return shouldFail
+        ? const Failure(failures.ServerFailure(message: 'Error'))
+        : Success(earningsList);
+  }
 
   @override
   Future<Result<BindCodeResult>> bindPartnerCode(String code) async =>
-      const Success(BindCodeResult(
-        success: true,
-        message: 'Partner code bound successfully',
-      ));
+      const Success(
+        BindCodeResult(
+          success: true,
+          message: 'Partner code bound successfully',
+        ),
+      );
 
   @override
   Future<Result<void>> sharePartnerCode(String code) async =>
@@ -102,9 +116,7 @@ Widget buildTestablePartnerDashboard({
   required MockPartnerRepository mockRepo,
 }) {
   return ProviderScope(
-    overrides: [
-      partnerRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [partnerRepositoryProvider.overrideWithValue(mockRepo)],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -121,6 +133,7 @@ void main() {
   group('PartnerDashboardScreen - Loading State', () {
     testWidgets('test_shows_loading_indicator_initially', (tester) async {
       final mockRepo = MockPartnerRepository();
+      mockRepo.responseDelay = const Duration(milliseconds: 200);
       mockRepo.partnerInfo = PartnerInfo(
         tier: PartnerTier.bronze,
         clientCount: 0,
@@ -136,6 +149,9 @@ void main() {
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsWidgets);
+
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
     });
   });
 

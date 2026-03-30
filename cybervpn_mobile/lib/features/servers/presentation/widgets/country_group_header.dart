@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
@@ -9,7 +7,7 @@ import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
 ///
 /// Displays a country flag emoji, country name, server count badge, and a
 /// collapsible expand/collapse arrow with smooth animation.
-class CountryGroupHeader extends ConsumerStatefulWidget {
+class CountryGroupHeader extends StatelessWidget {
   const CountryGroupHeader({
     super.key,
     required this.countryCode,
@@ -35,64 +33,19 @@ class CountryGroupHeader extends ConsumerStatefulWidget {
   final VoidCallback onToggle;
 
   @override
-  ConsumerState<CountryGroupHeader> createState() =>
-      _CountryGroupHeaderState();
-}
-
-class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _arrowController;
-  late final Animation<double> _arrowTurns;
-
-  @override
-  void initState() {
-    super.initState();
-    _arrowController = AnimationController(
-      vsync: this,
-      duration: AnimDurations.medium,
-      value: widget.isExpanded ? 1.0 : 0.0,
-    );
-    _arrowTurns = Tween<double>(begin: 0.0, end: 0.5).animate(
-      CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant CountryGroupHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isExpanded != oldWidget.isExpanded) {
-      if (widget.isExpanded) {
-        unawaited(_arrowController.forward());
-      } else {
-        unawaited(_arrowController.reverse());
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _arrowController.dispose();
-    super.dispose();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Semantics(
-      label: '${widget.countryName}, ${widget.serverCount} servers',
-      hint: 'Double tap to ${widget.isExpanded ? 'collapse' : 'expand'} server list',
+      label: '$countryName, $serverCount servers',
+      hint: 'Double tap to ${isExpanded ? 'collapse' : 'expand'} server list',
       button: true,
-      expanded: widget.isExpanded,
+      expanded: isExpanded,
       child: Material(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
         child: InkWell(
-          onTap: widget.onToggle,
+          onTap: onToggle,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
@@ -100,8 +53,9 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
                 // Country flag
                 ExcludeSemantics(
                   child: FlagWidget(
-                    countryCode: widget.countryCode,
+                    countryCode: countryCode,
                     size: FlagSize.small,
+                    renderMode: FlagRenderMode.compactEmoji,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -110,7 +64,7 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
                 Expanded(
                   child: ExcludeSemantics(
                     child: Text(
-                      widget.countryName,
+                      countryName,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
@@ -131,7 +85,7 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${widget.serverCount}',
+                      '$serverCount',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                         fontWeight: FontWeight.bold,
@@ -143,8 +97,10 @@ class _CountryGroupHeaderState extends ConsumerState<CountryGroupHeader>
 
                 // Expand / collapse arrow
                 ExcludeSemantics(
-                  child: RotationTransition(
-                    turns: _arrowTurns,
+                  child: AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0.0,
+                    duration: AnimDurations.medium,
+                    curve: Curves.easeInOut,
                     child: Icon(
                       Icons.expand_more,
                       color: colorScheme.onSurfaceVariant,

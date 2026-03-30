@@ -20,10 +20,7 @@ import 'package:cybervpn_mobile/features/partner/presentation/providers/partner_
 /// Shows the code, markup, client count, active status, and provides
 /// copy, share, toggle active, and edit markup actions.
 class PartnerCodeCard extends ConsumerWidget {
-  const PartnerCodeCard({
-    super.key,
-    required this.code,
-  });
+  const PartnerCodeCard({super.key, required this.code});
 
   final PartnerCode code;
 
@@ -57,10 +54,9 @@ class PartnerCodeCard extends ConsumerWidget {
     final haptics = ref.read(hapticServiceProvider);
     unawaited(haptics.impact());
 
-    final result = await ref.read(partnerProvider.notifier).toggleCodeStatus(
-          code: code.code,
-          isActive: !code.isActive,
-        );
+    final result = await ref
+        .read(partnerProvider.notifier)
+        .toggleCodeStatus(code: code.code, isActive: !code.isActive);
 
     if (context.mounted) {
       final l10n = AppLocalizations.of(context);
@@ -82,55 +78,58 @@ class PartnerCodeCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: code.markup.toString());
 
-    final newMarkup = await showDialog<double>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.partnerEditMarkup),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: l10n.partnerMarkupPercentage,
-            suffixText: '%',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = double.tryParse(controller.text);
-              if (value != null && value >= 0 && value <= 100) {
-                Navigator.of(context).pop(value);
-              }
-            },
-            child: Text(l10n.commonSave),
-          ),
-        ],
-      ),
-    );
-
-    if (newMarkup != null && context.mounted) {
-      final result = await ref.read(partnerProvider.notifier).updateMarkup(
-            code: code.code,
-            markup: newMarkup,
-          );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result is Success
-                  ? l10n.partnerMarkupUpdated
-                  : l10n.errorOccurred,
+    try {
+      final newMarkup = await showDialog<double>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.partnerEditMarkup),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: l10n.partnerMarkupPercentage,
+              suffixText: '%',
             ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
           ),
-        );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = double.tryParse(controller.text);
+                if (value != null && value >= 0 && value <= 100) {
+                  Navigator.of(context).pop(value);
+                }
+              },
+              child: Text(l10n.commonSave),
+            ),
+          ],
+        ),
+      );
+
+      if (newMarkup != null && context.mounted) {
+        final result = await ref
+            .read(partnerProvider.notifier)
+            .updateMarkup(code: code.code, markup: newMarkup);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result is Success
+                    ? l10n.partnerMarkupUpdated
+                    : l10n.errorOccurred,
+              ),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -142,8 +141,9 @@ class PartnerCodeCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final colorScheme = theme.colorScheme;
 
-    final statusColor =
-        code.isActive ? CyberColors.matrixGreen : colorScheme.error;
+    final statusColor = code.isActive
+        ? CyberColors.matrixGreen
+        : colorScheme.error;
 
     return Card(
       child: Padding(
@@ -174,7 +174,9 @@ class PartnerCodeCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                   child: Text(
-                    code.isActive ? l10n.partnerCodeActive : l10n.partnerCodeInactive,
+                    code.isActive
+                        ? l10n.partnerCodeActive
+                        : l10n.partnerCodeInactive,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: statusColor,
                       fontWeight: FontWeight.w600,
@@ -226,7 +228,9 @@ class PartnerCodeCard extends ConsumerWidget {
                 ),
                 const Spacer(),
                 Text(
-                  l10n.partnerCreatedDate(DateFormat.yMMMd().format(code.createdAt)),
+                  l10n.partnerCreatedDate(
+                    DateFormat.yMMMd().format(code.createdAt),
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -258,11 +262,15 @@ class PartnerCodeCard extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => _onToggleActive(context, ref),
                   icon: Icon(
-                    code.isActive ? Icons.pause_outlined : Icons.play_arrow_outlined,
+                    code.isActive
+                        ? Icons.pause_outlined
+                        : Icons.play_arrow_outlined,
                     size: 18,
                   ),
                   label: Text(
-                    code.isActive ? l10n.partnerDeactivate : l10n.partnerActivate,
+                    code.isActive
+                        ? l10n.partnerDeactivate
+                        : l10n.partnerActivate,
                   ),
                 ),
               ],
