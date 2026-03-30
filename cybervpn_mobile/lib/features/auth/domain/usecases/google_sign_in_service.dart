@@ -8,15 +8,21 @@ import 'package:google_sign_in/google_sign_in.dart';
 /// (not the Android or iOS client ID) so that the backend can exchange
 /// the auth code for server-side tokens.
 class GoogleSignInService {
-  late final GoogleSignIn _googleSignIn;
-
   GoogleSignInService({
     String? clientId,
     List<String> scopes = const ['email', 'profile'],
-  }) {
-    _googleSignIn = GoogleSignIn(
-      scopes: scopes,
-      serverClientId: clientId,
+  }) : _serverClientId = clientId,
+       _scopes = List<String>.unmodifiable(scopes);
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final String? _serverClientId;
+  final List<String> _scopes;
+
+  static Future<void>? _initialization;
+
+  Future<void> _ensureInitialized() {
+    return _initialization ??= _googleSignIn.initialize(
+      serverClientId: _serverClientId,
     );
   }
 
@@ -27,22 +33,32 @@ class GoogleSignInService {
   /// cancelled the sign-in flow.
   Future<GoogleSignInResult?> signIn() async {
     try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) return null; // User cancelled
+      await _ensureInitialized();
 
-      // serverAuthCode lives on the GoogleSignInAccount, not on
-      // GoogleSignInAuthentication. The authentication object provides
-      // idToken and accessToken for client-side use.
-      final auth = await account.authentication;
+      if (!_googleSignIn.supportsAuthenticate()) {
+        throw UnsupportedError(
+          'Interactive Google Sign-In is not supported on this platform.',
+        );
+      }
+
+      final account = await _googleSignIn.authenticate(scopeHint: _scopes);
+      final auth = account.authentication;
+      final serverAuthorization = await account.authorizationClient
+          .authorizeServer(_scopes);
 
       return GoogleSignInResult(
-        serverAuthCode: account.serverAuthCode,
+        serverAuthCode: serverAuthorization?.serverAuthCode,
         idToken: auth.idToken,
-        accessToken: auth.accessToken,
         email: account.email,
         displayName: account.displayName,
         photoUrl: account.photoUrl,
       );
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        return null;
+      }
+      rethrow;
     } catch (e) {
       rethrow;
     }
@@ -53,12 +69,18 @@ class GoogleSignInService {
   /// This disconnects the current Google account from the app but does
   /// not revoke access. Call this when the user logs out of CyberVPN.
   Future<void> signOut() async {
+    await _ensureInitialized();
     await _googleSignIn.signOut();
   }
 
   /// Check if user is currently signed in with Google.
   Future<bool> isSignedIn() async {
-    return _googleSignIn.isSignedIn();
+    await _ensureInitialized();
+    final attempt = _googleSignIn.attemptLightweightAuthentication();
+    if (attempt == null) {
+      return false;
+    }
+    return (await attempt) != null;
   }
 }
 

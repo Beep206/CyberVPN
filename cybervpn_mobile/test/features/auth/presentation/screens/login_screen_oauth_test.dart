@@ -10,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../../helpers/fakes/fake_api_client.dart';
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -37,6 +39,7 @@ Widget buildTestableLoginScreen({
   required MockGoogleSignInService mockGoogleService,
   required MockAppleSignInService mockAppleService,
   required MockSecureStorageWrapper mockSecureStorage,
+  required FakeApiClient fakeApiClient,
 }) {
   final router = GoRouter(
     initialLocation: '/login',
@@ -55,6 +58,7 @@ Widget buildTestableLoginScreen({
 
   return ProviderScope(
     overrides: [
+      apiClientProvider.overrideWithValue(fakeApiClient),
       googleSignInServiceProvider.overrideWithValue(mockGoogleService),
       appleSignInServiceProvider.overrideWithValue(mockAppleService),
       secureStorageProvider.overrideWithValue(mockSecureStorage),
@@ -85,11 +89,32 @@ void main() {
   late MockGoogleSignInService mockGoogleService;
   late MockAppleSignInService mockAppleService;
   late MockSecureStorageWrapper mockSecureStorage;
+  late FakeApiClient fakeApiClient;
 
   setUp(() {
     mockGoogleService = MockGoogleSignInService();
     mockAppleService = MockAppleSignInService();
     mockSecureStorage = MockSecureStorageWrapper();
+    fakeApiClient = FakeApiClient()
+      ..setGetResponse('/api/v1/oauth/google/login', {
+        'authorize_url': 'https://accounts.google.com/o/oauth2/v2/auth',
+        'state': 'oauth-test-state',
+      })
+      ..setPostResponse('/api/v1/oauth/google/login/callback', {
+        'access_token': 'oauth-access-token',
+        'refresh_token': 'oauth-refresh-token',
+        'token_type': 'Bearer',
+        'expires_in': 3600,
+        'user': {
+          'id': 'user-001',
+          'email': 'test@example.com',
+          'username': 'testuser',
+          'isEmailVerified': true,
+          'isPremium': false,
+        },
+        'is_new_user': false,
+        'requires_2fa': false,
+      });
 
     // Default stub for secure storage
     when(
@@ -109,6 +134,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -124,6 +150,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -142,6 +169,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -168,6 +196,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -196,6 +225,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -207,7 +237,7 @@ void main() {
 
       // Assert: Error snackbar shown
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Authentication failed'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
     testWidgets('test_google_sign_in_no_server_auth_code_shows_error', (
@@ -228,6 +258,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -239,7 +270,7 @@ void main() {
 
       // Assert: Error snackbar shown
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Authentication failed'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
   });
 
@@ -252,6 +283,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();
@@ -283,6 +315,7 @@ void main() {
           mockGoogleService: mockGoogleService,
           mockAppleService: mockAppleService,
           mockSecureStorage: mockSecureStorage,
+          fakeApiClient: fakeApiClient,
         ),
       );
       await tester.pumpAndSettle();

@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   dynamic_color: ^1.7.0
   fl_chart: ^1.1.1
-  flutter_map: ^7.0.2
+  flutter_map: ^8.2.2
   google_fonts: ^8.0.1
   latlong2: ^0.9.1
   lottie: ^3.3.1
@@ -39,15 +39,15 @@ dependencies:
 
   # Data & Serialization
   freezed_annotation: ^3.0.0
-  json_annotation: ^4.10.0
+  json_annotation: ^4.11.0
 
   # Storage
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.5.3
 
   # Local Database
-  drift: ^2.27.0
-  sqlite3_flutter_libs: ^0.5.30
+  drift: ^2.31.0
+  sqlite3_flutter_libs: ^0.6.0
   path_provider: ^2.1.5
   path: ^1.9.1
 
@@ -56,8 +56,8 @@ dependencies:
 
   # Authentication
   local_auth: ^3.0.0
-  google_sign_in: ^6.2.2
-  sign_in_with_apple: ^6.1.4
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^7.0.1
 
   # In-App Purchases
   purchases_flutter: ^9.10.8
@@ -91,7 +91,7 @@ dependencies:
   # Security
   device_info_plus: ^12.3.0
   equatable: ^2.0.8
-  flutter_local_notifications: ^20.0.0
+  flutter_local_notifications: ^21.0.0
 
 dev_dependencies:
   flutter_test:
@@ -105,7 +105,7 @@ dev_dependencies:
   freezed: ^3.2.5
   json_serializable: ^6.12.0
   build_runner: ^2.11.0
-  drift_dev: ^2.27.0
+  drift_dev: ^2.31.0
 
   # Testing
   golden_toolkit: ^0.15.0

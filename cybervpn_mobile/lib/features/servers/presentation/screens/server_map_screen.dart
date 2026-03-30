@@ -55,11 +55,11 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
           width: 32,
           height: 32,
           child: GestureDetector(
-            onTap: () => _showCountrySheet(context, countryCode, servers),
-            child: _MapMarker(
-              color: markerColor,
-              serverCount: servers.length,
+            key: ValueKey<String>(
+              'server-map-country-${countryCode.toUpperCase()}',
             ),
+            onTap: () => _showCountrySheet(context, countryCode, servers),
+            child: _MapMarker(color: markerColor, serverCount: servers.length),
           ),
         ),
       );
@@ -116,102 +116,108 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
     List<ServerEntity> servers,
   ) {
     final theme = Theme.of(context);
-    final countryName =
-        servers.isNotEmpty ? servers.first.countryName : countryCode;
+    final countryName = servers.isNotEmpty
+        ? servers.first.countryName
+        : countryCode;
 
-    unawaited(showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.4,
-          minChildSize: 0.25,
-          maxChildSize: 0.7,
-          expand: false,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                // Handle bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
-                  child: Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: theme.colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
+        ),
+        builder: (context) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.4,
+            minChildSize: 0.25,
+            maxChildSize: 0.7,
+            expand: false,
+            builder: (context, scrollController) {
+              return Column(
+                children: [
+                  // Handle bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+                    child: Container(
+                      width: 32,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
 
-                // Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.md,
-                    vertical: Spacing.xs,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        countryName,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: Spacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${servers.length}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
+                  // Title
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.md,
+                      vertical: Spacing.xs,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          countryName,
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: Spacing.sm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${servers.length}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                const Divider(),
+                  const Divider(),
 
-                // Server list
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: servers.length,
-                    itemBuilder: (context, index) {
-                      final server = servers[index];
-                      return _ServerSheetTile(
-                        server: server,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          unawaited(ref
-                              .read(vpnConnectionProvider.notifier)
-                              .connect(server));
-                        },
-                      );
-                    },
+                  // Server list
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: servers.length,
+                      itemBuilder: (context, index) {
+                        final server = servers[index];
+                        return _ServerSheetTile(
+                          server: server,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            unawaited(
+                              ref
+                                  .read(vpnConnectionProvider.notifier)
+                                  .connect(server),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    ));
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -220,10 +226,7 @@ class _ServerMapScreenState extends ConsumerState<ServerMapScreen> {
 // ---------------------------------------------------------------------------
 
 class _MapMarker extends StatelessWidget {
-  const _MapMarker({
-    required this.color,
-    required this.serverCount,
-  });
+  const _MapMarker({required this.color, required this.serverCount});
 
   final Color color;
   final int serverCount;
@@ -262,10 +265,7 @@ class _MapMarker extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ServerSheetTile extends StatelessWidget {
-  const _ServerSheetTile({
-    required this.server,
-    required this.onTap,
-  });
+  const _ServerSheetTile({required this.server, required this.onTap});
 
   final ServerEntity server;
   final VoidCallback onTap;
@@ -278,10 +278,10 @@ class _ServerSheetTile extends StatelessWidget {
     final pingColor = ping == null
         ? theme.colorScheme.onSurfaceVariant
         : ping < 50
-            ? CyberColors.matrixGreen
-            : ping < 100
-                ? Colors.amber
-                : const Color(0xFFFF5252);
+        ? CyberColors.matrixGreen
+        : ping < 100
+        ? Colors.amber
+        : const Color(0xFFFF5252);
 
     return ListTile(
       leading: Icon(
