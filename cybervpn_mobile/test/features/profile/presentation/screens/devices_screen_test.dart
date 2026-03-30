@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -78,7 +79,9 @@ class _FakeProfileNotifier extends AsyncNotifier<ProfileState>
 
 void main() {
   group('DevicesScreen', () {
-    testWidgets('renders device list with current device badge', (tester) async {
+    testWidgets('renders device list with current device badge', (
+      tester,
+    ) async {
       // Arrange
       final state = ProfileState(
         profile: _testProfile,
@@ -89,10 +92,13 @@ void main() {
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
@@ -118,10 +124,13 @@ void main() {
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
@@ -142,10 +151,13 @@ void main() {
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
@@ -155,7 +167,9 @@ void main() {
       expect(find.byKey(const Key('delete_btn_device-2')), findsOneWidget);
     });
 
-    testWidgets('shows warning banner when device limit reached', (tester) async {
+    testWidgets('shows warning banner when device limit reached', (
+      tester,
+    ) async {
       // Arrange - 5 devices (at limit)
       final devices = List.generate(
         5,
@@ -166,19 +180,19 @@ void main() {
           isCurrent: i == 0,
         ),
       );
-      final state = ProfileState(
-        profile: _testProfile,
-        devices: devices,
-      );
+      final state = ProfileState(profile: _testProfile, devices: devices);
       final notifier = _FakeProfileNotifier(state);
 
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
@@ -193,19 +207,19 @@ void main() {
 
     testWidgets('shows empty state when no devices', (tester) async {
       // Arrange
-      final state = ProfileState(
-        profile: _testProfile,
-        devices: [],
-      );
+      final state = ProfileState(profile: _testProfile, devices: []);
       final notifier = _FakeProfileNotifier(state);
 
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
@@ -230,20 +244,20 @@ void main() {
       // Act
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            profileProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(home: DevicesScreen()),
+          overrides: [profileProvider.overrideWith(() => notifier)],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: DevicesScreen(),
+          ),
         ),
       );
 
       await tester.pumpAndSettle();
 
       // Simulate pull-to-refresh
-      await tester.drag(
-        find.byType(RefreshIndicator),
-        const Offset(0, 300),
-      );
+      await tester.drag(find.byType(RefreshIndicator), const Offset(0, 300));
       await tester.pumpAndSettle();
 
       // Assert

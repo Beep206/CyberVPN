@@ -45,7 +45,9 @@ class ReferralDashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             tooltip: l10n.commonRefresh,
             onPressed: () {
-              unawaited(ref.read(referralProvider.notifier).checkAvailability());
+              unawaited(
+                ref.read(referralProvider.notifier).checkAvailability(),
+              );
             },
           ),
         ],
@@ -84,59 +86,71 @@ class _AvailableBody extends StatelessWidget {
     final code = state.referralCode ?? '';
     final referralLink = '${ReferralDashboardScreen._referralBaseUrl}$code';
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.md,
-      ),
-      children: [
-        // -- Referral code card --
-        if (code.isNotEmpty)
-          ReferralCodeCard(
-            key: const Key('referral_code_card'),
-            referralCode: code,
-            referralLink: referralLink,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.md,
           ),
-
-        if (code.isNotEmpty) const SizedBox(height: Spacing.lg),
-
-        // -- Stats grid --
-        if (state.stats != null) ...[
-          Text(
-            l10n.referralYourStats,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (code.isNotEmpty) ...[
+                  ReferralCodeCard(
+                    key: const Key('referral_code_card'),
+                    referralCode: code,
+                    referralLink: referralLink,
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                ],
+                if (state.stats != null) ...[
+                  Text(
+                    l10n.referralYourStats,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  ReferralStatsCard(
+                    key: const Key('referral_stats'),
+                    stats: state.stats!,
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                ],
+                Text(
+                  l10n.referralRecentReferrals,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: Spacing.sm),
+              ],
             ),
-          ),
-          const SizedBox(height: Spacing.sm),
-          ReferralStatsCard(
-            key: const Key('referral_stats'),
-            stats: state.stats!,
-          ),
-          const SizedBox(height: Spacing.lg),
-        ],
-
-        // -- Recent referrals --
-        Text(
-          l10n.referralRecentReferrals,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: Spacing.sm),
-
         if (state.recentReferrals.isEmpty)
-          _EmptyReferralsPlaceholder()
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+            sliver: SliverToBoxAdapter(child: _EmptyReferralsPlaceholder()),
+          )
         else
-          ...state.recentReferrals.map(
-            (entry) => _ReferralEntryTile(
-              key: ValueKey('referral_${entry.code}_${entry.joinDate}'),
-              entry: entry,
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final entry = state.recentReferrals[index];
+                return _ReferralEntryTile(
+                  key: ValueKey('referral_${entry.code}_${entry.joinDate}'),
+                  entry: entry,
+                );
+              }, childCount: state.recentReferrals.length),
             ),
           ),
-
-        // Bottom padding for navigation bar clearance.
-        SizedBox(height: Spacing.navBarClearance(context)),
+        SliverToBoxAdapter(
+          child: SizedBox(height: Spacing.navBarClearance(context)),
+        ),
       ],
     );
   }
@@ -180,11 +194,7 @@ class _ReferralEntryTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: statusColor.withAlpha(25),
-          child: Icon(
-            Icons.person_outline,
-            color: statusColor,
-            size: 20,
-          ),
+          child: Icon(Icons.person_outline, color: statusColor, size: 20),
         ),
         title: Text(
           entry.code,
@@ -367,11 +377,7 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: Spacing.md),
             Text(
               message,
@@ -380,10 +386,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: Spacing.md),
-              FilledButton.tonal(
-                onPressed: onRetry,
-                child: Text(l10n.retry),
-              ),
+              FilledButton.tonal(onPressed: onRetry, child: Text(l10n.retry)),
             ],
           ],
         ),

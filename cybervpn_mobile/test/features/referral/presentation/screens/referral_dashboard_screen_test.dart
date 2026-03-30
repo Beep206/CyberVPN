@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/referral/domain/entities/referral.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
@@ -48,10 +49,11 @@ final _sampleReferrals = [
 /// Uses a large screen size to avoid scroll issues in tests.
 Widget buildTestWidget(MockReferralRepository mockRepo) {
   return ProviderScope(
-    overrides: [
-      referralRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [referralRepositoryProvider.overrideWithValue(mockRepo)],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: MediaQuery(
         data: MediaQueryData(size: Size(400, 1200)),
         child: ReferralDashboardScreen(),
@@ -61,16 +63,24 @@ Widget buildTestWidget(MockReferralRepository mockRepo) {
 }
 
 void _stubAvailable(MockReferralRepository mockRepo) {
-  when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(true));
-  when(() => mockRepo.getReferralCode())
-      .thenAnswer((_) async => const Success('CYBER123'));
-  when(() => mockRepo.getStats()).thenAnswer((_) async => const Success(_sampleStats));
-  when(() => mockRepo.getRecentReferrals())
-      .thenAnswer((_) async => Success(_sampleReferrals));
+  when(
+    () => mockRepo.isAvailable(),
+  ).thenAnswer((_) async => const Success(true));
+  when(
+    () => mockRepo.getReferralCode(),
+  ).thenAnswer((_) async => const Success('CYBER123'));
+  when(
+    () => mockRepo.getStats(),
+  ).thenAnswer((_) async => const Success(_sampleStats));
+  when(
+    () => mockRepo.getRecentReferrals(),
+  ).thenAnswer((_) async => Success(_sampleReferrals));
 }
 
 void _stubUnavailable(MockReferralRepository mockRepo) {
-  when(() => mockRepo.isAvailable()).thenAnswer((_) async => const Success(false));
+  when(
+    () => mockRepo.isAvailable(),
+  ).thenAnswer((_) async => const Success(false));
 }
 
 // ---------------------------------------------------------------------------
@@ -183,26 +193,20 @@ void main() {
   });
 
   group('ReferralDashboardScreen - unavailable state', () {
-    testWidgets('shows Coming Soon placeholder when unavailable',
-        (tester) async {
+    testWidgets('shows Coming Soon placeholder when unavailable', (
+      tester,
+    ) async {
       _stubUnavailable(mockRepo);
 
       await tester.pumpWidget(buildTestWidget(mockRepo));
       await tester.pumpAndSettle();
 
       // Verify coming soon content.
-      expect(
-        find.text('Referral Program Coming Soon'),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('btn_notify_me')),
-        findsOneWidget,
-      );
+      expect(find.text('Referral Program Coming Soon'), findsOneWidget);
+      expect(find.byKey(const Key('btn_notify_me')), findsOneWidget);
     });
 
-    testWidgets('Notify Me button shows confirmation SnackBar',
-        (tester) async {
+    testWidgets('Notify Me button shows confirmation SnackBar', (tester) async {
       _stubUnavailable(mockRepo);
 
       await tester.pumpWidget(buildTestWidget(mockRepo));
@@ -217,8 +221,9 @@ void main() {
       );
     });
 
-    testWidgets('does not render referral code or stats when unavailable',
-        (tester) async {
+    testWidgets('does not render referral code or stats when unavailable', (
+      tester,
+    ) async {
       _stubUnavailable(mockRepo);
 
       await tester.pumpWidget(buildTestWidget(mockRepo));
@@ -234,8 +239,7 @@ void main() {
     testWidgets('shows loading indicator while data loads', (tester) async {
       // Use a completer to hold the future in loading state without timers.
       final completer = Completer<Result<bool>>();
-      when(() => mockRepo.isAvailable())
-          .thenAnswer((_) => completer.future);
+      when(() => mockRepo.isAvailable()).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(buildTestWidget(mockRepo));
       // Pump once without settling to see loading state.

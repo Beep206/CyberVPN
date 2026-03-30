@@ -183,6 +183,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   void _listenToIncomingFcm() {
     try {
       final repoImpl = ref.read(notificationRepositoryImplProvider);
+      unawaited(_incomingSub?.cancel());
       _incomingSub = repoImpl.incoming.listen(
         addNotification,
         onError: (Object e) {
@@ -199,6 +200,7 @@ class NotificationNotifier extends AsyncNotifier<NotificationState> {
   void _listenToWebSocket() {
     try {
       final client = ref.read(webSocketClientProvider);
+      unawaited(_webSocketSub?.cancel());
       _webSocketSub = client.notificationEvents.listen(
         (event) {
           final notification = AppNotification(
@@ -252,12 +254,19 @@ final notificationProvider =
 
 /// The current unread notification count (0 when state is not yet loaded).
 final unreadCountProvider = Provider<int>((ref) {
-  final notifState = ref.watch(notificationProvider).value;
-  return notifState?.unreadCount ?? 0;
+  return ref.watch(
+    notificationProvider.select(
+      (asyncState) => asyncState.value?.unreadCount ?? 0,
+    ),
+  );
 });
 
 /// The current list of notifications (empty when state is not yet loaded).
 final notificationsListProvider = Provider<List<AppNotification>>((ref) {
-  final notifState = ref.watch(notificationProvider).value;
-  return notifState?.notifications ?? [];
+  return ref.watch(
+    notificationProvider.select(
+      (asyncState) =>
+          asyncState.value?.notifications ?? const <AppNotification>[],
+    ),
+  );
 });
