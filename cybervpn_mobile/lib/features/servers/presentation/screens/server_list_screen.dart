@@ -333,7 +333,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
   Widget _buildBody(BuildContext context, ServerListState state) {
     final theme = Theme.of(context);
     final viewModel = ref.watch(serverListViewProvider);
-    final favorites = viewModel.favoriteServers;
+    final favoriteServerIds = viewModel.favoriteServerIds;
     final filteredGroupedServers = viewModel.groupedServers;
     final hasSearchResults = !viewModel.hasActiveSearch || viewModel.hasResults;
 
@@ -464,22 +464,22 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             ),
 
             // --- Favorites section (collapsible) ---
-            if (favorites.isNotEmpty) ...[
+            if (favoriteServerIds.isNotEmpty) ...[
               SliverToBoxAdapter(
-                child: _buildFavoritesHeader(favorites.length),
+                child: _buildFavoritesHeader(favoriteServerIds.length),
               ),
               if (_favoritesExpanded)
                 SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    final server = favorites[index];
+                    final serverId = favoriteServerIds[index];
                     return StaggeredListItem(
                       index: index,
-                      child: ServerCard(
-                        server: server,
-                        onTap: () => _onServerTap(server),
+                      child: _ServerCardById(
+                        serverId: serverId,
+                        onTap: _onServerTap,
                       ),
                     );
-                  }, childCount: favorites.length),
+                  }, childCount: favoriteServerIds.length),
                 ),
               const SliverToBoxAdapter(
                 child: Divider(indent: 16, endIndent: 16),
@@ -500,6 +500,8 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                         height: 120,
                         fit: BoxFit.contain,
                         animate: !MediaQuery.of(context).disableAnimations,
+                        frameRate: const FrameRate(24),
+                        backgroundLoading: true,
                       ),
                       const SizedBox(height: Spacing.md),
                       Text(
@@ -522,14 +524,12 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                 ),
               )
             else
-              ...filteredGroupedServers.entries.expand((entry) {
-                final countryCode = entry.key;
-                final serverData = entry.value;
+              ...filteredGroupedServers.expand((group) {
+                final countryCode = group.countryCode;
+                final serverData = group.entries;
 
                 final isExpanded = _expandedCountries[countryCode] ?? true;
-                final countryName = serverData.isNotEmpty
-                    ? serverData.first.server.countryName
-                    : countryCode;
+                final countryName = group.countryName;
 
                 final headerKey = _countryHeaderKeys.putIfAbsent(
                   countryCode,
@@ -573,19 +573,23 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
                     SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final data = serverData[index];
-                        final server = data.server;
                         final isCustom = data.isCustom;
                         final configId = data.configId;
 
                         return StaggeredListItem(
                           index: index,
-                          child: ServerCard(
-                            server: server,
-                            onTap: isCustom && configId != null
-                                ? () => _onCustomServerTap(configId)
-                                : () => _onServerTap(server),
-                            isCustomServer: isCustom,
-                          ),
+                          child: isCustom
+                              ? ServerCard(
+                                  server: data.customServer!,
+                                  onTap: configId == null
+                                      ? null
+                                      : () => _onCustomServerTap(configId),
+                                  isCustomServer: true,
+                                )
+                              : _ServerCardById(
+                                  serverId: data.serverId,
+                                  onTap: _onServerTap,
+                                ),
                         );
                       }, childCount: serverData.length),
                     ),
@@ -685,6 +689,23 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
         ),
       ),
     );
+  }
+}
+
+class _ServerCardById extends ConsumerWidget {
+  const _ServerCardById({required this.serverId, required this.onTap});
+
+  final String serverId;
+  final ValueChanged<ServerEntity> onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final server = ref.watch(serverByIdProvider(serverId));
+    if (server == null) {
+      return const SizedBox.shrink();
+    }
+
+    return ServerCard(server: server, onTap: () => onTap(server));
   }
 }
 

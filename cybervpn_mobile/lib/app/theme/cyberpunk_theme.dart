@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+
+const _headingFontFamily = 'Orbitron';
+const _dataFontFamily = 'JetBrains Mono';
 
 // ---------------------------------------------------------------------------
 // Cyberpunk glow helpers
@@ -54,100 +56,66 @@ class _CyberpunkLightColors {
 // Shared TextTheme builder
 // ---------------------------------------------------------------------------
 
-/// Builds a [TextTheme] that mixes Orbitron for display/headline styles,
-/// JetBrains Mono for body-small / label-small, and the platform default for
-/// everything else.
+/// Builds a [TextTheme] from bundled font assets.
+///
+/// Orbitron is used for display/headline styles, JetBrains Mono for compact
+/// data text, and the platform default for everything else.
 TextTheme _buildCyberpunkTextTheme({required Brightness brightness}) {
-  final Color defaultColor =
-      brightness == Brightness.dark ? Colors.white : _CyberpunkLightColors.onSurface;
+  final Color defaultColor = brightness == Brightness.dark
+      ? Colors.white
+      : _CyberpunkLightColors.onSurface;
 
   return TextTheme(
     // Orbitron for display & headline
-    displayLarge: GoogleFonts.orbitron(
-      fontSize: 57,
-      fontWeight: FontWeight.w700,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
-    displayMedium: GoogleFonts.orbitron(
-      fontSize: 45,
-      fontWeight: FontWeight.w700,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
-    displaySmall: GoogleFonts.orbitron(
-      fontSize: 36,
-      fontWeight: FontWeight.w700,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
-    headlineLarge: GoogleFonts.orbitron(
-      fontSize: 32,
-      fontWeight: FontWeight.w700,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
-    headlineMedium: GoogleFonts.orbitron(
-      fontSize: 28,
-      fontWeight: FontWeight.w600,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
-    headlineSmall: GoogleFonts.orbitron(
-      fontSize: 24,
-      fontWeight: FontWeight.w600,
-      color: defaultColor,
-      letterSpacing: AppTypography.headingLetterSpacing,
-    ),
+    displayLarge: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 57, fontWeight: FontWeight.w700, color: defaultColor),
+    displayMedium: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 45, fontWeight: FontWeight.w700, color: defaultColor),
+    displaySmall: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 36, fontWeight: FontWeight.w700, color: defaultColor),
+    headlineLarge: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 32, fontWeight: FontWeight.w700, color: defaultColor),
+    headlineMedium: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 28, fontWeight: FontWeight.w600, color: defaultColor),
+    headlineSmall: AppTypography.heading(
+      fontFamily: _headingFontFamily,
+    ).copyWith(fontSize: 24, fontWeight: FontWeight.w600, color: defaultColor),
 
     // System font for titles and body
-    titleLarge: AppTypography.body(fontFamily: '').copyWith(
-      fontSize: 22,
-      fontWeight: FontWeight.w600,
-      color: defaultColor,
-    ),
-    titleMedium: AppTypography.body(fontFamily: '').copyWith(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: defaultColor,
-    ),
-    titleSmall: AppTypography.body(fontFamily: '').copyWith(
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: defaultColor,
-    ),
-    bodyLarge: AppTypography.body(fontFamily: '').copyWith(
-      fontSize: 16,
-      fontWeight: FontWeight.w400,
-      color: defaultColor,
-    ),
-    bodyMedium: AppTypography.body(fontFamily: '').copyWith(
-      fontSize: 14,
-      fontWeight: FontWeight.w400,
-      color: defaultColor,
-    ),
+    titleLarge: AppTypography.body(
+      fontFamily: '',
+    ).copyWith(fontSize: 22, fontWeight: FontWeight.w600, color: defaultColor),
+    titleMedium: AppTypography.body(
+      fontFamily: '',
+    ).copyWith(fontSize: 16, fontWeight: FontWeight.w500, color: defaultColor),
+    titleSmall: AppTypography.body(
+      fontFamily: '',
+    ).copyWith(fontSize: 14, fontWeight: FontWeight.w500, color: defaultColor),
+    bodyLarge: AppTypography.body(
+      fontFamily: '',
+    ).copyWith(fontSize: 16, fontWeight: FontWeight.w400, color: defaultColor),
+    bodyMedium: AppTypography.body(
+      fontFamily: '',
+    ).copyWith(fontSize: 14, fontWeight: FontWeight.w400, color: defaultColor),
 
     // JetBrains Mono for data / stats
-    bodySmall: GoogleFonts.jetBrainsMono(
-      fontSize: 12,
-      color: defaultColor,
-      letterSpacing: AppTypography.dataLetterSpacing,
-    ),
-    labelLarge: AppTypography.label(fontFamily: '').copyWith(
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: defaultColor,
-    ),
-    labelMedium: AppTypography.label(fontFamily: '').copyWith(
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-      color: defaultColor,
-    ),
-    labelSmall: GoogleFonts.jetBrainsMono(
-      fontSize: 11,
-      color: defaultColor,
-      letterSpacing: AppTypography.dataLetterSpacing,
-    ),
+    bodySmall: AppTypography.data(
+      fontFamily: _dataFontFamily,
+    ).copyWith(fontSize: 12, color: defaultColor),
+    labelLarge: AppTypography.label(
+      fontFamily: '',
+    ).copyWith(fontSize: 14, fontWeight: FontWeight.w500, color: defaultColor),
+    labelMedium: AppTypography.label(
+      fontFamily: '',
+    ).copyWith(fontSize: 12, fontWeight: FontWeight.w500, color: defaultColor),
+    labelSmall: AppTypography.data(
+      fontFamily: _dataFontFamily,
+    ).copyWith(fontSize: 11, color: defaultColor),
   );
 }
 
@@ -167,8 +135,9 @@ TextTheme _buildCyberpunkTextTheme({required Brightness brightness}) {
 ThemeData cyberpunkDarkTheme({bool oled = false}) {
   final scaffoldBg = oled ? Colors.black : CyberColors.deepNavy;
   final surfaceColor = oled ? const Color(0xFF050505) : CyberColors.darkBg;
-  final surfaceContainerColor =
-      oled ? const Color(0xFF0A0A0A) : const Color(0xFF1E2538);
+  final surfaceContainerColor = oled
+      ? const Color(0xFF0A0A0A)
+      : const Color(0xFF1E2538);
 
   final colorScheme = ColorScheme(
     brightness: Brightness.dark,
@@ -216,9 +185,7 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
       color: surfaceColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Radii.md),
-        side: BorderSide(
-          color: CyberColors.matrixGreen.withAlpha(60),
-        ),
+        side: BorderSide(color: CyberColors.matrixGreen.withAlpha(60)),
       ),
     ),
 
@@ -234,9 +201,7 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.sm),
         ),
-        textStyle: textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
     ),
 
@@ -257,9 +222,7 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
 
     // TextButton
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: CyberColors.neonCyan,
-      ),
+      style: TextButton.styleFrom(foregroundColor: CyberColors.neonCyan),
     ),
 
     // Input
@@ -272,22 +235,15 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
-        borderSide: BorderSide(
-          color: CyberColors.matrixGreen.withAlpha(60),
-        ),
+        borderSide: BorderSide(color: CyberColors.matrixGreen.withAlpha(60)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
-        borderSide: BorderSide(
-          color: CyberColors.matrixGreen.withAlpha(60),
-        ),
+        borderSide: BorderSide(color: CyberColors.matrixGreen.withAlpha(60)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
-        borderSide: const BorderSide(
-          color: CyberColors.neonCyan,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: CyberColors.neonCyan, width: 2),
       ),
       hintStyle: textTheme.bodyMedium?.copyWith(
         color: CyberColors.textGrayDark,
@@ -313,13 +269,9 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return textTheme.labelSmall?.copyWith(
-            color: CyberColors.matrixGreen,
-          );
+          return textTheme.labelSmall?.copyWith(color: CyberColors.matrixGreen);
         }
-        return textTheme.labelSmall?.copyWith(
-          color: CyberColors.textGrayDark,
-        );
+        return textTheme.labelSmall?.copyWith(color: CyberColors.textGrayDark);
       }),
     ),
 
@@ -330,17 +282,13 @@ ThemeData cyberpunkDarkTheme({bool oled = false}) {
     ),
 
     // Icon
-    iconTheme: const IconThemeData(
-      color: CyberColors.matrixGreen,
-    ),
+    iconTheme: const IconThemeData(color: CyberColors.matrixGreen),
 
     // Chip
     chipTheme: ChipThemeData(
       backgroundColor: surfaceContainerColor,
       side: BorderSide(color: CyberColors.neonCyan.withAlpha(60)),
-      labelStyle: textTheme.labelSmall?.copyWith(
-        color: CyberColors.neonCyan,
-      ),
+      labelStyle: textTheme.labelSmall?.copyWith(color: CyberColors.neonCyan),
     ),
 
     // Switch
@@ -423,9 +371,7 @@ ThemeData cyberpunkLightTheme() {
       color: _CyberpunkLightColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Radii.md),
-        side: BorderSide(
-          color: CyberColors.matrixGreenDark.withAlpha(80),
-        ),
+        side: BorderSide(color: CyberColors.matrixGreenDark.withAlpha(80)),
       ),
     ),
 
@@ -441,9 +387,7 @@ ThemeData cyberpunkLightTheme() {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.sm),
         ),
-        textStyle: textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
     ),
 
@@ -464,9 +408,7 @@ ThemeData cyberpunkLightTheme() {
 
     // TextButton
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: CyberColors.neonCyanDark,
-      ),
+      style: TextButton.styleFrom(foregroundColor: CyberColors.neonCyanDark),
     ),
 
     // Input
@@ -491,10 +433,7 @@ ThemeData cyberpunkLightTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(Radii.sm),
-        borderSide: const BorderSide(
-          color: CyberColors.neonCyanDark,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: CyberColors.neonCyanDark, width: 2),
       ),
       hintStyle: textTheme.bodyMedium?.copyWith(
         color: _CyberpunkLightColors.onSurfaceVariant,
@@ -516,7 +455,9 @@ ThemeData cyberpunkLightTheme() {
         if (states.contains(WidgetState.selected)) {
           return const IconThemeData(color: CyberColors.matrixGreenDark);
         }
-        return const IconThemeData(color: _CyberpunkLightColors.onSurfaceVariant);
+        return const IconThemeData(
+          color: _CyberpunkLightColors.onSurfaceVariant,
+        );
       }),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
@@ -537,9 +478,7 @@ ThemeData cyberpunkLightTheme() {
     ),
 
     // Icon
-    iconTheme: const IconThemeData(
-      color: _CyberpunkLightColors.onSurface,
-    ),
+    iconTheme: const IconThemeData(color: _CyberpunkLightColors.onSurface),
 
     // Chip
     chipTheme: ChipThemeData(

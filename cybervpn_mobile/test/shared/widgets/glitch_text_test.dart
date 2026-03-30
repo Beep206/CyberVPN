@@ -39,4 +39,21 @@ void main() {
 
     expect(find.text('CYBER VPN'), findsNWidgets(3));
   });
+
+  testWidgets('returns to plain text during idle gap between bursts', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: cyberpunkDarkTheme(),
+        home: const Scaffold(
+          body: Center(child: GlitchText(text: 'CYBER VPN')),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.text('CYBER VPN'), findsOneWidget);
+  });
 }

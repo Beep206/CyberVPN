@@ -68,6 +68,39 @@ final _testConfig = ProfileConfig(
   createdAt: DateTime(2026, 1, 1),
 );
 
+final _testProfile2 = Profile(
+  id: 'profile-2',
+  name: 'Local Profile',
+  type: ProfileType.local,
+  subscriptionUrl: null,
+  isActive: false,
+  sortOrder: 1,
+  createdAt: DateTime(2026, 1, 2),
+  lastUpdatedAt: DateTime(2026, 1, 2),
+  uploadBytes: 0,
+  downloadBytes: 0,
+  totalBytes: 0,
+  expiresAt: null,
+  updateIntervalMinutes: 60,
+  supportUrl: null,
+  testUrl: null,
+);
+
+final _testConfig2 = ProfileConfig(
+  id: 'config-2',
+  profileId: 'profile-2',
+  name: 'Trojan Server',
+  serverAddress: 'trojan.example.com',
+  port: 443,
+  protocol: 'trojan',
+  configData: jsonEncode({'password': 'test-pass'}),
+  remark: null,
+  isFavorite: false,
+  sortOrder: 0,
+  latencyMs: 42,
+  createdAt: DateTime(2026, 1, 2),
+);
+
 final _testFetchResult = FetchResult(
   info: SubscriptionInfo(
     title: 'Test Sub',
@@ -125,10 +158,12 @@ void main() {
 
   group('getById', () {
     test('returns Success with profile when found', () async {
-      when(() => mockLocalDs.getById('profile-1'))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockLocalDs.getConfigsByProfileId('profile-1'))
-          .thenAnswer((_) async => [_testConfig]);
+      when(
+        () => mockLocalDs.getById('profile-1'),
+      ).thenAnswer((_) async => _testProfile);
+      when(
+        () => mockLocalDs.getConfigsByProfileId('profile-1'),
+      ).thenAnswer((_) async => [_testConfig]);
 
       final result = await repo.getById('profile-1');
 
@@ -140,8 +175,7 @@ void main() {
     });
 
     test('returns Failure when profile not found', () async {
-      when(() => mockLocalDs.getById('missing'))
-          .thenAnswer((_) async => null);
+      when(() => mockLocalDs.getById('missing')).thenAnswer((_) async => null);
 
       final result = await repo.getById('missing');
 
@@ -149,20 +183,55 @@ void main() {
     });
   });
 
+  group('watchAll', () {
+    test(
+      'loads configs for all profiles with a single batched query',
+      () async {
+        when(
+          () => mockLocalDs.watchAll(),
+        ).thenAnswer((_) => Stream.value([_testProfile, _testProfile2]));
+        when(
+          () => mockLocalDs.getConfigsByProfileIds(['profile-1', 'profile-2']),
+        ).thenAnswer(
+          (_) async => {
+            'profile-1': [_testConfig],
+            'profile-2': [_testConfig2],
+          },
+        );
+
+        final profiles = await repo.watchAll().first;
+
+        expect(profiles, hasLength(2));
+        expect(profiles[0].id, 'profile-1');
+        expect(profiles[0].servers, hasLength(1));
+        expect(profiles[1].id, 'profile-2');
+        expect(profiles[1].servers.single.name, 'Trojan Server');
+        verify(
+          () => mockLocalDs.getConfigsByProfileIds(['profile-1', 'profile-2']),
+        ).called(1);
+        verifyNever(() => mockLocalDs.getConfigsByProfileId(any()));
+      },
+    );
+  });
+
   group('addRemoteProfile', () {
     test('creates profile with fetched servers on success', () async {
-      when(() => mockFetcher.fetch(_testUrl))
-          .thenAnswer((_) async => _testFetchResult);
-      when(() => mockEncField.encrypt(_testUrl))
-          .thenAnswer((_) async => _encryptedUrl);
-      when(() => mockLocalDs.insert(any()))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockLocalDs.insertConfigs(any()))
-          .thenAnswer((_) async {});
-      when(() => mockLocalDs.getById(any()))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockLocalDs.getConfigsByProfileId(any()))
-          .thenAnswer((_) async => [_testConfig]);
+      when(
+        () => mockFetcher.fetch(_testUrl),
+      ).thenAnswer((_) async => _testFetchResult);
+      when(
+        () => mockEncField.encrypt(_testUrl),
+      ).thenAnswer((_) async => _encryptedUrl);
+      when(
+        () => mockLocalDs.insert(any()),
+      ).thenAnswer((_) async => _testProfile);
+      when(() => mockLocalDs.insertConfigs(any())).thenAnswer((_) async {});
+      when(
+        () => mockLocalDs.getById(any()),
+      ).thenAnswer((_) async => _testProfile);
+      when(
+        () => mockLocalDs.getConfigsByProfileId(any()),
+      ).thenAnswer((_) async => [_testConfig]);
 
       final result = await repo.addRemoteProfile(_testUrl, name: 'My Sub');
 
@@ -175,10 +244,7 @@ void main() {
 
     test('returns Failure when no servers found', () async {
       when(() => mockFetcher.fetch(_testUrl)).thenAnswer(
-        (_) async => const FetchResult(
-          info: SubscriptionInfo(),
-          servers: [],
-        ),
+        (_) async => const FetchResult(info: SubscriptionInfo(), servers: []),
       );
 
       final result = await repo.addRemoteProfile(_testUrl);
@@ -188,10 +254,7 @@ void main() {
 
     test('returns Failure on network error', () async {
       when(() => mockFetcher.fetch(_testUrl)).thenThrow(
-        const SubscriptionFetcherException(
-          url: _testUrl,
-          message: 'timeout',
-        ),
+        const SubscriptionFetcherException(url: _testUrl, message: 'timeout'),
       );
 
       final result = await repo.addRemoteProfile(_testUrl);
@@ -202,14 +265,16 @@ void main() {
 
   group('addLocalProfile', () {
     test('creates local profile with provided servers', () async {
-      when(() => mockLocalDs.insert(any()))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockLocalDs.insertConfigs(any()))
-          .thenAnswer((_) async {});
-      when(() => mockLocalDs.getById(any()))
-          .thenAnswer((_) async => _testProfile.copyWith(type: ProfileType.local));
-      when(() => mockLocalDs.getConfigsByProfileId(any()))
-          .thenAnswer((_) async => [_testConfig]);
+      when(
+        () => mockLocalDs.insert(any()),
+      ).thenAnswer((_) async => _testProfile);
+      when(() => mockLocalDs.insertConfigs(any())).thenAnswer((_) async {});
+      when(
+        () => mockLocalDs.getById(any()),
+      ).thenAnswer((_) async => _testProfile.copyWith(type: ProfileType.local));
+      when(
+        () => mockLocalDs.getConfigsByProfileId(any()),
+      ).thenAnswer((_) async => [_testConfig]);
 
       final servers = [
         ProfileServer(
@@ -235,8 +300,7 @@ void main() {
 
   group('setActive', () {
     test('delegates to local data source', () async {
-      when(() => mockLocalDs.setActive('profile-1'))
-          .thenAnswer((_) async {});
+      when(() => mockLocalDs.setActive('profile-1')).thenAnswer((_) async {});
 
       final result = await repo.setActive('profile-1');
 
@@ -247,8 +311,7 @@ void main() {
 
   group('delete', () {
     test('returns Success on successful delete', () async {
-      when(() => mockLocalDs.delete('profile-1'))
-          .thenAnswer((_) async => 1);
+      when(() => mockLocalDs.delete('profile-1')).thenAnswer((_) async => 1);
 
       final result = await repo.delete('profile-1');
 
@@ -257,8 +320,9 @@ void main() {
     });
 
     test('returns Failure on exception', () async {
-      when(() => mockLocalDs.delete('profile-1'))
-          .thenThrow(Exception('DB error'));
+      when(
+        () => mockLocalDs.delete('profile-1'),
+      ).thenThrow(Exception('DB error'));
 
       final result = await repo.delete('profile-1');
 
@@ -268,16 +332,21 @@ void main() {
 
   group('updateSubscription', () {
     test('refreshes remote profile servers', () async {
-      when(() => mockLocalDs.getById('profile-1'))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockEncField.decrypt(_encryptedUrl))
-          .thenAnswer((_) async => _testUrl);
-      when(() => mockFetcher.fetch(_testUrl))
-          .thenAnswer((_) async => _testFetchResult);
-      when(() => mockLocalDs.update(any(), any()))
-          .thenAnswer((_) async => true);
-      when(() => mockLocalDs.replaceConfigs(any(), any()))
-          .thenAnswer((_) async {});
+      when(
+        () => mockLocalDs.getById('profile-1'),
+      ).thenAnswer((_) async => _testProfile);
+      when(
+        () => mockEncField.decrypt(_encryptedUrl),
+      ).thenAnswer((_) async => _testUrl);
+      when(
+        () => mockFetcher.fetch(_testUrl),
+      ).thenAnswer((_) async => _testFetchResult);
+      when(
+        () => mockLocalDs.update(any(), any()),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockLocalDs.replaceConfigs(any(), any()),
+      ).thenAnswer((_) async {});
 
       final result = await repo.updateSubscription('profile-1');
 
@@ -287,8 +356,7 @@ void main() {
     });
 
     test('returns Failure when profile not found', () async {
-      when(() => mockLocalDs.getById('missing'))
-          .thenAnswer((_) async => null);
+      when(() => mockLocalDs.getById('missing')).thenAnswer((_) async => null);
 
       final result = await repo.updateSubscription('missing');
 
@@ -296,8 +364,9 @@ void main() {
     });
 
     test('returns Failure for local profile', () async {
-      when(() => mockLocalDs.getById('local-1'))
-          .thenAnswer((_) async => _testProfile.copyWith(type: ProfileType.local));
+      when(
+        () => mockLocalDs.getById('local-1'),
+      ).thenAnswer((_) async => _testProfile.copyWith(type: ProfileType.local));
 
       final result = await repo.updateSubscription('local-1');
 
@@ -305,10 +374,12 @@ void main() {
     });
 
     test('returns Failure on network error', () async {
-      when(() => mockLocalDs.getById('profile-1'))
-          .thenAnswer((_) async => _testProfile);
-      when(() => mockEncField.decrypt(_encryptedUrl))
-          .thenAnswer((_) async => _testUrl);
+      when(
+        () => mockLocalDs.getById('profile-1'),
+      ).thenAnswer((_) async => _testProfile);
+      when(
+        () => mockEncField.decrypt(_encryptedUrl),
+      ).thenAnswer((_) async => _testUrl);
       when(() => mockFetcher.fetch(_testUrl)).thenThrow(
         const SubscriptionFetcherException(
           url: _testUrl,
@@ -328,18 +399,24 @@ void main() {
         lastUpdatedAt: Value(DateTime.now().subtract(const Duration(hours: 2))),
       );
 
-      when(() => mockLocalDs.watchAll())
-          .thenAnswer((_) => Stream.value([staleProfile]));
-      when(() => mockLocalDs.getById('profile-1'))
-          .thenAnswer((_) async => staleProfile);
-      when(() => mockEncField.decrypt(_encryptedUrl))
-          .thenAnswer((_) async => _testUrl);
-      when(() => mockFetcher.fetch(_testUrl))
-          .thenAnswer((_) async => _testFetchResult);
-      when(() => mockLocalDs.update(any(), any()))
-          .thenAnswer((_) async => true);
-      when(() => mockLocalDs.replaceConfigs(any(), any()))
-          .thenAnswer((_) async {});
+      when(
+        () => mockLocalDs.watchAll(),
+      ).thenAnswer((_) => Stream.value([staleProfile]));
+      when(
+        () => mockLocalDs.getById('profile-1'),
+      ).thenAnswer((_) async => staleProfile);
+      when(
+        () => mockEncField.decrypt(_encryptedUrl),
+      ).thenAnswer((_) async => _testUrl);
+      when(
+        () => mockFetcher.fetch(_testUrl),
+      ).thenAnswer((_) async => _testFetchResult);
+      when(
+        () => mockLocalDs.update(any(), any()),
+      ).thenAnswer((_) async => true);
+      when(
+        () => mockLocalDs.replaceConfigs(any(), any()),
+      ).thenAnswer((_) async {});
 
       final result = await repo.updateAllDueSubscriptions();
 
@@ -349,11 +426,14 @@ void main() {
 
     test('skips profiles within their interval', () async {
       final freshProfile = _testProfile.copyWith(
-        lastUpdatedAt: Value(DateTime.now().subtract(const Duration(minutes: 5))),
+        lastUpdatedAt: Value(
+          DateTime.now().subtract(const Duration(minutes: 5)),
+        ),
       );
 
-      when(() => mockLocalDs.watchAll())
-          .thenAnswer((_) => Stream.value([freshProfile]));
+      when(
+        () => mockLocalDs.watchAll(),
+      ).thenAnswer((_) => Stream.value([freshProfile]));
 
       final result = await repo.updateAllDueSubscriptions();
 
@@ -376,8 +456,7 @@ void main() {
 
   group('reorder', () {
     test('updates sort orders for all profile IDs', () async {
-      when(() => mockLocalDs.updateSortOrders(any()))
-          .thenAnswer((_) async {});
+      when(() => mockLocalDs.updateSortOrders(any())).thenAnswer((_) async {});
 
       final result = await repo.reorder(['b', 'a', 'c']);
 

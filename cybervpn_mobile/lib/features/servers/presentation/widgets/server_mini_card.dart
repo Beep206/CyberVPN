@@ -43,6 +43,7 @@ class ServerMiniCard extends StatelessWidget {
                 FlagWidget(
                   countryCode: server.countryCode,
                   size: FlagSize.medium,
+                  renderMode: FlagRenderMode.compactEmoji,
                 ),
                 const SizedBox(height: Spacing.xs),
 
@@ -67,8 +68,8 @@ class ServerMiniCard extends StatelessWidget {
                         color: ping < 50
                             ? CyberColors.matrixGreen
                             : ping < 100
-                                ? Colors.amber
-                                : colorScheme.error,
+                            ? Colors.amber
+                            : colorScheme.error,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

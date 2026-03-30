@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -30,32 +31,95 @@ part 'server_list_provider.freezed.dart';
 enum SortMode { recommended, countryName, latency, load }
 
 class ServerListEntryViewModel {
-  const ServerListEntryViewModel({
-    required this.server,
-    required this.isCustom,
-    this.configId,
-  });
+  const ServerListEntryViewModel.remote({required this.serverId})
+    : isCustom = false,
+      configId = null,
+      customServer = null;
 
-  final ServerEntity server;
+  const ServerListEntryViewModel.custom({
+    required this.serverId,
+    required this.customServer,
+    required this.configId,
+  }) : isCustom = true;
+
+  final String serverId;
   final bool isCustom;
   final String? configId;
+
+  /// Snapshot used only for custom imported servers that do not exist in the
+  /// main server provider graph.
+  final ServerEntity? customServer;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ServerListEntryViewModel &&
+            serverId == other.serverId &&
+            isCustom == other.isCustom &&
+            configId == other.configId &&
+            customServer == other.customServer;
+  }
+
+  @override
+  int get hashCode => Object.hash(serverId, isCustom, configId, customServer);
+}
+
+class ServerListGroupViewModel {
+  const ServerListGroupViewModel({
+    required this.countryCode,
+    required this.countryName,
+    required this.entries,
+  });
+
+  final String countryCode;
+  final String countryName;
+  final List<ServerListEntryViewModel> entries;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ServerListGroupViewModel &&
+            countryCode == other.countryCode &&
+            countryName == other.countryName &&
+            listEquals(entries, other.entries);
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(countryCode, countryName, Object.hashAll(entries));
 }
 
 class ServerListViewModel {
   const ServerListViewModel({
     required this.searchQuery,
-    required this.favoriteServers,
+    required this.favoriteServerIds,
     required this.groupedServers,
   });
 
   final String searchQuery;
-  final List<ServerEntity> favoriteServers;
-  final Map<String, List<ServerListEntryViewModel>> groupedServers;
+  final List<String> favoriteServerIds;
+  final List<ServerListGroupViewModel> groupedServers;
 
   bool get hasActiveSearch => searchQuery.isNotEmpty;
 
   bool get hasResults =>
-      favoriteServers.isNotEmpty || groupedServers.isNotEmpty;
+      favoriteServerIds.isNotEmpty || groupedServers.isNotEmpty;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ServerListViewModel &&
+            searchQuery == other.searchQuery &&
+            listEquals(favoriteServerIds, other.favoriteServerIds) &&
+            listEquals(groupedServers, other.groupedServers);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    searchQuery,
+    Object.hashAll(favoriteServerIds),
+    Object.hashAll(groupedServers),
+  );
 }
 
 class ServerSearchQueryNotifier extends Notifier<String> {
@@ -65,6 +129,39 @@ class ServerSearchQueryNotifier extends Notifier<String> {
   void setQuery(String value) => state = value;
 
   void clear() => state = '';
+}
+
+class ServerPingResultsNotifier extends Notifier<Map<String, int>> {
+  @override
+  Map<String, int> build() => const <String, int>{};
+
+  void mergeResults(Map<String, int> results) {
+    if (results.isEmpty) return;
+
+    final next = Map<String, int>.from(state);
+    var changed = false;
+
+    for (final entry in results.entries) {
+      if (next[entry.key] != entry.value) {
+        next[entry.key] = entry.value;
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    state = Map<String, int>.unmodifiable(next);
+  }
+
+  void pruneTo(Iterable<String> serverIds) {
+    final allowedIds = serverIds.toSet();
+    final next = <String, int>{
+      for (final entry in state.entries)
+        if (allowedIds.contains(entry.key)) entry.key: entry.value,
+    };
+
+    if (mapEquals(next, state)) return;
+    state = Map<String, int>.unmodifiable(next);
+  }
 }
 
 /// Immutable state for the server list screen.
@@ -184,6 +281,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
     // Mark servers that are in the favorites list.
     final serversWithFavorites = _applyFavoriteFlags(page.items, favoriteIds);
+    _syncPingResults(serversWithFavorites, replaceExisting: true);
 
     // Trigger ping test for initial load (fire-and-forget).
     _triggerPingTest(serversWithFavorites);
@@ -206,14 +304,17 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   /// Fetch servers from the repository.
   Future<void> fetchServers() async {
+    final previousState = state.value;
     state = const AsyncLoading<ServerListState>();
     state = await AsyncValue.guard(() async {
       final servers = await _fetchServers();
-      final current = state.value ?? const ServerListState();
+      final current = previousState ?? const ServerListState();
       final serversWithFavorites = _applyFavoriteFlags(
         servers,
         current.favoriteServerIds,
       );
+      _syncPingResults(serversWithFavorites, replaceExisting: true);
+      _triggerPingTest(serversWithFavorites);
       return current.copyWith(servers: serversWithFavorites);
     });
   }
@@ -273,7 +374,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     }
 
     // Also notify remote repository (ignore Result; fire-and-forget).
-    final _ = await repo.toggleFavorite(serverId);
+    unawaited(repo.toggleFavorite(serverId));
 
     final updatedServers = current.servers.map((ServerEntity s) {
       if (s.id == serverId) return s.copyWith(isFavorite: !s.isFavorite);
@@ -327,6 +428,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
         totalServerCount: page.total,
         hasMore: page.hasMore,
       );
+      _syncPingResults(serversWithFavorites, replaceExisting: true);
       state = AsyncData<ServerListState>(refreshed);
 
       // Re-run pings after refresh.
@@ -353,6 +455,7 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
         current.favoriteServerIds,
       );
       final allServers = [...current.servers, ...newServers];
+      _syncPingResults(allServers, replaceExisting: false);
 
       state = AsyncData<ServerListState>(
         current.copyWith(
@@ -413,20 +516,42 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   void _triggerPingTest(List<ServerEntity> servers) {
     final pingService = ref.read(pingServiceProvider);
+    final staleServers = servers
+        .where((server) => !pingService.isFresh(server.id))
+        .toList(growable: false);
+
+    if (staleServers.isEmpty) {
+      return;
+    }
+
     unawaited(
-      pingService.pingAllConcurrent(servers).then((Map<String, int> results) {
-        final current = state.value;
-        if (current == null) return;
-
-        final updated = current.servers.map((ServerEntity s) {
-          final latency = results[s.id];
-          if (latency != null) return s.copyWith(ping: latency);
-          return s;
-        }).toList();
-
-        state = AsyncData<ServerListState>(current.copyWith(servers: updated));
+      pingService.pingAllConcurrent(staleServers).then((
+        Map<String, int> results,
+      ) {
+        ref.read(serverPingResultsProvider.notifier).mergeResults(results);
       }),
     );
+  }
+
+  void _syncPingResults(
+    List<ServerEntity> servers, {
+    required bool replaceExisting,
+  }) {
+    final pingService = ref.read(pingServiceProvider);
+    final cachedPings = <String, int>{};
+
+    for (final server in servers) {
+      final ping = pingService.getLatency(server.id);
+      if (ping != null && pingService.isFresh(server.id)) {
+        cachedPings[server.id] = ping;
+      }
+    }
+
+    final notifier = ref.read(serverPingResultsProvider.notifier);
+    if (replaceExisting) {
+      notifier.pruneTo(servers.map((server) => server.id));
+    }
+    notifier.mergeResults(cachedPings);
   }
 
   /// Listens to WebSocket server_status_changed events and updates
@@ -470,6 +595,9 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     // Parse the new status. Valid values: 'online', 'offline', 'maintenance'.
     // Map them to the `isAvailable` field.
     final isAvailable = event.status == 'online';
+    if (current.servers[serverIndex].isAvailable == isAvailable) {
+      return;
+    }
 
     // Update the server entity.
     final updatedServers = List<ServerEntity>.from(current.servers);
@@ -502,6 +630,15 @@ final serverListProvider =
       ServerListNotifier.new,
     );
 
+final serverPingResultsProvider =
+    NotifierProvider<ServerPingResultsNotifier, Map<String, int>>(
+      ServerPingResultsNotifier.new,
+    );
+
+final serverPingByIdProvider = Provider.family<int?, String>((ref, String id) {
+  return ref.watch(serverPingResultsProvider.select((pings) => pings[id]));
+});
+
 // ---------------------------------------------------------------------------
 // Derived providers
 // ---------------------------------------------------------------------------
@@ -513,8 +650,20 @@ final serverListProvider =
 final filteredServersProvider = Provider<List<ServerEntity>>((ref) {
   final asyncState = ref.watch(profileAwareServerListProvider);
   final serverState = asyncState.value;
+  final pingResults = ref.watch(serverPingResultsProvider);
   if (serverState == null) return [];
-  return serverState.filteredServers;
+  return _buildFilteredServers(serverState, pingResults);
+});
+
+final allServersWithPingProvider = Provider<List<ServerEntity>>((ref) {
+  final asyncState = ref.watch(profileAwareServerListProvider);
+  final serverState = asyncState.value;
+  final pingResults = ref.watch(serverPingResultsProvider);
+  if (serverState == null) {
+    return const <ServerEntity>[];
+  }
+
+  return _applyPingResults(serverState.servers, pingResults);
 });
 
 /// Servers grouped by country code, derived from [filteredServersProvider].
@@ -537,10 +686,7 @@ final favoriteServersProvider = Provider<List<ServerEntity>>((ref) {
   if (serverState == null) return [];
 
   final favoriteIds = serverState.favoriteServerIds;
-  final serverMap = <String, ServerEntity>{};
-  for (final s in serverState.servers) {
-    serverMap[s.id] = s;
-  }
+  final serverMap = ref.watch(serverMapProvider);
 
   // Return in persisted order, filtering out any IDs not in current server list.
   final ordered = <ServerEntity>[];
@@ -555,11 +701,10 @@ final favoriteServersProvider = Provider<List<ServerEntity>>((ref) {
 
 /// The single best recommended server (lowest ping, available, non-premium).
 final recommendedServerProvider = Provider<ServerEntity?>((ref) {
-  final asyncState = ref.watch(profileAwareServerListProvider);
-  final serverState = asyncState.value;
-  if (serverState == null) return null;
+  final servers = ref.watch(allServersWithPingProvider);
+  if (servers.isEmpty) return null;
 
-  final available = serverState.servers
+  final available = servers
       .where((ServerEntity s) => s.isAvailable && !s.isPremium)
       .toList();
   if (available.isEmpty) return null;
@@ -608,29 +753,43 @@ bool _matchesServerSearch(ServerEntity server, String normalizedQuery) {
 }
 
 final serverListViewProvider = Provider<ServerListViewModel>((ref) {
-  final groupedServers = ref.watch(groupedByCountryProvider);
-  final favoriteServers = ref.watch(favoriteServersProvider);
+  final asyncState = ref.watch(profileAwareServerListProvider);
+  final serverState = asyncState.value;
+  final serverMap = ref.watch(serverMapProvider);
+  final filteredServers = ref.watch(filteredServersProvider);
   final customServers = ref.watch(importedConfigsProvider);
   final searchQuery = ref.watch(serverSearchQueryProvider);
   final normalizedQuery = searchQuery.trim().toLowerCase();
 
-  final filteredFavorites = favoriteServers
-      .where((server) => _matchesServerSearch(server, normalizedQuery))
+  if (serverState == null) {
+    return ServerListViewModel(
+      searchQuery: searchQuery,
+      favoriteServerIds: const <String>[],
+      groupedServers: const <ServerListGroupViewModel>[],
+    );
+  }
+
+  final filteredFavoriteIds = serverState.favoriteServerIds
+      .where((id) {
+        final server = serverMap[id];
+        return server != null && _matchesServerSearch(server, normalizedQuery);
+      })
       .toList(growable: false);
 
-  final merged = <String, List<ServerListEntryViewModel>>{};
+  final grouped = <String, List<ServerListEntryViewModel>>{};
+  final countryNames = <String, String>{};
 
-  for (final entry in groupedServers.entries) {
-    final matchingServers = entry.value
-        .where((server) => _matchesServerSearch(server, normalizedQuery))
-        .map(
-          (server) => ServerListEntryViewModel(server: server, isCustom: false),
-        )
-        .toList(growable: false);
-
-    if (matchingServers.isNotEmpty) {
-      merged[entry.key] = matchingServers;
+  for (final server in filteredServers) {
+    if (!_matchesServerSearch(server, normalizedQuery)) {
+      continue;
     }
+
+    final countryEntries = grouped.putIfAbsent(
+      server.countryCode,
+      () => <ServerListEntryViewModel>[],
+    );
+    countryEntries.add(ServerListEntryViewModel.remote(serverId: server.id));
+    countryNames.putIfAbsent(server.countryCode, () => server.countryName);
   }
 
   for (final config in customServers) {
@@ -639,22 +798,47 @@ final serverListViewProvider = Provider<ServerListViewModel>((ref) {
       continue;
     }
 
-    merged
-        .putIfAbsent(server.countryCode, () => <ServerListEntryViewModel>[])
-        .add(
-          ServerListEntryViewModel(
-            server: server,
-            isCustom: true,
-            configId: config.id,
-          ),
-        );
+    final countryEntries = grouped.putIfAbsent(
+      server.countryCode,
+      () => <ServerListEntryViewModel>[],
+    );
+    countryEntries.add(
+      ServerListEntryViewModel.custom(
+        serverId: server.id,
+        customServer: server,
+        configId: config.id,
+      ),
+    );
+    countryNames.putIfAbsent(server.countryCode, () => server.countryName);
   }
+
+  final groupedServers = grouped.entries
+      .map(
+        (entry) => ServerListGroupViewModel(
+          countryCode: entry.key,
+          countryName: countryNames[entry.key] ?? entry.key,
+          entries: List<ServerListEntryViewModel>.unmodifiable(entry.value),
+        ),
+      )
+      .toList(growable: false);
 
   return ServerListViewModel(
     searchQuery: searchQuery,
-    favoriteServers: filteredFavorites,
-    groupedServers: merged,
+    favoriteServerIds: filteredFavoriteIds,
+    groupedServers: groupedServers,
   );
+});
+
+/// Stable index of servers by ID for row-level lookups.
+final serverMapProvider = Provider<Map<String, ServerEntity>>((ref) {
+  final servers = ref.watch(allServersWithPingProvider);
+  if (servers.isEmpty) {
+    return const <String, ServerEntity>{};
+  }
+
+  return Map<String, ServerEntity>.unmodifiable({
+    for (final server in servers) server.id: server,
+  });
 });
 
 /// Look up a single server by ID.
@@ -662,13 +846,84 @@ final serverByIdProvider = Provider.family<ServerEntity?, String>((
   ref,
   String id,
 ) {
-  final asyncState = ref.watch(profileAwareServerListProvider);
-  final serverState = asyncState.value;
-  if (serverState == null) return null;
-
-  try {
-    return serverState.servers.firstWhere((ServerEntity s) => s.id == id);
-  } catch (e) {
-    return null;
-  }
+  return ref.watch(serverMapProvider.select((serverMap) => serverMap[id]));
 });
+
+List<ServerEntity> _applyPingResults(
+  List<ServerEntity> servers,
+  Map<String, int> pingResults,
+) {
+  if (servers.isEmpty || pingResults.isEmpty) {
+    return servers;
+  }
+
+  var changed = false;
+  final merged = servers
+      .map((server) {
+        final ping = pingResults[server.id];
+        if (ping == null || ping == server.ping) {
+          return server;
+        }
+
+        changed = true;
+        return server.copyWith(ping: ping);
+      })
+      .toList(growable: false);
+
+  return changed ? merged : servers;
+}
+
+List<ServerEntity> _buildFilteredServers(
+  ServerListState state,
+  Map<String, int> pingResults,
+) {
+  var result = List<ServerEntity>.from(
+    _applyPingResults(state.servers, pingResults),
+  );
+
+  if (state.filterCountry != null && state.filterCountry!.isNotEmpty) {
+    result = result
+        .where((ServerEntity s) => s.countryCode == state.filterCountry)
+        .toList(growable: false);
+  }
+
+  if (state.filterProtocol != null) {
+    result = result
+        .where((ServerEntity s) => s.protocol == state.filterProtocol!.name)
+        .toList(growable: false);
+  }
+
+  switch (state.sortMode) {
+    case SortMode.recommended:
+      result.sort((ServerEntity a, ServerEntity b) {
+        if (a.isAvailable != b.isAvailable) {
+          return a.isAvailable ? -1 : 1;
+        }
+        final pingA = a.ping ?? 9999;
+        final pingB = b.ping ?? 9999;
+        if (pingA != pingB) return pingA.compareTo(pingB);
+        final loadA = a.load ?? 100.0;
+        final loadB = b.load ?? 100.0;
+        return loadA.compareTo(loadB);
+      });
+    case SortMode.countryName:
+      result.sort(
+        (ServerEntity a, ServerEntity b) =>
+            a.countryName.compareTo(b.countryName),
+      );
+    case SortMode.latency:
+      result.sort((ServerEntity a, ServerEntity b) {
+        final pingA = a.ping ?? 9999;
+        final pingB = b.ping ?? 9999;
+        return pingA.compareTo(pingB);
+      });
+    case SortMode.load:
+      result.sort((ServerEntity a, ServerEntity b) {
+        final loadA = a.load ?? 100.0;
+        final loadB = b.load ?? 100.0;
+        return loadA.compareTo(loadB);
+      });
+  }
+
+  return result;
+}

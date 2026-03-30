@@ -14,27 +14,15 @@ class OnboardingPageWidget extends StatelessWidget {
   const OnboardingPageWidget({
     super.key,
     required this.page,
-    required this.pageIndex,
     this.isVisible = true,
   });
 
   /// The onboarding page data to display.
   final OnboardingPage page;
 
-  /// Zero-based index used to select the Lottie animation asset.
-  final int pageIndex;
-
   /// Whether this page is currently visible in the PageView.
   /// Controls auto-play/pause of the Lottie animation.
   final bool isVisible;
-
-  /// Lottie animation asset paths corresponding to each onboarding page.
-  static const _lottieAssets = [
-    'assets/animations/onboarding_privacy.json',
-    'assets/animations/onboarding_connect.json',
-    'assets/animations/onboarding_globe.json',
-    'assets/animations/get_started.json',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +40,22 @@ class OnboardingPageWidget extends StatelessWidget {
           SizedBox(
             width: 200,
             height: 200,
-            child: pageIndex < _lottieAssets.length
-                ? Lottie.asset(
-                    _lottieAssets[pageIndex],
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.contain,
-                    animate: isVisible && !disableAnimations,
-                    errorBuilder: (_, _, _) =>
-                        _buildFallbackIcon(colorScheme),
+            child: page.animationAsset.isNotEmpty
+                ? TickerMode(
+                    enabled: isVisible && !disableAnimations,
+                    child: RepaintBoundary(
+                      child: Lottie.asset(
+                        page.animationAsset,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
+                        animate: isVisible && !disableAnimations,
+                        frameRate: const FrameRate(30),
+                        backgroundLoading: true,
+                        errorBuilder: (_, _, _) =>
+                            _buildFallbackIcon(colorScheme),
+                      ),
+                    ),
                   )
                 : _buildFallbackIcon(colorScheme),
           ),
@@ -96,16 +91,9 @@ class OnboardingPageWidget extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: colorScheme.primary.withAlpha(20),
-        border: Border.all(
-          color: colorScheme.primary.withAlpha(60),
-          width: 2,
-        ),
+        border: Border.all(color: colorScheme.primary.withAlpha(60), width: 2),
       ),
-      child: Icon(
-        Icons.star,
-        size: 80,
-        color: colorScheme.primary,
-      ),
+      child: Icon(Icons.star, size: 80, color: colorScheme.primary),
     );
   }
 
@@ -122,20 +110,19 @@ class OnboardingPageWidget extends StatelessWidget {
 
   /// Title lookup from dotted key to [AppLocalizations] getter.
   static Map<String, String> _l10nTitleMap(AppLocalizations l10n) => {
-        'onboarding.privacy.title': l10n.onboardingPrivacyTitle,
-        'onboarding.connect.title': l10n.onboardingConnectTitle,
-        'onboarding.globe.title': l10n.onboardingGlobeTitle,
-        'onboarding.getStarted.title': l10n.onboardingGetStartedTitle,
-      };
+    'onboarding.privacy.title': l10n.onboardingPrivacyTitle,
+    'onboarding.connect.title': l10n.onboardingConnectTitle,
+    'onboarding.globe.title': l10n.onboardingGlobeTitle,
+    'onboarding.getStarted.title': l10n.onboardingGetStartedTitle,
+  };
 
   /// Description lookup from dotted key to [AppLocalizations] getter.
   static Map<String, String> _l10nDescriptionMap(AppLocalizations l10n) => {
-        'onboarding.privacy.description': l10n.onboardingPrivacyDescription,
-        'onboarding.connect.description': l10n.onboardingConnectDescription,
-        'onboarding.globe.description': l10n.onboardingGlobeDescription,
-        'onboarding.getStarted.description':
-            l10n.onboardingGetStartedDescription,
-      };
+    'onboarding.privacy.description': l10n.onboardingPrivacyDescription,
+    'onboarding.connect.description': l10n.onboardingConnectDescription,
+    'onboarding.globe.description': l10n.onboardingGlobeDescription,
+    'onboarding.getStarted.description': l10n.onboardingGetStartedDescription,
+  };
 
   /// Extracts a readable fallback string from a dotted localisation key.
   ///

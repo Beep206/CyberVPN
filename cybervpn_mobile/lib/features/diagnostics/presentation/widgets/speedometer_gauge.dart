@@ -60,8 +60,10 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
       vsync: this,
       duration: widget.animationDuration,
     );
-    _animation = Tween<double>(begin: 0.0, end: _clamp(widget.speed))
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: _clamp(widget.speed),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     unawaited(_controller.forward());
   }
 
@@ -73,9 +75,7 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
       _animation = Tween<double>(
         begin: _previousSpeed,
         end: _clamp(widget.speed),
-      ).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-      );
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
       _controller.reset();
       unawaited(_controller.forward());
     }
@@ -95,69 +95,62 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
     // Gauges and charts should always remain LTR regardless of app text direction
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: AnimatedBuilder(
-        animation: _animation,
-        builder: (context, _) {
-          final fraction = _animation.value;
-          final displaySpeed = fraction * widget.maxSpeed;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final side =
+              widget.size ??
+              math.min(constraints.maxWidth, constraints.maxHeight);
+          final paintSize = Size(side, side);
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final side = widget.size ??
-                  math.min(constraints.maxWidth, constraints.maxHeight);
-
-              return SizedBox(
-                width: side,
-                height: side,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Gauge arcs, ticks, and needle
-                    CustomPaint(
-                      size: Size(side, side),
-                      painter: _SpeedometerPainter(
-                        fraction: fraction,
-                        maxSpeed: widget.maxSpeed,
-                      ),
+          return SizedBox(
+            width: side,
+            height: side,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                RepaintBoundary(
+                  child: CustomPaint(
+                    size: paintSize,
+                    isComplex: true,
+                    painter: _SpeedometerStaticPainter(
+                      maxSpeed: widget.maxSpeed,
                     ),
-                    // Center speed readout
-                    Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displaySpeed.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontFamily: 'Orbitron',
-                          fontSize: side * 0.12,
-                          fontWeight: FontWeight.w700,
-                          color: _speedColor(fraction),
-                          shadows: [
-                            Shadow(
-                              color:
-                                  _speedColor(fraction).withValues(alpha: 0.6),
-                              blurRadius: 12,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        widget.label,
-                        style: TextStyle(
-                          fontFamily: 'JetBrains Mono',
-                          fontSize: side * 0.04,
-                          color: Colors.white38,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ],
                   ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    ),
+                ),
+                RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: paintSize,
+                        isComplex: true,
+                        willChange: true,
+                        painter: _SpeedometerDynamicPainter(
+                          fraction: _animation.value,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, _) {
+                    final fraction = _animation.value;
+                    final displaySpeed = fraction * widget.maxSpeed;
+
+                    return _SpeedometerReadout(
+                      speed: displaySpeed,
+                      label: widget.label,
+                      color: _speedColor(fraction),
+                      side: side,
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -168,18 +161,57 @@ class SpeedometerGaugeState extends State<SpeedometerGauge>
   }
 }
 
-// ---------------------------------------------------------------------------
-// Custom Painter
-// ---------------------------------------------------------------------------
-
-class _SpeedometerPainter extends CustomPainter {
-  _SpeedometerPainter({
-    required this.fraction,
-    required this.maxSpeed,
+class _SpeedometerReadout extends StatelessWidget {
+  const _SpeedometerReadout({
+    required this.speed,
+    required this.label,
+    required this.color,
+    required this.side,
   });
 
-  /// 0.0 to 1.0, representing current speed / max speed.
-  final double fraction;
+  final double speed;
+  final String label;
+  final Color color;
+  final double side;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          speed.toStringAsFixed(1),
+          style: TextStyle(
+            fontFamily: 'Orbitron',
+            fontSize: side * 0.12,
+            fontWeight: FontWeight.w700,
+            color: color,
+            shadows: [
+              Shadow(color: color.withValues(alpha: 0.6), blurRadius: 12),
+            ],
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'JetBrains Mono',
+            fontSize: side * 0.04,
+            color: Colors.white38,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Custom Painters
+// ---------------------------------------------------------------------------
+
+class _SpeedometerStaticPainter extends CustomPainter {
+  const _SpeedometerStaticPainter({required this.maxSpeed});
+
   final double maxSpeed;
 
   // Arc geometry: 240 degrees, starting at 150 degrees (bottom-left).
@@ -194,7 +226,6 @@ class _SpeedometerPainter extends CustomPainter {
     final radius = size.width * 0.40;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // -- Background arc --
     final bgPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = size.width * 0.025
@@ -202,6 +233,92 @@ class _SpeedometerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(rect, _startAngle, _sweepAngle, false, bgPaint);
+    _drawTicks(canvas, center, radius, size);
+  }
+
+  void _drawTicks(Canvas canvas, Offset center, double radius, Size size) {
+    final majorPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.6)
+      ..strokeWidth = 2;
+    final minorPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..strokeWidth = 1;
+
+    const tickSpacing = _sweepAngle / _majorTicks;
+    const minorSpacing = tickSpacing / (_minorTicksPerMajor + 1);
+
+    for (var i = 0; i <= _majorTicks; i++) {
+      final majorAngle = _startAngle + tickSpacing * i;
+      final outerR = radius + size.width * 0.03;
+      final innerR = radius - size.width * 0.03;
+
+      canvas.drawLine(
+        _polarToCartesian(center, innerR, majorAngle),
+        _polarToCartesian(center, outerR, majorAngle),
+        majorPaint,
+      );
+
+      final speedValue = (maxSpeed / _majorTicks * i).round();
+      final labelOffset = _polarToCartesian(
+        center,
+        radius - size.width * 0.08,
+        majorAngle,
+      );
+
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: '$speedValue',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.4),
+            fontSize: size.width * 0.03,
+            fontFamily: 'JetBrains Mono',
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      textPainter.paint(
+        canvas,
+        labelOffset - Offset(textPainter.width / 2, textPainter.height / 2),
+      );
+
+      if (i < _majorTicks) {
+        for (var j = 1; j <= _minorTicksPerMajor; j++) {
+          final minorAngle = majorAngle + minorSpacing * j;
+          final minorOuterR = radius + size.width * 0.015;
+          final minorInnerR = radius - size.width * 0.015;
+
+          canvas.drawLine(
+            _polarToCartesian(center, minorInnerR, minorAngle),
+            _polarToCartesian(center, minorOuterR, minorAngle),
+            minorPaint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpeedometerStaticPainter oldDelegate) {
+    return oldDelegate.maxSpeed != maxSpeed;
+  }
+}
+
+class _SpeedometerDynamicPainter extends CustomPainter {
+  const _SpeedometerDynamicPainter({required this.fraction});
+
+  /// 0.0 to 1.0, representing current speed / max speed.
+  final double fraction;
+
+  // Arc geometry: 240 degrees, starting at 150 degrees (bottom-left).
+  static const double _startAngle = 150 * (math.pi / 180);
+  static const double _sweepAngle = 240 * (math.pi / 180);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.40;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
     // -- Filled arc (gradient from pink to green) --
     final filledSweep = _sweepAngle * fraction;
@@ -243,74 +360,8 @@ class _SpeedometerPainter extends CustomPainter {
       canvas.drawArc(rect, _startAngle, filledSweep, false, glowPaint);
     }
 
-    // -- Tick marks --
-    _drawTicks(canvas, center, radius, size);
-
     // -- Needle --
     _drawNeedle(canvas, center, radius, size);
-  }
-
-  void _drawTicks(Canvas canvas, Offset center, double radius, Size size) {
-    final majorPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
-      ..strokeWidth = 2;
-    final minorPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.2)
-      ..strokeWidth = 1;
-
-    const tickSpacing = _sweepAngle / _majorTicks;
-    const minorSpacing = tickSpacing / (_minorTicksPerMajor + 1);
-
-    for (var i = 0; i <= _majorTicks; i++) {
-      final majorAngle = _startAngle + tickSpacing * i;
-      final outerR = radius + size.width * 0.03;
-      final innerR = radius - size.width * 0.03;
-
-      // Major tick
-      canvas.drawLine(
-        _polarToCartesian(center, innerR, majorAngle),
-        _polarToCartesian(center, outerR, majorAngle),
-        majorPaint,
-      );
-
-      // Speed label for major ticks
-      final speedValue = (maxSpeed / _majorTicks * i).round();
-      final labelOffset =
-          _polarToCartesian(center, radius - size.width * 0.08, majorAngle);
-
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: '$speedValue',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
-            fontSize: size.width * 0.03,
-            fontFamily: 'JetBrains Mono',
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      textPainter.paint(
-        canvas,
-        labelOffset -
-            Offset(textPainter.width / 2, textPainter.height / 2),
-      );
-
-      // Minor ticks (except after the last major)
-      if (i < _majorTicks) {
-        for (var j = 1; j <= _minorTicksPerMajor; j++) {
-          final minorAngle = majorAngle + minorSpacing * j;
-          final minorOuterR = radius + size.width * 0.015;
-          final minorInnerR = radius - size.width * 0.015;
-
-          canvas.drawLine(
-            _polarToCartesian(center, minorInnerR, minorAngle),
-            _polarToCartesian(center, minorOuterR, minorAngle),
-            minorPaint,
-          );
-        }
-      }
-    }
   }
 
   void _drawNeedle(Canvas canvas, Offset center, double radius, Size size) {
@@ -352,16 +403,15 @@ class _SpeedometerPainter extends CustomPainter {
     return CyberColors.neonPink;
   }
 
-  static Offset _polarToCartesian(
-      Offset center, double radius, double angle) {
-    return Offset(
-      center.dx + radius * math.cos(angle),
-      center.dy + radius * math.sin(angle),
-    );
-  }
-
   @override
-  bool shouldRepaint(covariant _SpeedometerPainter oldDelegate) {
+  bool shouldRepaint(covariant _SpeedometerDynamicPainter oldDelegate) {
     return oldDelegate.fraction != fraction;
   }
+}
+
+Offset _polarToCartesian(Offset center, double radius, double angle) {
+  return Offset(
+    center.dx + radius * math.cos(angle),
+    center.dy + radius * math.sin(angle),
+  );
 }

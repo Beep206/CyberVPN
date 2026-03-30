@@ -44,18 +44,14 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
     final history = ref.watch(speedHistoryProvider);
 
     // Find the previous result for comparison (second in history).
-    final previousResult =
-        history.length >= 2 ? history[1] : null;
+    final previousResult = history.length >= 2 ? history[1] : null;
 
     // Determine gauge speed: latest result's download speed or 0 while idle.
     final gaugeSpeed = latestResult?.downloadMbps ?? 0.0;
 
     return Scaffold(
       backgroundColor: CyberColors.deepNavy,
-      appBar: CyberAppBar(
-        title: l10n.speedTestTitle,
-        transparent: true,
-      ),
+      appBar: CyberAppBar(title: l10n.speedTestTitle, transparent: true),
       body: RefreshIndicator(
         onRefresh: () async {
           // Trigger medium haptic on pull-to-refresh threshold.
@@ -146,8 +142,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                     previousResult: previousResult,
                     showComparison: _showComparison,
                     onCompare: () {
-                      setState(
-                          () => _showComparison = !_showComparison);
+                      setState(() => _showComparison = !_showComparison);
                     },
                     onShare: () => _shareResults(latestResult),
                   ),
@@ -226,9 +221,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
               ),
 
             // Bottom padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: Spacing.xl),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: Spacing.xl)),
           ],
         ),
       ),
@@ -250,15 +243,23 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
       ..writeln(l10n.speedTestShareTitle)
       ..writeln('---')
       ..writeln(
-          l10n.speedTestShareDownload(result.downloadMbps.toStringAsFixed(1)))
-      ..writeln(
-          l10n.speedTestShareUpload(result.uploadMbps.toStringAsFixed(1)))
+        l10n.speedTestShareDownload(result.downloadMbps.toStringAsFixed(1)),
+      )
+      ..writeln(l10n.speedTestShareUpload(result.uploadMbps.toStringAsFixed(1)))
       ..writeln(l10n.speedTestShareLatency(result.latencyMs))
       ..writeln(l10n.speedTestShareJitter(result.jitterMs))
-      ..writeln(result.vpnActive ? l10n.speedTestShareVpnOn : l10n.speedTestShareVpnOff)
-      ..writeln(l10n.speedTestShareTestedAt(result.testedAt.toLocal().toString()));
+      ..writeln(
+        result.vpnActive ? l10n.speedTestShareVpnOn : l10n.speedTestShareVpnOff,
+      )
+      ..writeln(
+        l10n.speedTestShareTestedAt(result.testedAt.toLocal().toString()),
+      );
 
-    unawaited(share_plus.SharePlus.instance.share(share_plus.ShareParams(text: text.toString())));
+    unawaited(
+      share_plus.SharePlus.instance.share(
+        share_plus.ShareParams(text: text.toString()),
+      ),
+    );
   }
 }
 
@@ -267,10 +268,7 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
 // ---------------------------------------------------------------------------
 
 class _StartTestButton extends StatelessWidget {
-  const _StartTestButton({
-    required this.isRunning,
-    required this.onPressed,
-  });
+  const _StartTestButton({required this.isRunning, required this.onPressed});
 
   final bool isRunning;
   final VoidCallback onPressed;
@@ -291,10 +289,7 @@ class _StartTestButton extends StatelessWidget {
             gradient: isRunning
                 ? null
                 : const LinearGradient(
-                    colors: [
-                      CyberColors.neonCyan,
-                      CyberColors.matrixGreen,
-                    ],
+                    colors: [CyberColors.neonCyan, CyberColors.matrixGreen],
                   ),
             color: isRunning ? Colors.white.withValues(alpha: 0.05) : null,
             borderRadius: BorderRadius.circular(Radii.xl),
@@ -319,6 +314,8 @@ class _StartTestButton extends StatelessWidget {
                         height: 24,
                         fit: BoxFit.contain,
                         animate: !MediaQuery.of(context).disableAnimations,
+                        frameRate: const FrameRate(24),
+                        backgroundLoading: true,
                       ),
                       const SizedBox(width: Spacing.sm),
                       Text(
@@ -353,10 +350,7 @@ class _StartTestButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({
-    required this.result,
-    this.isLatest = false,
-  });
+  const _HistoryTile({required this.result, this.isLatest = false});
 
   final SpeedTestResult result;
   final bool isLatest;

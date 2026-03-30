@@ -9,8 +9,10 @@ import 'package:cybervpn_mobile/features/notifications/domain/repositories/notif
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_state.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show fcmDatasourceProvider, notificationRepositoryImplProvider,
-         notificationRepositoryProvider;
+    show
+        fcmDatasourceProvider,
+        notificationRepositoryImplProvider,
+        notificationRepositoryProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,8 +44,9 @@ class MockNotificationRepository implements NotificationRepository {
 
   @override
   Future<void> markAllAsRead() async {
-    _notifications =
-        _notifications.map((n) => n.copyWith(isRead: true)).toList();
+    _notifications = _notifications
+        .map((n) => n.copyWith(isRead: true))
+        .toList();
   }
 
   @override
@@ -99,6 +102,8 @@ class MockFcmDatasource implements FcmDatasource {
   String? tokenToReturn = 'mock-fcm-token';
   final StreamController<String> _tokenRefreshController =
       StreamController<String>.broadcast();
+
+  bool get hasTokenRefreshListener => _tokenRefreshController.hasListener;
 
   @override
   Future<String?> getToken() async => tokenToReturn;
@@ -311,24 +316,26 @@ void main() {
       expect(state.notifications.first.isRead, isTrue);
     });
 
-    test('markAsRead on already-read notification does not change count',
-        () async {
-      repoImpl.seed([_makeNotification(id: '1', isRead: true)]);
+    test(
+      'markAsRead on already-read notification does not change count',
+      () async {
+        repoImpl.seed([_makeNotification(id: '1', isRead: true)]);
 
-      container = createContainer(
-        repoImpl: repoImpl,
-        fcm: fcm,
-        wsClient: wsClient,
-      );
+        container = createContainer(
+          repoImpl: repoImpl,
+          fcm: fcm,
+          wsClient: wsClient,
+        );
 
-      await waitForState(container);
+        await waitForState(container);
 
-      final notifier = container.read(notificationProvider.notifier);
-      await notifier.markAsRead('1');
+        final notifier = container.read(notificationProvider.notifier);
+        await notifier.markAsRead('1');
 
-      final state = container.read(notificationProvider).requireValue;
-      expect(state.unreadCount, 0);
-    });
+        final state = container.read(notificationProvider).requireValue;
+        expect(state.unreadCount, 0);
+      },
+    );
 
     test('markAllAsRead sets unread count to zero', () async {
       repoImpl.seed([
@@ -415,6 +422,24 @@ void main() {
 
       expect(repoImpl.registerFcmTokenCalled, isTrue);
       expect(repoImpl.lastRegisteredToken, 'mock-fcm-token');
+    });
+
+    test('disposes FCM token refresh listener', () async {
+      container = createContainer(
+        repoImpl: repoImpl,
+        fcm: fcm,
+        wsClient: wsClient,
+      );
+
+      await waitForState(container);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fcm.hasTokenRefreshListener, isTrue);
+
+      container.dispose();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fcm.hasTokenRefreshListener, isFalse);
     });
   });
 

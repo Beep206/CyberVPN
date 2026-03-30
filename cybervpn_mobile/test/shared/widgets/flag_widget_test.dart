@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:cybervpn_mobile/core/constants/flag_assets.dart';
 import 'package:cybervpn_mobile/shared/widgets/flag_widget.dart';
@@ -10,10 +11,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: FlagWidget(
-              countryCode: 'US',
-              size: FlagSize.medium,
-            ),
+            body: FlagWidget(countryCode: 'US', size: FlagSize.medium),
           ),
         ),
       );
@@ -28,10 +26,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: FlagWidget(
-              countryCode: 'XX',
-              size: FlagSize.medium,
-            ),
+            body: FlagWidget(countryCode: 'XX', size: FlagSize.medium),
           ),
         ),
       );
@@ -47,10 +42,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: FlagWidget(
-              countryCode: 'US',
-              size: FlagSize.large,
-            ),
+            body: FlagWidget(countryCode: 'US', size: FlagSize.large),
           ),
         ),
       );
@@ -59,10 +51,12 @@ void main() {
 
       // Find the SizedBox that wraps the flag
       final sizedBox = tester.widget<SizedBox>(
-        find.descendant(
-          of: find.byType(FlagWidget),
-          matching: find.byType(SizedBox),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(FlagWidget),
+              matching: find.byType(SizedBox),
+            )
+            .first,
       );
 
       expect(sizedBox.width, equals(FlagSize.large.dimension));
@@ -70,7 +64,10 @@ void main() {
     });
 
     testWidgets('renders custom placeholder when provided', (tester) async {
-      const customPlaceholder = Icon(Icons.flag, key: Key('custom-placeholder'));
+      const customPlaceholder = Icon(
+        Icons.flag,
+        key: Key('custom-placeholder'),
+      );
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -109,6 +106,25 @@ void main() {
 
       // All three should render without errors
       expect(find.byType(FlagWidget), findsNWidgets(3));
+    });
+
+    testWidgets('compactEmoji mode avoids SVG rendering', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: FlagWidget(
+              countryCode: 'US',
+              size: FlagSize.medium,
+              renderMode: FlagRenderMode.compactEmoji,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SvgPicture), findsNothing);
+      expect(find.text('🇺🇸'), findsOneWidget);
     });
   });
 

@@ -9,17 +9,17 @@ List<OnboardingPage> getDefaultOnboardingPages() {
     OnboardingPage(
       titleKey: 'onboarding.privacy.title',
       descriptionKey: 'onboarding.privacy.description',
-      animationAsset: 'assets/animations/privacy.json',
+      animationAsset: 'assets/animations/onboarding_privacy.json',
     ),
     OnboardingPage(
       titleKey: 'onboarding.connect.title',
       descriptionKey: 'onboarding.connect.description',
-      animationAsset: 'assets/animations/connect.json',
+      animationAsset: 'assets/animations/onboarding_connect.json',
     ),
     OnboardingPage(
       titleKey: 'onboarding.globe.title',
       descriptionKey: 'onboarding.globe.description',
-      animationAsset: 'assets/animations/globe.json',
+      animationAsset: 'assets/animations/onboarding_globe.json',
     ),
     OnboardingPage(
       titleKey: 'onboarding.getStarted.title',

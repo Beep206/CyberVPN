@@ -52,9 +52,10 @@ void main() {
     mockSpeedTestService = MockSpeedTestService();
     mockDiagnosticService = MockDiagnosticService();
 
+    when(() => mockSpeedTestService.cancelRunningTest()).thenReturn(null);
+
     // Default stub for getHistory (returns empty on init).
-    when(() => mockSpeedTestService.getHistory())
-        .thenAnswer((_) async => []);
+    when(() => mockSpeedTestService.getHistory()).thenAnswer((_) async => []);
 
     container = ProviderContainer(
       overrides: [
@@ -102,8 +103,9 @@ void main() {
         _createSpeedTestResult(download: 80.0, testedAt: DateTime(2025, 1, 1)),
       ];
 
-      when(() => mockSpeedTestService.getHistory())
-          .thenAnswer((_) async => history);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => history);
 
       final state = await waitForState();
 
@@ -120,22 +122,23 @@ void main() {
     test('updates state with result on success', () async {
       final result = _createSpeedTestResult(download: 95.0, upload: 40.0);
 
-      when(() => mockSpeedTestService.runSpeedTest(
-            vpnActive: any(named: 'vpnActive'),
-            serverName: any(named: 'serverName'),
-            progressController: any(named: 'progressController'),
-          )).thenAnswer((_) async => result);
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: any(named: 'vpnActive'),
+          serverName: any(named: 'serverName'),
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenAnswer((_) async => result);
 
-      when(() => mockSpeedTestService.getHistory())
-          .thenAnswer((_) async => [result]);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => [result]);
 
       // Wait for init.
       await waitForState();
 
       // Run the speed test.
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runSpeedTest();
+      await container.read(diagnosticsProvider.notifier).runSpeedTest();
 
       final state = container.read(diagnosticsProvider).requireValue;
 
@@ -148,17 +151,17 @@ void main() {
     });
 
     test('sets isRunningSpeedTest to false on error', () async {
-      when(() => mockSpeedTestService.runSpeedTest(
-            vpnActive: any(named: 'vpnActive'),
-            serverName: any(named: 'serverName'),
-            progressController: any(named: 'progressController'),
-          )).thenThrow(Exception('Network error'));
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: any(named: 'vpnActive'),
+          serverName: any(named: 'serverName'),
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenThrow(Exception('Network error'));
 
       await waitForState();
 
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runSpeedTest();
+      await container.read(diagnosticsProvider.notifier).runSpeedTest();
 
       final state = container.read(diagnosticsProvider).requireValue;
 
@@ -166,28 +169,53 @@ void main() {
       expect(state.speedTestResult, isNull);
 
       // Should have error log entry.
-      final errorLogs =
-          state.logEntries.where((e) => e.level == 'error').toList();
+      final errorLogs = state.logEntries
+          .where((e) => e.level == 'error')
+          .toList();
       expect(errorLogs, isNotEmpty);
+    });
+
+    test('treats cancellation as a non-error outcome', () async {
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: any(named: 'vpnActive'),
+          serverName: any(named: 'serverName'),
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenThrow(const SpeedTestCancelledException());
+
+      await waitForState();
+
+      await container.read(diagnosticsProvider.notifier).runSpeedTest();
+
+      final state = container.read(diagnosticsProvider).requireValue;
+
+      expect(state.isRunningSpeedTest, isFalse);
+      expect(state.speedTestResult, isNull);
+      expect(state.logEntries.where((e) => e.level == 'error'), isEmpty);
+      expect(state.logEntries.last.message, contains('cancelled'));
     });
 
     test('does not run if already running', () async {
       final result = _createSpeedTestResult();
       var callCount = 0;
 
-      when(() => mockSpeedTestService.runSpeedTest(
-            vpnActive: any(named: 'vpnActive'),
-            serverName: any(named: 'serverName'),
-            progressController: any(named: 'progressController'),
-          )).thenAnswer((_) async {
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: any(named: 'vpnActive'),
+          serverName: any(named: 'serverName'),
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenAnswer((_) async {
         callCount++;
         // Simulate a slow speed test.
         await Future<void>.delayed(const Duration(milliseconds: 50));
         return result;
       });
 
-      when(() => mockSpeedTestService.getHistory())
-          .thenAnswer((_) async => [result]);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => [result]);
 
       await waitForState();
 
@@ -201,9 +229,7 @@ void main() {
 
       // Attempt second speed test while first is running.
       // This should be a no-op since isRunningSpeedTest is true.
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runSpeedTest();
+      await container.read(diagnosticsProvider.notifier).runSpeedTest();
 
       // Wait for first run to complete.
       await firstRun;
@@ -238,15 +264,15 @@ void main() {
         ),
       ];
 
-      when(() => mockDiagnosticService.runDiagnostics(
-            serverTarget: any(named: 'serverTarget'),
-          )).thenAnswer((_) => Stream.fromIterable(steps));
+      when(
+        () => mockDiagnosticService.runDiagnostics(
+          serverTarget: any(named: 'serverTarget'),
+        ),
+      ).thenAnswer((_) => Stream.fromIterable(steps));
 
       await waitForState();
 
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runDiagnostics();
+      await container.read(diagnosticsProvider.notifier).runDiagnostics();
 
       final state = container.read(diagnosticsProvider).requireValue;
 
@@ -266,17 +292,15 @@ void main() {
     });
 
     test('sets isRunningDiagnostics to false on error', () async {
-      when(() => mockDiagnosticService.runDiagnostics(
-            serverTarget: any(named: 'serverTarget'),
-          )).thenAnswer(
-        (_) => Stream.error(Exception('Diagnostics failed')),
-      );
+      when(
+        () => mockDiagnosticService.runDiagnostics(
+          serverTarget: any(named: 'serverTarget'),
+        ),
+      ).thenAnswer((_) => Stream.error(Exception('Diagnostics failed')));
 
       await waitForState();
 
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runDiagnostics();
+      await container.read(diagnosticsProvider.notifier).runDiagnostics();
 
       final state = container.read(diagnosticsProvider).requireValue;
 
@@ -300,13 +324,13 @@ void main() {
       );
 
       // Return in non-sorted order.
-      when(() => mockSpeedTestService.getHistory())
-          .thenAnswer((_) async => [older, newer]);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => [older, newer]);
 
       await waitForState();
 
-      final history =
-          container.read(diagnosticsProvider.notifier).getHistory();
+      final history = container.read(diagnosticsProvider.notifier).getHistory();
 
       expect(history.first.testedAt.isAfter(history.last.testedAt), isTrue);
       expect(history.first.downloadMbps, 100.0);
@@ -317,22 +341,24 @@ void main() {
     test('returns valid JSON string', () async {
       // Trigger a speed test to generate log entries.
       final result = _createSpeedTestResult();
-      when(() => mockSpeedTestService.runSpeedTest(
-            vpnActive: any(named: 'vpnActive'),
-            serverName: any(named: 'serverName'),
-            progressController: any(named: 'progressController'),
-          )).thenAnswer((_) async => result);
-      when(() => mockSpeedTestService.getHistory())
-          .thenAnswer((_) async => [result]);
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: any(named: 'vpnActive'),
+          serverName: any(named: 'serverName'),
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenAnswer((_) async => result);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => [result]);
 
       await waitForState();
 
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runSpeedTest();
+      await container.read(diagnosticsProvider.notifier).runSpeedTest();
 
-      final exported =
-          container.read(diagnosticsProvider.notifier).exportLogs();
+      final exported = container
+          .read(diagnosticsProvider.notifier)
+          .exportLogs();
 
       // Should be valid JSON.
       final decoded = jsonDecode(exported) as List;
@@ -353,36 +379,40 @@ void main() {
       expect(isRunning, isFalse);
     });
 
-    test('diagnosticStepsProvider returns empty when no diagnostics run',
-        () async {
-      await waitForState();
+    test(
+      'diagnosticStepsProvider returns empty when no diagnostics run',
+      () async {
+        await waitForState();
 
-      final steps = container.read(diagnosticStepsProvider);
-      expect(steps, isEmpty);
-    });
+        final steps = container.read(diagnosticStepsProvider);
+        expect(steps, isEmpty);
+      },
+    );
 
-    test('diagnosticStepsProvider returns steps after diagnostics run',
-        () async {
-      final diagnosticSteps = [
-        const DiagnosticStep(
-          name: DiagnosticStepNames.networkConnectivity,
-          status: DiagnosticStepStatus.success,
-        ),
-      ];
+    test(
+      'diagnosticStepsProvider returns steps after diagnostics run',
+      () async {
+        final diagnosticSteps = [
+          const DiagnosticStep(
+            name: DiagnosticStepNames.networkConnectivity,
+            status: DiagnosticStepStatus.success,
+          ),
+        ];
 
-      when(() => mockDiagnosticService.runDiagnostics(
+        when(
+          () => mockDiagnosticService.runDiagnostics(
             serverTarget: any(named: 'serverTarget'),
-          )).thenAnswer((_) => Stream.fromIterable(diagnosticSteps));
+          ),
+        ).thenAnswer((_) => Stream.fromIterable(diagnosticSteps));
 
-      await waitForState();
+        await waitForState();
 
-      await container
-          .read(diagnosticsProvider.notifier)
-          .runDiagnostics();
+        await container.read(diagnosticsProvider.notifier).runDiagnostics();
 
-      final steps = container.read(diagnosticStepsProvider);
-      expect(steps, hasLength(1));
-      expect(steps.first.status, DiagnosticStepStatus.success);
-    });
+        final steps = container.read(diagnosticStepsProvider);
+        expect(steps, hasLength(1));
+        expect(steps.first.status, DiagnosticStepStatus.success);
+      },
+    );
   });
 }

@@ -34,24 +34,36 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   // NON-SENSITIVE: Timestamp of last cache update
   static const String _lastUpdatedKey = 'cache_last_updated';
 
-  AuthLocalDataSourceImpl({required SecureStorageWrapper secureStorage, required LocalStorageWrapper localStorage})
-      : _secureStorage = secureStorage,
-        _localStorage = localStorage;
+  AuthLocalDataSourceImpl({
+    required SecureStorageWrapper secureStorage,
+    required LocalStorageWrapper localStorage,
+  }) : _secureStorage = secureStorage,
+       _localStorage = localStorage;
 
   @override
   Future<void> cacheToken(TokenModel token) async {
     // SENSITIVE: Store JWT tokens in SecureStorage for encryption at rest
-    await _secureStorage.write(key: _accessTokenKey, value: token.accessToken);
-    await _secureStorage.write(key: _refreshTokenKey, value: token.refreshToken);
+    await Future.wait([
+      _secureStorage.write(key: _accessTokenKey, value: token.accessToken),
+      _secureStorage.write(key: _refreshTokenKey, value: token.refreshToken),
+    ]);
   }
 
   @override
   Future<TokenModel?> getCachedToken() async {
     // SENSITIVE: Read JWT tokens from SecureStorage
-    final accessToken = await _secureStorage.read(key: _accessTokenKey);
-    final refreshToken = await _secureStorage.read(key: _refreshTokenKey);
+    final values = await Future.wait<String?>([
+      _secureStorage.read(key: _accessTokenKey),
+      _secureStorage.read(key: _refreshTokenKey),
+    ]);
+    final accessToken = values[0];
+    final refreshToken = values[1];
     if (accessToken == null || refreshToken == null) return null;
-    return TokenModel(accessToken: accessToken, refreshToken: refreshToken, expiresIn: 0);
+    return TokenModel(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: 0,
+    );
   }
 
   @override
@@ -102,10 +114,12 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> clearAuth() async {
-    await _secureStorage.delete(key: _accessTokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
-    await _localStorage.remove(_userKey);
-    await _localStorage.remove(_subscriptionKey);
-    await _localStorage.remove(_lastUpdatedKey);
+    await Future.wait([
+      _secureStorage.delete(key: _accessTokenKey),
+      _secureStorage.delete(key: _refreshTokenKey),
+      _localStorage.remove(_userKey),
+      _localStorage.remove(_subscriptionKey),
+      _localStorage.remove(_lastUpdatedKey),
+    ]);
   }
 }

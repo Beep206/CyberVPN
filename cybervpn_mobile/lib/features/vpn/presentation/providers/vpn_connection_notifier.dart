@@ -28,11 +28,16 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
-    show secureStorageProvider, networkInfoProvider, vpnRepositoryProvider,
-         connectVpnUseCaseProvider, disconnectVpnUseCaseProvider,
-         autoReconnectServiceProvider, killSwitchServiceProvider,
-         activeDnsServersProvider,
-         deviceRegistrationServiceProvider;
+    show
+        secureStorageProvider,
+        networkInfoProvider,
+        vpnRepositoryProvider,
+        connectVpnUseCaseProvider,
+        disconnectVpnUseCaseProvider,
+        autoReconnectServiceProvider,
+        killSwitchServiceProvider,
+        activeDnsServersProvider,
+        deviceRegistrationServiceProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart'
     show recentServerIdsProvider;
@@ -54,8 +59,8 @@ const _lastProtocolKey = 'last_connected_protocol';
 
 final vpnConnectionProvider =
     AsyncNotifierProvider<VpnConnectionNotifier, VpnConnectionState>(
-  VpnConnectionNotifier.new,
-);
+      VpnConnectionNotifier.new,
+    );
 
 class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   late final ConnectVpnUseCase _connectUseCase;
@@ -94,7 +99,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     ref.onDispose(_dispose);
 
     // Observe app lifecycle events (pause/resume) to reconcile VPN state.
-    _lifecycleObserver = _VpnLifecycleObserver(onResumed: _reconcileStateOnResume);
+    _lifecycleObserver = _VpnLifecycleObserver(
+      onResumed: _reconcileStateOnResume,
+    );
     WidgetsBinding.instance.addObserver(_lifecycleObserver!);
 
     // Listen to the repository's connection-state stream for external changes.
@@ -125,10 +132,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
       final lastConfig = lastConfigResult.dataOrNull;
       final savedServer = await _loadLastServer();
       if (savedServer != null && lastConfig != null) {
-        return VpnConnected(
-          server: savedServer,
-          protocol: lastConfig.protocol,
-        );
+        return VpnConnected(server: savedServer, protocol: lastConfig.protocol);
       }
     }
 
@@ -169,7 +173,11 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         configData: '', // populated by the repository / platform layer
       );
 
-      await _executeConnection(config: config, server: server, protocol: protocol);
+      await _executeConnection(
+        config: config,
+        server: server,
+        protocol: protocol,
+      );
     } catch (e, st) {
       AppLogger.error('VPN connect failed', error: e, stackTrace: st);
       _autoReconnect.stop();
@@ -216,9 +224,17 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         configData: customServer.rawUri,
       );
 
-      await _executeConnection(config: config, server: pseudoServer, protocol: protocol);
+      await _executeConnection(
+        config: config,
+        server: pseudoServer,
+        protocol: protocol,
+      );
     } catch (e, st) {
-      AppLogger.error('VPN connect from custom server failed', error: e, stackTrace: st);
+      AppLogger.error(
+        'VPN connect from custom server failed',
+        error: e,
+        stackTrace: st,
+      );
       _autoReconnect.stop();
       await _killSwitch.disable();
       state = AsyncData(VpnError(message: e.toString()));
@@ -344,7 +360,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     // Fall back to recommended server
     final recommendedServer = ref.read(recommendedServerProvider);
     if (recommendedServer != null) {
-      AppLogger.info('Auto-connecting to recommended server: ${recommendedServer.name}');
+      AppLogger.info(
+        'Auto-connecting to recommended server: ${recommendedServer.name}',
+      );
       await connect(recommendedServer);
       return;
     }
@@ -437,10 +455,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
           VpnConstants.googleIPv4Secondary,
         ];
       case DnsProvider.quad9:
-        return [
-          VpnConstants.quad9IPv4Primary,
-          VpnConstants.quad9IPv4Secondary,
-        ];
+        return [VpnConstants.quad9IPv4Primary, VpnConstants.quad9IPv4Secondary];
       case DnsProvider.custom:
         final custom = vpnSettings.customDns;
         if (custom != null && custom.isNotEmpty) {
@@ -581,17 +596,13 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   /// Immediately disconnects the VPN and logs the reason.
   /// The UI layer should show an alert/snackbar to the user.
   Future<void> _onForceDisconnect(ForceDisconnect event) async {
-    AppLogger.warning(
-      'Received force_disconnect from server: ${event.reason}',
-    );
+    AppLogger.warning('Received force_disconnect from server: ${event.reason}');
 
     // Disconnect the VPN immediately.
     await disconnect();
 
     // Transition to VpnForceDisconnected so the UI shows a dialog.
-    state = AsyncData(
-      VpnForceDisconnected(reason: event.reason),
-    );
+    state = AsyncData(VpnForceDisconnected(reason: event.reason));
   }
 
   /// Automatically register the device on first VPN connection.
@@ -602,7 +613,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     try {
       final device = await _deviceRegistration.registerCurrentDevice();
       if (device != null) {
-        AppLogger.info('Device auto-registered on VPN connection: ${device.name}');
+        AppLogger.info(
+          'Device auto-registered on VPN connection: ${device.name}',
+        );
         // Optionally refresh the profile to include the new device in the list
         unawaited(ref.read(profileProvider.notifier).refreshProfile());
       }
@@ -675,9 +688,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         final analytics = ref.read(analyticsProvider);
         await analytics.logEvent(
           'review_prompt_error',
-          parameters: {
-            'error': e.toString(),
-          },
+          parameters: {'error': e.toString()},
         );
       } catch (e) {
         // Ignore analytics logging errors
@@ -692,23 +703,10 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
   /// "Connected" when the tunnel is dead. This check catches that mismatch
   /// and transitions the state accordingly.
   Future<void> _reconcileStateOnResume() async {
-    // Reconnect the WebSocket if it dropped while backgrounded.
-    try {
-      final wsClient = ref.read(webSocketClientProvider);
-      if (wsClient.connectionState != WebSocketConnectionState.connected &&
-          wsClient.connectionState != WebSocketConnectionState.connecting) {
-        AppLogger.info(
-          'Reconnecting WebSocket on app resume',
-          category: 'vpn.lifecycle',
-        );
-        unawaited(wsClient.connect());
-      }
-    } catch (e) {
-      AppLogger.warning('Failed to reconnect WebSocket on resume', error: e);
-    }
-
     final current = state.value;
-    if (current is! VpnConnected) return; // only reconcile when UI says connected
+    if (current is! VpnConnected) {
+      return; // only reconcile when UI says connected
+    }
 
     try {
       final connectedResult = await _repository.isConnected;

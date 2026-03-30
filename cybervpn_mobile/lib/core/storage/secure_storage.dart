@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:cybervpn_mobile/core/constants/cache_constants.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wrapper for flutter_secure_storage providing encrypted storage for sensitive data.
@@ -26,7 +28,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// **DO NOT USE** [LocalStorageWrapper] (SharedPreferences) for credentials!
 /// See [STORAGE_GUIDELINES.md] for data classification rules.
 class SecureStorageWrapper {
-  final FlutterSecureStorage _storage;
+  @visibleForTesting
+  static bool? debugUseInMemoryFallbackOverride;
+
+  static final Map<String, String> _linuxFallbackStore = <String, String>{};
+
+  final FlutterSecureStorage? _storage;
+  final bool _useInMemoryFallback;
 
   /// Maximum number of entries in the in-memory cache.
   static const int _maxCacheSize = 100;
@@ -49,18 +57,40 @@ class SecureStorageWrapper {
   static const _ttlKeys = {accessTokenKey, refreshTokenKey, deviceTokenKey};
 
   SecureStorageWrapper({FlutterSecureStorage? storage})
-    : _storage =
+    : _useInMemoryFallback =
+          storage == null && _shouldUseInMemoryFallbackPlatform(),
+      _storage =
           storage ??
-          const FlutterSecureStorage(
-            aOptions: AndroidOptions(),
-            iOptions: IOSOptions(
-              accessibility: KeychainAccessibility.first_unlock,
-            ),
-          );
+          (_shouldUseInMemoryFallbackPlatform()
+              ? null
+              : const FlutterSecureStorage(
+                  aOptions: AndroidOptions(),
+                  iOptions: IOSOptions(
+                    accessibility: KeychainAccessibility.first_unlock,
+                  ),
+                ));
+
+  static bool _shouldUseInMemoryFallbackPlatform() {
+    final override = debugUseInMemoryFallbackOverride;
+    if (override != null) {
+      return override;
+    }
+
+    if (kIsWeb) {
+      return false;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.linux;
+  }
 
   /// Writes a value and updates the cache.
   Future<void> write({required String key, required String value}) async {
-    await _storage.write(key: key, value: value);
+    if (_useInMemoryFallback) {
+      _linuxFallbackStore[key] = value;
+    } else {
+      await _storage!.write(key: key, value: value);
+    }
+
     _cache[key] = value;
     _cacheTimestamps[key] = DateTime.now();
     _checkedKeys.add(key);
@@ -86,7 +116,9 @@ class SecureStorageWrapper {
     }
 
     // Read from storage and cache the result
-    final value = await _storage.read(key: key);
+    final value = _useInMemoryFallback
+        ? _linuxFallbackStore[key]
+        : await _storage!.read(key: key);
     _cache[key] = value;
     _cacheTimestamps[key] = DateTime.now();
     _checkedKeys.add(key);
@@ -113,7 +145,12 @@ class SecureStorageWrapper {
 
   /// Deletes a key and invalidates the cache.
   Future<void> delete({required String key}) async {
-    await _storage.delete(key: key);
+    if (_useInMemoryFallback) {
+      _linuxFallbackStore.remove(key);
+    } else {
+      await _storage!.delete(key: key);
+    }
+
     _cache.remove(key);
     _cacheTimestamps.remove(key);
     _checkedKeys.remove(key);
@@ -121,7 +158,12 @@ class SecureStorageWrapper {
 
   /// Deletes all keys and clears the cache.
   Future<void> deleteAll() async {
-    await _storage.deleteAll();
+    if (_useInMemoryFallback) {
+      _linuxFallbackStore.clear();
+    } else {
+      await _storage!.deleteAll();
+    }
+
     _cache.clear();
     _cacheTimestamps.clear();
     _checkedKeys.clear();
@@ -132,7 +174,10 @@ class SecureStorageWrapper {
     if (_checkedKeys.contains(key)) {
       return _cache[key] != null;
     }
-    return _storage.containsKey(key: key);
+
+    return _useInMemoryFallback
+        ? _linuxFallbackStore.containsKey(key)
+        : _storage!.containsKey(key: key);
   }
 
   /// Clears the in-memory cache without affecting storage.

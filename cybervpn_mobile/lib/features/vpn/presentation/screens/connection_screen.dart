@@ -150,12 +150,16 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
         if (isConnecting)
           Padding(
             padding: const EdgeInsets.only(bottom: Spacing.md),
-            child: Lottie.asset(
-              'assets/animations/connecting.json',
-              width: 120,
-              height: 120,
-              fit: BoxFit.contain,
-              animate: !MediaQuery.of(context).disableAnimations,
+            child: RepaintBoundary(
+              child: Lottie.asset(
+                'assets/animations/connecting.json',
+                width: 120,
+                height: 120,
+                fit: BoxFit.contain,
+                animate: !MediaQuery.of(context).disableAnimations,
+                frameRate: const FrameRate(30),
+                backgroundLoading: true,
+              ),
             ),
           ),
 
@@ -168,23 +172,27 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
             // One-shot connected success animation
             if (_showSuccessAnim)
               IgnorePointer(
-                child: Lottie.asset(
-                  'assets/animations/connected_success.json',
-                  width: 180,
-                  height: 180,
-                  controller: _successAnimController,
-                  fit: BoxFit.contain,
-                  repeat: false,
-                  onLoaded: (composition) {
-                    _successAnimController.duration = composition.duration;
-                    unawaited(
-                      _successAnimController.forward().whenComplete(() {
-                        if (mounted) {
-                          setState(() => _showSuccessAnim = false);
-                        }
-                      }),
-                    );
-                  },
+                child: RepaintBoundary(
+                  child: Lottie.asset(
+                    'assets/animations/connected_success.json',
+                    width: 180,
+                    height: 180,
+                    controller: _successAnimController,
+                    fit: BoxFit.contain,
+                    repeat: false,
+                    frameRate: const FrameRate(30),
+                    backgroundLoading: true,
+                    onLoaded: (composition) {
+                      _successAnimController.duration = composition.duration;
+                      unawaited(
+                        _successAnimController.forward().whenComplete(() {
+                          if (mounted) {
+                            setState(() => _showSuccessAnim = false);
+                          }
+                        }),
+                      );
+                    },
+                  ),
                 ),
               ),
           ],
