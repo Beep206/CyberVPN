@@ -150,7 +150,10 @@ export function CodeTerminal({ activeEndpoint }: CodeTerminalProps) {
             </div>
             
             {/* Static Scanline Overlay for the CRT effect */}
-            <div className="absolute inset-0 pointer-events-none bg-[url('/scanline.png')] bg-repeat opacity-[0.03]" />
+            <div
+                className="absolute inset-0 pointer-events-none bg-repeat opacity-[0.03]"
+                style={{ backgroundImage: "url('/scanline.png')" }}
+            />
         </div>
     );
 }

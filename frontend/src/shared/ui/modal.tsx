@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -71,22 +72,12 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
         return () => window.removeEventListener('wheel', handleWheel);
     }, [isOpen]);
 
-    // Prevent scrolling when modal is open
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-            document.documentElement.style.overflow = 'hidden';
-            window.dispatchEvent(new Event('lenis:stop'));
-        } else {
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            window.dispatchEvent(new Event('lenis:start'));
+        if (!isOpen) {
+            return;
         }
-        return () => {
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            window.dispatchEvent(new Event('lenis:start'));
-        };
+
+        return lockDocumentScroll();
     }, [isOpen]);
 
     // Handle Escape key and focus trap
@@ -148,7 +139,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                     />
 
                     {/* Modal Container */}
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[calc(var(--safe-area-top)+1rem)] pr-[calc(var(--mobile-page-gutter)+var(--safe-area-right))] pb-[calc(var(--safe-area-bottom)+1rem)] pl-[calc(var(--mobile-page-gutter)+var(--safe-area-left))] pointer-events-none">
                         <motion.div
                             ref={dialogRef}
                             role="dialog"
@@ -158,7 +149,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-                            className="pointer-events-auto w-full max-w-2xl max-h-[80vh] flex flex-col relative"
+                            className="safe-area-dialog pointer-events-auto relative flex max-h-[calc(100dvh-var(--safe-area-top)-var(--safe-area-bottom)-1rem)] w-full max-w-2xl flex-col"
                             data-lenis-prevent
                         >
                             {/* Cyberpunk Border Container */}
@@ -177,7 +168,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                                         data-modal-close
                                         onClick={onClose}
                                         aria-label={t('closeModal')}
-                                        className="p-2 text-grid-line hover:text-neon-pink transition-colors duration-200 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
+                                        className="touch-target inline-flex items-center justify-center rounded-sm p-2 text-grid-line transition-colors duration-200 hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
                                     >
                                         <X size={24} />
                                     </button>
@@ -186,7 +177,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                                 {/* Content */}
                                 <div
                                     ref={contentRef}
-                                    className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neon-cyan scrollbar-track-transparent"
+                                    className="safe-area-scroll-panel keyboard-safe-bottom flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-neon-cyan scrollbar-track-transparent sm:p-6"
                                 >
                                     {children}
                                 </div>

@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { SmoothScrollProvider } from '@/app/providers/smooth-scroll-provider';
@@ -23,9 +22,7 @@ export default async function MarketingLayout({
   return (
     <ScopedIntlProvider locale={locale} namespaces={MARKETING_CLIENT_NAMESPACES}>
       <SmoothScrollProvider />
-      <Suspense fallback={null}>
-        <CachedMarketingShell>{children}</CachedMarketingShell>
-      </Suspense>
+      <CachedMarketingShell>{children}</CachedMarketingShell>
     </ScopedIntlProvider>
   );
 }

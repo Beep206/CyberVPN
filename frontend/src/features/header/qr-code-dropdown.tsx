@@ -65,7 +65,10 @@ export function QRCodeDropdown() {
                         className="absolute right-0 top-full mt-3 z-50 w-72 bg-background/95 dark:bg-terminal-surface/80 border border-border/50 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)] backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5"
                     >
                         {/* Background Effects */}
-                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5 dark:opacity-20 pointer-events-none" />
+                        <div
+                            className="absolute inset-0 opacity-5 dark:opacity-20 pointer-events-none"
+                            style={{ backgroundImage: "url('/grid.svg')" }}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
                         {/* Tabs */}

@@ -78,6 +78,24 @@ export function RateLimitCountdown() {
 
 export function useIsRateLimited(): boolean {
   const rateLimitUntil = useRateLimitUntil();
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    if (!rateLimitUntil) {
+      return;
+    }
+
+    const updateNow = () => {
+      setNow(Date.now());
+    };
+    const timeoutId = window.setTimeout(updateNow, 0);
+    const intervalId = window.setInterval(updateNow, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, [rateLimitUntil]);
+
   return rateLimitUntil !== null && rateLimitUntil > now;
 }

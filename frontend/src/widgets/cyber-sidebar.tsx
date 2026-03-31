@@ -1,34 +1,31 @@
 'use client';
 
+import { Shield } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Link, usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { Server, Users, Activity, CreditCard, Settings, Shield, BarChart3, Wallet, Receipt, UserPlus, Handshake } from 'lucide-react';
-
-const menuItems = [
-    { icon: Activity, labelKey: 'dashboard', href: '/dashboard' },
-    { icon: Server, labelKey: 'servers', href: '/servers' },
-    { icon: Users, labelKey: 'users', href: '/users' },
-    { icon: CreditCard, labelKey: 'billing', href: '/subscriptions' },
-    { icon: Wallet, labelKey: 'wallet', href: '/wallet' },
-    { icon: Receipt, labelKey: 'paymentHistory', href: '/payment-history' },
-    { icon: UserPlus, labelKey: 'referral', href: '/referral' },
-    { icon: Handshake, labelKey: 'partner', href: '/partner' },
-    { icon: BarChart3, labelKey: 'analytics', href: '/analytics' },
-    { icon: Shield, labelKey: 'security', href: '/monitoring' },
-    { icon: Settings, labelKey: 'settings', href: '/settings' },
-];
+import {
+    DASHBOARD_NAV_ITEMS,
+    DASHBOARD_NAV_LABEL_FALLBACKS,
+} from '@/widgets/dashboard-navigation';
 
 export function CyberSidebar() {
     const pathname = usePathname();
     const t = useTranslations('Navigation');
+    const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
+        try {
+            return t(key);
+        } catch {
+            return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+        }
+    };
 
     return (
         <aside
-            aria-label={t('sidebar')}
-            className="hidden h-screen w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex z-40 fixed left-0 top-0"
+            aria-label={labelFor('sidebar')}
+            className="fixed left-0 top-0 z-40 hidden h-dvh w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/90 backdrop-blur-md md:flex"
         >
             <div className="flex h-16 items-center border-b border-grid-line/30 px-6">
                 <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
@@ -38,11 +35,11 @@ export function CyberSidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto py-6 px-4">
-                <nav aria-label={t('mainNavigation')} className="grid gap-2">
-                    {menuItems.map((item) => {
+                <nav aria-label={labelFor('mainNavigation')} className="grid gap-2">
+                    {DASHBOARD_NAV_ITEMS.map((item) => {
                         const isActive = pathname?.includes(item.href);
                         const Icon = item.icon;
-                        const label = t(item.labelKey);
+                        const label = labelFor(item.labelKey);
 
                         return (
                             <Link

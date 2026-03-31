@@ -15,6 +15,10 @@ export async function generateMetadata({ params }: PartnerPageProps) {
   return withSiteMetadata({
     title: t('pageTitle') || 'Partner Dashboard - CyberVPN',
     description: t('pageDescription') || 'Manage your partner codes and track earnings',
+  }, {
+    locale,
+    canonicalPath: '/partner',
+    routeType: 'private',
   });
 }
 

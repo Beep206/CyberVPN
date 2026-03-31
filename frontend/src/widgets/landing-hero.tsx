@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { Download, Rocket } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { Button } from '@/components/ui/button';
+import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { GlobalNetworkWrapper } from '@/widgets/3d-background/global-network-wrapper';
 import { Reveal } from '@/shared/ui/reveal';
 import { ScrambleText } from '@/shared/ui/scramble-text';
@@ -45,14 +46,32 @@ export async function LandingHero() {
         </Reveal>
 
         <Reveal delay={0.4} className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-          <Button size="lg" className="bg-neon-cyan hover:bg-neon-cyan/80 text-black font-bold tracking-wide shadow-neon-cyan hover:shadow-neon-cyan/50 transition-all h-12 px-8 text-base group" data-hoverable>
-            <Rocket className="mr-2 h-5 w-5 group-hover:-translate-y-1 transition-transform" />
-            {t('cta_telegram')}
-          </Button>
-          <Button variant="outline" size="lg" className="border-neon-purple text-neon-purple hover:bg-neon-purple/10 font-bold tracking-wide h-12 px-8 text-base backdrop-blur-sm" data-hoverable>
-            <Download className="mr-2 h-5 w-5" />
-            {t('cta_app')}
-          </Button>
+          <MagneticButton className="inline-block">
+            <a
+              href="https://t.me/cybervpn_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center justify-center rounded-md bg-neon-cyan px-8 text-base font-bold tracking-wide text-black shadow-neon-cyan transition-all hover:bg-neon-cyan/80 hover:shadow-neon-cyan/50 group"
+              data-hoverable
+              data-seo-cta="telegram"
+              data-seo-zone="landing_hero"
+            >
+              <Rocket className="mr-2 h-5 w-5 transition-transform group-hover:-translate-y-1" />
+              {t('cta_telegram')}
+            </a>
+          </MagneticButton>
+          <MagneticButton className="inline-block">
+            <Link
+              href="/download"
+              className="inline-flex h-12 items-center justify-center rounded-md border border-neon-purple px-8 text-base font-bold tracking-wide text-neon-purple backdrop-blur-sm transition-all hover:bg-neon-purple/10 group"
+              data-hoverable
+              data-seo-cta="download"
+              data-seo-zone="landing_hero"
+            >
+              <Download className="mr-2 h-5 w-5" />
+              {t('cta_app')}
+            </Link>
+          </MagneticButton>
         </Reveal>
       </div>
 

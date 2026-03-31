@@ -30,12 +30,14 @@ const cspDirectives = [
 
 const config: NextConfigWithCompiler = {
   experimental: {
+    globalNotFound: true,
     serverActions: {
       allowedOrigins: ["vpn.ozoxy.ru"],
     },
   },
   allowedDevOrigins: ["vpn.ozoxy.ru"],
   cacheComponents: true,
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,
   skipTrailingSlashRedirect: true,
   turbopack: {

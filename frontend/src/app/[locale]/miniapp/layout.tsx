@@ -18,6 +18,9 @@ export async function generateMetadata({
   return withSiteMetadata({
     title: t('title'),
     description: t('description'),
+  }, {
+    locale,
+    routeType: 'private',
   });
 }
 

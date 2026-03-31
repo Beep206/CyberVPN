@@ -62,7 +62,10 @@ export function TechSpecsTerminal({ activeFeature }: TechSpecsTerminalProps) {
 
                 {/* Terminal Body */}
                 <div className="p-5 font-mono text-sm relative min-h-[160px]">
-                    <div className="absolute inset-0 bg-[url('/scanlines.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
+                    <div
+                        className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
+                        style={{ backgroundImage: "url('/scanlines.svg')" }}
+                    />
                     
                     <AnimatePresence mode="wait">
                         <motion.div

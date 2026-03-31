@@ -1,16 +1,18 @@
 import Link from 'next/link';
-import { ArrowRight, Cpu, Disc, Github, Send, Shield, Terminal, Twitter, Zap } from 'lucide-react';
+import { ArrowRight, Cpu, Send, Shield, Terminal, Zap } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { FooterLiveStrip } from '@/widgets/footer-live-strip';
 
-const SOCIAL_LINKS = [
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Github, href: '#', label: 'GitHub' },
-  { icon: Disc, href: '#', label: 'Discord' },
-  { icon: Send, href: '#', label: 'Telegram' },
+const COPYRIGHT_YEAR = '2026';
+
+const ENTITY_LINKS = [
+  { icon: Send, href: 'https://t.me/cybervpn', label: 'Telegram community', external: true },
+  { icon: Shield, href: 'https://t.me/cybervpn_bot', label: 'Telegram bot', external: true },
+  { icon: Zap, href: '/status', label: 'Status page', external: false },
+  { icon: Terminal, href: '/docs', label: 'Documentation', external: false },
 ] as const;
 
 const FOOTER_LINKS = {
@@ -34,6 +36,14 @@ const FOOTER_LINKS = {
   ],
 } as const;
 
+const KNOWLEDGE_LINKS = [
+  { label: 'Guides', href: '/guides' },
+  { label: 'Compare', href: '/compare' },
+  { label: 'Devices', href: '/devices' },
+  { label: 'Trust center', href: '/trust' },
+  { label: 'Audits', href: '/audits' },
+] as const;
+
 export async function Footer() {
   const footerT = await getTranslations('Footer');
   const headerT = await getTranslations('Header');
@@ -44,7 +54,10 @@ export async function Footer() {
         <div className="absolute top-0 left-1/4 w-full h-px bg-gradient-to-r from-transparent via-neon-cyan/50 to-transparent opacity-50 blur-[1px]" />
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon-purple/10 dark:bg-neon-purple/5 rounded-full blur-[100px]" />
         <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-neon-cyan/10 dark:bg-neon-cyan/5 rounded-full blur-[80px]" />
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: "url('/grid-pattern.svg')" }}
+        />
       </div>
 
       <div className="container relative z-10 px-6 mx-auto">
@@ -64,15 +77,31 @@ export async function Footer() {
             </p>
 
             <div className="flex items-center gap-3 pt-2">
-              {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
+              {ENTITY_LINKS.map(({ icon: Icon, href, label, external }) => (
                 <MagneticButton key={label} strength={15}>
-                  <Link
-                    href={href}
-                    className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/40 bg-background/50 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-all duration-300 group"
-                  >
-                    <Icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                    <span className="sr-only">{label}</span>
-                  </Link>
+                  {external ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/40 bg-background/50 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-all duration-300 group"
+                      data-seo-cta={href.includes('t.me') ? 'telegram' : undefined}
+                      data-seo-zone={href.includes('t.me') ? 'footer_entity' : undefined}
+                    >
+                      <Icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                      <span className="sr-only">{label}</span>
+                    </a>
+                  ) : (
+                    <Link
+                      href={href}
+                      className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/40 bg-background/50 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-all duration-300 group"
+                      data-seo-cta={href === '/docs' ? 'docs' : undefined}
+                      data-seo-zone={href === '/docs' ? 'footer_entity' : undefined}
+                    >
+                      <Icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                      <span className="sr-only">{label}</span>
+                    </Link>
+                  )}
                 </MagneticButton>
               ))}
             </div>
@@ -114,6 +143,29 @@ export async function Footer() {
                 </li>
               ))}
             </ul>
+
+            <div className="border-t border-grid-line/20 pt-5">
+              <div className="text-xs font-mono uppercase tracking-[0.3em] text-neon-purple">
+                Knowledge
+              </div>
+              <ul className="mt-4 space-y-3 font-mono text-sm">
+                {KNOWLEDGE_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1"
+                      data-seo-zone="footer_knowledge"
+                      data-seo-cta={link.href.replace('/', '') || 'home'}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-neon-purple opacity-0 scale-0 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300" />
+                      <span className="transition-transform duration-300 group-hover:translate-x-1">
+                        {link.label}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="lg:col-span-4 space-y-6">
@@ -158,6 +210,7 @@ export async function Footer() {
             encryptionValue={headerT('encryptionValue')}
             integrity={headerT('integrity')}
             systemLabel={headerT('systemLabel')}
+            year={COPYRIGHT_YEAR}
           />
         </div>
       </div>

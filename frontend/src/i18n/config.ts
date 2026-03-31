@@ -1,15 +1,63 @@
+export const highPriorityLocales = [
+  'en-EN',
+  'ru-RU',
+  'zh-CN',
+  'hi-IN',
+  'id-ID',
+  'vi-VN',
+  'th-TH',
+  'ja-JP',
+  'ko-KR',
+] as const;
+
+export const mediumPriorityLocales = [
+  'ar-SA',
+  'fa-IR',
+  'tr-TR',
+  'ur-PK',
+] as const;
+
+export const lowPriorityLocales = [
+  'bn-BD',
+  'ms-MY',
+  'es-ES',
+  'kk-KZ',
+  'be-BY',
+  'my-MM',
+  'uz-UZ',
+] as const;
+
+export const requiredFallbackLocales = [
+  'ha-NG',
+  'yo-NG',
+  'ku-IQ',
+  'am-ET',
+  'fr-FR',
+  'tk-TM',
+] as const;
+
+export const additionalLocales = [
+  'he-IL',
+  'de-DE',
+  'pt-PT',
+  'it-IT',
+  'nl-NL',
+  'pl-PL',
+  'fil-PH',
+  'uk-UA',
+  'cs-CZ',
+  'ro-RO',
+  'hu-HU',
+  'sv-SE',
+  'zh-Hant',
+] as const;
+
 export const locales = [
-    // Высокий приоритет
-    'en-EN', 'hi-IN', 'id-ID', 'ru-RU', 'zh-CN',
-    // Средний приоритет
-    'ar-SA', 'fa-IR', 'tr-TR', 'vi-VN', 'ur-PK',
-    // Низкий приоритет
-    'th-TH', 'bn-BD', 'ms-MY', 'es-ES', 'kk-KZ', 'be-BY', 'my-MM', 'uz-UZ',
-    // Нежизнеспособные (но требуются)
-    'ha-NG', 'yo-NG', 'ku-IQ', 'am-ET', 'fr-FR', 'tk-TM',
-    // Дополнительные
-    'ja-JP', 'ko-KR', 'he-IL', 'de-DE', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL',
-    'fil-PH', 'uk-UA', 'cs-CZ', 'ro-RO', 'hu-HU', 'sv-SE', 'zh-Hant'
+  ...highPriorityLocales,
+  ...mediumPriorityLocales,
+  ...lowPriorityLocales,
+  ...requiredFallbackLocales,
+  ...additionalLocales,
 ] as const;
 
 export const defaultLocale = 'en-EN';

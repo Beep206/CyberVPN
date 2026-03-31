@@ -10,6 +10,13 @@ export interface ConsoleMessage {
 
 export type ConsoleListener = (msg: ConsoleMessage) => void;
 
+let consoleMessageSequence = 0;
+
+function getConsoleMessageId(): string {
+    consoleMessageSequence += 1;
+    return `console-${consoleMessageSequence}`;
+}
+
 class ConsoleInterceptor {
     private originalConsole: Partial<Console> = {};
     private isIntercepting = false;
@@ -48,7 +55,7 @@ class ConsoleInterceptor {
                 if (args[0] && typeof args[0] === 'string' && args[0].includes('Fast Refresh')) return;
 
                 const msg: ConsoleMessage = {
-                    id: crypto.randomUUID(),
+                    id: getConsoleMessageId(),
                     level: method,
                     timestamp: Date.now(),
                     args: args.map(arg => this.cloneSafe(arg)), // Clone to prevent mutation later

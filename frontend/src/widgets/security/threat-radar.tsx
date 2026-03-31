@@ -62,7 +62,10 @@ export function ThreatRadar() {
             
             {/* Ambient terminal glow */}
             <div className="absolute inset-0 bg-neon-cyan/5 mix-blend-screen pointer-events-none" />
-            <div className="absolute inset-0 bg-[url('/scanlines.png')] opacity-10 pointer-events-none" />
+            <div
+                className="absolute inset-0 opacity-10 pointer-events-none"
+                style={{ backgroundImage: "url('/scanlines.png')" }}
+            />
 
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-grid-line/50 bg-terminal-bg relative z-10">

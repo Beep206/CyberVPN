@@ -1,42 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Database } from 'lucide-react';
+import type { UptimeDay } from './uptime-history';
 
-interface UptimeDay {
-    date: string;
-    status: 'nominal' | 'warning' | 'outage' | 'maintenance';
-}
-
-function generateHistoryData(): UptimeDay[] {
-    const data: UptimeDay[] = [];
-    const today = new Date();
-    
-    // Generate 90 days backwards
-    for (let i = 89; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        
-        // Randomly simulate outages/warnings
-        const rand = Math.random();
-        let status: UptimeDay['status'] = 'nominal';
-        if (rand > 0.98) status = 'outage';
-        else if (rand > 0.95) status = 'warning';
-        else if (rand > 0.92) status = 'maintenance';
-        
-        data.push({
-            date: d.toISOString().split('T')[0],
-            status
-        });
-    }
-    return data;
-}
-
-export function UptimeMatrix() {
+export function UptimeMatrix({ data }: { data: UptimeDay[] }) {
     const t = useTranslations('Status');
-    const data = useMemo(() => generateHistoryData(), []);
     
     const getColorClass = (status: UptimeDay['status']) => {
         switch(status) {
@@ -78,9 +48,9 @@ export function UptimeMatrix() {
             {/* Grid Container */}
             <div className="w-full overflow-x-auto custom-scrollbar pb-2">
                 <div className="flex gap-1 min-w-max">
-                    {data.map((day, i) => (
+                    {data.map((day) => (
                         <div 
-                            key={i}
+                            key={day.date}
                             className={`w-3 h-10 rounded-sm transition-all duration-300 cursor-crosshair group relative ${getColorClass(day.status)}`}
                         >
                             {/* Tooltip */}

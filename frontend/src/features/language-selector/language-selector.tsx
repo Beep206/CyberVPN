@@ -29,7 +29,9 @@ export function LanguageSelector() {
     );
 
     const handleLanguageChange = (newLocale: string) => {
-        router.replace(pathname, { locale: newLocale });
+        startTransition(() => {
+            router.replace(pathname, { locale: newLocale });
+        });
         setIsOpen(false);
     };
 
@@ -42,7 +44,8 @@ export function LanguageSelector() {
                     onClick={() => setIsOpen(true)}
                     aria-label={`Select language: ${currentLanguage.name}`}
                     aria-haspopup="dialog"
-                    className="flex h-10 items-center justify-center gap-2 px-3 rounded-lg bg-terminal-surface/30 border border-grid-line/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+                    aria-expanded={isOpen}
+                    className="touch-target inline-flex items-center justify-center gap-2 rounded-lg border border-grid-line/30 bg-terminal-surface/30 px-3 text-muted-foreground transition-colors duration-300 group hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                 >
                     <div className="flex items-center justify-center filter drop-shadow-[0_0_2px_rgba(255,255,255,0.5)]">
                         <CountryFlag
@@ -71,13 +74,15 @@ export function LanguageSelector() {
                             value={searchQuery}
                             onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
                             aria-label="Search languages"
-                            className="w-full bg-terminal-bg/50 border border-grid-line/30 rounded-md py-2 pl-10 pr-4 text-foreground font-mono focus-visible:outline-hidden focus-visible:border-neon-cyan focus-visible:shadow-[0_0_10px_rgba(0,255,255,0.2)] focus-visible:ring-2 focus-visible:ring-neon-cyan transition-all duration-300 placeholder:text-muted-foreground"
+                            inputMode="search"
+                            spellCheck={false}
+                            className="mobile-form-input touch-target w-full rounded-md border border-grid-line/30 bg-terminal-bg/50 py-2 pl-10 pr-4 font-mono text-foreground transition-all duration-300 placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:border-neon-cyan focus-visible:shadow-[0_0_10px_rgba(0,255,255,0.2)] focus-visible:ring-2 focus-visible:ring-neon-cyan"
                             autoFocus
                         />
                     </div>
 
                     {/* Language Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="safe-area-scroll-panel grid max-h-[min(60dvh,28rem)] grid-cols-1 gap-2 overflow-y-auto pr-2 custom-scrollbar md:grid-cols-2">
                         {filteredLanguages.map((lang) => {
                             const isActive = lang.code === locale;
                             return (
@@ -88,7 +93,7 @@ export function LanguageSelector() {
                                     aria-pressed={isActive}
                                     layout
                                     className={`
-                                        flex items-center gap-3 p-3 rounded border text-left relative overflow-hidden group
+                                        touch-target flex items-center gap-3 rounded border p-3 text-left relative overflow-hidden group
                                         transition-all duration-200
                                         focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]
                                         ${isActive

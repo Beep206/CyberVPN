@@ -159,7 +159,10 @@ export function NotificationDropdown() {
                         </AnimatePresence>
 
                         {/* Background Grid */}
-                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5 dark:opacity-10 pointer-events-none" />
+                        <div
+                            className="absolute inset-0 opacity-5 dark:opacity-10 pointer-events-none"
+                            style={{ backgroundImage: "url('/grid.svg')" }}
+                        />
 
                         {/* Header */}
                         <div className="relative p-5 border-b border-border/50 dark:border-white/5 bg-muted/40 dark:bg-black/40 backdrop-blur-md z-1">

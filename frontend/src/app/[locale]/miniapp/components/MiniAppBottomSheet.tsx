@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
 
 interface MiniAppBottomSheetProps {
   isOpen: boolean;
@@ -27,16 +28,12 @@ export function MiniAppBottomSheet({
   const sheetBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
   const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
 
-  // Prevent body scroll when sheet is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+    if (!isOpen) {
+      return;
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
+
+    return lockDocumentScroll();
   }, [isOpen]);
 
   return (

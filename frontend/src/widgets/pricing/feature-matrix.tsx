@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react';
 import { Check, Minus } from 'lucide-react';
+import { MobileDataList } from '@/shared/ui/mobile-data-list';
 
 const featuresData = [
     { name: "AES-256 Encryption", basic: true, pro: true, elite: true },
@@ -16,6 +17,18 @@ const featuresData = [
 ];
 
 export function FeatureMatrix() {
+    const renderValue = (value: boolean | string, accentClassName: string) => {
+        if (typeof value === 'boolean') {
+            return value ? (
+                <Check className={`w-5 h-5 ${accentClassName}`} />
+            ) : (
+                <Minus className="w-5 h-5 text-white/20" />
+            );
+        }
+
+        return <span className={accentClassName}>{value}</span>;
+    };
+
     return (
         <div className="w-full overflow-hidden border border-white/10 bg-black/60 backdrop-blur-xl rounded-2xl p-6 md:p-10">
             <h3 className="text-2xl font-display font-bold tracking-widest text-white uppercase mb-8 flex items-center gap-4">
@@ -23,7 +36,21 @@ export function FeatureMatrix() {
                 Feature Matrix Data
             </h3>
 
-            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
+            <div className="md:hidden">
+                <MobileDataList
+                    items={featuresData.map((row) => ({
+                        id: row.name,
+                        title: row.name,
+                        primaryFields: [
+                            { label: 'Stealth', value: renderValue(row.basic, 'text-neon-cyan') },
+                            { label: 'Cyber_Pro', value: renderValue(row.pro, 'text-matrix-green') },
+                            { label: 'Elite_Sync', value: renderValue(row.elite, 'text-neon-purple font-bold drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]') },
+                        ],
+                    }))}
+                />
+            </div>
+
+            <div className="hidden md:block w-full overflow-x-auto custom-scrollbar pb-4">
                 <table className="w-full min-w-[600px] text-left border-collapse">
                     <thead>
                         <tr className="border-b border-white/10 text-xs font-mono uppercase tracking-widest text-muted-foreground">
@@ -46,24 +73,15 @@ export function FeatureMatrix() {
                                 <td className="py-4 px-4 font-medium">{row.name}</td>
                                 
                                 <td className="py-4 px-4 text-center">
-                                    {typeof row.basic === 'boolean' 
-                                        ? (row.basic ? <Check className="w-5 h-5 mx-auto text-neon-cyan" /> : <Minus className="w-5 h-5 mx-auto text-white/20" />)
-                                        : <span className="text-neon-cyan">{row.basic}</span>
-                                    }
+                                    {renderValue(row.basic, 'text-neon-cyan')}
                                 </td>
                                 
                                 <td className="py-4 px-4 text-center bg-matrix-green/[0.02] group-hover:bg-matrix-green/[0.05] transition-colors">
-                                    {typeof row.pro === 'boolean' 
-                                        ? (row.pro ? <Check className="w-5 h-5 mx-auto text-matrix-green" /> : <Minus className="w-5 h-5 mx-auto text-white/20" />)
-                                        : <span className="text-matrix-green">{row.pro}</span>
-                                    }
+                                    {renderValue(row.pro, 'text-matrix-green')}
                                 </td>
                                 
                                 <td className="py-4 px-4 text-center">
-                                    {typeof row.elite === 'boolean' 
-                                        ? (row.elite ? <Check className="w-5 h-5 mx-auto text-neon-purple" /> : <Minus className="w-5 h-5 mx-auto text-white/20" />)
-                                        : <span className="text-neon-purple font-bold drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]">{row.elite}</span>
-                                    }
+                                    {renderValue(row.elite, 'text-neon-purple font-bold drop-shadow-[0_0_5px_rgba(255,0,255,0.5)]')}
                                 </td>
                             </motion.tr>
                         ))}

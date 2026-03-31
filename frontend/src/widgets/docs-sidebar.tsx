@@ -31,7 +31,7 @@ export function DocsSidebar({ activeSection, onSectionChange }: DocsSidebarProps
     ];
 
     return (
-        <nav className="w-full pr-4 border-r border-terminal-border/50 h-[calc(100vh-120px)] overflow-y-auto no-scrollbar pb-10">
+        <nav className="relative w-full border-b border-terminal-border/50 pb-10 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:no-scrollbar lg:pr-4 lg:border-b-0 lg:border-r">
             <h2 className="text-sm font-cyber text-neon-cyan tracking-widest mb-8 uppercase flex items-center gap-2">
                 <div className="w-2 h-2 bg-neon-cyan/80 rotate-45" />
                 SYSTEM_INDEX
@@ -57,12 +57,9 @@ export function DocsSidebar({ activeSection, onSectionChange }: DocsSidebarProps
                                                 if (onSectionChange) onSectionChange(item.id);
                                                 const element = document.getElementById(item.id);
                                                 if (element) {
-                                                    const headerOffset = 100;
-                                                    const elementPosition = element.getBoundingClientRect().top;
-                                                    const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                                                    window.scrollTo({
-                                                        top: offsetPosition,
-                                                        behavior: "smooth"
+                                                    element.scrollIntoView({
+                                                        behavior: 'smooth',
+                                                        block: 'start'
                                                     });
                                                 }
                                             }}

@@ -34,7 +34,25 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next-seo-audit/types/**/*.ts",
+    ".next-seo-audit/dev/types/**/*.ts",
+    ".next-metadata-check/types/**/*.ts",
+    ".next-metadata-check/dev/types/**/*.ts",
+    ".next-metadata-debug/types/**/*.ts",
+    ".next-metadata-debug/dev/types/**/*.ts",
+    ".next-metadata-probe/types/**/*.ts",
+    ".next-metadata-probe/dev/types/**/*.ts",
+    ".next-metadata-fix/types/**/*.ts",
+    ".next-metadata-fix/dev/types/**/*.ts",
+    ".next-p1-analytics/types/**/*.ts",
+    ".next-p1-analytics/dev/types/**/*.ts",
+    ".next-p1-verify/types/**/*.ts",
+    ".next-p1-verify/dev/types/**/*.ts",
+    ".next-p1-structured/types/**/*.ts",
+    ".next-p1-structured/dev/types/**/*.ts",
+    ".next-p1-structured-webpack/types/**/*.ts",
+    ".next-p1-structured-webpack/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

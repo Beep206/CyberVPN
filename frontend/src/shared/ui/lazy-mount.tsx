@@ -2,10 +2,15 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
+import type { VisualTier } from '@/shared/hooks/use-visual-tier';
 
 interface LazyMountProps {
   children: ReactNode;
   className?: string;
+  defer?: 'immediate' | 'idle';
+  enabled?: boolean;
+  minimumTier?: VisualTier;
   placeholder?: ReactNode;
   rootMargin?: string;
 }
@@ -13,16 +18,24 @@ interface LazyMountProps {
 export function LazyMount({
   children,
   className,
+  defer = 'immediate',
+  enabled = true,
+  minimumTier = 'minimal',
   placeholder = null,
   rootMargin = '300px 0px',
 }: LazyMountProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(
-    () => typeof window !== 'undefined' && typeof IntersectionObserver === 'undefined',
+    () => enabled && typeof window !== 'undefined' && typeof IntersectionObserver === 'undefined',
   );
+  const { isReady } = useEnhancementReady({
+    minimumTier,
+    defer,
+    enabled: enabled && isVisible,
+  });
 
   useEffect(() => {
-    if (isVisible) {
+    if (!enabled || isVisible) {
       return;
     }
 
@@ -47,7 +60,7 @@ export function LazyMount({
     return () => {
       observer.disconnect();
     };
-  }, [isVisible, rootMargin]);
+  }, [enabled, isVisible, rootMargin]);
 
-  return <div ref={ref} className={className}>{isVisible ? children : placeholder}</div>;
+  return <div ref={ref} className={className}>{isReady ? children : placeholder}</div>;
 }

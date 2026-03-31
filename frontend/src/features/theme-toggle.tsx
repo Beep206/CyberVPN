@@ -16,7 +16,7 @@ export function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <div className="h-10 w-10 rounded-lg border border-grid-line/30 bg-muted/50" />
+            <div className="touch-target rounded-lg border border-grid-line/30 bg-muted/50" />
         )
     }
 
@@ -80,7 +80,7 @@ export function ThemeToggle() {
                     // (Though view transitions usually wait for animations on the pseudo-elements automatically,
                     // this is a safe guard if we needed manual cleanup, but standard API handles it)
                 }}
-                className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/30 bg-terminal-surface/30 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-colors duration-300 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+                className="touch-target relative flex items-center justify-center rounded-lg border border-grid-line/30 bg-terminal-surface/30 text-muted-foreground transition-colors duration-300 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                 whileHover={{ rotate: 180 }}
                 transition={{ type: "spring", stiffness: 200, damping: 10 }}
                 aria-label="Toggle theme"

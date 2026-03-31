@@ -13,6 +13,7 @@ coverage/
 
 # builds
 .next/
+.next-*/
 out/
 dist/
 build/

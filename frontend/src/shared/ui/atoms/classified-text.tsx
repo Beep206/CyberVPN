@@ -51,7 +51,10 @@ export function ClassifiedText({ text }: { text: string }) {
                         
                         {/* Redaction block (digital noise overlay) */}
                         {!isRevealed && (
-                            <span className="absolute inset-0 bg-[url('/scanlines.png')] mix-blend-overlay opacity-50 z-30 pointer-events-none" />
+                            <span
+                                className="absolute inset-0 mix-blend-overlay opacity-50 z-30 pointer-events-none"
+                                style={{ backgroundImage: "url('/scanlines.png')" }}
+                            />
                         )}
                     </span>
                 );

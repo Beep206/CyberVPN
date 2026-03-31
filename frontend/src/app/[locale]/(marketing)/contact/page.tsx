@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { ContactForm } from '@/widgets/contact-form';
-import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
+import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 export async function generateMetadata({
@@ -15,6 +15,10 @@ export async function generateMetadata({
     return withSiteMetadata({
         title: `${t('title')} | CyberVPN`,
         description: t('subtitle'),
+    }, {
+        locale,
+        canonicalPath: '/contact',
+        routeType: 'public',
     });
 }
 
@@ -22,7 +26,7 @@ export default function ContactPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
-            <TerminalHeader />
+            <PublicTerminalHeader />
             
             <main className="flex-1 relative overflow-hidden bg-background">
                 {/* The Main Split Screen Form */}

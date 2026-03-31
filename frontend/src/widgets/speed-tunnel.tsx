@@ -26,7 +26,12 @@ const SERVERS: ServerInfo[] = [
 export function SpeedTunnel() {
   return (
     <section className="relative min-h-screen w-full py-20 overflow-hidden flex flex-col items-center justify-center bg-background">
-      <LazyMount className="absolute inset-0 z-0 pointer-events-none" placeholder={<div className="absolute inset-0 z-0 bg-background" />}>
+      <LazyMount
+        className="absolute inset-0 z-0 pointer-events-none"
+        defer="idle"
+        minimumTier="full"
+        placeholder={<div className="absolute inset-0 z-0 bg-background" />}
+      >
         <SpeedTunnelScene />
       </LazyMount>
 

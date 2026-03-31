@@ -37,7 +37,10 @@ function ViolationWidget({ rules }: { rules: Record<string, string> }) {
     return (
         <div className="my-8 rounded-lg border border-red-500/30 bg-red-950/20 p-6 relative overflow-hidden">
             {/* Warning stripe overlay */}
-            <div className="absolute inset-0 bg-[url('/warning-stripes.svg')] opacity-5 mix-blend-overlay pointer-events-none" />
+            <div
+                className="absolute inset-0 opacity-5 mix-blend-overlay pointer-events-none"
+                style={{ backgroundImage: "url('/warning-stripes.svg')" }}
+            />
             
             <div className="flex items-center gap-3 mb-6 relative z-10">
                 <ShieldAlert className="w-8 h-8 text-red-500 animate-pulse" />

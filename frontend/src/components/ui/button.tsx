@@ -40,13 +40,29 @@ export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
     magnetic?: boolean;
+    touchTarget?: 'none' | 'minimum' | 'comfortable';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, magnetic = true, onClick, ...props }, ref) => {
+    ({
+        className,
+        variant,
+        size,
+        magnetic = true,
+        onClick,
+        touchTarget = 'none',
+        ...props
+    }, ref) => {
+        const touchTargetClassName =
+            touchTarget === 'comfortable'
+                ? 'touch-target-comfortable'
+                : touchTarget === 'minimum'
+                    ? 'touch-target'
+                    : undefined;
+
         const button = (
             <button
-                className={cn(buttonVariants({ variant, size, className }))}
+                className={cn(buttonVariants({ variant, size }), touchTargetClassName, className)}
                 ref={ref}
                 onClick={onClick}
                 {...props}

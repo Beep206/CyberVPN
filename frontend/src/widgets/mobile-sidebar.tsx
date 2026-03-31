@@ -1,25 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Menu, Shield, X } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Link, usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
-import { Server, Users, Activity, CreditCard, Settings, Shield, BarChart3, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
+import {
+    DASHBOARD_NAV_ITEMS,
+    DASHBOARD_NAV_LABEL_FALLBACKS,
+} from '@/widgets/dashboard-navigation';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const menuItems = [
-    { icon: Activity, labelKey: 'dashboard', href: '/dashboard' },
-    { icon: Server, labelKey: 'servers', href: '/servers' },
-    { icon: Users, labelKey: 'users', href: '/users' },
-    { icon: CreditCard, labelKey: 'billing', href: '/subscriptions' },
-    { icon: BarChart3, labelKey: 'analytics', href: '/analytics' },
-    { icon: Shield, labelKey: 'security', href: '/monitoring' },
-    { icon: Settings, labelKey: 'settings', href: '/settings' },
-];
 
 export function MobileSidebar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +22,13 @@ export function MobileSidebar() {
     const t = useTranslations('Navigation');
     const sidebarRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
+        try {
+            return t(key);
+        } catch {
+            return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+        }
+    };
 
     // Focus trap and keyboard handling for mobile sidebar
     useEffect(() => {
@@ -73,6 +75,14 @@ export function MobileSidebar() {
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        return lockDocumentScroll();
+    }, [isOpen]);
+
     return (
         <div className="md:hidden">
             <Button
@@ -81,11 +91,11 @@ export function MobileSidebar() {
                 size="icon"
                 magnetic={false}
                 onClick={() => setIsOpen(true)}
-                aria-label={t('openMenu')}
+                aria-label={labelFor('openMenu')}
                 aria-expanded={isOpen}
                 aria-haspopup="dialog"
                 aria-controls="mobile-sidebar-panel"
-                className="fixed top-3.5 left-4 z-50 h-9 w-9 rounded-lg text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+                className="h-10 w-10 rounded-xl border border-grid-line/30 bg-terminal-surface/60 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
             >
                 <Menu className="h-5 w-5" />
             </Button>
@@ -106,12 +116,12 @@ export function MobileSidebar() {
                             id="mobile-sidebar-panel"
                             role="dialog"
                             aria-modal="true"
-                            aria-label={t('sidebar')}
+                            aria-label={labelFor('sidebar')}
                             initial={{ x: '-100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
                             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                            className="fixed left-0 top-0 bottom-0 z-50 w-64 flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
+                            className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
                         >
                             <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
                                 <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
@@ -124,7 +134,7 @@ export function MobileSidebar() {
                                     magnetic={false}
                                     data-close-btn
                                     onClick={() => setIsOpen(false)}
-                                    aria-label={t('closeMenu')}
+                                    aria-label={labelFor('closeMenu')}
                                     className="text-muted-foreground hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
                                 >
                                     <X className="h-5 w-5" />
@@ -132,11 +142,11 @@ export function MobileSidebar() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto py-6 px-4">
-                                <nav aria-label={t('mainNavigation')} className="grid gap-2">
-                                    {menuItems.map((item) => {
+                                <nav aria-label={labelFor('mainNavigation')} className="grid gap-2">
+                                    {DASHBOARD_NAV_ITEMS.map((item) => {
                                         const isActive = pathname?.includes(item.href);
                                         const Icon = item.icon;
-                                        const label = t(item.labelKey);
+                                        const label = labelFor(item.labelKey);
 
                                         return (
                                             <Link
