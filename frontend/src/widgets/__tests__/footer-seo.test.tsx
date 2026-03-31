@@ -51,11 +51,11 @@ describe('Footer SEO links', () => {
       'data-seo-zone',
       'footer_entity',
     );
-    expect(screen.getByRole('link', { name: 'Trust center' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'knowledgeLinks.trust' })).toHaveAttribute(
       'href',
       '/trust',
     );
-    expect(screen.getByRole('link', { name: 'Audits' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'knowledgeLinks.audits' })).toHaveAttribute(
       'href',
       '/audits',
     );

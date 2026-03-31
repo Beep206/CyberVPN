@@ -8,8 +8,15 @@
     "cta_app": "DOWNLOAD APP"
   },
   "features": {
+    "badge": "FEATURE MATRIX",
     "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
     "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
+    "stats": {
+      "locations": "locations",
+      "bandwidth": "Gbit/s",
+      "uptime": "uptime",
+      "logs": "logs"
+    },
     "stealth": {
       "title": "Stealth Mode (Reality)",
       "desc": "Traffic is indistinguishable from visiting Google/Microsoft/Apple. No VPN fingerprinting."
@@ -36,6 +43,7 @@
     }
   },
   "how_it_works": {
+    "badge": "ANTI-DPI ENGINE",
     "title": "How Reality Works",
     "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted. Includes intelligent transport selection—automatically failing over to XHTTP if non-standard protocols are blocked."
   },
@@ -72,16 +80,35 @@
   "status_board": {
     "title": "Node Status Dashboard",
     "item_online": "ONLINE",
+    "live": "LIVE",
     "protocols": {
       "reality": "Reality",
       "vless_grpc": "VLESS-gRPC"
     }
   },
+  "technical": {
+    "specificationsTitle": "Technical Specifications",
+    "labels": {
+      "encryption": "Encryption",
+      "transport": "Transport",
+      "network": "Network"
+    },
+    "networkLabels": {
+      "bandwidth": "Bandwidth",
+      "nodes": "Active Nodes",
+      "coverage": "Coverage",
+      "uptime": "Network Availability"
+    }
+  },
   "quick_start": {
+    "badge": "Fast Track",
     "title": "30-Second Path",
     "step1": "Launch the bot (@CyberVPN_Bot)",
     "step2": "One-tap Trial Activation (2 days / 2GB)",
-    "step3": "Import config to any app and stay free"
+    "step3": "Import config to any app and stay free",
+    "terminalTitle": "Deploy Connection",
+    "terminalComment": "# Auto-provisioning VPN tunnel...",
+    "terminalStatus": "> Tunnel Established. DPI bypassed. Securing transport..."
   },
   "network_stats": {
     "title": "Network Infrastructure",
@@ -94,6 +121,27 @@
     "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
     "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP",
     "network": "Network: 10Gbps Uplinks, Global IPv6 Support"
+  },
+  "speed_tunnel": {
+    "titleStart": "GLOBAL",
+    "titleHighlight": "ULTRASPEED",
+    "titleEnd": "NETWORK",
+    "subtitle": "100+ Locations. 10 Gbit/s Channels. Zero Limits.",
+    "online": "ONLINE",
+    "featureTorrent": "Torrent",
+    "featureNoAds": "No-Ads YT",
+    "servers": {
+      "newYork": { "country": "USA", "city": "New York" },
+      "frankfurt": { "country": "Germany", "city": "Frankfurt" },
+      "amsterdam": { "country": "Netherlands", "city": "Amsterdam" },
+      "tokyo": { "country": "Japan", "city": "Tokyo" },
+      "singapore": { "country": "Singapore", "city": "Singapore" },
+      "london": { "country": "United Kingdom", "city": "London" },
+      "paris": { "country": "France", "city": "Paris" },
+      "toronto": { "country": "Canada", "city": "Toronto" },
+      "sydney": { "country": "Australia", "city": "Sydney" },
+      "seoul": { "country": "South Korea", "city": "Seoul" }
+    }
   },
   "pricing": {
     "basic": "Basic: Trial / Entry level",

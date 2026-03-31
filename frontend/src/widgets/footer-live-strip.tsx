@@ -8,6 +8,7 @@ interface FooterLiveStripProps {
   encryptionLabel: string;
   encryptionValue: string;
   integrity: string;
+  operationalStatus: string;
   systemLabel: string;
   year: string;
 }
@@ -16,6 +17,7 @@ export function FooterLiveStrip({
   encryptionLabel,
   encryptionValue,
   integrity,
+  operationalStatus,
   systemLabel,
   year,
 }: FooterLiveStripProps) {
@@ -38,7 +40,7 @@ export function FooterLiveStrip({
       </div>
 
       <p className="text-xs font-mono text-muted-foreground-low text-center md:text-right">
-        © <span>{year}</span> CyberVPN Inc. All systems operational.
+        © <span>{year}</span> CyberVPN Inc. {operationalStatus}
       </p>
     </>
   );

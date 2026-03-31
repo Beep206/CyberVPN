@@ -4,6 +4,7 @@ import { defaultLocale, locales } from './config';
 
 type Locale = (typeof locales)[number];
 type Messages = Record<string, unknown>;
+type RequestLocale = Promise<string | undefined> | string | undefined;
 
 // Helper for deep merging translation objects
 function deepMerge(target: Messages, source: Messages): Messages {
@@ -29,8 +30,8 @@ function deepMerge(target: Messages, source: Messages): Messages {
     return output;
 }
 
-export default getRequestConfig(async ({ locale }) => {
-    const resolvedLocale: Locale = locales.includes(locale as Locale) ? (locale as Locale) : defaultLocale;
+export default getRequestConfig(async ({ requestLocale }) => {
+    const resolvedLocale = await resolveRequestLocale(requestLocale);
 
     // Load base messages (English) and current locale messages
     const baseMessages = await loadLocaleMessages(defaultLocale);
@@ -51,6 +52,14 @@ export default getRequestConfig(async ({ locale }) => {
         messages
     };
 });
+
+export async function resolveRequestLocale(requestLocale: RequestLocale): Promise<Locale> {
+    const requestedLocale = await requestLocale;
+
+    return locales.includes(requestedLocale as Locale)
+        ? (requestedLocale as Locale)
+        : defaultLocale;
+}
 
 const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Locale) {
     const [

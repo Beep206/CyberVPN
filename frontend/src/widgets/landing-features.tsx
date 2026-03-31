@@ -59,10 +59,10 @@ const FEATURE_CONFIG: FeatureConfigItem[] = [
 ] as const;
 
 const STATS = [
-  { value: '100+', label: 'locations' },
-  { value: '10', label: 'Gbit/s' },
-  { value: '99.9%', label: 'uptime' },
-  { value: '0', label: 'logs' },
+  { value: '100+', labelKey: 'stats.locations' },
+  { value: '10', labelKey: 'stats.bandwidth' },
+  { value: '99.9%', labelKey: 'stats.uptime' },
+  { value: '0', labelKey: 'stats.logs' },
 ] as const;
 
 export async function LandingFeatures() {
@@ -87,7 +87,7 @@ export async function LandingFeatures() {
         <Reveal className="text-center mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan text-xs font-mono mb-6 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse" />
-            FEATURE MATRIX
+            {t('badge')}
           </div>
 
           <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6">
@@ -115,12 +115,12 @@ export async function LandingFeatures() {
 
           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map((stat, index) => (
-              <Reveal key={stat.label} delay={0.3 + index * 0.1} className="text-center">
+              <Reveal key={stat.labelKey} delay={0.3 + index * 0.1} className="text-center">
                 <div className="text-3xl md:text-5xl font-display font-bold text-neon-cyan mb-2">
                   <ScrambleText text={stat.value} />
                 </div>
                 <div className="text-muted-foreground font-mono text-sm uppercase tracking-wider">
-                  {stat.label}
+                  {t(stat.labelKey)}
                 </div>
               </Reveal>
             ))}

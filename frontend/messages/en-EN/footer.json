@@ -1,5 +1,25 @@
 {
     "brandDescription": "Advanced privacy protection infrastructure for the next generation of the internet. Navigate the digital void with military-grade encryption.",
+    "sections": {
+        "product": "Product",
+        "support": "Support",
+        "knowledge": "Knowledge",
+        "stayConnected": "Stay Connected"
+    },
+    "knowledgeLinks": {
+        "guides": "Guides",
+        "compare": "Compare",
+        "devices": "Devices",
+        "trust": "Trust center",
+        "audits": "Audits"
+    },
+    "newsletter": {
+        "description": "Join our encrypted frequency. Get updates on server locations, security protocols, and zero-day patches.",
+        "prompt": "root@user:~$",
+        "placeholder": "enter_email.exe",
+        "cta": "INIT"
+    },
+    "operationalStatus": "All systems operational.",
     "links": {
         "features": "Features",
         "pricing": "Pricing",

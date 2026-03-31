@@ -8,8 +8,15 @@
     "cta_app": "СКАЧАТЬ ПРИЛОЖЕНИЕ"
   },
   "features": {
+    "badge": "МАТРИЦА ВОЗМОЖНОСТЕЙ",
     "sectionTitle": "ТЕХНОЛОГИЧЕСКОЕ ПРЕВОСХОДСТВО",
     "sectionSubtitle": "Шесть уровней защиты для современного кибер-гражданина",
+    "stats": {
+      "locations": "локации",
+      "bandwidth": "Гбит/с",
+      "uptime": "аптайм",
+      "logs": "логи"
+    },
     "stealth": {
       "title": "Стелс Режим (Reality)",
       "desc": "Трафик неотличим от посещения Google/Microsoft/Apple. Никакого отпечатка VPN."
@@ -36,6 +43,7 @@
     }
   },
   "how_it_works": {
+    "badge": "ANTI-DPI ДВИЖОК",
     "title": "Как работает Reality",
     "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт. Интеллектуальный выбор транспорта: автоматическое переключение на XHTTP, если сеть блокирует нестандартные протоколы."
   },
@@ -72,16 +80,35 @@
   "status_board": {
     "title": "Статус Узлов",
     "item_online": "ОНЛАЙН",
+    "live": "В РЕАЛЬНОМ ВРЕМЕНИ",
     "protocols": {
       "reality": "Reality",
       "vless_grpc": "VLESS-gRPC"
     }
   },
+  "technical": {
+    "specificationsTitle": "Технические характеристики",
+    "labels": {
+      "encryption": "Шифрование",
+      "transport": "Транспорт",
+      "network": "Сеть"
+    },
+    "networkLabels": {
+      "bandwidth": "Пропускная способность",
+      "nodes": "Активные узлы",
+      "coverage": "Покрытие",
+      "uptime": "Доступность сети"
+    }
+  },
   "quick_start": {
+    "badge": "Быстрый старт",
     "title": "Путь в 30 Секунд",
     "step1": "Запустите бота (@CyberVPN_Bot)",
     "step2": "Активация Trial в один клик (2 дня / 2 ГБ)",
-    "step3": "Импортируйте конфиг в любое приложение и оставайтесь свободными"
+    "step3": "Импортируйте конфиг в любое приложение и оставайтесь свободными",
+    "terminalTitle": "Развертывание подключения",
+    "terminalComment": "# Автоматическое развёртывание VPN-туннеля...",
+    "terminalStatus": "> Туннель установлен. DPI обойдён. Защищаем транспорт..."
   },
   "network_stats": {
     "title": "Сетевая Инфраструктура",
@@ -94,6 +121,27 @@
     "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
     "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP",
     "network": "Сеть: Аплинки 10 Гбит/с, глобальная поддержка IPv6"
+  },
+  "speed_tunnel": {
+    "titleStart": "ГЛОБАЛЬНАЯ",
+    "titleHighlight": "УЛЬТРАСКОРОСТНАЯ",
+    "titleEnd": "СЕТЬ",
+    "subtitle": "100+ локаций. Каналы 10 Гбит/с. Никаких ограничений.",
+    "online": "ОНЛАЙН",
+    "featureTorrent": "Торренты",
+    "featureNoAds": "YouTube без рекламы",
+    "servers": {
+      "newYork": { "country": "США", "city": "Нью-Йорк" },
+      "frankfurt": { "country": "Германия", "city": "Франкфурт" },
+      "amsterdam": { "country": "Нидерланды", "city": "Амстердам" },
+      "tokyo": { "country": "Япония", "city": "Токио" },
+      "singapore": { "country": "Сингапур", "city": "Сингапур" },
+      "london": { "country": "Великобритания", "city": "Лондон" },
+      "paris": { "country": "Франция", "city": "Париж" },
+      "toronto": { "country": "Канада", "city": "Торонто" },
+      "sydney": { "country": "Австралия", "city": "Сидней" },
+      "seoul": { "country": "Южная Корея", "city": "Сеул" }
+    }
   },
   "pricing": {
     "basic": "Basic: Пробный / Начальный уровень",

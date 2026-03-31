@@ -9,7 +9,7 @@ import { StatusBadgeLive } from '@/shared/ui/status-badge-live';
 
 export async function LandingHero({ locale: providedLocale }: { locale?: string } = {}) {
   const locale = providedLocale ?? await getLocale();
-  const t = await getTranslations('Landing.hero');
+  const t = await getTranslations({ locale, namespace: 'Landing.hero' });
   const protocolBadge = t('protocol_badge').split('|')[0]?.trim().replace('PROTOCOL: ', '') || 'VLESS-REALITY + XHTTP';
 
   return (
