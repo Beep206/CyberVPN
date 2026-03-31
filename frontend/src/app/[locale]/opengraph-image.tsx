@@ -29,6 +29,6 @@ export default function OGImage() {
         </div>
       </div>
     ),
-    { ...size }
+    { ...size },
   );
 }

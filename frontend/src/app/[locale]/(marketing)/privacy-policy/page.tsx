@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
-import { TerminalHeader } from '@/widgets/terminal-header';
 import { Footer } from '@/widgets/footer';
+import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -10,6 +10,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     return withSiteMetadata({
         title: t('meta.title'),
         description: t('meta.description'),
+    }, {
+        locale,
+        canonicalPath: '/privacy-policy',
+        routeType: 'public',
     });
 }
 
@@ -19,7 +23,7 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
 
     return (
         <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-            <TerminalHeader />
+            <PublicTerminalHeader />
             <div className="container mx-auto px-4 py-16 max-w-4xl">
                 <article className="prose prose-invert prose-cyan max-w-none">
                     <h1 className="text-4xl font-display font-bold text-matrix-green mb-8">

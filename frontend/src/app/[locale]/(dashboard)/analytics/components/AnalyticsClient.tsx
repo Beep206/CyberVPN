@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { paymentsApi, usageApi, subscriptionsApi } from '@/lib/api';
+import { AcquisitionAnalyticsPanel } from './AcquisitionAnalyticsPanel';
 
 // Local interfaces for analytics data (API responses may differ from expected structure)
 interface PaymentRecord {
@@ -171,6 +172,8 @@ export function AnalyticsClient() {
 
   return (
     <div className="space-y-6">
+      <AcquisitionAnalyticsPanel />
+
       {/* Time Range Selector */}
       <div className="flex gap-2">
         {[

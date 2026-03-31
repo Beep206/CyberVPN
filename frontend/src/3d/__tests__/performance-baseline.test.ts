@@ -84,6 +84,43 @@ describe('3D performance baseline', () => {
     expect(statusBadge).toContain('animate-pulse');
   });
 
+  it('marketing enhancements stay behind shared idle and visual-tier gates', async () => {
+    const lazyMount = await readSource('shared/ui/lazy-mount.tsx');
+    const smoothScroll = await readSource('app/providers/smooth-scroll-provider.tsx');
+    const globalNetworkWrapper = await readSource('widgets/3d-background/global-network-wrapper.tsx');
+    const landingFeaturesScene = await readSource('widgets/landing-features-scene.tsx');
+    const landingTechnicalScene = await readSource('widgets/landing-technical-scene.tsx');
+    const quickStartScene = await readSource('widgets/quick-start-scene.tsx');
+
+    expect(lazyMount).toContain('useEnhancementReady');
+    expect(lazyMount).toContain("minimumTier = 'minimal'");
+    expect(smoothScroll).toContain("import('lenis')");
+    expect(smoothScroll).toContain('useEnhancementReady');
+    expect(globalNetworkWrapper).toContain('useEnhancementReady');
+    expect(globalNetworkWrapper).not.toContain('usePathname');
+    expect(landingFeaturesScene).not.toContain('usePathname');
+    expect(landingTechnicalScene).not.toContain('usePathname');
+    expect(quickStartScene).not.toContain('usePathname');
+  });
+
+  it('remaining marketing dashboards gate direct 3D scenes and scroll listeners', async () => {
+    const api = await readSource('widgets/api/api-dashboard.tsx');
+    const privacy = await readSource('widgets/privacy/privacy-dashboard.tsx');
+    const security = await readSource('widgets/security/security-dashboard.tsx');
+    const terms = await readSource('widgets/terms/terms-dashboard.tsx');
+
+    expect(api).toContain('useEnhancementReady');
+    expect(api).toContain('ApiVisualFallback');
+    expect(privacy).toContain('useEnhancementReady');
+    expect(privacy).toContain('PrivacyVisualFallback');
+    expect(privacy).toContain('if (!showScene)');
+    expect(security).toContain('useEnhancementReady');
+    expect(security).toContain('SecurityVisualFallback');
+    expect(terms).toContain('useEnhancementReady');
+    expect(terms).toContain('TermsVisualFallback');
+    expect(terms).toContain('if (!showScene)');
+  });
+
   it('inception overlay stays lazy-loaded instead of bundling Canvas eagerly', async () => {
     const source = await readSource('components/ui/InceptionButton.tsx');
 
@@ -92,11 +129,39 @@ describe('3D performance baseline', () => {
     expect(source).not.toContain("import { Canvas } from '@react-three/fiber'");
   });
 
-  it('dashboard is the only place that explicitly enables live FPS header metrics', async () => {
+  it('heavy routes gate premium visuals behind shared visual tiers', async () => {
+    const globe = await readSource('app/[locale]/(dashboard)/dashboard/components/DashboardGlobe.tsx');
+    const contact = await readSource('widgets/contact-form.tsx');
+    const features = await readSource('widgets/features/features-dashboard.tsx');
+    const download = await readSource('widgets/download/download-dashboard.tsx');
+    const status = await readSource('widgets/status/status-dashboard.tsx');
+    const pricing = await readSource('widgets/pricing/pricing-dashboard.tsx');
+
+    expect(globe).toContain('useVisualTier');
+    expect(globe).not.toContain('function shouldRender3DGlobe');
+
+    expect(contact).toContain('useVisualTier');
+    expect(contact).toContain('useEnhancementReady');
+    expect(contact).toContain("visualTier === 'full'");
+    expect(features).toContain('useVisualTier');
+    expect(features).toContain('useEnhancementReady');
+    expect(features).toContain("visualTier === 'full'");
+    expect(download).toContain('useVisualTier');
+    expect(download).toContain('useEnhancementReady');
+    expect(download).toContain("visualTier === 'full'");
+    expect(status).toContain('useVisualTier');
+    expect(status).toContain('useEnhancementReady');
+    expect(status).toContain("visualTier === 'full'");
+    expect(pricing).toContain('useVisualTier');
+    expect(pricing).toContain('useEnhancementReady');
+    expect(pricing).toContain("visualTier === 'full'");
+  });
+
+  it('dashboard is the only place that explicitly enables always-on header metrics', async () => {
     const dashboardLayout = await readSource('app/[locale]/(dashboard)/layout.tsx');
     const header = await readSource('widgets/terminal-header.tsx');
 
-    expect(header).toContain('showPerformance = false');
-    expect(dashboardLayout).toContain('<TerminalHeader showPerformance />');
+    expect(header).toContain("performanceMode = 'idle'");
+    expect(dashboardLayout).toContain('<TerminalHeader performanceMode="always" showMobileSidebar />');
   });
 });

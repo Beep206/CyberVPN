@@ -15,15 +15,17 @@ interface NavigatorWithPerformanceHints extends Navigator {
   deviceMemory?: number;
 }
 
-interface MotionCapabilitySnapshot {
+export interface MotionCapabilitySnapshot {
   allowAmbientAnimations: boolean;
   allowPointerEffects: boolean;
+  hasFinePointer: boolean;
   isLowPowerDevice: boolean;
 }
 
 const SSR_SNAPSHOT: MotionCapabilitySnapshot = {
   allowAmbientAnimations: false,
   allowPointerEffects: false,
+  hasFinePointer: false,
   isLowPowerDevice: true,
 };
 
@@ -32,13 +34,21 @@ let lastSnapshot: MotionCapabilitySnapshot = SSR_SNAPSHOT;
 const MIN_CPU_CORES = 4;
 const MIN_DEVICE_MEMORY_GB = 4;
 
+function matchesMedia(query: string) {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(query).matches
+  );
+}
+
 function getSnapshot(prefersReducedMotion: boolean): MotionCapabilitySnapshot {
   if (typeof window === 'undefined') {
     return SSR_SNAPSHOT;
   }
 
   const nav = navigator as NavigatorWithPerformanceHints;
-  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const finePointer = matchesMedia('(hover: hover) and (pointer: fine)');
   const saveDataEnabled = nav.connection?.saveData ?? false;
   const lowBandwidth = ['slow-2g', '2g'].includes(nav.connection?.effectiveType ?? '');
   const lowCoreCount = (nav.hardwareConcurrency ?? MIN_CPU_CORES) < MIN_CPU_CORES;
@@ -48,16 +58,18 @@ function getSnapshot(prefersReducedMotion: boolean): MotionCapabilitySnapshot {
   const nextSnapshot = {
     allowAmbientAnimations: !isLowPowerDevice,
     allowPointerEffects: !isLowPowerDevice && finePointer,
+    hasFinePointer: finePointer,
     isLowPowerDevice,
   };
 
   if (
     lastSnapshot.allowAmbientAnimations === nextSnapshot.allowAmbientAnimations &&
     lastSnapshot.allowPointerEffects === nextSnapshot.allowPointerEffects &&
+    lastSnapshot.hasFinePointer === nextSnapshot.hasFinePointer &&
     lastSnapshot.isLowPowerDevice === nextSnapshot.isLowPowerDevice
   ) {
     return lastSnapshot;
-  };
+  }
 
   lastSnapshot = nextSnapshot;
 
@@ -69,16 +81,19 @@ function subscribe(callback: () => void) {
     return () => {};
   }
 
-  const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const finePointerQuery =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(hover: hover) and (pointer: fine)')
+      : null;
   const connection = (navigator as NavigatorWithPerformanceHints).connection;
 
   const notify = () => callback();
 
-  finePointerQuery.addEventListener?.('change', notify);
+  finePointerQuery?.addEventListener?.('change', notify);
   connection?.addEventListener?.('change', notify);
 
   return () => {
-    finePointerQuery.removeEventListener?.('change', notify);
+    finePointerQuery?.removeEventListener?.('change', notify);
     connection?.removeEventListener?.('change', notify);
   };
 }

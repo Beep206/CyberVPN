@@ -1,37 +1,68 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Lenis from 'lenis';
+import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
+
+interface LenisController {
+  destroy: () => void;
+  start: () => void;
+  stop: () => void;
+}
 
 export function SmoothScrollProvider() {
-  const lenisRef = useRef<Lenis | null>(null);
+  const lenisRef = useRef<LenisController | null>(null);
+  const { isReady } = useEnhancementReady({
+    minimumTier: 'full',
+    defer: 'idle',
+  });
 
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
-      autoRaf: true,
+    if (!isReady || typeof window === 'undefined') {
+      return;
+    }
+
+    let isActive = true;
+    let stopLenis: (() => void) | undefined;
+    let startLenis: (() => void) | undefined;
+
+    void import('lenis').then(({ default: Lenis }) => {
+      if (!isActive) {
+        return;
+      }
+
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 2,
+        autoRaf: true,
+      });
+
+      lenisRef.current = lenis;
+      stopLenis = () => lenis.stop();
+      startLenis = () => lenis.start();
+      window.addEventListener('lenis:stop', stopLenis);
+      window.addEventListener('lenis:start', startLenis);
     });
 
-    lenisRef.current = lenis;
-
-    const stopLenis = () => lenis.stop();
-    const startLenis = () => lenis.start();
-
-    window.addEventListener('lenis:stop', stopLenis);
-    window.addEventListener('lenis:start', startLenis);
-
     return () => {
-      window.removeEventListener('lenis:stop', stopLenis);
-      window.removeEventListener('lenis:start', startLenis);
-      lenis.destroy();
+      isActive = false;
+
+      if (stopLenis) {
+        window.removeEventListener('lenis:stop', stopLenis);
+      }
+
+      if (startLenis) {
+        window.removeEventListener('lenis:start', startLenis);
+      }
+
+      lenisRef.current?.destroy();
+      lenisRef.current = null;
     };
-  }, []);
+  }, [isReady]);
 
   return null;
 }

@@ -98,6 +98,8 @@ vi.mock('motion/react', () => ({
     }
   ),
   AnimatePresence: ({ children }: { children: unknown }) => children,
+  useReducedMotion: () => false,
+  useInView: () => true,
 }));
 
 // Mock sessionStorage

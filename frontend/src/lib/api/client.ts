@@ -106,6 +106,13 @@ export const apiClient = axios.create({
   },
 });
 
+let requestSequence = 0;
+
+function getRequestId(): string {
+  requestSequence += 1;
+  return `req-${requestSequence}`;
+}
+
 // Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
@@ -128,7 +135,7 @@ apiClient.interceptors.request.use(
 
     // Add X-Request-ID for request correlation (DX-02)
     if (config.headers) {
-      config.headers['X-Request-ID'] = crypto.randomUUID();
+      config.headers['X-Request-ID'] = getRequestId();
     }
     return config;
   },

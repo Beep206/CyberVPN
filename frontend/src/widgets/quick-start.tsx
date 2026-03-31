@@ -11,7 +11,12 @@ export async function QuickStart() {
 
   return (
     <section className="relative py-32 bg-terminal-bg border-t border-grid-line/20 overflow-hidden">
-      <LazyMount className="absolute inset-0 z-0 pointer-events-none" placeholder={<div className="absolute inset-0 z-0" />}>
+      <LazyMount
+        className="absolute inset-0 z-0 pointer-events-none"
+        defer="idle"
+        minimumTier="full"
+        placeholder={<div className="absolute inset-0 z-0" />}
+      >
         <QuickStartScene />
       </LazyMount>
 

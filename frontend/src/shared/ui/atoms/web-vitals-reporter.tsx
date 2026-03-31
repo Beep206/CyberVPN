@@ -12,7 +12,7 @@ import { reportWebVitals } from '@/shared/lib/web-vitals';
 export function WebVitalsReporter() {
   useEffect(() => {
     // Initialize Web Vitals reporting
-    reportWebVitals();
+    void reportWebVitals();
   }, []);
 
   // This component doesn't render anything

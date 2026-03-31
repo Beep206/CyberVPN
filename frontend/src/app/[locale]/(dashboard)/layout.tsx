@@ -9,7 +9,6 @@ import { JsonLd } from '@/shared/lib/json-ld';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { Scanlines } from '@/shared/ui/atoms/scanlines';
 import { CyberSidebar } from '@/widgets/cyber-sidebar';
-import { MobileSidebar } from '@/widgets/mobile-sidebar';
 import { TerminalHeader } from '@/widgets/terminal-header';
 
 export async function generateMetadata({
@@ -23,6 +22,9 @@ export async function generateMetadata({
   return withSiteMetadata({
     title: t('title'),
     description: t('description'),
+  }, {
+    locale,
+    routeType: 'private',
   });
 }
 
@@ -54,7 +56,7 @@ export default async function DashboardLayout({
             }}
           />
 
-          <div className="flex h-screen w-full overflow-hidden bg-terminal-bg text-foreground">
+          <div className="flex min-h-dvh w-full bg-terminal-bg text-foreground">
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
@@ -68,19 +70,16 @@ export default async function DashboardLayout({
               <CyberSidebar />
             </ErrorBoundary>
 
-            <MobileSidebar />
-
-            <div className="relative flex flex-1 flex-col overflow-hidden md:pl-64">
+            <div className="relative flex min-h-dvh flex-1 flex-col md:pl-64">
               <ErrorBoundary label="Header">
-                <TerminalHeader performanceMode="always" />
+                <TerminalHeader performanceMode="always" showMobileSidebar />
               </ErrorBoundary>
 
               <main
                 id="main-content"
                 tabIndex={-1}
                 aria-live="polite"
-                data-lenis-prevent="true"
-                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative p-4 md:p-6 pb-20 z-10 focus:outline-hidden"
+                className="relative z-10 flex-1 p-4 pb-20 focus:outline-hidden md:p-6"
               >
                 {children}
               </main>

@@ -40,7 +40,10 @@ export function SignatureTerminal({
                 <div className="p-8 md:p-12 flex flex-col items-center justify-center min-h-[250px] relative overflow-hidden">
                     
                     {/* Background scanline effect */}
-                    <div className="absolute inset-0 bg-[url('/scanlines.png')] opacity-20 pointer-events-none mix-blend-overlay" />
+                    <div
+                        className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
+                        style={{ backgroundImage: "url('/scanlines.png')" }}
+                    />
 
                     {!isAccepted ? (
                         <>

@@ -88,6 +88,7 @@ export default function RegisterPage() {
         <AuthFormCard
             title={t('title')}
             subtitle={t('subtitle')}
+            className="keyboard-safe-bottom"
         >
             {/* Social auth */}
             <SocialAuthButtons
@@ -103,7 +104,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => setUsernameOnly(false)}
                     className={cn(
-                        "flex-1 py-2 px-3 rounded-lg border transition-all cursor-pointer",
+                        "touch-target flex-1 px-3 py-2 rounded-lg border transition-all cursor-pointer",
                         !usernameOnly
                             ? "border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan"
                             : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
@@ -116,7 +117,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => setUsernameOnly(true)}
                     className={cn(
-                        "flex-1 py-2 px-3 rounded-lg border transition-all cursor-pointer",
+                        "touch-target flex-1 px-3 py-2 rounded-lg border transition-all cursor-pointer",
                         usernameOnly
                             ? "border-neon-purple/50 bg-neon-purple/10 text-neon-purple"
                             : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
@@ -148,7 +149,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Register form */}
-            <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isLoading}>
+            <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isLoading}>
                 {usernameOnly ? (
                     <CyberInput
                         label="Username"
@@ -160,6 +161,7 @@ export default function RegisterPage() {
                         required
                         autoComplete="username"
                         disabled={isLoading || isRateLimited}
+                        className="mobile-form-input"
                     />
                 ) : (
                     <CyberInput
@@ -172,6 +174,7 @@ export default function RegisterPage() {
                         required
                         autoComplete="email"
                         disabled={isLoading || isRateLimited}
+                        className="mobile-form-input"
                     />
                 )}
 
@@ -186,6 +189,7 @@ export default function RegisterPage() {
                         required
                         autoComplete="new-password"
                         disabled={isLoading || isRateLimited}
+                        className="mobile-form-input"
                     />
                     <PasswordStrengthMeter password={password} />
                 </div>
@@ -202,10 +206,11 @@ export default function RegisterPage() {
                     disabled={isLoading || isRateLimited}
                     error={confirmPassword && !passwordsMatch ? t('passwordMismatch') : undefined}
                     success={passwordsMatch}
+                    className="mobile-form-input"
                 />
 
                 {/* Terms checkbox */}
-                <label className="flex items-start gap-3 cursor-pointer group">
+                <label className="touch-target flex items-start gap-3 cursor-pointer group">
                     <div className="relative mt-0.5">
                         <input
                             type="checkbox"
@@ -221,11 +226,11 @@ export default function RegisterPage() {
                     </div>
                     <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
                         {t('acceptTerms')}{' '}
-                        <Link href="/terms" className="text-neon-cyan hover:underline">
+                        <Link href="/terms" className="touch-target inline-flex items-center text-neon-cyan hover:underline">
                             {t('termsLink')}
                         </Link>{' '}
                         {t('and')}{' '}
-                        <Link href="/privacy-policy" className="text-neon-cyan hover:underline">
+                        <Link href="/privacy-policy" className="touch-target inline-flex items-center text-neon-cyan hover:underline">
                             {t('privacyLink')}
                         </Link>
                     </span>
@@ -240,6 +245,7 @@ export default function RegisterPage() {
                     <Button
                         type="submit"
                         disabled={isLoading || !canSubmit}
+                        touchTarget="comfortable"
                         className="min-w-[200px] h-12 bg-neon-purple hover:bg-neon-purple/90 text-white font-bold font-mono tracking-wider shadow-lg shadow-neon-purple/20 hover:shadow-neon-purple/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         aria-label={isLoading ? t('submitting') : t('submitButton')}
                     >

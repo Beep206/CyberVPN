@@ -129,7 +129,10 @@ export function UserMenu() {
                             {/* Cyber Header - Kept distinctive for profile identity, but with adjusted opacity for light mode */}
                             <div className="relative p-5 overflow-hidden group bg-foreground/5 dark:bg-transparent">
                                 <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/10 via-transparent to-neon-purple/10 opacity-50" />
-                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 dark:opacity-20" />
+                                <div
+                                    className="absolute inset-0 opacity-10 dark:opacity-20"
+                                    style={{ backgroundImage: "url('/grid.svg')" }}
+                                />
 
                                 {/* Animated scanline */}
                                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/20 dark:via-white/20 to-transparent animate-scan" />

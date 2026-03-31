@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
+import { useTime } from '@/shared/hooks/use-time';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 
 interface FooterLiveStripProps {
@@ -9,10 +9,7 @@ interface FooterLiveStripProps {
   encryptionValue: string;
   integrity: string;
   systemLabel: string;
-}
-
-function formatUtcTime() {
-  return `${new Date().toISOString().split('T')[1].split('.')[0]} UTC`;
+  year: string;
 }
 
 export function FooterLiveStrip({
@@ -20,31 +17,11 @@ export function FooterLiveStrip({
   encryptionValue,
   integrity,
   systemLabel,
+  year,
 }: FooterLiveStripProps) {
   const { allowAmbientAnimations } = useMotionCapability();
-  const timeRef = useRef<HTMLDivElement>(null);
-  const [year] = useState(() => String(new Date().getFullYear()));
-
-  useEffect(() => {
-    if (!timeRef.current) {
-      return;
-    }
-
-    const updateTime = () => {
-      if (timeRef.current) {
-        timeRef.current.textContent = formatUtcTime();
-      }
-    };
-
-    updateTime();
-
-    if (!allowAmbientAnimations) {
-      return;
-    }
-
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
-  }, [allowAmbientAnimations]);
+  const currentTime = useTime();
+  const displayTime = allowAmbientAnimations && currentTime ? currentTime : '--:--:--';
 
   return (
     <>
@@ -56,8 +33,8 @@ export function FooterLiveStrip({
         <CypherText text={encryptionValue} className="text-neon-purple" loop={allowAmbientAnimations} loopDelay={2500} />
       </div>
 
-      <div ref={timeRef} className="hidden md:block absolute left-1/2 -translate-x-1/2 font-cyber text-sm text-neon-cyan/80">
-        --:--:--
+      <div className="hidden md:block absolute left-1/2 -translate-x-1/2 font-cyber text-sm text-neon-cyan/80">
+        {displayTime}
       </div>
 
       <p className="text-xs font-mono text-muted-foreground-low text-center md:text-right">

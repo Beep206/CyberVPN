@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { motion, type Variants } from 'motion/react';
+import { MobileDataList } from '@/shared/ui/mobile-data-list';
 
 export interface ComparisonTableRow {
     id: string;
@@ -48,42 +49,57 @@ export function ComparisonTable({ title, headers, rows, className = '' }: Compar
                     </span>
                 </h3>
             )}
-            <div className="overflow-x-auto relative z-10">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-grid-line/50 text-muted-foreground uppercase text-sm font-mono tracking-wider">
-                            <th className="py-4 px-4 font-semibold">{headers.feature}</th>
-                            <th className="py-4 px-4 font-semibold text-muted-foreground/80">{headers.legacy}</th>
-                            <th className="py-4 px-4 font-semibold text-[color:var(--color-matrix-green)] neon-text drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">
-                                {headers.cybervpn}
-                            </th>
-                        </tr>
-                    </thead>
-                    <motion.tbody 
-                        variants={tableVariants}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, margin: '-50px' }}
-                        className="divide-y divide-grid-line/30 font-mono text-sm"
-                    >
-                        {rows.map((row) => (
-                            <motion.tr variants={rowVariants} key={row.id} className="hover:bg-grid-line/10 transition-colors">
-                                <td className="py-4 px-4 text-foreground/90 font-medium whitespace-nowrap">
-                                    {row.feature}
-                                </td>
-                                <td className="py-4 px-4 text-muted-foreground">
-                                    {row.legacy}
-                                </td>
-                                <td className="py-4 px-4 text-[color:var(--color-matrix-green)] font-semibold bg-[color:var(--color-matrix-green)]/5 rounded-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[color:var(--color-matrix-green)] shadow-[0_0_8px_var(--color-matrix-green)] animate-pulse" />
-                                        {row.cybervpn}
-                                    </div>
-                                </td>
-                            </motion.tr>
-                        ))}
-                    </motion.tbody>
-                </table>
+            <div className="relative z-10">
+                <div className="md:hidden">
+                    <MobileDataList
+                        items={rows.map((row) => ({
+                            id: row.id,
+                            title: row.feature,
+                            primaryFields: [
+                                { label: headers.legacy, value: row.legacy },
+                                { label: headers.cybervpn, value: row.cybervpn, emphasize: true },
+                            ],
+                        }))}
+                    />
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-grid-line/50 text-muted-foreground uppercase text-sm font-mono tracking-wider">
+                                <th className="py-4 px-4 font-semibold">{headers.feature}</th>
+                                <th className="py-4 px-4 font-semibold text-muted-foreground/80">{headers.legacy}</th>
+                                <th className="py-4 px-4 font-semibold text-[color:var(--color-matrix-green)] neon-text drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">
+                                    {headers.cybervpn}
+                                </th>
+                            </tr>
+                        </thead>
+                        <motion.tbody 
+                            variants={tableVariants}
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, margin: '-50px' }}
+                            className="divide-y divide-grid-line/30 font-mono text-sm"
+                        >
+                            {rows.map((row) => (
+                                <motion.tr variants={rowVariants} key={row.id} className="hover:bg-grid-line/10 transition-colors">
+                                    <td className="py-4 px-4 text-foreground/90 font-medium whitespace-nowrap">
+                                        {row.feature}
+                                    </td>
+                                    <td className="py-4 px-4 text-muted-foreground">
+                                        {row.legacy}
+                                    </td>
+                                    <td className="py-4 px-4 text-[color:var(--color-matrix-green)] font-semibold bg-[color:var(--color-matrix-green)]/5 rounded-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[color:var(--color-matrix-green)] shadow-[0_0_8px_var(--color-matrix-green)] animate-pulse" />
+                                            {row.cybervpn}
+                                        </div>
+                                    </td>
+                                </motion.tr>
+                            ))}
+                        </motion.tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

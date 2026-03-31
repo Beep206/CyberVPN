@@ -129,7 +129,7 @@ export function MonitoringClient() {
   const typedHealthData = healthData as HealthData;
   const typedStatsData = statsData as StatsData;
   const typedBandwidthData = bandwidthData as BandwidthData;
-  const lastCheckTime = currentTime || new Date().toISOString();
+  const lastCheckTime = currentTime || '--:--:--';
 
   const health = {
     overall: typedHealthData.status || ('healthy' as HealthStatus),

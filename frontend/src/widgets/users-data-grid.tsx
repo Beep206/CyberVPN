@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { User, UserStatus } from '@/entities/user/model/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/organisms/table';
+import { MobileDataList, type MobileDataListItem } from '@/shared/ui/mobile-data-list';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
@@ -119,45 +120,88 @@ export function UsersDataGrid() {
         getRowId: (row) => row.id,
     });
 
+    const renderUserAction = (user: User) => (
+        <button className="text-muted-foreground hover:text-white transition-colors" aria-label={`${t('columns.actions')} ${user.email}`}>
+            <MoreHorizontal className="h-4 w-4" />
+        </button>
+    );
+
+    const mobileItems: MobileDataListItem[] = mockUsers.map((user) => ({
+        id: user.id,
+        title: <CypherText text={user.email} revealSpeed={20} />,
+        subtitle: (
+            <span className="uppercase text-xs font-bold text-neon-pink">
+                <CypherText text={user.plan} revealSpeed={40} />
+            </span>
+        ),
+        status: (
+            <span className={cn(
+                "uppercase text-[10px] px-2 py-0.5 border rounded-full font-bold",
+                statusStyles[user.status]
+            )}>
+                {t(`status.${user.status}`) ?? user.status}
+            </span>
+        ),
+        priority: <span>{user.dataUsage} GB</span>,
+        primaryFields: [
+            { label: t('columns.subscription'), value: user.plan.toUpperCase() },
+            { label: t('columns.dataUsage'), value: `${user.dataUsage} / ${user.dataLimit} GB`, emphasize: true },
+        ],
+        secondaryFields: [
+            { label: t('columns.lastSeen'), value: user.lastActive },
+            { label: 'Expires', value: user.expiresAt },
+        ],
+        actions: renderUserAction(user),
+    }));
+
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div
+                data-testid="users-grid-toolbar"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <h2 className="text-xl font-display text-neon-pink">{t('title')}</h2>
-                <div className="flex gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <input
                         type="text"
                         placeholder={t('searchPlaceholder')}
-                        className="bg-black/20 border border-grid-line/50 rounded px-3 py-1.5 text-sm font-mono focus:border-neon-pink focus:outline-none w-64"
+                        className="w-full bg-black/20 border border-grid-line/50 rounded px-3 py-1.5 text-sm font-mono focus:border-neon-pink focus:outline-none sm:w-64"
                     />
                 </div>
             </div>
 
-            <Table>
-                <TableHeader>
-                    {table.getHeaderGroups().map(headerGroup => (
-                        <TableRow key={headerGroup.id}>
-                            {headerGroup.headers.map(header => (
-                                <TableHead key={header.id}>
-                                    {header.isPlaceholder
-                                        ? null
-                                        : flexRender(header.column.columnDef.header, header.getContext())}
-                                </TableHead>
-                            ))}
-                        </TableRow>
-                    ))}
-                </TableHeader>
-                <TableBody>
-                    {table.getRowModel().rows.map(row => (
-                        <TableRow key={row.id}>
-                            {row.getVisibleCells().map(cell => (
-                                <TableCell key={cell.id}>
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+            <div data-testid="users-mobile-list" className="md:hidden">
+                <MobileDataList items={mobileItems} />
+            </div>
+
+            <div data-testid="users-desktop-table" className="hidden md:block">
+                <Table>
+                    <TableHeader>
+                        {table.getHeaderGroups().map(headerGroup => (
+                            <TableRow key={headerGroup.id}>
+                                {headerGroup.headers.map(header => (
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {table.getRowModel().rows.map(row => (
+                            <TableRow key={row.id}>
+                                {row.getVisibleCells().map(cell => (
+                                    <TableCell key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 }

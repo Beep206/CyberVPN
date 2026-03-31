@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { trialApi } from '@/lib/api/trial';
 import { motion } from 'motion/react';
@@ -47,12 +47,15 @@ export function TrialSection() {
     }
   };
 
-  // Calculate days remaining (use state to avoid hydration mismatch)
-  const [now] = useState(() => new Date());
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
 
   const getDaysRemaining = (trialEnd: string): number => {
     const end = new Date(trialEnd);
-    const diff = end.getTime() - now.getTime();
+    const diff = end.getTime() - (nowMs ?? end.getTime());
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 

@@ -1,0 +1,76 @@
+import type { BreadcrumbList, CollectionPage } from 'schema-dts';
+import { setRequestLocale } from 'next-intl/server';
+import { getCompareHubContent } from '@/content/seo/comparisons';
+import { getSeoUiLabels } from '@/content/seo/market-localization';
+import { JsonLd } from '@/shared/lib/json-ld';
+import { withSiteMetadata } from '@/shared/lib/site-metadata';
+import {
+  buildBreadcrumbListStructuredData,
+  buildCollectionPageStructuredData,
+} from '@/shared/lib/structured-data';
+import { Footer } from '@/widgets/footer';
+import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
+import { SeoContentHubPage } from '@/widgets/seo/content-hub-page';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const hub = await getCompareHubContent(locale);
+
+  return withSiteMetadata(
+    {
+      title: `${hub.title} | CyberVPN`,
+      description: hub.description,
+    },
+    {
+      locale,
+      canonicalPath: hub.path,
+      routeType: 'public',
+    },
+  );
+}
+
+export default async function ComparePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const labels = getSeoUiLabels(locale);
+
+  const hub = await getCompareHubContent(locale);
+  const collectionStructuredData = buildCollectionPageStructuredData({
+    locale,
+    path: hub.path,
+    title: hub.title,
+    description: hub.description,
+    items: hub.cards.map((card) => ({ name: card.title, path: card.path })),
+  });
+  const breadcrumbStructuredData = buildBreadcrumbListStructuredData({
+    locale,
+    items: [
+      { name: labels.home, path: '/' },
+      { name: labels.compare, path: hub.path },
+    ],
+  });
+
+  return (
+    <>
+      <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
+        <PublicTerminalHeader />
+        <SeoContentHubPage
+          content={hub}
+          labels={{ hubIntent: labels.hubIntent, readPage: labels.readPage }}
+        />
+        <Footer />
+      </main>
+
+      <JsonLd<CollectionPage> data={collectionStructuredData} />
+      <JsonLd<BreadcrumbList> data={breadcrumbStructuredData} />
+    </>
+  );
+}

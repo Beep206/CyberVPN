@@ -63,6 +63,7 @@ export default function ForgotPasswordPage() {
         <AuthFormCard
             title={t('title')}
             subtitle={t('subtitle')}
+            className="keyboard-safe-bottom"
         >
             {/* Rate limit countdown */}
             <RateLimitCountdown />
@@ -111,6 +112,7 @@ export default function ForgotPasswordPage() {
                     {/* Navigate to reset password page */}
                     <Link href={`/reset-password?email=${encodeURIComponent(email)}`}>
                         <Button
+                            touchTarget="comfortable"
                             className="mt-2 min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer"
                             aria-label={t('continueToReset')}
                         >
@@ -125,6 +127,7 @@ export default function ForgotPasswordPage() {
                             setError(null);
                         }}
                         variant="outline"
+                        touchTarget="minimum"
                         className="font-mono text-sm cursor-pointer border-grid-line/30 hover:border-neon-cyan/50"
                         aria-label={t('sendAgain')}
                     >
@@ -132,7 +135,7 @@ export default function ForgotPasswordPage() {
                     </Button>
                 </motion.div>
             ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" aria-busy={loading}>
+                <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={loading}>
                     <CyberInput
                         label={t('emailLabel')}
                         type="email"
@@ -143,6 +146,7 @@ export default function ForgotPasswordPage() {
                         required
                         autoComplete="email"
                         disabled={loading || isRateLimited}
+                        className="mobile-form-input"
                     />
 
                     {/* Submit button */}
@@ -154,6 +158,7 @@ export default function ForgotPasswordPage() {
                         <Button
                             type="submit"
                             disabled={loading || isRateLimited || !email}
+                            touchTarget="comfortable"
                             className="min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label={loading ? t('submitting') : t('submitButton')}
                         >
@@ -177,7 +182,7 @@ export default function ForgotPasswordPage() {
             <p className="mt-6 text-center text-sm text-muted-foreground font-mono">
                 <Link
                     href="/login"
-                    className="text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
+                    className="touch-target inline-flex items-center text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
                 >
                     {t('backToLogin')}
                 </Link>

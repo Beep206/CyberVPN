@@ -1,35 +1,22 @@
-'use client';
+import type { ReactNode } from 'react';
+import { DocsInteractiveRail } from './docs-interactive-rail';
 
-import { useState } from 'react';
-import { DocsSidebar } from './docs-sidebar';
-import { DocsContent } from './docs-content';
-import { DocsScene } from './docs-scene';
-
-export function DocsContainer() {
-    const [activeSection, setActiveSection] = useState('getting_started');
-
+export function DocsContainer({ content }: { content?: ReactNode }) {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 px-4 pt-12 pb-32">
-            
-            {/* Left Sidebar (25%) */}
-            <div className="lg:col-span-3 hidden lg:block">
-                <div className="sticky top-24">
-                    <DocsSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <div
+            data-testid="docs-container-layout"
+            className="grid grid-cols-1 gap-8 px-4 pt-12 pb-24 lg:grid-cols-12 lg:gap-10 lg:px-6 lg:pb-32"
+        >
+            <div
+                data-testid="docs-container-content"
+                className="order-1 lg:order-2 lg:col-span-6 relative z-10 w-full overflow-x-hidden"
+            >
+                <div className="w-full flex-1 max-w-3xl space-y-24 pb-24 lg:space-y-32 lg:pb-[55vh]">
+                    {content}
                 </div>
             </div>
 
-            {/* Center Content (40%) */}
-            <div className="lg:col-span-5 relative z-10 w-full overflow-x-hidden p-4 md:p-0">
-                <DocsContent onSectionChange={setActiveSection} />
-            </div>
-
-            {/* Right WebGL Scene (35%) */}
-            <div className="lg:col-span-4 hidden lg:block pointer-events-none">
-                <div className="sticky top-24 h-[600px] border border-terminal-border/40 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,255,255,0.05)]">
-                    <DocsScene activeSection={activeSection} />
-                </div>
-            </div>
-
+            <DocsInteractiveRail />
         </div>
     );
 }

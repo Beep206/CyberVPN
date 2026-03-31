@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import { redirect } from 'next/navigation';
 
 /**
@@ -9,6 +10,7 @@ export default async function MiniAppRootPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
+  await connection();
   const { locale } = await params;
   redirect(`/${locale}/home`);
 }

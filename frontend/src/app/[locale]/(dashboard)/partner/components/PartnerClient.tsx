@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { usePartnerDashboard, usePartnerCodes, usePartnerEarnings } from '../hooks/usePartner';
 import { partnerApi } from '@/lib/api/partner';
 import { CyberInput } from '@/features/auth/components/CyberInput';
+import { MobileDataList, type MobileDataListItem } from '@/shared/ui/mobile-data-list';
 import { motion } from 'motion/react';
 import { Handshake, DollarSign, Users, Code, Plus, CheckCircle } from 'lucide-react';
 import { AxiosError } from 'axios';
@@ -40,6 +41,36 @@ export function PartnerClient() {
   const [newCodeMarkup, setNewCodeMarkup] = useState('');
   const [creatingCode, setCreatingCode] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  const codeItems: MobileDataListItem[] = (codes ?? []).map((code: PartnerCode) => ({
+    id: code.id,
+    title: <code className="text-neon-cyan font-mono text-sm">{code.code}</code>,
+    status: (
+      <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${code.is_active ? 'border-matrix-green/40 text-matrix-green' : 'border-white/20 text-muted-foreground'}`}>
+        {code.is_active ? 'Active' : 'Inactive'}
+      </span>
+    ),
+    priority: <span>{code.markup_pct}%</span>,
+    primaryFields: [
+      { label: 'Markup', value: `${code.markup_pct}%`, emphasize: true },
+      { label: 'Uses', value: '-' },
+    ],
+    secondaryFields: [
+      { label: 'Earnings', value: '-' },
+      { label: 'Created', value: new Date(code.created_at).toLocaleDateString() },
+    ],
+  }));
+
+  const earningItems: MobileDataListItem[] = (earnings ?? []).slice(0, 10).map((earning: PartnerEarning) => ({
+    id: earning.id,
+    title: new Date(earning.created_at).toLocaleDateString(),
+    subtitle: <code className="text-neon-cyan text-xs">{earning.client_user_id.slice(0, 8)}...</code>,
+    priority: <span>${earning.total_earning.toFixed(2)}</span>,
+    primaryFields: [
+      { label: 'Client', value: `${earning.client_user_id.slice(0, 8)}...` },
+      { label: 'Amount', value: `$${earning.total_earning.toFixed(2)}`, emphasize: true },
+    ],
+  }));
 
   // Handle binding to partner
   const handleBind = async () => {
@@ -233,7 +264,7 @@ export function PartnerClient() {
             Create New Code
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <CyberInput
               label="Code Name"
               type="text"
@@ -278,7 +309,10 @@ export function PartnerClient() {
           </div>
         ) : codes && codes.length > 0 ? (
           <div className="cyber-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="md:hidden p-4">
+              <MobileDataList items={codeItems} />
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-grid-line/30">
@@ -318,7 +352,10 @@ export function PartnerClient() {
           </h2>
 
           <div className="cyber-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="md:hidden p-4">
+              <MobileDataList items={earningItems} />
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-grid-line/30">

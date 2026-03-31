@@ -1,10 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import { Smartphone, Monitor, Tablet, LogOut, CheckCircle, XCircle } from 'lucide-react';
-import { useState } from 'react';
 
 /**
  * Devices Client Component
@@ -13,7 +13,17 @@ import { useState } from 'react';
 export function DevicesClient() {
   const queryClient = useQueryClient();
   const [logoutError, setLogoutError] = useState<string | null>(null);
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setNow(Date.now());
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Fetch active devices
   const { data: devicesData, isLoading } = useQuery({

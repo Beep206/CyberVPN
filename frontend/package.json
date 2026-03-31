@@ -9,7 +9,11 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:mobile-layout": "vitest run src/__tests__/mobile-layout-regressions.test.tsx",
     "test:coverage": "vitest run --coverage",
+    "check:seo": "node scripts/seo-static-audit.mjs",
+    "check:mobile-performance": "node scripts/mobile-performance-budget.mjs",
+    "check:mobile": "npm run test:mobile-layout && npm run check:mobile-performance",
     "generate:api-types": "node scripts/generate-api-types.mjs"
   },
   "dependencies": {
