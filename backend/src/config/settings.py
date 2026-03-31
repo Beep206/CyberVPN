@@ -1,5 +1,6 @@
 import logging
 from typing import ClassVar
+from urllib.parse import urlparse
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings
@@ -34,8 +35,35 @@ class Settings(BaseSettings):
     # CORS (SEC-013: Default to empty list, require explicit config)
     cors_origins: list[str] = []
 
-    # OAuth redirect allowlist for non-HTTP deep links (exact URI match)
+    # Canonical frontend origin for server-owned web OAuth callbacks
+    oauth_web_base_url: str = ""
+
+    # OAuth redirect allowlist for explicit native/universal callbacks (exact URI match)
     oauth_allowed_redirect_uris: list[str] = ["cybervpn://oauth/callback"]
+
+    # Active OAuth login providers (rollout gate)
+    oauth_enabled_login_providers: list[str] = [
+        "google",
+        "discord",
+        "facebook",
+        "microsoft",
+        "twitter",
+        "github",
+    ]
+
+    # Only these providers may auto-link to an existing account by email
+    oauth_trusted_email_link_providers: list[str] = [
+        "google",
+        "discord",
+        "microsoft",
+        "github",
+    ]
+
+    # OAuth provider token encryption (prefer dedicated key, fallback to TOTP key)
+    oauth_token_encryption_key: SecretStr = SecretStr("")
+    oauth_token_plaintext_fallback_enabled: bool = True
+    oauth_retained_access_token_providers: list[str] = []
+    oauth_retained_refresh_token_providers: list[str] = []
 
     # GitHub OAuth (optional)
     github_client_id: str = ""
@@ -137,7 +165,15 @@ class Settings(BaseSettings):
     otel_service_name: str = "cybervpn-backend"  # Service name in traces
     otel_enabled: bool = True  # Enable OpenTelemetry tracing
 
-    @field_validator("cors_origins", "oauth_allowed_redirect_uris", mode="before")
+    @field_validator(
+        "cors_origins",
+        "oauth_allowed_redirect_uris",
+        "oauth_enabled_login_providers",
+        "oauth_trusted_email_link_providers",
+        "oauth_retained_access_token_providers",
+        "oauth_retained_refresh_token_providers",
+        mode="before",
+    )
     @classmethod
     def parse_str_list(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
@@ -151,6 +187,29 @@ class Settings(BaseSettings):
             return None
         stripped = v.strip()
         return stripped or None
+
+    @field_validator("oauth_web_base_url", mode="before")
+    @classmethod
+    def normalize_oauth_web_base_url(cls, v: str | None) -> str:
+        if v is None:
+            return ""
+        return v.strip()
+
+    @field_validator("oauth_web_base_url", mode="after")
+    @classmethod
+    def validate_oauth_web_base_url(cls, v: str | None) -> str:
+        """Normalize the canonical frontend origin used for web OAuth callbacks."""
+        if not v:
+            return ""
+
+        parsed = urlparse(v)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("OAUTH_WEB_BASE_URL must be an absolute http(s) origin.")
+
+        if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
+            raise ValueError("OAUTH_WEB_BASE_URL must not include a path, query, or fragment.")
+
+        return f"{parsed.scheme}://{parsed.netloc}"
 
     # SEC-004 + MED-005: Known weak/test secrets to reject in production
     WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset(
@@ -210,6 +269,28 @@ class Settings(BaseSettings):
                 "This is acceptable for development only. "
                 'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
+        return v
+
+    @field_validator("oauth_token_encryption_key", mode="after")
+    @classmethod
+    def warn_missing_oauth_token_key(cls, v: SecretStr, info) -> SecretStr:
+        """Warn or fail closed when provider-token encryption is not configured."""
+        if v.get_secret_value():
+            return v
+
+        environment = info.data.get("environment", "development")
+        totp_key = info.data.get("totp_encryption_key")
+        has_totp_key = isinstance(totp_key, SecretStr) and bool(totp_key.get_secret_value())
+
+        if environment == "production" and not has_totp_key:
+            raise ValueError(
+                "OAUTH_TOKEN_ENCRYPTION_KEY (or TOTP_ENCRYPTION_KEY fallback) must be configured in production."
+            )
+
+        _logger.warning(
+            "OAUTH_TOKEN_ENCRYPTION_KEY not set - provider tokens will use TOTP_ENCRYPTION_KEY if available, "
+            "otherwise plaintext fallback remains enabled."
+        )
         return v
 
 

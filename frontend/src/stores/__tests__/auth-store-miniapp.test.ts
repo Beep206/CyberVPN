@@ -196,7 +196,7 @@ describe('Auth Store - telegramMiniAppAuth', () => {
     expect(state.error).toBe(null);
   });
 
-  it('test_telegramMiniAppAuth_success_stores_tokens', async () => {
+  it('test_telegramMiniAppAuth_success_relies_on_http_only_cookies', async () => {
     // Arrange
     mockTelegramMiniApp.mockResolvedValue({
       data: createMockMiniAppResponse({
@@ -209,7 +209,7 @@ describe('Auth Store - telegramMiniAppAuth', () => {
     await useAuthStore.getState().telegramMiniAppAuth();
 
     // Assert
-    expect(mockSetTokens).toHaveBeenCalledWith('ma_at_123', 'ma_rt_456');
+    expect(mockSetTokens).not.toHaveBeenCalled();
   });
 
   it('test_telegramMiniAppAuth_success_passes_initData_to_api', async () => {

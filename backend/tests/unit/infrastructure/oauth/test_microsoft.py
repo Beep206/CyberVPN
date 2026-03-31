@@ -40,7 +40,7 @@ class TestMicrosoftOAuthProvider:
             # Assert
             assert "client_id=ms_client_id" in url
             assert "state=csrf_state_ms" in url
-            assert "redirect_uri=http://localhost/callback" in url
+            assert "redirect_uri=http%3A%2F%2Flocalhost%2Fcallback" in url
             assert "response_type=code" in url
             assert "scope=" in url
             assert "openid" in url
@@ -144,6 +144,7 @@ class TestMicrosoftOAuthProvider:
             mock_token_response.json.return_value = {
                 "access_token": "ms_access_token",
                 "refresh_token": "ms_refresh_token",
+                "id_token": "microsoft_id_token",
                 "token_type": "Bearer",
                 "expires_in": 3600,
             }
@@ -164,7 +165,17 @@ class TestMicrosoftOAuthProvider:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             # Act
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            mock_claims = {
+                "sub": "ms_subject_12345",
+                "preferred_username": "test@outlook.com",
+                "email": "test@outlook.com",
+                "tid": "tenant-123",
+            }
+
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(MicrosoftOAuthProvider, "_verify_id_token", AsyncMock(return_value=mock_claims)),
+            ):
                 result = await provider.exchange_code(
                     code="auth_code_from_ms",
                     redirect_uri="http://localhost/callback",
@@ -197,6 +208,7 @@ class TestMicrosoftOAuthProvider:
             mock_token_response.status_code = 200
             mock_token_response.json.return_value = {
                 "access_token": "tok",
+                "id_token": "microsoft_id_token",
                 "token_type": "Bearer",
             }
 
@@ -215,7 +227,16 @@ class TestMicrosoftOAuthProvider:
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            mock_claims = {
+                "sub": "personal_user_subject",
+                "preferred_username": "personal@live.com",
+                "tid": "tenant-456",
+            }
+
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(MicrosoftOAuthProvider, "_verify_id_token", AsyncMock(return_value=mock_claims)),
+            ):
                 result = await provider.exchange_code(
                     code="code",
                     redirect_uri="http://localhost/callback",
@@ -242,6 +263,7 @@ class TestMicrosoftOAuthProvider:
             mock_token_response.status_code = 200
             mock_token_response.json.return_value = {
                 "access_token": "tok",
+                "id_token": "microsoft_id_token",
                 "token_type": "Bearer",
             }
 
@@ -259,7 +281,14 @@ class TestMicrosoftOAuthProvider:
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(
+                    MicrosoftOAuthProvider,
+                    "_verify_id_token",
+                    AsyncMock(return_value={"sub": "1", "preferred_username": "u@ms.com", "tid": "tenant-789"}),
+                ),
+            ):
                 await provider.exchange_code(
                     code="code",
                     redirect_uri="http://localhost/callback",

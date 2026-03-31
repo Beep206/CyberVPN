@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 import httpx
 
 from src.config.settings import settings
+from src.infrastructure.oauth.oidc import AsyncOIDCTokenVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class GoogleOAuthProvider:
 
     AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
     TOKEN_URL = "https://oauth2.googleapis.com/token"
-    USER_API_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+    DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+    ALLOWED_ISSUERS = frozenset({"https://accounts.google.com", "accounts.google.com"})
 
     def __init__(self) -> None:
         self.client_id = settings.google_client_id
@@ -33,6 +35,7 @@ class GoogleOAuthProvider:
         state: str | None = None,
         code_challenge: str | None = None,
         code_challenge_method: str = "S256",
+        nonce: str | None = None,
     ) -> str:
         """Generate Google OAuth authorization URL.
 
@@ -58,8 +61,19 @@ class GoogleOAuthProvider:
         if code_challenge:
             params["code_challenge"] = code_challenge
             params["code_challenge_method"] = code_challenge_method
+        if nonce:
+            params["nonce"] = nonce
 
         return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
+
+    async def _verify_id_token(self, id_token: str, nonce: str | None = None) -> dict | None:
+        return await AsyncOIDCTokenVerifier.verify_id_token(
+            id_token=id_token,
+            audience=self.client_id,
+            discovery_url=self.DISCOVERY_URL,
+            nonce=nonce,
+            issuer_validator=lambda claims, _discovery: claims.get("iss") in self.ALLOWED_ISSUERS,
+        )
 
     async def exchange_code(
         self,
@@ -121,38 +135,30 @@ class GoogleOAuthProvider:
                     return None
 
                 access_token = token_data.get("access_token")
-                if not access_token:
-                    logger.warning("Google response missing access_token")
+                id_token = token_data.get("id_token")
+                if not access_token or not id_token:
+                    logger.warning("Google response missing access_token or id_token")
+                    return None
+
+                claims = await self._verify_id_token(id_token)
+                if not claims:
+                    logger.warning("Google ID token validation failed")
                     return None
 
                 refresh_token = token_data.get("refresh_token")
-
-                # Get user information
-                user_response = await client.get(
-                    self.USER_API_URL,
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Accept": "application/json",
-                    },
-                )
-
-                if user_response.status_code != 200:
-                    logger.warning(
-                        "Google user info fetch failed",
-                        extra={"status": user_response.status_code},
-                    )
-                    return None
-
-                user_data = user_response.json()
+                email = claims.get("email")
+                email_verified = bool(claims.get("email_verified"))
 
                 return {
-                    "id": str(user_data.get("sub")),
-                    "email": user_data.get("email"),
-                    "username": user_data.get("email"),
-                    "name": user_data.get("name"),
-                    "avatar_url": user_data.get("picture"),
+                    "id": str(claims.get("sub")),
+                    "email": email,
+                    "username": email,
+                    "name": claims.get("name"),
+                    "avatar_url": claims.get("picture"),
                     "access_token": access_token,
                     "refresh_token": refresh_token,
+                    "email_verified": email_verified,
+                    "email_trusted": bool(email and email_verified),
                 }
 
         except httpx.RequestError as e:

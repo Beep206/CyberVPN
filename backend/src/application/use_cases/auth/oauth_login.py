@@ -9,10 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
+from src.config.settings import settings
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.oauth_account_model import OAuthAccount
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
+from src.shared.security.oauth_token_store import build_stored_oauth_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,18 @@ class OAuthLoginUseCase:
         avatar_url = user_info.get("avatar_url")
         provider_access_token = user_info.get("access_token", "")
         provider_refresh_token = user_info.get("refresh_token")
+        stored_provider_tokens = build_stored_oauth_tokens(
+            provider=provider,
+            access_token=provider_access_token,
+            refresh_token=provider_refresh_token,
+        )
+        trusted_provider = provider in settings.oauth_trusted_email_link_providers
+        email_verified = bool(
+            user_info.get("email_verified", bool(email and trusted_provider))
+        )
+        email_trusted = bool(
+            user_info.get("email_trusted", bool(email and trusted_provider))
+        ) and trusted_provider
 
         is_telegram = provider == "telegram"
         is_new_user = False
@@ -124,9 +138,8 @@ class OAuthLoginUseCase:
                 raise ValueError("Linked user account not found")
 
             # Update provider tokens
-            oauth_account.access_token = provider_access_token
-            if provider_refresh_token:
-                oauth_account.refresh_token = provider_refresh_token
+            oauth_account.access_token = stored_provider_tokens.access_token
+            oauth_account.refresh_token = stored_provider_tokens.refresh_token
             if username:
                 oauth_account.provider_username = username
             if avatar_url:
@@ -144,6 +157,16 @@ class OAuthLoginUseCase:
                 user = await self._user_repo.get_by_email(email)
 
             if user:
+                if not (is_telegram or (email_trusted and email_verified)):
+                    logger.warning(
+                        "Rejected automatic OAuth email linking due to untrusted provider email",
+                        extra={"provider": provider, "email": email, "user_id": str(user.id)},
+                    )
+                    raise ValueError(
+                        "Automatic account linking is disabled for this provider email. "
+                        "Sign in with your existing account and link the provider manually."
+                    )
+
                 # Auto-link OAuth to existing user
                 logger.info(
                     "Auto-linking OAuth to existing user by email",
@@ -174,8 +197,9 @@ class OAuthLoginUseCase:
                     password_hash=password_hash,
                     role="viewer",
                     is_active=True,
-                    # Telegram users are auto-verified (no email required)
-                    is_email_verified=True if is_telegram else (email is not None),
+                    # Telegram is possession-based; other providers must explicitly
+                    # prove a trustworthy verified email before we mark it verified.
+                    is_email_verified=True if is_telegram else bool(email and email_trusted and email_verified),
                 )
                 user = await self._user_repo.create(user)
                 is_new_user = True
@@ -212,8 +236,8 @@ class OAuthLoginUseCase:
                 provider_username=username,
                 provider_email=email,
                 provider_avatar_url=avatar_url,
-                access_token=provider_access_token,
-                refresh_token=provider_refresh_token,
+                access_token=stored_provider_tokens.access_token,
+                refresh_token=stored_provider_tokens.refresh_token,
             )
             await self._oauth_repo.create(oauth_account)
 

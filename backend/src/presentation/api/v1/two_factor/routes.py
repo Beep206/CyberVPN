@@ -9,9 +9,11 @@ Security improvements:
 
 import logging
 import secrets
+from datetime import UTC, datetime
+from hashlib import sha256
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -20,12 +22,16 @@ from src.application.services.reauth_service import ReauthenticationRequired, Re
 from src.application.use_cases.auth.two_factor import TwoFactorUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.totp.totp_service import TOTPService
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.api.v1.auth.cookies import set_auth_cookies
+from src.presentation.api.v1.auth.schemas import TokenResponse
+from src.presentation.dependencies.auth import get_current_active_user, get_current_pending_2fa_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
+from src.shared.security.fingerprint import generate_client_fingerprint
 
 from .schemas import (
     ReauthRequest,
@@ -246,6 +252,68 @@ async def validate_2fa(
 
     track_2fa_operation(operation="validate", success=valid)
     return TwoFactorValidateResponse(valid=valid)
+
+
+@router.post(
+    "/complete",
+    response_model=TokenResponse,
+    responses={
+        400: {"description": "Invalid 2FA code"},
+        401: {"description": "Invalid or expired pending 2FA session"},
+        429: {"description": "Too many verification attempts"},
+    },
+)
+async def complete_2fa_login(
+    body: VerifyCodeRequest,
+    http_request: Request,
+    response: Response,
+    user: AdminUserModel = Depends(get_current_pending_2fa_user),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> TokenResponse:
+    """Finish a login that is paused behind a pending 2FA token."""
+    await _check_verify_rate_limit(str(user.id), redis_client)
+
+    uc = TwoFactorUseCase(db)
+    valid = await uc.verify_code(user.id, body.code)
+    if not valid:
+        track_2fa_operation(operation="complete_login", success=False)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification code.",
+        )
+
+    await _reset_verify_rate_limit(str(user.id), redis_client)
+
+    access_token, _, access_exp = auth_service.create_access_token(
+        subject=str(user.id),
+        role=user.role if isinstance(user.role, str) else user.role.value,
+    )
+    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
+        subject=str(user.id),
+        fingerprint=generate_client_fingerprint(http_request),
+    )
+
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=sha256(refresh_token.encode()).hexdigest(),
+            expires_at=refresh_exp,
+        )
+    )
+    user.last_login_at = datetime.now(UTC)
+    await db.flush()
+
+    set_auth_cookies(response, access_token, refresh_token)
+    track_2fa_operation(operation="complete_login", success=True)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=int((access_exp - datetime.now(UTC)).total_seconds()),
+    )
 
 
 @router.delete(

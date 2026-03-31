@@ -170,6 +170,8 @@ class TelegramMiniAppResponse(BaseModel):
     expires_in: int = 0
     user: AdminUserResponse
     is_new_user: bool = False
+    requires_2fa: bool = False
+    tfa_token: str | None = None
 
 
 class TelegramBotLinkRequest(BaseModel):
@@ -186,6 +188,8 @@ class TelegramBotLinkResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 0
     user: AdminUserResponse
+    requires_2fa: bool = False
+    tfa_token: str | None = None
 
 
 class TelegramWebLoginRequest(BaseModel):
@@ -209,6 +213,8 @@ class TelegramWebLoginResponse(BaseModel):
     expires_in: int = 0
     user: AdminUserResponse
     is_new_user: bool = False
+    requires_2fa: bool = False
+    tfa_token: str | None = None
 
 
 class GenerateLoginLinkRequest(BaseModel):

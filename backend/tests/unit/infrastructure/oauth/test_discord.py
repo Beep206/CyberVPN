@@ -39,7 +39,7 @@ class TestDiscordOAuthProvider:
             # Assert
             assert "client_id=discord_test_id" in url
             assert "state=csrf_token_abc" in url
-            assert "redirect_uri=http://localhost/callback" in url
+            assert "redirect_uri=http%3A%2F%2Flocalhost%2Fcallback" in url
             assert "response_type=code" in url
             assert "identify" in url
             assert "email" in url

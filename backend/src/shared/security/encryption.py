@@ -112,6 +112,7 @@ class EncryptionService:
 
 # Singleton instance (lazy initialization)
 _encryption_service: EncryptionService | None = None
+_oauth_token_encryption_service: EncryptionService | None = None
 
 
 def get_encryption_service() -> EncryptionService:
@@ -141,6 +142,30 @@ def get_encryption_service() -> EncryptionService:
     return _encryption_service
 
 
+def get_oauth_token_encryption_service() -> EncryptionService | None:
+    """Get or create the encryption service used for OAuth provider tokens.
+
+    Prefers OAUTH_TOKEN_ENCRYPTION_KEY and falls back to TOTP_ENCRYPTION_KEY.
+    Returns None when neither key is configured so callers can preserve
+    plaintext compatibility during staged rollouts.
+    """
+    global _oauth_token_encryption_service
+
+    if _oauth_token_encryption_service is not None:
+        return _oauth_token_encryption_service
+
+    from src.config.settings import settings
+
+    oauth_key = settings.oauth_token_encryption_key.get_secret_value()
+    totp_key = settings.totp_encryption_key.get_secret_value()
+    key = oauth_key or totp_key
+    if not key:
+        return None
+
+    _oauth_token_encryption_service = EncryptionService(key)
+    return _oauth_token_encryption_service
+
+
 def encrypt_totp_secret(secret: str) -> str:
     """Encrypt a TOTP secret for storage.
 
@@ -163,3 +188,19 @@ def decrypt_totp_secret(encrypted_secret: str) -> str:
         Plain TOTP secret.
     """
     return get_encryption_service().decrypt(encrypted_secret)
+
+
+def encrypt_oauth_token(token: str) -> str:
+    """Encrypt an OAuth provider token when encryption is configured."""
+    service = get_oauth_token_encryption_service()
+    if service is None:
+        return token
+    return service.encrypt(token)
+
+
+def decrypt_oauth_token(encrypted_token: str) -> str:
+    """Decrypt a stored OAuth provider token when encryption is configured."""
+    service = get_oauth_token_encryption_service()
+    if service is None:
+        return encrypted_token
+    return service.decrypt(encrypted_token)

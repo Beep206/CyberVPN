@@ -78,7 +78,10 @@ class OAuthLoginCallbackRequest(BaseModel):
 
     code: str = Field(..., description="Authorization code from provider")
     state: str = Field(..., description="CSRF state token")
-    redirect_uri: str = Field(..., description="Redirect URI used in authorization")
+    redirect_uri: str | None = Field(
+        default=None,
+        description="Redirect URI used in authorization for native/universal-link flows",
+    )
 
 
 class OAuthLoginUserResponse(BaseModel):

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.oauth_account_model import OAuthAccount
+from src.shared.security.oauth_token_store import build_stored_oauth_tokens
 
 
 class AccountLinkingUseCase:
@@ -20,14 +21,19 @@ class AccountLinkingUseCase:
         access_token: str = "",
         refresh_token: str | None = None,
     ) -> OAuthAccount:
+        stored_tokens = build_stored_oauth_tokens(
+            provider=provider,
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
         account = OAuthAccount(
             user_id=user_id,
             provider=provider,
             provider_user_id=provider_user_id,
             provider_username=provider_username,
             provider_email=provider_email,
-            access_token=access_token,
-            refresh_token=refresh_token,
+            access_token=stored_tokens.access_token,
+            refresh_token=stored_tokens.refresh_token,
         )
         self._session.add(account)
         await self._session.flush()

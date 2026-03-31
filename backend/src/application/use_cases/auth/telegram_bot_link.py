@@ -27,12 +27,16 @@ class TelegramBotLinkResult:
         token_type: str,
         expires_in: int,
         user: AdminUserModel,
+        requires_2fa: bool = False,
+        tfa_token: str | None = None,
     ) -> None:
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.token_type = token_type
         self.expires_in = expires_in
         self.user = user
+        self.requires_2fa = requires_2fa
+        self.tfa_token = tfa_token
 
 
 class TelegramBotLinkUseCase:
@@ -81,6 +85,22 @@ class TelegramBotLinkUseCase:
             "Telegram bot link login successful",
             extra={"user_id": str(user.id), "telegram_id": telegram_id},
         )
+
+        if user.totp_enabled:
+            tfa_token, _, _ = self._auth_service.create_access_token(
+                subject=str(user.id),
+                role="2fa_pending",
+                extra={"type": "2fa_pending"},
+            )
+            return TelegramBotLinkResult(
+                access_token="",
+                refresh_token="",
+                token_type="bearer",
+                expires_in=0,
+                user=user,
+                requires_2fa=True,
+                tfa_token=tfa_token,
+            )
 
         # Step 3: Issue JWT tokens
         access_token, _, access_exp = self._auth_service.create_access_token(

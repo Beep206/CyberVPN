@@ -32,6 +32,12 @@ const {
   mockTelegramSuccess,
   mockTelegramError,
   mockRateLimited,
+  mockOauthStarted,
+  mockOauthCallbackSuccess,
+  mockOauthCallbackFailed,
+  mockOauthTwoFactorRequired,
+  mockOauthCollision,
+  mockOauthProviderDenied,
 } = vi.hoisted(() => {
   class _RateLimitError extends Error {
     retryAfter: number;
@@ -72,6 +78,12 @@ const {
     mockTelegramSuccess: vi.fn(),
     mockTelegramError: vi.fn(),
     mockRateLimited: vi.fn(),
+    mockOauthStarted: vi.fn(),
+    mockOauthCallbackSuccess: vi.fn(),
+    mockOauthCallbackFailed: vi.fn(),
+    mockOauthTwoFactorRequired: vi.fn(),
+    mockOauthCollision: vi.fn(),
+    mockOauthProviderDenied: vi.fn(),
   };
 });
 
@@ -125,6 +137,12 @@ vi.mock('@/lib/analytics', () => ({
     telegramSuccess: (...args: unknown[]) => mockTelegramSuccess(...args),
     telegramError: (...args: unknown[]) => mockTelegramError(...args),
     rateLimited: (...args: unknown[]) => mockRateLimited(...args),
+    oauthStarted: (...args: unknown[]) => mockOauthStarted(...args),
+    oauthCallbackSuccess: (...args: unknown[]) => mockOauthCallbackSuccess(...args),
+    oauthCallbackFailed: (...args: unknown[]) => mockOauthCallbackFailed(...args),
+    oauthTwoFactorRequired: (...args: unknown[]) => mockOauthTwoFactorRequired(...args),
+    oauthCollision: (...args: unknown[]) => mockOauthCollision(...args),
+    oauthProviderDenied: (...args: unknown[]) => mockOauthProviderDenied(...args),
   },
 }));
 
@@ -178,6 +196,10 @@ describe('Auth Store', () => {
     vi.clearAllMocks();
     resetStoreState();
     sessionStorage.clear();
+    window.location.href = 'http://localhost:3000';
+    window.location.origin = 'http://localhost:3000';
+    window.location.pathname = '/';
+    window.location.search = '';
   });
 
   afterEach(() => {
@@ -231,7 +253,6 @@ describe('Auth Store', () => {
       expect(typeof state.telegramMagicLinkAuth).toBe('function');
       expect(typeof state.loginWithBotLink).toBe('function');
       expect(typeof state.oauthLogin).toBe('function');
-      expect(typeof state.oauthCallback).toBe('function');
       expect(typeof state.requestMagicLink).toBe('function');
       expect(typeof state.verifyMagicLink).toBe('function');
       expect(typeof state.deleteAccount).toBe('function');
@@ -1192,7 +1213,7 @@ describe('Auth Store', () => {
   // =========================================================================
 
   describe('oauthLogin', () => {
-    it('test_oauthLogin_telegram_stores_session_and_redirects_to_waiting_page', async () => {
+    it('test_oauthLogin_telegram_starts_magic_link_flow', async () => {
       window.location.pathname = '/ru-RU/login';
       mockRequestTelegramMagicLink.mockResolvedValue({
         data: {
@@ -1213,265 +1234,55 @@ describe('Auth Store', () => {
       expect(window.location.href).toBe('/ru-RU/telegram-link?magic=magic_tg_token');
     });
 
-    it('test_oauthLogin_stores_provider_in_sessionStorage_and_redirects', async () => {
+    it('test_oauthLogin_redirects_to_same_origin_bff_start_route', async () => {
       window.location.pathname = '/ru-RU/login';
-
-      mockOauthLoginAuthorize.mockResolvedValue({
-        data: {
-          authorize_url: 'https://accounts.google.com/oauth?state=csrf123',
-          state: 'csrf123',
-        },
-      });
+      window.location.search = '?redirect=%2Fru-RU%2Fdashboard%2Fservers';
 
       const store = useAuthStore.getState();
       await store.oauthLogin('google');
 
-      // Should store CSRF state in sessionStorage
-      expect(sessionStorage.setItem).toHaveBeenCalledWith('oauth_state', 'csrf123');
-      expect(sessionStorage.setItem).toHaveBeenCalledWith('oauth_provider', 'google');
-      expect(mockOauthLoginAuthorize).toHaveBeenCalledWith(
-        'google',
-        'http://localhost:3000/ru-RU/oauth/callback'
+      expect(mockOauthStarted).toHaveBeenCalledWith('google');
+      expect(mockOauthLoginAuthorize).not.toHaveBeenCalled();
+      expect(window.location.href).toBe(
+        'http://localhost:3000/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard%2Fservers',
       );
-
-      // Should redirect to the authorization URL
-      expect(window.location.href).toBe('https://accounts.google.com/oauth?state=csrf123');
     });
 
-    it('test_oauthLogin_uses_default_locale_callback_when_path_has_no_locale', async () => {
+    it('test_oauthLogin_uses_default_locale_when_path_has_no_locale', async () => {
       window.location.pathname = '/login';
-
-      mockOauthLoginAuthorize.mockResolvedValue({
-        data: {
-          authorize_url: 'https://github.com/login/oauth?state=csrf456',
-          state: 'csrf456',
-        },
-      });
+      window.location.search = '';
 
       await useAuthStore.getState().oauthLogin('github');
 
-      expect(mockOauthLoginAuthorize).toHaveBeenCalledWith(
-        'github',
-        'http://localhost:3000/en-EN/oauth/callback'
+      expect(window.location.href).toBe(
+        'http://localhost:3000/api/oauth/start/github?locale=en-EN&return_to=%2Fen-EN%2Fdashboard',
       );
     });
 
-    it('test_oauthLogin_sets_loading_state_during_request', async () => {
-      // Create a deferred promise so we can inspect state mid-flight
-      let resolvePromise: (value: unknown) => void;
-      const deferredPromise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
+    it('test_oauthLogin_sets_loading_state_before_navigation', async () => {
+      window.location.pathname = '/ru-RU/login';
+      window.location.search = '';
 
-      mockOauthLoginAuthorize.mockReturnValue(deferredPromise);
+      await useAuthStore.getState().oauthLogin('github');
 
-      const promise = useAuthStore.getState().oauthLogin('github');
-
-      // Should be loading
       expect(useAuthStore.getState().isLoading).toBe(true);
       expect(useAuthStore.getState().error).toBe(null);
-
-      // Resolve the promise
-      resolvePromise!({
-        data: {
-          authorize_url: 'https://github.com/login/oauth',
-          state: 'gh_state',
-        },
-      });
-
-      await promise;
     });
 
-    it('test_oauthLogin_sets_error_on_failure', async () => {
-      mockOauthLoginAuthorize.mockRejectedValue({
-        response: { data: { detail: 'Provider not configured' } },
-      });
+    it('test_oauthLogin_sets_error_on_invalid_origin', async () => {
+      window.location.pathname = '/ru-RU/login';
+      window.location.search = '';
+      window.location.origin = '://invalid-origin';
 
       await expect(
         useAuthStore.getState().oauthLogin('twitter')
       ).rejects.toBeDefined();
 
       const state = useAuthStore.getState();
-      expect(state.error).toBe('Provider not configured');
+      expect(state.error).toBe('twitter login failed');
       expect(state.isLoading).toBe(false);
     });
 
-    it('test_oauthLogin_uses_fallback_error_message', async () => {
-      mockOauthLoginAuthorize.mockRejectedValue(new Error('Network error'));
-
-      await expect(
-        useAuthStore.getState().oauthLogin('discord')
-      ).rejects.toBeDefined();
-
-      // Fallback pattern: `${provider} login failed`
-      expect(useAuthStore.getState().error).toBe('discord login failed');
-    });
-  });
-
-  // =========================================================================
-  // oauthCallback
-  // =========================================================================
-
-  describe('oauthCallback', () => {
-    it('test_oauthCallback_validates_CSRF_state_from_sessionStorage', async () => {
-      sessionStorage.setItem('oauth_state', 'correct_state');
-
-      // State mismatch should throw
-      await expect(
-        useAuthStore.getState().oauthCallback('google', 'code123', 'wrong_state')
-      ).rejects.toThrow('OAuth state mismatch');
-    });
-
-    it('test_oauthCallback_handles_2FA_response', async () => {
-      sessionStorage.setItem('oauth_state', 'valid_state');
-
-      mockOauthLoginCallback.mockResolvedValue({
-        data: {
-          requires_2fa: true,
-          tfa_token: 'tfa_abc',
-          access_token: '',
-          refresh_token: '',
-          user: {
-            id: 'u1',
-            login: 'user1',
-            email: 'test@test.com',
-            is_active: true,
-            is_email_verified: true,
-            created_at: '2024-01-01',
-          },
-          is_new_user: false,
-        },
-      });
-
-      const result = await useAuthStore.getState().oauthCallback('google', 'code123', 'valid_state');
-
-      expect(result.requires_2fa).toBe(true);
-      expect(result.tfa_token).toBe('tfa_abc');
-
-      // Should NOT store tokens when 2FA is required
-      expect(mockSetTokens).not.toHaveBeenCalled();
-
-      // Should NOT be authenticated yet
-      expect(useAuthStore.getState().isAuthenticated).toBe(false);
-      expect(useAuthStore.getState().isLoading).toBe(false);
-    });
-
-    it('test_oauthCallback_sets_user_on_success_without_2FA', async () => {
-      window.location.pathname = '/ru-RU/oauth/callback';
-      sessionStorage.setItem('oauth_state', 'matched_state');
-
-      mockOauthLoginCallback.mockResolvedValue({
-        data: {
-          requires_2fa: false,
-          tfa_token: null,
-          access_token: 'access_tok_123',
-          refresh_token: 'refresh_tok_456',
-          token_type: 'bearer',
-          expires_in: 3600,
-          user: {
-            id: 'u2',
-            login: 'testuser',
-            email: 'u@example.com',
-            is_active: true,
-            is_email_verified: true,
-            created_at: '2024-06-15',
-          },
-          is_new_user: false,
-        },
-      });
-
-      const result = await useAuthStore.getState().oauthCallback('github', 'valid_code', 'matched_state');
-
-      expect(mockOauthLoginCallback).toHaveBeenCalledWith('github', {
-        code: 'valid_code',
-        state: 'matched_state',
-        redirect_uri: 'http://localhost:3000/ru-RU/oauth/callback',
-      });
-
-      // SEC-01: tokens delivered via httpOnly cookies, not localStorage
-      expect(mockSetTokens).not.toHaveBeenCalled();
-
-      // User should be set and authenticated
-      const state = useAuthStore.getState();
-      expect(state.isAuthenticated).toBe(true);
-      expect(state.user).toBeTruthy();
-      expect(state.user?.id).toBe('u2');
-      expect(state.user?.email).toBe('u@example.com');
-      expect(state.isLoading).toBe(false);
-
-      // Result should be the full response
-      expect(result.requires_2fa).toBe(false);
-    });
-
-    it('test_oauthCallback_cleans_up_sessionStorage_on_success', async () => {
-      sessionStorage.setItem('oauth_state', 'cleanup_state');
-      sessionStorage.setItem('oauth_provider', 'apple');
-
-      mockOauthLoginCallback.mockResolvedValue({
-        data: {
-          requires_2fa: false,
-          access_token: 'tok',
-          refresh_token: 'ref',
-          user: {
-            id: 'u3',
-            login: 'user3',
-            email: 'a@b.com',
-            is_active: true,
-            is_email_verified: true,
-            created_at: '2024-01-01',
-          },
-          is_new_user: false,
-        },
-      });
-
-      await useAuthStore.getState().oauthCallback('apple', 'code', 'cleanup_state');
-
-      expect(sessionStorage.removeItem).toHaveBeenCalledWith('oauth_state');
-      expect(sessionStorage.removeItem).toHaveBeenCalledWith('oauth_provider');
-    });
-
-    it('test_oauthCallback_cleans_up_sessionStorage_on_error', async () => {
-      sessionStorage.setItem('oauth_state', 'err_state');
-      sessionStorage.setItem('oauth_provider', 'microsoft');
-
-      mockOauthLoginCallback.mockRejectedValue({
-        response: { data: { detail: 'Invalid code' } },
-      });
-
-      await expect(
-        useAuthStore.getState().oauthCallback('microsoft', 'bad', 'err_state')
-      ).rejects.toBeDefined();
-
-      expect(sessionStorage.removeItem).toHaveBeenCalledWith('oauth_state');
-      expect(sessionStorage.removeItem).toHaveBeenCalledWith('oauth_provider');
-    });
-
-    it('test_oauthCallback_sets_error_on_failure', async () => {
-      sessionStorage.setItem('oauth_state', 'fail_state');
-
-      mockOauthLoginCallback.mockRejectedValue({
-        response: { data: { detail: 'Invalid authorization code' } },
-      });
-
-      await expect(
-        useAuthStore.getState().oauthCallback('google', 'bad_code', 'fail_state')
-      ).rejects.toBeDefined();
-
-      expect(useAuthStore.getState().error).toBe('Invalid authorization code');
-      expect(useAuthStore.getState().isLoading).toBe(false);
-    });
-
-    it('test_oauthCallback_uses_fallback_error_message', async () => {
-      sessionStorage.setItem('oauth_state', 'st');
-
-      mockOauthLoginCallback.mockRejectedValue(new Error('Network'));
-
-      await expect(
-        useAuthStore.getState().oauthCallback('github', 'code', 'st')
-      ).rejects.toBeDefined();
-
-      expect(useAuthStore.getState().error).toBe('OAuth callback failed');
-    });
   });
 
   // =========================================================================

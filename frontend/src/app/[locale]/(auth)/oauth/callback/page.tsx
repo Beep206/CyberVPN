@@ -1,10 +1,10 @@
-import { Suspense } from 'react';
-import { OAuthCallbackClient } from './oauth-callback-client';
+import { redirect } from 'next/navigation';
 
-export default function OAuthCallbackPage() {
-  return (
-    <Suspense fallback={null}>
-      <OAuthCallbackClient />
-    </Suspense>
-  );
+export default async function OAuthCallbackPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect(`/${locale}/login?oauth_error=deprecated_callback`);
 }

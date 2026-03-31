@@ -128,44 +128,56 @@ class TestOAuthStateService:
         mock_redis.setex.assert_called_once()
 
 
-class TestOAuthRedirectValidation:
-    """Test OAuth redirect allowlist validation."""
+class TestOAuthLoginRedirectContract:
+    """Test server-owned redirect resolution for OAuth login flow."""
 
-    def test_allows_trusted_web_callback_origin_and_mobile_deep_link(self):
-        """Trusted web callback URLs and exact deep links pass validation."""
-        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
-
-        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.cors_origins = [
-                "http://localhost:9001",
-                "https://vpn.ozoxy.ru",
-            ]
-            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
-
-            assert _is_allowed_oauth_redirect_uri("http://localhost:9001/ru-RU/oauth/callback") is True
-            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/en-EN/oauth/callback") is True
-            assert _is_allowed_oauth_redirect_uri("cybervpn://oauth/callback") is True
-
-    def test_rejects_untrusted_redirect_origin(self):
-        """Unknown redirect origins are rejected."""
-        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
+    def test_builds_canonical_web_callback_from_configured_base_url(self):
+        """Web login flow must use the configured same-origin callback path."""
+        from src.presentation.api.v1.oauth.routes import _build_oauth_web_callback_uri
 
         with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.cors_origins = ["https://vpn.ozoxy.ru"]
-            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
 
-            assert _is_allowed_oauth_redirect_uri("https://evil.example/en-EN/oauth/callback") is False
+            assert _build_oauth_web_callback_uri("google") == "https://vpn.ozoxy.ru/api/oauth/callback/google"
 
-    def test_rejects_wrong_path_on_trusted_origin(self):
-        """Only locale-aware OAuth callback paths are allowed on trusted origins."""
-        from src.presentation.api.v1.oauth.routes import _is_allowed_oauth_redirect_uri
+    def test_allows_exact_native_redirect_uri_override(self):
+        """Explicit native/universal callback URIs are allowed only by exact match."""
+        from src.presentation.api.v1.oauth.routes import _resolve_oauth_login_redirect_uri
 
         with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.cors_origins = ["https://vpn.ozoxy.ru"]
+            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
             mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
 
-            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/settings") is False
-            assert _is_allowed_oauth_redirect_uri("https://vpn.ozoxy.ru/en-EN/oauth/callback?code=abc") is False
+            assert (
+                _resolve_oauth_login_redirect_uri("github", "cybervpn://oauth/callback")
+                == "cybervpn://oauth/callback"
+            )
+
+    def test_rejects_browser_supplied_web_redirect_uri_override(self):
+        """Arbitrary browser-supplied web callback URIs must not be trusted."""
+        from src.presentation.api.v1.oauth.routes import _resolve_oauth_login_redirect_uri
+
+        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
+            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
+            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+
+            with pytest.raises(Exception) as exc_info:
+                _resolve_oauth_login_redirect_uri("google", "https://vpn.ozoxy.ru/en-EN/oauth/callback")
+
+            assert getattr(exc_info.value, "status_code", None) == 400
+
+    def test_rejects_web_flow_when_canonical_origin_is_not_configured(self):
+        """Server-owned web flow must fail closed if callback origin is missing."""
+        from src.presentation.api.v1.oauth.routes import _resolve_oauth_login_redirect_uri
+
+        with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
+            mock_settings.oauth_web_base_url = ""
+            mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
+
+            with pytest.raises(Exception) as exc_info:
+                _resolve_oauth_login_redirect_uri("discord", None)
+
+            assert getattr(exc_info.value, "status_code", None) == 503
 
 
 class TestOAuthLoginProviderAvailability:
@@ -182,3 +194,41 @@ class TestOAuthLoginProviderAvailability:
         from src.presentation.api.v1.oauth.routes import _is_oauth_login_provider_enabled
 
         assert _is_oauth_login_provider_enabled("facebook") is True
+
+
+class TestOAuthTokenRetentionPolicy:
+    """Test minimum-retention policy for provider secrets."""
+
+    def test_login_only_flow_does_not_persist_provider_tokens_by_default(self):
+        """Access/refresh tokens are dropped unless a provider is explicitly allowlisted."""
+        from src.shared.security.oauth_token_store import build_stored_oauth_tokens
+
+        with patch("src.shared.security.oauth_token_store.settings") as mock_settings:
+            mock_settings.oauth_retained_access_token_providers = []
+            mock_settings.oauth_retained_refresh_token_providers = []
+
+            stored = build_stored_oauth_tokens(
+                provider="google",
+                access_token="provider_access",
+                refresh_token="provider_refresh",
+            )
+
+        assert stored.access_token is None
+        assert stored.refresh_token is None
+
+    def test_allowlisted_refresh_token_is_retained_for_future_product_use(self):
+        """Refresh retention is opt-in and isolated by provider name."""
+        from src.shared.security.oauth_token_store import build_stored_oauth_tokens
+
+        with patch("src.shared.security.oauth_token_store.settings") as mock_settings:
+            mock_settings.oauth_retained_access_token_providers = []
+            mock_settings.oauth_retained_refresh_token_providers = ["microsoft"]
+
+            stored = build_stored_oauth_tokens(
+                provider="microsoft",
+                access_token="provider_access",
+                refresh_token="provider_refresh",
+            )
+
+        assert stored.access_token is None
+        assert stored.refresh_token == "provider_refresh"

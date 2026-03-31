@@ -795,7 +795,8 @@ async def telegram_miniapp_auth(
     if result.is_new_user:
         track_registration(method="oauth")
 
-    set_auth_cookies(response, result.access_token, result.refresh_token)
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return TelegramMiniAppResponse(
         access_token=result.access_token,
@@ -804,6 +805,8 @@ async def telegram_miniapp_auth(
         expires_in=result.expires_in,
         user=AdminUserResponse.model_validate(result.user),
         is_new_user=result.is_new_user,
+        requires_2fa=result.requires_2fa,
+        tfa_token=result.tfa_token,
     )
 
 
@@ -850,7 +853,8 @@ async def telegram_web_auth(
     if result.is_new_user:
         track_registration(method="telegram_web")
 
-    set_auth_cookies(response, result.access_token, result.refresh_token)
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return TelegramWebLoginResponse(
         access_token=result.access_token,
@@ -859,6 +863,8 @@ async def telegram_web_auth(
         expires_in=result.expires_in,
         user=AdminUserResponse.model_validate(result.user),
         is_new_user=result.is_new_user,
+        requires_2fa=result.requires_2fa,
+        tfa_token=result.tfa_token,
     )
 
 
@@ -898,7 +904,8 @@ async def telegram_bot_link_auth(
             detail=str(e),
         )
 
-    set_auth_cookies(response, result.access_token, result.refresh_token)
+    if result.access_token and result.refresh_token:
+        set_auth_cookies(response, result.access_token, result.refresh_token)
 
     return TelegramBotLinkResponse(
         access_token=result.access_token,
@@ -906,6 +913,8 @@ async def telegram_bot_link_auth(
         token_type=result.token_type,
         expires_in=result.expires_in,
         user=AdminUserResponse.model_validate(result.user),
+        requires_2fa=result.requires_2fa,
+        tfa_token=result.tfa_token,
     )
 
 

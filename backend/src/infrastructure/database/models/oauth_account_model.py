@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
+from src.infrastructure.database.types.encrypted_text import EncryptedText
 
 
 class OAuthAccount(Base):
@@ -36,9 +37,9 @@ class OAuthAccount(Base):
 
     provider_avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    access_token: Mapped[str | None] = mapped_column(EncryptedText(), nullable=True)
 
-    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(EncryptedText(), nullable=True)
 
     token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
