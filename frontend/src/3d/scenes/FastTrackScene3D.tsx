@@ -172,6 +172,7 @@ export default function FastTrackScene3D() {
     return (
         <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg border-grid-line overflow-hidden">
             <Canvas
+                eventSource={containerRef}
                 frameloop={isInView ? 'always' : 'never'}
                 performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 0, 8], fov: 60 }} // Looking down the Z axis

@@ -346,15 +346,17 @@ import { usePathname } from 'next/navigation';
 // ============================================
 export function AuthScene3D() {
     const pathname = usePathname();
+    const containerRef = useRef<HTMLDivElement>(null);
     const [dpr, setDpr] = useState(1);
 
     // Force a fresh WebGL tree for each auth route entry while keeping route-level remounts predictable.
     const sceneKey = `auth-scene:${pathname}`;
 
     return (
-        <div key={sceneKey} className="absolute inset-0 z-0 pointer-events-none">
+        <div key={sceneKey} ref={containerRef} className="absolute inset-0 z-0 pointer-events-none">
             <ErrorBoundary key={sceneKey} label="Auth 3D Scene">
                 <Canvas
+                    eventSource={containerRef}
                     camera={{ position: [0, 0, 5], fov: 50 }}
                     dpr={dpr}
                     gl={{

@@ -56,13 +56,13 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
     return (
         <>
             <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-                <PublicTerminalHeader />
-                <LandingHero />
+                <PublicTerminalHeader locale={locale} />
+                <LandingHero locale={locale} />
                 <LandingFeatures />
                 <LandingTechnical />
                 <SpeedTunnel />
                 <QuickStart />
-                <Footer />
+                <Footer locale={locale} />
             </main>
 
             <JsonLd<SoftwareApplication> data={softwareStructuredData} />

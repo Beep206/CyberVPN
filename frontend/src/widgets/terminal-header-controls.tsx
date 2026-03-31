@@ -1,12 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
+import { useLocale } from 'next-intl';
 import { LanguageSelector } from '@/features/language-selector';
 import { QRCodeDropdown } from '@/features/header/qr-code-dropdown';
 import { UserMenu } from '@/features/header/user-menu';
 import { NotificationDropdown } from '@/features/notifications/notification-dropdown';
 import { ThemeToggle } from '@/features/theme-toggle';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -20,6 +21,7 @@ export function TerminalHeaderControls({
   registerLabel,
 }: TerminalHeaderControlsProps) {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const locale = useLocale();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -55,12 +57,14 @@ export function TerminalHeaderControls({
           <div className="flex items-center gap-2">
             <Link
               href="/login"
+              locale={locale}
               className="touch-target hidden items-center justify-center whitespace-nowrap rounded-lg border border-transparent px-4 text-sm font-medium text-muted-foreground ring-offset-background transition-all hover:border-white/10 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 lg:inline-flex"
             >
               {loginLabel}
             </Link>
             <Link
               href="/register"
+              locale={locale}
               className={cn(
                 'touch-target inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-neon-cyan/20 px-3 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:px-4 sm:text-sm',
                 'bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan hover:text-black hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]',

@@ -34,6 +34,7 @@ vi.mock('next-intl', () => ({
     const t = (key: string) => key;
     return t;
   },
+  useLocale: () => 'en-EN',
 }));
 
 // Mock next/navigation
@@ -57,7 +58,15 @@ vi.mock('@/i18n/navigation', () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => '/',
-  Link: ({ children }: Record<string, unknown>) => children,
+  Link: ({
+    children,
+    href,
+    ...props
+  }: Record<string, unknown> & { href?: string }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createElement } = require('react');
+    return createElement('a', { href, ...props }, children);
+  },
 }));
 
 // Mock motion/react to avoid animation issues in tests

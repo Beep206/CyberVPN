@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { ArrowRight, Cpu, Send, Shield, Terminal, Zap } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Link } from '@/i18n/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { FooterLiveStrip } from '@/widgets/footer-live-strip';
 
@@ -44,7 +44,8 @@ const KNOWLEDGE_LINKS = [
   { label: 'Audits', href: '/audits' },
 ] as const;
 
-export async function Footer() {
+export async function Footer({ locale: providedLocale }: { locale?: string } = {}) {
+  const locale = providedLocale ?? await getLocale();
   const footerT = await getTranslations('Footer');
   const headerT = await getTranslations('Header');
 
@@ -63,7 +64,7 @@ export async function Footer() {
       <div className="container relative z-10 px-6 mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
           <div className="lg:col-span-4 space-y-6">
-            <Link href="/" className="inline-flex items-center gap-2 group">
+            <Link href="/" locale={locale} className="inline-flex items-center gap-2 group">
               <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 group-hover:border-neon-cyan/60 transition-colors">
                 <Shield className="h-6 w-6 text-neon-cyan group-hover:animate-pulse" />
               </div>
@@ -94,6 +95,7 @@ export async function Footer() {
                   ) : (
                     <Link
                       href={href}
+                      locale={locale}
                       className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-grid-line/40 bg-background/50 text-muted-foreground hover:text-neon-cyan hover:border-neon-cyan/50 hover:bg-neon-cyan/10 transition-all duration-300 group"
                       data-seo-cta={href === '/docs' ? 'docs' : undefined}
                       data-seo-zone={href === '/docs' ? 'footer_entity' : undefined}
@@ -115,7 +117,7 @@ export async function Footer() {
             <ul className="space-y-3 font-mono text-sm">
               {FOOTER_LINKS.product.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1">
+                  <Link href={link.href} locale={locale} className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan opacity-0 scale-0 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300" />
                     <span className="transition-transform duration-300 group-hover:translate-x-1">
                       {footerT(`links.${link.label}`)}
@@ -134,7 +136,7 @@ export async function Footer() {
             <ul className="space-y-3 font-mono text-sm">
               {FOOTER_LINKS.support.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1">
+                  <Link href={link.href} locale={locale} className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-matrix-green opacity-0 scale-0 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300" />
                     <span className="transition-transform duration-300 group-hover:translate-x-1">
                       {footerT(`links.${link.label}`)}
@@ -153,6 +155,7 @@ export async function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
+                      locale={locale}
                       className="group inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-1"
                       data-seo-zone="footer_knowledge"
                       data-seo-cta={link.href.replace('/', '') || 'home'}
@@ -196,7 +199,7 @@ export async function Footer() {
 
             <div className="pt-6 flex flex-wrap gap-4 text-xs font-mono text-muted-foreground-low">
               {FOOTER_LINKS.legal.map((link) => (
-                <Link key={link.label} href={link.href} className="hover:text-neon-cyan transition-colors py-1 px-1">
+                <Link key={link.label} href={link.href} locale={locale} className="hover:text-neon-cyan transition-colors py-1 px-1">
                   {footerT(`links.${link.label}`)}
                 </Link>
               ))}

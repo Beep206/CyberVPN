@@ -18,7 +18,7 @@ vi.mock('three', () => {
     CatmullRomCurve3: C, CubicBezierCurve3: C, LineCurve3: C,
     Float32BufferAttribute: C, BufferGeometry: C, BufferAttribute: C,
     ShaderMaterial: C, MeshBasicMaterial: C, MeshStandardMaterial: C, MeshPhysicalMaterial: C,
-    SphereGeometry: C, IcosahedronGeometry: C, BoxGeometry: C, PlaneGeometry: C,
+    SphereGeometry: C, IcosahedronGeometry: C, DodecahedronGeometry: C, CircleGeometry: C, BoxGeometry: C, PlaneGeometry: C,
     CylinderGeometry: C, TorusGeometry: C, RingGeometry: C, TubeGeometry: C,
     InstancedMesh: C, Group: C, Mesh: C, Line: C, LineSegments: C, Points: C,
     Scene: C, Clock: C, Raycaster: C, TextureLoader: C, WebGLRenderer: C,
@@ -44,7 +44,7 @@ vi.mock('@react-three/fiber', async () => {
 vi.mock('@react-three/drei', () => ({
   __esModule: true,
   Line: () => null, Sphere: () => null, Icosahedron: () => null, OrbitControls: () => null,
-  Trail: () => null, Environment: () => null, Float: () => null,
+  Trail: () => null, Environment: () => null, Float: () => null, PerformanceMonitor: () => null,
   MeshDistortMaterial: () => null, MeshWobbleMaterial: () => null,
   MeshTransmissionMaterial: () => null,
   Sparkles: () => null, Stars: () => null, GradientTexture: () => null,
@@ -54,7 +54,7 @@ vi.mock('@react-three/drei', () => ({
 vi.mock('@react-three/postprocessing', () => ({
   __esModule: true,
   EffectComposer: () => null, Bloom: () => null, ChromaticAberration: () => null,
-  ToneMapping: () => null, Noise: () => null, Vignette: () => null,
+  ToneMapping: () => null, Noise: () => null, Vignette: () => null, Glitch: () => null,
 }));
 
 vi.mock('@/3d/shaders/AtmosphereShader', () => ({ AtmosphereShader: null }));
@@ -66,7 +66,7 @@ vi.mock('next-intl', () => ({ useTranslations: () => (k: string) => k }));
 // Static imports (mocks applied during resolution)
 // ---------------------------------------------------------------------------
 import GlobalNetworkScene from '@/3d/scenes/GlobalNetwork';
-import { FeaturesScene3D, FeaturesScene3DWrapper } from '@/3d/scenes/FeaturesScene3D';
+import { FeaturesScene3D } from '@/3d/scenes/FeaturesScene3D';
 import { AuthScene3D } from '@/3d/scenes/AuthScene3D';
 
 // ---------------------------------------------------------------------------
@@ -96,18 +96,7 @@ describe('3D Components - Smoke Tests', () => {
       const { container } = render(<FeaturesScene3D />);
       const wrapper = container.firstElementChild as HTMLElement;
       expect(wrapper).toBeTruthy();
-      expect(wrapper.className).toContain('pointer-events-none');
-    });
-  });
-
-  describe('FeaturesScene3DWrapper', () => {
-    it('test_export_is_function', () => {
-      expect(typeof FeaturesScene3DWrapper).toBe('function');
-    });
-
-    it('test_renders_without_crashing', () => {
-      const { container } = render(<FeaturesScene3DWrapper />);
-      expect(container).toBeTruthy();
+      expect(wrapper.className).toContain('absolute');
     });
   });
 

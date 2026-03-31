@@ -37,7 +37,7 @@ export default async function StatusPage({
 
     return (
         <div className="flex min-h-screen flex-col bg-background relative overflow-hidden">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             
             <main className="flex-1 relative w-full h-full flex flex-col">
                 <StatusDashboard historyData={historyData} />
@@ -46,7 +46,7 @@ export default async function StatusPage({
             {/* <Footer /> - The footer might overlap the 3D scene in full-height mode, 
                 let's keep it but ensure the status dashboard manages its own bottom padding if needed. */}
             <div className="relative z-20 bg-background/80 backdrop-blur-md border-t border-white/5">
-                <Footer />
+                <Footer locale={locale} />
             </div>
         </div>
     );

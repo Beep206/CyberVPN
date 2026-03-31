@@ -61,9 +61,10 @@ export default async function TrustPage({
   return (
     <>
       <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-        <PublicTerminalHeader />
+        <PublicTerminalHeader locale={locale} />
         <SeoKnowledgeArticlePage
           entry={content}
+          locale={locale}
           backHref="/"
           backLabel={labels.backToHomepage}
           labels={{
@@ -72,7 +73,7 @@ export default async function TrustPage({
             updated: labels.updated,
           }}
         />
-        <Footer />
+        <Footer locale={locale} />
       </main>
 
       <JsonLd<TechArticle> data={articleStructuredData} />

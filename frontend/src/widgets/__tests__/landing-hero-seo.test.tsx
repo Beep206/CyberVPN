@@ -4,6 +4,7 @@ import { LandingHero } from '../landing-hero';
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
+  getLocale: vi.fn(async () => 'en-EN'),
 }));
 
 vi.mock('@/widgets/3d-background/global-network-wrapper', () => ({

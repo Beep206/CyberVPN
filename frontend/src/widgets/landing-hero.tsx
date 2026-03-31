@@ -1,13 +1,14 @@
-import Link from 'next/link';
 import { Download, Rocket } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { MagneticButton } from '@/shared/ui/magnetic-button';
 import { GlobalNetworkWrapper } from '@/widgets/3d-background/global-network-wrapper';
 import { Reveal } from '@/shared/ui/reveal';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 import { StatusBadgeLive } from '@/shared/ui/status-badge-live';
 
-export async function LandingHero() {
+export async function LandingHero({ locale: providedLocale }: { locale?: string } = {}) {
+  const locale = providedLocale ?? await getLocale();
   const t = await getTranslations('Landing.hero');
   const protocolBadge = t('protocol_badge').split('|')[0]?.trim().replace('PROTOCOL: ', '') || 'VLESS-REALITY + XHTTP';
 
@@ -63,6 +64,7 @@ export async function LandingHero() {
           <MagneticButton className="inline-block">
             <Link
               href="/download"
+              locale={locale}
               className="inline-flex h-12 items-center justify-center rounded-md border border-neon-purple px-8 text-base font-bold tracking-wide text-neon-purple backdrop-blur-sm transition-all hover:bg-neon-purple/10 group"
               data-hoverable
               data-seo-cta="download"

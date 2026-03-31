@@ -130,6 +130,8 @@ export default function PrivacyVault3D({
     activeSection: PrivacySectionId;
     scrollDepth: number;
 }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
     // Determine primary color of the 3D scene based on the active topic
     const getVaultColor = () => {
         switch (activeSection) {
@@ -143,8 +145,9 @@ export default function PrivacyVault3D({
     };
 
     return (
-        <div className="w-full h-full absolute inset-0 z-0 pointer-events-none opacity-50">
+        <div ref={containerRef} className="w-full h-full absolute inset-0 z-0 pointer-events-none opacity-50">
             <Canvas
+                eventSource={containerRef}
                 camera={{ position: [0, 0, 8], fov: 45 }}
                 gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
             >

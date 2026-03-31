@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Shield, Navigation, Monitor, Settings, Wrench, Activity, Skull, Paintbrush, Globe, Database, Unplug, ScanEye, Zap, Bell, Flag, Languages, Palette, Terminal, Layers, DatabaseZap, Wand2, Smartphone } from 'lucide-react';
 import { DevButton } from "./dev-button";
+import { useTheme } from "@/app/providers/theme-provider";
 import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
 
 import { NavigationTab } from "./tabs/navigation-tab";
 import { AuthTab } from "./tabs/auth-tab";

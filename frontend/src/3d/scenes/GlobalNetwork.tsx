@@ -524,6 +524,7 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     return (
         <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg/0">
             <Canvas
+                eventSource={containerRef}
                 frameloop={isInView ? 'always' : 'never'}
                 performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 2, 7], fov: 40 }}

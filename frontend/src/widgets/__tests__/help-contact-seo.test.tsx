@@ -4,6 +4,7 @@ import { HelpContact } from '../help-contact';
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
+  getLocale: vi.fn(async () => 'en-EN'),
 }));
 
 vi.mock('@/shared/ui/reveal', () => ({

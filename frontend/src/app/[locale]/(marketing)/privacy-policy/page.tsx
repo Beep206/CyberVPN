@@ -23,7 +23,7 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
 
     return (
         <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             <div className="container mx-auto px-4 py-16 max-w-4xl">
                 <article className="prose prose-invert prose-cyan max-w-none">
                     <h1 className="text-4xl font-display font-bold text-matrix-green mb-8">
@@ -158,7 +158,7 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
                     </section>
                 </article>
             </div>
-            <Footer />
+            <Footer locale={locale} />
         </main>
     );
 }

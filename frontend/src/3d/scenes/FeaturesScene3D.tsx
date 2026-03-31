@@ -197,6 +197,7 @@ export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId })
     return (
         <div ref={containerRef} className="absolute inset-0 w-full h-full">
             <Canvas 
+                eventSource={containerRef}
                 frameloop={isInView ? 'always' : 'never'}
                 performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
                 camera={{ position: [0, 0, 8], fov: 45 }}

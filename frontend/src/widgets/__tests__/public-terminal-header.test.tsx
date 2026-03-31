@@ -1,4 +1,3 @@
-import type { AnchorHTMLAttributes } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PublicTerminalHeader } from '../public-terminal-header';
@@ -6,18 +5,6 @@ import { PublicTerminalHeaderControls } from '../public-terminal-header-controls
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
-}));
-
-vi.mock('next/link', () => ({
-  default: ({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
 }));
 
 vi.mock('@/features/theme-toggle', () => ({

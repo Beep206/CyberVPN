@@ -5,7 +5,6 @@ import { PerformanceMonitor } from '@react-three/drei';
 import { Bloom } from '@react-three/postprocessing';
 import { useInView } from 'motion/react';
 import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { ScenePerformanceMetrics } from '@/3d/components/scene-performance-metrics';
@@ -15,6 +14,7 @@ import {
   MARKETING_SCENE_GL,
   useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
+import { useTheme } from '@/app/providers/theme-provider';
 import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
@@ -132,6 +132,7 @@ export function SpeedTunnelScene() {
     <div ref={containerRef} className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
       <ErrorBoundary fallback={<div className="w-full h-full bg-background flex items-center justify-center text-xs text-muted-foreground">Speed Tunnel Disabled (Extension Conflict)</div>}>
         <Canvas
+          eventSource={containerRef}
           key={pathname}
           frameloop={shouldAnimate ? 'always' : 'never'}
           performance={MARKETING_SCENE_CANVAS_PERFORMANCE}

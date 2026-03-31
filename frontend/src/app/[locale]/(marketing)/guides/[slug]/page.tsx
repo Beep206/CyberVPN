@@ -93,9 +93,10 @@ export default async function GuideDetailPage({
   return (
     <>
       <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-        <PublicTerminalHeader />
+        <PublicTerminalHeader locale={locale} />
         <SeoKnowledgeArticlePage
           entry={entry}
+          locale={locale}
           backHref="/guides"
           backLabel={labels.backToGuides}
           labels={{
@@ -104,7 +105,7 @@ export default async function GuideDetailPage({
             updated: labels.updated,
           }}
         />
-        <Footer />
+        <Footer locale={locale} />
       </main>
 
       <JsonLd<TechArticle> data={articleStructuredData} />

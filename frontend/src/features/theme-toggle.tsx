@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
 import { motion } from "motion/react"
+import { useTheme } from "@/app/providers/theme-provider"
 import { MagneticButton } from "@/shared/ui/magnetic-button"
 
 export function ThemeToggle() {

@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import type { SeoHubContent } from '@/content/seo/types';
 
 type SeoContentHubPageLabels = {
@@ -9,9 +9,11 @@ type SeoContentHubPageLabels = {
 
 export function SeoContentHubPage({
   content,
+  locale,
   labels,
 }: {
   content: SeoHubContent;
+  locale: string;
   labels?: SeoContentHubPageLabels;
 }) {
   const resolvedLabels = labels ?? {
@@ -51,6 +53,7 @@ export function SeoContentHubPage({
                 <Link
                   key={link.href}
                   href={link.href}
+                  locale={locale}
                   className="group rounded-2xl border border-neon-cyan/25 bg-neon-cyan/10 px-4 py-4 transition-colors hover:border-neon-cyan/60 hover:bg-neon-cyan/15"
                   data-seo-cta={link.seoCta}
                   data-seo-zone={link.seoZone}
@@ -107,6 +110,7 @@ export function SeoContentHubPage({
               </div>
               <Link
                 href={card.path}
+                locale={locale}
                 className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-neon-cyan"
                 data-seo-cta={`hub_card_${card.slug}`}
                 data-seo-zone="hub_cards"

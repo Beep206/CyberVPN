@@ -181,23 +181,28 @@ function ThreatBombardment({ activeLayer }: { activeLayer: SecurityLayerId }) {
 }
 
 export default function SecurityShield3D({ activeLayer }: { activeLayer: SecurityLayerId }) {
-    return (
-        <Canvas
-            camera={{ position: [0, 0, 10], fov: 60 }}
-            gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-        >
-            <fog attach="fog" args={['#000000', 5, 30]} />
-            <ambientLight intensity={0.2} />
-            <directionalLight position={[5, 10, 5]} intensity={1.5} color="#00ffff" />
-            
-            <AegisShield activeLayer={activeLayer} />
-            <ThreatBombardment activeLayer={activeLayer} />
+    const containerRef = useRef<HTMLDivElement>(null);
 
-            <SafeEffectComposer multisampling={0}>
-                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
-                <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
-                <Noise opacity={0.04} />
-            </SafeEffectComposer>
-        </Canvas>
+    return (
+        <div ref={containerRef} className="h-full w-full">
+            <Canvas
+                eventSource={containerRef}
+                camera={{ position: [0, 0, 10], fov: 60 }}
+                gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+            >
+                <fog attach="fog" args={['#000000', 5, 30]} />
+                <ambientLight intensity={0.2} />
+                <directionalLight position={[5, 10, 5]} intensity={1.5} color="#00ffff" />
+                
+                <AegisShield activeLayer={activeLayer} />
+                <ThreatBombardment activeLayer={activeLayer} />
+
+                <SafeEffectComposer multisampling={0}>
+                    <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
+                    <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
+                    <Noise opacity={0.04} />
+                </SafeEffectComposer>
+            </Canvas>
+        </div>
     );
 }

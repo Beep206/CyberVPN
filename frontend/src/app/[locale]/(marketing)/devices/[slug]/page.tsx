@@ -97,9 +97,10 @@ export default async function DeviceDetailPage({
   return (
     <>
       <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-        <PublicTerminalHeader />
+        <PublicTerminalHeader locale={locale} />
         <SeoKnowledgeArticlePage
           entry={entry}
+          locale={locale}
           backHref="/devices"
           backLabel={labels.backToDevices}
           labels={{
@@ -108,7 +109,7 @@ export default async function DeviceDetailPage({
             updated: labels.updated,
           }}
         />
-        <Footer />
+        <Footer locale={locale} />
       </main>
 
       <JsonLd<SoftwareApplication> data={appStructuredData} />

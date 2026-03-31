@@ -320,6 +320,7 @@ export default function ApiNexus3D({ activeEndpoint }: ApiNexus3DProps) {
     return (
         <div ref={containerRef} className="absolute inset-x-0 inset-y-0 w-full h-full pointer-events-none">
             <Canvas
+                eventSource={containerRef}
                 camera={{ position: [0, 2, 10], fov: 45 }}
                 performance={{ min: 0.5 }}
                 gl={{

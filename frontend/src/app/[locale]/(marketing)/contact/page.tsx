@@ -22,11 +22,16 @@ export async function generateMetadata({
     });
 }
 
-export default function ContactPage() {
+export default async function ContactPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             
             <main className="flex-1 relative overflow-hidden bg-background">
                 {/* The Main Split Screen Form */}
@@ -35,7 +40,7 @@ export default function ContactPage() {
                 </div>
             </main>
 
-            <Footer />
+            <Footer locale={locale} />
         </div>
     );
 }

@@ -19,11 +19,11 @@ export default async function DocsLayout({
 
     return (
         <div className="flex flex-col min-h-screen selection:bg-neon-cyan selection:text-black">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             <div className="flex-1 relative">
                 {children}
             </div>
-            <Footer />
+            <Footer locale={locale} />
         </div>
     );
 }

@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import type {
   SeoArticleEntry,
   SeoCallToAction,
@@ -9,11 +9,12 @@ import type {
 
 type KnowledgeEntry = SeoArticleEntry | SeoStaticKnowledgePage;
 
-function renderActionLink(link: SeoCallToAction) {
+function renderActionLink(link: SeoCallToAction, locale: string) {
   return (
     <Link
       key={link.href}
       href={link.href}
+      locale={locale}
       className="group rounded-2xl border border-neon-cyan/25 bg-neon-cyan/10 px-4 py-4 transition-colors hover:border-neon-cyan/60 hover:bg-neon-cyan/15"
       data-seo-cta={link.seoCta}
       data-seo-zone={link.seoZone}
@@ -29,11 +30,12 @@ function renderActionLink(link: SeoCallToAction) {
   );
 }
 
-function renderResourceLink(link: SeoResourceLink) {
+function renderResourceLink(link: SeoResourceLink, locale: string) {
   return (
     <Link
       key={link.href}
       href={link.href}
+      locale={locale}
       className="rounded-2xl border border-grid-line/35 bg-terminal-bg/70 px-4 py-4 transition-colors hover:border-neon-purple/45"
       data-seo-cta={`related_${link.href.replace(/\//g, '_')}`}
       data-seo-zone="knowledge_related"
@@ -48,11 +50,13 @@ function renderResourceLink(link: SeoResourceLink) {
 
 export function SeoKnowledgeArticlePage({
   entry,
+  locale,
   backHref,
   backLabel,
   labels,
 }: {
   entry: KnowledgeEntry;
+  locale: string;
   backHref: string;
   backLabel: string;
   labels?: {
@@ -74,6 +78,7 @@ export function SeoKnowledgeArticlePage({
         <div className="rounded-3xl border border-grid-line/40 bg-background/60 p-6 shadow-[0_0_120px_rgba(0,255,255,0.06)] backdrop-blur md:p-8">
           <Link
             href={backHref}
+            locale={locale}
             className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.3em] text-neon-cyan"
             data-seo-cta="knowledge_back"
             data-seo-zone="knowledge_header"
@@ -120,7 +125,9 @@ export function SeoKnowledgeArticlePage({
                 <ShieldCheck className="h-4 w-4" />
                 {resolvedLabels.nextAction}
               </div>
-              <div className="mt-4 grid gap-3">{entry.ctaLinks.map(renderActionLink)}</div>
+              <div className="mt-4 grid gap-3">
+                {entry.ctaLinks.map((link) => renderActionLink(link, locale))}
+              </div>
             </aside>
           </div>
         </div>
@@ -157,7 +164,9 @@ export function SeoKnowledgeArticlePage({
               <div className="text-xs font-mono uppercase tracking-[0.3em] text-neon-purple">
                 {resolvedLabels.relatedRoutes}
               </div>
-              <div className="mt-4 grid gap-3">{entry.relatedLinks.map(renderResourceLink)}</div>
+              <div className="mt-4 grid gap-3">
+                {entry.relatedLinks.map((link) => renderResourceLink(link, locale))}
+              </div>
             </div>
           </aside>
         </div>

@@ -18,34 +18,59 @@ interface InceptionButtonProps {
 
 export function InceptionButton({ children, onClick, className = '', wrapperClassName = '' }: InceptionButtonProps & { wrapperClassName?: string }) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
   const { allowPointerEffects } = useMotionCapability();
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const [isExploding, setIsExploding] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [progress, setProgress] = useState(0);
 
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const handleCapture = async () => {
-    if (!elementRef.current || !allowPointerEffects) {
+    const element = elementRef.current;
+
+    if (
+      !element ||
+      !allowPointerEffects ||
+      !element.isConnected ||
+      !element.ownerDocument
+    ) {
       return;
     }
 
     try {
       const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(elementRef.current, {
+      if (!mountedRef.current || !element.isConnected || !element.ownerDocument) {
+        return;
+      }
+
+      const width = element.offsetWidth;
+      const height = element.offsetHeight;
+      const dataUrl = await toPng(element, {
         cacheBust: true,
         pixelRatio: 1,
         skipAutoScale: true,
       });
+      if (!mountedRef.current) {
+        return;
+      }
 
       const loader = new THREE.TextureLoader();
 
       loader.load(dataUrl, (loadedTexture) => {
-        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        if (!mountedRef.current) {
+          return;
+        }
 
-        setDimensions({
-          width: elementRef.current?.offsetWidth || 0,
-          height: elementRef.current?.offsetHeight || 0,
-        });
+        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        setDimensions({ width, height });
         setTexture(loadedTexture);
         setIsExploding(true);
       });

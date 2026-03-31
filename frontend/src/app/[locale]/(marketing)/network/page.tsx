@@ -22,17 +22,22 @@ export async function generateMetadata({
     });
 }
 
-export default function ServersPage() {
+export default async function ServersPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
 
     return (
         <main className="min-h-screen bg-black text-terminal-text selection:bg-neon-cyan/30 flex flex-col font-mono overflow-x-hidden">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             
             <section className="flex-1 relative w-full pt-16">
                 <NetworkDashboard />
             </section>
             
-            <Footer />
+            <Footer locale={locale} />
         </main>
     );
 }

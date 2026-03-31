@@ -4,6 +4,7 @@ import { Footer } from '../footer';
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
+  getLocale: vi.fn(async () => 'en-EN'),
 }));
 
 vi.mock('@/widgets/footer-live-strip', () => ({
