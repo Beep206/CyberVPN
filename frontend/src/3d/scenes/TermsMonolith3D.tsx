@@ -7,6 +7,7 @@ import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { Float, Preload } from '@react-three/drei';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 
 function createExplosionVelocities(particleCount: number): Float32Array {
     const random = createDeterministicRandom(particleCount * 131);
@@ -190,43 +191,45 @@ export default function TermsMonolith3D({
     scrollDepth: number;
     isAccepted: boolean;
 }) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     // Dynamic lighting based on acceptance
     const primaryColor = isAccepted ? '#00ff88' : '#00ffff';
     const secondaryColor = isAccepted ? '#00cc66' : '#ff0055';
 
     return (
-        <div ref={containerRef} className="h-full w-full">
-            <Canvas
-                eventSource={containerRef}
-                camera={{ position: [0, 0, 10], fov: 60 }}
-                gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-                dpr={[1, 1.5]}
-            >
-                <fog attach="fog" args={['#000000', 10, 40]} />
-                <ambientLight intensity={0.1} />
-                <directionalLight position={[10, 20, 10]} intensity={1} color={primaryColor} />
-                <pointLight position={[0, -10, 0]} intensity={5} color={secondaryColor} distance={30} />
-                
-                <MonolithStructure isAccepted={isAccepted} />
-                <DataRings isAccepted={isAccepted} />
-                <AcceptanceExplosion isAccepted={isAccepted} />
-                
-                <CameraController scrollDepth={scrollDepth} />
+        <div ref={setHostRef} className="h-full w-full">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    camera={{ position: [0, 0, 10], fov: 60 }}
+                    gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+                    dpr={[1, 1.5]}
+                >
+                    <fog attach="fog" args={['#000000', 10, 40]} />
+                    <ambientLight intensity={0.1} />
+                    <directionalLight position={[10, 20, 10]} intensity={1} color={primaryColor} />
+                    <pointLight position={[0, -10, 0]} intensity={5} color={secondaryColor} distance={30} />
+                    
+                    <MonolithStructure isAccepted={isAccepted} />
+                    <DataRings isAccepted={isAccepted} />
+                    <AcceptanceExplosion isAccepted={isAccepted} />
+                    
+                    <CameraController scrollDepth={scrollDepth} />
 
-                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom 
-                        luminanceThreshold={isAccepted ? 0.3 : 0.5} 
-                        mipmapBlur 
-                        intensity={isAccepted ? 2.5 : 1.5} 
-                    />
-                    <ChromaticAberration 
-                        offset={new THREE.Vector2(0.003, 0.003)}
-                    />
-                    <Noise opacity={0.03} />
-                </SafeEffectComposer>
-                <Preload all />
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false} multisampling={0}>
+                        <Bloom 
+                            luminanceThreshold={isAccepted ? 0.3 : 0.5} 
+                            mipmapBlur 
+                            intensity={isAccepted ? 2.5 : 1.5} 
+                        />
+                        <ChromaticAberration 
+                            offset={new THREE.Vector2(0.003, 0.003)}
+                        />
+                        <Noise opacity={0.03} />
+                    </SafeEffectComposer>
+                    <Preload all />
+                </Canvas>
+            ) : null}
         </div>
     );
 }

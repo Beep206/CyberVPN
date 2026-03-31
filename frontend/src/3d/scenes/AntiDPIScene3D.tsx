@@ -13,6 +13,7 @@ import {
     MARKETING_SCENE_GL,
     useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
@@ -128,35 +129,37 @@ function ScannerAndShield() {
 }
 
 export default function AntiDPIScene3D() {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const isInView = useInView(containerRef, { margin: "200px" });
     const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.2 });
 
     return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full pointer-events-none">
-            <Canvas
-                eventSource={containerRef}
-                frameloop={isInView ? 'always' : 'never'}
-                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
-                camera={{ position: [0, 0, 8], fov: 40 }}
-                gl={MARKETING_SCENE_GL}
-                dpr={dpr}
-            >
-                <ScenePerformanceMetrics sceneName="anti-dpi" />
-                <PerformanceMonitor {...monitorProps} />
-                
-                <ambientLight intensity={0.5} />
-                <pointLight position={[-4, 2, 4]} intensity={1.5} color="#ff0088" />
-                <pointLight position={[4, -2, 4]} intensity={1.5} color="#00ffff" />
+        <div ref={setHostRef} className="absolute inset-0 w-full h-full pointer-events-none">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    frameloop={isInView ? 'always' : 'never'}
+                    performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
+                    camera={{ position: [0, 0, 8], fov: 40 }}
+                    gl={MARKETING_SCENE_GL}
+                    dpr={dpr}
+                >
+                    <ScenePerformanceMetrics sceneName="anti-dpi" />
+                    <PerformanceMonitor {...monitorProps} />
+                    
+                    <ambientLight intensity={0.5} />
+                    <pointLight position={[-4, 2, 4]} intensity={1.5} color="#ff0088" />
+                    <pointLight position={[4, -2, 4]} intensity={1.5} color="#00ffff" />
 
-                <InstancedPackets count={800} />
-                <ScannerAndShield />
+                    <InstancedPackets count={800} />
+                    <ScannerAndShield />
 
-                <SafeEffectComposer multisampling={0}>
-                    <Bloom luminanceThreshold={0.2} intensity={1.2} radius={0.4} />
-                    <Noise opacity={0.05} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer multisampling={0}>
+                        <Bloom luminanceThreshold={0.2} intensity={1.2} radius={0.4} />
+                        <Noise opacity={0.05} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { ActiveEndpoint, EndpointCategory } from '@/widgets/api/api-dashboard';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 
 type NodeCategory = 'client' | 'gateway' | 'auth' | 'servers' | 'db';
 type NodeId = 'client' | 'apiGate' | 'auth' | 'generateToken' | 'servers' | 'listServers' | 'connect' | 'dbAuth' | 'dbServers';
@@ -301,7 +302,7 @@ interface ApiNexus3DProps {
 }
 
 export default function ApiNexus3D({ activeEndpoint }: ApiNexus3DProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const [dpr, setDpr] = useState(1);
     
     const activePath = useMemo(() => {
@@ -318,23 +319,25 @@ export default function ApiNexus3D({ activeEndpoint }: ApiNexus3DProps) {
     }, [activeEndpoint]);
 
     return (
-        <div ref={containerRef} className="absolute inset-x-0 inset-y-0 w-full h-full pointer-events-none">
-            <Canvas
-                eventSource={containerRef}
-                camera={{ position: [0, 2, 10], fov: 45 }}
-                performance={{ min: 0.5 }}
-                gl={{
-                    antialias: false,
-                    alpha: true,
-                    powerPreference: "high-performance",
-                }}
-                dpr={dpr}
-            >
-                <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1)} />
-                <React.Suspense fallback={null}>
-                    <SceneContent activePath={activePath} activeEndpoint={activeEndpoint} />
-                </React.Suspense>
-            </Canvas>
+        <div ref={setHostRef} className="absolute inset-x-0 inset-y-0 w-full h-full pointer-events-none">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    camera={{ position: [0, 2, 10], fov: 45 }}
+                    performance={{ min: 0.5 }}
+                    gl={{
+                        antialias: false,
+                        alpha: true,
+                        powerPreference: "high-performance",
+                    }}
+                    dpr={dpr}
+                >
+                    <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1)} />
+                    <React.Suspense fallback={null}>
+                        <SceneContent activePath={activePath} activeEndpoint={activeEndpoint} />
+                    </React.Suspense>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

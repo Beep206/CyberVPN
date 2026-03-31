@@ -9,6 +9,7 @@ import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 
 // Create global static geometries to prevent GC stutters during renders
 const SHIELD_SHAPE = new THREE.Shape();
@@ -346,32 +347,34 @@ import { usePathname } from 'next/navigation';
 // ============================================
 export function AuthScene3D() {
     const pathname = usePathname();
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const [dpr, setDpr] = useState(1);
 
     // Force a fresh WebGL tree for each auth route entry while keeping route-level remounts predictable.
     const sceneKey = `auth-scene:${pathname}`;
 
     return (
-        <div key={sceneKey} ref={containerRef} className="absolute inset-0 z-0 pointer-events-none">
+        <div key={sceneKey} ref={setHostRef} className="absolute inset-0 z-0 pointer-events-none">
             <ErrorBoundary key={sceneKey} label="Auth 3D Scene">
-                <Canvas
-                    eventSource={containerRef}
-                    camera={{ position: [0, 0, 5], fov: 50 }}
-                    dpr={dpr}
-                    gl={{
-                        antialias: false,
-                        alpha: true,
-                        powerPreference: 'high-performance',
-                    }}
-                    style={{ background: 'transparent' }}
-                >
-                    <PerformanceMonitor 
-                        onDecline={() => setDpr(0.75)} 
-                        onIncline={() => setDpr(1.5)} 
-                    />
-                    <AuthSceneContent />
-                </Canvas>
+                {host ? (
+                    <Canvas
+                        eventSource={host}
+                        camera={{ position: [0, 0, 5], fov: 50 }}
+                        dpr={dpr}
+                        gl={{
+                            antialias: false,
+                            alpha: true,
+                            powerPreference: 'high-performance',
+                        }}
+                        style={{ background: 'transparent' }}
+                    >
+                        <PerformanceMonitor 
+                            onDecline={() => setDpr(0.75)} 
+                            onIncline={() => setDpr(1.5)} 
+                        />
+                        <AuthSceneContent />
+                    </Canvas>
+                ) : null}
             </ErrorBoundary>
         </div>
     );

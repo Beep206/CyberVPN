@@ -70,6 +70,33 @@ describe('3D performance baseline', () => {
     expect(speedTunnel).toContain('generateStarfieldData(count)');
   });
 
+  it('marketing and overlay canvases mount through a stable host element', async () => {
+    const files = await Promise.all([
+      readSource('widgets/speed-tunnel-scene.tsx'),
+      readSource('3d/scenes/AuthScene3D.tsx'),
+      readSource('3d/scenes/FeaturesScene3D.tsx'),
+      readSource('3d/scenes/DownloadPayload3D.tsx'),
+      readSource('widgets/docs-scene.tsx'),
+      readSource('3d/scenes/FastTrackScene3D.tsx'),
+      readSource('3d/scenes/PrivacyVault3D.tsx'),
+      readSource('3d/scenes/AntiDPIScene3D.tsx'),
+      readSource('widgets/contact-form-visual.tsx'),
+      readSource('3d/scenes/ApiNexus3D.tsx'),
+      readSource('3d/scenes/PricingCore3D.tsx'),
+      readSource('3d/scenes/StatusNetworkCore3D.tsx'),
+      readSource('3d/scenes/GlobalNetwork.tsx'),
+      readSource('3d/scenes/SecurityShield3D.tsx'),
+      readSource('3d/scenes/TermsMonolith3D.tsx'),
+      readSource('components/ui/inception-overlay.tsx'),
+    ]);
+
+    for (const source of files) {
+      expect(source).toContain('useCanvasHost');
+      expect(source).toContain('eventSource={host}');
+      expect(source).not.toContain('eventSource={containerRef}');
+    }
+  });
+
   it('interactive UI effects are gated by motion capability', async () => {
     const magnetic = await readSource('shared/ui/magnetic-button.tsx');
     const tilt = await readSource('shared/ui/tilt-card.tsx');

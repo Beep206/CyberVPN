@@ -4,6 +4,7 @@ import { Float, Environment, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { OSPlatform } from '@/widgets/download/download-dashboard';
 
 interface PayloadProps {
@@ -117,39 +118,41 @@ function ScannerGrid() {
 }
 
 export function DownloadPayload3D({ selectedOS }: PayloadProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
 
     return (
-        <div ref={containerRef} className="h-full w-full">
-            <Canvas
-                eventSource={containerRef}
-                camera={{ position: [5, 2, 10], fov: 45 }}
-                gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-            >
-                <fog attach="fog" args={['#000000', 5, 20]} />
-                <Environment preset="city" />
-                <ambientLight intensity={0.5} />
-                <directionalLight position={[10, 10, 5]} intensity={1} />
+        <div ref={setHostRef} className="h-full w-full">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    camera={{ position: [5, 2, 10], fov: 45 }}
+                    gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+                >
+                    <fog attach="fog" args={['#000000', 5, 20]} />
+                    <Environment preset="city" />
+                    <ambientLight intensity={0.5} />
+                    <directionalLight position={[10, 10, 5]} intensity={1} />
 
-                <AnimatedPayloadCore selectedOS={selectedOS} />
-                <ScannerGrid />
-                
-                {/* Gentle camera sway, limited to prevent dizzying */}
-                <OrbitControls 
-                    enableZoom={false} 
-                    enablePan={false}
-                    autoRotate 
-                    autoRotateSpeed={selectedOS === 'none' ? 0.5 : 2.0} 
-                    maxPolarAngle={Math.PI / 2 + 0.1} 
-                    minPolarAngle={Math.PI / 2 - 0.5}
-                />
+                    <AnimatedPayloadCore selectedOS={selectedOS} />
+                    <ScannerGrid />
+                    
+                    {/* Gentle camera sway, limited to prevent dizzying */}
+                    <OrbitControls 
+                        enableZoom={false} 
+                        enablePan={false}
+                        autoRotate 
+                        autoRotateSpeed={selectedOS === 'none' ? 0.5 : 2.0} 
+                        maxPolarAngle={Math.PI / 2 + 0.1} 
+                        minPolarAngle={Math.PI / 2 - 0.5}
+                    />
 
-                <SafeEffectComposer enableNormalPass={false}>
-                    <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
-                    <Noise opacity={0.02} />
-                    <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false}>
+                        <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} />
+                        <Noise opacity={0.02} />
+                        <ChromaticAberration offset={new THREE.Vector2(0.002, 0.002)} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

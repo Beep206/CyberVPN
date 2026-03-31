@@ -11,6 +11,7 @@ import {
     MARKETING_SCENE_GL,
     useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import * as THREE from 'three';
 import { FeatureId } from '@/widgets/features/features-dashboard';
 import { PerformanceMonitor } from '@react-three/drei';
@@ -190,50 +191,52 @@ function CentralShield({ activeFeature }: { activeFeature: FeatureId }) {
 
 // --- MAIN CANVAS BUILDER ---
 export function FeaturesScene3D({ activeFeature }: { activeFeature: FeatureId }) {
-    const containerRef = useRef<HTMLDivElement>(null!);
+    const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const isInView = useInView(containerRef, { margin: "200px" });
     const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.5 });
     
     return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full">
-            <Canvas 
-                eventSource={containerRef}
-                frameloop={isInView ? 'always' : 'never'}
-                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
-                camera={{ position: [0, 0, 8], fov: 45 }}
-                gl={MARKETING_SCENE_GL}
-                dpr={dpr}
-            >
-                <ScenePerformanceMetrics sceneName="features-core" />
-                <PerformanceMonitor {...monitorProps} />
+        <div ref={setHostRef} className="absolute inset-0 w-full h-full">
+            {host ? (
+                <Canvas 
+                    eventSource={host}
+                    frameloop={isInView ? 'always' : 'never'}
+                    performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
+                    camera={{ position: [0, 0, 8], fov: 45 }}
+                    gl={MARKETING_SCENE_GL}
+                    dpr={dpr}
+                >
+                    <ScenePerformanceMetrics sceneName="features-core" />
+                    <PerformanceMonitor {...monitorProps} />
 
-                <ambientLight intensity={0.5} />
-                <pointLight position={[5, 5, 5]} intensity={2} />
-                
-                <group position={[0, 0, 0]}>
-                    <CentralShield activeFeature={activeFeature} />
-                    <EngineCoreNodes activeFeature={activeFeature} />
-                </group>
+                    <ambientLight intensity={0.5} />
+                    <pointLight position={[5, 5, 5]} intensity={2} />
+                    
+                    <group position={[0, 0, 0]}>
+                        <CentralShield activeFeature={activeFeature} />
+                        <EngineCoreNodes activeFeature={activeFeature} />
+                    </group>
 
-                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom 
-                        luminanceThreshold={0.2} 
-                        mipmapBlur 
-                        intensity={activeFeature === 'killswitch' ? 2.5 : 1.2} 
-                    />
-                    <Glitch 
-                        active={activeFeature === 'obfuscation' || activeFeature === 'killswitch'} 
-                        delay={new THREE.Vector2(0, 0)} 
-                        duration={new THREE.Vector2(0.1, 0.3)} 
-                        ratio={0.5}
-                    />
-                    <ChromaticAberration
-                        blendFunction={BlendFunction.NORMAL}
-                        offset={FEATURES_CHROMATIC_ABERRATION_OFFSET}
-                    />
-                    <Noise opacity={activeFeature === 'obfuscation' ? 0.08 : 0.03} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false} multisampling={0}>
+                        <Bloom 
+                            luminanceThreshold={0.2} 
+                            mipmapBlur 
+                            intensity={activeFeature === 'killswitch' ? 2.5 : 1.2} 
+                        />
+                        <Glitch 
+                            active={activeFeature === 'obfuscation' || activeFeature === 'killswitch'} 
+                            delay={new THREE.Vector2(0, 0)} 
+                            duration={new THREE.Vector2(0.1, 0.3)} 
+                            ratio={0.5}
+                        />
+                        <ChromaticAberration
+                            blendFunction={BlendFunction.NORMAL}
+                            offset={FEATURES_CHROMATIC_ABERRATION_OFFSET}
+                        />
+                        <Noise opacity={activeFeature === 'obfuscation' ? 0.08 : 0.03} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

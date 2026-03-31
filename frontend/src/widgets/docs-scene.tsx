@@ -5,6 +5,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Text, MeshDistortMaterial, ContactShadows } from '@react-three/drei';
 import { Bloom, ToneMapping } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import * as THREE from 'three';
 
 // Mapping sections to distinct visual 3D elements
@@ -20,45 +21,47 @@ interface DocsSceneProps {
 }
 
 export function DocsScene({ activeSection }: DocsSceneProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const config = sectionConfig[activeSection as keyof typeof sectionConfig] || sectionConfig.getting_started;
     
     return (
-        <div ref={containerRef} className="w-full h-full relative" style={{ background: 'radial-gradient(circle at center, #111 0%, #000 100%)' }}>
+        <div ref={setHostRef} className="w-full h-full relative" style={{ background: 'radial-gradient(circle at center, #111 0%, #000 100%)' }}>
             {/* CRT overlay lines */}
             <div className="absolute inset-0 pointer-events-none z-10 opacity-20 mix-blend-overlay"
                  style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 255, 0) 50%, rgba(0, 255, 255, 0.2) 50%)', backgroundSize: '100% 4px' }} />
             
-            <Canvas eventSource={containerRef} camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full">
-                <Suspense fallback={null}>
-                    {/* Manual lighting to avoid CDN download hangs from Environment */}
-                    <ambientLight intensity={0.5} />
-                    <directionalLight position={[10, 10, 5]} intensity={1} color={config.color} />
-                    <directionalLight position={[-10, 10, -5]} intensity={0.5} color="#ffffff" />
-                    
-                    {/* The primary 3D representation that changes based on section */}
-                    <BlueprintHologram activeSection={activeSection} color={config.color} />
-                    
-                    {/* Glowing label below */}
-                    <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5} position={[0, -1.8, 0]}>
-                        <Text
-                            fontSize={0.2}
-                            color={config.color}
-                            anchorX="center"
-                            anchorY="middle"
-                        >
-                            {config.label}
-                        </Text>
-                    </Float>
+            {host ? (
+                <Canvas eventSource={host} camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full">
+                    <Suspense fallback={null}>
+                        {/* Manual lighting to avoid CDN download hangs from Environment */}
+                        <ambientLight intensity={0.5} />
+                        <directionalLight position={[10, 10, 5]} intensity={1} color={config.color} />
+                        <directionalLight position={[-10, 10, -5]} intensity={0.5} color="#ffffff" />
+                        
+                        {/* The primary 3D representation that changes based on section */}
+                        <BlueprintHologram activeSection={activeSection} color={config.color} />
+                        
+                        {/* Glowing label below */}
+                        <Float speed={2} rotationIntensity={0.1} floatIntensity={0.5} position={[0, -1.8, 0]}>
+                            <Text
+                                fontSize={0.2}
+                                color={config.color}
+                                anchorX="center"
+                                anchorY="middle"
+                            >
+                                {config.label}
+                            </Text>
+                        </Float>
 
-                    <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} color={config.color} />
+                        <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={10} blur={2.5} far={4} color={config.color} />
 
-                    <SafeEffectComposer multisampling={4}>
-                        <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.5} />
-                        <ToneMapping />
-                    </SafeEffectComposer>
-                </Suspense>
-            </Canvas>
+                        <SafeEffectComposer multisampling={4}>
+                            <Bloom luminanceThreshold={0.5} mipmapBlur intensity={1.5} />
+                            <ToneMapping />
+                        </SafeEffectComposer>
+                    </Suspense>
+                </Canvas>
+            ) : null}
         </div>
     );
 }
