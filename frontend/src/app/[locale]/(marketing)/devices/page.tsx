@@ -61,12 +61,13 @@ export default async function DevicesPage({
   return (
     <>
       <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-        <PublicTerminalHeader />
+        <PublicTerminalHeader locale={locale} />
         <SeoContentHubPage
           content={hub}
+          locale={locale}
           labels={{ hubIntent: labels.hubIntent, readPage: labels.readPage }}
         />
-        <Footer />
+        <Footer locale={locale} />
       </main>
 
       <JsonLd<CollectionPage> data={collectionStructuredData} />

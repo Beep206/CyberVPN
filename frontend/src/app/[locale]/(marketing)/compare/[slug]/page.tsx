@@ -93,9 +93,10 @@ export default async function CompareDetailPage({
   return (
     <>
       <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
-        <PublicTerminalHeader />
+        <PublicTerminalHeader locale={locale} />
         <SeoKnowledgeArticlePage
           entry={entry}
+          locale={locale}
           backHref="/compare"
           backLabel={labels.backToCompare}
           labels={{
@@ -104,7 +105,7 @@ export default async function CompareDetailPage({
             updated: labels.updated,
           }}
         />
-        <Footer />
+        <Footer locale={locale} />
       </main>
 
       <JsonLd<TechArticle> data={articleStructuredData} />

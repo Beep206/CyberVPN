@@ -22,17 +22,22 @@ export async function generateMetadata({
     });
 }
 
-export default function ApiPage() {
+export default async function ApiPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
 
     return (
         <main className="min-h-screen bg-black text-terminal-text selection:bg-neon-pink/30 flex flex-col font-mono">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             
             <section className="flex-1 relative w-full pt-16">
                 <ApiDashboard />
             </section>
 
-            <Footer />
+            <Footer locale={locale} />
         </main>
     );
 }

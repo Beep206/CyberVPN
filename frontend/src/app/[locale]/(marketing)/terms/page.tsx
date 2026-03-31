@@ -22,17 +22,22 @@ export async function generateMetadata({
     });
 }
 
-export default function TermsPage() {
+export default async function TermsPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
 
     return (
         <main className="min-h-screen bg-black text-terminal-text selection:bg-warning/30 flex flex-col font-mono">
-            <PublicTerminalHeader />
+            <PublicTerminalHeader locale={locale} />
             
             <section className="flex-1 relative w-full pt-16">
                 <TermsDashboard />
             </section>
 
-            <Footer />
+            <Footer locale={locale} />
         </main>
     );
 }

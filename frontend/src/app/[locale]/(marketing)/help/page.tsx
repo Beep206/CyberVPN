@@ -55,14 +55,14 @@ export default async function HelpCenterPage({ params }: { params: Promise<{ loc
     return (
         <>
             <main className="flex flex-col min-h-screen selection:bg-neon-pink selection:text-black">
-                <PublicTerminalHeader />
+                <PublicTerminalHeader locale={locale} />
                 <HelpHero />
                 <div className="container mx-auto px-4 py-16 space-y-24 z-10 relative">
                     <HelpCategories />
                     <HelpFaq />
-                    <HelpContact />
+                    <HelpContact locale={locale} />
                 </div>
-                <Footer />
+                <Footer locale={locale} />
             </main>
 
             <JsonLd<FAQPage> data={faqStructuredData} />

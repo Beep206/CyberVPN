@@ -20,15 +20,16 @@ interface DocsSceneProps {
 }
 
 export function DocsScene({ activeSection }: DocsSceneProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const config = sectionConfig[activeSection as keyof typeof sectionConfig] || sectionConfig.getting_started;
     
     return (
-        <div className="w-full h-full relative" style={{ background: 'radial-gradient(circle at center, #111 0%, #000 100%)' }}>
+        <div ref={containerRef} className="w-full h-full relative" style={{ background: 'radial-gradient(circle at center, #111 0%, #000 100%)' }}>
             {/* CRT overlay lines */}
             <div className="absolute inset-0 pointer-events-none z-10 opacity-20 mix-blend-overlay"
                  style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 255, 0) 50%, rgba(0, 255, 255, 0.2) 50%)', backgroundSize: '100% 4px' }} />
             
-            <Canvas camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full">
+            <Canvas eventSource={containerRef} camera={{ position: [0, 0, 5], fov: 45 }} className="w-full h-full">
                 <Suspense fallback={null}>
                     {/* Manual lighting to avoid CDN download hangs from Environment */}
                     <ambientLight intensity={0.5} />

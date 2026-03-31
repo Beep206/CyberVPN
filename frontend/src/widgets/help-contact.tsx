@@ -1,10 +1,11 @@
-import Link from 'next/link';
 import { Send, TerminalSquare } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { Reveal } from '@/shared/ui/reveal';
 import { ScrambleText } from '@/shared/ui/scramble-text';
 
-export async function HelpContact() {
+export async function HelpContact({ locale: providedLocale }: { locale?: string } = {}) {
+  const locale = providedLocale ?? await getLocale();
   const t = await getTranslations('HelpCenter');
 
   return (
@@ -28,6 +29,7 @@ export async function HelpContact() {
           <Reveal delay={0.1}>
             <Link
               href="/contact"
+              locale={locale}
               className="group relative inline-flex h-14 flex-1 items-center justify-center overflow-hidden rounded-md border border-neon-pink/50 bg-neon-pink/10 px-8 font-bold tracking-wide text-neon-pink transition-all hover:bg-neon-pink/20 sm:flex-none"
               data-seo-cta="contact"
               data-seo-zone="help_contact"

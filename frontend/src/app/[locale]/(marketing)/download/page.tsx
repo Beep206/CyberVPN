@@ -63,14 +63,14 @@ export default async function DownloadPage({ params }: { params: Promise<{ local
     return (
         <>
             <div className="flex min-h-screen flex-col bg-background relative overflow-hidden">
-                <PublicTerminalHeader />
+                <PublicTerminalHeader locale={locale} />
                 
                 <main className="flex-1 relative w-full h-full flex flex-col">
                     <DownloadDashboard />
                 </main>
 
                 <div className="relative z-20 bg-background/80 backdrop-blur-md border-t border-white/5">
-                    <Footer />
+                    <Footer locale={locale} />
                 </div>
             </div>
 

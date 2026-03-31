@@ -151,6 +151,7 @@ export function PricingCore3D({ hoveredTier }: { hoveredTier: TierLevel }) {
     return (
         <div ref={containerRef} className="absolute inset-0 w-full h-full">
             <Canvas 
+                eventSource={containerRef}
                 frameloop={isInView ? 'always' : 'never'}
                 camera={{ position: [0, 2, 8], fov: 45 }}
                 // Optimize GL context: false antialias, false alpha (since background is black), high-perf mode

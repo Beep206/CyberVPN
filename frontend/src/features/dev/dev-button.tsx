@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Terminal } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/app/providers/theme-provider";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 

@@ -4,10 +4,12 @@ import { PublicTerminalHeaderControls } from '@/widgets/public-terminal-header-c
 import { TerminalHeaderPerformance } from '@/widgets/terminal-header-performance';
 
 interface PublicTerminalHeaderProps {
+  locale?: string;
   performanceMode?: 'off' | 'idle' | 'always';
 }
 
 export async function PublicTerminalHeader({
+  locale,
   performanceMode = 'idle',
 }: PublicTerminalHeaderProps) {
   const headerT = await getTranslations('Header');
@@ -34,6 +36,7 @@ export async function PublicTerminalHeader({
         <PublicTerminalHeaderControls
           downloadLabel={footerT('links.download')}
           loginLabel={loginT('submitButton')}
+          locale={locale}
           registerLabel={registerT('submitButton')}
         />
       </div>
