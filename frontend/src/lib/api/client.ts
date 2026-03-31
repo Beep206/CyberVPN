@@ -1,4 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import {
+  buildLocalizedLoginRedirect,
+  isPublicAuthRoute,
+} from '@/features/auth/lib/session';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -80,21 +84,6 @@ function parseRetryAfter(header: string | null): number {
   }
 
   return 60; // Fallback
-}
-
-// SEC-04: Extract locale prefix from current pathname for locale-aware redirects.
-const LOCALE_RE = /^\/([a-z]{2,3}-[A-Z]{2})\//;
-const DEFAULT_LOCALE = 'en-EN';
-const AUTH_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
-
-function getLocaleFromPath(): string {
-  if (typeof window === 'undefined') return DEFAULT_LOCALE;
-  const match = window.location.pathname.match(LOCALE_RE);
-  return match ? match[1] : DEFAULT_LOCALE;
-}
-
-function isAuthRoute(pathname: string): boolean {
-  return AUTH_ROUTE_RE.test(pathname);
 }
 
 export const apiClient = axios.create({
@@ -211,10 +200,12 @@ apiClient.interceptors.response.use(
 
         // Session probe and magic-link verification can run on public pages;
         // don't force redirect here or we can interrupt in-flight login flows.
-        if (typeof window !== 'undefined' && !isNonBlockingAuthRequest && !isAuthRoute(window.location.pathname)) {
-          // SEC-04: locale-aware redirect
-          const locale = getLocaleFromPath();
-          window.location.href = `/${locale}/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        if (
+          typeof window !== 'undefined'
+          && !isNonBlockingAuthRequest
+          && !isPublicAuthRoute(window.location.pathname)
+        ) {
+          window.location.href = buildLocalizedLoginRedirect(window.location.pathname);
         }
         return Promise.reject(refreshError);
       } finally {

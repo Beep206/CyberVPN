@@ -97,10 +97,10 @@ class TestOAuthLoginUseCase:
         assert result.user is user
 
     @pytest.mark.unit
-    async def test_existing_oauth_account_updates_provider_tokens(
+    async def test_existing_oauth_account_drops_provider_tokens_when_retention_is_disabled(
         self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session, make_user
     ):
-        """Existing linked account updates stored provider tokens on login."""
+        """Existing linked account clears stored provider tokens by default."""
         user = make_user()
         oauth_account = MagicMock()
         oauth_account.user_id = user.id
@@ -122,8 +122,8 @@ class TestOAuthLoginUseCase:
             },
         )
 
-        assert oauth_account.access_token == "new_provider_token"
-        assert oauth_account.refresh_token == "new_provider_refresh"
+        assert oauth_account.access_token is None
+        assert oauth_account.refresh_token is None
         assert oauth_account.provider_username == "newname"
         assert oauth_account.provider_avatar_url == "https://new-avatar.jpg"
         mock_oauth_repo.update.assert_called_once_with(oauth_account)

@@ -1,6 +1,7 @@
 """GitHub OAuth authentication provider (CRIT-2)."""
 
 import logging
+from urllib.parse import urlencode
 
 import httpx
 
@@ -26,7 +27,13 @@ class GitHubOAuthProvider:
         self.client_id = settings.github_client_id
         self.client_secret = settings.github_client_secret.get_secret_value()
 
-    def authorize_url(self, redirect_uri: str, state: str | None = None) -> str:
+    def authorize_url(
+        self,
+        redirect_uri: str,
+        state: str | None = None,
+        code_challenge: str | None = None,
+        code_challenge_method: str = "S256",
+    ) -> str:
         """Generate GitHub OAuth authorization URL.
 
         Args:
@@ -36,12 +43,19 @@ class GitHubOAuthProvider:
         Returns:
             GitHub auth URL
         """
-        params = f"client_id={self.client_id}&redirect_uri={redirect_uri}&scope=read:user user:email"
+        params: dict[str, str] = {
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "read:user user:email",
+        }
         if state:
-            params += f"&state={state}"
-        return f"{self.AUTHORIZE_URL}?{params}"
+            params["state"] = state
+        if code_challenge:
+            params["code_challenge"] = code_challenge
+            params["code_challenge_method"] = code_challenge_method
+        return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
-    async def exchange_code(self, code: str, redirect_uri: str) -> dict | None:
+    async def exchange_code(self, code: str, redirect_uri: str, code_verifier: str | None = None) -> dict | None:
         """Exchange authorization code for access token and retrieve user info.
 
         Args:
@@ -65,8 +79,12 @@ class GitHubOAuthProvider:
                         "client_secret": self.client_secret,
                         "code": code,
                         "redirect_uri": redirect_uri,
+                        **({"code_verifier": code_verifier} if code_verifier else {}),
                     },
-                    headers={"Accept": "application/json"},
+                    headers={
+                        "Accept": "application/json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
                 )
 
                 if token_response.status_code != 200:
@@ -100,6 +118,7 @@ class GitHubOAuthProvider:
                     headers={
                         "Authorization": f"Bearer {access_token}",
                         "Accept": "application/json",
+                        "X-GitHub-Api-Version": "2022-11-28",
                     },
                 )
 
@@ -112,25 +131,33 @@ class GitHubOAuthProvider:
 
                 user_data = user_response.json()
 
-                email = user_data.get("email")
-                if not email:
-                    try:
-                        emails_response = await client.get(
-                            "https://api.github.com/user/emails",
-                            headers={
-                                "Authorization": f"Bearer {access_token}",
-                                "Accept": "application/json",
-                                "X-GitHub-Api-Version": "2022-11-28",
-                            },
-                        )
+                email = None
+                try:
+                    emails_response = await client.get(
+                        "https://api.github.com/user/emails",
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                    )
 
-                        if emails_response.status_code == 200:
-                            for ex_email in emails_response.json():
-                                if ex_email.get("primary") and ex_email.get("verified"):
-                                    email = ex_email.get("email")
-                                    break
-                    except Exception as e:
-                        logger.warning(f"Failed to fetch GitHub emails: {e}")
+                    if emails_response.status_code == 200:
+                        emails = emails_response.json()
+                        verified_primary = next(
+                            (
+                                item.get("email")
+                                for item in emails
+                                if item.get("primary") and item.get("verified")
+                            ),
+                            None,
+                        )
+                        email = verified_primary or next(
+                            (item.get("email") for item in emails if item.get("verified")),
+                            None,
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to fetch GitHub emails: {e}")
 
                 return {
                     "id": str(user_data.get("id")),  # Convert to string for consistency
@@ -139,6 +166,8 @@ class GitHubOAuthProvider:
                     "name": user_data.get("name"),
                     "avatar_url": user_data.get("avatar_url"),
                     "access_token": access_token,
+                    "email_verified": bool(email),
+                    "email_trusted": bool(email),
                 }
 
         except httpx.RequestError as e:

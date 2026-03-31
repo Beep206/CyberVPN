@@ -12,10 +12,11 @@ export async function PublicTerminalHeader({
   locale,
   performanceMode = 'idle',
 }: PublicTerminalHeaderProps) {
-  const headerT = await getTranslations({ locale, namespace: 'Header' });
-  const loginT = await getTranslations({ locale, namespace: 'Auth.login' });
-  const registerT = await getTranslations({ locale, namespace: 'Auth.register' });
-  const footerT = await getTranslations({ locale, namespace: 'Footer' });
+  const resolvedLocale = locale ?? 'en-EN';
+  const headerT = await getTranslations({ locale: resolvedLocale, namespace: 'Header' });
+  const loginT = await getTranslations({ locale: resolvedLocale, namespace: 'Auth.login' });
+  const registerT = await getTranslations({ locale: resolvedLocale, namespace: 'Auth.register' });
+  const footerT = await getTranslations({ locale: resolvedLocale, namespace: 'Footer' });
 
   return (
     <header className="sticky top-0 z-30 border-b border-grid-line/50 bg-terminal-surface/95 backdrop-blur-xl shadow-sm transition-all dark:shadow-none">
@@ -36,7 +37,7 @@ export async function PublicTerminalHeader({
         <PublicTerminalHeaderControls
           downloadLabel={footerT('links.download')}
           loginLabel={loginT('submitButton')}
-          locale={locale}
+          locale={resolvedLocale}
           registerLabel={registerT('submitButton')}
         />
       </div>

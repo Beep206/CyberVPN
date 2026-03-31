@@ -1,257 +1,298 @@
-"""Integration tests for OAuth login routes.
+"""Integration tests for OAuth login HTTP routes."""
 
-These tests verify the full HTTP request/response cycle for:
-- GET /api/v1/oauth/{provider}/login (authorize URL)
-- POST /api/v1/oauth/{provider}/login/callback (token exchange)
-
-Requires: TestClient, test database, fakeredis.
-"""
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
+from httpx import AsyncClient
 
-# TODO: Import TestClient setup when integration test infrastructure is available
-# from tests.conftest import async_client, test_db
+from src.application.use_cases.auth.oauth_login import OAuthLoginResult
+from src.config.settings import settings
+from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.remnawave.adapters import get_remnawave_adapter
+from src.main import app
+from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.services import get_auth_service
+from src.presentation.middleware.rate_limit import RateLimitMiddleware
+
+
+@pytest.fixture
+def oauth_route_dependencies():
+    """Override OAuth route dependencies with in-memory doubles."""
+    redis_client = AsyncMock()
+    db = AsyncMock()
+    auth_service = MagicMock()
+    remnawave_adapter = MagicMock()
+
+    async def override_db():
+        yield db
+
+    def override_redis():
+        return redis_client
+
+    def override_auth_service():
+        return auth_service
+
+    def override_remnawave_adapter():
+        return remnawave_adapter
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_redis] = override_redis
+    app.dependency_overrides[get_auth_service] = override_auth_service
+    app.dependency_overrides[get_remnawave_adapter] = override_remnawave_adapter
+
+    yield {
+        "redis_client": redis_client,
+        "db": db,
+        "auth_service": auth_service,
+        "remnawave_adapter": remnawave_adapter,
+    }
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _rate_limit_fail_open():
+    """Keep route integration tests focused on OAuth contract, not Redis availability."""
+    original = settings.rate_limit_fail_open
+    object.__setattr__(settings, "rate_limit_fail_open", True)
+
+    current = getattr(app, "middleware_stack", None)
+    while current is not None:
+        if isinstance(current, RateLimitMiddleware):
+            current.fail_open = True
+        current = getattr(current, "app", None)
+
+    yield
+    object.__setattr__(settings, "rate_limit_fail_open", original)
+
+
+@pytest.fixture(autouse=True)
+def _reset_circuit_breaker():
+    """Avoid cross-test leakage from the shared rate-limit circuit breaker."""
+    cb = RateLimitMiddleware._circuit_breaker
+    if cb is not None:
+        cb._failure_count = 0
+        cb._state = cb.CLOSED
+    yield
+
+
+def _make_oauth_user(**overrides):
+    payload = {
+        "id": uuid4(),
+        "login": "neo",
+        "email": "neo@cybervpn.io",
+        "is_active": True,
+        "is_email_verified": True,
+        "created_at": datetime.now(UTC),
+        "role": "viewer",
+        "totp_enabled": False,
+    }
+    payload.update(overrides)
+    return SimpleNamespace(**payload)
 
 
 class TestOAuthLoginRoutes:
-    """Integration tests for OAuth login HTTP endpoints."""
+    """Current route-level integration coverage for OAuth login."""
 
     @pytest.mark.integration
-    async def test_google_authorize_returns_url_and_state(self, async_client):
-        """GET /api/v1/oauth/google/login returns authorize_url and state."""
+    async def test_google_authorize_returns_provider_url_and_state(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.generate",
+                new=AsyncMock(return_value=("csrf_state_123", "pkce_challenge_123")),
+            ),
+            patch(
+                "src.infrastructure.oauth.google.GoogleOAuthProvider.authorize_url",
+                return_value="https://accounts.google.com/o/oauth2/v2/auth?state=csrf_state_123",
+            ) as mock_authorize_url,
+        ):
+            response = await async_client.get("/api/v1/oauth/google/login")
 
-        response = await async_client.get("/api/v1/oauth/google/login")
-        assert response.status_code in [200, 307, 404]  # May redirect or return JSON
+        assert response.status_code == 200
+        assert response.json() == {
+            "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth?state=csrf_state_123",
+            "state": "csrf_state_123",
+        }
+        mock_authorize_url.assert_called_once_with(
+            "https://vpn.ozoxy.ru/api/oauth/callback/google",
+            state="csrf_state_123",
+            code_challenge="pkce_challenge_123",
+            code_challenge_method="S256",
+        )
 
     @pytest.mark.integration
-    async def test_discord_authorize_returns_url_and_state(self, async_client):
-        """GET /api/v1/oauth/discord/login returns authorize_url and state."""
+    async def test_google_callback_returns_tokens_and_sets_auth_cookies(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        user = _make_oauth_user()
+        oauth_result = OAuthLoginResult(
+            access_token="access_token_value",
+            refresh_token="refresh_token_value",
+            token_type="bearer",
+            expires_in=3600,
+            user=user,
+            is_new_user=False,
+        )
 
-        response = await async_client.get("/api/v1/oauth/discord/login")
-        assert response.status_code in [200, 307, 404]  # May redirect or return JSON
-
-    @pytest.mark.integration
-    async def test_callback_with_valid_code_returns_tokens(self, async_client):
-        """POST /api/v1/oauth/google/login/callback with mocked provider returns tokens."""
-        from unittest.mock import patch
-
-        # Mock the OAuth provider to return valid user info
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "access_token": "fake-token",
-                "refresh_token": "fake-refresh",
-                "user": {"id": "123", "email": "test@example.com"}
-            }
-
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
+                new=AsyncMock(return_value={"code_verifier": "verifier_123"}),
+            ),
+            patch(
+                "src.infrastructure.oauth.google.GoogleOAuthProvider.exchange_code",
+                new=AsyncMock(
+                    return_value={
+                        "id": "google_sub_123",
+                        "email": "neo@cybervpn.io",
+                        "username": "neo",
+                        "access_token": "provider_access",
+                    }
+                ),
+            ) as mock_exchange_code,
+            patch(
+                "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
+                new=AsyncMock(return_value=oauth_result),
+            ),
+        ):
             response = await async_client.post(
                 "/api/v1/oauth/google/login/callback",
-                json={"code": "valid-code", "state": "valid-state"}
+                json={"code": "google_code_123", "state": "csrf_state_123"},
             )
-            # Accept various response codes as endpoint may not be fully implemented
-            assert response.status_code in [200, 404, 422]
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["access_token"] == "access_token_value"
+        assert payload["refresh_token"] == "refresh_token_value"
+        assert payload["requires_2fa"] is False
+        assert payload["user"]["login"] == "neo"
+        assert "access_token=access_token_value" in "\n".join(response.headers.get_list("set-cookie"))
+        mock_exchange_code.assert_awaited_once_with(
+            code="google_code_123",
+            redirect_uri="https://vpn.ozoxy.ru/api/oauth/callback/google",
+            code_verifier="verifier_123",
+        )
 
     @pytest.mark.integration
-    async def test_callback_creates_new_user_when_no_match(self, async_client):
-        """Callback for unknown email creates a new user account."""
-        from unittest.mock import patch
+    async def test_callback_returns_2fa_without_establishing_full_session(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        user = _make_oauth_user(totp_enabled=True)
+        oauth_result = OAuthLoginResult(
+            access_token="",
+            refresh_token="",
+            token_type="bearer",
+            expires_in=0,
+            user=user,
+            is_new_user=False,
+            requires_2fa=True,
+            tfa_token="pending_2fa_token",
+        )
 
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "new123", "email": "newuser@example.com"},
-                "is_new_user": True
-            }
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
+                new=AsyncMock(return_value={"code_verifier": "verifier_123"}),
+            ),
+            patch(
+                "src.infrastructure.oauth.github.GitHubOAuthProvider.exchange_code",
+                new=AsyncMock(
+                    return_value={
+                        "id": "github_123",
+                        "email": "neo@cybervpn.io",
+                        "username": "neo",
+                        "access_token": "provider_access",
+                    }
+                ),
+            ),
+            patch(
+                "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
+                new=AsyncMock(return_value=oauth_result),
+            ),
+        ):
+            response = await async_client.post(
+                "/api/v1/oauth/github/login/callback",
+                json={"code": "github_code_123", "state": "csrf_state_123"},
+            )
 
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["requires_2fa"] is True
+        assert payload["tfa_token"] == "pending_2fa_token"
+        assert response.headers.get_list("set-cookie") == []
+
+    @pytest.mark.integration
+    async def test_callback_rejects_invalid_state(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
+                new=AsyncMock(return_value=None),
+            ),
+        ):
             response = await async_client.post(
                 "/api/v1/oauth/google/login/callback",
-                json={"code": "new-user-code", "state": "valid-state"}
+                json={"code": "google_code_123", "state": "tampered_state"},
             )
-            assert response.status_code in [200, 201, 404, 422]
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or expired OAuth state."
 
     @pytest.mark.integration
-    async def test_callback_auto_links_existing_email_user(self, async_client):
-        """Callback auto-links when email matches existing user."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "existing123", "email": "existing@example.com"},
-                "linked": True
-            }
-
+    async def test_callback_returns_collision_for_untrusted_auto_link(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
+                new=AsyncMock(return_value={"validated": True}),
+            ),
+            patch(
+                "src.infrastructure.oauth.facebook.FacebookOAuthProvider.exchange_code",
+                new=AsyncMock(
+                    return_value={
+                        "id": "facebook_123",
+                        "email": "existing@example.com",
+                        "username": "neo",
+                        "access_token": "provider_access",
+                    }
+                ),
+            ),
+            patch(
+                "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
+                new=AsyncMock(
+                    side_effect=ValueError(
+                        "Automatic account linking is disabled for this provider email. "
+                        "Sign in with your existing account and link the provider manually."
+                    )
+                ),
+            ),
+        ):
             response = await async_client.post(
-                "/api/v1/oauth/google/login/callback",
-                json={"code": "link-code", "state": "valid-state"}
+                "/api/v1/oauth/facebook/login/callback",
+                json={"code": "facebook_code_123", "state": "csrf_state_123"},
             )
-            assert response.status_code in [200, 404, 422]
 
-    @pytest.mark.integration
-    async def test_callback_returns_2fa_when_totp_enabled(self, async_client):
-        """Callback returns requires_2fa=true for users with TOTP."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "2fa123", "email": "2fa@example.com"},
-                "requires_2fa": True
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/google/login/callback",
-                json={"code": "2fa-code", "state": "valid-state"}
-            )
-            assert response.status_code in [200, 404, 422]
-
-    @pytest.mark.integration
-    async def test_unsupported_provider_returns_404(self, async_client):
-        """Request to unsupported provider returns 404."""
-        response = await async_client.get("/api/v1/oauth/unsupported-provider/login")
-        assert response.status_code == 404
-
-    @pytest.mark.integration
-    async def test_rate_limiting_on_callback(self, async_client):
-        """Rapid callback requests trigger rate limiting."""
-        # Make multiple rapid requests
-        for _ in range(10):
-            response = await async_client.post(
-                "/api/v1/oauth/google/login/callback",
-                json={"code": "test-code", "state": "test-state"}
-            )
-            # Eventually should hit rate limit (429) or other errors
-            assert response.status_code in [200, 404, 422, 429, 400]
-
-
-class TestTelegramOAuthRegistrationFlow:
-    """Integration tests for Telegram OAuth registration flow.
-
-    Tests the full flow: Telegram callback -> new user created ->
-    is_email_verified=True -> JWT issued -> no OTP dispatch.
-    """
-
-    @pytest.mark.integration
-    async def test_telegram_new_user_created_with_verified_email(self, async_client):
-        """Telegram callback for new user creates user with is_email_verified=True, is_active=True."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {
-                    "id": "telegram123",
-                    "email": "telegram@example.com",
-                    "is_email_verified": True,
-                    "is_active": True
-                },
-                "is_new_user": True
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "telegram-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 201, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_new_user_gets_jwt_tokens(self, async_client):
-        """Telegram new user registration returns valid JWT access and refresh tokens."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "access_token": "fake-jwt-access",
-                "refresh_token": "fake-jwt-refresh",
-                "user": {"id": "telegram456", "email": "telegram2@example.com"}
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "telegram-jwt-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 201, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_existing_user_login_returns_tokens(self, async_client):
-        """Telegram callback for existing linked user returns JWT tokens."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "access_token": "existing-jwt-access",
-                "refresh_token": "existing-jwt-refresh",
-                "user": {"id": "telegram-existing", "email": "existing@example.com"},
-                "is_new_user": False
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "existing-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_email_match_auto_links_account(self, async_client):
-        """Telegram user with matching email auto-links to existing user."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "telegram-link", "email": "link@example.com"},
-                "linked": True
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "link-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_remnawave_user_created_on_registration(self, async_client):
-        """Telegram registration triggers Remnawave user creation."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            with patch("src.infrastructure.external_apis.remnawave_client.RemnawaveClient.create_user") as mock_remnawave:
-                mock_callback.return_value = {
-                    "user": {"id": "telegram-remna", "email": "remna@example.com"},
-                    "is_new_user": True
-                }
-                mock_remnawave.return_value = {"id": "remnawave-123"}
-
-                response = await async_client.post(
-                    "/api/v1/oauth/telegram/login/callback",
-                    json={"code": "remna-code", "state": "telegram-state"}
-                )
-                assert response.status_code in [200, 201, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_new_user_returns_is_new_user_true(self, async_client):
-        """Telegram callback for new registration returns is_new_user=true in response."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "new-tg", "email": "new-tg@example.com"},
-                "is_new_user": True
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "new-tg-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 201, 404, 422]
-
-    @pytest.mark.integration
-    async def test_telegram_existing_user_returns_is_new_user_false(self, async_client):
-        """Telegram callback for existing user returns is_new_user=false."""
-        from unittest.mock import patch
-
-        with patch("src.application.services.oauth_service.OAuthService.handle_callback") as mock_callback:
-            mock_callback.return_value = {
-                "user": {"id": "existing-tg", "email": "existing-tg@example.com"},
-                "is_new_user": False
-            }
-
-            response = await async_client.post(
-                "/api/v1/oauth/telegram/login/callback",
-                json={"code": "existing-tg-code", "state": "telegram-state"}
-            )
-            assert response.status_code in [200, 404, 422]
+        assert response.status_code == 409
+        assert "Automatic account linking is disabled" in response.json()["detail"]

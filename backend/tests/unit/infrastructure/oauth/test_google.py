@@ -124,27 +124,29 @@ class TestGoogleOAuthProvider:
             mock_token_response.json.return_value = {
                 "access_token": "google_access_token",
                 "refresh_token": "google_refresh_token",
+                "id_token": "google_id_token",
                 "token_type": "Bearer",
                 "expires_in": 3600,
             }
 
-            mock_user_response = MagicMock()
-            mock_user_response.status_code = 200
-            mock_user_response.json.return_value = {
+            mock_claims = {
                 "sub": "12345",
                 "email": "test@gmail.com",
+                "email_verified": True,
                 "name": "Test User",
                 "picture": "https://lh3.googleusercontent.com/photo.jpg",
             }
 
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_token_response
-            mock_client.get.return_value = mock_user_response
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             # Act
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(GoogleOAuthProvider, "_verify_id_token", AsyncMock(return_value=mock_claims)),
+            ):
                 result = await provider.exchange_code(
                     code="auth_code_from_google",
                     redirect_uri="http://localhost/callback",
@@ -176,23 +178,25 @@ class TestGoogleOAuthProvider:
             mock_token_response.status_code = 200
             mock_token_response.json.return_value = {
                 "access_token": "tok",
+                "id_token": "google_id_token",
                 "token_type": "Bearer",
             }
 
-            mock_user_response = MagicMock()
-            mock_user_response.status_code = 200
-            mock_user_response.json.return_value = {
+            mock_claims = {
                 "sub": "1",
                 "email": "u@g.com",
+                "email_verified": True,
             }
 
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_token_response
-            mock_client.get.return_value = mock_user_response
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(GoogleOAuthProvider, "_verify_id_token", AsyncMock(return_value=mock_claims)),
+            ):
                 await provider.exchange_code(
                     code="code",
                     redirect_uri="http://localhost/callback",
@@ -300,8 +304,8 @@ class TestGoogleOAuthProvider:
             assert result is None
 
     @pytest.mark.unit
-    async def test_exchange_code_user_info_failure_returns_none(self):
-        """User info fetch returning non-200 status returns None."""
+    async def test_exchange_code_invalid_id_token_returns_none(self):
+        """Invalid ID token verification returns None."""
         with patch("src.infrastructure.oauth.google.settings") as mock_settings:
             mock_settings.google_client_id = "test_client_id"
             mock_settings.google_client_secret = MagicMock()
@@ -315,19 +319,19 @@ class TestGoogleOAuthProvider:
             mock_token_response.status_code = 200
             mock_token_response.json.return_value = {
                 "access_token": "valid_token",
+                "id_token": "google_id_token",
                 "token_type": "Bearer",
             }
 
-            mock_user_response = MagicMock()
-            mock_user_response.status_code = 403
-
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_token_response
-            mock_client.get.return_value = mock_user_response
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(GoogleOAuthProvider, "_verify_id_token", AsyncMock(return_value=None)),
+            ):
                 result = await provider.exchange_code(
                     code="code",
                     redirect_uri="http://localhost/callback",
@@ -395,23 +399,25 @@ class TestGoogleOAuthProvider:
             mock_token_response.status_code = 200
             mock_token_response.json.return_value = {
                 "access_token": "access_only",
+                "id_token": "google_id_token",
                 "token_type": "Bearer",
             }
 
-            mock_user_response = MagicMock()
-            mock_user_response.status_code = 200
-            mock_user_response.json.return_value = {
+            mock_claims = {
                 "sub": "99",
                 "email": "norefresh@gmail.com",
+                "email_verified": True,
             }
 
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_token_response
-            mock_client.get.return_value = mock_user_response
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
-            with patch("httpx.AsyncClient", return_value=mock_client):
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(GoogleOAuthProvider, "_verify_id_token", AsyncMock(return_value=mock_claims)),
+            ):
                 result = await provider.exchange_code(
                     code="code",
                     redirect_uri="http://localhost/callback",

@@ -34,7 +34,7 @@ class TestTelegramBotLinkUseCase:
 
     @pytest.fixture
     def make_user(self):
-        def _make(user_id=None, telegram_id=123456789, is_active=True, role="viewer"):
+        def _make(user_id=None, telegram_id=123456789, is_active=True, role="viewer", totp_enabled=False):
             user = MagicMock()
             user.id = user_id or uuid4()
             user.login = "testuser"
@@ -42,6 +42,7 @@ class TestTelegramBotLinkUseCase:
             user.telegram_id = telegram_id
             user.role = role
             user.is_active = is_active
+            user.totp_enabled = totp_enabled
             user.is_email_verified = True
             user.created_at = datetime.now(UTC)
             return user
@@ -105,3 +106,19 @@ class TestTelegramBotLinkUseCase:
         await use_case.execute("my_token")
 
         mock_consume.assert_called_once_with(mock_redis, "my_token")
+
+    @pytest.mark.unit
+    @patch("src.application.use_cases.auth.telegram_bot_link.consume_bot_link_token")
+    async def test_totp_enabled_returns_pending_2fa_token(self, mock_consume, use_case, mock_user_repo, make_user):
+        mock_consume.return_value = 123456789
+        mock_user_repo.get_by_telegram_id.return_value = make_user(totp_enabled=True)
+
+        tfa_exp = datetime.now(UTC) + timedelta(minutes=5)
+        use_case._auth_service.create_access_token.return_value = ("pending_2fa_tok", "jti_2fa", tfa_exp)
+
+        result = await use_case.execute("valid_token")
+
+        assert result.requires_2fa is True
+        assert result.tfa_token == "pending_2fa_tok"
+        assert result.access_token == ""
+        assert result.refresh_token == ""

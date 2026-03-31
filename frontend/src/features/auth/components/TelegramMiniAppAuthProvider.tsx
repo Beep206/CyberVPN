@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
+import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -18,6 +19,7 @@ export function TelegramMiniAppAuthProvider({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const locale = useLocale();
     const t = useTranslations('Auth.telegram');
     const { telegramMiniAppAuth, isAuthenticated, isMiniApp } = useAuthStore();
     const [authError, setAuthError] = useState<string | null>(null);
@@ -29,7 +31,17 @@ export function TelegramMiniAppAuthProvider({
 
         const doAuth = async () => {
             try {
-                await telegramMiniAppAuth();
+                const result = await telegramMiniAppAuth();
+                if (result.requires_2fa && result.tfa_token) {
+                    await stagePendingTwoFactorSession({
+                        token: result.tfa_token,
+                        locale,
+                        returnTo: `/${locale}/dashboard`,
+                        isNewUser: result.is_new_user,
+                    });
+                    router.push('/login?2fa=true');
+                    return;
+                }
                 router.push('/dashboard');
             } catch {
                 setAuthError(t('miniAppAutoAuth'));
@@ -37,7 +49,7 @@ export function TelegramMiniAppAuthProvider({
         };
 
         doAuth();
-    }, [isMiniApp, isAuthenticated, telegramMiniAppAuth, router, t]);
+    }, [isMiniApp, isAuthenticated, locale, telegramMiniAppAuth, router, t]);
 
     // Not a Mini App — render children (standard login flow)
     if (!isMiniApp) {

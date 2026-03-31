@@ -1,10 +1,12 @@
 """Microsoft OAuth authentication provider."""
 
 import logging
+from urllib.parse import urlencode
 
 import httpx
 
 from src.config.settings import settings
+from src.infrastructure.oauth.oidc import AsyncOIDCTokenVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,7 @@ class MicrosoftOAuthProvider:
         tenant = settings.microsoft_tenant_id or "common"
         self.authorize_url_base = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
         self.token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+        self.discovery_url = f"https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration"
         self.user_api_url = "https://graph.microsoft.com/v1.0/me"
 
     def authorize_url(
@@ -34,6 +37,7 @@ class MicrosoftOAuthProvider:
         state: str | None = None,
         code_challenge: str | None = None,
         code_challenge_method: str | None = None,
+        nonce: str | None = None,
     ) -> str:
         """Generate Microsoft OAuth authorization URL.
 
@@ -46,20 +50,43 @@ class MicrosoftOAuthProvider:
         Returns:
             Microsoft auth URL.
         """
-        params = (
-            f"client_id={self.client_id}"
-            f"&redirect_uri={redirect_uri}"
-            f"&response_type=code"
-            f"&scope={SCOPES}"
-            f"&response_mode=query"
-        )
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": SCOPES,
+            "response_mode": "query",
+        }
         if state:
-            params += f"&state={state}"
+            params["state"] = state
         if code_challenge:
-            params += f"&code_challenge={code_challenge}"
+            params["code_challenge"] = code_challenge
         if code_challenge_method:
-            params += f"&code_challenge_method={code_challenge_method}"
-        return f"{self.authorize_url_base}?{params}"
+            params["code_challenge_method"] = code_challenge_method
+        if nonce:
+            params["nonce"] = nonce
+        return f"{self.authorize_url_base}?{urlencode(params)}"
+
+    async def _verify_id_token(self, id_token: str, nonce: str | None = None) -> dict | None:
+        def _issuer_validator(claims: dict, discovery: dict) -> bool:
+            issuer = claims.get("iss")
+            discovery_issuer = discovery.get("issuer")
+            if not isinstance(issuer, str) or not isinstance(discovery_issuer, str):
+                return False
+
+            tenant_id = claims.get("tid")
+            if "{tenantid}" in discovery_issuer and isinstance(tenant_id, str):
+                return issuer == discovery_issuer.replace("{tenantid}", tenant_id)
+
+            return issuer == discovery_issuer
+
+        return await AsyncOIDCTokenVerifier.verify_id_token(
+            id_token=id_token,
+            audience=self.client_id,
+            discovery_url=self.discovery_url,
+            nonce=nonce,
+            issuer_validator=_issuer_validator,
+        )
 
     async def exchange_code(
         self,
@@ -122,8 +149,14 @@ class MicrosoftOAuthProvider:
                     return None
 
                 access_token = token_data.get("access_token")
-                if not access_token:
-                    logger.warning("Microsoft response missing access_token")
+                id_token = token_data.get("id_token")
+                if not access_token or not id_token:
+                    logger.warning("Microsoft response missing access_token or id_token")
+                    return None
+
+                claims = await self._verify_id_token(id_token)
+                if not claims:
+                    logger.warning("Microsoft ID token validation failed")
                     return None
 
                 refresh_token = token_data.get("refresh_token")
@@ -148,16 +181,31 @@ class MicrosoftOAuthProvider:
 
                 # MS Graph returns mail for work accounts and
                 # userPrincipalName as fallback for personal accounts
-                email = user_data.get("mail") or user_data.get("userPrincipalName")
+                email_candidates = (
+                    claims.get("email"),
+                    claims.get("preferred_username"),
+                    user_data.get("mail"),
+                    user_data.get("userPrincipalName"),
+                )
+                email = next(
+                    (
+                        candidate
+                        for candidate in email_candidates
+                        if isinstance(candidate, str) and "@" in candidate
+                    ),
+                    None,
+                )
 
                 return {
-                    "id": str(user_data.get("id")),
+                    "id": str(user_data.get("id") or claims.get("sub") or claims.get("oid")),
                     "email": email,
-                    "username": email,
-                    "name": user_data.get("displayName"),
+                    "username": claims.get("preferred_username") or email,
+                    "name": user_data.get("displayName") or claims.get("name"),
                     "avatar_url": None,
                     "access_token": access_token,
                     "refresh_token": refresh_token,
+                    "email_verified": bool(email),
+                    "email_trusted": bool(email),
                 }
 
         except httpx.RequestError as e:

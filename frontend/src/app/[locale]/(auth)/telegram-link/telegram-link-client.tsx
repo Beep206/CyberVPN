@@ -2,13 +2,14 @@
 
 import { startTransition, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
 import { AlertCircle, Copy, Loader2, RotateCcw, Send, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authAnalytics } from '@/lib/analytics';
 import { authApi, type OAuthLoginResponse } from '@/lib/api/auth';
+import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import {
   clearTelegramMagicLinkSession,
   readTelegramMagicLinkSession,
@@ -60,6 +61,7 @@ export function TelegramLinkClient() {
   const legacyBotToken = searchParams.get('token');
   const magicToken = searchParams.get('magic');
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations('Auth.telegram');
   const retryT = useTranslations('Auth.oauthCallback');
   const loginWithBotLink = useAuthStore((state) => state.loginWithBotLink);
@@ -111,7 +113,16 @@ export function TelegramLinkClient() {
 
     const handleBotLinkAuth = async () => {
       try {
-        await loginWithBotLink(legacyBotToken);
+        const result = await loginWithBotLink(legacyBotToken);
+        if (result.requires_2fa && result.tfa_token) {
+          await stagePendingTwoFactorSession({
+            token: result.tfa_token,
+            locale,
+            returnTo: `/${locale}/dashboard`,
+          });
+          router.push('/login?2fa=true');
+          return;
+        }
         router.push('/dashboard');
       } catch (err: unknown) {
         const axiosError = err as { response?: { data?: { detail?: string } } };
@@ -125,7 +136,7 @@ export function TelegramLinkClient() {
     };
 
     void handleBotLinkAuth();
-  }, [legacyBotToken, loginWithBotLink, router, t]);
+  }, [legacyBotToken, locale, loginWithBotLink, router, t]);
 
   useEffect(() => {
     if (legacyBotToken) {
@@ -194,8 +205,13 @@ export function TelegramLinkClient() {
           activePollingTokenRef.current = null;
           setMagicLinkSession(null);
 
-          if (data.login_result.requires_2fa) {
-            sessionStorage.setItem('tfa_token', data.login_result.tfa_token || '');
+          if (data.login_result.requires_2fa && data.login_result.tfa_token) {
+            await stagePendingTwoFactorSession({
+              token: data.login_result.tfa_token,
+              locale,
+              returnTo: `/${locale}/dashboard`,
+              isNewUser: data.login_result.is_new_user,
+            });
             router.push('/login?2fa=true');
             pollInFlightRef.current = false;
             return;
@@ -259,7 +275,7 @@ export function TelegramLinkClient() {
         clearTimeout(pollTimeoutRef.current);
       }
     };
-  }, [legacyBotToken, magicLinkSession, magicToken, router, t]);
+  }, [legacyBotToken, locale, magicLinkSession, magicToken, router, t]);
 
   const handleRetry = () => {
     clearTelegramMagicLinkSession();

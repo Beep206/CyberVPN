@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
+import { buildLocalizedLoginRedirect } from '@/features/auth/lib/session';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
     children: React.ReactNode;
 }
-
-const AUTH_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify)(?:\/|$)/;
 
 /**
  * Client-side auth guard that validates session via backend cookies.
@@ -104,9 +103,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     useEffect(() => {
         if (!isChecking && !isAuthorized) {
-            const redirectTarget = AUTH_ROUTE_RE.test(pathname) ? '/dashboard' : pathname;
-            const redirectUrl = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
-            router.push(redirectUrl);
+                router.push(buildLocalizedLoginRedirect(pathname));
         }
     }, [isChecking, isAuthorized, pathname, router]);
 

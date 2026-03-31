@@ -61,29 +61,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 _OAUTH_CALLBACK_PATH_RE = re.compile(r"^/(?:[a-z]{2,3}-[A-Z]{2}/)?oauth/callback/?$")
+_OAUTH_WEB_CALLBACK_PREFIX = "/api/oauth/callback"
 
 # Provider class map: provider_name -> (ProviderClass, requires_pkce)
 _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
     "google": (GoogleOAuthProvider, True),
-    "discord": (DiscordOAuthProvider, True),
+    "discord": (DiscordOAuthProvider, False),
     "facebook": (FacebookOAuthProvider, False),
     "apple": (AppleOAuthProvider, True),
     "microsoft": (MicrosoftOAuthProvider, True),
     "twitter": (TwitterOAuthProvider, True),
-    "github": (GitHubOAuthProvider, False),
+    "github": (GitHubOAuthProvider, True),
 }
-
-_ENABLED_OAUTH_LOGIN_PROVIDERS = frozenset(
-    {
-        "google",
-        "discord",
-        "facebook",
-        "microsoft",
-        "twitter",
-        "github",
-    }
-)
-
 
 def _get_client_ip(request: Request) -> str:
     """Extract client IP from request, considering proxy headers."""
@@ -125,8 +114,32 @@ def _validate_oauth_redirect_uri(redirect_uri: str) -> None:
     )
 
 
+def _build_oauth_web_callback_uri(provider: str) -> str:
+    base_url = settings.oauth_web_base_url
+    if not base_url:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OAuth web callback base URL is not configured.",
+        )
+
+    return f"{base_url}{_OAUTH_WEB_CALLBACK_PREFIX}/{provider}"
+
+
+def _resolve_oauth_login_redirect_uri(provider: str, redirect_uri: str | None) -> str:
+    if redirect_uri is None:
+        return _build_oauth_web_callback_uri(provider)
+
+    if redirect_uri in settings.oauth_allowed_redirect_uris:
+        return redirect_uri
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid OAuth redirect URI.",
+    )
+
+
 def _is_oauth_login_provider_enabled(provider: str) -> bool:
-    return provider in _ENABLED_OAUTH_LOGIN_PROVIDERS
+    return provider in settings.oauth_enabled_login_providers
 
 
 def _validate_oauth_login_provider(provider: OAuthProvider) -> None:
@@ -159,20 +172,30 @@ async def _build_code_oauth_authorize_response(
     *,
     provider_name: str,
     provider_class: type,
+    requires_pkce: bool,
     redirect_uri: str,
     request: Request,
     redis_client: redis.Redis,
     user: AdminUserModel,
 ) -> OAuthAuthorizeResponse:
     state_service = OAuthStateService(redis_client)
-    state, _ = await state_service.generate(
+    state, code_challenge = await state_service.generate(
         provider=provider_name,
         user_id=str(user.id),
         ip_address=_get_client_ip(request),
+        pkce=requires_pkce,
     )
 
     provider = provider_class()
-    authorize_url = provider.authorize_url(redirect_uri, state=state)
+    if requires_pkce:
+        authorize_url = provider.authorize_url(
+            redirect_uri,
+            state=state,
+            code_challenge=code_challenge,
+            code_challenge_method="S256",
+        )
+    else:
+        authorize_url = provider.authorize_url(redirect_uri, state=state)
     return OAuthAuthorizeResponse(authorize_url=authorize_url, state=state)
 
 
@@ -180,6 +203,7 @@ async def _complete_code_oauth_link(
     *,
     provider_name: str,
     provider_class: type,
+    requires_pkce: bool,
     callback_data: GitHubCallbackRequest | FacebookCallbackRequest,
     request: Request,
     user: AdminUserModel,
@@ -187,12 +211,13 @@ async def _complete_code_oauth_link(
     redis_client: redis.Redis,
 ) -> OAuthLinkResponse:
     state_service = OAuthStateService(redis_client)
-    if not await state_service.validate_and_consume(
+    state_data = await state_service.validate_and_consume(
         state=callback_data.state,
         provider=provider_name,
         user_id=str(user.id),
         ip_address=_get_client_ip(request),
-    ):
+    )
+    if not state_data:
         logger.warning(
             "%s OAuth callback with invalid state",
             provider_name.capitalize(),
@@ -204,10 +229,15 @@ async def _complete_code_oauth_link(
         )
 
     provider = provider_class()
-    user_info = await provider.exchange_code(
-        code=callback_data.code,
-        redirect_uri=callback_data.redirect_uri,
-    )
+    exchange_kwargs: dict[str, str] = {
+        "code": callback_data.code,
+        "redirect_uri": callback_data.redirect_uri,
+    }
+    code_verifier = state_data.get("code_verifier") if requires_pkce and isinstance(state_data, dict) else None
+    if code_verifier:
+        exchange_kwargs["code_verifier"] = code_verifier
+
+    user_info = await provider.exchange_code(**exchange_kwargs)
 
     if not user_info:
         logger.warning(
@@ -288,6 +318,7 @@ async def github_authorize(
     return await _build_code_oauth_authorize_response(
         provider_name="github",
         provider_class=GitHubOAuthProvider,
+        requires_pkce=True,
         redirect_uri=redirect_uri,
         request=request,
         redis_client=redis_client,
@@ -309,6 +340,7 @@ async def facebook_authorize(
     return await _build_code_oauth_authorize_response(
         provider_name="facebook",
         provider_class=FacebookOAuthProvider,
+        requires_pkce=False,
         redirect_uri=redirect_uri,
         request=request,
         redis_client=redis_client,
@@ -572,6 +604,7 @@ async def github_callback(
     return await _complete_code_oauth_link(
         provider_name="github",
         provider_class=GitHubOAuthProvider,
+        requires_pkce=True,
         callback_data=callback_data,
         request=request,
         user=user,
@@ -592,6 +625,7 @@ async def facebook_callback(
     return await _complete_code_oauth_link(
         provider_name="facebook",
         provider_class=FacebookOAuthProvider,
+        requires_pkce=False,
         callback_data=callback_data,
         request=request,
         user=user,
@@ -625,15 +659,18 @@ async def unlink_provider(
 async def oauth_login_authorize(
     request: Request,
     provider: OAuthProvider,
-    redirect_uri: str = Query(..., description="Redirect URI after authentication"),
+    redirect_uri: str | None = Query(
+        default=None,
+        description="Exact native/universal callback URI. Omit for canonical web flow.",
+    ),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> OAuthAuthorizeResponse:
     """Get OAuth authorization URL for login (no authentication required).
 
     Generates state token and PKCE challenge (when supported).
     """
-    _validate_oauth_redirect_uri(redirect_uri)
     _validate_oauth_login_provider(provider)
+    resolved_redirect_uri = _resolve_oauth_login_redirect_uri(provider.value, redirect_uri)
 
     provider_class, requires_pkce = _OAUTH_PROVIDERS[provider.value]
     state_service = OAuthStateService(redis_client)
@@ -646,13 +683,13 @@ async def oauth_login_authorize(
     oauth_provider = provider_class()
     if requires_pkce:
         authorize_url = oauth_provider.authorize_url(
-            redirect_uri,
+            resolved_redirect_uri,
             state=state,
             code_challenge=code_challenge,
             code_challenge_method="S256",
         )
     else:
-        authorize_url = oauth_provider.authorize_url(redirect_uri, state=state)
+        authorize_url = oauth_provider.authorize_url(resolved_redirect_uri, state=state)
 
     return OAuthAuthorizeResponse(authorize_url=authorize_url, state=state)
 
@@ -672,8 +709,8 @@ async def oauth_login_callback(
 
     Validates state, exchanges code with provider, finds or creates user.
     """
-    _validate_oauth_redirect_uri(callback_data.redirect_uri)
     _validate_oauth_login_provider(provider)
+    resolved_redirect_uri = _resolve_oauth_login_redirect_uri(provider.value, callback_data.redirect_uri)
 
     # Validate and consume state token
     state_service = OAuthStateService(redis_client)
@@ -697,7 +734,7 @@ async def oauth_login_callback(
     code_verifier = state_data.get("code_verifier") if isinstance(state_data, dict) else None
     exchange_kwargs: dict[str, str] = {
         "code": callback_data.code,
-        "redirect_uri": callback_data.redirect_uri,
+        "redirect_uri": resolved_redirect_uri,
     }
     if code_verifier:
         exchange_kwargs["code_verifier"] = code_verifier

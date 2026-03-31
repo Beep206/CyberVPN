@@ -156,6 +156,8 @@ class TwitterOAuthProvider:
                     "avatar_url": data.get("profile_image_url"),
                     "access_token": access_token,
                     "refresh_token": None,
+                    "email_verified": False,
+                    "email_trusted": False,
                 }
 
         except httpx.RequestError as e:

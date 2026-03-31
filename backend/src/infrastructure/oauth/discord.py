@@ -1,6 +1,7 @@
 """Discord OAuth authentication provider."""
 
 import logging
+from urllib.parse import urlencode
 
 import httpx
 
@@ -44,12 +45,18 @@ class DiscordOAuthProvider:
         Returns:
             Discord auth URL
         """
-        params = f"client_id={self.client_id}&redirect_uri={redirect_uri}&response_type=code&scope=identify%20email"
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "identify email",
+        }
         if state:
-            params += f"&state={state}"
+            params["state"] = state
         if code_challenge and code_challenge_method:
-            params += f"&code_challenge={code_challenge}&code_challenge_method={code_challenge_method}"
-        return f"{self.AUTHORIZE_URL}?{params}"
+            params["code_challenge"] = code_challenge
+            params["code_challenge_method"] = code_challenge_method
+        return f"{self.AUTHORIZE_URL}?{urlencode(params)}"
 
     async def exchange_code(
         self, code: str, redirect_uri: str, code_verifier: str | None = None
@@ -159,6 +166,8 @@ class DiscordOAuthProvider:
                     "avatar_url": avatar_url,
                     "access_token": access_token,
                     "refresh_token": refresh_token,
+                    "email_verified": True,
+                    "email_trusted": True,
                 }
 
         except httpx.RequestError as e:

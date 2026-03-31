@@ -1,694 +1,323 @@
-# OAuth Provider Setup Guide
+# OAuth Setup And Rollout Guide
 
-## Overview
+## Scope
 
-CyberVPN uses a unified OAuth authentication system that supports **8 providers in code** across the admin dashboard (web) and the mobile app (iOS/Android). Apple support is retained in the codebase but is currently disabled in the active login allowlist; Facebook is the active replacement for web OAuth. The backend implements the OAuth 2.0 authorization code flow with CSRF state tokens (stored in Redis with 10-minute TTL) and optional PKCE (RFC 7636) for providers that require it.
+This guide documents the production web OAuth stack for:
 
-**Supported providers:**
+- Google
+- GitHub
+- Discord
+- Facebook
+- Microsoft
+- X
 
-| Provider | Flow Type | PKCE Required | Login | Account Linking |
-|----------|-----------|---------------|-------|-----------------|
-| Google | OAuth 2.0 Authorization Code | Yes | Yes | Yes |
-| Facebook | OAuth 2.0 Authorization Code | No | Yes | Yes |
-| Apple | OAuth 2.0 + JWT client secret | Yes | Disabled | Disabled |
-| GitHub | OAuth 2.0 Authorization Code | No | Yes | Yes |
-| Discord | OAuth 2.0 Authorization Code | No | Yes | Yes |
-| Microsoft | OAuth 2.0 Authorization Code | Yes | Yes | Yes |
-| X (Twitter) | OAuth 2.0 + PKCE (mandatory) | Yes | Yes | Yes |
-| Telegram | Widget-based HMAC-SHA256 | N/A | N/A | Yes |
+Current implementation assumptions:
 
-**API endpoints:**
+- FastAPI is the only auth authority and session issuer.
+- Next.js handles browser-facing OAuth start/callback under same origin.
+- Web provider callbacks are canonical and non-localized.
+- Login-only flows do not retain provider tokens unless an explicit allowlist enables retention.
+- `X` is the product label, but the internal provider slug remains `twitter`.
 
-- `GET /api/v1/oauth/{provider}/login` -- Get authorization URL (unauthenticated)
-- `POST /api/v1/oauth/{provider}/login/callback` -- Exchange code for JWT tokens (unauthenticated)
-- `GET /api/v1/oauth/{provider}/authorize` -- Get authorization URL (authenticated, for account linking)
-- `POST /api/v1/oauth/{provider}/callback` -- Link account to current user (authenticated)
-- `DELETE /api/v1/oauth/{provider}` -- Unlink provider from current user (authenticated)
+Apple code still exists in the repository, but it is not part of the active rollout plan.
 
----
+## Topology
+
+Web flow:
+
+1. Browser hits `GET /api/oauth/start/{provider}` on the frontend origin.
+2. Next.js BFF requests `GET /api/v1/oauth/{provider}/login` from FastAPI.
+3. FastAPI creates OAuth state and PKCE material where required.
+4. Browser is redirected to the provider.
+5. Provider redirects back to `GET /api/oauth/callback/{provider}` on the frontend origin.
+6. Next.js BFF validates the signed `oauth_tx` cookie and posts `code/state` to `POST /api/v1/oauth/{provider}/login/callback`.
+7. FastAPI issues auth cookies or returns `requires_2fa=true`.
+8. Next.js either forwards auth cookies to the browser or stages `pending_2fa` and redirects to localized login.
+
+Cookie topology:
+
+- `oauth_tx`: signed, `httpOnly`, 10 minutes, BFF transaction state.
+- Backend auth cookies: forwarded from FastAPI to the browser after successful callback.
+- `pending_2fa`: signed, `httpOnly`, 15 minutes, used when OAuth or Telegram login must continue through TOTP.
+- `oauth_result`: short-lived non-`httpOnly` analytics marker consumed after session bootstrap.
+
+## Canonical Callback URIs
+
+Production examples below assume the current canonical frontend origin is `https://vpn.ozoxy.ru`.
+
+Web callback template:
+
+```text
+{OAUTH_WEB_BASE_URL}/api/oauth/callback/{provider}
+```
+
+Required provider slugs:
+
+| Product label | Internal slug | Callback path |
+|---|---|---|
+| Google | `google` | `/api/oauth/callback/google` |
+| GitHub | `github` | `/api/oauth/callback/github` |
+| Discord | `discord` | `/api/oauth/callback/discord` |
+| Facebook | `facebook` | `/api/oauth/callback/facebook` |
+| Microsoft | `microsoft` | `/api/oauth/callback/microsoft` |
+| X | `twitter` | `/api/oauth/callback/twitter` |
+
+Environment matrix:
+
+| Environment | `OAUTH_WEB_BASE_URL` | Example Google callback |
+|---|---|---|
+| Local | `http://localhost:3000` | `http://localhost:3000/api/oauth/callback/google` |
+| Staging | `https://<staging-frontend-origin>` | `https://<staging-frontend-origin>/api/oauth/callback/google` |
+| Production | `https://vpn.ozoxy.ru` | `https://vpn.ozoxy.ru/api/oauth/callback/google` |
+
+Rules:
+
+- Do not register locale-prefixed callbacks such as `/{locale}/oauth/callback`.
+- Do not register backend `/api/v1/oauth/.../login/callback` as the browser callback for web login.
+- Native or universal-link callbacks must be exact entries in `OAUTH_ALLOWED_REDIRECT_URIS` and stay isolated from the web flow.
 
 ## Environment Variables
 
-All OAuth settings are defined in `backend/src/config/settings.py` and loaded from `.env`. Every credential uses `SecretStr` for safe handling.
+### Backend
 
-### Complete Variable Reference
+Core OAuth settings:
 
-| Variable | Type | Default | Required For | Description |
-|----------|------|---------|-------------|-------------|
-| `GOOGLE_CLIENT_ID` | `str` | `""` | Google | OAuth 2.0 Client ID |
-| `GOOGLE_CLIENT_SECRET` | `SecretStr` | `""` | Google | OAuth 2.0 Client Secret |
-| `FACEBOOK_CLIENT_ID` | `str` | `""` | Facebook | Meta App ID |
-| `FACEBOOK_CLIENT_SECRET` | `SecretStr` | `""` | Facebook | Meta App Secret |
-| `APPLE_CLIENT_ID` | `str` | `""` | Apple | Service ID (e.g., `com.cybervpn.auth`) |
-| `APPLE_TEAM_ID` | `str` | `""` | Apple | 10-character Apple Team ID |
-| `APPLE_KEY_ID` | `str` | `""` | Apple | Key ID from the .p8 key file |
-| `APPLE_PRIVATE_KEY` | `SecretStr` | `""` | Apple | Full PEM content of the .p8 key |
-| `GITHUB_CLIENT_ID` | `str` | `""` | GitHub | OAuth App Client ID |
-| `GITHUB_CLIENT_SECRET` | `SecretStr` | `""` | GitHub | OAuth App Client Secret |
-| `DISCORD_CLIENT_ID` | `str` | `""` | Discord | Application Client ID |
-| `DISCORD_CLIENT_SECRET` | `SecretStr` | `""` | Discord | Application Client Secret |
-| `MICROSOFT_CLIENT_ID` | `str` | `""` | Microsoft | Application (client) ID |
-| `MICROSOFT_CLIENT_SECRET` | `SecretStr` | `""` | Microsoft | Client secret value |
-| `MICROSOFT_TENANT_ID` | `str` | `"common"` | Microsoft | Tenant ID or `common`/`consumers`/`organizations` |
-| `TWITTER_CLIENT_ID` | `str` | `""` | X (Twitter) | OAuth 2.0 Client ID |
-| `TWITTER_CLIENT_SECRET` | `SecretStr` | `""` | X (Twitter) | OAuth 2.0 Client Secret |
-| `TELEGRAM_BOT_TOKEN` | `SecretStr` | `""` | Telegram | Bot token from BotFather |
-| `TELEGRAM_BOT_USERNAME` | `str` | `""` | Telegram | Bot username without `@` prefix |
-| `TELEGRAM_AUTH_MAX_AGE_SECONDS` | `int` | `86400` | Telegram | Max age of auth_date (default 24h) |
-| `OAUTH_ALLOWED_REDIRECT_URIS` | `list[str]` | `["cybervpn://oauth/callback"]` | OAuth login | Exact allowlist for non-HTTP redirect URIs |
+| Variable | Purpose |
+|---|---|
+| `OAUTH_WEB_BASE_URL` | Canonical frontend origin used to build browser callback URIs |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | Exact native/mobile callback allowlist |
+| `OAUTH_ENABLED_LOGIN_PROVIDERS` | Rollout gate for active providers |
+| `OAUTH_TRUSTED_EMAIL_LINK_PROVIDERS` | Allowlist for auto-link by verified email |
+| `OAUTH_RETAINED_ACCESS_TOKEN_PROVIDERS` | Providers allowed to keep access tokens at rest |
+| `OAUTH_RETAINED_REFRESH_TOKEN_PROVIDERS` | Providers allowed to keep refresh tokens at rest |
+| `OAUTH_TOKEN_ENCRYPTION_KEY` | Dedicated AES-GCM key for provider tokens |
+| `OAUTH_TOKEN_PLAINTEXT_FALLBACK_ENABLED` | Temporary rollout fallback for legacy plaintext rows |
 
-**Example `.env` block:**
+Provider credentials:
+
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`
+- `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`
+- `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID`
+- `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`
+
+Recommended production baseline:
 
 ```env
-# OAuth Configuration
-GOOGLE_CLIENT_ID=123456789-abcdef.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-secret-here
-
-FACEBOOK_CLIENT_ID=123456789012345
-FACEBOOK_CLIENT_SECRET=meta-app-secret
-
-APPLE_CLIENT_ID=com.cybervpn.auth
-APPLE_TEAM_ID=ABCDE12345
-APPLE_KEY_ID=FGHIJ67890
-APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIGTAgEA...your-key...\n-----END PRIVATE KEY-----"
-
-GITHUB_CLIENT_ID=Iv1.abc123def456
-GITHUB_CLIENT_SECRET=abc123def456ghi789
-
-DISCORD_CLIENT_ID=123456789012345678
-DISCORD_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456
-
-MICROSOFT_CLIENT_ID=12345678-abcd-efgh-ijkl-123456789012
-MICROSOFT_CLIENT_SECRET=your-secret-value
-MICROSOFT_TENANT_ID=common
-
-TWITTER_CLIENT_ID=abcdefghijklmnopqrstuvwxyz
-TWITTER_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456789012345678
-
+OAUTH_WEB_BASE_URL=https://vpn.ozoxy.ru
 OAUTH_ALLOWED_REDIRECT_URIS=cybervpn://oauth/callback
-
-TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-TELEGRAM_BOT_USERNAME=CyberVPNBot
+OAUTH_ENABLED_LOGIN_PROVIDERS=google,github,microsoft,discord,twitter,facebook
+OAUTH_TRUSTED_EMAIL_LINK_PROVIDERS=google,github,microsoft,discord
+OAUTH_RETAINED_ACCESS_TOKEN_PROVIDERS=
+OAUTH_RETAINED_REFRESH_TOKEN_PROVIDERS=
+OAUTH_TOKEN_PLAINTEXT_FALLBACK_ENABLED=false
 ```
 
----
+### Frontend
 
-## Provider Setup Instructions
+| Variable | Purpose |
+|---|---|
+| `API_URL` | Server-side BFF target for route handlers, usually backend origin |
+| `NEXT_PUBLIC_API_URL` | Browser-side API base for normal frontend API client |
+| `OAUTH_TRANSACTION_SECRET` | Required in production for signed `oauth_tx` |
+| `PENDING_2FA_SECRET` | Optional dedicated secret for `pending_2fa`; falls back to `OAUTH_TRANSACTION_SECRET` |
+
+Recommended local example:
+
+```env
+API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
+OAUTH_TRANSACTION_SECRET=replace-with-strong-secret
+PENDING_2FA_SECRET=replace-with-strong-secret
+```
+
+## Provider Policy Matrix
+
+| Provider | Protocol | PKCE | Auto-link policy | Notes |
+|---|---|---|---|---|
+| Google | OIDC auth code | Yes | Allowed only after validated ID token with `email_verified=true` | Uses discovery + JWKS |
+| GitHub | OAuth 2.0 auth code | Yes | Allowed only with verified email from `/user/emails` | Callback must stay exact |
+| Discord | OAuth 2.0 auth code | No in current rollout | Allowed only when Discord returns verified email | Requests `identify email` |
+| Facebook | OAuth 2.0 auth code | No in current rollout | Disabled by default | Keep `public_profile,email` only |
+| Microsoft | OIDC auth code | Yes | Allowed after validated ID token claims | Test both personal and work/school accounts |
+| X | OAuth 2.0 auth code | Yes | Disabled by default | Internal slug is `twitter` |
+
+Trust semantics in code:
+
+- `google`, `github`, `microsoft`, `discord` can auto-link only when provider-specific verification rules pass.
+- `facebook` and `twitter` must return a collision/linking-required experience for existing local accounts.
+- New accounts may still be created from Facebook/X when no existing email collision exists.
+
+## Provider Console Notes
 
 ### Google
 
-**Console:** [Google Cloud Console](https://console.cloud.google.com/) > APIs & Services > Credentials
-
-**Steps:**
-
-1. Create a new project or select the existing CyberVPN project.
-2. Navigate to **APIs & Services > OAuth consent screen**.
-   - Choose **External** user type.
-   - Fill in App name ("CyberVPN"), support email, and developer contact.
-   - Add scopes: `openid`, `email`, `profile`.
-   - Add test users if the app is not yet verified.
-3. Navigate to **APIs & Services > Credentials > Create Credentials > OAuth client ID**.
-   - Application type: **Web application**.
-   - Name: `CyberVPN Web + Mobile`.
-4. Configure **Authorized redirect URIs**:
-   - Web: `https://cybervpn.app/en/oauth/callback`
-   - Mobile: `cybervpn://oauth/callback`
-   - Development: `http://localhost:3001/en/oauth/callback`
-5. Copy the **Client ID** and **Client Secret**.
-
-**Required scopes (set in backend):** `openid email profile`
-
-**Additional settings in backend:**
-- `access_type=offline` is set to receive refresh tokens.
-- `prompt=consent` forces the consent screen to get refresh tokens on every login.
-- PKCE (S256) is enabled for this provider.
-
-**Backend endpoints used:**
-- Token exchange: `https://oauth2.googleapis.com/token`
-- User info: `https://www.googleapis.com/oauth2/v3/userinfo`
-
-**Env vars:**
-
-```env
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
-```
-
----
-
-### Facebook
-
-**Console:** [Meta for Developers](https://developers.facebook.com/) > My Apps > Facebook Login
-
-Facebook uses the standard authorization code flow for the web dashboard and mobile deep-link callbacks. CyberVPN requests `email` access and reads profile data from Graph API. The backend now supports Facebook both for login and authenticated account linking flows.
-
-**Required settings:**
-
-- Valid OAuth redirect URIs must point to the real web callback route: `/<locale>/oauth/callback`.
-- Mobile deep links must be present in `OAUTH_ALLOWED_REDIRECT_URIS` if mobile login uses a custom URI scheme.
-
-**Env vars:**
-
-```env
-FACEBOOK_CLIENT_ID=123456789012345
-FACEBOOK_CLIENT_SECRET=meta-app-secret
-```
-
----
-
-### Apple
-
-**Console:** [Apple Developer Portal](https://developer.apple.com/) > Certificates, Identifiers & Profiles
-
-> Apple login is currently disabled in the active login allowlist, but the implementation is intentionally kept in the codebase for future re-enable work.
-
-Apple Sign In is different from other providers. It uses a JWT-based client secret signed with an ES256 private key, and the user's identity is extracted from an `id_token` JWT validated against Apple's JWKS endpoint.
-
-**Steps:**
-
-1. **Create an App ID** (if not already done):
-   - Identifiers > App IDs > Register a new identifier.
-   - Enable **Sign In with Apple** capability.
-   - Bundle ID: `com.cybervpn.app` (must match your iOS app).
-
-2. **Create a Service ID** (for web authentication):
-   - Identifiers > Services IDs > Register a new identifier.
-   - Description: `CyberVPN Web Auth`.
-   - Identifier: `com.cybervpn.auth` (this becomes `APPLE_CLIENT_ID`).
-   - Enable **Sign In with Apple**.
-   - Configure:
-     - Primary App ID: select your main app.
-     - Domains: `cybervpn.app`
-     - Return URLs:
-       - `https://cybervpn.app/en/oauth/callback`
-       - `cybervpn://oauth/callback`
-
-3. **Create a Key** (for signing the client secret JWT):
-   - Keys > Create a new key.
-   - Name: `CyberVPN Sign In`.
-   - Enable **Sign In with Apple**, configure with your Primary App ID.
-   - Download the `.p8` file (you can only download it once).
-   - Note the **Key ID** displayed (this is `APPLE_KEY_ID`).
-
-4. **Find your Team ID:**
-   - Displayed at the top-right of the developer portal, or under Membership.
-   - 10-character alphanumeric string (this is `APPLE_TEAM_ID`).
-
-**How the backend uses these:**
-- A JWT client secret is generated on-the-fly, signed with ES256 using the private key.
-- The JWT has `iss=APPLE_TEAM_ID`, `sub=APPLE_CLIENT_ID`, `aud=https://appleid.apple.com`.
-- Maximum validity: 6 months (180 days).
-- The `id_token` from Apple is validated against `https://appleid.apple.com/auth/keys` (JWKS).
-
-**Required scopes:** `name email`
-
-**Response mode:** `form_post` (Apple POSTs the callback data)
-
-**Important notes:**
-- Apple only sends the user's name on the **first authorization**. Store it on the first callback.
-- The `id_token` is an RS256 JWT; the backend validates it against Apple's JWKS.
-- PKCE is supported and enabled in the backend.
-
-**Env vars:**
-
-```env
-APPLE_CLIENT_ID=com.cybervpn.auth
-APPLE_TEAM_ID=ABCDE12345
-APPLE_KEY_ID=FGHIJ67890
-APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIGTAgEA...(full .p8 contents, newlines escaped as \\n)...\n-----END PRIVATE KEY-----"
-```
-
-**Tip:** For the private key in `.env`, you can either:
-- Escape newlines: replace each newline in the .p8 file with `\n` and wrap in quotes.
-- Use a file reference in your deployment system (e.g., Docker secrets, Vault).
-
----
+- Console: Google Cloud Console, OAuth consent screen + Credentials.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/google`
+- Scopes: `openid email profile`
+- Keep the app in the correct publishing state before broad rollout.
+- Offline access and consent prompts are already requested by backend code.
 
 ### GitHub
 
-**Console:** [GitHub Settings](https://github.com/settings/developers) > Developer settings > OAuth Apps
-
-**Steps:**
-
-1. Click **New OAuth App** (or select existing).
-2. Fill in:
-   - Application name: `CyberVPN`
-   - Homepage URL: `https://cybervpn.app`
-   - Authorization callback URL: `https://cybervpn.app/en/oauth/callback`
-3. Click **Register application**.
-4. Copy the **Client ID**.
-5. Click **Generate a new client secret** and copy it immediately.
-
-**Required scopes (set in backend):** `read:user user:email`
-
-**Notes:**
-- GitHub does not support PKCE; the backend uses the standard authorization code flow.
-- GitHub returns the user email as `null` if the user has set their email to private. The backend fetches it from the user endpoint.
-- No refresh token is provided by GitHub; the access token is long-lived.
-
-**Backend endpoints used:**
-- Token exchange: `https://github.com/login/oauth/access_token`
-- User info: `https://api.github.com/user`
-
-**Env vars:**
-
-```env
-GITHUB_CLIENT_ID=Iv1.abc123def456
-GITHUB_CLIENT_SECRET=abc123def456ghi789jkl012
-```
-
----
+- Console: GitHub Developer settings, OAuth Apps.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/github`
+- Scope: `read:user user:email`
+- PKCE is enabled in the app flow; do not document or configure it as a legacy non-PKCE app flow.
+- Auto-link only works when `/user/emails` returns a verified address.
 
 ### Discord
 
-**Console:** [Discord Developer Portal](https://discord.com/developers/applications) > Applications
+- Console: Discord Developer Portal.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/discord`
+- Scope: `identify email`
+- Current rollout keeps Discord in state-based web flow mode even though the provider class can accept `code_verifier`.
+- Unverified Discord emails are rejected before login completion.
 
-**Steps:**
+### Facebook
 
-1. Click **New Application** (or select existing).
-   - Name: `CyberVPN`
-2. Navigate to **OAuth2** in the left sidebar.
-3. Copy the **Client ID** and **Client Secret** (click Reset Secret if needed).
-4. Add **Redirects**:
-   - `https://cybervpn.app/en/oauth/callback`
-   - `cybervpn://oauth/callback`
-   - Development: `http://localhost:3001/en/oauth/callback`
-5. Under **OAuth2 URL Generator** (for testing):
-   - Select scopes: `identify`, `email`
-   - Use to verify your redirect URIs work.
-
-**Required scopes (set in backend):** `identify email`
-
-**Notes:**
-- Discord does not require PKCE; the backend uses the standard authorization code flow.
-- Discord provides a refresh token.
-- Avatar URL is constructed from the user ID and avatar hash: `https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png`.
-
-**Backend endpoints used:**
-- Token exchange: `https://discord.com/api/oauth2/token`
-- User info: `https://discord.com/api/users/@me`
-
-**Env vars:**
-
-```env
-DISCORD_CLIENT_ID=123456789012345678
-DISCORD_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456
-```
-
----
+- Console: Meta for Developers, Facebook Login for Web.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/facebook`
+- Scopes: `public_profile,email`
+- Pin the Graph API version in the app review and operational docs.
+- Confirm app mode, domain verification, and allowed redirect URI settings before enabling production traffic.
+- Existing-account auto-link stays disabled unless policy is explicitly revised.
 
 ### Microsoft
 
-**Console:** [Azure Portal](https://portal.azure.com/) > Microsoft Entra ID (Azure AD) > App registrations
+- Console: Microsoft Entra admin center / App registrations.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/microsoft`
+- Scopes: `openid email profile User.Read`
+- `MICROSOFT_TENANT_ID=common` supports both personal Microsoft accounts and Entra work/school accounts.
+- Staging smoke must cover both account classes.
 
-**Steps:**
+### X
 
-1. Click **New registration**.
-   - Name: `CyberVPN`
-   - Supported account types: Choose based on your needs:
-     - **Personal Microsoft accounts only** -- for consumer apps
-     - **Accounts in any organizational directory and personal Microsoft accounts** -- broadest reach
-     - The `MICROSOFT_TENANT_ID` controls this at runtime (see below).
-2. Set **Redirect URIs** (Platform: Web):
-   - `https://cybervpn.app/en/oauth/callback`
-   - `cybervpn://oauth/callback` (add as Mobile/Desktop platform)
-   - Development: `http://localhost:3001/en/oauth/callback`
-3. Copy the **Application (client) ID** (this is `MICROSOFT_CLIENT_ID`).
-4. Navigate to **Certificates & secrets > Client secrets > New client secret**.
-   - Description: `CyberVPN Production`
-   - Expiry: 24 months (set a calendar reminder to rotate).
-   - Copy the secret **Value** (not the Secret ID).
-5. Navigate to **API permissions** and ensure these are granted:
-   - `openid`, `email`, `profile`, `User.Read` (Microsoft Graph).
+- Console: X Developer Portal.
+- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/twitter`
+- Scope in current code: `users.read`
+- Email is not trusted or required in the current rollout.
+- Do not enable retention of X tokens unless a downstream feature requires them.
 
-**Tenant ID options:**
+## Reverse Proxy And Cookie Requirements
 
-| Value | Accepts |
-|-------|---------|
-| `common` | Work/school + personal Microsoft accounts |
-| `organizations` | Work/school accounts only |
-| `consumers` | Personal Microsoft accounts only |
-| `{tenant-id}` | Specific Azure AD tenant only |
+Frontend assumptions:
 
-The default in the backend is `common`.
+- Browser-facing OAuth routes live on the same origin as the app.
+- `/api/oauth/*` must terminate on Next.js.
+- `/api/v1/*` must route to FastAPI.
 
-**Required scopes (set in backend):** `openid email profile User.Read`
+Production checklist:
 
-**Notes:**
-- PKCE is supported and enabled.
-- For work accounts, email comes from the `mail` field; for personal accounts, it falls back to `userPrincipalName`.
-- The backend uses Microsoft Graph API v1.0 (`https://graph.microsoft.com/v1.0/me`) for user info.
+- `OAUTH_WEB_BASE_URL` must match the public frontend origin exactly.
+- `cookie_secure=true` on backend in HTTPS environments.
+- TLS termination must preserve `X-Forwarded-For` only from trusted proxies.
+- Callback responses must not be cached by CDN or edge middleware.
 
-**Backend endpoints used (tenant-dependent):**
-- Authorize: `https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize`
-- Token exchange: `https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token`
-- User info: `https://graph.microsoft.com/v1.0/me`
+## Local And Staging Verification
 
-**Env vars:**
+### Local
 
-```env
-MICROSOFT_CLIENT_ID=12345678-abcd-efgh-ijkl-123456789012
-MICROSOFT_CLIENT_SECRET=your-client-secret-value
-MICROSOFT_TENANT_ID=common
-```
+1. Set backend `OAUTH_WEB_BASE_URL=http://localhost:3000`.
+2. Set frontend `API_URL` and `NEXT_PUBLIC_API_URL` to the local backend.
+3. Register local provider callback URIs that point to `http://localhost:3000/api/oauth/callback/{provider}`.
+4. Run backend and frontend.
+5. Verify `/api/oauth/start/{provider}` sets `oauth_tx` and redirects correctly.
 
----
+### Staging Smoke Matrix
 
-### X (Twitter)
+Minimum staging checks before production:
 
-**Console:** [X Developer Portal](https://developer.twitter.com/en/portal) > Projects & Apps
+- Google login from signed-out browser.
+- GitHub login with PKCE.
+- Discord login with verified email.
+- Facebook login in the correct app mode.
+- Microsoft personal account login.
+- Microsoft work/school account login.
+- X login.
+- Existing linked-account login repeat.
+- Existing local-account collision for Facebook/X.
+- `requires_2fa=true` continuation for OAuth and Telegram bot-link completion.
+- Denied-consent redirect to localized login with stable `oauth_error`.
+- Tampered or expired state rejection.
+- Fresh protected-route access after social login.
+- Logout, refresh, and login repetition.
 
-**Steps:**
+## Token Retention And Encryption
 
-1. Create a new Project and App (or select existing).
-2. Navigate to **User authentication settings > Set up**.
-3. Configure:
-   - App permissions: **Read** (minimum).
-   - Type of App: **Web App, Automated App or Bot**.
-   - Callback URI / Redirect URL:
-     - `https://cybervpn.app/en/oauth/callback`
-     - `cybervpn://oauth/callback`
-   - Website URL: `https://cybervpn.app`
-4. Navigate to **Keys and tokens > OAuth 2.0 Client ID and Client Secret**.
-   - Copy both values.
+Default policy:
 
-**Required scopes (set in backend):** `users.read tweet.read`
+- Do not retain provider access tokens.
+- Do not retain provider refresh tokens.
+- Encrypt retained tokens at rest with `OAUTH_TOKEN_ENCRYPTION_KEY`.
 
-**PKCE is mandatory for X/Twitter OAuth 2.0.** The backend automatically generates the code verifier/challenge pair (S256).
+Rollout sequence for retention hardening:
 
-**Important notes:**
-- X/Twitter uses HTTP Basic Auth (`client_id:client_secret` base64-encoded) for the token exchange endpoint.
-- The `email` field is **not available** in the basic scope (`users.read`). Users who sign in via X will not have an email address linked.
-- No refresh token is provided.
-- User info is fetched from the Twitter API v2 with `user.fields=profile_image_url,name,username`.
+1. Set `OAUTH_TOKEN_ENCRYPTION_KEY`.
+2. Keep `OAUTH_TOKEN_PLAINTEXT_FALLBACK_ENABLED=true` briefly while legacy rows still exist.
+3. Run the data cleanup / rewrite pass for old rows.
+4. Switch `OAUTH_TOKEN_PLAINTEXT_FALLBACK_ENABLED=false`.
 
-**Backend endpoints used:**
-- Authorize: `https://twitter.com/i/oauth2/authorize`
-- Token exchange: `https://api.twitter.com/2/oauth2/token`
-- User info: `https://api.twitter.com/2/users/me`
-
-**Env vars:**
+If a future feature needs retention, allow it explicitly:
 
 ```env
-TWITTER_CLIENT_ID=your-oauth2-client-id
-TWITTER_CLIENT_SECRET=your-oauth2-client-secret
+OAUTH_RETAINED_ACCESS_TOKEN_PROVIDERS=google
+OAUTH_RETAINED_REFRESH_TOKEN_PROVIDERS=google
 ```
 
----
+Do not enable retention pre-emptively.
 
-### Telegram
+## Rollout Plan
 
-**Console:** [BotFather](https://t.me/BotFather) on Telegram
+Recommended enablement order:
 
-Telegram uses a **widget-based authentication** flow, not a standard OAuth 2.0 code exchange. The user authorizes via Telegram's login widget, and the server validates the callback using HMAC-SHA256 with the bot token.
+1. Google
+2. GitHub
+3. Microsoft
+4. Discord
+5. X
+6. Facebook
 
-**Steps:**
+Per-provider release gate:
 
-1. Open Telegram and message [@BotFather](https://t.me/BotFather).
-2. Send `/newbot` (or use your existing bot).
-3. Follow the prompts to set the bot name and username.
-4. Copy the **bot token** (format: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`).
-5. Send `/setdomain` to BotFather:
-   - Select your bot.
-   - Set the domain: `cybervpn.app` (for the Telegram Login Widget).
-6. Note your bot's **username** (without the `@`).
+- Provider credentials configured in backend.
+- Exact callback URI registered in provider console.
+- Staging smoke for that provider passes.
+- Error-rate telemetry remains clean for 24 hours before enabling the next provider.
 
-**Security model:**
-- The backend validates callbacks with HMAC-SHA256: `HMAC_SHA256(SHA256(bot_token), data_check_string)`.
-- The `auth_date` is checked to prevent replay attacks (default max age: 24 hours).
-- Constant-time comparison is used for hash validation.
+Monitoring dimensions to watch:
 
-**Notes:**
-- Telegram auth is used only for **account linking** (not for unauthenticated login), because there is no authorization code flow.
-- The authorize URL points to `https://oauth.telegram.org/auth` with the bot ID and origin.
+- provider
+- environment
+- `oauth_error`
+- `requires_2fa`
+- callback status code
+- collision / linking-required events
 
-**Env vars:**
+Rollback:
 
-```env
-TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-TELEGRAM_BOT_USERNAME=CyberVPNBot
-TELEGRAM_AUTH_MAX_AGE_SECONDS=86400
+1. Remove the provider from `OAUTH_ENABLED_LOGIN_PROVIDERS`.
+2. Keep the provider console callback intact until rollback is confirmed complete.
+3. Inspect recent `oauth_error` and backend logs.
+4. If retention was enabled for that provider, decide whether to preserve or purge retained tokens separately.
+
+## Final Local Verification Commands
+
+Run from repo root:
+
+```bash
+cd backend && pytest tests/security/test_oauth_security.py tests/unit/application/use_cases/auth/test_oauth_login.py tests/unit/infrastructure/oauth tests/integration/api/v1/oauth/test_oauth_login.py -q --no-cov
+cd backend && ruff check src tests
+
+cd frontend && npm run test:run -- src/stores/__tests__/auth-store.test.ts src/features/auth/components/__tests__/SocialAuthButtons.test.tsx 'src/app/[locale]/(auth)/oauth/callback/__tests__/page.test.tsx' src/app/api/oauth/start/[provider]/route.test.ts src/app/api/oauth/callback/[provider]/route.test.ts src/app/api/oauth/__tests__/oauth-web-flow.test.ts
+cd frontend && NEXT_TELEMETRY_DISABLED=1 npm run build
+cd frontend && npm run lint
 ```
 
----
+Expected result:
 
-## Mobile Platform Configuration
-
-### iOS
-
-**File:** `cybervpn_mobile/ios/Runner/Info.plist`
-
-The following are already configured:
-
-1. **URL Scheme** (`cybervpn://`):
-   ```xml
-   <key>CFBundleURLTypes</key>
-   <array>
-       <dict>
-           <key>CFBundleTypeRole</key>
-           <string>Editor</string>
-           <key>CFBundleURLName</key>
-           <string>com.cybervpn.app</string>
-           <key>CFBundleURLSchemes</key>
-           <array>
-               <string>cybervpn</string>
-           </array>
-       </dict>
-   </array>
-   ```
-
-2. **Deep Linking enabled:**
-   ```xml
-   <key>FlutterDeepLinkingEnabled</key>
-   <true/>
-   ```
-
-**Additional setup required for Sign In with Apple:**
-
-1. In Xcode, open the project and select the Runner target.
-2. Go to **Signing & Capabilities**.
-3. Click **+ Capability** and add **Sign In with Apple**.
-4. Ensure the App ID in the Apple Developer Portal has Sign In with Apple enabled.
-
-**Associated Domains (for universal links):**
-
-1. Add the **Associated Domains** capability in Xcode.
-2. Add domain: `applinks:cybervpn.app`
-3. Host an `apple-app-site-association` file at `https://cybervpn.app/.well-known/apple-app-site-association`:
-   ```json
-   {
-     "applinks": {
-       "apps": [],
-       "details": [
-         {
-           "appID": "TEAM_ID.com.cybervpn.app",
-           "paths": ["/*/oauth/callback", "/magic-link/*"]
-         }
-       ]
-     }
-   }
-   ```
-
-**Google Sign-In on iOS:**
-- Add the reversed client ID from Google to `CFBundleURLSchemes` in `Info.plist`.
-- Format: `com.googleusercontent.apps.YOUR_CLIENT_ID` (reversed).
-
-### Android
-
-**File:** `cybervpn_mobile/android/app/src/main/AndroidManifest.xml`
-
-The following deep link intent filters are already configured:
-
-1. **Generic `cybervpn://` scheme handler** (with `autoVerify`):
-   ```xml
-   <intent-filter android:autoVerify="true">
-       <action android:name="android.intent.action.VIEW"/>
-       <category android:name="android.intent.category.DEFAULT"/>
-       <category android:name="android.intent.category.BROWSABLE"/>
-       <data android:scheme="cybervpn"/>
-   </intent-filter>
-   ```
-
-2. **OAuth callback handler** (`cybervpn://oauth/callback`):
-   ```xml
-   <intent-filter>
-       <action android:name="android.intent.action.VIEW"/>
-       <category android:name="android.intent.category.DEFAULT"/>
-       <category android:name="android.intent.category.BROWSABLE"/>
-       <data android:scheme="cybervpn" android:host="oauth" android:pathPrefix="/callback"/>
-   </intent-filter>
-   ```
-
-3. **Telegram callback handler** (`cybervpn://telegram/callback`):
-   ```xml
-   <intent-filter>
-       <action android:name="android.intent.action.VIEW"/>
-       <category android:name="android.intent.category.DEFAULT"/>
-       <category android:name="android.intent.category.BROWSABLE"/>
-       <data android:scheme="cybervpn" android:host="telegram" android:pathPrefix="/callback"/>
-   </intent-filter>
-   ```
-
-4. **Universal link handler** (`https://cybervpn.app`):
-   ```xml
-   <intent-filter android:autoVerify="true">
-       <action android:name="android.intent.action.VIEW"/>
-       <category android:name="android.intent.category.DEFAULT"/>
-       <category android:name="android.intent.category.BROWSABLE"/>
-       <data android:scheme="https" android:host="cybervpn.app"/>
-   </intent-filter>
-   ```
-
-**Additional setup for Google Sign-In on Android:**
-
-1. In [Firebase Console](https://console.firebase.google.com/), add your Android app if not already added.
-2. Download `google-services.json` and place it in `cybervpn_mobile/android/app/`.
-3. Add your app's SHA-1 and SHA-256 fingerprints in the Firebase console:
-   ```bash
-   # Debug fingerprint
-   cd cybervpn_mobile/android && ./gradlew signingReport
-
-   # Release fingerprint (from your keystore)
-   keytool -list -v -keystore your-release-key.jks
-   ```
-4. Also add the SHA-1 fingerprint in the Google Cloud Console credential for the Android OAuth client.
-
-**App Links verification (for `https://cybervpn.app`):**
-
-Host an `assetlinks.json` file at `https://cybervpn.app/.well-known/assetlinks.json`:
-```json
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.cybervpn.app",
-      "sha256_cert_fingerprints": [
-        "YOUR_SHA256_FINGERPRINT_HERE"
-      ]
-    }
-  }
-]
-```
-
----
-
-## Redirect URI Patterns
-
-All OAuth providers redirect back to the app after authentication. The mobile app uses a custom URL scheme (`cybervpn://`) and the web dashboard uses HTTPS URLs.
-
-| Provider | Web Redirect URI | Mobile Redirect URI | Dev Redirect URI |
-|----------|-----------------|---------------------|------------------|
-| Google | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| Facebook | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| Apple | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| GitHub | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| Discord | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| Microsoft | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| X (Twitter) | `https://cybervpn.app/en-EN/oauth/callback` | `cybervpn://oauth/callback` | `http://localhost:9001/en-EN/oauth/callback` |
-| Telegram | `https://cybervpn.app` (widget origin) | `cybervpn://telegram/callback` | `http://localhost:9001` |
-
-**Important:** Every redirect URI listed above must be registered in the corresponding provider's developer console. The backend now validates web redirects against `CORS_ORIGINS` and exact deep links against `OAUTH_ALLOWED_REDIRECT_URIS`.
-
----
-
-## Testing
-
-### Development Environment
-
-1. **Start the backend:**
-   ```bash
-   cd backend && uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-2. **Verify provider availability:**
-   ```bash
-   # Check that a provider is configured (returns authorize URL if credentials are set)
-   curl -s "http://localhost:8000/api/v1/oauth/google/login?redirect_uri=http://localhost:3001/en/oauth/callback" | jq .
-   ```
-   A successful response returns `{ "authorize_url": "...", "state": "..." }`.
-   If credentials are missing, the provider will return an error during code exchange.
-
-3. **Test the full flow manually:**
-   ```bash
-   # Step 1: Get authorization URL
-   AUTH_RESPONSE=$(curl -s "http://localhost:8000/api/v1/oauth/google/login?redirect_uri=http://localhost:3001/en/oauth/callback")
-   AUTH_URL=$(echo $AUTH_RESPONSE | jq -r '.authorize_url')
-   STATE=$(echo $AUTH_RESPONSE | jq -r '.state')
-
-   # Step 2: Open AUTH_URL in a browser, complete authentication, capture the code from the redirect
-
-   # Step 3: Exchange the code
-   curl -s -X POST "http://localhost:8000/api/v1/oauth/google/login/callback" \
-     -H "Content-Type: application/json" \
-     -d "{\"code\": \"CAPTURED_CODE\", \"state\": \"$STATE\", \"redirect_uri\": \"http://localhost:3001/en/oauth/callback\"}" | jq .
-   ```
-
-4. **Verify state token expiry:**
-   State tokens expire after 10 minutes (600 seconds). Waiting longer than 10 minutes between getting the authorize URL and completing the callback should return `"Invalid or expired OAuth state."`.
-
-### Production Verification
-
-1. Ensure all environment variables are set (non-empty) for each provider you want to enable.
-2. Test each provider end-to-end using the mobile app and the web dashboard.
-3. Verify that:
-   - New users are created with `role=viewer` and `is_active=true`.
-   - Existing users with matching email are auto-linked (no duplicate accounts).
-   - Users with TOTP enabled are prompted for 2FA after OAuth login (`requires_2fa=true`).
-   - Account linking works for authenticated users.
-   - Unlinking works and removes the `oauth_accounts` row.
-
-### Provider-Specific Testing Notes
-
-| Provider | Gotcha |
-|----------|--------|
-| Google | Must set `prompt=consent` to get refresh tokens. Without it, refresh_token is only sent on first authorization. |
-| Facebook | Email can be absent if the app is not approved for `email` access or the user declines permission. The user will still be created without an email. |
-| Apple | User name is only provided on first authorization. Test with a fresh Apple ID or revoke access at `appleid.apple.com` > Security > Apps. |
-| GitHub | Email may be `null` if user has a private email. The user will be created without an email. |
-| Discord | Test with a verified email account; unverified emails are not returned. |
-| Microsoft | Personal vs. work accounts behave differently for the `mail` field. Test both if `MICROSOFT_TENANT_ID=common`. |
-| X (Twitter) | Email is never available with `users.read` scope. Users signing in via X will not have an email. |
-| Telegram | Test that auth_date validation rejects requests older than 24 hours. Test clock skew rejection (future dates beyond 5 minutes). |
-
-### Disabling a Provider
-
-Leaving credentials empty is still a valid soft-disable, but active login availability is now controlled separately in the backend login allowlist. This lets CyberVPN keep provider code in the repository while intentionally disabling it in the public login flow (for example, Apple).
-
----
-
-## Security Considerations
-
-- **State tokens** are stored in Redis with a 10-minute TTL and are single-use (deleted atomically on validation). This prevents CSRF and replay attacks.
-- **PKCE** (RFC 7636, S256) is used for Google, Apple, Microsoft, and Twitter. The code verifier is stored in Redis alongside the state token.
-- **IP address logging:** The client IP is logged with the state token for audit purposes. IP changes during the OAuth flow are logged as warnings but do not block the flow (to accommodate mobile/NAT users).
-- **Apple client secret:** Generated as a JWT signed with ES256, valid for up to 6 months. Rotate the .p8 key if compromised.
-- **Redirect validation:** Web redirects must match the locale-aware `/oauth/callback` route on a trusted frontend origin, and non-HTTP deep links must be explicitly allowlisted.
-- **Telegram:** Uses constant-time HMAC comparison to prevent timing attacks.
-- All provider tokens (`access_token`, `refresh_token`) are stored in the `oauth_accounts` database table. Ensure the database is encrypted at rest in production.
-
----
-
-## Source Code Reference
-
-| File | Purpose |
-|------|---------|
-| `backend/src/config/settings.py` | All OAuth env var definitions (lines 37-67) |
-| `backend/src/infrastructure/oauth/google.py` | Google provider implementation |
-| `backend/src/infrastructure/oauth/facebook.py` | Facebook provider implementation |
-| `backend/src/infrastructure/oauth/apple.py` | Apple provider implementation |
-| `backend/src/infrastructure/oauth/github.py` | GitHub provider implementation |
-| `backend/src/infrastructure/oauth/discord.py` | Discord provider implementation |
-| `backend/src/infrastructure/oauth/microsoft.py` | Microsoft provider implementation |
-| `backend/src/infrastructure/oauth/twitter.py` | X/Twitter provider implementation |
-| `backend/src/infrastructure/oauth/telegram.py` | Telegram provider implementation |
-| `backend/src/application/services/oauth_state_service.py` | CSRF state + PKCE management |
-| `backend/src/application/use_cases/auth/oauth_login.py` | Find-or-create user from OAuth data |
-| `backend/src/presentation/api/v1/oauth/routes.py` | All OAuth API routes |
-| `backend/src/presentation/api/v1/oauth/schemas.py` | Request/response Pydantic schemas |
-| `backend/src/infrastructure/database/models/oauth_account_model.py` | OAuth accounts DB model |
-| `backend/.env.example` | Example env configuration |
-| `cybervpn_mobile/android/app/src/main/AndroidManifest.xml` | Android deep link intent filters |
-| `cybervpn_mobile/ios/Runner/Info.plist` | iOS URL scheme and deep link config |
-| `cybervpn_mobile/lib/features/auth/data/datasources/oauth_remote_ds.dart` | Mobile OAuth API client |
-| `cybervpn_mobile/lib/features/profile/domain/entities/oauth_provider.dart` | Mobile provider enum |
+- Targeted backend tests pass.
+- Targeted frontend tests pass.
+- Build and lint pass.
+- No locale-prefixed web callback remains in the web OAuth path.

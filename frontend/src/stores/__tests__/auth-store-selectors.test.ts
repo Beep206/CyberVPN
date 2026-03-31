@@ -54,6 +54,12 @@ vi.mock('@/lib/analytics', () => ({
     loginStarted: vi.fn(),
     loginSuccess: vi.fn(),
     loginError: vi.fn(),
+    oauthStarted: vi.fn(),
+    oauthCallbackSuccess: vi.fn(),
+    oauthCallbackFailed: vi.fn(),
+    oauthTwoFactorRequired: vi.fn(),
+    oauthCollision: vi.fn(),
+    oauthProviderDenied: vi.fn(),
     registerStarted: vi.fn(),
     registerSuccess: vi.fn(),
     registerError: vi.fn(),
@@ -250,10 +256,10 @@ describe('Auth Store - Selector hooks', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Persist configuration tests
+// Store configuration tests
 // ---------------------------------------------------------------------------
 
-describe('Auth Store - Persist configuration', () => {
+describe('Auth Store - configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetStoreState();
@@ -263,95 +269,39 @@ describe('Auth Store - Persist configuration', () => {
     vi.restoreAllMocks();
   });
 
-  it('test_persist_partialize_only_persists_user_and_isAuthenticated', () => {
-    // Arrange - set multiple state fields
-    const mockUser = createMockUser();
-    useAuthStore.setState({
-      user: mockUser,
-      isAuthenticated: true,
-      isLoading: true,
-      error: 'some error',
-      rateLimitUntil: 99999,
-      isNewTelegramUser: true,
-    });
-
-    // Act - access the persist API to get the partialize function
-    // The persist middleware stores name = 'auth-storage'
-    const persistApi = (useAuthStore as unknown as { persist: { getOptions: () => { partialize: (state: unknown) => unknown; name: string } } }).persist;
-    const { partialize, name } = persistApi.getOptions();
-
-    // Assert - name should be 'auth-storage'
-    expect(name).toBe('auth-storage');
-
-    // Assert - partialize should only include user and isAuthenticated
-    const state = useAuthStore.getState();
-    const persisted = partialize(state) as Record<string, unknown>;
-
-    expect(persisted).toHaveProperty('user');
-    expect(persisted).toHaveProperty('isAuthenticated');
-    // These should NOT be persisted
-    expect(persisted).not.toHaveProperty('isLoading');
-    expect(persisted).not.toHaveProperty('error');
-    expect(persisted).not.toHaveProperty('rateLimitUntil');
-    expect(persisted).not.toHaveProperty('isNewTelegramUser');
+  it('test_store_does_not_expose_persist_middleware_api', () => {
+    expect((useAuthStore as unknown as { persist?: unknown }).persist).toBeUndefined();
   });
 
-  it('test_persist_uses_localStorage_as_storage_backend', () => {
-    // The store is configured with createJSONStorage(() => localStorage)
-    // We verify by checking the persist options
-    const persistApi = (useAuthStore as unknown as { persist: { getOptions: () => { storage: unknown } } }).persist;
-    const { storage } = persistApi.getOptions();
+  it('test_store_runtime_state_is_ephemeral_by_default', () => {
+    const state = useAuthStore.getState();
 
-    // Storage should be defined (not null/undefined)
-    expect(storage).toBeDefined();
-    expect(storage).not.toBeNull();
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
   });
 });
 
-// ---------------------------------------------------------------------------
-// oauthCallback analytics (gap from original tests)
-// ---------------------------------------------------------------------------
-
-describe('Auth Store - oauthCallback analytics', () => {
+describe('Auth Store - oauthLogin analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetStoreState();
-    sessionStorage.clear();
+    window.location.origin = 'http://localhost:3000';
+    window.location.pathname = '/ru-RU/login';
+    window.location.search = '';
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('test_oauthCallback_success_without_2fa_calls_loginSuccess_analytics_with_provider', async () => {
-    // Arrange
-    sessionStorage.setItem('oauth_state', 'analytics_state');
-
-    // We need to re-import the store after adjusting mocks for this specific test.
-    // Since authApi is already mocked, we use the mock directly.
-    const { authApi } = await import('@/lib/api/auth');
-    (authApi.oauthLoginCallback as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        requires_2fa: false,
-        access_token: 'at_oauth',
-        refresh_token: 'rt_oauth',
-        user: {
-          id: 'usr_oauth_analytics',
-          login: 'oauthuser',
-          email: 'oauth@test.com',
-          is_active: true,
-          is_email_verified: true,
-          created_at: '2024-01-01',
-        },
-        is_new_user: false,
-      },
-    });
-
-    // Act
-    await useAuthStore.getState().oauthCallback('github', 'code123', 'analytics_state');
-
-    // Assert - loginSuccess should have been called with the user ID and the provider
+  it('test_oauthLogin_tracks_started_event_before_navigation', async () => {
     const { authAnalytics } = await import('@/lib/analytics');
-    expect(authAnalytics.loginSuccess).toHaveBeenCalledWith('usr_oauth_analytics', 'github');
+
+    await useAuthStore.getState().oauthLogin('github');
+
+    expect(authAnalytics.oauthStarted).toHaveBeenCalledWith('github');
+    expect(window.location.href).toBe(
+      'http://localhost:3000/api/oauth/start/github?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',
+    );
   });
 });

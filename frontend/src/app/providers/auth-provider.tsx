@@ -2,9 +2,12 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { authAnalytics } from '@/lib/analytics';
 import { useAuthStore } from '@/stores/auth-store';
-
-const TELEGRAM_LINK_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?telegram-link(?:\/|$)/;
+import {
+  consumeOAuthResultCookie,
+  shouldBootstrapAuthSession,
+} from '@/features/auth/lib/session';
 
 /**
  * Restores an authenticated session in the background without wrapping or
@@ -15,9 +18,18 @@ export function AuthSessionBootstrap() {
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
   useEffect(() => {
-    if (!TELEGRAM_LINK_ROUTE_RE.test(pathname)) {
-      void fetchUser();
+    if (!shouldBootstrapAuthSession(pathname)) {
+      return;
     }
+
+    void fetchUser().then(() => {
+      const provider = consumeOAuthResultCookie();
+      const currentUser = useAuthStore.getState().user;
+
+      if (provider && currentUser) {
+        authAnalytics.oauthCallbackSuccess(currentUser.id, provider);
+      }
+    });
   }, [fetchUser, pathname]);
 
   return null;

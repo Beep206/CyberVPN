@@ -106,6 +106,7 @@ export function SocialAuthButtons({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                     type="button"
+                    data-provider="telegram"
                     onClick={() => onProviderClick?.('telegram')}
                     disabled={disabled}
                     className={cn(
@@ -151,6 +152,7 @@ export function SocialAuthButtons({
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.05 * (index + 1), duration: 0.3 }}
                                 type="button"
+                                data-provider={provider}
                                 onClick={() => onProviderClick?.(provider)}
                                 disabled={disabled}
                                 className={cn(
@@ -187,6 +189,7 @@ export function SocialAuthButtons({
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.05 * (index + 4), duration: 0.3 }}
                                 type="button"
+                                data-provider={provider}
                                 onClick={() => onProviderClick?.(provider)}
                                 disabled={disabled}
                                 className={cn(

@@ -9,6 +9,12 @@ type AuthEventName =
   | 'auth.login.started'
   | 'auth.login.success'
   | 'auth.login.error'
+  | 'auth.oauth.started'
+  | 'auth.oauth.callback_success'
+  | 'auth.oauth.callback_failed'
+  | 'auth.oauth.2fa_required'
+  | 'auth.oauth.collision'
+  | 'auth.oauth.provider_denied'
   | 'auth.register.started'
   | 'auth.register.success'
   | 'auth.register.error'
@@ -106,6 +112,25 @@ export const authAnalytics = {
   },
 
   loginError: (errorType: string) => trackAuthEvent('auth.login.error', { errorType }),
+
+  oauthStarted: (provider: string) => trackAuthEvent('auth.oauth.started', { provider }),
+
+  oauthCallbackSuccess: (userId: string, provider: string) => {
+    trackAuthEvent('auth.oauth.callback_success', { provider });
+    identifyUser(userId);
+  },
+
+  oauthCallbackFailed: (provider: string, errorCode: string) =>
+    trackAuthEvent('auth.oauth.callback_failed', { provider, errorCode }),
+
+  oauthTwoFactorRequired: (provider: string) =>
+    trackAuthEvent('auth.oauth.2fa_required', { provider }),
+
+  oauthCollision: (provider: string, errorCode: string) =>
+    trackAuthEvent('auth.oauth.collision', { provider, errorCode }),
+
+  oauthProviderDenied: (provider: string) =>
+    trackAuthEvent('auth.oauth.provider_denied', { provider }),
 
   registerStarted: () => trackAuthEvent('auth.register.started'),
 

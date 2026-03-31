@@ -41,6 +41,7 @@ async def _validate_token(
     redis_client: redis.Redis | None = None,
     *,
     check_revocation: bool = True,
+    allowed_token_types: frozenset[str] = frozenset({"access"}),
 ) -> TokenValidationResult | None:
     """Validate JWT token and optionally check revocation.
 
@@ -61,7 +62,7 @@ async def _validate_token(
     """
     payload = auth_service.decode_token(token)
 
-    if payload.get("type") != "access":
+    if payload.get("type") not in allowed_token_types:
         return None
 
     user_id = payload.get("sub")
@@ -135,6 +136,44 @@ async def get_current_user(
     return user
 
 
+async def get_current_pending_2fa_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+) -> AdminUserModel:
+    """Resolve a user from a short-lived pending-2FA token."""
+    token = credentials.credentials if credentials else request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="2FA login session not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        result = await _validate_token(
+            token,
+            auth_service,
+            redis_client,
+            check_revocation=True,
+            allowed_token_types=frozenset({"2fa_pending"}),
+        )
+        if not result:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired 2FA login session")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired 2FA login session")
+
+    repo = AdminUserRepository(db)
+    user = await repo.get_by_id(UUID(result.user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    return user
+
+
 async def get_current_active_user(
     user: AdminUserModel = Depends(get_current_user),
 ) -> AdminUserModel:
@@ -144,7 +183,7 @@ async def get_current_active_user(
 
 
 async def optional_user(
-    request: Request,
+    request: Request | None = None,
     credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
@@ -170,7 +209,7 @@ async def optional_user(
     token: str | None = None
     if credentials:
         token = credentials.credentials
-    else:
+    elif request is not None:
         token = request.cookies.get("access_token")
 
     if not token:

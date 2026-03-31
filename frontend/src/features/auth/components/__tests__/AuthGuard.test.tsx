@@ -12,10 +12,11 @@ let currentAuthState: { isAuthenticated: boolean; user: Record<string, unknown> 
   isAuthenticated: false,
   user: null,
 };
+let currentPathname = '/ru-RU/dashboard/servers';
 
 vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
-  usePathname: () => '/dashboard/servers',
+  usePathname: () => currentPathname,
 }));
 
 vi.mock('lucide-react', () => ({
@@ -50,6 +51,7 @@ describe('AuthGuard', () => {
     mockMe.mockReset();
     mockSetState.mockReset();
     currentAuthState = { isAuthenticated: false, user: null };
+    currentPathname = '/ru-RU/dashboard/servers';
   });
 
   it('calls authApi.session on mount', async () => {
@@ -114,7 +116,7 @@ describe('AuthGuard', () => {
     );
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login?redirect=%2Fdashboard%2Fservers');
+      expect(mockPush).toHaveBeenCalledWith('/ru-RU/login?redirect=%2Fru-RU%2Fdashboard%2Fservers');
     });
 
     expect(mockSetState).toHaveBeenCalledWith(
@@ -140,5 +142,20 @@ describe('AuthGuard', () => {
 
     expect(screen.getByText('AUTHENTICATING...')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+  });
+
+  it('redirects public auth paths to the localized dashboard target', async () => {
+    currentPathname = '/ru-RU/login';
+    mockMe.mockRejectedValueOnce(new Error('401'));
+
+    render(
+      <AuthGuard>
+        <div>Dashboard</div>
+      </AuthGuard>,
+    );
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/ru-RU/login?redirect=%2Fru-RU%2Fdashboard');
+    });
   });
 });

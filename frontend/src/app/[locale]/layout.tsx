@@ -3,6 +3,7 @@ import { Orbitron, JetBrains_Mono, Share_Tech_Mono } from 'next/font/google';
 import Script from 'next/script';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Organization, WebSite } from 'schema-dts';
+import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
@@ -94,6 +95,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
+            <AuthSessionBootstrap />
             <SkipNavLink label={t('skipToMainContent')} />
             <div className="relative z-10 min-h-full w-full">{children}</div>
             <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />

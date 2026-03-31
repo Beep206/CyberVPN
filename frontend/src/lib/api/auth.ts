@@ -48,6 +48,8 @@ export interface User {
 export interface AuthResponse {
   user: User;
   is_new_user?: boolean;
+  requires_2fa?: boolean;
+  tfa_token?: string | null;
 }
 
 export interface TokenResponse {
@@ -127,7 +129,7 @@ export interface OAuthLoginResponse {
 export interface OAuthCallbackRequest {
   code: string;
   state: string;
-  redirect_uri: string;
+  redirect_uri?: string;
 }
 
 export interface TelegramMiniAppResponse {
@@ -137,6 +139,8 @@ export interface TelegramMiniAppResponse {
   expires_in: number;
   user: OAuthLoginUser;
   is_new_user: boolean;
+  requires_2fa: boolean;
+  tfa_token: string | null;
 }
 
 export interface TelegramMagicLinkResponse {
@@ -160,6 +164,8 @@ export interface BotLinkResponse {
   token_type: string;
   expires_in: number;
   user: OAuthLoginUser;
+  requires_2fa: boolean;
+  tfa_token: string | null;
 }
 
 export interface ForgotPasswordRequest {
@@ -310,9 +316,9 @@ export const authApi = {
    * Get OAuth authorization URL for a provider
    * GET /api/v1/oauth/{provider}/login
    */
-  oauthLoginAuthorize: (provider: OAuthProvider, redirectUri: string) =>
+  oauthLoginAuthorize: (provider: OAuthProvider, redirectUri?: string) =>
     apiClient.get<OAuthAuthorizeResponse>(`/oauth/${provider}/login`, {
-      params: { redirect_uri: redirectUri },
+      params: redirectUri ? { redirect_uri: redirectUri } : undefined,
     }),
 
   /**

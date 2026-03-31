@@ -1,11 +1,20 @@
 import { create } from 'zustand';
-import { authApi, type User, type TelegramWidgetData, type OAuthProvider, type OAuthLoginResponse } from '@/lib/api/auth';
+import {
+  authApi,
+  type AuthResponse,
+  type BotLinkResponse,
+  type OAuthProvider,
+  type TelegramMiniAppResponse,
+  type TelegramWidgetData,
+  type User,
+} from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
 import { authAnalytics } from '@/lib/analytics';
 import {
   clearTelegramMagicLinkSession,
   saveTelegramMagicLinkSession,
 } from '@/features/auth/lib/telegram-magic-link-session';
+import { getDefaultPostLoginPath, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 
 let fetchUserInFlight: Promise<void> | null = null;
 
@@ -14,12 +23,6 @@ function getLocalePrefix(): string {
 
   const match = window.location.pathname.match(/^\/([a-z]{2,3}-[A-Z]{2})(?:\/|$)/);
   return match ? `/${match[1]}` : '/en-EN';
-}
-
-function getOAuthCallbackUrl(): string {
-  if (typeof window === 'undefined') return 'http://localhost/en-EN/oauth/callback';
-
-  return new URL(`${getLocalePrefix()}/oauth/callback`, window.location.origin).toString();
 }
 
 interface AuthState {
@@ -37,12 +40,11 @@ interface AuthState {
   verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
-  telegramAuth: (data: TelegramWidgetData) => Promise<void>;
-  telegramMiniAppAuth: () => Promise<void>;
+  telegramAuth: (data: TelegramWidgetData) => Promise<AuthResponse>;
+  telegramMiniAppAuth: () => Promise<TelegramMiniAppResponse>;
   telegramMagicLinkAuth: () => Promise<void>;
-  loginWithBotLink: (token: string) => Promise<void>;
+  loginWithBotLink: (token: string) => Promise<BotLinkResponse>;
   oauthLogin: (provider: OAuthProvider) => Promise<void>;
-  oauthCallback: (provider: OAuthProvider, code: string, state: string) => Promise<OAuthLoginResponse>;
   requestMagicLink: (email: string) => Promise<void>;
   verifyMagicLink: (token: string) => Promise<void>;
   verifyMagicLinkOtp: (email: string, code: string) => Promise<void>;
@@ -236,9 +238,15 @@ export const useAuthStore = create<AuthState>()(
         try {
           // 2026 approach using secure web endpoint
           const { data } = await authApi.telegramWebLogin(widgetData);
+          if (data.requires_2fa) {
+            set({ isLoading: false, isAuthenticated: false });
+            return data;
+          }
+
           const isNewUser = data.is_new_user ?? false;
           set({ user: data.user, isAuthenticated: true, isLoading: false, isNewTelegramUser: isNewUser });
           authAnalytics.telegramSuccess(data.user.id);
+          return data;
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Telegram auth failed';
@@ -264,6 +272,11 @@ export const useAuthStore = create<AuthState>()(
           try {
             // SEC-01: backend sets httpOnly cookies
             const { data } = await authApi.telegramMiniApp(initData);
+            if (data.requires_2fa) {
+              set({ isLoading: false, isAuthenticated: false });
+              return data;
+            }
+
             const isNewUser = data.is_new_user ?? false;
             set({
               user: {
@@ -280,7 +293,7 @@ export const useAuthStore = create<AuthState>()(
               isNewTelegramUser: isNewUser,
             });
             authAnalytics.telegramSuccess(data.user.id);
-            return;
+            return data;
           } catch (error: unknown) {
             lastError = error;
             if (attempt === 0) {
@@ -330,6 +343,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           // SEC-01: backend sets httpOnly cookies
           const { data } = await authApi.telegramBotLink({ token });
+          if (data.requires_2fa) {
+            set({ isLoading: false, isAuthenticated: false });
+            return data;
+          }
+
           set({
             user: {
               id: data.user.id,
@@ -344,6 +362,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           authAnalytics.loginSuccess(data.user.id, 'telegram');
+          return data;
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Bot link login failed';
@@ -357,70 +376,22 @@ export const useAuthStore = create<AuthState>()(
           return get().telegramMagicLinkAuth();
         }
 
+        authAnalytics.oauthStarted(provider);
         set({ isLoading: true, error: null });
         try {
-          const redirectUri = getOAuthCallbackUrl();
-          const { data } = await authApi.oauthLoginAuthorize(provider, redirectUri);
-          // Store state in sessionStorage for CSRF validation on callback
-          sessionStorage.setItem('oauth_state', data.state);
-          sessionStorage.setItem('oauth_provider', provider);
-          // Redirect to provider
-          window.location.href = data.authorize_url;
+          const locale = getLocalePrefix().slice(1);
+          const searchParams = new URLSearchParams(window.location.search);
+          const returnTo = getSafeRedirectPath(
+            searchParams.get('redirect'),
+            locale,
+          ) || getDefaultPostLoginPath(locale);
+          const startUrl = new URL(`/api/oauth/start/${provider}`, window.location.origin);
+          startUrl.searchParams.set('locale', locale);
+          startUrl.searchParams.set('return_to', returnTo);
+          window.location.href = startUrl.toString();
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || `${provider} login failed`;
-          set({ error: message, isLoading: false });
-          throw error;
-        }
-      },
-
-      oauthCallback: async (provider, code, state) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Verify state matches stored value
-          const storedState = sessionStorage.getItem('oauth_state');
-          if (state !== storedState) {
-            throw new Error('OAuth state mismatch - possible CSRF attack');
-          }
-
-          const redirectUri = getOAuthCallbackUrl();
-          const { data } = await authApi.oauthLoginCallback(provider, {
-            code,
-            state,
-            redirect_uri: redirectUri,
-          });
-
-          // Clean up sessionStorage
-          sessionStorage.removeItem('oauth_state');
-          sessionStorage.removeItem('oauth_provider');
-
-          // If 2FA required, return the response for the caller to handle
-          if (data.requires_2fa) {
-            set({ isLoading: false });
-            return data;
-          }
-
-          // SEC-01: backend sets httpOnly cookies; set user state
-          set({
-            user: {
-              id: data.user.id,
-              email: data.user.email || '',
-              login: data.user.login,
-              is_active: data.user.is_active,
-              is_email_verified: data.user.is_email_verified,
-              role: 'viewer',
-              created_at: data.user.created_at,
-            },
-            isAuthenticated: true,
-            isLoading: false,
-          });
-          authAnalytics.loginSuccess(data.user.id, provider);
-          return data;
-        } catch (error: unknown) {
-          sessionStorage.removeItem('oauth_state');
-          sessionStorage.removeItem('oauth_provider');
-          const axiosError = error as { response?: { data?: { detail?: string } } };
-          const message = axiosError.response?.data?.detail || 'OAuth callback failed';
           set({ error: message, isLoading: false });
           throw error;
         }
