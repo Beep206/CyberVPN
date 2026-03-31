@@ -12,6 +12,7 @@ import {
     MARKETING_SCENE_GL,
     useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 
@@ -164,38 +165,40 @@ function Hub() {
 }
 
 export default function FastTrackScene3D() {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const isInView = useInView(containerRef, { margin: "100px" });
     const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.5 });
     const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.003, 0.003);
 
     return (
-        <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg border-grid-line overflow-hidden">
-            <Canvas
-                eventSource={containerRef}
-                frameloop={isInView ? 'always' : 'never'}
-                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
-                camera={{ position: [0, 0, 8], fov: 60 }} // Looking down the Z axis
-                gl={MARKETING_SCENE_GL}
-                dpr={dpr}
-            >
-                <ScenePerformanceMetrics sceneName="fast-track" />
-                <PerformanceMonitor {...monitorProps} />
-                
-                <fog attach="fog" args={['#050510', 5, 20]} />
-                <ambientLight intensity={0.2} />
+        <div ref={setHostRef} className="absolute inset-0 -z-10 bg-terminal-bg border-grid-line overflow-hidden">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    frameloop={isInView ? 'always' : 'never'}
+                    performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
+                    camera={{ position: [0, 0, 8], fov: 60 }} // Looking down the Z axis
+                    gl={MARKETING_SCENE_GL}
+                    dpr={dpr}
+                >
+                    <ScenePerformanceMetrics sceneName="fast-track" />
+                    <PerformanceMonitor {...monitorProps} />
+                    
+                    <fog attach="fog" args={['#050510', 5, 20]} />
+                    <ambientLight intensity={0.2} />
 
-                <ParallaxGroup>
-                    <DataTrails />
-                    <Hub />
-                </ParallaxGroup>
+                    <ParallaxGroup>
+                        <DataTrails />
+                        <Hub />
+                    </ParallaxGroup>
 
-                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.4} />
-                    <Noise opacity={0.03} />
-                    <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={true} modulationOffset={0.5} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false} multisampling={0}>
+                        <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.4} />
+                        <Noise opacity={0.03} />
+                        <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={true} modulationOffset={0.5} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

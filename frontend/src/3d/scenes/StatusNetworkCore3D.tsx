@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { Bloom, ChromaticAberration, Noise, Glitch } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { createDeterministicRandom, randomInRange } from '@/3d/lib/seeded-random';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 
 // Configuration
 const CHROMATIC_ABERRATION_OFFSET = new THREE.Vector2(0.002, 0.002);
@@ -213,7 +214,7 @@ function CameraRig({ children }: { children: React.ReactNode }) {
 
 export function NetworkCore3D() {
     // Determine global status based on app state (mocked as nominal for now, can be updated via props)
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const [globalStatus] = useState<'nominal' | 'warning' | 'outage'>('nominal');
     const cameraConfig = { position: [0, 4, 12] as [number, number, number], fov: 45 };
     const glConfig = {
@@ -223,33 +224,35 @@ export function NetworkCore3D() {
     };
 
     return (
-        <div ref={containerRef} className="h-full w-full">
-            <Canvas
-                eventSource={containerRef}
-                camera={cameraConfig}
-                gl={glConfig}
-            >
-                <fog attach="fog" args={['#000000', 5, 30]} />
-                <Environment preset="city" />
-                
-                <ambientLight intensity={0.2} />
-
-                <CameraRig>
-                    <DigitalGrid status={globalStatus} />
-                    <NetworkReactorCore status={globalStatus} />
-                    <DataStreamInstanced count={200} status={globalStatus} />
+        <div ref={setHostRef} className="h-full w-full">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    camera={cameraConfig}
+                    gl={glConfig}
+                >
+                    <fog attach="fog" args={['#000000', 5, 30]} />
+                    <Environment preset="city" />
                     
-                    {/* Background stars representing remote nodes */}
-                    <Stars radius={50} depth={50} count={3000} factor={4} saturation={1} fade speed={globalStatus === 'outage' ? 3 : 1} />
-                </CameraRig>
+                    <ambientLight intensity={0.2} />
 
-                <SafeEffectComposer enableNormalPass={false}>
-                    <Bloom luminanceThreshold={0.5} mipmapBlur intensity={globalStatus === 'outage' ? 3.0 : 1.5} />
-                    <Glitch active={globalStatus === 'outage'} delay={new THREE.Vector2(0.5, 2.0)} duration={new THREE.Vector2(0.1, 0.3)} />
-                    <Noise opacity={0.03} />
-                    <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <CameraRig>
+                        <DigitalGrid status={globalStatus} />
+                        <NetworkReactorCore status={globalStatus} />
+                        <DataStreamInstanced count={200} status={globalStatus} />
+                        
+                        {/* Background stars representing remote nodes */}
+                        <Stars radius={50} depth={50} count={3000} factor={4} saturation={1} fade speed={globalStatus === 'outage' ? 3 : 1} />
+                    </CameraRig>
+
+                    <SafeEffectComposer enableNormalPass={false}>
+                        <Bloom luminanceThreshold={0.5} mipmapBlur intensity={globalStatus === 'outage' ? 3.0 : 1.5} />
+                        <Glitch active={globalStatus === 'outage'} delay={new THREE.Vector2(0.5, 2.0)} duration={new THREE.Vector2(0.1, 0.3)} />
+                        <Noise opacity={0.03} />
+                        <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

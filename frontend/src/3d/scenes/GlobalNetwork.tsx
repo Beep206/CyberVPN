@@ -19,6 +19,7 @@ import {
     MARKETING_SCENE_GL,
     useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 // Import shaders to register them with R3F
 // import '@/3d/shaders/CyberSphereShaderV2'; // REMOVED - Using Physical Geometry
@@ -513,7 +514,7 @@ function ParallaxGroup({ children, activeNodeId, servers }: { children: React.Re
 }
 
 export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connections = DEFAULT_CONNECTIONS, activeNodeId }: GlobalNetworkSceneProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const isInView = useInView(containerRef, { margin: "100px" });
     const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.25 });
     const serverPositions = useMemo(
@@ -522,43 +523,45 @@ export default function GlobalNetworkScene({ servers = DEFAULT_SERVERS, connecti
     );
 
     return (
-        <div ref={containerRef} className="absolute inset-0 -z-10 bg-terminal-bg/0">
-            <Canvas
-                eventSource={containerRef}
-                frameloop={isInView ? 'always' : 'never'}
-                performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
-                camera={{ position: [0, 2, 7], fov: 40 }}
-                gl={MARKETING_SCENE_GL}
-                dpr={dpr}
-            >
-                <ScenePerformanceMetrics sceneName="global-network" />
-                <PerformanceMonitor {...monitorProps} />
-                {/* Reduced fog density to ensure stars are visible */}
-                <fog attach="fog" args={['#050510', 5, 25]} />
+        <div ref={setHostRef} className="absolute inset-0 -z-10 bg-terminal-bg/0">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    frameloop={isInView ? 'always' : 'never'}
+                    performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
+                    camera={{ position: [0, 2, 7], fov: 40 }}
+                    gl={MARKETING_SCENE_GL}
+                    dpr={dpr}
+                >
+                    <ScenePerformanceMetrics sceneName="global-network" />
+                    <PerformanceMonitor {...monitorProps} />
+                    {/* Reduced fog density to ensure stars are visible */}
+                    <fog attach="fog" args={['#050510', 5, 25]} />
 
-                {/* Environment for Glossy Reflections */}
-                <Environment preset="city" />
+                    {/* Environment for Glossy Reflections */}
+                    <Environment preset="city" />
 
-                <ambientLight intensity={0.2} />
-                <pointLight position={[10, 10, 10]} color="#00ffff" intensity={1.5} />
-                <pointLight position={[-10, -5, -10]} color="#ff00ff" intensity={1} />
+                    <ambientLight intensity={0.2} />
+                    <pointLight position={[10, 10, 10]} color="#00ffff" intensity={1.5} />
+                    <pointLight position={[-10, -5, -10]} color="#ff00ff" intensity={1} />
 
-                {/* Parallax Wrapper for Scene Content */}
-                <ParallaxGroup activeNodeId={activeNodeId} servers={servers}>
-                    <ObsidianSphere />
-                    <group rotation-y={0}>
-                        <ServerNodes servers={servers} serverPositions={serverPositions} activeNodeId={activeNodeId} />
-                        <ConnectionLines connections={connections} />
-                    </group>
-                </ParallaxGroup>
+                    {/* Parallax Wrapper for Scene Content */}
+                    <ParallaxGroup activeNodeId={activeNodeId} servers={servers}>
+                        <ObsidianSphere />
+                        <group rotation-y={0}>
+                            <ServerNodes servers={servers} serverPositions={serverPositions} activeNodeId={activeNodeId} />
+                            <ConnectionLines connections={connections} />
+                        </group>
+                    </ParallaxGroup>
 
-                <FloatingParticles count={400} />
+                    <FloatingParticles count={400} />
 
-                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />
-                    <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false} multisampling={0}>
+                        <Bloom luminanceThreshold={0.5} mipmapBlur intensity={0.5} radius={0.2} resolutionScale={0.5} />
+                        <ChromaticAberration offset={CHROMATIC_ABERRATION_OFFSET} radialModulation={false} modulationOffset={0} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

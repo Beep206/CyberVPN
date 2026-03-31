@@ -15,6 +15,7 @@ import {
   useAdaptiveSceneDpr,
 } from '@/3d/lib/scene-performance';
 import { useTheme } from '@/app/providers/theme-provider';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { useMotionCapability } from '@/shared/hooks/use-motion-capability';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 
@@ -115,7 +116,7 @@ export function SpeedTunnelScene() {
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
   const { allowAmbientAnimations, isLowPowerDevice } = useMotionCapability();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
   const isInView = useInView(containerRef, { margin: '100px' });
   const { dpr, monitorProps } = useAdaptiveSceneDpr({ initial: 1, min: 0.75, max: 1.5 });
 
@@ -129,34 +130,36 @@ export function SpeedTunnelScene() {
   const shouldAnimate = allowAmbientAnimations && isInView;
 
   return (
-    <div ref={containerRef} className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
+    <div ref={setHostRef} className="w-full h-full absolute inset-0 bg-background transition-colors duration-500">
       <ErrorBoundary fallback={<div className="w-full h-full bg-background flex items-center justify-center text-xs text-muted-foreground">Speed Tunnel Disabled (Extension Conflict)</div>}>
-        <Canvas
-          eventSource={containerRef}
-          key={pathname}
-          frameloop={shouldAnimate ? 'always' : 'never'}
-          performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
-          camera={{ position: [0, 0, 5], fov: 60 }}
-          gl={MARKETING_SCENE_GL}
-          dpr={dpr}
-        >
-          <ScenePerformanceMetrics sceneName="speed-tunnel" />
-          <PerformanceMonitor {...monitorProps} />
-          <color attach="background" args={[bgColor]} />
-          <fog attach="fog" args={[fogColor, 5, 20]} />
+        {host ? (
+          <Canvas
+            key={pathname}
+            eventSource={host}
+            frameloop={shouldAnimate ? 'always' : 'never'}
+            performance={MARKETING_SCENE_CANVAS_PERFORMANCE}
+            camera={{ position: [0, 0, 5], fov: 60 }}
+            gl={MARKETING_SCENE_GL}
+            dpr={dpr}
+          >
+            <ScenePerformanceMetrics sceneName="speed-tunnel" />
+            <PerformanceMonitor {...monitorProps} />
+            <color attach="background" args={[bgColor]} />
+            <fog attach="fog" args={[fogColor, 5, 20]} />
 
-          <WarpStarfield count={starCount} speed={3} color={starColor1} />
-          <WarpStarfield count={starCount} speed={4} color={starColor2} />
+            <WarpStarfield count={starCount} speed={3} color={starColor1} />
+            <WarpStarfield count={starCount} speed={4} color={starColor2} />
 
-          <SafeEffectComposer multisampling={0} enableNormalPass={false}>
-            <Bloom
-              luminanceThreshold={isDark ? 0.5 : 1.1}
-              radius={isDark ? 0.8 : 0.5}
-              intensity={bloomIntensity}
-              resolutionScale={0.5}
-            />
-          </SafeEffectComposer>
-        </Canvas>
+            <SafeEffectComposer multisampling={0} enableNormalPass={false}>
+              <Bloom
+                luminanceThreshold={isDark ? 0.5 : 1.1}
+                radius={isDark ? 0.8 : 0.5}
+                intensity={bloomIntensity}
+                resolutionScale={0.5}
+              />
+            </SafeEffectComposer>
+          </Canvas>
+        ) : null}
       </ErrorBoundary>
     </div>
   );

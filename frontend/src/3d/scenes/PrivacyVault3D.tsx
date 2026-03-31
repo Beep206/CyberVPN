@@ -7,6 +7,7 @@ import { Bloom, ChromaticAberration } from '@react-three/postprocessing';
 import { PrivacySectionId } from '@/widgets/privacy/privacy-dashboard';
 import { Float, Points, PointMaterial } from '@react-three/drei';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 
 // Generate random points for the data cloud
 function generateDataCloud(count: number, radius: number) {
@@ -130,7 +131,7 @@ export default function PrivacyVault3D({
     activeSection: PrivacySectionId;
     scrollDepth: number;
 }) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
 
     // Determine primary color of the 3D scene based on the active topic
     const getVaultColor = () => {
@@ -145,30 +146,32 @@ export default function PrivacyVault3D({
     };
 
     return (
-        <div ref={containerRef} className="w-full h-full absolute inset-0 z-0 pointer-events-none opacity-50">
-            <Canvas
-                eventSource={containerRef}
-                camera={{ position: [0, 0, 8], fov: 45 }}
-                gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-            >
-                <ambientLight intensity={0.2} />
-                <pointLight position={[0, 0, 0]} intensity={2} color={getVaultColor()} />
-                
-                <VaultCore scrollDepth={scrollDepth} />
-                <CameraController scrollDepth={scrollDepth} />
+        <div ref={setHostRef} className="w-full h-full absolute inset-0 z-0 pointer-events-none opacity-50">
+            {host ? (
+                <Canvas
+                    eventSource={host}
+                    camera={{ position: [0, 0, 8], fov: 45 }}
+                    gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+                >
+                    <ambientLight intensity={0.2} />
+                    <pointLight position={[0, 0, 0]} intensity={2} color={getVaultColor()} />
+                    
+                    <VaultCore scrollDepth={scrollDepth} />
+                    <CameraController scrollDepth={scrollDepth} />
 
-                <SafeEffectComposer enableNormalPass={false} multisampling={0}>
-                    <Bloom 
-                        luminanceThreshold={0.2} 
-                        mipmapBlur 
-                        intensity={1.5} 
-                        radius={0.8} 
-                    />
-                    <ChromaticAberration 
-                        offset={new THREE.Vector2(0.002, 0.002)}
-                    />
-                </SafeEffectComposer>
-            </Canvas>
+                    <SafeEffectComposer enableNormalPass={false} multisampling={0}>
+                        <Bloom 
+                            luminanceThreshold={0.2} 
+                            mipmapBlur 
+                            intensity={1.5} 
+                            radius={0.8} 
+                        />
+                        <ChromaticAberration 
+                            offset={new THREE.Vector2(0.002, 0.002)}
+                        />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }

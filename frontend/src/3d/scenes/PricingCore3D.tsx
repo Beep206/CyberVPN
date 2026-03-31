@@ -10,6 +10,7 @@ import { TierLevel } from '@/widgets/pricing/pricing-dashboard';
 import { Vector2 } from 'three';
 import { PerformanceMonitor } from '@react-three/drei';
 import { useInView } from 'motion/react';
+import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
 import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib/seeded-random';
 
 // --- CONFIGURATION ---
@@ -143,46 +144,48 @@ function DataStreams({ hoveredTier }: { hoveredTier: TierLevel }) {
 
 // --- MAIN CANVAS COMPONENT ---
 export function PricingCore3D({ hoveredTier }: { hoveredTier: TierLevel }) {
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { containerRef, host, setHostRef } = useCanvasHost<HTMLDivElement>();
     // Pause rendering entirely when the component is off-screen (scrolled past)
     const isInView = useInView(containerRef, { margin: "200px" });
     const [dpr, setDpr] = useState(1); // Manage DPR dynamically
 
     return (
-        <div ref={containerRef} className="absolute inset-0 w-full h-full">
-            <Canvas 
-                eventSource={containerRef}
-                frameloop={isInView ? 'always' : 'never'}
-                camera={{ position: [0, 2, 8], fov: 45 }}
-                // Optimize GL context: false antialias, false alpha (since background is black), high-perf mode
-                gl={{ antialias: false, powerPreference: "high-performance", alpha: false }}
-                dpr={dpr}
-            >
-                {/* Dynamically scale down pixel ratio to preserve FPS on weak devices */}
-                <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1.5)} />
+        <div ref={setHostRef} className="absolute inset-0 w-full h-full">
+            {host ? (
+                <Canvas 
+                    eventSource={host}
+                    frameloop={isInView ? 'always' : 'never'}
+                    camera={{ position: [0, 2, 8], fov: 45 }}
+                    // Optimize GL context: false antialias, false alpha (since background is black), high-perf mode
+                    gl={{ antialias: false, powerPreference: "high-performance", alpha: false }}
+                    dpr={dpr}
+                >
+                    {/* Dynamically scale down pixel ratio to preserve FPS on weak devices */}
+                    <PerformanceMonitor onDecline={() => setDpr(0.75)} onIncline={() => setDpr(1.5)} />
 
-                <color attach="background" args={['#000000']} />
-                <fog attach="fog" args={['#000000', 5, 15]} />
-                
-                <ambientLight intensity={0.5} />
-                
-                <DataCrystal hoveredTier={hoveredTier} />
-                <DataStreams hoveredTier={hoveredTier} />
+                    <color attach="background" args={['#000000']} />
+                    <fog attach="fog" args={['#000000', 5, 15]} />
+                    
+                    <ambientLight intensity={0.5} />
+                    
+                    <DataCrystal hoveredTier={hoveredTier} />
+                    <DataStreams hoveredTier={hoveredTier} />
 
-                {/* Disable MSAA inside the composer for massive performance boost */}
-                <SafeEffectComposer multisampling={0}>
-                    <Bloom 
-                        luminanceThreshold={0.2}
-                        mipmapBlur
-                        intensity={1.5}
-                    />
-                    <ChromaticAberration
-                        blendFunction={BlendFunction.NORMAL}
-                        offset={new Vector2(0.002, 0.002)}
-                    />
-                    <Noise opacity={0.035} />
-                </SafeEffectComposer>
-            </Canvas>
+                    {/* Disable MSAA inside the composer for massive performance boost */}
+                    <SafeEffectComposer multisampling={0}>
+                        <Bloom 
+                            luminanceThreshold={0.2}
+                            mipmapBlur
+                            intensity={1.5}
+                        />
+                        <ChromaticAberration
+                            blendFunction={BlendFunction.NORMAL}
+                            offset={new Vector2(0.002, 0.002)}
+                        />
+                        <Noise opacity={0.035} />
+                    </SafeEffectComposer>
+                </Canvas>
+            ) : null}
         </div>
     );
 }
