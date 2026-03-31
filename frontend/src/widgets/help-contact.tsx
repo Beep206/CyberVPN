@@ -6,7 +6,7 @@ import { ScrambleText } from '@/shared/ui/scramble-text';
 
 export async function HelpContact({ locale: providedLocale }: { locale?: string } = {}) {
   const locale = providedLocale ?? await getLocale();
-  const t = await getTranslations('HelpCenter');
+  const t = await getTranslations({ locale, namespace: 'HelpCenter' });
 
   return (
     <section className="relative w-full overflow-hidden border border-neon-purple/30 bg-terminal-card/40 backdrop-blur-sm p-8 md:p-12 mb-20 rounded-xl group hover:border-neon-purple/60 transition-colors">

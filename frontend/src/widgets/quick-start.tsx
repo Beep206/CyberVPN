@@ -28,7 +28,7 @@ export async function QuickStart() {
       <div className="container mx-auto px-4 relative z-10 max-w-5xl flex flex-col items-center">
         <Reveal className="text-center mb-16">
           <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-matrix-green/30 bg-matrix-green/10 text-matrix-green text-sm font-mono tracking-widest uppercase">
-            Fast Track
+            {t('badge')}
           </div>
           <h2 className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-matrix-green to-neon-cyan mb-6">
             {t('title')}
@@ -80,19 +80,19 @@ export async function QuickStart() {
             </div>
             <div className="mx-auto font-mono text-xs text-muted-foreground uppercase flex items-center gap-2">
               <Terminal size={12} />
-              Deploy Connection
+              {t('terminalTitle')}
             </div>
           </div>
 
           <div className="p-6 font-mono text-sm md:text-base leading-relaxed relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-matrix-green/5 to-transparent pointer-events-none" />
-            <div className="text-muted-foreground mb-2"># Auto-provisioning VPN tunnel...</div>
+            <div className="text-muted-foreground mb-2">{t('terminalComment')}</div>
             <div className="flex items-center text-matrix-green mb-1">
               <span className="opacity-50 select-none mr-3">sys@admin:~$</span>
               <span className="break-all">curl -sL https://get.cybervpn.com | bash -s -- --protocol=vless-reality</span>
             </div>
             <div className="text-neon-cyan mt-4 animate-pulse">
-              {'>'} Tunnel Established. DPI bypassed. Securing transport...
+              {t('terminalStatus')}
             </div>
           </div>
         </Reveal>

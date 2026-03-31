@@ -12,10 +12,10 @@ export async function PublicTerminalHeader({
   locale,
   performanceMode = 'idle',
 }: PublicTerminalHeaderProps) {
-  const headerT = await getTranslations('Header');
-  const loginT = await getTranslations('Auth.login');
-  const registerT = await getTranslations('Auth.register');
-  const footerT = await getTranslations('Footer');
+  const headerT = await getTranslations({ locale, namespace: 'Header' });
+  const loginT = await getTranslations({ locale, namespace: 'Auth.login' });
+  const registerT = await getTranslations({ locale, namespace: 'Auth.register' });
+  const footerT = await getTranslations({ locale, namespace: 'Footer' });
 
   return (
     <header className="sticky top-0 z-30 border-b border-grid-line/50 bg-terminal-surface/95 backdrop-blur-xl shadow-sm transition-all dark:shadow-none">

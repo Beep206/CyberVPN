@@ -37,17 +37,17 @@ const FOOTER_LINKS = {
 } as const;
 
 const KNOWLEDGE_LINKS = [
-  { label: 'Guides', href: '/guides' },
-  { label: 'Compare', href: '/compare' },
-  { label: 'Devices', href: '/devices' },
-  { label: 'Trust center', href: '/trust' },
-  { label: 'Audits', href: '/audits' },
+  { labelKey: 'guides', href: '/guides' },
+  { labelKey: 'compare', href: '/compare' },
+  { labelKey: 'devices', href: '/devices' },
+  { labelKey: 'trust', href: '/trust' },
+  { labelKey: 'audits', href: '/audits' },
 ] as const;
 
 export async function Footer({ locale: providedLocale }: { locale?: string } = {}) {
   const locale = providedLocale ?? await getLocale();
-  const footerT = await getTranslations('Footer');
-  const headerT = await getTranslations('Header');
+  const footerT = await getTranslations({ locale, namespace: 'Footer' });
+  const headerT = await getTranslations({ locale, namespace: 'Header' });
 
   return (
     <footer className="relative w-full bg-terminal-bg border-t border-grid-line/50 overflow-hidden pt-16 pb-8">
@@ -112,7 +112,7 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
           <div className="lg:col-span-2 space-y-6">
             <h4 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <Terminal className="h-4 w-4 text-neon-purple" />
-              Product
+              {footerT('sections.product')}
             </h4>
             <ul className="space-y-3 font-mono text-sm">
               {FOOTER_LINKS.product.map((link) => (
@@ -131,7 +131,7 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
           <div className="lg:col-span-2 space-y-6">
             <h4 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <Cpu className="h-4 w-4 text-matrix-green" />
-              Support
+              {footerT('sections.support')}
             </h4>
             <ul className="space-y-3 font-mono text-sm">
               {FOOTER_LINKS.support.map((link) => (
@@ -148,7 +148,7 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
 
             <div className="border-t border-grid-line/20 pt-5">
               <div className="text-xs font-mono uppercase tracking-[0.3em] text-neon-purple">
-                Knowledge
+                {footerT('sections.knowledge')}
               </div>
               <ul className="mt-4 space-y-3 font-mono text-sm">
                 {KNOWLEDGE_LINKS.map((link) => (
@@ -162,7 +162,7 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-neon-purple opacity-0 scale-0 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300" />
                       <span className="transition-transform duration-300 group-hover:translate-x-1">
-                        {link.label}
+                        {footerT(`knowledgeLinks.${link.labelKey}`)}
                       </span>
                     </Link>
                   </li>
@@ -174,24 +174,24 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
           <div className="lg:col-span-4 space-y-6">
             <h4 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <Zap className="h-4 w-4 text-warning" />
-              Stay Connected
+              {footerT('sections.stayConnected')}
             </h4>
             <p className="text-muted-foreground font-mono text-sm">
-              Join our encrypted frequency. Get updates on server locations, security protocols, and zero-day patches.
+              {footerT('newsletter.description')}
             </p>
 
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-cyan rounded-lg opacity-30 group-hover:opacity-100 transition duration-500 blur group-hover:blur-md animate-gradient-x" />
               <div className="relative flex gap-2 p-1 bg-terminal-bg rounded-lg border border-grid-line/50">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground-low font-mono text-xs z-10 select-none">
-                  root@user:~$
+                  {footerT('newsletter.prompt')}
                 </span>
                 <Input
                   className="bg-transparent border-none text-foreground pl-32 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/30 font-mono h-10"
-                  placeholder="enter_email.exe"
+                  placeholder={footerT('newsletter.placeholder')}
                 />
                 <Button size="sm" className="bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan hover:text-black font-mono tracking-wider border border-neon-cyan/20 h-10 px-4 transition-all">
-                  <span className="mr-2">INIT</span>
+                  <span className="mr-2">{footerT('newsletter.cta')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -212,6 +212,7 @@ export async function Footer({ locale: providedLocale }: { locale?: string } = {
             encryptionLabel={headerT('encryptionLabel')}
             encryptionValue={headerT('encryptionValue')}
             integrity={headerT('integrity')}
+            operationalStatus={footerT('operationalStatus')}
             systemLabel={headerT('systemLabel')}
             year={COPYRIGHT_YEAR}
           />

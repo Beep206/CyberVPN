@@ -39,26 +39,26 @@ export async function LandingTechnical() {
   const techSpecs: TechDataItem[] = [
     {
       id: 'enc',
-      label: 'Encryption',
+      label: t('technical.labels.encryption'),
       value: t('tech_specs.encryption').split(': ')[1] || 'ChaCha20-Poly1305 / AES-128-GCM',
     },
     {
       id: 'trans',
-      label: 'Transport',
+      label: t('technical.labels.transport'),
       value: t('tech_specs.transport').split(': ')[1] || 'XHTTP (Next-Gen), gRPC, Reality-TCP',
     },
     {
       id: 'net',
-      label: 'Network',
+      label: t('technical.labels.network'),
       value: t('tech_specs.network').split(': ')[1] || '10Gbps Uplinks, Global IPv6 Support',
     },
   ];
 
   const networkStats: TechDataItem[] = [
-    { id: 'bw', label: 'Bandwidth', value: t('network_stats.bandwidth'), scramble: true },
-    { id: 'nodes', label: 'Active Nodes', value: t('network_stats.nodes'), scramble: true },
-    { id: 'cov', label: 'Coverage', value: t('network_stats.coverage'), scramble: true },
-    { id: 'uptime', label: 'Network Availability', value: t('network_stats.uptime'), scramble: true },
+    { id: 'bw', label: t('technical.networkLabels.bandwidth'), value: t('network_stats.bandwidth'), scramble: true },
+    { id: 'nodes', label: t('technical.networkLabels.nodes'), value: t('network_stats.nodes'), scramble: true },
+    { id: 'cov', label: t('technical.networkLabels.coverage'), value: t('network_stats.coverage'), scramble: true },
+    { id: 'uptime', label: t('technical.networkLabels.uptime'), value: t('network_stats.uptime'), scramble: true },
   ];
 
   return (
@@ -83,7 +83,7 @@ export async function LandingTechnical() {
         <Reveal className="mb-24 text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neon-purple/30 bg-neon-purple/10 text-neon-purple text-xs font-mono mb-6 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-neon-purple animate-pulse" />
-            ANTI-DPI ENGINE
+            {t('how_it_works.badge')}
           </div>
           <h2 className="text-4xl md:text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-purple via-neon-cyan to-neon-purple mb-6 pb-2">
             {t('how_it_works.title')}
@@ -121,7 +121,7 @@ export async function LandingTechnical() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                 </span>
-                LIVE
+                {t('status_board.live')}
               </div>
             </div>
             <div className="grid gap-5">
@@ -132,7 +132,7 @@ export async function LandingTechnical() {
           </Reveal>
 
           <div className="lg:col-span-7 flex flex-col gap-10">
-            <TechDataGrid title="Technical Specifications" items={techSpecs} columns={1} />
+            <TechDataGrid title={t('technical.specificationsTitle')} items={techSpecs} columns={1} />
             <TechDataGrid title={t('network_stats.title')} items={networkStats} columns={2} />
           </div>
         </div>
