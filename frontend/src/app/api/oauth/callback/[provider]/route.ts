@@ -17,6 +17,7 @@ import {
   pendingTwoFactorCookieOptions,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
+import { buildAppUrl } from '@/features/auth/lib/request-origin';
 import { getDefaultPostLoginPath, normalizeAuthLocale } from '@/features/auth/lib/redirect-path';
 import {
   oauthResultCookieOptions,
@@ -61,7 +62,7 @@ function buildLoginErrorUrl(
   errorCode: string,
   provider: string | null = null,
 ): URL {
-  const loginUrl = new URL(`/${locale}/login`, request.url);
+  const loginUrl = buildAppUrl(request, `/${locale}/login`);
   loginUrl.searchParams.set('oauth_error', errorCode);
   if (provider) {
     loginUrl.searchParams.set(OAUTH_PROVIDER_QUERY_PARAM, provider);
@@ -187,10 +188,10 @@ export async function GET(
   }
 
   const defaultReturnTo = getDefaultPostLoginPath(locale);
-  const targetUrl = new URL(transaction.returnTo, request.url);
+  const targetUrl = buildAppUrl(request, transaction.returnTo);
 
   if (payload.requires_2fa && payload.tfa_token) {
-    const loginUrl = new URL(`/${locale}/login`, request.url);
+    const loginUrl = buildAppUrl(request, `/${locale}/login`);
     loginUrl.searchParams.set('2fa', 'true');
     loginUrl.searchParams.set(OAUTH_PROVIDER_QUERY_PARAM, provider);
     const response = finalizeRedirectResponse(loginUrl);

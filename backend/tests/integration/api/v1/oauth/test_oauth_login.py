@@ -70,6 +70,16 @@ def _rate_limit_fail_open():
 
 
 @pytest.fixture(autouse=True)
+def _disable_rate_limit_middleware_for_route_contract_tests(monkeypatch):
+    """Keep these tests focused on OAuth contract assertions, not Redis event-loop quirks."""
+
+    async def passthrough(self, request, call_next):
+        return await call_next(request)
+
+    monkeypatch.setattr(RateLimitMiddleware, "dispatch", passthrough)
+
+
+@pytest.fixture(autouse=True)
 def _reset_circuit_breaker():
     """Avoid cross-test leakage from the shared rate-limit circuit breaker."""
     cb = RateLimitMiddleware._circuit_breaker
@@ -264,6 +274,10 @@ class TestOAuthLoginRoutes:
     ):
         with (
             patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers",
+                ["google", "github", "discord", "facebook"],
+            ),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
                 new=AsyncMock(return_value={"validated": True}),

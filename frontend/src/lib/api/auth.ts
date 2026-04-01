@@ -3,7 +3,8 @@ import type { AxiosResponse } from 'axios';
 
 // Request interfaces
 export interface LoginRequest {
-  email: string;
+  login_or_email?: string;
+  email?: string;
   password: string;
   remember_me?: boolean;
 }
@@ -230,7 +231,11 @@ export const authApi = {
    * POST /api/v1/auth/login
    */
   login: (data: LoginRequest) =>
-    apiClient.post<TokenResponse>('/auth/login', data),
+    apiClient.post<TokenResponse>('/auth/login', {
+      login_or_email: data.login_or_email ?? data.email ?? '',
+      password: data.password,
+      remember_me: data.remember_me,
+    }),
 
   /**
    * Register new user with email and password

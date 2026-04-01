@@ -185,4 +185,27 @@ describe('GET /api/oauth/callback/[provider]', () => {
     expect(location.searchParams.get('oauth_error')).toBe('provider_denied');
     expect(location.searchParams.get(OAUTH_PROVIDER_QUERY_PARAM)).toBe('github');
   });
+
+  it('uses forwarded host headers for proxied callback redirects', async () => {
+    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const request = new NextRequest(
+      'http://0.0.0.0:9001/api/oauth/callback/google?error=access_denied',
+      {
+        headers: new Headers({
+          host: '0.0.0.0:9001',
+          'x-forwarded-host': 'vpn.ozoxy.ru',
+          'x-forwarded-proto': 'https',
+        }),
+      },
+    );
+    request.cookies.set(OAUTH_TRANSACTION_COOKIE, transaction.cookieValue);
+
+    const response = await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    expect(response.headers.get('location')).toBe(
+      'https://vpn.ozoxy.ru/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
+    );
+  });
 });

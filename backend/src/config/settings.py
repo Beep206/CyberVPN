@@ -188,6 +188,21 @@ class Settings(BaseSettings):
         stripped = v.strip()
         return stripped or None
 
+    @field_validator("debug", mode="before")
+    @classmethod
+    def normalize_debug_value(cls, v: bool | str | None) -> bool | str | None:
+        """Accept common host-environment variants instead of crashing startup."""
+        if not isinstance(v, str):
+            return v
+
+        normalized = v.strip().lower()
+        if normalized in {"release", "prod", "production"}:
+            return False
+        if normalized in {"debug", "dev", "development"}:
+            return True
+
+        return v
+
     @field_validator("oauth_web_base_url", mode="before")
     @classmethod
     def normalize_oauth_web_base_url(cls, v: str | None) -> str:

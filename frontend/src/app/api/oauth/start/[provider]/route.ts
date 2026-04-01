@@ -10,6 +10,7 @@ import {
   OAUTH_TRANSACTION_COOKIE,
   oauthTransactionCookieOptions,
 } from '@/features/auth/lib/oauth-transaction';
+import { buildAppUrl } from '@/features/auth/lib/request-origin';
 import { normalizeAuthLocale } from '@/features/auth/lib/redirect-path';
 
 function getBackendBaseUrl(): string {
@@ -49,7 +50,7 @@ function buildLoginErrorUrl(
   errorCode: string,
   provider: string | null = null,
 ): URL {
-  const loginUrl = new URL(`/${locale}/login`, request.url);
+  const loginUrl = buildAppUrl(request, `/${locale}/login`);
   loginUrl.searchParams.set('oauth_error', errorCode);
   if (provider) {
     loginUrl.searchParams.set(OAUTH_PROVIDER_QUERY_PARAM, provider);
