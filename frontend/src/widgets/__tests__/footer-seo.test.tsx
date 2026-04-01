@@ -60,6 +60,13 @@ describe('Footer SEO links', () => {
       '/audits',
     );
 
+    expect(screen.getByRole('img', { name: 'Visa' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Mastercard' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'MIR' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'USDT' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'American Express' })).toBeInTheDocument();
+    expect(screen.queryByText('newsletter.description')).not.toBeInTheDocument();
+
     expect(screen.getByRole('link', { name: 'links.privacy' })).toHaveAttribute(
       'href',
       '/privacy',

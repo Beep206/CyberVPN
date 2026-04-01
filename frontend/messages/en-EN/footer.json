@@ -4,6 +4,7 @@
         "product": "Product",
         "support": "Support",
         "knowledge": "Knowledge",
+        "paymentMethods": "Payment methods",
         "stayConnected": "Stay Connected"
     },
     "knowledgeLinks": {
