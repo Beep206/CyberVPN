@@ -1,14 +1,19 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.domain.enums import AdminRole
 from src.shared.validators.password import validate_password_strength
 
 
 class LoginRequest(BaseModel):
-    login_or_email: str = Field(..., min_length=1, max_length=255)
+    login_or_email: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("login_or_email", "email"),
+    )
     password: str = Field(..., min_length=1, max_length=255)
 
 

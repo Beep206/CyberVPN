@@ -163,18 +163,20 @@ export const authHandlers = [
    */
   http.post(`${API_BASE}/auth/login`, async ({ request }) => {
     const body = (await request.json()) as {
+      login_or_email?: string;
       email?: string;
       password?: string;
     };
+    const loginOrEmail = body.login_or_email ?? body.email;
 
-    if (!body.email || !body.password) {
+    if (!loginOrEmail || !body.password) {
       return HttpResponse.json(
-        { detail: 'Email and password are required' },
+        { detail: 'Login/email and password are required' },
         { status: 422 },
       );
     }
 
-    if (body.email === 'banned@cybervpn.io') {
+    if (loginOrEmail === 'banned@cybervpn.io') {
       return HttpResponse.json(
         { detail: 'Account is disabled' },
         { status: 403 },

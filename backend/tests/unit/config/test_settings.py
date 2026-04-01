@@ -51,6 +51,7 @@ class TestWeakSecretPatterns:
             jwt_secret=SecretStr(self.STRONG_SECRET),
             remnawave_token=SecretStr(self.VALID_TOKEN),
             cryptobot_token=SecretStr(self.VALID_TOKEN),
+            oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
         )
         assert settings.jwt_secret.get_secret_value() == self.STRONG_SECRET
 
@@ -95,3 +96,15 @@ class TestWeakSecretPatterns:
             "placeholder",
         }
         assert Settings.WEAK_SECRET_PATTERNS == expected_patterns
+
+    def test_debug_release_string_normalizes_to_false(self) -> None:
+        """Host-level DEBUG=release should not crash app startup."""
+        settings = Settings(
+            environment="development",
+            debug="release",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+        )
+
+        assert settings.debug is False

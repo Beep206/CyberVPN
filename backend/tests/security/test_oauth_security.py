@@ -189,11 +189,15 @@ class TestOAuthLoginProviderAvailability:
 
         assert _is_oauth_login_provider_enabled("apple") is False
 
-    def test_facebook_provider_is_enabled_for_login(self):
-        """Facebook is part of the active login provider set."""
+    def test_provider_enablement_follows_rollout_configuration(self):
+        """Provider availability must respect the active rollout allowlist."""
         from src.presentation.api.v1.oauth.routes import _is_oauth_login_provider_enabled
 
-        assert _is_oauth_login_provider_enabled("facebook") is True
+        with patch("src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers", ["facebook"]):
+            assert _is_oauth_login_provider_enabled("facebook") is True
+
+        with patch("src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers", ["google"]):
+            assert _is_oauth_login_provider_enabled("facebook") is False
 
 
 class TestOAuthTokenRetentionPolicy:

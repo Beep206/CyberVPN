@@ -157,7 +157,27 @@ describe('authApi.login', () => {
 
     // Assert
     expect(capturedBody).not.toBeNull();
+    expect(capturedBody!.login_or_email).toBe('user@cybervpn.io');
     expect(capturedBody!.remember_me).toBe(true);
+  });
+
+  it('test_login_accepts_explicit_login_or_email_identifier', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/auth/login`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(MOCK_TOKENS);
+      }),
+    );
+
+    await authApi.login({
+      login_or_email: 'neo',
+      password: 'correct_password',
+    });
+
+    expect(capturedBody).not.toBeNull();
+    expect(capturedBody!.login_or_email).toBe('neo');
+    expect(capturedBody!.email).toBeUndefined();
   });
 });
 

@@ -118,4 +118,29 @@ describe('GET /api/oauth/start/[provider]', () => {
     expect(location.searchParams.get('oauth_error')).toBe('oauth_start_failed');
     expect(location.searchParams.get(OAUTH_PROVIDER_QUERY_PARAM)).toBe('google');
   });
+
+  it('builds local error redirects from forwarded host headers behind a proxy', async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(null, { status: 503 }),
+    ) as typeof fetch;
+
+    const request = new NextRequest(
+      'http://0.0.0.0:9001/api/oauth/start/google?locale=ru-RU&return_to=%2Fru-RU%2Fdashboard',
+      {
+        headers: new Headers({
+          host: '0.0.0.0:9001',
+          'x-forwarded-host': 'vpn.ozoxy.ru',
+          'x-forwarded-proto': 'https',
+        }),
+      },
+    );
+
+    const response = await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    expect(response.headers.get('location')).toBe(
+      'https://vpn.ozoxy.ru/ru-RU/login?oauth_error=oauth_start_failed&oauth_provider=google',
+    );
+  });
 });
