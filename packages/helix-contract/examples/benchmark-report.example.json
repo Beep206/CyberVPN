@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "report_id": "ba8e5727-6af1-4cfd-ae61-392023eb810e",
+  "generated_at": "2026-03-31T11:00:00Z",
+  "environment": {
+    "channel": "lab",
+    "node_group": "prod-like",
+    "region": "eu-west",
+    "network_profile": "clean"
+  },
+  "baseline": {
+    "transport": "vless",
+    "connect_success_rate": 0.998,
+    "median_connect_ms": 1120,
+    "p95_connect_ms": 1680,
+    "throughput_mbps": 92.4,
+    "unexpected_disconnect_rate": 0.002
+  },
+  "candidate": {
+    "transport": "helix",
+    "connect_success_rate": 0.999,
+    "median_connect_ms": 1140,
+    "p95_connect_ms": 1710,
+    "throughput_mbps": 90.2,
+    "unexpected_disconnect_rate": 0.001
+  },
+  "deltas": {
+    "median_connect_ratio": 1.0179,
+    "p95_connect_ratio": 1.0179,
+    "throughput_ratio": 0.9758,
+    "fallback_rate": 0.004,
+    "pass": true
+  },
+  "notes": [
+    "Candidate stayed within clean-network promotion thresholds.",
+    "No unexpected rollback events observed during the benchmark window."
+  ]
+}

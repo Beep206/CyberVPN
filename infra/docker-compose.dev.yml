@@ -26,6 +26,14 @@ services:
     environment:
       - LOG_LEVEL=DEBUG
 
+  helix-adapter:
+    environment:
+      - LOG_LEVEL=debug
+
+  helix-node-lab:
+    environment:
+      - LOG_LEVEL=debug
+
   grafana:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true

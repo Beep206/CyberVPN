@@ -25,7 +25,7 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
             "quit" => {
                 let state = app.state::<AppState>();
                 // Safely block and stop the sing-box process
-                tokio::runtime::Handle::current().block_on(async {
+                tauri::async_runtime::block_on(async {
                     if let Err(e) = state.process_manager.stop().await {
                         eprintln!("Failed to stop process manager on quit: {}", e);
                     }
@@ -43,7 +43,7 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
                 // We will implement this safely using Rust async patterns.
                 let app_handle = app.clone();
 
-                tokio::spawn(async move {
+                tauri::async_runtime::spawn(async move {
                     let state = app_handle.state::<AppState>();
                     // Extract connection info without holding lock across awaits
                     let (status_str, active_id) = {
@@ -63,8 +63,14 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
                         // For the tray toggle, we could just read the last used tun_mode or default to false.
                         // Let's modify the standard command to accept the previous state.
                         // For now we'll pass false, or look it up if persisted.
-                        let _ =
-                            crate::ipc::connect_profile(id, false, false, app_handle.clone(), state).await;
+                        let _ = crate::ipc::connect_profile(
+                            id,
+                            false,
+                            false,
+                            app_handle.clone(),
+                            state,
+                        )
+                        .await;
                     } else {
                         // Attempt to connect the first profile if no active_id
                         if let Ok(profiles) = crate::engine::store::load_store(&app_handle) {

@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "transport_profile_id": "ptp-canary-edge-v3",
+  "channel": "canary",
+  "profile_family": "edge-hybrid",
+  "profile_version": 3,
+  "policy_version": 7,
+  "protocol_version": 1,
+  "session_mode": "hybrid",
+  "status": "active",
+  "fallback_core": "sing-box",
+  "required_capabilities": [
+    "protocol.v1",
+    "fallback.auto",
+    "sidecar.sigverify",
+    "profile.edge-hybrid"
+  ],
+  "compatibility_window": {
+    "min_transport_profile_version": 2,
+    "max_transport_profile_version": 4
+  },
+  "runtime_tunables": {
+    "startup_timeout_seconds": 20,
+    "runtime_unhealthy_threshold": 3
+  }
+}

@@ -1,14 +1,14 @@
 use crate::engine::error::AppError;
-pub mod apps;
-pub mod net;
-pub mod discovery;
-pub mod sentinel;
-pub mod sync;
 pub mod adblock;
-pub mod net_monitor;
+pub mod apps;
 pub mod diagnostics;
-pub mod stats;
+pub mod discovery;
+pub mod net;
+pub mod net_monitor;
 pub mod remote_control;
+pub mod sentinel;
+pub mod stats;
+pub mod sync;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;
@@ -98,21 +98,23 @@ pub fn elevate_and_run(
     // arguments: run -c config_path
     let mut args_string = String::from("run -c \"");
     args_string.push_str(&config_path.to_string_lossy());
-    args_string.push_str("\"");
+    args_string.push('"');
     let args: Vec<u16> = std::ffi::OsStr::new(&args_string)
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
 
-    let mut info = SHELLEXECUTEINFOW::default();
-    info.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
     // We intentionally don't capture hProcess here since we can't easily integrate it with Tokio
-    // and we will rely on checking if `sing-box` is running via name later or closing it directly.
-    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
-    info.lpVerb = windows::core::PCWSTR::from_raw(verb.as_ptr());
-    info.lpFile = windows::core::PCWSTR::from_raw(file.as_ptr());
-    info.lpParameters = windows::core::PCWSTR::from_raw(args.as_ptr());
-    info.nShow = SW_HIDE.0 as i32;
+    // and we will rely on checking if the elevated binary is running via name later or closing it directly.
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
+        lpVerb: windows::core::PCWSTR::from_raw(verb.as_ptr()),
+        lpFile: windows::core::PCWSTR::from_raw(file.as_ptr()),
+        lpParameters: windows::core::PCWSTR::from_raw(args.as_ptr()),
+        nShow: SW_HIDE.0,
+        ..Default::default()
+    };
 
     // SAFETY: We initialize a valid SHELLEXECUTEINFOW structure.
     // Pointers are valid and point to null-terminated UTF-16 strings within the same scope.

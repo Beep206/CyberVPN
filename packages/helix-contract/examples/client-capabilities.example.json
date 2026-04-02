@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.1",
+  "client_family": "desktop-tauri",
+  "client_version": "v0.1.0",
+  "platform": {
+    "os": "windows",
+    "arch": "x64"
+  },
+  "supported_protocol_versions": [
+    1
+  ],
+  "supported_transport_profiles": [
+    {
+      "profile_family": "edge-hybrid",
+      "min_transport_profile_version": 2,
+      "max_transport_profile_version": 4,
+      "supported_policy_versions": [
+        6,
+        7
+      ]
+    },
+    {
+      "profile_family": "edge-stateful",
+      "min_transport_profile_version": 1,
+      "max_transport_profile_version": 2,
+      "supported_policy_versions": [
+        3
+      ]
+    }
+  ],
+  "features": {
+    "helix_enabled": true,
+    "automatic_fallback": true,
+    "sidecar_signature_verification": true
+  },
+  "fallback_cores": [
+    "sing-box",
+    "xray"
+  ],
+  "rollout_channels": [
+    "lab",
+    "canary"
+  ]
+}

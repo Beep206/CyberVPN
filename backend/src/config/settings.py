@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     remnawave_url: str = "http://localhost:3000"
     remnawave_token: SecretStr
 
+    # Helix adapter
+    helix_enabled: bool = False
+    helix_admin_enabled: bool = False
+    helix_adapter_url: str = "http://localhost:8090"
+    helix_adapter_token: SecretStr = SecretStr("")
+    helix_default_channel: str = "lab"
+
     # JWT
     jwt_secret: SecretStr
     jwt_algorithm: str = "HS256"

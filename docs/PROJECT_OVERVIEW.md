@@ -32,6 +32,8 @@
 - **Telegram Bot** — основной канал взаимодействия с пользователями, продажа подписок, выдача VPN-конфигураций
 - **Task Worker** — фоновый обработчик задач (синхронизация серверов, проверка платежей, уведомления)
 - **Mobile App** — кроссплатформенное мобильное приложение на Flutter с встроенным VPN-клиентом
+- **Helix** — desktop-first приватный transport stack с отдельными adapter/node/runtime слоями поверх модели, где Remnawave остаётся authoritative
+- **Helix Platform** — desktop-first private transport stack с adapter, node daemon, backend facade и desktop runtime
 
 ### Структура монорепозитория
 
@@ -119,6 +121,12 @@ VPNBussiness/
          │
          ▼
 ┌──────────────────┐
+│  Helix Adapter   │  ← control-plane для private desktop transport
+│  + Helix Nodes   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
 │  Remnawave API   │  ← VPN-бэкенд (управление нодами, конфигами, пользователями)
 │  (порт 3000)     │
 └──────────────────┘
@@ -129,6 +137,16 @@ VPNBussiness/
 │  (10+ локаций)   │
 └──────────────────┘
 ```
+
+### Helix в архитектуре
+
+`Helix` расширяет платформу отдельным desktop-first transport stack и не заменяет `Remnawave`
+как источник истины по пользователям, подпискам и инвентарю нод.
+
+- `services/helix-adapter` — manifests, rollout policy, canary evidence, automatic actuation
+- `services/helix-node` — node daemon с health-gated apply и rollback на last-known-good
+- `backend` — authenticated facade для desktop и admin control flows
+- `apps/desktop-client` — embedded Helix runtime, diagnostics, perf lab, fallback на stable cores
 
 ### Backend: Clean Architecture + DDD
 
@@ -145,6 +163,16 @@ backend/src/
 ```
 
 **Ключевой принцип:** Domain-слой не импортирует ничего из FastAPI, SQLAlchemy или httpx. Все зависимости направлены внутрь (Dependency Inversion).
+
+### Helix: desktop-first private transport
+
+`Helix` добавляет в платформу отдельный transport stack без модификации `Remnawave` как источника истины:
+
+- `services/helix-adapter` — хранит service-owned rollout state, manifests, canary evidence и policy reaction
+- `services/helix-node` — применяет versioned bundles, health-gated config apply и rollback
+- `backend/src/presentation/api/v1/helix` — authenticated facade для desktop и admin flows
+- `apps/desktop-client/src-tauri/src/engine/helix` — desktop runtime, diagnostics, benchmarks, failover и continuity
+- `packages/helix-runtime` — data-plane runtime и multiplexed transport session engine
 
 ### Frontend: Feature-Sliced Design + Atomic Design
 

@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/benchmark-report.schema.json",
+  "title": "Helix Benchmark Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "generated_at",
+    "environment",
+    "baseline",
+    "candidate",
+    "deltas"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "report_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel",
+        "node_group",
+        "region",
+        "network_profile"
+      ],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": [
+            "lab",
+            "canary",
+            "stable"
+          ]
+        },
+        "node_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "network_profile": {
+          "type": "string",
+          "enum": [
+            "clean",
+            "challenged"
+          ]
+        }
+      }
+    },
+    "baseline": {
+      "$ref": "#/$defs/performance"
+    },
+    "candidate": {
+      "$ref": "#/$defs/performance"
+    },
+    "deltas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "median_connect_ratio",
+        "p95_connect_ratio",
+        "throughput_ratio",
+        "fallback_rate",
+        "pass"
+      ],
+      "properties": {
+        "median_connect_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_connect_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "throughput_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fallback_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pass": {
+          "type": "boolean"
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "connect_success_rate",
+        "median_connect_ms",
+        "p95_connect_ms",
+        "throughput_mbps",
+        "unexpected_disconnect_rate"
+      ],
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": [
+            "vless",
+            "xhttp",
+            "helix"
+          ]
+        },
+        "connect_success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "median_connect_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p95_connect_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "throughput_mbps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unexpected_disconnect_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

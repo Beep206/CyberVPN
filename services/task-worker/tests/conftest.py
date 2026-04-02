@@ -27,6 +27,11 @@ def mock_settings_for_imports():
     # External Services
     settings.remnawave_url = "http://localhost:3000"
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
+    settings.helix_enabled = True
+    settings.helix_adapter_url = "http://localhost:8090"
+    settings.helix_adapter_token.get_secret_value.return_value = (
+        "helix-token"
+    )
 
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
@@ -45,6 +50,16 @@ def mock_settings_for_imports():
 
     # Health Check Configuration
     settings.health_check_interval_seconds = 120
+    settings.helix_stale_heartbeat_seconds = 180
+    settings.helix_rollback_alert_threshold = 1
+    settings.helix_rollout_min_connect_success_rate = 0.95
+    settings.helix_rollout_max_fallback_rate = 0.05
+    settings.helix_alert_state_ttl_seconds = 3600
+    settings.helix_actuation_escalation_seconds = 900
+    settings.helix_canary_min_connect_success_rate = 0.98
+    settings.helix_canary_max_fallback_rate = 0.03
+    settings.helix_canary_min_continuity_observations = 5
+    settings.helix_canary_require_throughput_evidence = True
 
     # Cleanup Configuration
     settings.cleanup_audit_retention_days = 90
@@ -78,6 +93,11 @@ def mock_settings():
     # External Services
     settings.remnawave_url = "http://localhost:3000"
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
+    settings.helix_enabled = True
+    settings.helix_adapter_url = "http://localhost:8090"
+    settings.helix_adapter_token.get_secret_value.return_value = (
+        "helix-token"
+    )
 
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
@@ -96,6 +116,16 @@ def mock_settings():
 
     # Health Check Configuration
     settings.health_check_interval_seconds = 120
+    settings.helix_stale_heartbeat_seconds = 180
+    settings.helix_rollback_alert_threshold = 1
+    settings.helix_rollout_min_connect_success_rate = 0.95
+    settings.helix_rollout_max_fallback_rate = 0.05
+    settings.helix_alert_state_ttl_seconds = 3600
+    settings.helix_actuation_escalation_seconds = 900
+    settings.helix_canary_min_connect_success_rate = 0.98
+    settings.helix_canary_max_fallback_rate = 0.03
+    settings.helix_canary_min_continuity_observations = 5
+    settings.helix_canary_require_throughput_evidence = True
 
     # Cleanup Configuration
     settings.cleanup_audit_retention_days = 90
@@ -234,16 +264,20 @@ async def mock_cryptobot():
     client.__aexit__ = AsyncMock(return_value=False)
 
     # API methods
-    client.create_invoice = AsyncMock(return_value={
-        "invoice_id": 1,
-        "pay_url": "https://pay.test/1",
-        "status": "active",
-    })
+    client.create_invoice = AsyncMock(
+        return_value={
+            "invoice_id": 1,
+            "pay_url": "https://pay.test/1",
+            "status": "active",
+        }
+    )
     client.get_invoices = AsyncMock(return_value=[])
-    client.get_invoice = AsyncMock(return_value={
-        "invoice_id": 1,
-        "status": "paid",
-    })
+    client.get_invoice = AsyncMock(
+        return_value={
+            "invoice_id": 1,
+            "status": "paid",
+        }
+    )
 
     return client
 

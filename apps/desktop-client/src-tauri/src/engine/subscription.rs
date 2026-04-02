@@ -132,7 +132,7 @@ pub async fn fetch_and_parse_subscription(url: &str) -> Result<Vec<ProxyNode>, A
                             plugin_opts: None,
                             tls_fragment: None,
                             tls_record_fragment: None,
-                    pqc_enabled: None,
+                            pqc_enabled: None,
                         });
                     }
                     _ => continue,

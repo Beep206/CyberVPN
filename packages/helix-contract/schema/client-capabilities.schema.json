@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/client-capabilities.schema.json",
+  "title": "Helix Client Capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "client_family",
+    "client_version",
+    "platform",
+    "supported_protocol_versions",
+    "supported_transport_profiles",
+    "features",
+    "fallback_cores",
+    "rollout_channels"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1"
+    },
+    "client_family": {
+      "const": "desktop-tauri"
+    },
+    "client_version": {
+      "type": "string",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "arch"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "enum": [
+            "windows",
+            "macos",
+            "linux"
+          ]
+        },
+        "arch": {
+          "type": "string",
+          "enum": [
+            "x64",
+            "arm64"
+          ]
+        }
+      }
+    },
+    "supported_protocol_versions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "supported_transport_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_family",
+          "min_transport_profile_version",
+          "max_transport_profile_version",
+          "supported_policy_versions"
+        ],
+        "properties": {
+          "profile_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "min_transport_profile_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_transport_profile_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "supported_policy_versions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "helix_enabled",
+        "automatic_fallback",
+        "sidecar_signature_verification"
+      ],
+      "properties": {
+        "helix_enabled": {
+          "type": "boolean"
+        },
+        "automatic_fallback": {
+          "type": "boolean"
+        },
+        "sidecar_signature_verification": {
+          "type": "boolean"
+        }
+      }
+    },
+    "fallback_cores": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "sing-box",
+          "xray"
+        ]
+      }
+    },
+    "rollout_channels": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "lab",
+          "canary",
+          "stable"
+        ]
+      }
+    }
+  }
+}

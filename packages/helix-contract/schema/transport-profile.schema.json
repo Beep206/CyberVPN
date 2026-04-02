@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/transport-profile.schema.json",
+  "title": "Helix Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "transport_profile_id",
+    "channel",
+    "profile_family",
+    "profile_version",
+    "policy_version",
+    "protocol_version",
+    "session_mode",
+    "status",
+    "fallback_core",
+    "required_capabilities",
+    "compatibility_window",
+    "runtime_tunables"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "transport_profile_id": {
+      "type": "string",
+      "pattern": "^ptp-[a-z0-9-]+$"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "lab",
+        "canary",
+        "stable"
+      ]
+    },
+    "profile_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policy_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "protocol_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "session_mode": {
+      "type": "string",
+      "enum": [
+        "stateful",
+        "hybrid"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "deprecated",
+        "revoked"
+      ]
+    },
+    "fallback_core": {
+      "type": "string",
+      "enum": [
+        "sing-box",
+        "xray"
+      ]
+    },
+    "required_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "compatibility_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_transport_profile_version",
+        "max_transport_profile_version"
+      ],
+      "properties": {
+        "min_transport_profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_transport_profile_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "runtime_tunables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startup_timeout_seconds",
+        "runtime_unhealthy_threshold"
+      ],
+      "properties": {
+        "startup_timeout_seconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 120
+        },
+        "runtime_unhealthy_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      }
+    }
+  }
+}

@@ -19,6 +19,7 @@ from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.partners.routes import router as partners_router
 from src.presentation.api.v1.payments.routes import router as payments_router
 from src.presentation.api.v1.plans.routes import router as plans_router
+from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.profile.routes import router as profile_router
 from src.presentation.api.v1.promo_codes.routes import router as promo_codes_router
 from src.presentation.api.v1.referral.routes import router as referral_router
@@ -58,6 +59,7 @@ api_router.include_router(notifications_router)
 api_router.include_router(servers_router)
 api_router.include_router(subscriptions_router)
 api_router.include_router(plans_router)
+api_router.include_router(helix_router)
 api_router.include_router(usage_router)
 api_router.include_router(trial_router)
 

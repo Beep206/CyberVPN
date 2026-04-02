@@ -196,6 +196,106 @@ echo $TELEGRAM_BOT_TOKEN | head -c 20
 - Update TELEGRAM_BOT_TOKEN environment variable
 - Restart backend service
 
+## Helix Transport Incidents
+
+### 11. Helix Canary No-Go Or Applied Pause
+
+**Symptoms:**
+- Helix canary evidence returns `no-go`
+- rollout shows `applied_automatic_reaction = pause-channel`
+- worker emits Helix canary/control alerts
+
+**Investigation:**
+
+1. Fetch rollout state:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>
+Authorization: Bearer <operator_token>
+```
+
+2. Fetch formal canary evidence:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>/canary-evidence
+Authorization: Bearer <operator_token>
+```
+
+3. Check latest worker alerts for:
+- `recommended_follow_up_action`
+- `throughput ratio`
+- `open->first-byte gap ratio`
+- `continuity success`
+
+**Response:**
+
+1. Keep the channel paused for new Helix sessions
+2. Approve a healthier replacement profile or keep the rollout in canary-only watch mode
+3. Re-run canary evidence after the corrective action
+
+### 12. Helix Desktop Fallback Spike
+
+**Symptoms:**
+- sudden rise in Helix desktop fallback events
+- support bundles show sidecar recovery or readiness failures
+
+**Investigation:**
+
+1. Check Helix runtime events and canary evidence
+2. Review the `CyberVPN Helix` Grafana dashboard
+3. Collect recent desktop support bundles from affected internal users
+
+**Response:**
+
+1. Freeze rollout widening
+2. If the fallback spike is sustained, pause the affected channel
+3. Compare fallback reasons against the current active profile and route policy
+
+### 13. Helix Node Rollback Storm
+
+**Symptoms:**
+- Helix node rollback counters increase
+- rollout health shows rolled-back nodes
+
+**Investigation:**
+
+1. Check lab/ops stack:
+```bash
+bash infra/tests/test_helix_stack.sh
+```
+
+2. Verify rollback artifacts:
+```bash
+bash infra/tests/verify_helix_rollback.sh
+```
+
+3. Inspect node metrics:
+- `helix_node_rollback_total`
+- `helix_node_runtime_healthy`
+
+**Response:**
+
+1. Pause the affected rollout channel if rollbacks are not converging
+2. Confirm last-known-good restore is being used on nodes
+3. Re-bootstrap the lab stack before widening exposure again
+
+### 14. Helix Manifest Signing Or Internal Auth Failure
+
+**Symptoms:**
+- manifest resolution fails suddenly
+- adapter internal calls start returning auth errors
+- new Helix manifests cannot be issued
+
+**Investigation:**
+
+1. Check recent Helix secret changes in `infra/.env`
+2. Verify current key ID and internal token rollout state
+3. Compare adapter/backend/worker configuration versions
+
+**Response:**
+
+1. Rotate or restore the affected Helix secret using [secret-rotation.md](/C:/project/CyberVPN/docs/secret-rotation.md)
+2. Restart affected Helix services in dependency order
+3. Keep stable cores available and pause Helix exposure if manifest issuance is degraded
+
 ## Rate Limiting Incidents
 
 ### 8. Legitimate Traffic Being Rate Limited
@@ -258,6 +358,185 @@ timedatectl status
 ```
 
 2. TOTP allows ±1 window (30 seconds)
+
+## Helix Incidents
+
+### 11. Helix Canary No-Go Or Applied Pause
+
+**Symptoms:**
+- worker sends `Helix Canary No-Go` or `Helix Automatic Actuation Applied`
+- admin canary evidence endpoint returns `decision=no-go`
+- rollout policy shows `pause-channel` or `rotate-profile-now`
+
+**Investigation:**
+
+1. Read current canary snapshot:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>/canary-evidence
+```
+
+2. Check rollout status:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>
+```
+
+3. Confirm current follow-up action from snapshot:
+- `hold-channel-paused`
+- `approve-profile-rotation`
+- `collect-more-evidence`
+- `review-canary-blockers`
+
+**Response:**
+
+1. If `pause-channel` is already applied:
+   - keep new Helix sessions paused;
+   - do not widen canary exposure;
+   - validate replacement profile readiness.
+2. If `rotate-profile-now` is applied:
+   - confirm node and desktop assignments converge on the target profile;
+   - watch continuity, fallback, and throughput evidence.
+3. Export Desktop support bundles for affected clients.
+
+### 12. Helix Runtime Rollback Or Fallback Storm
+
+**Symptoms:**
+- spike in Helix rollback counters
+- Desktop fallback events increase rapidly
+- node heartbeat health reports `rolled-back` or unhealthy runtime
+
+**Investigation:**
+
+1. Check Helix node heartbeat state and rollback totals.
+2. Check Desktop runtime event evidence for fallback reason and active stable core.
+3. Check the current rollout and profile posture.
+
+**Response:**
+
+1. Pause the rollout if fallback or rollback pressure remains elevated.
+2. Verify node daemons restored last-known-good bundle.
+3. Keep Desktop on stable cores until Helix evidence returns to `go` or safe `watch`.
+4. Run the Helix rollback drill:
+```bash
+bash infra/tests/verify_helix_rollback.sh
+```
+
+### 13. Helix Evidence Surface Degraded Under Load
+
+**Symptoms:**
+- canary evidence endpoint slows or returns errors during runtime-event ingest
+- worker alerts stop matching observed Desktop benchmark evidence
+
+**Investigation:**
+
+1. Run Helix load scenario:
+```bash
+locust -f backend/tests/load/test_helix_load.py --host=http://localhost:8000
+```
+
+2. Compare:
+- event ingest success
+- canary snapshot readability
+- worker canary-control transitions
+
+**Response:**
+
+1. Reduce Helix canary exposure until the evidence surface remains stable under load.
+2. Preserve Locust report, canary snapshot, and Desktop support bundles.
+3. Re-run the load scenario after fixes before restoring rollout growth.
+
+## Helix Incidents
+
+### 11. Helix Canary No-Go
+
+**Symptoms:**
+- `Helix` canary evidence returns `no-go`
+- worker sends `Helix Canary No-Go` or `Helix Canary Control` alerts
+
+**Investigation:**
+
+1. Check formal canary evidence:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>/canary-evidence
+```
+
+2. Review:
+- `decision`
+- `reasons`
+- `evidence_gaps`
+- `recommended_follow_up_action`
+
+**Response:**
+
+1. Do not widen the rollout
+2. Apply the follow-up action from formal canary evidence
+3. If `pause-channel` is active, keep new sessions paused until the next green evidence window
+
+### 12. Helix Automatic Actuation Applied
+
+**Symptoms:**
+- worker sends `Helix Automatic Actuation Applied`
+- rollout shows `applied_automatic_reaction`
+
+**Investigation:**
+
+1. Check rollout state:
+```bash
+GET /api/v1/helix/admin/rollouts/<rollout_id>
+```
+
+2. Confirm:
+- `applied_automatic_reaction`
+- `applied_transport_profile_id`
+- `automatic_reaction_trigger_reason`
+
+**Response:**
+
+1. For `pause-channel`: keep new Helix sessions paused
+2. For `rotate-profile-now`: confirm node assignments and desktop manifests converge on the target profile
+3. Re-run canary evidence before resuming exposure
+
+### 13. Helix Node Rollback Failure
+
+**Symptoms:**
+- node remains unhealthy after config apply
+- rollback counters keep increasing
+- worker reports rollback spike
+
+**Investigation:**
+
+1. Run rollback verification:
+```bash
+bash infra/tests/verify_helix_rollback.sh
+```
+
+2. Check node health:
+```bash
+curl http://<helix-node-host>:8091/healthz
+curl http://<helix-node-host>:8091/readyz
+```
+
+**Response:**
+
+1. Pause the affected rollout channel
+2. Restore last-known-good bundle
+3. Keep the node out of widening waves until rollback verification passes again
+
+### 14. Helix Desktop Fallback Spike
+
+**Symptoms:**
+- fallback rate rises above threshold
+- desktop support bundles show repeated `fallback` runtime events
+
+**Investigation:**
+
+1. Inspect latest support bundle and diagnostics timeline
+2. Check current canary evidence for throughput ratio and gap ratio regression
+
+**Response:**
+
+1. Hold the rollout in `canary`
+2. Run Helix recovery drill and target-matrix benchmarks again
+3. If fallback remains elevated, pause channel or rotate profile before resuming
 
 **Resolution:**
 - Sync server time with NTP

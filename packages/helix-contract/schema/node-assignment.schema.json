@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/node-assignment.schema.json",
+  "title": "Helix Node Assignment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assignment_id",
+    "rollout_id",
+    "node_id",
+    "channel",
+    "issued_at",
+    "expires_at",
+    "desired_state",
+    "transport_profile",
+    "runtime_profile",
+    "credentials",
+    "recovery",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1"
+    },
+    "assignment_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "rollout_id": {
+      "type": "string",
+      "pattern": "^rollout-[a-z0-9-]+$"
+    },
+    "node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "lab",
+        "canary",
+        "stable"
+      ]
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "desired_state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "revoked"
+      ]
+    },
+    "transport_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport_profile_id",
+        "profile_family",
+        "profile_version",
+        "policy_version",
+        "compatibility_window"
+      ],
+      "properties": {
+        "transport_profile_id": {
+          "type": "string",
+          "pattern": "^ptp-[a-z0-9-]+$"
+        },
+        "profile_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "compatibility_window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min_transport_profile_version",
+            "max_transport_profile_version"
+          ],
+          "properties": {
+            "min_transport_profile_version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_transport_profile_version": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "runtime_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_version",
+        "min_daemon_version",
+        "ports",
+        "health_check_interval_seconds"
+      ],
+      "properties": {
+        "bundle_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_daemon_version": {
+          "type": "string",
+          "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "ports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        },
+        "health_check_interval_seconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 300
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_id",
+        "token"
+      ],
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "token": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "last_known_good_bundle",
+        "rollback_timeout_seconds"
+      ],
+      "properties": {
+        "last_known_good_bundle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rollback_timeout_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 600
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assignment_hash",
+        "signature"
+      ],
+      "properties": {
+        "assignment_hash": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "alg",
+            "key_id",
+            "sig"
+          ],
+          "properties": {
+            "alg": {
+              "const": "ed25519"
+            },
+            "key_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sig": {
+              "type": "string",
+              "minLength": 32
+            }
+          }
+        }
+      }
+    }
+  }
+}
