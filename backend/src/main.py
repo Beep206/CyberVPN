@@ -166,6 +166,13 @@ async def lifespan(app: FastAPI):
         logger.warning("Shutdown error in remnawave_client: %s", e, exc_info=True)
 
     try:
+        from src.infrastructure.helix.client import helix_adapter_client
+
+        await helix_adapter_client.close()
+    except Exception as e:
+        logger.warning("Shutdown error in helix_adapter_client: %s", e, exc_info=True)
+
+    try:
         await cryptobot_client.close()
     except Exception as e:
         logger.warning("Shutdown error in cryptobot_client: %s", e, exc_info=True)
@@ -216,6 +223,7 @@ tags_metadata = [
     {"name": "keygen", "description": "Key generation and signing (Remnawave proxy)"},
     {"name": "xray", "description": "Xray VPN config (Remnawave proxy)"},
     {"name": "settings", "description": "System settings (Remnawave proxy)"},
+    {"name": "helix", "description": "Helix desktop and rollout APIs"},
     {"name": "admin", "description": "Audit logs, webhook logs"},
     {"name": "webhooks", "description": "External webhook receivers"},
     {"name": "telegram", "description": "Telegram bot integration"},

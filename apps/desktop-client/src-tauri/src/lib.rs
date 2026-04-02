@@ -14,6 +14,11 @@ use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::RwLock;
 
+pub fn run_embedded_helix_sidecar() -> Result<bool, String> {
+    crate::engine::helix::sidecar::run_from_current_args()
+        .map_err(|error| format!("failed to run Helix sidecar mode: {error}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     std::panic::set_hook(Box::new(|info| {
@@ -35,7 +40,7 @@ pub fn run() {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         let app_handle = app.clone();
 
-                        tokio::spawn(async move {
+                        tauri::async_runtime::spawn(async move {
                             let state = app_handle.state::<AppState>();
                             let (status_str, active_id) = {
                                 let status_lock = state.status.read().await;
@@ -75,6 +80,15 @@ pub fn run() {
         )
         .setup(|app| {
             let app_handle = app.handle().clone();
+            let _ = crate::engine::diagnostics::record_event(
+                &app_handle,
+                crate::engine::diagnostics::DiagnosticLevel::Info,
+                "app.lifecycle",
+                "Desktop client started",
+                serde_json::json!({
+                    "version": env!("CARGO_PKG_VERSION"),
+                }),
+            );
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = engine::provision::ensure_sing_box_binary(&app_handle).await {
                     eprintln!("Failed to provision sing-box: {}", e);
@@ -134,7 +148,7 @@ pub fn run() {
             // Start Network Monitor Phase 28
             crate::engine::sys::net_monitor::start_network_monitor(
                 app.handle().clone(),
-                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false))
+                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             );
 
             // Start Telemetry Histogram Flusher Phase 30
@@ -152,6 +166,8 @@ pub fn run() {
             status: RwLock::new(ConnectionStatus {
                 status: "disconnected".to_string(),
                 active_id: None,
+                active_core: None,
+                proxy_url: None,
                 message: None,
                 up_bytes: 0,
                 down_bytes: 0,
@@ -166,6 +182,9 @@ pub fn run() {
             ipc::connect_profile,
             ipc::disconnect,
             ipc::get_connection_status,
+            ipc::get_desktop_diagnostics_snapshot,
+            ipc::export_desktop_support_bundle,
+            ipc::clear_desktop_diagnostics_logs,
             ipc::get_routing_rules,
             ipc::add_routing_rule,
             ipc::update_routing_rule,
@@ -190,6 +209,15 @@ pub fn run() {
             ipc::update_geo_assets,
             ipc::get_active_core,
             ipc::save_active_core,
+            ipc::get_helix_capabilities,
+            ipc::get_helix_manifest,
+            ipc::get_helix_runtime_state,
+            ipc::resolve_helix_manifest,
+            ipc::prepare_helix_runtime,
+            ipc::run_transport_benchmark,
+            ipc::run_transport_core_comparison,
+            ipc::run_transport_target_matrix_comparison,
+            ipc::run_helix_recovery_benchmark,
             ipc::get_installed_apps,
             ipc::get_split_tunneling_apps,
             ipc::save_split_tunneling_apps,
@@ -229,6 +257,13 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app_handle, event| {
             if let tauri::RunEvent::Exit = event {
+                let _ = crate::engine::diagnostics::record_event(
+                    app_handle,
+                    crate::engine::diagnostics::DiagnosticLevel::Info,
+                    "app.lifecycle",
+                    "Desktop client exiting",
+                    serde_json::json!({}),
+                );
                 let _ = crate::engine::sysproxy::clear_system_proxy();
                 let guard = app_handle.state::<crate::engine::sys::sentinel::SentinelGuard>();
                 let _ = guard.disable();

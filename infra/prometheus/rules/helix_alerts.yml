@@ -1,0 +1,73 @@
+groups:
+  - name: cybervpn_helix_alerts
+    interval: 30s
+    rules:
+      - alert: HelixAdapterDown
+        expr: up{job="helix-adapter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: helix
+        annotations:
+          summary: "Helix adapter is down"
+          description: "Prometheus cannot scrape the Helix adapter target {{ $labels.instance }} for more than 5 minutes."
+
+      - alert: HelixNodeDown
+        expr: up{job="helix-node"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: helix
+        annotations:
+          summary: "Helix lab node is down"
+          description: "Prometheus cannot scrape the Helix node target {{ $labels.instance }} for more than 5 minutes."
+
+      - alert: HelixAdapterNotReady
+        expr: helix_adapter_ready == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: helix
+        annotations:
+          summary: "Helix adapter is not ready"
+          description: "The Helix adapter on {{ $labels.instance }} has reported not-ready status for more than 3 minutes."
+
+      - alert: HelixNodeNotReady
+        expr: helix_node_ready == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: helix
+        annotations:
+          summary: "Helix node is not ready"
+          description: "The Helix node on {{ $labels.instance }} has reported not-ready status for more than 3 minutes."
+
+      - alert: HelixNodeRuntimeUnhealthy
+        expr: helix_node_runtime_healthy == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: helix
+        annotations:
+          summary: "Helix node runtime is unhealthy"
+          description: "The Helix runtime on {{ $labels.instance }} has remained unhealthy for more than 2 minutes."
+
+      - alert: HelixHeartbeatIngestionStopped
+        expr: up{job="helix-node"} == 1 and increase(helix_node_heartbeat_ingested_total[15m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: helix
+        annotations:
+          summary: "Helix heartbeat ingestion stalled"
+          description: "The adapter has not ingested any node heartbeat updates in the last 15 minutes while the lab node target is still up."
+
+      - alert: HelixRollbackSpike
+        expr: increase(helix_node_rollback_total[15m]) >= 1
+        for: 1m
+        labels:
+          severity: critical
+          service: helix
+        annotations:
+          summary: "Helix rollback detected"
+          description: "The Helix node rollback counter increased by {{ $value }} during the last 15 minutes."

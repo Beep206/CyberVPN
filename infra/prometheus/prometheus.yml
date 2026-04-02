@@ -13,6 +13,7 @@ rule_files:
   - /etc/prometheus/rules/db_alerts.yml
   - /etc/prometheus/rules/redis_alerts.yml
   - /etc/prometheus/rules/infra_alerts.yml
+  - /etc/prometheus/rules/helix_alerts.yml
 
 scrape_configs:
   # IC-2: cybervpn-backend service does not exist in docker-compose.yml
@@ -34,14 +35,34 @@ scrape_configs:
   - job_name: 'cybervpn-worker'
     static_configs:
       - targets: ['cybervpn-worker:9091']
+        labels:
+          optional_profile: 'true'
     metrics_path: /metrics
     scrape_interval: 10s
 
   - job_name: 'cybervpn-telegram-bot'
     static_configs:
       - targets: ['cybervpn-telegram-bot:9092']
+        labels:
+          optional_profile: 'true'
     metrics_path: /metrics
     scrape_interval: 15s
+
+  - job_name: 'helix-adapter'
+    static_configs:
+      - targets: ['helix-adapter:8088']
+        labels:
+          optional_profile: 'true'
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  - job_name: 'helix-node'
+    static_configs:
+      - targets: ['helix-node-lab:8091', 'helix-node-lab-02:8091']
+        labels:
+          optional_profile: 'true'
+    metrics_path: /metrics
+    scrape_interval: 10s
 
   - job_name: 'prometheus'
     static_configs:

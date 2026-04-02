@@ -6,12 +6,29 @@ JSON serialization using orjson, and structured logging for all cache operations
 
 from typing import Any
 
-import orjson
 import structlog
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from src.utils.constants import REDIS_PREFIX
+
+try:
+    import orjson
+except ImportError:  # pragma: no cover - exercised only in reduced local environments
+    import json
+
+    class _OrjsonFallback:
+        @staticmethod
+        def dumps(value: dict | list) -> bytes:
+            return json.dumps(value).encode("utf-8")
+
+        @staticmethod
+        def loads(data: bytes | str) -> dict:
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            return json.loads(data)
+
+    orjson = _OrjsonFallback()
 
 logger = structlog.get_logger(__name__)
 
@@ -246,7 +263,9 @@ class CacheService:
         prefixed_key = self._make_key(key)
         try:
             result = await self._redis.zadd(prefixed_key, mapping)
-            logger.debug("cache.zadd", key=key, added=result, total_members=len(mapping))
+            logger.debug(
+                "cache.zadd", key=key, added=result, total_members=len(mapping)
+            )
             return result
         except RedisError as e:
             logger.error("cache.zadd.failed", key=key, error=str(e))
@@ -271,8 +290,12 @@ class CacheService:
         """
         prefixed_key = self._make_key(key)
         try:
-            result = await self._redis.zrange(prefixed_key, start, end, withscores=withscores)
-            logger.debug("cache.zrange", key=key, count=len(result), withscores=withscores)
+            result = await self._redis.zrange(
+                prefixed_key, start, end, withscores=withscores
+            )
+            logger.debug(
+                "cache.zrange", key=key, count=len(result), withscores=withscores
+            )
             return result
         except RedisError as e:
             logger.error("cache.zrange.failed", key=key, error=str(e))
@@ -299,7 +322,9 @@ class CacheService:
         try:
             cursor = 0
             while True:
-                cursor, batch = await self._redis.scan(cursor=cursor, match=prefixed_pattern, count=100)
+                cursor, batch = await self._redis.scan(
+                    cursor=cursor, match=prefixed_pattern, count=100
+                )
                 # Remove prefix from returned keys
                 for key in batch:
                     decoded = key.decode("utf-8") if isinstance(key, bytes) else key
@@ -312,7 +337,9 @@ class CacheService:
             logger.error("cache.scan.failed", pattern=pattern, error=str(e))
             raise
 
-    async def set_if_not_exists(self, key: str, value: dict, ttl: int | None = None) -> bool:
+    async def set_if_not_exists(
+        self, key: str, value: dict, ttl: int | None = None
+    ) -> bool:
         """Set value only if key doesn't exist (SET NX).
 
         Args:

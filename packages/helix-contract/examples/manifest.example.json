@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.1",
+  "manifest_id": "8ccf5574-8413-4d84-99bc-d5a664d2d5ee",
+  "rollout_id": "rollout-canary-2026-03-31-a",
+  "issued_at": "2026-03-31T09:00:00Z",
+  "expires_at": "2026-03-31T10:00:00Z",
+  "subject": {
+    "user_id": "usr_01HV2Y8Z1",
+    "desktop_client_id": "desktop_win11_primary",
+    "entitlement_id": "ent_canary_internal",
+    "channel": "canary"
+  },
+  "transport": {
+    "transport_family": "helix",
+    "protocol_version": 1,
+    "session_mode": "hybrid"
+  },
+  "transport_profile": {
+    "transport_profile_id": "ptp-canary-edge-v3",
+    "profile_family": "edge-hybrid",
+    "profile_version": 3,
+    "policy_version": 7,
+    "deprecation_state": "active"
+  },
+  "compatibility_window": {
+    "profile_family": "edge-hybrid",
+    "min_transport_profile_version": 2,
+    "max_transport_profile_version": 4
+  },
+  "capability_profile": {
+    "required_capabilities": [
+      "protocol.v1",
+      "fallback.auto",
+      "sidecar.sigverify",
+      "profile.edge-hybrid"
+    ],
+    "fallback_core": "sing-box",
+    "health_policy": {
+      "startup_timeout_seconds": 20,
+      "runtime_unhealthy_threshold": 3
+    }
+  },
+  "routes": [
+    {
+      "endpoint_ref": "pt-edge-eu-1",
+      "dial_host": "pt-edge-eu-1.cybervpn.internal",
+      "dial_port": 9443,
+      "server_name": "pt-edge-eu-1.cybervpn.internal",
+      "preference": 10,
+      "policy_tag": "primary"
+    },
+    {
+      "endpoint_ref": "pt-edge-eu-2",
+      "dial_host": "pt-edge-eu-2.cybervpn.internal",
+      "dial_port": 9443,
+      "server_name": "pt-edge-eu-2.cybervpn.internal",
+      "preference": 20,
+      "policy_tag": "secondary"
+    }
+  ],
+  "credentials": {
+    "key_id": "desktop-key-2026-03",
+    "token": "pt_tok_abcdefghijklmnopqrstuvwxyz"
+  },
+  "integrity": {
+    "manifest_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "signature": {
+      "alg": "ed25519",
+      "key_id": "sig-key-2026-q1",
+      "sig": "ed25519sigabcdefghijklmnopqrstuvwxyz123456"
+    }
+  },
+  "observability": {
+    "trace_id": "trace-pt-manifest-001",
+    "metrics_namespace": "helix"
+  }
+}

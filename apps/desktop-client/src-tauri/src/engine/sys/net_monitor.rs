@@ -24,9 +24,9 @@ pub fn get_current_ssid() -> Result<String, AppError> {
     {
         use windows::Win32::Foundation::HANDLE;
         use windows::Win32::NetworkManagement::WiFi::{
-            WlanCloseHandle, WlanEnumInterfaces, WlanFreeMemory, WlanOpenHandle,
-            WlanQueryInterface, wlan_intf_opcode_current_connection, WLAN_API_VERSION_2_0,
-            WLAN_CONNECTION_ATTRIBUTES, WLAN_INTERFACE_INFO_LIST,
+            wlan_intf_opcode_current_connection, WlanCloseHandle, WlanEnumInterfaces,
+            WlanFreeMemory, WlanOpenHandle, WlanQueryInterface, WLAN_API_VERSION_2_0,
+            WLAN_CONNECTION_ATTRIBUTES, WLAN_INTERFACE_INFO_LIST, WLAN_OPCODE_VALUE_TYPE,
         };
 
         // SAFETY: Direct memory-interaction bounded encapsulation via windows-rs.
@@ -51,7 +51,9 @@ pub fn get_current_ssid() -> Result<String, AppError> {
             let mut p_interface_list: *mut WLAN_INTERFACE_INFO_LIST = std::ptr::null_mut();
             if WlanEnumInterfaces(handle, None, &mut p_interface_list) != 0 {
                 let _ = WlanCloseHandle(handle, None);
-                return Err(AppError::System("Failed to enumerate WLAN interfaces.".to_string()));
+                return Err(AppError::System(
+                    "Failed to enumerate WLAN interfaces.".to_string(),
+                ));
             }
 
             if p_interface_list.is_null() || (*p_interface_list).dwNumberOfItems == 0 {
@@ -68,7 +70,7 @@ pub fn get_current_ssid() -> Result<String, AppError> {
 
             let mut p_data: *mut core::ffi::c_void = std::ptr::null_mut();
             let mut data_size = 0u32;
-            let mut opcode_value_type = 0u32;
+            let mut opcode_value_type = WLAN_OPCODE_VALUE_TYPE::default();
 
             if WlanQueryInterface(
                 handle,
@@ -79,22 +81,20 @@ pub fn get_current_ssid() -> Result<String, AppError> {
                 &mut p_data,
                 Some(&mut opcode_value_type),
             ) == 0
+                && !p_data.is_null()
             {
-                if !p_data.is_null() {
-                    let conn_attr = &*(p_data as *const WLAN_CONNECTION_ATTRIBUTES);
-                    let len = conn_attr.wlanAssociationAttributes.dot11Ssid.uSSIDLength as usize;
-                    if len > 0 && len <= 32 {
-                        let ssid_bytes =
-                            &conn_attr.wlanAssociationAttributes.dot11Ssid.ucSSID[0..len];
-                        if let Ok(ssid) = String::from_utf8(ssid_bytes.to_vec()) {
-                            WlanFreeMemory(p_data);
-                            WlanFreeMemory(p_interface_list as *mut core::ffi::c_void);
-                            let _ = WlanCloseHandle(handle, None);
-                            return Ok(ssid);
-                        }
+                let conn_attr = &*(p_data as *const WLAN_CONNECTION_ATTRIBUTES);
+                let len = conn_attr.wlanAssociationAttributes.dot11Ssid.uSSIDLength as usize;
+                if len > 0 && len <= 32 {
+                    let ssid_bytes = &conn_attr.wlanAssociationAttributes.dot11Ssid.ucSSID[0..len];
+                    if let Ok(ssid) = String::from_utf8(ssid_bytes.to_vec()) {
+                        WlanFreeMemory(p_data);
+                        WlanFreeMemory(p_interface_list as *mut core::ffi::c_void);
+                        let _ = WlanCloseHandle(handle, None);
+                        return Ok(ssid);
                     }
-                    WlanFreeMemory(p_data);
                 }
+                WlanFreeMemory(p_data);
             }
 
             WlanFreeMemory(p_interface_list as *mut core::ffi::c_void);
@@ -152,7 +152,7 @@ pub fn get_current_ssid() -> Result<String, AppError> {
 }
 
 pub fn start_network_monitor(app: AppHandle, cancellation_token: Arc<AtomicBool>) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         let mut last_stable_ssid = get_current_ssid().unwrap_or_else(|_| "Unknown".to_string());
         let mut transient_ssid = last_stable_ssid.clone();
         let mut transient_ticks = 0;
@@ -164,7 +164,12 @@ pub fn start_network_monitor(app: AppHandle, cancellation_token: Arc<AtomicBool>
 
             // Polling every 10 seconds under stable conditions,
             // but if we detect a change, we poll faster to debounce.
-            sleep(Duration::from_secs(if transient_ticks > 0 { 1 } else { 10 })).await;
+            sleep(Duration::from_secs(if transient_ticks > 0 {
+                1
+            } else {
+                10
+            }))
+            .await;
 
             let current = get_current_ssid().unwrap_or_else(|_| "Unknown".to_string());
 

@@ -29,6 +29,30 @@ STATS_PAYMENTS_KEY: Final[str] = f"{REDIS_PREFIX}stats:payments:{{date}}"
 SUB_REMINDER_KEY: Final[str] = f"{REDIS_PREFIX}sub_reminder:{{user_uuid}}:{{bracket}}"
 USER_STATS_KEY: Final[str] = f"{REDIS_PREFIX}users:stats:summary"
 NODE_CONFIG_KEY: Final[str] = f"{REDIS_PREFIX}nodes:config:{{node_uuid}}"
+HELIX_ROLLOUT_AUDIT_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:audit"
+)
+HELIX_NODE_HEALTH_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:node:{{node_id}}:health"
+)
+HELIX_ROLLBACK_AUDIT_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:rollback"
+)
+HELIX_POLICY_ADVISORY_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:policy"
+)
+HELIX_ACTUATION_AUDIT_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:actuation"
+)
+HELIX_CANARY_GATE_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-gate"
+)
+HELIX_CANARY_CONTROL_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
+)
+HELIX_CANARY_CONTROL_KEY: Final[str] = (
+    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
+)
 
 # ============================================================================
 # Cron Schedule Expressions
@@ -62,6 +86,18 @@ SCHEDULE_SYNC_NODE_CONFIGS: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_FINANCIAL_STATS: Final[str] = "30 0 * * *"  # Daily at 00:30 UTC
 SCHEDULE_TRAFFIC_RESET: Final[str] = "0 0 1 * *"  # 1st of month at 00:00 UTC
 SCHEDULE_QUEUE_DEPTH: Final[str] = "*/1 * * * *"  # Every 1 minute
+SCHEDULE_HELIX_ROLLOUTS: Final[str] = "*/3 * * * *"  # Every 3 minutes
+SCHEDULE_HELIX_HEALTH: Final[str] = "*/2 * * * *"  # Every 2 minutes
+SCHEDULE_HELIX_ACTUATIONS: Final[str] = "*/4 * * * *"  # Every 4 minutes
+SCHEDULE_HELIX_CANARY_GATES: Final[str] = "*/5 * * * *"  # Every 5 minutes
+SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
+SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
+
+# Legacy string aliases kept for compatibility with older tests/tooling.
+SCHEDULE_NOTIFICATION_QUEUE: Final[str] = (
+    f"interval:{INTERVAL_NOTIFICATION_QUEUE_SECONDS}"
+)
+SCHEDULE_REALTIME_METRICS: Final[str] = f"interval:{INTERVAL_REALTIME_METRICS_SECONDS}"
 
 # ============================================================================
 # Retry Policies
@@ -200,8 +236,17 @@ __all__ = [
     "SUB_REMINDER_KEY",
     "USER_STATS_KEY",
     "NODE_CONFIG_KEY",
+    "HELIX_ROLLOUT_AUDIT_KEY",
+    "HELIX_NODE_HEALTH_KEY",
+    "HELIX_ROLLBACK_AUDIT_KEY",
+    "HELIX_POLICY_ADVISORY_KEY",
+    "HELIX_ACTUATION_AUDIT_KEY",
+    "HELIX_CANARY_GATE_KEY",
+    "HELIX_CANARY_CONTROL_KEY",
+    "HELIX_CANARY_CONTROL_KEY",
     # Schedules
     "INTERVAL_NOTIFICATION_QUEUE_SECONDS",
+    "SCHEDULE_NOTIFICATION_QUEUE",
     "SCHEDULE_HEALTH_CHECK",
     "SCHEDULE_SERVICES_HEALTH",
     "SCHEDULE_BANDWIDTH",
@@ -211,6 +256,7 @@ __all__ = [
     "SCHEDULE_DAILY_STATS",
     "SCHEDULE_HOURLY_BANDWIDTH",
     "INTERVAL_REALTIME_METRICS_SECONDS",
+    "SCHEDULE_REALTIME_METRICS",
     "SCHEDULE_PAYMENT_VERIFY",
     "SCHEDULE_WEBHOOK_RETRY",
     "SCHEDULE_CLEANUP",
@@ -228,6 +274,12 @@ __all__ = [
     "SCHEDULE_FINANCIAL_STATS",
     "SCHEDULE_TRAFFIC_RESET",
     "SCHEDULE_QUEUE_DEPTH",
+    "SCHEDULE_HELIX_ROLLOUTS",
+    "SCHEDULE_HELIX_HEALTH",
+    "SCHEDULE_HELIX_ACTUATIONS",
+    "SCHEDULE_HELIX_CANARY_GATES",
+    "SCHEDULE_HELIX_CANARY_CONTROL",
+    "SCHEDULE_HELIX_CANARY_CONTROL",
     # Retry Policies
     "RetryPolicy",
     "RETRY_POLICIES",
