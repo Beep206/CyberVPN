@@ -21,6 +21,7 @@ This initiative is **desktop-first**, not because quality is reduced, but becaus
 
 - `docs/helix/README.md`: source of truth for mission, invariants, and locked planning decisions
 - `docs/helix/benchmarking.md`: benchmark topology, metric definitions, and pass/fail thresholds
+- `docs/helix/analysis-metrics.md`: full metric catalog used for protocol analysis, diagnostics, canary evidence, and policy reaction
 - `docs/helix/compatibility-matrix.md`: desktop, node, and rollout channel support matrix
 - `docs/helix/decision-log.md`: frozen architecture decisions and approval state
 - `docs/helix/release-gates.md`: promotion rules for `lab`, `canary`, and `stable`
