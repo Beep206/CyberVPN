@@ -28,6 +28,7 @@ This initiative is **desktop-first**, not because quality is reduced, but becaus
 - `docs/helix/architecture.md`: component boundaries and runtime flows
 - `docs/helix/contracts.md`: shared contract definitions and lifecycle semantics
 - `docs/helix/protocol-agility.md`: adaptability rules for profile rotation, compatibility windows, and fast response to blocking pressure
+- `docs/helix/agent-handoff-and-roadmap.md`: current implementation snapshot, handoff context, and phased roadmap to internal beta and release
 - `docs/testing/helix-benchmark-plan.md`: repeatable benchmark scenarios and reporting format
 - `docs/security/helix-restricted-governance.md`: storage and access rules for restricted transport internals
 - `docs/plans/2026-03-31-private-rust-transport-aaa-implementation-plan.md`: strategic implementation plan
