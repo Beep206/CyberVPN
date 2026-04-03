@@ -108,6 +108,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/refresh",
         "/api/v1/auth/refresh/",
     }
+    _HELIX_ADMIN_READ_PREFIX = "/api/v1/helix/admin/"
 
     def __init__(
         self,
@@ -120,6 +121,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.window = 60
+        configured_helix_budget = getattr(
+            settings,
+            "helix_admin_read_rate_limit_requests",
+            requests_per_minute,
+        )
+        self.helix_admin_read_requests_per_minute = max(
+            int(configured_helix_budget),
+            self.requests_per_minute,
+        )
         # Default to fail-closed in production, configurable via settings
         if fail_open is None:
             configured_fail_open = getattr(settings, "rate_limit_fail_open", False)
@@ -145,6 +155,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         client_ip = self._get_client_ip(request)
         key = f"cybervpn:rate_limit:{client_ip}:{request.url.path}"
+        request_budget = self._requests_budget_for(request)
 
         # Check circuit breaker first
         if self.circuit.is_open():
@@ -180,14 +191,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Redis operation succeeded - reset circuit breaker
             self.circuit.record_success()
 
-            if request_count > self.requests_per_minute:
+            if request_count > request_budget:
                 logger.warning(
                     "Rate limit exceeded",
                     extra={
                         "client_ip": client_ip,
                         "path": request.url.path,
                         "count": request_count,
-                        "limit": self.requests_per_minute,
+                        "limit": request_budget,
                     },
                 )
                 return JSONResponse(
@@ -233,6 +244,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 await client.aclose()
 
         return await call_next(request)
+
+    def _requests_budget_for(self, request: Request) -> int:
+        if (
+            request.method.upper() == "GET"
+            and request.url.path.startswith(self._HELIX_ADMIN_READ_PREFIX)
+        ):
+            return self.helix_admin_read_requests_per_minute
+
+        return self.requests_per_minute
 
     def _get_client_ip(self, request: Request) -> str:
         """Get client IP address with trusted proxy validation (MED-8).

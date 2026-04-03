@@ -1,4 +1,5 @@
 use chrono::Utc;
+use tracing::warn;
 
 use crate::{
     config::AdapterConfig,
@@ -45,7 +46,12 @@ impl NodeRegistryService {
         sync_from_source: bool,
     ) -> Result<Vec<NodeRegistryRecord>, AppError> {
         if sync_from_source {
-            self.sync_from_remnawave().await?;
+            if let Err(error) = self.sync_from_remnawave().await {
+                warn!(
+                    error = %error,
+                    "failed to sync Helix node inventory from Remnawave; returning cached registry view"
+                );
+            }
         }
 
         self.repository.list_nodes().await

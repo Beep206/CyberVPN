@@ -1,6 +1,9 @@
 """Tests for rate limiter middleware with fail-closed behavior and circuit breaker (MED-1)."""
 
 import time
+from unittest.mock import MagicMock, patch
+
+from starlette.requests import Request
 
 from src.presentation.middleware.rate_limit import CircuitBreaker
 
@@ -100,8 +103,6 @@ class TestRateLimitMiddlewareConfig:
 
     def test_default_fail_closed(self):
         """Default mode is fail-closed (fail_open=False)."""
-        from unittest.mock import MagicMock, patch
-
         from src.presentation.middleware.rate_limit import RateLimitMiddleware
 
         # Reset class-level circuit breaker
@@ -109,6 +110,8 @@ class TestRateLimitMiddlewareConfig:
 
         with patch("src.presentation.middleware.rate_limit.settings") as mock_settings:
             mock_settings.rate_limit_fail_open = False
+            mock_settings.environment = "production"
+            mock_settings.helix_admin_read_rate_limit_requests = 1500
 
             app = MagicMock()
             middleware = RateLimitMiddleware(app)
@@ -117,8 +120,6 @@ class TestRateLimitMiddlewareConfig:
 
     def test_fail_open_from_settings(self):
         """Can enable fail-open mode via settings."""
-        from unittest.mock import MagicMock, patch
-
         from src.presentation.middleware.rate_limit import RateLimitMiddleware
 
         # Reset class-level circuit breaker
@@ -126,6 +127,8 @@ class TestRateLimitMiddlewareConfig:
 
         with patch("src.presentation.middleware.rate_limit.settings") as mock_settings:
             mock_settings.rate_limit_fail_open = True
+            mock_settings.environment = "production"
+            mock_settings.helix_admin_read_rate_limit_requests = 1500
 
             app = MagicMock()
             middleware = RateLimitMiddleware(app)
@@ -134,8 +137,6 @@ class TestRateLimitMiddlewareConfig:
 
     def test_explicit_fail_open_overrides_settings(self):
         """Explicit fail_open parameter overrides settings."""
-        from unittest.mock import MagicMock, patch
-
         from src.presentation.middleware.rate_limit import RateLimitMiddleware
 
         # Reset class-level circuit breaker
@@ -143,6 +144,8 @@ class TestRateLimitMiddlewareConfig:
 
         with patch("src.presentation.middleware.rate_limit.settings") as mock_settings:
             mock_settings.rate_limit_fail_open = True
+            mock_settings.environment = "production"
+            mock_settings.helix_admin_read_rate_limit_requests = 1500
 
             app = MagicMock()
             middleware = RateLimitMiddleware(app, fail_open=False)
@@ -151,8 +154,6 @@ class TestRateLimitMiddlewareConfig:
 
     def test_custom_rate_limit(self):
         """Can configure custom requests_per_minute."""
-        from unittest.mock import MagicMock
-
         from src.presentation.middleware.rate_limit import RateLimitMiddleware
 
         # Reset class-level circuit breaker
@@ -165,8 +166,6 @@ class TestRateLimitMiddlewareConfig:
 
     def test_circuit_breaker_is_shared(self):
         """Circuit breaker is shared across middleware instances."""
-        from unittest.mock import MagicMock
-
         from src.presentation.middleware.rate_limit import RateLimitMiddleware
 
         # Reset class-level circuit breaker
@@ -182,3 +181,60 @@ class TestRateLimitMiddlewareConfig:
         # Failure recorded by one affects the other
         middleware1.circuit.record_failure()
         assert middleware2.circuit._failure_count == 1
+
+    def test_helix_admin_read_budget_uses_separate_limit(self):
+        """Helix admin GET routes get a higher polling budget than public routes."""
+        from src.presentation.middleware.rate_limit import RateLimitMiddleware
+
+        RateLimitMiddleware._circuit_breaker = None
+
+        with patch("src.presentation.middleware.rate_limit.settings") as mock_settings:
+            mock_settings.rate_limit_fail_open = False
+            mock_settings.helix_admin_read_rate_limit_requests = 1500
+
+            app = MagicMock()
+            middleware = RateLimitMiddleware(app, requests_per_minute=100, fail_open=False)
+
+            request = Request(
+                {
+                    "type": "http",
+                    "method": "GET",
+                    "path": "/api/v1/helix/admin/rollouts/rollout-helix-lab/canary-evidence",
+                    "headers": [],
+                }
+            )
+
+            assert middleware._requests_budget_for(request) == 1500
+
+    def test_non_helix_or_non_get_routes_keep_default_budget(self):
+        """POST admin actions and non-Helix routes keep the default global budget."""
+        from src.presentation.middleware.rate_limit import RateLimitMiddleware
+
+        RateLimitMiddleware._circuit_breaker = None
+
+        with patch("src.presentation.middleware.rate_limit.settings") as mock_settings:
+            mock_settings.rate_limit_fail_open = False
+            mock_settings.helix_admin_read_rate_limit_requests = 1500
+
+            app = MagicMock()
+            middleware = RateLimitMiddleware(app, requests_per_minute=100, fail_open=False)
+
+            admin_post = Request(
+                {
+                    "type": "http",
+                    "method": "POST",
+                    "path": "/api/v1/helix/admin/rollouts/rollout-helix-lab/pause",
+                    "headers": [],
+                }
+            )
+            public_get = Request(
+                {
+                    "type": "http",
+                    "method": "GET",
+                    "path": "/api/v1/auth/me",
+                    "headers": [],
+                }
+            )
+
+            assert middleware._requests_budget_for(admin_post) == 100
+            assert middleware._requests_budget_for(public_get) == 100

@@ -169,6 +169,44 @@ async fn node_registry_records_heartbeat_snapshots() {
 }
 
 #[tokio::test]
+async fn node_registry_list_nodes_returns_cached_registry_when_remnawave_sync_fails() {
+    let Some(pool) = maybe_test_pool().await else {
+        return;
+    };
+
+    run_migrations(&pool).await.expect("migrations");
+
+    let repository = NodeRegistryRepository::new(pool.clone());
+    let inventory_item = NodeInventoryItem {
+        id: format!("node-{}", Uuid::new_v4().simple()),
+        name: "PT Edge Cached".to_string(),
+        hostname: Some("pt-edge-cached-01".to_string()),
+        enabled: Some(true),
+    };
+    let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
+    repository
+        .upsert_nodes(std::slice::from_ref(&upsert))
+        .await
+        .expect("upsert node");
+
+    let mut config = AdapterConfig::test_default();
+    config.remnawave_url = "http://127.0.0.1:9".to_string();
+    let service = NodeRegistryService::new(
+        repository.clone(),
+        RemnawaveClient::new(&config).expect("remnawave client"),
+    );
+
+    let nodes = service.list_nodes(true).await.expect("cached list nodes");
+    let node = nodes
+        .into_iter()
+        .find(|record| record.remnawave_node_id == inventory_item.id)
+        .expect("cached node");
+
+    assert_eq!(node.node_name, inventory_item.name);
+    assert_eq!(node.hostname.as_deref(), inventory_item.hostname.as_deref());
+}
+
+#[tokio::test]
 async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
     let Some(pool) = maybe_test_pool().await else {
         return;
