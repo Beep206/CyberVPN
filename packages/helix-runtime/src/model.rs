@@ -162,6 +162,9 @@ pub enum ControlFrame {
         stream_id: u64,
         data: Vec<u8>,
     },
+    StreamFinish {
+        stream_id: u64,
+    },
     StreamClose {
         stream_id: u64,
         reason: String,

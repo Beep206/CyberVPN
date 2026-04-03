@@ -1149,6 +1149,268 @@ async fn client_drains_server_tail_data_before_stream_close() {
 }
 
 #[tokio::test]
+async fn client_finish_preserves_server_response_after_local_half_close() {
+    let _test_guard = acquire_session_test_guard().await;
+
+    let upstream_listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind upstream");
+    let upstream_addr = upstream_listener.local_addr().expect("upstream addr");
+    tokio::spawn(async move {
+        let Ok((mut stream, _)) = upstream_listener.accept().await else {
+            return;
+        };
+
+        let mut request = Vec::new();
+        stream
+            .read_to_end(&mut request)
+            .await
+            .expect("read request to eof");
+        assert!(
+            request.starts_with(b"GET /half-close HTTP/1.1\r\n"),
+            "unexpected upstream request: {:?}",
+            String::from_utf8_lossy(&request)
+        );
+
+        let response = b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello";
+        stream.write_all(response).await.expect("write response");
+        let _ = stream.shutdown().await;
+    });
+
+    let server = spawn_server(ServerConfig {
+        bind_addrs: vec!["127.0.0.1:0".parse::<SocketAddr>().expect("bind addr")],
+        transport_profile_id: "ptp-lab-edge-v2".to_string(),
+        profile_family: "edge-hybrid".to_string(),
+        profile_version: 2,
+        policy_version: 4,
+        session_mode: "hybrid".to_string(),
+        token: "shared-session-token".to_string(),
+        heartbeat_timeout: Duration::from_secs(2),
+        allow_private_targets: true,
+    })
+    .await
+    .expect("spawn server");
+
+    let bound_addr = server
+        .snapshot()
+        .await
+        .bound_addrs
+        .first()
+        .cloned()
+        .expect("bound addr");
+    let parsed_addr = bound_addr.parse::<SocketAddr>().expect("socket addr");
+
+    let client = spawn_client(ClientConfig {
+        manifest_id: "manifest-1".to_string(),
+        transport_profile_id: "ptp-lab-edge-v2".to_string(),
+        profile_family: "edge-hybrid".to_string(),
+        profile_version: 2,
+        policy_version: 4,
+        session_mode: "hybrid".to_string(),
+        token: "shared-session-token".to_string(),
+        route: TransportRoute {
+            endpoint_ref: "node-lab-01".to_string(),
+            dial_host: parsed_addr.ip().to_string(),
+            dial_port: parsed_addr.port(),
+            server_name: None,
+            preference: 10,
+            policy_tag: "primary".to_string(),
+        },
+        connect_timeout: Duration::from_secs(2),
+        heartbeat_interval: Duration::from_millis(150),
+        reconnect_delay: Duration::from_millis(100),
+    });
+
+    wait_until(
+        || async {
+            let snapshot = client.snapshot().await;
+            snapshot.ready
+        },
+        Duration::from_secs(3),
+    )
+    .await;
+
+    let mut stream = client
+        .open_stream(StreamTarget::new(
+            upstream_addr.ip().to_string(),
+            upstream_addr.port(),
+        ))
+        .await
+        .expect("open stream");
+    let writer = stream.writer();
+    writer
+        .send(b"GET /half-close HTTP/1.1\r\nHost: half-close\r\nConnection: close\r\n\r\n".to_vec())
+        .await
+        .expect("send request");
+    writer.finish().await.expect("finish request uplink");
+
+    let mut response = Vec::new();
+    loop {
+        match timeout(Duration::from_secs(2), stream.recv()).await {
+            Ok(Some(chunk)) => response.extend_from_slice(&chunk),
+            Ok(None) => break,
+            Err(_) => panic!("timed out waiting for half-close response"),
+        }
+    }
+
+    assert!(
+        response.starts_with(b"HTTP/1.1 200 OK\r\n"),
+        "unexpected response start: {:?}",
+        String::from_utf8_lossy(&response)
+    );
+    assert!(
+        response.ends_with(b"hello"),
+        "expected response body after uplink finish, got {:?}",
+        String::from_utf8_lossy(&response)
+    );
+
+    shutdown_test_session(&client, &server).await;
+}
+
+#[tokio::test]
+async fn client_finish_preserves_large_server_response_after_local_half_close() {
+    let _test_guard = acquire_session_test_guard().await;
+
+    let response_chunk = vec![0x61_u8; 16 * 1024];
+    let response_chunks = 64_usize;
+    let response_body_len = response_chunk.len() * response_chunks;
+
+    let upstream_listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind upstream");
+    let upstream_addr = upstream_listener.local_addr().expect("upstream addr");
+    tokio::spawn(async move {
+        let Ok((mut stream, _)) = upstream_listener.accept().await else {
+            return;
+        };
+
+        let mut request = Vec::new();
+        stream
+            .read_to_end(&mut request)
+            .await
+            .expect("read request to eof");
+        assert!(
+            request.starts_with(b"GET /half-close-large HTTP/1.1\r\n"),
+            "unexpected upstream request: {:?}",
+            String::from_utf8_lossy(&request)
+        );
+
+        let header = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {response_body_len}\r\nConnection: close\r\n\r\n"
+        );
+        stream
+            .write_all(header.as_bytes())
+            .await
+            .expect("write response header");
+        for _ in 0..response_chunks {
+            stream
+                .write_all(&response_chunk)
+                .await
+                .expect("write response body chunk");
+        }
+        let _ = stream.shutdown().await;
+    });
+
+    let server = spawn_server(ServerConfig {
+        bind_addrs: vec!["127.0.0.1:0".parse::<SocketAddr>().expect("bind addr")],
+        transport_profile_id: "ptp-lab-edge-v2".to_string(),
+        profile_family: "edge-hybrid".to_string(),
+        profile_version: 2,
+        policy_version: 4,
+        session_mode: "hybrid".to_string(),
+        token: "shared-session-token".to_string(),
+        heartbeat_timeout: Duration::from_secs(2),
+        allow_private_targets: true,
+    })
+    .await
+    .expect("spawn server");
+
+    let bound_addr = server
+        .snapshot()
+        .await
+        .bound_addrs
+        .first()
+        .cloned()
+        .expect("bound addr");
+    let parsed_addr = bound_addr.parse::<SocketAddr>().expect("socket addr");
+
+    let client = spawn_client(ClientConfig {
+        manifest_id: "manifest-1".to_string(),
+        transport_profile_id: "ptp-lab-edge-v2".to_string(),
+        profile_family: "edge-hybrid".to_string(),
+        profile_version: 2,
+        policy_version: 4,
+        session_mode: "hybrid".to_string(),
+        token: "shared-session-token".to_string(),
+        route: TransportRoute {
+            endpoint_ref: "node-lab-01".to_string(),
+            dial_host: parsed_addr.ip().to_string(),
+            dial_port: parsed_addr.port(),
+            server_name: None,
+            preference: 10,
+            policy_tag: "primary".to_string(),
+        },
+        connect_timeout: Duration::from_secs(2),
+        heartbeat_interval: Duration::from_millis(150),
+        reconnect_delay: Duration::from_millis(100),
+    });
+
+    wait_until(
+        || async {
+            let snapshot = client.snapshot().await;
+            snapshot.ready
+        },
+        Duration::from_secs(3),
+    )
+    .await;
+
+    let mut stream = client
+        .open_stream(StreamTarget::new(
+            upstream_addr.ip().to_string(),
+            upstream_addr.port(),
+        ))
+        .await
+        .expect("open stream");
+    let writer = stream.writer();
+    writer
+        .send(
+            b"GET /half-close-large HTTP/1.1\r\nHost: half-close-large\r\nConnection: close\r\n\r\n"
+                .to_vec(),
+        )
+        .await
+        .expect("send request");
+    writer.finish().await.expect("finish request uplink");
+
+    let mut response = Vec::new();
+    loop {
+        match timeout(Duration::from_secs(3), stream.recv()).await {
+            Ok(Some(chunk)) => response.extend_from_slice(&chunk),
+            Ok(None) => break,
+            Err(_) => panic!("timed out waiting for large half-close response"),
+        }
+    }
+
+    let header = format!(
+        "HTTP/1.1 200 OK\r\nContent-Length: {response_body_len}\r\nConnection: close\r\n\r\n"
+    );
+    assert!(
+        response.starts_with(header.as_bytes()),
+        "unexpected response start: {} bytes {:?}",
+        response.len(),
+        String::from_utf8_lossy(&response[..response.len().min(128)])
+    );
+    assert_eq!(
+        response.len(),
+        header.len() + response_body_len,
+        "expected full large response after uplink finish; client_snapshot={:?}; server_snapshot={:?}",
+        client.snapshot().await,
+        server.snapshot().await
+    );
+
+    shutdown_test_session(&client, &server).await;
+}
+
+#[tokio::test]
 async fn client_inbound_scheduler_keeps_probe_streams_responsive_when_sibling_receiver_stalls() {
     let _test_guard = acquire_session_test_guard().await;
     let mut fixture_tasks = Vec::new();

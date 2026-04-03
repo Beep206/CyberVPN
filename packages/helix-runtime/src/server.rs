@@ -1,7 +1,7 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     net::{IpAddr, SocketAddr},
-    sync::Arc,
+    sync::{Arc, Mutex as StdMutex},
 };
 
 use tokio::{
@@ -39,10 +39,11 @@ const WRITER_CONTROL_BURST_LIMIT: usize = 2;
 const SESSION_RESUME_WINDOW_MULTIPLIER: u32 = 5;
 
 type ServerStreamTx = mpsc::Sender<Vec<u8>>;
+type ServerStreamTxSlot = Arc<StdMutex<Option<ServerStreamTx>>>;
 
 #[derive(Debug, Clone)]
 struct ServerStreamHandle {
-    outbound_tx: ServerStreamTx,
+    outbound_tx: ServerStreamTxSlot,
     bind_target: String,
     reader_abort: AbortHandle,
     writer_abort: AbortHandle,
@@ -53,6 +54,7 @@ type ServerStreamMap = Arc<Mutex<HashMap<u64, ServerStreamHandle>>>;
 #[derive(Debug)]
 enum ServerIngressAction {
     StreamData { stream_id: u64, data: Vec<u8> },
+    FinishStream { stream_id: u64 },
     CloseStream { stream_id: u64, reason: String },
 }
 
@@ -65,6 +67,7 @@ enum ServerEgressAction {
 #[derive(Debug, Default)]
 struct ServerIngressState {
     pending_data: HashMap<u64, VecDeque<Vec<u8>>>,
+    pending_finishes: HashSet<u64>,
     pending_closes: HashMap<u64, String>,
     schedule: VecDeque<u64>,
     pending_bytes: usize,
@@ -270,6 +273,12 @@ async fn enqueue_server_stream_close(stream_id: u64, reason: String, ingress: &S
     schedule_server_ingress_stream(&mut state, stream_id);
 }
 
+async fn enqueue_server_stream_finish(stream_id: u64, ingress: &ServerIngress) {
+    let mut state = ingress.state.lock().await;
+    state.pending_finishes.insert(stream_id);
+    schedule_server_ingress_stream(&mut state, stream_id);
+}
+
 async fn requeue_server_stream_data(stream_id: u64, data: Vec<u8>, ingress: &ServerIngress) {
     let mut state = ingress.state.lock().await;
     state.pending_bytes = state.pending_bytes.saturating_add(data.len());
@@ -314,11 +323,19 @@ async fn dequeue_server_ingress_action(ingress: &ServerIngress) -> Option<Server
 
         if let Some(data) = data {
             if state.pending_data.contains_key(&stream_id)
+                || state.pending_finishes.contains(&stream_id)
                 || state.pending_closes.contains_key(&stream_id)
             {
                 schedule_server_ingress_stream(&mut state, stream_id);
             }
             return Some(ServerIngressAction::StreamData { stream_id, data });
+        }
+
+        if state.pending_finishes.remove(&stream_id) {
+            if state.pending_closes.contains_key(&stream_id) {
+                schedule_server_ingress_stream(&mut state, stream_id);
+            }
+            return Some(ServerIngressAction::FinishStream { stream_id });
         }
 
         if let Some(reason) = state.pending_closes.remove(&stream_id) {
@@ -904,6 +921,10 @@ async fn run_server_session(
                     control.notify.notify_one();
                 }
             }
+            ControlFrame::StreamFinish { stream_id } => {
+                enqueue_server_stream_finish(stream_id, &ingress).await;
+                ingress.notify.notify_one();
+            }
             ControlFrame::StreamClose { stream_id, reason } => {
                 enqueue_server_stream_close(stream_id, reason, &ingress).await;
                 ingress.notify.notify_one();
@@ -946,38 +967,62 @@ async fn run_server_ingress_scheduler(
 
         let progressed = match action {
             ServerIngressAction::StreamData { stream_id, data } => {
-                let outbound = {
+                let outbound_tx = {
                     let state = streams.lock().await;
-                    state.get(&stream_id).cloned()
+                    state.get(&stream_id).map(|stream| stream.outbound_tx.clone())
                 };
 
-                if let Some(outbound) = outbound {
-                    match outbound.outbound_tx.try_send(data) {
-                        Ok(()) => {
-                            ingress.notify.notify_waiters();
-                            true
+                if let Some(outbound_tx) = outbound_tx {
+                    let sender = {
+                        outbound_tx
+                            .lock()
+                            .expect("server stream sender slot poisoned")
+                            .clone()
+                    };
+                    if let Some(sender) = sender {
+                        match sender.try_send(data) {
+                            Ok(()) => {
+                                ingress.notify.notify_waiters();
+                                true
+                            }
+                            Err(mpsc::error::TrySendError::Full(data)) => {
+                                requeue_server_stream_data(stream_id, data, &ingress).await;
+                                false
+                            }
+                            Err(mpsc::error::TrySendError::Closed(_)) => {
+                                close_server_stream(
+                                    stream_id,
+                                    "upstream writer closed".to_string(),
+                                    &egress,
+                                    &snapshot,
+                                    &streams,
+                                )
+                                .await?;
+                                ingress.notify.notify_waiters();
+                                true
+                            }
                         }
-                        Err(mpsc::error::TrySendError::Full(data)) => {
-                            requeue_server_stream_data(stream_id, data, &ingress).await;
-                            false
-                        }
-                        Err(mpsc::error::TrySendError::Closed(_)) => {
-                            close_server_stream(
-                                stream_id,
-                                "upstream writer closed".to_string(),
-                                &egress,
-                                &snapshot,
-                                &streams,
-                            )
-                            .await?;
-                            ingress.notify.notify_waiters();
-                            true
-                        }
+                    } else {
+                        close_server_stream(
+                            stream_id,
+                            "upstream write half already finished".to_string(),
+                            &egress,
+                            &snapshot,
+                            &streams,
+                        )
+                        .await?;
+                        ingress.notify.notify_waiters();
+                        true
                     }
                 } else {
                     ingress.notify.notify_waiters();
                     true
                 }
+            }
+            ServerIngressAction::FinishStream { stream_id } => {
+                finish_server_stream_write(stream_id, &streams).await;
+                ingress.notify.notify_waiters();
+                true
             }
             ServerIngressAction::CloseStream { stream_id, reason } => {
                 close_server_stream(stream_id, reason, &egress, &snapshot, &streams).await?;
@@ -1171,6 +1216,7 @@ async fn open_server_stream(
 
     let (upstream_reader, upstream_writer) = upstream.into_split();
     let (upstream_tx, upstream_rx) = mpsc::channel(STREAM_CHANNEL_CAPACITY);
+    let outbound_tx = Arc::new(StdMutex::new(Some(upstream_tx)));
     let bind_target = target_addr.to_string();
     let reader_task = tokio::spawn(run_upstream_reader(
         stream_id,
@@ -1193,7 +1239,7 @@ async fn open_server_stream(
         state.insert(
             stream_id,
             ServerStreamHandle {
-                outbound_tx: upstream_tx,
+                outbound_tx,
                 bind_target: bind_target.clone(),
                 reader_abort: reader_task.abort_handle(),
                 writer_abort: writer_task.abort_handle(),
@@ -1283,6 +1329,31 @@ async fn run_upstream_writer(
             return;
         }
     }
+
+    if let Err(error) = writer.shutdown().await {
+        let _ = close_server_stream(
+            stream_id,
+            format!("upstream shutdown failed: {error}"),
+            &egress,
+            &snapshot,
+            &streams,
+        )
+        .await;
+    }
+}
+
+async fn finish_server_stream_write(stream_id: u64, streams: &ServerStreamMap) {
+    let outbound_tx = {
+        let state = streams.lock().await;
+        state.get(&stream_id).map(|stream| stream.outbound_tx.clone())
+    };
+
+    if let Some(outbound_tx) = outbound_tx {
+        let mut sender = outbound_tx
+            .lock()
+            .expect("server stream sender slot poisoned");
+        sender.take();
+    }
 }
 
 async fn close_server_stream(
@@ -1300,6 +1371,13 @@ async fn close_server_stream(
     };
 
     if let Some(removed) = removed {
+        {
+            let mut outbound_tx = removed
+                .outbound_tx
+                .lock()
+                .expect("server stream sender slot poisoned");
+            outbound_tx.take();
+        }
         removed.reader_abort.abort();
         enqueue_server_egress_close(stream_id, reason, egress).await;
         egress.notify.notify_one();

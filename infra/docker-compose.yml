@@ -173,6 +173,7 @@ services:
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PORT=${WORKER_METRICS_PORT:-9091}
+      - METRICS_PROTECT=false
       - MAGIC_LINK_BASE_URL=${MAGIC_LINK_BASE_URL:-http://localhost:9001}
       # Override SMTP servers to use Docker network hostnames
       - SMTP_SERVERS=mailpit-1:1025,mailpit-2:1025,mailpit-3:1025
@@ -386,6 +387,7 @@ services:
       - REMNAWAVE_URL=http://remnawave:3000
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - METRICS_PROTECT=false
     command: ["taskiq", "scheduler", "src.broker:scheduler"]
     depends_on:
       cybervpn-worker:
@@ -565,7 +567,7 @@ services:
       - "127.0.0.1:9093:9093"
     environment:
       - ALERTMANAGER_WEBHOOK_URL=${ALERTMANAGER_WEBHOOK_URL:-https://your-telegram-relay.example.com/alert}
-    entrypoint: ["/docker-entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     command:
       - "--storage.path=/alertmanager"
       - "--web.external-url=http://localhost:9093"
@@ -699,7 +701,11 @@ services:
       loki:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'exec 3<>/dev/tcp/127.0.0.1/9080; printf \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; grep -q \"200 OK\" <&3'",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -1615,8 +1615,8 @@ async fn forward_local_to_remote(
     loop {
         let read = local_reader.read(&mut buffer).await?;
         if read == 0 {
-            let _ = remote_writer.close("local-eof").await;
-            finalize_stream_telemetry(&perf, stream_id, "local-eof").await;
+            let _ = remote_writer.finish().await;
+            finalize_stream_telemetry(&perf, stream_id, "local-finish").await;
             return Ok(());
         }
 
