@@ -25,13 +25,13 @@ use crate::{
 const CONTROL_FRAME_CHANNEL_CAPACITY: usize = 256;
 const DATA_FRAME_CHANNEL_CAPACITY: usize = 8;
 const CONTROL_COMMAND_CHANNEL_CAPACITY: usize = 256;
-const DATA_COMMAND_CHANNEL_CAPACITY: usize = 4;
-const STREAM_CHANNEL_CAPACITY: usize = 256;
+const DATA_COMMAND_CHANNEL_CAPACITY: usize = 2;
+const STREAM_CHANNEL_CAPACITY: usize = 96;
 const MAX_STREAM_FRAME_PAYLOAD: usize = 8 * 1024;
 const CONTENDED_STREAM_FRAME_PAYLOAD: usize = 4 * 1024;
-const HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD: usize = 2 * 1024;
+const HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD: usize = 1024;
 const MAX_PENDING_INBOUND_BYTES: usize = 8 * 1024 * 1024;
-const MAX_PENDING_INBOUND_BYTES_PER_STREAM: usize = 64 * 1024;
+const MAX_PENDING_INBOUND_BYTES_PER_STREAM: usize = 512 * 1024;
 const WRITER_CONTROL_BURST_LIMIT: usize = 2;
 
 #[derive(Debug, Clone)]
@@ -108,6 +108,10 @@ impl ClientStream {
     pub async fn close(&self, reason: impl Into<String>) -> Result<(), TransportError> {
         self.writer.close(reason).await
     }
+
+    pub async fn finish(&self) -> Result<(), TransportError> {
+        self.writer.finish().await
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -160,6 +164,27 @@ impl ClientStreamWriter {
             .await
             .map_err(|_| TransportError::ChannelClosed("client stream close"))
     }
+
+    pub async fn finish(&self) -> Result<(), TransportError> {
+        let command_bus = self
+            .session_commands
+            .read()
+            .await
+            .clone()
+            .ok_or_else(|| {
+                TransportError::Protocol(
+                    "Helix session is reconnecting and is not ready for finish".to_string(),
+                )
+            })?;
+
+        command_bus
+            .data_tx
+            .send(ClientSessionCommand::FinishStream {
+                stream_id: self.stream_id,
+            })
+            .await
+            .map_err(|_| TransportError::ChannelClosed("client stream finish"))
+    }
 }
 
 #[derive(Debug)]
@@ -171,6 +196,9 @@ enum ClientSessionCommand {
     SendStreamData {
         stream_id: u64,
         data: Vec<u8>,
+    },
+    FinishStream {
+        stream_id: u64,
     },
     CloseStream {
         stream_id: u64,
@@ -192,8 +220,10 @@ struct ClientSessionState {
     opening: HashMap<u64, PendingClientStream>,
     active: HashMap<u64, mpsc::Sender<Vec<u8>>>,
     aborting_inbound: HashSet<u64>,
+    locally_stalled: HashSet<u64>,
     pending_data: HashMap<u64, VecDeque<Vec<u8>>>,
     data_schedule: VecDeque<u64>,
+    pending_finishes: HashSet<u64>,
     pending_closes: HashMap<u64, String>,
 }
 
@@ -285,10 +315,8 @@ fn outbound_stream_frame_payload(stream_count: usize) -> usize {
 }
 
 fn inbound_stream_frame_payload(stream_count: usize) -> usize {
-    if stream_count >= 6 {
+    if stream_count >= 2 {
         HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD
-    } else if stream_count >= 2 {
-        CONTENDED_STREAM_FRAME_PAYLOAD
     } else {
         MAX_STREAM_FRAME_PAYLOAD
     }
@@ -369,6 +397,50 @@ async fn enqueue_client_stream_close(
     schedule_client_stream(&mut state, stream_id);
 }
 
+async fn enqueue_client_stream_finish(
+    stream_id: u64,
+    session_state: &Arc<Mutex<ClientSessionState>>,
+) {
+    let mut state = session_state.lock().await;
+    state.pending_finishes.insert(stream_id);
+    schedule_client_stream(&mut state, stream_id);
+}
+
+async fn send_client_priority_close(
+    stream_id: u64,
+    reason: String,
+    session_commands: &Arc<RwLock<Option<ClientSessionCommandBus>>>,
+    data_command_tx: &mpsc::Sender<ClientSessionCommand>,
+) {
+    let close_command = ClientSessionCommand::CloseStream { stream_id, reason };
+    let control_command_tx = session_commands
+        .read()
+        .await
+        .as_ref()
+        .map(|command_bus| command_bus.control_tx.clone());
+
+    match control_command_tx
+        .as_ref()
+        .unwrap_or(data_command_tx)
+        .try_send(close_command)
+    {
+        Ok(()) => {}
+        Err(mpsc::error::TrySendError::Full(command)) => {
+            if let Some(control_command_tx) = control_command_tx {
+                tokio::spawn(async move {
+                    let _ = control_command_tx.send(command).await;
+                });
+            } else {
+                let data_command_tx = data_command_tx.clone();
+                tokio::spawn(async move {
+                    let _ = data_command_tx.send(command).await;
+                });
+            }
+        }
+        Err(mpsc::error::TrySendError::Closed(_)) => {}
+    }
+}
+
 async fn requeue_client_stream_frame(
     frame: ControlFrame,
     session_state: &Arc<Mutex<ClientSessionState>>,
@@ -381,6 +453,10 @@ async fn requeue_client_stream_frame(
                 .entry(stream_id)
                 .or_default()
                 .push_front(data);
+            schedule_client_stream(&mut state, stream_id);
+        }
+        ControlFrame::StreamFinish { stream_id } => {
+            state.pending_finishes.insert(stream_id);
             schedule_client_stream(&mut state, stream_id);
         }
         ControlFrame::StreamClose { stream_id, reason } => {
@@ -583,11 +659,19 @@ async fn dequeue_client_stream_data_frame(
                     .push_front(remainder);
             }
             if state.pending_data.contains_key(&stream_id)
+                || state.pending_finishes.contains(&stream_id)
                 || state.pending_closes.contains_key(&stream_id)
             {
                 schedule_client_stream(&mut state, stream_id);
             }
             return Some(ControlFrame::StreamData { stream_id, data });
+        }
+
+        if state.pending_finishes.remove(&stream_id) {
+            if state.pending_closes.contains_key(&stream_id) {
+                schedule_client_stream(&mut state, stream_id);
+            }
+            return Some(ControlFrame::StreamFinish { stream_id });
         }
 
         if let Some(reason) = state.pending_closes.remove(&stream_id) {
@@ -843,6 +927,8 @@ async fn run_client_session(
         inbound.clone(),
         session_state.clone(),
         snapshot.clone(),
+        session_commands.clone(),
+        data_command_tx.clone(),
     ));
     let mut reader_task = tokio::spawn(run_frame_reader(
         reader,
@@ -1005,6 +1091,23 @@ async fn handle_client_command(
                 "client stream data must be routed through the scheduler".to_string(),
             ));
         }
+        ClientSessionCommand::FinishStream { stream_id } => {
+            let (pending_open_streams, active_streams) = {
+                let state = session_state.lock().await;
+                (
+                    u64::try_from(state.opening.len()).unwrap_or(u64::MAX),
+                    u64::try_from(state.active.len()).unwrap_or(u64::MAX),
+                )
+            };
+            let mut guard = snapshot.write().await;
+            guard.pending_open_streams = pending_open_streams;
+            guard.active_streams = active_streams;
+            let depth = combined_sender_queue_depth(control_frame_tx, data_frame_tx);
+            guard.frame_queue_depth = depth;
+            guard.frame_queue_peak = guard.frame_queue_peak.max(depth);
+            drop(guard);
+            enqueue_client_stream_finish(stream_id, session_state).await;
+        }
         ClientSessionCommand::CloseStream { stream_id, reason } => {
             let (pending_open_streams, active_streams) = {
                 let state = session_state.lock().await;
@@ -1139,9 +1242,9 @@ where
             }
         };
 
-        let data_len = match &frame {
-            ControlFrame::StreamData { data, .. } => u64::try_from(data.len()).unwrap_or(u64::MAX),
-            _ => 0,
+            let data_len = match &frame {
+                ControlFrame::StreamData { data, .. } => u64::try_from(data.len()).unwrap_or(u64::MAX),
+                _ => 0,
         };
 
         if from_control {
@@ -1213,6 +1316,11 @@ async fn run_client_data_scheduler(
                 match maybe_command {
                     Some(ClientSessionCommand::SendStreamData { stream_id, data }) => {
                         enqueue_client_stream_data(stream_id, data, &session_state).await;
+                        has_pending_frames = true;
+                        progressed = true;
+                    }
+                    Some(ClientSessionCommand::FinishStream { stream_id }) => {
+                        enqueue_client_stream_finish(stream_id, &session_state).await;
                         has_pending_frames = true;
                         progressed = true;
                     }
@@ -1306,7 +1414,7 @@ where
                 stream_id,
                 bind_target: _,
             } => {
-                let (respond_to, pending_count, active_count, stream) = {
+                let (respond_to, pending_count, active_count, stream, forced_stalled_streams) = {
                     let mut state = session_state.lock().await;
                     let Some(mut pending) = state.opening.remove(&stream_id) else {
                         return Err(TransportError::Protocol(format!(
@@ -1328,21 +1436,61 @@ where
                             session_commands: session_commands.clone(),
                         },
                     };
+                    let forced_stalled_streams = if state.active.len() > 1 {
+                        let low_capacity_threshold = (STREAM_CHANNEL_CAPACITY * 2) / 3;
+                        let stalled = state
+                            .active
+                            .iter()
+                            .filter_map(|(active_stream_id, sender)| {
+                                let is_current_stream = *active_stream_id == stream_id;
+                                let is_locally_stalled =
+                                    state.locally_stalled.contains(active_stream_id);
+                                let receiver_is_saturated =
+                                    sender.capacity() <= low_capacity_threshold;
+                                if !is_current_stream
+                                    && (is_locally_stalled || receiver_is_saturated)
+                                {
+                                    Some(*active_stream_id)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        for stalled_stream_id in &stalled {
+                            state.aborting_inbound.insert(*stalled_stream_id);
+                            state.active.remove(stalled_stream_id);
+                            state.locally_stalled.remove(stalled_stream_id);
+                        }
+                        stalled
+                    } else {
+                        Vec::new()
+                    };
                     (
                         pending.respond_to,
                         u64::try_from(state.opening.len()).unwrap_or(u64::MAX),
                         u64::try_from(state.active.len()).unwrap_or(u64::MAX),
                         stream,
+                        forced_stalled_streams,
                     )
                 };
 
                 let _ = respond_to.send(Ok(stream));
+                for stalled_stream_id in forced_stalled_streams {
+                    drop_client_inbound_stream(stalled_stream_id, &inbound).await;
+                    send_client_priority_close(
+                        stalled_stream_id,
+                        "client inbound receiver stalled under sibling load".to_string(),
+                        &session_commands,
+                        &data_command_tx,
+                    )
+                    .await;
+                }
                 let mut guard = snapshot.write().await;
                 guard.pending_open_streams = pending_count;
                 guard.active_streams = active_count;
                 guard.max_concurrent_streams = guard.max_concurrent_streams.max(active_count);
             }
-            ControlFrame::StreamData { stream_id, data } => {
+                ControlFrame::StreamData { stream_id, data } => {
                 let (stream_known, stream_aborting) = {
                     let state = session_state.lock().await;
                     (
@@ -1375,25 +1523,17 @@ where
                             let mut state = session_state.lock().await;
                             state.aborting_inbound.insert(stream_id);
                             state.active.remove(&stream_id);
+                            state.locally_stalled.remove(&stream_id);
                             u64::try_from(state.active.len()).unwrap_or(u64::MAX)
                         };
                         drop_client_inbound_stream(stream_id, &inbound).await;
-                        let close_command = ClientSessionCommand::CloseStream {
+                        send_client_priority_close(
                             stream_id,
-                            reason: close_reason.clone(),
-                        };
-                        match data_command_tx.try_send(close_command) {
-                            Ok(()) => {}
-                            Err(mpsc::error::TrySendError::Full(command)) => {
-                                tokio::spawn({
-                                    let data_command_tx = data_command_tx.clone();
-                                    async move {
-                                        let _ = data_command_tx.send(command).await;
-                                    }
-                                });
-                            }
-                            Err(mpsc::error::TrySendError::Closed(_)) => {}
-                        }
+                            close_reason.clone(),
+                            &session_commands,
+                            &data_command_tx,
+                        )
+                        .await;
                         let mut guard = snapshot.write().await;
                         guard.active_streams = active_streams;
                         guard.last_error = Some(close_reason);
@@ -1401,6 +1541,11 @@ where
                     ClientInboundEnqueueResult::IgnoredClosing => {}
                 }
                 inbound.notify.notify_one();
+            }
+            ControlFrame::StreamFinish { .. } => {
+                return Err(TransportError::Protocol(
+                    "unexpected stream_finish received by client".to_string(),
+                ));
             }
             ControlFrame::StreamClose { stream_id, reason } => {
                 let (pending_response, pending_count, active_count) = {
@@ -1456,6 +1601,8 @@ async fn run_client_inbound_scheduler(
     inbound: ClientInbound,
     session_state: Arc<Mutex<ClientSessionState>>,
     snapshot: Arc<RwLock<SessionSnapshot>>,
+    session_commands: Arc<RwLock<Option<ClientSessionCommandBus>>>,
+    data_command_tx: mpsc::Sender<ClientSessionCommand>,
 ) -> Result<(), TransportError> {
     let mut has_pending_inbound = has_pending_client_inbound(&inbound).await;
 
@@ -1485,8 +1632,43 @@ async fn run_client_inbound_scheduler(
                             true
                         }
                         Err(mpsc::error::TrySendError::Full(data)) => {
-                            requeue_client_inbound_data(stream_id, data, &inbound).await;
-                            false
+                            let (has_siblings, active_streams) = {
+                                let mut state = session_state.lock().await;
+                                let has_siblings = state.active.len() > 1;
+                                let active_streams = if has_siblings {
+                                    state.aborting_inbound.insert(stream_id);
+                                    state.active.remove(&stream_id);
+                                    state.locally_stalled.remove(&stream_id);
+                                    u64::try_from(state.active.len()).unwrap_or(u64::MAX)
+                                } else {
+                                    state.locally_stalled.insert(stream_id);
+                                    u64::try_from(state.active.len()).unwrap_or(u64::MAX)
+                                };
+                                (has_siblings, active_streams)
+                            };
+
+                            if has_siblings {
+                                drop(data);
+                                drop_client_inbound_stream(stream_id, &inbound).await;
+                                let close_reason =
+                                    "client inbound receiver stalled under sibling load"
+                                        .to_string();
+                                send_client_priority_close(
+                                    stream_id,
+                                    close_reason.clone(),
+                                    &session_commands,
+                                    &data_command_tx,
+                                )
+                                .await;
+                                let mut guard = snapshot.write().await;
+                                guard.active_streams = active_streams;
+                                guard.last_error = Some(close_reason);
+                                inbound.notify.notify_waiters();
+                                true
+                            } else {
+                                requeue_client_inbound_data(stream_id, data, &inbound).await;
+                                false
+                            }
                         }
                         Err(mpsc::error::TrySendError::Closed(_)) => {
                             let active_streams = {
@@ -1566,8 +1748,10 @@ async fn reset_client_runtime_state(
     let mut state = session_state.lock().await;
     state.active.clear();
     state.aborting_inbound.clear();
+    state.locally_stalled.clear();
     state.pending_data.clear();
     state.data_schedule.clear();
+    state.pending_finishes.clear();
     state.pending_closes.clear();
     drop(state);
 
