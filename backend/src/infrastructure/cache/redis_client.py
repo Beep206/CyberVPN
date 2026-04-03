@@ -17,9 +17,10 @@ def get_redis_pool() -> redis.ConnectionPool:
     """Get or create Redis connection pool."""
     global _redis_pool
     if _redis_pool is None:
-        _redis_pool = redis.ConnectionPool.from_url(
+        _redis_pool = redis.BlockingConnectionPool.from_url(
             settings.redis_url,
-            max_connections=10,
+            max_connections=settings.redis_max_connections,
+            timeout=settings.redis_pool_wait_seconds,
             decode_responses=True,
         )
     return _redis_pool
