@@ -1,5 +1,5 @@
-use std::process::Command;
 use crate::engine::error::AppError;
+use std::process::Command;
 
 pub trait GatewayManager {
     fn enable_forwarding() -> Result<(), AppError>;
@@ -18,15 +18,29 @@ impl GatewayManager for SystemGateway {
         // Simplistic approach: Just enable routing for the whole TCP/IP stack (Routing and Remote Access)
         // More specific is `netsh interface ipv4 set interface "Wi-Fi" forwarding=enabled` but
         // enabling it globally via registry is often more robust for hotspot architectures.
-        
+
         let output = Command::new("netsh")
-            .args(["interface", "ipv4", "set", "interface", "\"Wi-Fi\"", "forwarding=enabled"])
+            .args([
+                "interface",
+                "ipv4",
+                "set",
+                "interface",
+                "\"Wi-Fi\"",
+                "forwarding=enabled",
+            ])
             .output()
             .map_err(|e| AppError::System(format!("Failed to execute netsh: {}", e)))?;
 
         // Fallback for Ethernet if Wi-Fi isn't the primary adapter
         let _ = Command::new("netsh")
-            .args(["interface", "ipv4", "set", "interface", "\"Ethernet\"", "forwarding=enabled"])
+            .args([
+                "interface",
+                "ipv4",
+                "set",
+                "interface",
+                "\"Ethernet\"",
+                "forwarding=enabled",
+            ])
             .output();
 
         if !output.status.success() {
@@ -43,11 +57,25 @@ impl GatewayManager for SystemGateway {
         }
 
         let _ = Command::new("netsh")
-            .args(["interface", "ipv4", "set", "interface", "\"Wi-Fi\"", "forwarding=disabled"])
+            .args([
+                "interface",
+                "ipv4",
+                "set",
+                "interface",
+                "\"Wi-Fi\"",
+                "forwarding=disabled",
+            ])
             .output();
-            
+
         let _ = Command::new("netsh")
-            .args(["interface", "ipv4", "set", "interface", "\"Ethernet\"", "forwarding=disabled"])
+            .args([
+                "interface",
+                "ipv4",
+                "set",
+                "interface",
+                "\"Ethernet\"",
+                "forwarding=disabled",
+            ])
             .output();
 
         Ok(())
@@ -97,11 +125,15 @@ impl GatewayManager for SystemGateway {
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
 impl GatewayManager for SystemGateway {
     fn enable_forwarding() -> Result<(), AppError> {
-        Err(AppError::System("Hotspot routing not supported on this OS".to_string()))
+        Err(AppError::System(
+            "Hotspot routing not supported on this OS".to_string(),
+        ))
     }
-    
+
     fn disable_forwarding() -> Result<(), AppError> {
-        Err(AppError::System("Hotspot routing not supported on this OS".to_string()))
+        Err(AppError::System(
+            "Hotspot routing not supported on this OS".to_string(),
+        ))
     }
 }
 
@@ -129,7 +161,7 @@ pub fn get_local_ip() -> Option<String> {
 pub async fn get_lan_connection_info(app: tauri::AppHandle) -> Result<LanInfo, AppError> {
     // 1. Get the local IP
     let ip = get_local_ip().unwrap_or_else(|| "127.0.0.1".to_string());
-    
+
     // 2. Get the current proxy port from store
     let port = tokio::task::spawn_blocking(move || {
         let store = crate::engine::store::load_store(&app)?;
@@ -156,4 +188,3 @@ pub async fn disable_lan_forwarding() -> Result<(), AppError> {
         .map_err(|e| AppError::System(format!("Failed to spawn blocking netsh task: {}", e)))??;
     Ok(())
 }
-

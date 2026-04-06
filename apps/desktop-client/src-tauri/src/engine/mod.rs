@@ -1,11 +1,14 @@
 pub mod config;
+pub mod diagnostics;
 pub mod error;
+pub mod helix;
+pub mod lifecycle;
 pub mod manager;
 pub mod parser;
+pub mod ping;
 pub mod provision;
 pub mod qr;
 pub mod store;
 pub mod subscription;
 pub mod sys;
-pub mod ping;
 pub mod sysproxy;

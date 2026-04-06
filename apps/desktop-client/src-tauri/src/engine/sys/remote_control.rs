@@ -1,7 +1,7 @@
 use crate::engine::error::AppError;
 use axum::{
     extract::State,
-    http::{StatusCode, HeaderMap, header},
+    http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::{get, post},
     Json, Router,
@@ -57,7 +57,7 @@ pub async fn start_remote_server(app: AppHandle) -> Result<String, AppError> {
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    
+
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(|e| AppError::System(format!("Failed to bind to {}: {}", addr, e)))?;
@@ -125,7 +125,7 @@ async fn api_status(
     if !check_auth(&headers, &state.secret) {
         return Err(StatusCode::UNAUTHORIZED);
     }
-    
+
     use tauri::Manager;
     let app_state = state.app.state::<crate::ipc::AppState>();
     let status_lock = app_state.status.read().await;
@@ -150,13 +150,13 @@ async fn api_connect(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    // Call connect_profile asynchronously without awaiting its full completion 
+    // Call connect_profile asynchronously without awaiting its full completion
     // to instantly return 200 OK to the mobile device.
     use tauri::Manager;
     let app_clone1 = state.app.clone();
     let app_clone2 = state.app.clone();
     let profile_id = payload.profile_id;
-    
+
     tokio::spawn(async move {
         let app_state = app_clone1.state::<crate::ipc::AppState>();
         // Using tun_mode=false, system_proxy=true by default for simplicity on remote,

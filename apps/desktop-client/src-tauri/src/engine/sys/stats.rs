@@ -33,7 +33,7 @@ pub fn start_session(protocol: String, country_code: String) {
     if let Ok(mut session) = ACTIVE_SESSION.lock() {
         // Attempt to flush previous session if it existed
         if let Some(_old_sess) = session.take() {
-            // We can't safely grab AppHandle here, but we can do a background queue. 
+            // We can't safely grab AppHandle here, but we can do a background queue.
             // Better to rely on manual flush before starting a new one.
         }
         *session = Some(SessionMetadata {
@@ -57,7 +57,10 @@ pub fn update_absolute_bytes(up: u64, down: u64) {
 }
 
 pub fn get_stats_path(app: &AppHandle) -> PathBuf {
-    app.path().app_data_dir().unwrap().join("usage_history.json")
+    app.path()
+        .app_data_dir()
+        .unwrap()
+        .join("usage_history.json")
 }
 
 pub fn load_history(app: &AppHandle) -> Result<Vec<UsageRecord>, AppError> {
@@ -83,8 +86,10 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
         let mut session_opt = ACTIVE_SESSION.lock().unwrap();
         if let Some(session) = session_opt.as_mut() {
             let add_up = session.session_up.saturating_sub(session.last_synced_up);
-            let add_down = session.session_down.saturating_sub(session.last_synced_down);
-            
+            let add_down = session
+                .session_down
+                .saturating_sub(session.last_synced_down);
+
             if add_up == 0 && add_down == 0 {
                 return Ok(()); // Nothing to flush
             }
@@ -92,7 +97,12 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
             session.last_synced_up = session.session_up;
             session.last_synced_down = session.session_down;
 
-            (add_up, add_down, session.protocol.clone(), session.country_code.clone())
+            (
+                add_up,
+                add_down,
+                session.protocol.clone(),
+                session.country_code.clone(),
+            )
         } else {
             return Ok(());
         }
@@ -104,7 +114,10 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
     // Look for an existing record for today, protocol, and country
     let mut found = false;
     for record in history.iter_mut() {
-        if record.date == today && record.protocol == protocol && record.country_code == country_code {
+        if record.date == today
+            && record.protocol == protocol
+            && record.country_code == country_code
+        {
             record.bytes_up = record.bytes_up.saturating_add(delta_up);
             record.bytes_down = record.bytes_down.saturating_add(delta_down);
             found = true;
@@ -129,7 +142,7 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
 }
 
 pub fn spawn_flush_interval(app: AppHandle) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(300)); // 5 mins
         loop {
             interval.tick().await;
@@ -139,7 +152,10 @@ pub fn spawn_flush_interval(app: AppHandle) {
 }
 
 #[tauri::command]
-pub async fn get_usage_history(_period: String, app: tauri::AppHandle) -> Result<Vec<UsageRecord>, AppError> {
+pub async fn get_usage_history(
+    _period: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<UsageRecord>, AppError> {
     tokio::task::spawn_blocking(move || {
         let _ = flush_session(&app);
         let history = load_history(&app)?;
@@ -151,7 +167,9 @@ pub async fn get_usage_history(_period: String, app: tauri::AppHandle) -> Result
 
 pub fn resolve_ip_country(ip: &str) -> String {
     // Dummy deterministic GeoIP resolution mapping arbitrary IPs to global servers
-    let countries = ["US", "DE", "GB", "NL", "SG", "JP", "FR", "CA", "AU", "BR", "CH", "FI", "KR"];
+    let countries = [
+        "US", "DE", "GB", "NL", "SG", "JP", "FR", "CA", "AU", "BR", "CH", "FI", "KR",
+    ];
     let sum: usize = ip.bytes().map(|b| b as usize).sum();
     countries[sum % countries.len()].to_string()
 }
@@ -163,7 +181,8 @@ pub async fn get_global_footprint(app: tauri::AppHandle) -> Result<HashMap<Strin
         let mut footprint = HashMap::new();
         for record in history {
             // Include both upstream and downstream to footprint graph
-            *footprint.entry(record.country_code).or_insert(0) += record.bytes_up + record.bytes_down;
+            *footprint.entry(record.country_code).or_insert(0) +=
+                record.bytes_up + record.bytes_down;
         }
         Ok(footprint)
     })

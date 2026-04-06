@@ -8,7 +8,18 @@ from functools import lru_cache
 from typing import Annotated
 
 from pydantic import SecretStr, field_validator, model_validator
-from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+try:
+    from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+except (
+    ImportError
+):  # pragma: no cover - compatibility with older local pydantic-settings builds
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+
+    class NoDecode:
+        """Compatibility shim for pydantic-settings versions without NoDecode."""
+
+        pass
 
 
 class Settings(BaseSettings):
@@ -30,6 +41,9 @@ class Settings(BaseSettings):
     # External Services
     remnawave_url: str = "http://localhost:3000"
     remnawave_api_token: SecretStr
+    helix_enabled: bool = False
+    helix_adapter_url: str = "http://localhost:8090"
+    helix_adapter_token: SecretStr = SecretStr("")
 
     # Bot Tokens
     telegram_bot_token: SecretStr
@@ -48,6 +62,20 @@ class Settings(BaseSettings):
 
     # Health Check Configuration
     health_check_interval_seconds: int = 120
+    helix_stale_heartbeat_seconds: int = 180
+    helix_rollback_alert_threshold: int = 1
+    helix_rollout_min_connect_success_rate: float = 0.95
+    helix_rollout_max_fallback_rate: float = 0.05
+    helix_rollout_min_continuity_success_rate: float = 0.80
+    helix_rollout_min_cross_route_recovery_rate: float = 0.20
+    helix_alert_state_ttl_seconds: int = 3600
+    helix_actuation_escalation_seconds: int = 900
+    helix_canary_min_connect_success_rate: float = 0.98
+    helix_canary_max_fallback_rate: float = 0.03
+    helix_canary_min_continuity_observations: int = 5
+    helix_canary_require_throughput_evidence: bool = True
+    helix_canary_min_relative_throughput_ratio: float = 0.90
+    helix_canary_max_relative_open_to_first_byte_gap_ratio: float = 1.15
 
     # Cleanup Configuration
     cleanup_audit_retention_days: int = 90
@@ -81,7 +109,9 @@ class Settings(BaseSettings):
     brevo_from_email: str = "CyberVPN <noreply@cybervpn.io>"
 
     # Magic Link
-    magic_link_base_url: str = "http://localhost:9001"  # Frontend URL for magic link emails
+    magic_link_base_url: str = (
+        "http://localhost:9001"  # Frontend URL for magic link emails
+    )
 
     # Dev/Test environment: Use Mailpit cluster for email testing
     # Set EMAIL_DEV_MODE=true to use SMTP instead of API providers
@@ -89,7 +119,11 @@ class Settings(BaseSettings):
 
     # Mailpit SMTP servers (round-robin for provider rotation testing)
     # Format: host:port,host:port,host:port
-    smtp_servers: Annotated[list[str], NoDecode] = ["localhost:1025", "localhost:1026", "localhost:1027"]
+    smtp_servers: Annotated[list[str], NoDecode] = [
+        "localhost:1025",
+        "localhost:1026",
+        "localhost:1027",
+    ]
     smtp_from_email: str = "CyberVPN <verify@cybervpn.local>"
 
     @field_validator("admin_telegram_ids", mode="before")
@@ -103,7 +137,9 @@ class Settings(BaseSettings):
         try:
             return [int(id_str.strip()) for id_str in v.split(",") if id_str.strip()]
         except ValueError as e:
-            raise ValueError(f"ADMIN_TELEGRAM_IDS must be comma-separated integers: {e}") from e
+            raise ValueError(
+                f"ADMIN_TELEGRAM_IDS must be comma-separated integers: {e}"
+            ) from e
 
     @field_validator("metrics_allowed_ips", mode="before")
     @classmethod
@@ -126,13 +162,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_metrics_settings(self) -> "Settings":
-        if self.metrics_basic_auth_user is None and self.metrics_basic_auth_password is not None:
+        if (
+            self.metrics_basic_auth_user is None
+            and self.metrics_basic_auth_password is not None
+        ):
             msg = "METRICS_BASIC_AUTH_USER is required when password is set"
             raise ValueError(msg)
-        if self.metrics_basic_auth_user is not None and self.metrics_basic_auth_password is None:
+        if (
+            self.metrics_basic_auth_user is not None
+            and self.metrics_basic_auth_password is None
+        ):
             msg = "METRICS_BASIC_AUTH_PASSWORD is required when user is set"
             raise ValueError(msg)
-        if self.metrics_protect and not self.metrics_allowed_ips and self.metrics_basic_auth_user is None:
+        if (
+            self.metrics_protect
+            and not self.metrics_allowed_ips
+            and self.metrics_basic_auth_user is None
+        ):
             msg = "METRICS_ALLOWED_IPS or METRICS_BASIC_AUTH_* required when METRICS_PROTECT=true"
             raise ValueError(msg)
         return self

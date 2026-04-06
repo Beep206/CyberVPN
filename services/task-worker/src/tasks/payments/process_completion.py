@@ -17,6 +17,20 @@ from src.utils.formatting import payment_received
 logger = structlog.get_logger(__name__)
 
 
+def _attach_task_labels(task: Any, **labels: str) -> Any:
+    """Attach labels compatibly across TaskIQ versions."""
+    task_obj = cast(Any, task)
+    if hasattr(task_obj, "with_labels"):
+        return task_obj.with_labels(**labels)
+
+    existing = getattr(task_obj, "labels", None)
+    if isinstance(existing, dict):
+        existing.update(labels)
+    else:
+        setattr(task_obj, "labels", labels)
+    return task_obj
+
+
 @broker.task(task_name="process_payment_completion", queue="payments")
 async def process_payment_completion(payment_id: str) -> dict:
     """Process a completed payment: update DB, enable user, send notification."""
@@ -70,9 +84,19 @@ async def process_payment_completion(payment_id: str) -> dict:
     telegram_id = user.get("telegramId")
     plan_name = ""
     if payment.metadata_ and isinstance(payment.metadata_, dict):
-        plan_name = payment.metadata_.get("plan_name") or payment.metadata_.get("planName") or ""
+        plan_name = (
+            payment.metadata_.get("plan_name")
+            or payment.metadata_.get("planName")
+            or ""
+        )
     if telegram_id:
-        msg = payment_received(username, float(payment.amount), payment.currency, plan_name, payment.subscription_days)
+        msg = payment_received(
+            username,
+            float(payment.amount),
+            payment.currency,
+            plan_name,
+            payment.subscription_days,
+        )
         try:
             async with TelegramClient() as tg:
                 await tg.send_message(chat_id=int(telegram_id), text=msg)
@@ -107,4 +131,7 @@ async def process_payment_completion(payment_id: str) -> dict:
     }
 
 
-process_payment_completion = cast(Any, process_payment_completion).with_labels(retry_policy="payments_webhook")
+process_payment_completion = _attach_task_labels(
+    process_payment_completion,
+    retry_policy="payments_webhook",
+)

@@ -61,3 +61,9 @@ impl Serialize for AppError {
         serializer.serialize_str(&self.to_string())
     }
 }
+
+impl From<helix_runtime::TransportError> for AppError {
+    fn from(value: helix_runtime::TransportError) -> Self {
+        Self::System(value.to_string())
+    }
+}

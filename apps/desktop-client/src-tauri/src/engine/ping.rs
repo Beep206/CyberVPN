@@ -6,7 +6,9 @@ use tokio::time::timeout;
 
 pub async fn test_latency(node: &ProxyNode) -> Result<u32, AppError> {
     if node.server.is_empty() || node.port == 0 {
-        return Err(AppError::System("Invalid server address or port".to_string()));
+        return Err(AppError::System(
+            "Invalid server address or port".to_string(),
+        ));
     }
 
     let address = format!("{}:{}", node.server, node.port);

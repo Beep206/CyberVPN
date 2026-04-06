@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "rollout_id": "rollout-canary-2026-03-31-a",
+  "channel": "canary",
+  "desired_state": "running",
+  "published_at": "2026-03-31T09:00:00Z",
+  "current_batch": {
+    "batch_id": "batch-2026-03-31-01",
+    "manifest_version": "manifest-v1",
+    "target_nodes": 3,
+    "completed_nodes": 2,
+    "failed_nodes": 0
+  },
+  "nodes": {
+    "healthy": 2,
+    "stale": 0,
+    "rolled_back": 0
+  },
+  "desktop": {
+    "connect_success_rate": 0.992,
+    "fallback_rate": 0.006
+  },
+  "policy": {
+    "pause_on_rollback_spike": true,
+    "revoke_on_manifest_error": true
+  }
+}

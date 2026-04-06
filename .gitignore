@@ -10,6 +10,10 @@ node_modules/
 
 # testing
 coverage/
+.coverage
+.coverage.*
+.hypothesis/
+**/.hypothesis/
 
 # builds
 .next/
@@ -17,6 +21,8 @@ coverage/
 out/
 dist/
 build/
+**/target/
+**/target-*/
 
 # logs
 npm-debug.log*
@@ -38,6 +44,11 @@ yarn-error.log*
 .DS_Store
 *.pem
 *.tsbuildinfo
+.artifacts/
+.tmp/
+.codex-targets/
+apps/desktop-client/.artifacts/
+apps/desktop-client/src-tauri/target-policy-reaction-verify/
 
 # Logs
 logs
