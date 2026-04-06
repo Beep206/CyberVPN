@@ -2,6 +2,7 @@ pub mod config;
 pub mod diagnostics;
 pub mod error;
 pub mod helix;
+pub mod lifecycle;
 pub mod manager;
 pub mod parser;
 pub mod ping;

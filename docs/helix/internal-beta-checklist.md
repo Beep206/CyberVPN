@@ -37,6 +37,8 @@ Run at least one of:
 powershell -ExecutionPolicy Bypass -File apps/desktop-client/scripts/run_helix_lab_bench.ps1 -UseSyntheticLabTarget
 powershell -ExecutionPolicy Bypass -File apps/desktop-client/scripts/run_helix_recovery_lab.ps1 -Mode reconnect -UseSyntheticLabTarget
 powershell -ExecutionPolicy Bypass -File apps/desktop-client/scripts/run_helix_target_matrix.ps1 -Preset mixed -UseSyntheticLabTarget
+powershell -ExecutionPolicy Bypass -File apps/desktop-client/scripts/run_helix_soak_cycle.ps1 -DurationMinutes 5 -ProbeIntervalSeconds 15 -UseSyntheticLabTarget -InjectFailover -InjectReconnect
+powershell -ExecutionPolicy Bypass -File apps/desktop-client/scripts/run_helix_live_comparison.ps1 -UseSyntheticLabTarget -PublishBenchmarkEvent
 ```
 
 5. Internal beta evidence pack bootstrap
@@ -53,6 +55,8 @@ Attach all of the following to the beta decision record:
 - latest `infra/tests/verify_helix_rollback.sh` result
 - latest Helix recovery report
 - latest Helix target-matrix report
+- latest Helix soak-cycle report
+- latest Helix live comparison report with `sing-box` baseline
 - latest formal canary evidence snapshot
 - one desktop support bundle from the candidate build
 - evidence pack checklist from [helix-internal-beta-evidence-pack.md](/C:/project/CyberVPN/docs/testing/helix-internal-beta-evidence-pack.md)

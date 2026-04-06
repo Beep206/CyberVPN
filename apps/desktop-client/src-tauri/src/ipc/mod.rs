@@ -19,6 +19,11 @@ async fn reset_connection_state(
     state: &State<'_, AppState>,
 ) -> Result<(), AppError> {
     let previous_status = state.status.read().await.clone();
+    let mut store_data = store::load_store(app)?;
+    if store_data.active_profile_id.is_some() {
+        store_data.active_profile_id = None;
+        store::save_store(app, &store_data)?;
+    }
     let _ = crate::engine::sys::stats::flush_session(app);
     if state.process_manager.is_running().await {
         state.process_manager.stop().await?;
@@ -147,8 +152,7 @@ fn build_helix_benchmark_payload(
                 successes: args.successes.map(i32_from_u32),
                 failures: args.failures.map(i32_from_u32),
                 throughput_kbps: args.throughput_kbps,
-                relative_throughput_ratio_vs_baseline: args
-                    .relative_throughput_ratio_vs_baseline,
+                relative_throughput_ratio_vs_baseline: args.relative_throughput_ratio_vs_baseline,
                 median_connect_latency_ms: args.median_connect_latency_ms,
                 median_first_byte_latency_ms: args.median_first_byte_latency_ms,
                 median_open_to_first_byte_gap_ms: args.median_open_to_first_byte_gap_ms,
@@ -287,8 +291,7 @@ fn report_helix_matrix_summary(
                 successes: None,
                 failures: Some(summary.failed_targets),
                 throughput_kbps: summary.average_throughput_kbps,
-                relative_throughput_ratio_vs_baseline: summary
-                    .average_relative_throughput_ratio,
+                relative_throughput_ratio_vs_baseline: summary.average_relative_throughput_ratio,
                 median_connect_latency_ms: summary.median_connect_latency_ms,
                 median_first_byte_latency_ms: summary.median_first_byte_latency_ms,
                 median_open_to_first_byte_gap_ms: summary.median_open_to_first_byte_gap_ms,
@@ -318,7 +321,10 @@ fn report_helix_recovery_summary(
             latency_ms: report
                 .proxy_ready_latency_ms
                 .or(benchmark.median_first_byte_latency_ms),
-            route_count: report.health_after.as_ref().map(|health| health.route_count),
+            route_count: report
+                .health_after
+                .as_ref()
+                .map(|health| health.route_count),
             reason: Some(format!("recovery benchmark evidence ({})", report.mode)),
             payload: build_helix_benchmark_payload(HelixBenchmarkPayloadArgs {
                 benchmark_kind: "recovery",
@@ -616,12 +622,15 @@ pub async fn connect_profile(
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
     // 1. Fetch profile
-    let store_data = store::load_store(&app)?;
+    let mut store_data = store::load_store(&app)?;
     let profile = store_data
         .profiles
         .iter()
         .find(|p| p.id == id)
+        .cloned()
         .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
+    store_data.active_profile_id = Some(id.clone());
+    store::save_store(&app, &store_data)?;
 
     let app_dir = crate::engine::store::get_app_dir(&app)?;
     #[allow(unused_variables)]
@@ -749,7 +758,7 @@ pub async fn connect_profile(
                 })?
             } else {
                 crate::engine::config::generate_singbox_config(
-                    profile,
+                    &profile,
                     &store_data.profiles,
                     tun_mode,
                     &store_data.routing_rules,
@@ -999,6 +1008,10 @@ pub async fn connect_profile(
 
     // 6. Update status to connected
     {
+        let mut persisted_store = store::load_store(&app)?;
+        persisted_store.active_profile_id = Some(id.clone());
+        store::save_store(&app, &persisted_store)?;
+
         let mut status_lock = state.status.write().await;
         status_lock.status = "connected".to_string();
         status_lock.active_core = Some(launched_core.as_str().to_string());
@@ -1026,6 +1039,9 @@ pub async fn connect_profile(
             "system_proxy": system_proxy,
         }),
     );
+    let mut store_data = store::load_store(&app)?;
+    store_data.active_profile_id = Some(profile.id.clone());
+    store::save_store(&app, &store_data)?;
 
     Ok(())
 }

@@ -55,6 +55,8 @@ For headless lab execution outside the Desktop UI, use:
 - `apps/desktop-client/scripts/run_helix_lab_bench.ps1` for a focused single-target Helix bench
 - `apps/desktop-client/scripts/run_helix_recovery_lab.ps1` for controlled `failover` or `reconnect` recovery drills
 - `apps/desktop-client/scripts/run_helix_target_matrix.ps1` for a Helix-only multi-target matrix across shared benchmark policy
+- `apps/desktop-client/scripts/run_helix_soak_cycle.ps1` for sustained live-session traces with repeated probe samples and controlled churn actions
+- `apps/desktop-client/scripts/run_helix_live_comparison.ps1` for Helix vs `sing-box` live baseline evidence and adapter benchmark ingest
 
 The headless scripts launch the same embedded Helix sidecar entrypoint from the desktop binary,
 write JSON artifacts under `apps/desktop-client/.artifacts`, and are intended for repeatable lab
@@ -136,6 +138,14 @@ Helix diagnostics and support bundles must also capture:
 - run `helix`, `sing-box`, and `xray` against the exact same matrix
 - emit both per-target comparison reports and aggregate per-core summaries
 - treat a core with missing targets as degraded evidence, even if one target looks excellent
+
+### Scenario 9: Sustained Soak and Churn Cycle
+
+- launch Helix through the normal desktop sidecar path for a long-lived run
+- keep repeated probe samples running on one shared target while collecting health and telemetry snapshots
+- optionally inject `failover` and `reconnect` during the same session window
+- record route switches, queue-depth peaks, RTT drift, and sustained throughput windows
+- treat the soak report as required evidence for long-lived desktop stability, not just an informational lab artifact
 
 ## Report Format
 

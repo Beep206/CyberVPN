@@ -28,10 +28,10 @@ use crate::{
 const CONTROL_FRAME_CHANNEL_CAPACITY: usize = 256;
 const DATA_FRAME_CHANNEL_CAPACITY: usize = 16;
 const STREAM_CHANNEL_CAPACITY: usize = 1024;
-const STREAM_BUFFER_SIZE: usize = 8 * 1024;
-const MAX_STREAM_FRAME_PAYLOAD: usize = 8 * 1024;
-const CONTENDED_STREAM_FRAME_PAYLOAD: usize = 4 * 1024;
-const HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD: usize = 2 * 1024;
+const STREAM_BUFFER_SIZE: usize = 16 * 1024;
+const MAX_STREAM_FRAME_PAYLOAD: usize = 16 * 1024;
+const CONTENDED_STREAM_FRAME_PAYLOAD: usize = 2 * 1024;
+const HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD: usize = 1024;
 const MAX_PENDING_INGRESS_BYTES: usize = 1024 * 1024;
 const MAX_PENDING_EGRESS_BYTES: usize = 8 * 1024 * 1024;
 const MAX_PENDING_EGRESS_BYTES_PER_STREAM: usize = 512 * 1024;
@@ -193,7 +193,9 @@ async fn prune_expired_detached_sessions(
             .filter_map(|(session_id, session)| {
                 session
                     .detached_at
-                    .filter(|detached_at| !session.attached && now.duration_since(*detached_at) > resume_window)
+                    .filter(|detached_at| {
+                        !session.attached && now.duration_since(*detached_at) > resume_window
+                    })
                     .map(|_| session_id.clone())
             })
             .collect::<Vec<_>>();
@@ -633,13 +635,11 @@ async fn detach_or_cleanup_server_session(
     let should_cleanup = session_result.is_ok()
         || matches!(
             session_result,
-            Err(
-                TransportError::Protocol(_)
-                    | TransportError::Crypto(_)
-                    | TransportError::Json(_)
-                    | TransportError::Codec(_)
-                    | TransportError::ChannelClosed(_)
-            )
+            Err(TransportError::Protocol(_)
+                | TransportError::Crypto(_)
+                | TransportError::Json(_)
+                | TransportError::Codec(_)
+                | TransportError::ChannelClosed(_))
         );
 
     if should_cleanup {
@@ -728,7 +728,8 @@ async fn handle_connection(
         ));
     }
 
-    let session = open_or_resume_server_session(&config, &hello, &session_registry, &snapshot).await;
+    let session =
+        open_or_resume_server_session(&config, &hello, &session_registry, &snapshot).await;
     let resumed = hello
         .resume_session_id
         .as_ref()
@@ -810,7 +811,8 @@ async fn handle_connection(
     egress_task.abort();
     detach_or_cleanup_server_session(&session_result, &session, &session_registry, &snapshot).await;
 
-    snapshot.write().await.active_streams = u64::try_from(streams.lock().await.len()).unwrap_or(u64::MAX);
+    snapshot.write().await.active_streams =
+        u64::try_from(streams.lock().await.len()).unwrap_or(u64::MAX);
 
     if let Err(error) = session_result {
         snapshot.write().await.last_error = Some(error.to_string());
@@ -969,7 +971,9 @@ async fn run_server_ingress_scheduler(
             ServerIngressAction::StreamData { stream_id, data } => {
                 let outbound_tx = {
                     let state = streams.lock().await;
-                    state.get(&stream_id).map(|stream| stream.outbound_tx.clone())
+                    state
+                        .get(&stream_id)
+                        .map(|stream| stream.outbound_tx.clone())
                 };
 
                 if let Some(outbound_tx) = outbound_tx {
@@ -1150,7 +1154,9 @@ async fn open_server_stream(
 ) -> Result<(), TransportError> {
     if let Some(bind_target) = {
         let state = streams.lock().await;
-        state.get(&stream_id).map(|stream| stream.bind_target.clone())
+        state
+            .get(&stream_id)
+            .map(|stream| stream.bind_target.clone())
     } {
         enqueue_server_control_frame(
             ControlFrame::StreamOpened {
@@ -1345,7 +1351,9 @@ async fn run_upstream_writer(
 async fn finish_server_stream_write(stream_id: u64, streams: &ServerStreamMap) {
     let outbound_tx = {
         let state = streams.lock().await;
-        state.get(&stream_id).map(|stream| stream.outbound_tx.clone())
+        state
+            .get(&stream_id)
+            .map(|stream| stream.outbound_tx.clone())
     };
 
     if let Some(outbound_tx) = outbound_tx {
@@ -1601,9 +1609,11 @@ async fn write_encrypted_frame<W: AsyncWrite + Unpin>(
     let ciphertext = encrypt_frame(session_key, direction, *sequence, frame)?;
     let len = u32::try_from(ciphertext.len())
         .map_err(|_| TransportError::Protocol("encrypted frame too large".to_string()))?;
-    stream.write_u64(*sequence).await?;
-    stream.write_u32(len).await?;
-    stream.write_all(&ciphertext).await?;
+    let mut payload = Vec::with_capacity(12 + ciphertext.len());
+    payload.extend_from_slice(&sequence.to_be_bytes());
+    payload.extend_from_slice(&len.to_be_bytes());
+    payload.extend_from_slice(&ciphertext);
+    stream.write_all(&payload).await?;
     *sequence = sequence.saturating_add(1);
     Ok(())
 }

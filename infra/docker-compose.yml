@@ -282,7 +282,7 @@ services:
       helix-adapter:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/readyz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -328,7 +328,7 @@ services:
       helix-adapter:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/readyz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -356,6 +356,44 @@ services:
       - dd if=/dev/zero of=/usr/share/nginx/html/8mb.bin bs=1M count=8 && exec nginx -g 'daemon off;'
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/8mb.bin"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cybervpn-backend
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+
+  helix-stable-http-proxy:
+    image: python:3.12-slim
+    container_name: helix-stable-http-proxy
+    hostname: helix-stable-http-proxy
+    profiles: ["helix-lab"]
+    <<: [*common, *logging]
+    working_dir: /app
+    command: ["python", "serve.py"]
+    volumes:
+      - ./helix/stable-http-proxy:/app:ro
+    environment:
+      - HELIX_STABLE_PROXY_BIND_HOST=0.0.0.0
+      - HELIX_STABLE_PROXY_BIND_PORT=8899
+    ports:
+      - "127.0.0.1:${HELIX_STABLE_PROXY_PORT:-8899}:8899"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8899/healthz', timeout=2).read()",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3

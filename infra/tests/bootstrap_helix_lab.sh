@@ -58,6 +58,14 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+echo "Ensuring Helix lab services are up..."
+docker compose -f "${COMPOSE_DIR}/docker-compose.yml" --profile helix-lab up -d \
+  helix-adapter \
+  helix-node-lab \
+  helix-node-lab-02 \
+  helix-bench-target \
+  helix-stable-http-proxy >/dev/null
+
 docker exec -i remnawave-db psql \
   -U "$POSTGRES_USER" \
   -d "$POSTGRES_DB" \

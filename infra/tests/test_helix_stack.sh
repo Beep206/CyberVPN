@@ -120,6 +120,7 @@ fi
 require_pattern "$COMPOSE_FILE" "helix-adapter:" "compose defines helix-adapter service"
 require_pattern "$COMPOSE_FILE" "helix-node-lab:" "compose defines helix-node-lab service"
 require_pattern "$COMPOSE_FILE" "helix-node-lab-02:" "compose defines helix-node-lab-02 service"
+require_pattern "$COMPOSE_FILE" "helix-stable-http-proxy:" "compose defines helix stable HTTP proxy service"
 require_pattern "$COMPOSE_FILE" "profiles: \\[\"helix\", \"helix-lab\"\\]" "adapter is available in both Helix profiles"
 require_pattern "$COMPOSE_FILE" "profiles: \\[\"helix-lab\"\\]" "lab node uses the helix-lab profile"
 
@@ -149,6 +150,7 @@ require_pattern "$DASHBOARD_FILE" "helix_node_rollback_total" "dashboard include
 check_live_endpoint "Helix adapter" "${ADAPTER_URL}/healthz"
 check_live_endpoint "Helix node" "${NODE_URL}/healthz"
 check_live_endpoint "Helix node 02" "${NODE_2_URL}/healthz"
+check_live_endpoint "Helix stable HTTP proxy" "http://localhost:${HELIX_STABLE_PROXY_PORT:-8899}/healthz"
 check_metric "Helix node" "${NODE_URL}/metrics" "helix_node_rollback_total"
 check_metric "Helix node 02" "${NODE_2_URL}/metrics" "helix_node_runtime_healthy"
 

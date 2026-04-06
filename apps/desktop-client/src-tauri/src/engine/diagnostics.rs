@@ -17,6 +17,7 @@ use crate::{
             HelixSidecarHealth, HelixSidecarTelemetry, TransportBenchmarkComparisonReport,
             TransportBenchmarkMatrixReport, TransportBenchmarkReport,
         },
+        lifecycle::StartupRecoveryInfo,
         store::{self, AppDataStore},
         sys::net::get_local_ip,
     },
@@ -93,6 +94,7 @@ pub struct DesktopDiagnosticsSnapshot {
     pub diagnostics_dir: String,
     pub support_bundle_dir: String,
     pub store_path: String,
+    pub lifecycle: StartupRecoveryInfo,
     pub connection_status: ConnectionStatus,
     pub active_core: String,
     pub active_profile_id: Option<String>,
@@ -427,6 +429,7 @@ pub async fn collect_snapshot(
     let store_path = store::get_store_path(app)?;
     let live_health = fetch_live_helix_health(&store_data).await;
     let live_telemetry = fetch_live_helix_telemetry(&store_data).await;
+    let lifecycle = store_data.last_startup_recovery.clone().unwrap_or_default();
 
     Ok(DesktopDiagnosticsSnapshot {
         collected_at: Utc::now().to_rfc3339(),
@@ -438,6 +441,7 @@ pub async fn collect_snapshot(
         diagnostics_dir: diagnostics_dir.display().to_string(),
         support_bundle_dir: support_bundle_dir.display().to_string(),
         store_path: store_path.display().to_string(),
+        lifecycle,
         connection_status,
         active_core: store_data.active_core.clone(),
         active_profile_id: store_data.active_profile_id.clone(),

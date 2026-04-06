@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
-    query_as, query_scalar, ConnectOptions, PgPool,
+    query, query_as, query_scalar, ConnectOptions, PgPool,
 };
 use uuid::Uuid;
 
@@ -366,6 +366,40 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
         .await
         .expect("record benchmark");
 
+    repository
+        .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
+            schema_version: "1.0".to_string(),
+            event_id: Uuid::new_v4(),
+            user_id: "user-startup-only".to_string(),
+            desktop_client_id: "desktop-startup-only".to_string(),
+            manifest_version_id: Uuid::new_v4(),
+            rollout_id: rollout_id.clone(),
+            transport_profile_id: "ptp-stable-edge-v4".to_string(),
+            event_kind: DesktopRuntimeEventKind::Ready,
+            active_core: DesktopRuntimeCore::Helix,
+            fallback_core: None,
+            latency_ms: Some(88),
+            route_count: Some(2),
+            reason: Some("startup ready".to_string()),
+            observed_at: chrono::Utc::now(),
+            payload: DesktopRuntimeEventPayload {
+                runtime: Some("embedded-sidecar".to_string()),
+                continuity: Some(DesktopRuntimeEventContinuityEvidence {
+                    active_streams: Some(0),
+                    pending_open_streams: Some(0),
+                    continuity_grace_active: Some(false),
+                    continuity_grace_entries: Some(0),
+                    successful_continuity_recovers: Some(0),
+                    failed_continuity_recovers: Some(0),
+                    successful_cross_route_recovers: Some(0),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        })
+        .await
+        .expect("record startup ready");
+
     let rollout = repository
         .find_rollout_by_id(&rollout_id)
         .await
@@ -376,7 +410,7 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
         .expect("rollout status response");
     assert!((rollout.desktop_connect_success_rate - 0.5).abs() < f64::EPSILON);
     assert!((rollout.desktop_fallback_rate - 0.5).abs() < f64::EPSILON);
-    assert!((rollout_state.desktop.connect_success_rate - 0.5).abs() < f64::EPSILON);
+    assert!((rollout_state.desktop.connect_success_rate - (2.0 / 3.0)).abs() < f64::EPSILON);
     assert!((rollout_state.desktop.fallback_rate - 0.5).abs() < f64::EPSILON);
     assert_eq!(rollout_state.desktop.continuity_observed_events, 2);
     assert!((rollout_state.desktop.continuity_success_rate - 0.5).abs() < f64::EPSILON);
@@ -402,6 +436,89 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
     );
     assert_eq!(rollout_state.policy.channel_posture, "watch");
     assert_eq!(rollout_state.policy.automatic_reaction, "observe");
+}
+
+#[tokio::test]
+async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success() {
+    let Some(pool) = maybe_test_pool().await else {
+        return;
+    };
+
+    run_migrations(&pool).await.expect("migrations");
+
+    let repository = NodeRegistryRepository::new(pool.clone());
+    let inventory_item = NodeInventoryItem {
+        id: format!("node-{}", Uuid::new_v4().simple()),
+        name: "PT Edge Lab".to_string(),
+        hostname: Some("pt-edge-lab-01".to_string()),
+        enabled: Some(true),
+    };
+    let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
+    repository
+        .upsert_nodes(std::slice::from_ref(&upsert))
+        .await
+        .expect("upsert node");
+
+    let rollout_id = format!("rollout-{}", Uuid::new_v4().simple());
+    repository
+        .publish_rollout(&PublishRolloutBatchRequest {
+            rollout_id: rollout_id.clone(),
+            batch_id: format!("batch-{}", Uuid::new_v4().simple()),
+            channel: RolloutChannel::Lab,
+            manifest_version: "manifest-v-cross-route".to_string(),
+            target_node_ids: vec![inventory_item.id.clone()],
+            pause_on_rollback_spike: true,
+            revoke_on_manifest_error: true,
+        })
+        .await
+        .expect("publish rollout");
+
+    repository
+        .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
+            schema_version: "1.0".to_string(),
+            event_id: Uuid::new_v4(),
+            user_id: "user-cross-route".to_string(),
+            desktop_client_id: "desktop-cross-route".to_string(),
+            manifest_version_id: Uuid::new_v4(),
+            rollout_id: rollout_id.clone(),
+            transport_profile_id: "ptp-lab-edge-v2".to_string(),
+            event_kind: DesktopRuntimeEventKind::Ready,
+            active_core: DesktopRuntimeCore::Helix,
+            fallback_core: None,
+            latency_ms: Some(18),
+            route_count: Some(2),
+            reason: None,
+            observed_at: chrono::Utc::now(),
+            payload: DesktopRuntimeEventPayload {
+                recovery: Some(DesktopRuntimeEventRecoveryEvidence {
+                    same_route_recovered: Some(false),
+                    ready_recovery_latency_ms: Some(18),
+                    proxy_ready_latency_ms: Some(31),
+                    successful_cross_route_recovers: Some(1),
+                    last_cross_route_recovery_ms: Some(18),
+                    ..Default::default()
+                }),
+                continuity: Some(DesktopRuntimeEventContinuityEvidence {
+                    successful_continuity_recovers: Some(0),
+                    failed_continuity_recovers: Some(0),
+                    successful_cross_route_recovers: Some(1),
+                    last_cross_route_recovery_ms: Some(18),
+                    active_route_endpoint_ref: Some("helix-node-lab".to_string()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        })
+        .await
+        .expect("record ready");
+
+    let rollout_state = repository
+        .fetch_rollout_state(&rollout_id)
+        .await
+        .expect("rollout status");
+    assert_eq!(rollout_state.desktop.continuity_observed_events, 1);
+    assert!((rollout_state.desktop.continuity_success_rate - 1.0).abs() < f64::EPSILON);
+    assert!((rollout_state.desktop.cross_route_recovery_rate - 1.0).abs() < f64::EPSILON);
 }
 
 #[tokio::test]
@@ -1006,6 +1123,319 @@ async fn node_registry_persists_suppression_window_for_blocked_profile_posture()
     .expect("query suppression windows");
 
     assert_eq!(suppression_count, 1);
+}
+
+#[tokio::test]
+async fn node_registry_profile_policy_ignores_startup_ready_events_for_continuity_rates() {
+    let Some(pool) = maybe_test_pool().await else {
+        return;
+    };
+
+    run_migrations(&pool).await.expect("migrations");
+
+    let repository = NodeRegistryRepository::new(pool.clone());
+    let transport_profiles = TransportProfileRepository::new(pool.clone());
+    let node_id = format!("node-{}", Uuid::new_v4().simple());
+    repository
+        .upsert_nodes(&[NodeUpsertInput {
+            remnawave_node_id: node_id.clone(),
+            node_name: "PT Lab Node".to_string(),
+            hostname: Some("lab-node".to_string()),
+            adapter_node_label: "lab-node".to_string(),
+            last_synced_at: chrono::Utc::now(),
+        }])
+        .await
+        .expect("upsert node");
+
+    let rollout_id = format!("rollout-{}", Uuid::new_v4().simple());
+    repository
+        .publish_rollout(&PublishRolloutBatchRequest {
+            rollout_id: rollout_id.clone(),
+            batch_id: format!("batch-{}", Uuid::new_v4().simple()),
+            channel: RolloutChannel::Lab,
+            manifest_version: "manifest-v1".to_string(),
+            target_node_ids: vec![node_id],
+            pause_on_rollback_spike: true,
+            revoke_on_manifest_error: true,
+        })
+        .await
+        .expect("publish rollout");
+
+    transport_profiles
+        .upsert_profile(&UpsertTransportProfileRequest {
+            transport_profile_id: "ptp-lab-edge-v2".to_string(),
+            channel: RolloutChannel::Lab,
+            profile_family: "edge-hybrid".to_string(),
+            profile_version: 2,
+            policy_version: 2,
+            protocol_version: 1,
+            session_mode: "hybrid".to_string(),
+            status: TransportProfileStatus::Active,
+            fallback_core: "sing-box".to_string(),
+            required_capabilities: vec!["protocol.v1".to_string()],
+            compatibility_min_profile_version: 1,
+            compatibility_max_profile_version: 9,
+            startup_timeout_seconds: 20,
+            runtime_unhealthy_threshold: 3,
+        })
+        .await
+        .expect("upsert lab profile");
+
+    for index in 0..3 {
+        repository
+            .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
+                schema_version: "1.0".to_string(),
+                event_id: Uuid::new_v4(),
+                user_id: format!("startup-user-{}", index + 1),
+                desktop_client_id: format!("startup-desktop-{}", index + 1),
+                manifest_version_id: Uuid::new_v4(),
+                rollout_id: rollout_id.clone(),
+                transport_profile_id: "ptp-lab-edge-v2".to_string(),
+                event_kind: DesktopRuntimeEventKind::Ready,
+                active_core: DesktopRuntimeCore::Helix,
+                fallback_core: None,
+                latency_ms: Some(25),
+                route_count: Some(2),
+                reason: None,
+                observed_at: chrono::Utc::now(),
+                payload: DesktopRuntimeEventPayload {
+                    continuity: Some(DesktopRuntimeEventContinuityEvidence::default()),
+                    ..Default::default()
+                },
+            })
+            .await
+            .expect("record startup ready event");
+    }
+
+    for index in 0..2 {
+        repository
+            .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
+                schema_version: "1.0".to_string(),
+                event_id: Uuid::new_v4(),
+                user_id: format!("recovery-user-{}", index + 1),
+                desktop_client_id: format!("recovery-desktop-{}", index + 1),
+                manifest_version_id: Uuid::new_v4(),
+                rollout_id: rollout_id.clone(),
+                transport_profile_id: "ptp-lab-edge-v2".to_string(),
+                event_kind: DesktopRuntimeEventKind::Ready,
+                active_core: DesktopRuntimeCore::Helix,
+                fallback_core: None,
+                latency_ms: Some(45),
+                route_count: Some(2),
+                reason: None,
+                observed_at: chrono::Utc::now(),
+                payload: DesktopRuntimeEventPayload {
+                    continuity: Some(DesktopRuntimeEventContinuityEvidence {
+                        successful_continuity_recovers: Some(1),
+                        ..Default::default()
+                    }),
+                    recovery: Some(DesktopRuntimeEventRecoveryEvidence {
+                        same_route_recovered: Some(true),
+                        ready_recovery_latency_ms: Some(45),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+            })
+            .await
+            .expect("record recovery ready event");
+    }
+
+    let rollout_state = repository
+        .fetch_rollout_state(&rollout_id)
+        .await
+        .expect("fetch rollout state");
+
+    let active_profile_policy = rollout_state
+        .policy
+        .active_profile_policy
+        .as_ref()
+        .expect("active profile policy");
+
+    assert_eq!(active_profile_policy.observed_events, 5);
+    assert!((active_profile_policy.connect_success_rate - 1.0).abs() < f64::EPSILON);
+    assert!((active_profile_policy.continuity_success_rate - 1.0).abs() < f64::EPSILON);
+    assert!((active_profile_policy.cross_route_recovery_rate - 0.0).abs() < f64::EPSILON);
+    assert_eq!(active_profile_policy.advisory_state, "healthy");
+    assert!(!active_profile_policy.suppression_window_active);
+    assert!(rollout_state.policy.applied_automatic_reaction.is_none());
+}
+
+#[tokio::test]
+async fn node_registry_clears_pause_channel_actuation_after_profile_recovers() {
+    let Some(pool) = maybe_test_pool().await else {
+        return;
+    };
+
+    run_migrations(&pool).await.expect("migrations");
+
+    let repository = NodeRegistryRepository::new(pool.clone());
+    let transport_profiles = TransportProfileRepository::new(pool.clone());
+    let node_id = format!("node-{}", Uuid::new_v4().simple());
+    repository
+        .upsert_nodes(&[NodeUpsertInput {
+            remnawave_node_id: node_id.clone(),
+            node_name: "PT Lab Node".to_string(),
+            hostname: Some("lab-node".to_string()),
+            adapter_node_label: "lab-node".to_string(),
+            last_synced_at: chrono::Utc::now(),
+        }])
+        .await
+        .expect("upsert node");
+
+    let rollout_id = format!("rollout-{}", Uuid::new_v4().simple());
+    repository
+        .publish_rollout(&PublishRolloutBatchRequest {
+            rollout_id: rollout_id.clone(),
+            batch_id: format!("batch-{}", Uuid::new_v4().simple()),
+            channel: RolloutChannel::Lab,
+            manifest_version: "manifest-v1".to_string(),
+            target_node_ids: vec![node_id],
+            pause_on_rollback_spike: true,
+            revoke_on_manifest_error: true,
+        })
+        .await
+        .expect("publish rollout");
+
+    transport_profiles
+        .upsert_profile(&UpsertTransportProfileRequest {
+            transport_profile_id: "ptp-lab-edge-v2".to_string(),
+            channel: RolloutChannel::Lab,
+            profile_family: "edge-hybrid".to_string(),
+            profile_version: 2,
+            policy_version: 2,
+            protocol_version: 1,
+            session_mode: "hybrid".to_string(),
+            status: TransportProfileStatus::Active,
+            fallback_core: "sing-box".to_string(),
+            required_capabilities: vec!["protocol.v1".to_string()],
+            compatibility_min_profile_version: 1,
+            compatibility_max_profile_version: 9,
+            startup_timeout_seconds: 20,
+            runtime_unhealthy_threshold: 3,
+        })
+        .await
+        .expect("upsert lab profile");
+
+    query(
+        r#"
+        UPDATE helix.rollout_batches
+        SET desired_state = 'paused'
+        WHERE rollout_id = $1
+        "#,
+    )
+    .bind(&rollout_id)
+    .execute(&pool)
+    .await
+    .expect("pause rollout");
+
+    query(
+        r#"
+        INSERT INTO helix.profile_suppression_windows (
+            rollout_id,
+            transport_profile_id,
+            suppressed_until,
+            suppression_reason,
+            first_observed_at,
+            last_observed_at,
+            observation_count
+        )
+        VALUES ($1, $2, NOW() + INTERVAL '30 minutes', 'blocked-new-session-posture', NOW(), NOW(), 2)
+        "#,
+    )
+    .bind(&rollout_id)
+    .bind("ptp-lab-edge-v2")
+    .execute(&pool)
+    .await
+    .expect("insert suppression window");
+
+    query(
+        r#"
+        INSERT INTO helix.rollout_policy_actuations (
+            rollout_id,
+            channel,
+            reaction,
+            target_transport_profile_id,
+            trigger_reason,
+            applied,
+            created_at,
+            updated_at,
+            cleared_at
+        )
+        VALUES ($1, 'lab', 'pause-channel', NULL, 'synthetic pause for recovery', TRUE, NOW(), NOW(), NULL)
+        "#,
+    )
+    .bind(&rollout_id)
+    .execute(&pool)
+    .await
+    .expect("insert pause actuation");
+
+    repository
+        .record_desktop_runtime_event(&DesktopRuntimeEventRequest {
+            schema_version: "1.0".to_string(),
+            event_id: Uuid::new_v4(),
+            user_id: "recovered-user".to_string(),
+            desktop_client_id: "recovered-desktop".to_string(),
+            manifest_version_id: Uuid::new_v4(),
+            rollout_id: rollout_id.clone(),
+            transport_profile_id: "ptp-lab-edge-v2".to_string(),
+            event_kind: DesktopRuntimeEventKind::Ready,
+            active_core: DesktopRuntimeCore::Helix,
+            fallback_core: None,
+            latency_ms: Some(42),
+            route_count: Some(2),
+            reason: None,
+            observed_at: chrono::Utc::now(),
+            payload: DesktopRuntimeEventPayload {
+                continuity: Some(DesktopRuntimeEventContinuityEvidence {
+                    successful_continuity_recovers: Some(1),
+                    ..Default::default()
+                }),
+                recovery: Some(DesktopRuntimeEventRecoveryEvidence {
+                    same_route_recovered: Some(true),
+                    ready_recovery_latency_ms: Some(42),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        })
+        .await
+        .expect("record healthy recovery event");
+
+    let rollout_state = repository
+        .fetch_rollout_state(&rollout_id)
+        .await
+        .expect("fetch rollout state");
+    let rollout_record = repository
+        .find_rollout_by_id(&rollout_id)
+        .await
+        .expect("fetch rollout record");
+    let active_profile_policy = rollout_state
+        .policy
+        .active_profile_policy
+        .as_ref()
+        .expect("active profile policy");
+
+    assert_eq!(rollout_state.desired_state, "running");
+    assert_eq!(rollout_record.desired_state, "running");
+    assert!(rollout_state.policy.applied_automatic_reaction.is_none());
+    assert!(!rollout_state.policy.active_profile_suppressed);
+    assert_eq!(active_profile_policy.advisory_state, "healthy");
+    assert!(!active_profile_policy.suppression_window_active);
+
+    let remaining_suppression = query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM helix.profile_suppression_windows
+        WHERE rollout_id = $1
+          AND transport_profile_id = 'ptp-lab-edge-v2'
+        "#,
+    )
+    .bind(&rollout_id)
+    .fetch_one(&pool)
+    .await
+    .expect("count suppression windows");
+    assert_eq!(remaining_suppression, 0);
 }
 
 #[tokio::test]

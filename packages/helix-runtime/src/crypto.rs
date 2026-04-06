@@ -81,7 +81,7 @@ pub fn encrypt_frame(
 ) -> Result<Vec<u8>, TransportError> {
     let cipher = Aes256Gcm::new_from_slice(session_key)
         .map_err(|error| TransportError::Crypto(error.to_string()))?;
-    let plaintext = serde_json::to_vec(frame)?;
+    let plaintext = postcard::to_allocvec(frame)?;
     let nonce_bytes = build_nonce(direction, sequence);
     cipher
         .encrypt(Nonce::from_slice(&nonce_bytes), plaintext.as_ref())
@@ -100,7 +100,7 @@ pub fn decrypt_frame(
     let plaintext = cipher
         .decrypt(Nonce::from_slice(&nonce_bytes), ciphertext)
         .map_err(|error| TransportError::Crypto(error.to_string()))?;
-    serde_json::from_slice(&plaintext).map_err(TransportError::Json)
+    postcard::from_bytes(&plaintext).map_err(TransportError::Codec)
 }
 
 fn build_nonce(direction: Direction, sequence: u64) -> [u8; 12] {

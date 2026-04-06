@@ -2,195 +2,228 @@
 
 ## Scope
 
-This validation cycle focused on the remaining `internal beta` blockers around:
+This validation cycle focused on the live `internal beta` blockers that still matter after the core protocol work:
 
-- live desktop-to-Helix evidence ingestion;
-- rollback and failure-drill verification on the live Docker lab;
-- backend admin/control-plane load behavior under beta-like polling;
-- canary evidence promotion from `no-go` caused by missing observations to a real `watch` state backed by live desktop/runtime data.
+- reproducible Docker lab bring-up after destructive resets;
+- honest desktop-first live evidence from headless Helix runs;
+- rollback and failure-drill verification on the live lab;
+- formal canary evidence driven by real comparison, recovery, and soak data rather than missing observations.
 
 ## Fixed Constraints
 
-- `Remnawave` remains authoritative for users, subscriptions, and node inventory.
+- `Remnawave` stays authoritative for users, subscriptions, and node inventory.
 - `Helix` remains desktop-first for phase one.
-- Existing `xray` and `sing-box` paths remain available as stable fallback cores.
-- Control-plane state remains in the `adapter + backend facade + worker` stack, not in `Remnawave`.
+- `sing-box` remains the current honest stable baseline for local lab comparison.
+- Control-plane state remains in `helix-adapter + backend facade + worker`, not in `Remnawave`.
 
-## What Was Validated
+## What Was Fixed In This Cycle
 
-### Docker / Rollback / Failure Drill
+### 1. Stable proxy healthcheck noise
 
-- Live stack verification passed.
-- Destructive rollback drill passed earlier in the same cycle.
-- Current rollback verifier output in the internal-beta pack shows:
-  - `Passed: 23`
-  - `Warnings: 1`
-  - `Failed: 0`
-- The only warning in the pack is that the destructive drill was not re-executed inside the collector wrapper itself.
+Problem:
+
+- `helix-stable-http-proxy` used `wget` even though the image was `python:3.12-slim`, so Docker marked it unhealthy even when the proxy was serving traffic.
+
+Fix:
+
+- [docker-compose.yml](/C:/project/CyberVPN/infra/docker-compose.yml)
+
+Result:
+
+- the stable baseline proxy is now healthy in Docker and usable in live comparison runs.
+
+### 2. Bootstrap became self-healing after destructive reset
+
+Problem:
+
+- `reset_helix_lab_history.sh` deletes lab node containers and volumes.
+- after that, the lab depended on the caller remembering the correct `docker compose --profile helix-lab up -d ...` sequence before bootstrap.
+
+Fix:
+
+- [bootstrap_helix_lab.sh](/C:/project/CyberVPN/infra/tests/bootstrap_helix_lab.sh)
+
+Result:
+
+- bootstrap now self-heals the `helix-lab` profile before seeding DB state and publishing rollout batches.
+
+### 3. Headless desktop evidence now publishes `ready` events correctly
+
+Problem:
+
+- headless comparison/recovery/soak scripts were publishing benchmark evidence, but `ready` evidence was failing with `422`.
+- formal canary therefore kept showing `connect_success_rate = 0.0` even after successful live sessions.
+
+Fix:
+
+- [helix_lab_common.ps1](/C:/project/CyberVPN/apps/desktop-client/scripts/helix_lab_common.ps1)
+- [run_helix_live_comparison.ps1](/C:/project/CyberVPN/apps/desktop-client/scripts/run_helix_live_comparison.ps1)
+- [run_helix_recovery_lab.ps1](/C:/project/CyberVPN/apps/desktop-client/scripts/run_helix_recovery_lab.ps1)
+- [run_helix_soak_cycle.ps1](/C:/project/CyberVPN/apps/desktop-client/scripts/run_helix_soak_cycle.ps1)
+
+Result:
+
+- headless lab sessions now publish accepted `ready` events;
+- recovery drills publish accepted recovery-backed `ready` events;
+- formal canary now sees real `connect_success_rate` and continuity observations.
+
+### 4. Internal beta evidence collector became much more useful
+
+Problem:
+
+- the collector still skipped local canary snapshot fetch unless a backend bearer token was manually provided.
+- latest live comparison/recovery/soak artifacts also had to be attached by hand.
+
+Fix:
+
+- [collect_helix_internal_beta_evidence.sh](/C:/project/CyberVPN/infra/tests/collect_helix_internal_beta_evidence.sh)
+
+Result:
+
+- the collector now falls back to the adapter internal canary endpoint via `HELIX_INTERNAL_AUTH_TOKEN`;
+- it also copies the latest live comparison, recovery, and soak artifact directories into the evidence pack automatically.
+
+## Live Docker / Rollback Validation
+
+### Stack validation
+
+- `HELIX_REQUIRE_LIVE=true bash infra/tests/test_helix_stack.sh`
+- result: `Passed: 26`, `Warnings: 0`, `Failed: 0`
+
+### Destructive rollback drill
+
+- `HELIX_RUN_DESTRUCTIVE_DRILL=true bash infra/tests/verify_helix_rollback.sh`
+- result: `Passed: 26`, `Warnings: 0`, `Failed: 0`
 
 Relevant scripts:
 
 - [verify_helix_rollback.sh](/C:/project/CyberVPN/infra/tests/verify_helix_rollback.sh)
 - [bootstrap_helix_lab.sh](/C:/project/CyberVPN/infra/tests/bootstrap_helix_lab.sh)
 - [test_helix_stack.sh](/C:/project/CyberVPN/infra/tests/test_helix_stack.sh)
+- [reset_helix_lab_history.sh](/C:/project/CyberVPN/infra/tests/reset_helix_lab_history.sh)
 
-### Live Desktop Runtime Evidence
+## Current Live Canary State
 
-The adapter received live desktop runtime events derived from real lab runs:
+Latest formal canary snapshot after the repaired headless evidence flow:
 
-- `5` recovery `ready` events
-- `1` `benchmark` event
+- `decision = no-go`
+- `desired_state = paused`
+- `applied_automatic_reaction = pause-channel`
+- `channel_posture = critical`
+- `active_profile_advisory_state = avoid-new-sessions`
+- `active_profile_new_session_posture = blocked`
 
-Resulting live canary snapshot:
+Observed metrics:
 
-- `decision = watch`
 - `connect_success_rate = 1.0`
 - `fallback_rate = 0.0`
-- `continuity_observed_events = 5`
-- `continuity_success_rate = 1.0`
-- `cross_route_recovery_rate = 0.4`
-- `benchmark_observed_events = 1`
-- `average_benchmark_throughput_kbps = 96206.87`
+- `continuity_observed_events = 7`
+- `continuity_success_rate = 0.142857`
+- `cross_route_recovery_rate = 0.0`
+- `benchmark_observed_events = 2`
+- `throughput_evidence_observed_events = 2`
+- `average_benchmark_throughput_kbps = 59063.595`
+- `average_relative_throughput_ratio = 0.5679`
+- `average_relative_open_to_first_byte_gap_ratio = 1.43795`
 
-Current remaining evidence gaps:
+Formal no-go reasons:
 
-- `throughput evidence observations=0`
-- `gap ratio evidence unavailable in rollout status`
+- `rollout desired state=paused`
+- `applied actuation=pause-channel`
+- `continuity success rate=14.29%`
+- `cross-route recovery rate=0.00%`
+- `new-session posture=blocked`
+- `relative throughput ratio=0.57`
+- `relative open->first-byte gap ratio=1.44`
 
-This is an expected and honest `watch` state, not a synthetic `go`.
+Meaning:
 
-### Live Helix Bench / Recovery Numbers
+- we are no longer blocked by missing desktop evidence;
+- we are now blocked by honest live performance and recovery quality relative to the current policy thresholds.
 
-Synthetic lab benchmark:
+## Live Helix Metrics Collected
 
-- `median connect latency = 1.66 ms`
-- `median first-byte latency = 11.77 ms`
-- `average throughput = 96206.87 kbps`
+### Latest live comparison
 
-Recovery drill samples used for continuity evidence:
+Artifact:
 
-- failover sample:
-  - `ready recovery latency = 16 ms`
-  - `proxy ready latency = 34.03 ms`
-  - `post-recovery throughput = 59091.35 kbps`
-- reconnect sample:
-  - `ready recovery latency = 25.02 ms`
-  - `proxy ready latency = 42.03 ms`
-  - `post-recovery throughput = 40136.88 kbps`
+- [20260403-161711-1207e9](/C:/project/CyberVPN/apps/desktop-client/.artifacts/helix-live-comparison/20260403-161711-1207e9)
 
-Additional live recovery observations were collected to reach the minimum continuity evidence threshold.
+Headline numbers:
 
-### Backend Admin Load
+- `Helix avg throughput = 39526.99 kbps`
+- `sing-box avg throughput = 83912.12 kbps`
+- `relative throughput ratio = 0.4711`
+- `relative open->first-byte gap ratio = 1.3658`
 
-After hardening fixes, a live `Locust` run against the Helix admin surface completed with:
+### Latest recovery drills
 
-- `1495` total requests
-- `0` failures
-- aggregated median latency `30 ms`
-- aggregated average latency `43 ms`
+Failover artifact:
 
-Per-route results:
+- [20260403-161755-42cbb7](/C:/project/CyberVPN/apps/desktop-client/.artifacts/helix-recovery-lab/20260403-161755-42cbb7)
 
-- `/api/v1/helix/admin/nodes`
-  - `206 reqs`
-  - `0 failures`
-  - average `40 ms`
-- `/api/v1/helix/admin/rollouts/[rollout_id]`
-  - `427 reqs`
-  - `0 failures`
-  - average `42 ms`
-- `/api/v1/helix/admin/rollouts/[rollout_id]/canary-evidence`
-  - `862 reqs`
-  - `0 failures`
-  - average `44 ms`
+Metrics:
 
-## Hardening Fixes Applied In This Cycle
+- `ready recovery latency = 14.2 ms`
+- `proxy ready latency = 73.56 ms`
+- `post-recovery throughput = 71795.69 kbps`
 
-### 1. Adapter node inventory fallback
+Reconnect artifact:
 
-Problem:
+- [20260403-161755-a413bb](/C:/project/CyberVPN/apps/desktop-client/.artifacts/helix-recovery-lab/20260403-161755-a413bb)
 
-- `/admin/nodes` could fail if `Remnawave` sync failed at request time.
+Metrics:
 
-Fix:
+- `ready recovery latency = 25.56 ms`
+- `proxy ready latency = 83.2 ms`
+- `post-recovery throughput = 90161.31 kbps`
 
-- [service.rs](/C:/project/CyberVPN/services/helix-adapter/src/node_registry/service.rs)
+### Latest soak cycle
 
-Behavior now:
+Artifact:
 
-- if live sync from `Remnawave` fails, the adapter logs a warning and returns cached registry state instead of failing the request.
+- [20260403-161755-c55403](/C:/project/CyberVPN/apps/desktop-client/.artifacts/helix-soak/20260403-161755-c55403)
 
-Coverage:
+Metrics:
 
-- [node_registry.rs](/C:/project/CyberVPN/services/helix-adapter/tests/node_registry.rs)
+- `sample_count = 9`
+- `median connect latency = 4.09 ms`
+- `median first-byte latency = 12.88 ms`
+- `average throughput = 37483.95 kbps`
+- `route_switch_count = 1`
 
-### 2. Helix admin read-path rate-limit budget
+## What This Means For Internal Beta
 
-Problem:
+The important progress is real:
 
-- beta-like polling on Helix admin routes triggered large numbers of `429` responses because the global per-IP budget was too low for legitimate operator polling.
+- live Docker lab is stable after reset;
+- destructive rollback drill is reproducible;
+- formal canary now sees honest desktop `ready` and recovery evidence;
+- control-plane auto-reaction is no longer theoretical; it actually paused the channel on live evidence.
 
-Fix:
+The blockers are also now real and explicit:
 
-- [rate_limit.py](/C:/project/CyberVPN/backend/src/presentation/middleware/rate_limit.py)
-- [settings.py](/C:/project/CyberVPN/backend/src/config/settings.py)
-- [test_rate_limiter.py](/C:/project/CyberVPN/backend/tests/security/test_rate_limiter.py)
+- `Helix` is still materially behind the current `sing-box` baseline on throughput ratio;
+- `Helix` is still above the allowed baseline-relative `open -> first-byte gap` threshold;
+- continuity quality under the current live evidence set is not good enough yet.
 
-Behavior now:
+## Current Internal Beta Recommendation
 
-- `GET /api/v1/helix/admin/*` uses a separate higher read budget while other routes keep the default global rate limit.
+Status:
 
-### 3. Redis connection-pool starvation under admin polling
+- `not ready for internal beta expansion`
 
-Problem:
+Reason:
 
-- after the `429` issue was reduced, one remaining live `500` was caused by `redis.exceptions.MaxConnectionsError` in the auth / revocation path.
-
-Fix:
-
-- [redis_client.py](/C:/project/CyberVPN/backend/src/infrastructure/cache/redis_client.py)
-- [settings.py](/C:/project/CyberVPN/backend/src/config/settings.py)
-- [test_redis_client.py](/C:/project/CyberVPN/backend/tests/unit/infrastructure/cache/test_redis_client.py)
-
-Behavior now:
-
-- backend uses `BlockingConnectionPool` with configurable `REDIS_MAX_CONNECTIONS` and `REDIS_POOL_WAIT_SECONDS` instead of a tiny fixed non-blocking pool.
-
-## Evidence Pack
-
-Current pack:
-
-- [20260403-live-cycle-02](/C:/project/CyberVPN/.artifacts/helix-internal-beta/20260403-live-cycle-02)
-
-Included:
-
-- [rollback-verification.txt](/C:/project/CyberVPN/.artifacts/helix-internal-beta/20260403-live-cycle-02/rollback-verification.txt)
-- [backend-canary-evidence-budget.txt](/C:/project/CyberVPN/.artifacts/helix-internal-beta/20260403-live-cycle-02/backend-canary-evidence-budget.txt)
-- [canary-evidence.json](/C:/project/CyberVPN/.artifacts/helix-internal-beta/20260403-live-cycle-02/canary-evidence.json)
-- [live-admin-load-summary.txt](/C:/project/CyberVPN/.artifacts/helix-internal-beta/20260403-live-cycle-02/live-admin-load-summary.txt)
-
-## Current Internal Beta Status After This Cycle
-
-Status moved forward materially:
-
-- Docker live lab: strong
-- rollback/failure drill tooling: strong
-- desktop runtime evidence: present
-- canary gate: real `watch`
-- backend admin/control-plane under load: clean for the tested profile
-
-Remaining blockers before a stronger `internal beta` recommendation:
-
-- collect honest baseline-relative throughput evidence
-- collect honest baseline-relative `open -> first-byte gap` evidence
-- run longer soak-style live sessions
-- run installer/update/restart/crash-recovery passes on clean desktop environments
+- evidence quality is now strong enough to trust the `no-go`;
+- remaining problems are performance and recovery-quality problems, not observability gaps.
 
 ## Next Recommended Steps
 
-1. Run live comparative `Helix / sing-box / xray` evidence to populate:
-   - `relative_throughput_ratio_vs_baseline`
-   - `relative_open_to_first_byte_gap_ratio_vs_baseline`
-2. Run a longer soak cycle with sustained admin polling plus desktop traffic.
-3. Export at least one beta desktop support bundle from the installed build and attach it to the next evidence pack.
-4. Re-evaluate whether the rollout can move from `watch` toward `go` once the remaining evidence gaps are closed.
+1. Improve `Helix` live throughput against the current stable baseline.
+2. Reduce baseline-relative `open -> first-byte gap`.
+3. Improve continuity quality under route churn and recovery drills until:
+   - `continuity_success_rate >= 0.8`
+   - `cross_route_recovery_rate >= 0.2`
+4. Re-run the same comparison + recovery + soak cycle and confirm that auto-actuation no longer pauses the channel.
+5. Export a fresh internal beta evidence pack after that improved cycle.

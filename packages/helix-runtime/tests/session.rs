@@ -10,8 +10,8 @@ use helix_runtime::{
         unix_timestamp_ms, Direction,
     },
     model::{HandshakeHello, HandshakeWelcome, PROTOCOL_MAGIC, PROTOCOL_VERSION},
-    spawn_client, spawn_server, ClientConfig, ClientHandle, ServerConfig, ServerHandle,
-    ControlFrame, StreamTarget, TransportRoute,
+    spawn_client, spawn_server, ClientConfig, ClientHandle, ControlFrame, ServerConfig,
+    ServerHandle, StreamTarget, TransportRoute,
 };
 use tokio::{
     io::{copy_bidirectional, AsyncReadExt, AsyncWriteExt},
@@ -83,10 +83,7 @@ struct RawSession {
     welcome: HandshakeWelcome,
 }
 
-async fn raw_handshake(
-    server_addr: SocketAddr,
-    resume_session_id: Option<String>,
-) -> RawSession {
+async fn raw_handshake(server_addr: SocketAddr, resume_session_id: Option<String>) -> RawSession {
     let mut stream = TcpStream::connect(server_addr).await.expect("raw connect");
     let client_nonce = random_nonce();
     let mut hello = HandshakeHello {
@@ -107,7 +104,11 @@ async fn raw_handshake(
     hello.proof = client_proof("shared-session-token", &hello).expect("client proof");
     write_json_frame(&mut stream, &hello).await;
     let welcome = read_json_frame::<HandshakeWelcome>(&mut stream).await;
-    assert!(welcome.accepted, "raw handshake rejected: {:?}", welcome.error);
+    assert!(
+        welcome.accepted,
+        "raw handshake rejected: {:?}",
+        welcome.error
+    );
     let session_key = derive_session_key(
         "shared-session-token",
         &welcome.session_id,
@@ -151,7 +152,10 @@ async fn write_json_frame<T: serde::Serialize>(stream: &mut TcpStream, value: &T
     let payload = serde_json::to_vec(value).expect("serialize json frame");
     let len = u32::try_from(payload.len()).expect("json frame length");
     stream.write_u32(len).await.expect("write json len");
-    stream.write_all(&payload).await.expect("write json payload");
+    stream
+        .write_all(&payload)
+        .await
+        .expect("write json payload");
 }
 
 async fn read_json_frame<T: serde::de::DeserializeOwned>(stream: &mut TcpStream) -> T {
@@ -218,7 +222,9 @@ impl InterruptibleProxy {
     }
 }
 
-async fn spawn_interruptible_proxy(target_addr: SocketAddr) -> (SocketAddr, InterruptibleProxy, JoinHandle<()>) {
+async fn spawn_interruptible_proxy(
+    target_addr: SocketAddr,
+) -> (SocketAddr, InterruptibleProxy, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind interruptible proxy");
@@ -460,9 +466,11 @@ async fn raw_client_resumes_detached_session_and_receives_queued_tail_data() {
 
     tokio::time::sleep(Duration::from_millis(150)).await;
 
-    let mut resumed_session =
-        raw_handshake(parsed_addr, Some(original_session_id.clone())).await;
-    assert!(resumed_session.welcome.resumed, "server did not resume detached session");
+    let mut resumed_session = raw_handshake(parsed_addr, Some(original_session_id.clone())).await;
+    assert!(
+        resumed_session.welcome.resumed,
+        "server did not resume detached session"
+    );
     assert_eq!(resumed_session.welcome.session_id, original_session_id);
 
     raw_write_control_frame(

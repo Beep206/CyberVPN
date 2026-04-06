@@ -126,6 +126,8 @@ require_pattern "$COMPOSE_FILE" "helix-node-lab-02" "compose defines secondary H
 require_pattern "$RESET_SCRIPT" "docker volume rm -f" "reset script removes Helix node state volume"
 require_pattern "$RESET_SCRIPT" "TRUNCATE TABLE" "reset script clears Helix adapter database state"
 require_pattern "$RESET_SCRIPT" "helix.desktop_runtime_events" "reset script clears desktop runtime evidence"
+require_pattern "$RESET_SCRIPT" "helix.rollout_policy_actuations" "reset script clears rollout actuation state"
+require_pattern "$RESET_SCRIPT" "helix.profile_suppression_windows" "reset script clears profile suppression state"
 require_pattern "$BOOTSTRAP_SCRIPT" "target_node_ids" "bootstrap script republishes a rollout batch"
 require_pattern "$BOOTSTRAP_SCRIPT" "helix-node-lab-02" "bootstrap script waits for both lab nodes"
 require_pattern "$STACK_TEST_SCRIPT" "helix-node-lab-02" "stack test validates dual-node Helix lab wiring"
@@ -144,7 +146,12 @@ if [[ "$RUN_DESTRUCTIVE_DRILL" == "true" ]]; then
     fail "destructive rollback drill requested but docker is unavailable"
   else
     bash "$RESET_SCRIPT"
-    docker compose -f "$COMPOSE_FILE" --profile helix-lab up -d --build
+    docker compose -f "$COMPOSE_FILE" --profile helix-lab up -d --build \
+      helix-adapter \
+      helix-node-lab \
+      helix-node-lab-02 \
+      helix-bench-target \
+      helix-stable-http-proxy
     bash "$BOOTSTRAP_SCRIPT"
     HELIX_REQUIRE_LIVE=true bash "$STACK_TEST_SCRIPT"
     pass "destructive Helix rollback drill completed"

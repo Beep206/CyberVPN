@@ -154,7 +154,7 @@ fn failure_penalty_decay_basis_points(record: &RouteQualityRecord) -> i32 {
         return 100;
     };
 
-    if age >= Duration::from_secs(120) {
+    if age >= Duration::from_secs(90) {
         10
     } else if age >= Duration::from_secs(60) {
         20
@@ -1874,7 +1874,14 @@ async fn sidecar_health(state: &SidecarState) -> HelixSidecarHealth {
 
 async fn run_bench_action(state: &SidecarState, action: &str) -> HelixSidecarBenchActionReport {
     let started_at = Instant::now();
-    let route_before = { Some(state.active_client.read().await.route.endpoint_ref.clone()) };
+    let (route_before, continuity_sensitive) = {
+        let active = state.active_client.read().await;
+        let snapshot = active.handle.snapshot().await;
+        (
+            Some(active.route.endpoint_ref.clone()),
+            should_preserve_route_continuity(&snapshot),
+        )
+    };
 
     let result = match action {
         "failover" => attempt_route_failover(
@@ -1910,28 +1917,56 @@ async fn run_bench_action(state: &SidecarState, action: &str) -> HelixSidecarBen
     };
 
     let route_after = Some(state.active_client.read().await.route.endpoint_ref.clone());
+    let recovery_latency_ms = i32::try_from(started_at.elapsed().as_millis()).unwrap_or(i32::MAX);
 
     match result {
-        Ok(message) => HelixSidecarBenchActionReport {
-            schema_version: "1.0".to_string(),
-            action: action.to_string(),
-            success: true,
-            route_before,
-            route_after,
-            recovery_latency_ms: Some(
-                i32::try_from(started_at.elapsed().as_millis()).unwrap_or(i32::MAX),
-            ),
-            message: Some(message),
-        },
+        Ok(message) => {
+            if !continuity_sensitive {
+                let recovery_latency_u32 =
+                    u32::try_from(recovery_latency_ms.max(0)).unwrap_or(u32::MAX);
+                if let Some(route_after_ref) = route_after.as_deref() {
+                    let route = {
+                        let active = state.active_client.read().await;
+                        (active.route.endpoint_ref == route_after_ref).then(|| active.route.clone())
+                    };
+
+                    if let Some(route) = route {
+                        let _ = record_successful_continuity_recovery(
+                            &state.route_quality,
+                            &route,
+                            recovery_latency_u32,
+                        )
+                        .await;
+
+                        if route_before.as_deref() != route_after.as_deref() {
+                            let _ = record_successful_cross_route_recovery(
+                                &state.route_quality,
+                                &route,
+                                recovery_latency_u32,
+                            )
+                            .await;
+                        }
+                    }
+                }
+            }
+
+            HelixSidecarBenchActionReport {
+                schema_version: "1.0".to_string(),
+                action: action.to_string(),
+                success: true,
+                route_before,
+                route_after,
+                recovery_latency_ms: Some(recovery_latency_ms),
+                message: Some(message),
+            }
+        }
         Err(error) => HelixSidecarBenchActionReport {
             schema_version: "1.0".to_string(),
             action: action.to_string(),
             success: false,
             route_before,
             route_after,
-            recovery_latency_ms: Some(
-                i32::try_from(started_at.elapsed().as_millis()).unwrap_or(i32::MAX),
-            ),
+            recovery_latency_ms: Some(recovery_latency_ms),
             message: Some(error.to_string()),
         },
     }
@@ -2312,7 +2347,7 @@ mod tests {
             failed_continuity_recovers: 3,
             failed_activations: 3,
             consecutive_failures: 2,
-            last_failure_at: Some(std::time::Instant::now() - Duration::from_secs(90)),
+            last_failure_at: Some(std::time::Instant::now() - Duration::from_secs(95)),
             ..RouteQualityRecord::default()
         };
 
@@ -2429,7 +2464,7 @@ mod tests {
                     successful_continuity_recovers: 3,
                     failed_continuity_recovers: 2,
                     last_continuity_recovery_ms: Some(140),
-                    last_failure_at: Some(std::time::Instant::now() - Duration::from_secs(90)),
+                    last_failure_at: Some(std::time::Instant::now() - Duration::from_secs(95)),
                     ..RouteQualityRecord::default()
                 },
             ),

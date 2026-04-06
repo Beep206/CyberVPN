@@ -572,6 +572,25 @@ export interface HelixDiagnosticsSnapshot {
   live_telemetry?: HelixSidecarTelemetry | null;
 }
 
+export interface DesktopLifecycleState {
+  schema_version: string;
+  current_run_id: string;
+  started_at: string;
+  running: boolean;
+  hidden_launch_requested: boolean;
+  previous_run_id?: string | null;
+  previous_started_at?: string | null;
+  previous_exit_kind?: string | null;
+  previous_exit_at?: string | null;
+  previous_exit_message?: string | null;
+  previous_unclean_shutdown_detected: boolean;
+  startup_cleanup_performed: boolean;
+  system_proxy_cleanup_succeeded: boolean;
+  last_exit_kind?: string | null;
+  last_exit_at?: string | null;
+  last_exit_message?: string | null;
+}
+
 export interface DesktopDiagnosticsSnapshot {
   collected_at: string;
   app_name: string;
@@ -582,6 +601,7 @@ export interface DesktopDiagnosticsSnapshot {
   diagnostics_dir: string;
   support_bundle_dir: string;
   store_path: string;
+  lifecycle: DesktopLifecycleState;
   connection_status: ConnectionStatus;
   active_core: string;
   active_profile_id?: string | null;
