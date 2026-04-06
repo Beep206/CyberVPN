@@ -1,3 +1,4 @@
+pub mod bgp;
 pub mod engine;
 pub mod ipc;
 pub mod tray;
@@ -245,6 +246,9 @@ pub fn run() {
             }),
             process_manager: Arc::new(engine::manager::ProcessManager::new()),
         })
+        .manage(bgp::BgpStateWrapper {
+            inner: Arc::new(tokio::sync::Mutex::new(bgp::speaker::BgpSessionState::new())),
+        })
         .manage(crate::engine::sys::sentinel::SentinelGuard::new())
         .invoke_handler(tauri::generate_handler![
             greet,
@@ -322,7 +326,13 @@ pub fn run() {
             crate::engine::sys::stats::get_usage_history, // Mapped natively on stats
             crate::engine::sys::stats::get_global_footprint,
             ipc::start_remote_server,
-            ipc::stop_remote_server
+            ipc::stop_remote_server,
+            bgp::start_bgp_session,
+            bgp::stop_bgp_session,
+            bgp::get_bgp_status,
+            bgp::get_bgp_routes,
+            bgp::check_is_admin,
+            bgp::restart_as_admin
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
