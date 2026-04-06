@@ -63,3 +63,7 @@ export const locales = [
 export const defaultLocale = 'en-EN';
 
 export const rtlLocales = ['ar-SA', 'he-IL', 'fa-IR', 'ur-PK', 'ku-IQ'] as const;
+
+export function getStaticParamsLocales(): readonly string[] {
+  return process.env.NODE_ENV === 'development' ? [defaultLocale] : locales;
+}

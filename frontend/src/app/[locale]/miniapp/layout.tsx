@@ -1,7 +1,7 @@
-import { getTranslations } from 'next-intl/server';
 import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { MINI_APP_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
+import { getCachedTranslations } from '@/i18n/server';
 import { TelegramMiniAppAuthProvider } from '@/features/auth/components/TelegramMiniAppAuthProvider';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
@@ -13,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'MiniApp.meta' });
+  const t = await getCachedTranslations(locale, 'MiniApp.meta');
 
   return withSiteMetadata({
     title: t('title'),

@@ -16,6 +16,13 @@ import {
 import { getMobileTelemetryContext } from '@/shared/lib/mobile-device-bucket';
 
 const ANALYTICS_ENDPOINT = '/api/analytics/traffic';
+const PAGE_VIEW_KEY_STORAGE = '__CYBERVPN_LAST_ANALYTICS_PAGE_VIEW__';
+
+declare global {
+  interface Window {
+    __CYBERVPN_LAST_ANALYTICS_PAGE_VIEW__?: string;
+  }
+}
 
 function sendAcquisitionEvent(payload: AcquisitionPayload): void {
   const body = JSON.stringify(payload);
@@ -47,12 +54,14 @@ export function TrafficAnalyticsReporter() {
 
     const searchParams = new URLSearchParams(window.location.search);
     const pageViewKey = `${nextPathname}?${searchParams.toString()}`;
+    const previouslyTrackedPageView = window[PAGE_VIEW_KEY_STORAGE];
 
-    if (lastPageViewKeyRef.current === pageViewKey) {
+    if (lastPageViewKeyRef.current === pageViewKey || previouslyTrackedPageView === pageViewKey) {
       return;
     }
 
     lastPageViewKeyRef.current = pageViewKey;
+    window[PAGE_VIEW_KEY_STORAGE] = pageViewKey;
 
     const source = classifyAcquisitionSource(document.referrer);
     const telemetry = getMobileTelemetryContext(nextPathname);

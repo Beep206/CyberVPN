@@ -1,0 +1,1647 @@
+{
+  "A11y": {
+    "closeModal": "Close modal",
+    "mainContent": "Main content",
+    "skipToMainContent": "Skip to main content"
+  },
+  "Analytics": {
+    "subtitle": "Monitor your platform performance and growth metrics",
+    "title": "ANALYTICS"
+  },
+  "Api": {
+    "description": "Programmatic access to the CyberVPN global infrastructure. Automate server routing, user management, and security policies.",
+    "endpoints": {
+      "auth": {
+        "category": "Authentication",
+        "items": {
+          "generateToken": {
+            "description": "Exchanges client ID and secret for a short-lived Bearer token. Essential for all subsequent API calls.",
+            "params": [
+              {
+                "desc": "Your API Client ID.",
+                "name": "client_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "Your API Client Secret.",
+                "name": "client_secret",
+                "req": true,
+                "type": "string"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/auth/token \\\n  -d \"client_id=your_id\" \\\n  -d \"client_secret=your_secret\"",
+            "response": "{\n  \"access_token\": \"eyJhbGci...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}",
+            "title": "Generate API Token"
+          }
+        }
+      },
+      "servers": {
+        "category": "Infrastructure",
+        "items": {
+          "connect": {
+            "description": "Requests an optimized routing path and ephemeral keys for a specific target node.",
+            "params": [
+              {
+                "desc": "Target server instance ID.",
+                "name": "node_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "WireGuard, OpenVPN, or Stealth.",
+                "name": "protocol",
+                "req": true,
+                "type": "enum"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/servers/connect \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"node_id\": \"eu-frankfurt-01\", \"protocol\": \"WireGuard\"}'",
+            "response": "{\n  \"connection_ip\": \"198.51.100.14\",\n  \"port\": 51820,\n  \"public_key\": \"base64_pub_key...\"\n}",
+            "title": "Initiate Connection"
+          },
+          "listServers": {
+            "description": "Retrieves the real-time status, load, and geographic location of all online VPN instances.",
+            "params": [
+              {
+                "desc": "Filter by region (e.g., 'europe').",
+                "name": "region",
+                "req": false,
+                "type": "string"
+              },
+              {
+                "desc": "Max results to return.",
+                "name": "limit",
+                "req": false,
+                "type": "int"
+              }
+            ],
+            "request": "curl -X GET https://api.cybervpn.com/v1/servers?region=europe \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"",
+            "response": "{\n  \"nodes\": [\n    {\n      \"id\": \"eu-frankfurt-01\",\n      \"load\": 42,\n      \"status\": \"online\"\n    }\n  ]\n}",
+            "title": "List Active Nodes"
+          }
+        }
+      }
+    },
+    "labels": {
+      "body": "BODY",
+      "copied": "COPIED TO CLIPBOARD",
+      "endpoint": "ENDPOINT",
+      "headers": "HEADERS",
+      "method": "METHOD",
+      "parameters": "PARAMETERS",
+      "request": "REQUEST (cURL)",
+      "response": "RESPONSE (JSON)"
+    },
+    "title": "API Documentation"
+  },
+  "Auth": {
+    "errors": {
+      "accountDisabled": "Your account has been disabled",
+      "accountExists": "An account with this email already exists",
+      "accountNotFound": "No account found with this email",
+      "emailInvalid": "Please enter a valid email address",
+      "emailRequired": "Email is required",
+      "invalidCredentials": "Invalid email or password",
+      "networkError": "Network error. Please check your connection",
+      "passwordMismatch": "Passwords do not match",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "rateLimited": "Too many attempts. Please try again in {seconds} seconds",
+      "rateLimitedMinutes": "Too many attempts. Please try again in {minutes} minutes",
+      "serverError": "Server error. Please try again later",
+      "sessionExpired": "Your session has expired. Please sign in again",
+      "unknownError": "An unexpected error occurred"
+    },
+    "forgotPassword": {
+      "backToLogin": "Back to login",
+      "continueToReset": "Enter Reset Code",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "user@cybervpn.io",
+      "sendAgain": "Send again",
+      "submitButton": "Send Reset Code",
+      "submitting": "Sending...",
+      "subtitle": "Reset your secure access",
+      "successExpiry": "The code expires in 15 minutes",
+      "successMessage": "If an account exists with that email, we sent a reset code to",
+      "successTitle": "Check Your Inbox",
+      "title": "Forgot Password"
+    },
+    "login": {
+      "divider": "OR",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "forgotPassword": "Forgot password?",
+      "magicLinkAlt": "Sign in with magic link",
+      "noAccount": "Don't have an account?",
+      "oauthErrors": {
+        "authFailed": "The provider accepted the request, but identity verification failed.",
+        "callbackFailed": "OAuth sign-in failed. Please try again.",
+        "collision": "This provider can't be linked automatically to an existing account.",
+        "deprecatedCallback": "This callback URL is deprecated. Please start sign-in again from the login page.",
+        "invalidProvider": "This sign-in provider is not available.",
+        "invalidTransaction": "Your sign-in session expired or was opened in another tab. Start again.",
+        "linkingRequired": "Sign in to your existing account first, then link this provider manually.",
+        "missingParams": "Missing OAuth callback parameters. Please restart sign-in.",
+        "notConfigured": "OAuth is not configured for this environment yet.",
+        "providerDenied": "The sign-in was cancelled or denied at the provider.",
+        "startFailed": "We couldn't start the sign-in flow. Please try again.",
+        "stateInvalid": "The sign-in session is invalid or expired. Please start again.",
+        "upstreamUnavailable": "The sign-in provider is temporarily unavailable. Try again shortly."
+      },
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "signUpLink": "Sign up",
+      "submitButton": "Sign In",
+      "submitting": "Signing in...",
+      "subtitle": "Access your secure connection",
+      "title": "Sign In",
+      "twoFactorCodeLabel": "Authenticator code",
+      "twoFactorCodePlaceholder": "000000",
+      "twoFactorInfo": "Enter the 6-digit code from your authenticator app to complete sign-in.",
+      "twoFactorSubmitButton": "Verify code",
+      "twoFactorSubmitting": "Verifying code..."
+    },
+    "logout": {
+      "button": "Sign Out",
+      "cancelButton": "Cancel",
+      "confirmButton": "Sign Out",
+      "confirmMessage": "Are you sure you want to sign out?",
+      "confirmTitle": "Sign Out"
+    },
+    "magicLink": {
+      "backToLogin": "Back to login",
+      "checkInbox": "Check your inbox",
+      "codeLabel": "6-digit code",
+      "codePlaceholder": "000000",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "user@cybervpn.io",
+      "expiresIn": "The link or code expires in 1 hour",
+      "orEnterCode": "Or enter the code from the email",
+      "sendAgain": "Send again",
+      "sentTo": "We sent a magic link to",
+      "submitButton": "Send Magic Link",
+      "submitting": "Sending...",
+      "subtitle": "Sign in without a password",
+      "title": "Magic Link",
+      "verify": {
+        "errorIcon": "Verification error icon",
+        "failed": "Verification Failed",
+        "invalidOrExpired": "Invalid or expired magic link. Please request a new one.",
+        "missingToken": "Missing magic link token. Please request a new link.",
+        "redirecting": "Redirecting to dashboard...",
+        "requestNewLink": "Request New Link",
+        "successIcon": "Verification success icon",
+        "validating": "Validating your magic link",
+        "verified": "Verified!",
+        "verifyIcon": "Magic link verification icon",
+        "verifying": "Verifying..."
+      },
+      "verifyCode": "Verify Code",
+      "verifyingCode": "Verifying..."
+    },
+    "meta": {
+      "description": "Secure authentication portal for VPN network access and management",
+      "title": "Sign In - CyberVPN"
+    },
+    "oauth": {
+      "accountCreated": "Account created via {provider}",
+      "alreadyLinked": "This {provider} account is already linked to another user",
+      "continueWithApple": "Continue with Apple",
+      "continueWithDiscord": "Continue with Discord",
+      "continueWithGithub": "Continue with GitHub",
+      "continueWithGoogle": "Continue with Google",
+      "continueWithMicrosoft": "Continue with Microsoft",
+      "continueWithTelegram": "Continue with Telegram",
+      "continueWithX": "Continue with X",
+      "error": "OAuth authentication failed",
+      "noEmail": "No email provided by {provider}",
+      "processing": "Processing OAuth..."
+    },
+    "oauthCallback": {
+      "authenticating": "Authenticating...",
+      "defaultError": "Authentication failed. Please try again.",
+      "errorIcon": "Authentication error icon",
+      "errorTitle": "Authentication Failed",
+      "missingParams": "Missing OAuth parameters. Please try signing in again.",
+      "securityIcon": "Security verification icon",
+      "tryAgain": "Try Again",
+      "verifyingIdentity": "Verifying your identity"
+    },
+    "passwordStrength": {
+      "fair": "Fair",
+      "good": "Good",
+      "requirements": {
+        "length": "At least 8 characters",
+        "lowercase": "One lowercase letter",
+        "number": "One number",
+        "special": "One special character",
+        "uppercase": "One uppercase letter"
+      },
+      "strong": "Strong",
+      "weak": "Weak"
+    },
+    "profile": {
+      "cantUnlinkOnly": "Cannot unlink — this is your only login method",
+      "linkedAccounts": "Linked Accounts",
+      "linkSuccess": "Telegram linked successfully",
+      "linkTelegram": "Link Telegram",
+      "telegramLinked": "Telegram linked: @{username}",
+      "unlinkConfirm": "Are you sure you want to unlink Telegram?",
+      "unlinkSuccess": "Telegram unlinked successfully",
+      "unlinkTelegram": "Unlink Telegram"
+    },
+    "register": {
+      "acceptTerms": "I accept the",
+      "and": " and ",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "continueWithTelegram": "Register with Telegram",
+      "divider": "OR",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "hasAccount": "Already have an account?",
+      "passwordLabel": "Password",
+      "passwordMismatch": "Passwords do not match",
+      "passwordPlaceholder": "Create a password",
+      "privacyLink": "Privacy Policy",
+      "registerModeEmail": "Email",
+      "registerModeUsername": "Username Only",
+      "signInLink": "Sign in",
+      "submitButton": "Create Account",
+      "submitting": "Creating account...",
+      "subtitle": "Join the secure network",
+      "telegramAutoRegister": "Your Telegram account will be used for quick registration",
+      "termsAgreement": "By creating an account, you agree to our Terms of Service and Privacy Policy",
+      "termsLink": "Terms",
+      "title": "Create Account",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "cyberpunk_hacker"
+    },
+    "resetPassword": {
+      "backToForgot": "Request new code",
+      "backToLogin": "Back to login",
+      "codeExpired": "Reset code has expired. Please request a new one.",
+      "codeLabel": "Reset code",
+      "codePlaceholder": "Enter 6-digit code",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "user@cybervpn.io",
+      "goToLogin": "Sign In",
+      "invalidCode": "Invalid or expired reset code",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "Enter new password",
+      "passwordMismatch": "Passwords do not match",
+      "submitButton": "Reset Password",
+      "submitting": "Resetting...",
+      "subtitle": "Enter your reset code and new password",
+      "successMessage": "Your password has been reset successfully",
+      "successTitle": "Password Reset",
+      "title": "Reset Password"
+    },
+    "telegram": {
+      "botLinkAuth": "Waiting for Telegram confirmation...",
+      "botLinkExpired": "This Telegram sign-in request expired. Start a new sign-in from the website.",
+      "botLinkInvalid": "We couldn't restore your Telegram sign-in session. Please start again from the website.",
+      "checkStatusButton": "I've confirmed in Telegram",
+      "connecting": "Approve the sign-in in our bot, then return here - we'll finish automatically.",
+      "copiedStartCommand": "Copied",
+      "copyStartCommand": "Copy command",
+      "errors": {
+        "alreadyLinked": "This Telegram account is already linked to another user",
+        "authFailed": "Telegram authentication failed",
+        "dataInvalid": "Invalid Telegram data received",
+        "expired": "Telegram authentication expired. Please try again",
+        "hashMismatch": "Telegram data verification failed",
+        "notLinked": "This Telegram account is not linked to any user",
+        "widgetFailed": "Telegram widget failed to load"
+      },
+      "loginButton": "Open Telegram",
+      "manualFallback": "If Telegram opens as a regular chat, send this command manually:",
+      "miniAppAutoAuth": "Signing you in via Telegram..."
+    }
+  },
+  "Contact": {
+    "form": {
+      "department": "Select Sub-net",
+      "department_sales": "Enterprise Acquisitions",
+      "department_support": "Technical Operations",
+      "email": "Encrypted Reply Address",
+      "establishing": "ESTABLISHING TLS TUNNEL...",
+      "message": "Transmission Payload",
+      "name": "Alias / Designation",
+      "new_uplink": "[ INITIATE NEW UPLINK ]",
+      "placeholder_email": "secure@proton.me",
+      "placeholder_message": "< BEGIN TRANSMISSION >",
+      "placeholder_name": "guest_774",
+      "scanning": "SCANNING SECURE FREQUENCIES...",
+      "submit": "INITIATE UPLINK",
+      "success": "Payload Delivered. Trace wiped.",
+      "verified": "UPLINK SECURED"
+    },
+    "subtitle": "Global encrypted relay",
+    "title": "SECURE COMMS"
+  },
+  "Dashboard": {
+    "activeConnections": "Active Connections",
+    "activeSessions": "ACTIVE SESSIONS",
+    "aggregateThroughput": "Aggregate throughput",
+    "connectionStatus": "SECURE CONNECTION ESTABLISHED",
+    "currentConnections": "Current connections",
+    "encryptionStatus": "ENCRYPTION: QUANTUM-SAFE",
+    "errorLoadingServers": "Error loading servers",
+    "meta": {
+      "description": "Secure VPN administration dashboard with real-time monitoring, analytics, and network management",
+      "title": "Dashboard - VPN Command Center"
+    },
+    "networkLoad": "NETWORK LOAD",
+    "nodesOnline": "NODES ONLINE",
+    "noServers": "No servers available",
+    "serverMatrix": "SERVER MATRIX",
+    "serverStatus": "SERVER STATUS",
+    "statusLabel": "SYSTEM STATUS:",
+    "statusValue": "OPTIMAL",
+    "title": "VPN COMMAND CENTER",
+    "vpnUsage": "VPN USAGE"
+  },
+  "DeleteAccount": {
+    "contact": {
+      "description": "If you have questions about account deletion or data privacy:",
+      "email": "Email",
+      "emailAddress": "privacy@cybervpn.app",
+      "title": "Need help?"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password",
+      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "networkError": "Network error. Please check your connection.",
+      "serverError": "Server error. Please try again later.",
+      "title": "Deletion failed",
+      "unauthenticated": "You must be logged in to delete your account."
+    },
+    "form": {
+      "cancel": "Cancel",
+      "description": "To proceed with account deletion, type DELETE below and confirm.",
+      "fields": {
+        "confirmation": {
+          "error": "You must confirm to proceed",
+          "label": "I understand this action is permanent and cannot be undone"
+        },
+        "confirmInput": {
+          "error": "You must type DELETE to proceed",
+          "keyword": "DELETE",
+          "label": "Type DELETE to confirm",
+          "placeholder": "DELETE"
+        },
+        "email": {
+          "error": "Valid email is required",
+          "label": "Email address",
+          "placeholder": "Enter your account email"
+        },
+        "feedback": {
+          "label": "Additional feedback (optional)",
+          "placeholder": "Any additional comments..."
+        },
+        "password": {
+          "error": "Password is required",
+          "label": "Password",
+          "placeholder": "Enter your password"
+        },
+        "reason": {
+          "label": "Reason for deletion (optional)",
+          "options": {
+            "foundAlternative": "Found an alternative",
+            "notUsing": "Not using the service",
+            "other": "Other",
+            "privacyConcerns": "Privacy concerns",
+            "technicalIssues": "Technical issues",
+            "tooExpensive": "Too expensive"
+          },
+          "placeholder": "Help us improve by sharing why you're leaving"
+        }
+      },
+      "submit": "Delete My Account",
+      "submitting": "Deleting...",
+      "title": "Confirm account deletion"
+    },
+    "meta": {
+      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "title": "Delete Account - CyberVPN"
+    },
+    "sections": {
+      "alternativeOptions": {
+        "description": "If you're experiencing issues, consider these alternatives:",
+        "items": {
+          "changeSettings": "Adjust your account or privacy settings",
+          "contactSupport": "Contact support for assistance",
+          "pauseSubscription": "Pause your subscription temporarily"
+        },
+        "title": "Alternative options"
+      },
+      "beforeDelete": {
+        "items": {
+          "cancelSubscriptions": "Cancel any active subscriptions",
+          "exportData": "Export your data if needed (GDPR right to data portability)",
+          "saveConfigs": "Save any custom VPN configurations",
+          "useReferrals": "Use any pending referral rewards"
+        },
+        "title": "Before you delete"
+      },
+      "consequences": {
+        "items": {
+          "accountData": "Your account information and profile",
+          "configs": "VPN configurations and connection history",
+          "referrals": "Referral data and earned rewards",
+          "subscriptions": "All active subscriptions (no refunds)",
+          "support": "Support tickets and communication history"
+        },
+        "title": "What will be deleted"
+      }
+    },
+    "subtitle": "Permanently delete your CyberVPN account",
+    "success": {
+      "details": "All your data has been removed. You will be redirected to the home page.",
+      "message": "Your account has been permanently deleted.",
+      "returnHome": "Return to Home",
+      "title": "Account deleted"
+    },
+    "title": "Delete Account",
+    "warning": {
+      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
+      "title": "Warning: This action is permanent"
+    }
+  },
+  "Devices": {
+    "subtitle": "Manage your active sessions and devices",
+    "title": "Active Devices"
+  },
+  "Docs": {
+    "doc_config_desc": "Establish secure pathways through hostile networks.",
+    "doc_config_title": "Configuring Tunnels",
+    "doc_install_desc": "Deploy the core engine on supported physical architectures.",
+    "doc_install_title": "Core Installation",
+    "doc_protocols_desc": "Specifications for VLESS, VMess, and Trojan Reality.",
+    "doc_protocols_title": "Supported Protocols",
+    "meta_description": "Comprehensive schematics and guides for integrating and utilizing the CyberVPN network.",
+    "meta_title": "Neural Documentation | CyberVPN",
+    "search_placeholder": "Search blueprints...",
+    "section_api": "NEURAL API",
+    "section_getting_started": "INITIALIZATION",
+    "section_routing": "SIGNAL ROUTING",
+    "section_security": "ENCRYPTION PROTOCOLS",
+    "sidebar_category_advanced": "Deep Integration",
+    "sidebar_category_basics": "Core Systems",
+    "subtitle": "SYSTEM DOCUMENTATION & SCHEMATICS",
+    "title": "NEURAL BLUEPRINTS"
+  },
+  "Download": {
+    "changelog": {
+      "empty": "No recent updates for this architecture.",
+      "title": "LATEST DIRECTIVES"
+    },
+    "platforms": {
+      "android": "Android (APK / Play Store)",
+      "ios": "iOS (App Store)",
+      "linux": "Linux (Debian / Ubuntu / RHEL)",
+      "macos": "macOS (Apple Silicon / Intel)",
+      "windows": "Windows x64"
+    },
+    "subtitle": "Acquire Payload",
+    "terminal": {
+      "button": "DOWNLOAD PAYLOAD",
+      "compiling": "COMPILING SECURE BINARIES...",
+      "init": "[SYS] INITIALIZING DOWNLOAD PROTOCOL...",
+      "ready": "PAYLOAD COMPILED. READY FOR EXTRACTION.",
+      "verify": "VERIFYING ARCHITECTURE: ",
+      "version": "VERSION:"
+    },
+    "title": "SECURE PACKAGE"
+  },
+  "Features": {
+    "description": "Military-grade encryption algorithms and quantum-resistant infrastructure. Explore the modular components that protect your digital existence.",
+    "features": {
+      "killswitch": {
+        "description": "Constantly monitors the encrypted tunnel integrity. If the connection drops for a microsecond, all external traffic is physically severed at the OS level to prevent IP leaks.",
+        "specs": [
+          "Level: OS Kernel space routing rules",
+          "Reaction Time: < 1ms",
+          "Leak Prevention: DNS, IPv6, WebRTC"
+        ],
+        "subtitle": "System-Level Isolation",
+        "title": "Neural Kill Switch"
+      },
+      "multihop": {
+        "description": "Your traffic is fragmented, encrypted, and routed through multiple sovereign jurisdictions. Even if one node is compromised, your origin remains mathematical impossible to trace.",
+        "specs": [
+          "Hops: Custom 2-4 Node Chains",
+          "Jurisdictions: Pan-Global Spread",
+          "Re-encryption: At every tunnel exit"
+        ],
+        "subtitle": "Distributed Node Routing",
+        "title": "Multi-Hop Cascading"
+      },
+      "obfuscation": {
+        "description": "Bypasses Deep Packet Inspection in highly restricted environments (China, Iran). VPN traffic is steganographically disguised as standard HTTPS web traffic.",
+        "specs": [
+          "Protocol: V2Ray / Shadowsocks / XTLS",
+          "Signature: Indistinguishable from TLS 1.3",
+          "Resilience: Automated fallback rotation"
+        ],
+        "subtitle": "DPI Evasion Engine",
+        "title": "Shadow Obfuscation"
+      },
+      "quantum": {
+        "description": "Prepared for the cryptographic apocalypse. Utilizes lattice-based algorithms to secure handshakes against quantum decryption attacks before they happen.",
+        "specs": [
+          "Algorithm: Kyber-1024 / NTRU",
+          "Key Exchange: Hybrid ECDHE + PQ",
+          "Threat Model: Harvest Now, Decrypt Later"
+        ],
+        "subtitle": "Post-Quantum Cryptography",
+        "title": "Quantum Resistance"
+      }
+    },
+    "secondary": {
+      "items": [
+        {
+          "desc": "RAM-only servers. Rebooted daily. Data never touches a hard drive.",
+          "title": "Strict No-Logs Policy"
+        },
+        {
+          "desc": "Protect your entire arsenal of hardware with a single access key.",
+          "title": "10 Simultaneous Devices"
+        },
+        {
+          "desc": "DNS-level filtering neutralizes malicious scripts before they load.",
+          "title": "Ad & Tracker Blocker"
+        },
+        {
+          "desc": "Dedicated high-bandwidth nodes specifically hardware-accelerated for torrenting.",
+          "title": "P2P Optimized"
+        }
+      ],
+      "title": "Auxiliary Systems"
+    },
+    "title": "Core Capabilities"
+  },
+  "Footer": {
+    "brandDescription": "Advanced privacy protection infrastructure for the next generation of the internet. Navigate the digital void with military-grade encryption.",
+    "knowledgeLinks": {
+      "audits": "Audits",
+      "compare": "Compare",
+      "devices": "Devices",
+      "guides": "Guides",
+      "trust": "Trust center"
+    },
+    "links": {
+      "api": "API",
+      "contact": "Contact",
+      "documentation": "Docs",
+      "download": "Download",
+      "features": "Features",
+      "helpCenter": "Help Center",
+      "pricing": "Pricing",
+      "privacy": "Privacy Policy",
+      "security": "Security",
+      "servers": "Servers",
+      "status": "System Status",
+      "terms": "Terms of Service"
+    },
+    "newsletter": {
+      "cta": "INIT",
+      "description": "Join our encrypted frequency. Get updates on server locations, security protocols, and zero-day patches.",
+      "placeholder": "enter_email.exe",
+      "prompt": "root@user:~$"
+    },
+    "operationalStatus": "All systems operational.",
+    "sections": {
+      "knowledge": "Knowledge",
+      "paymentMethods": "Payment methods",
+      "product": "Product",
+      "stayConnected": "Stay Connected",
+      "support": "Support"
+    }
+  },
+  "Header": {
+    "encryptionLabel": "ENCRYPTION",
+    "encryptionValue": "ACTIVE - AES-256",
+    "fps": "FPS",
+    "integrity": "INTEGRITY CHECK PASSED",
+    "language": "LANG",
+    "netUplink": "NET_UPLINK",
+    "ping": "PING",
+    "systemLabel": "SYSTEM"
+  },
+  "HelpCenter": {
+    "categories_intro": "Pick a verified module and jump straight to the relevant answers in the archive.",
+    "categories_title": "KNOWLEDGE MODULES",
+    "category_billing": "Access Credits",
+    "category_billing_desc": "Subscription, payments, and bandwidth allocation.",
+    "category_getting_started": "Initialization",
+    "category_getting_started_desc": "System startup and basic configuration protocols.",
+    "category_security": "Encryption Protocols",
+    "category_security_desc": "Details on Anti-DPI, obfuscation, and zero-logs policies.",
+    "category_troubleshooting": "Signal Routing",
+    "category_troubleshooting_desc": "Diagnostics for connection and tunneling errors.",
+    "contact_button_telegram": "INITIATE TELEGRAM LINK",
+    "contact_button_ticket": "OPEN SECURE TICKET",
+    "contact_desc": "Unable to resolve your anomaly in the archives? Establish a direct secure comm channel with our operators.",
+    "contact_title": "SECURE TRANSMISSION",
+    "faq_billing_1_a": "You can acquire additional Access Credits via the Billing terminal using supported crypto or fiat gateways.",
+    "faq_billing_1_q": "How do I increase my bandwidth quota?",
+    "faq_billing_2_a": "Refunds are processed strictly within the first 72 hours of establishing a new connection cycle.",
+    "faq_billing_2_q": "Are refunds available for inactive cycles?",
+    "faq_billing_3_a": "Affirmative. We accept Monero (XMR), USDT, and Bitcoin for completely untraceable transactions.",
+    "faq_billing_3_q": "Do you support anonymous payments?",
+    "faq_getting_started_1_a": "Download the CyberVPN core module for your OS, authenticate with your Neural ID, and click 'Engage'.",
+    "faq_getting_started_1_q": "How do I initialize my first connection?",
+    "faq_getting_started_2_a": "The network accepts connections from Windows, macOS, Linux, iOS, and Android clients via standard Xray/Sing-box protocols.",
+    "faq_getting_started_2_q": "What devices are supported?",
+    "faq_getting_started_3_a": "Yes, depending on your Access Credit tier, you can link up to 10 concurrent neural pathways.",
+    "faq_getting_started_3_q": "Can I connect multiple devices simultaneously?",
+    "faq_intro": "Browse initialization, routing, billing, and security answers without waiting for client hydration.",
+    "faq_security_1_a": "Negative. All databanks are volatile. We operate on a strict zero-knowledge architecture.",
+    "faq_security_1_q": "Is my data logged?",
+    "faq_security_2_a": "We utilize ChaCha20-Poly1305 and AES-256-GCM ciphers, providing military-grade cryptographic integrity.",
+    "faq_security_2_q": "What encryption standard is deployed?",
+    "faq_security_3_a": "Yes. If the secure tunnel drops, the client immediately terminates all external network adapters to prevent IP leaks.",
+    "faq_security_3_q": "Do you offer a Kill Switch?",
+    "faq_title": "COMMON QUERIES",
+    "faq_troubleshooting_1_a": "Check your node's ping. If packet loss exceeds 5%, reroute to an alternate shard in the Server Grid.",
+    "faq_troubleshooting_1_q": "Why is my connection speed degraded?",
+    "faq_troubleshooting_2_a": "The system automatically engages fallback routing. If manual override is needed, flush your DNS cache and reconnect.",
+    "faq_troubleshooting_2_q": "What if the primary proxy fails?",
+    "faq_troubleshooting_3_a": "Our core utilizing VLESS+Reality automatically masks your traffic as standard HTTPS. Ensure you have the latest core update applied.",
+    "faq_troubleshooting_3_q": "How do I bypass DPI restrictions?",
+    "hero_subtitle": "ACCESSING CENTRAL DATABANKS...",
+    "hero_title": "NEURAL ARCHIVES",
+    "meta_description": "Access the databanks for troubleshooting, guides, and secure communication channels.",
+    "meta_title": "Neural Archives | CyberVPN Help Center",
+    "search_button": "DECRYPT",
+    "search_placeholder": "Enter neural query..."
+  },
+  "Landing": {
+    "comparison_table": {
+      "headers": {
+        "cybervpn": "CyberVPN (VLESS-Reality)",
+        "feature": "Feature",
+        "legacy": "Legacy VPN (WireGuard/OpenVPN)"
+      },
+      "rows": {
+        "dpi": {
+          "cybervpn": "Indistinguishable from HTTPS",
+          "feature": "DPI Detection",
+          "legacy": "Easily fingerprinted and blocked"
+        },
+        "ip_blocking": {
+          "cybervpn": "Zero (dynamic Reality masking)",
+          "feature": "IP Blocking Risk",
+          "legacy": "High (static patterns)"
+        },
+        "privacy": {
+          "cybervpn": "RAM-only encryption (Zero-trace)",
+          "feature": "Privacy Layer",
+          "legacy": "Standard encryption"
+        },
+        "speed": {
+          "cybervpn": "Full backbone speed (10Gbps)",
+          "feature": "Speed under Load",
+          "legacy": "Throttled by ISP deep inspection"
+        }
+      },
+      "title": "Legacy vs Next-Gen"
+    },
+    "features": {
+      "backbone": {
+        "desc": "Native 10 Gbit/s uplinks in Tier-3 data centers. Optimized for 4K/8K streaming and low-ping gaming.",
+        "title": "Backbone Performance"
+      },
+      "badge": "FEATURE MATRIX",
+      "multiplatform": {
+        "desc": "One subscription for Telegram Bot, iOS, Android, Windows, macOS, and Linux.",
+        "title": "Native Multi-Platform"
+      },
+      "protocols": {
+        "desc": "Full support for VLESS, Trojan, and Shadowsocks-2022. Native XHTTP support to bypass the strictest corporate and state firewalls—your traffic looks indistinguishable from standard HTTP requests to trusted resources.",
+        "title": "Advanced Protocols"
+      },
+      "ram": {
+        "desc": "No disks, no logs, no persistence. Infrastructure is wiped on every restart.",
+        "title": "RAM-Only Infrastructure"
+      },
+      "routing": {
+        "desc": "Global mesh of 100+ nodes with automated latency-based selection.",
+        "title": "Intelligent Routing"
+      },
+      "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
+      "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
+      "stats": {
+        "bandwidth": "Gbit/s",
+        "locations": "locations",
+        "logs": "logs",
+        "uptime": "uptime"
+      },
+      "stealth": {
+        "desc": "Traffic is indistinguishable from visiting Google/Microsoft/Apple. No VPN fingerprinting.",
+        "title": "Stealth Mode (Reality)"
+      }
+    },
+    "hero": {
+      "cta_app": "DOWNLOAD APP",
+      "cta_telegram": "LAUNCH IN TELEGRAM",
+      "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
+      "subtitle": "Bypass DPI blocking of any complexity. Masquerade traffic as standard HTTPS. Up to 10 Gbps speeds without encapsulation loss.",
+      "title": "INVISIBLE VPN. POWERED BY VLESS-REALITY",
+      "titleHighlight": "INVISIBLE VPN"
+    },
+    "how_it_works": {
+      "badge": "ANTI-DPI ENGINE",
+      "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted. Includes intelligent transport selection—automatically failing over to XHTTP if non-standard protocols are blocked.",
+      "title": "How Reality Works"
+    },
+    "network_stats": {
+      "bandwidth": "1.2 Tbps Backbone capacity",
+      "coverage": "50+ Countries, 100+ Cities",
+      "nodes": "100+ Active high-performance nodes",
+      "title": "Network Infrastructure",
+      "uptime": "99.9% Network availability"
+    },
+    "pricing": {
+      "basic": "Basic: Trial / Entry level",
+      "cyber": "Cyber: Premium / Full access",
+      "pro": "Pro: Most popular",
+      "ultra": "Ultra: High bandwidth"
+    },
+    "quick_start": {
+      "badge": "Fast Track",
+      "step1": "Launch the bot (@CyberVPN_Bot)",
+      "step2": "One-tap Trial Activation (2 days / 2GB)",
+      "step3": "Import config to any app and stay free",
+      "terminalComment": "# Auto-provisioning VPN tunnel...",
+      "terminalStatus": "> Tunnel Established. DPI bypassed. Securing transport...",
+      "terminalTitle": "Deploy Connection",
+      "title": "30-Second Path"
+    },
+    "speed_tunnel": {
+      "featureNoAds": "No-Ads YT",
+      "featureTorrent": "Torrent",
+      "online": "ONLINE",
+      "servers": {
+        "amsterdam": {
+          "city": "Amsterdam",
+          "country": "Netherlands"
+        },
+        "frankfurt": {
+          "city": "Frankfurt",
+          "country": "Germany"
+        },
+        "london": {
+          "city": "London",
+          "country": "United Kingdom"
+        },
+        "newYork": {
+          "city": "New York",
+          "country": "USA"
+        },
+        "paris": {
+          "city": "Paris",
+          "country": "France"
+        },
+        "seoul": {
+          "city": "Seoul",
+          "country": "South Korea"
+        },
+        "singapore": {
+          "city": "Singapore",
+          "country": "Singapore"
+        },
+        "sydney": {
+          "city": "Sydney",
+          "country": "Australia"
+        },
+        "tokyo": {
+          "city": "Tokyo",
+          "country": "Japan"
+        },
+        "toronto": {
+          "city": "Toronto",
+          "country": "Canada"
+        }
+      },
+      "subtitle": "100+ Locations. 10 Gbit/s Channels. Zero Limits.",
+      "titleEnd": "NETWORK",
+      "titleHighlight": "ULTRASPEED",
+      "titleStart": "GLOBAL"
+    },
+    "status_board": {
+      "item_online": "ONLINE",
+      "live": "LIVE",
+      "protocols": {
+        "reality": "Reality",
+        "vless_grpc": "VLESS-gRPC"
+      },
+      "title": "Node Status Dashboard"
+    },
+    "tech_specs": {
+      "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
+      "network": "Network: 10Gbps Uplinks, Global IPv6 Support",
+      "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP"
+    },
+    "technical": {
+      "labels": {
+        "encryption": "Encryption",
+        "network": "Network",
+        "transport": "Transport"
+      },
+      "networkLabels": {
+        "bandwidth": "Bandwidth",
+        "coverage": "Coverage",
+        "nodes": "Active Nodes",
+        "uptime": "Network Availability"
+      },
+      "specificationsTitle": "Technical Specifications"
+    }
+  },
+  "LanguageSelector": {
+    "noResults": "NO_MATCHES_FOUND",
+    "searchPlaceholder": "SEARCH_LANGUAGE...",
+    "title": "SELECT_LANGUAGE"
+  },
+  "MiniApp": {
+    "home": {
+      "activateTrial": "Activate Trial",
+      "configCopied": "VPN config copied to clipboard!",
+      "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
+      "configQRTitle": "VPN Config QR Code",
+      "connections": "Connections",
+      "copyConfig": "Copy Config",
+      "dataUsed": "Data Used",
+      "daysRemaining": "Days Remaining",
+      "expires": "Expires",
+      "lastConnected": "Last Connected",
+      "never": "Never",
+      "noConfigAvailable": "No VPN config available",
+      "noConfigDescription": "Activate a subscription to get your VPN configuration",
+      "noSubscription": "No Active Subscription",
+      "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
+      "openInApp": "Open in App",
+      "plan": "Plan",
+      "quickActions": "Quick Actions",
+      "settings": "Settings",
+      "subscriptionActive": "Subscription Active",
+      "trafficLimit": "Traffic",
+      "trial": "TRIAL",
+      "trialAvailable": "Free Trial Available",
+      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+      "trialPlan": "7-Day Free Trial",
+      "unknown": "Unknown",
+      "usage": "Usage Statistics",
+      "viewPlans": "View Plans",
+      "viewQR": "View QR Code",
+      "vpnConfig": "VPN Config",
+      "vpnConfigDescription": "Get your VPN config to connect from any device",
+      "vpnConfigTitle": "VPN Configuration",
+      "wallet": "Wallet"
+    },
+    "meta": {
+      "description": "Manage your VPN subscription in Telegram",
+      "title": "CyberVPN Mini App"
+    },
+    "nav": {
+      "bottomNav": "Main navigation",
+      "home": "Home",
+      "plans": "Plans",
+      "profile": "Profile",
+      "wallet": "Wallet"
+    },
+    "payments": {
+      "noPayments": "No payment history yet",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "status_refunded": "Refunded",
+      "title": "Payment History",
+      "total": "total"
+    },
+    "plans": {
+      "activateTrial": "Activate 7-Day Trial",
+      "activating": "Activating...",
+      "apply": "Apply",
+      "availablePlans": "Subscription Plans",
+      "contactForPrice": "Contact",
+      "days": "days",
+      "daysCount": "{count} days",
+      "discountApplied": "Discount applied: ${amount}",
+      "free": "Free",
+      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
+      "freeTrialTitle": "Try CyberVPN Free",
+      "haveInviteCode": "Have an Invite Code?",
+      "havePromoCode": "Have a Promo Code?",
+      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "inviteCodePlaceholder": "INVITE123",
+      "inviteInvalid": "Invalid or already used invite code",
+      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
+      "monthly": "per month",
+      "noPlans": "No plans available at the moment",
+      "oneDay": "1 day",
+      "oneMonth": "1 month",
+      "oneWeek": "1 week",
+      "oneYear": "1 year",
+      "paymentCancelled": "Payment was cancelled.",
+      "paymentError": "Payment failed. Please try again.",
+      "paymentFailed": "Payment failed. Please try again.",
+      "paymentSuccess": "Payment successful! Your subscription is now active.",
+      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+      "processing": "Processing...",
+      "promoCodePlaceholder": "PROMO2024",
+      "promoInvalid": "Invalid or expired promo code",
+      "promoValid": "Promo code applied! Discount: ${discount}",
+      "purchasePlan": "Purchase Plan",
+      "quarterly": "per quarter",
+      "redeem": "Redeem",
+      "selectPlanFirst": "Please select a plan first",
+      "sixMonths": "6 months",
+      "threeMonths": "3 months",
+      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "trialError": "Failed to activate trial. Please try again.",
+      "unlimited": "Unlimited",
+      "yearly": "per year"
+    },
+    "profile": {
+      "accountDeleted": "Account deleted successfully",
+      "activeDevices": "Active Devices",
+      "antiphishing": {
+        "codePlaceholder": "Enter 4-32 characters",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be less than 32 characters",
+        "codeTooShort": "Code must be at least 4 characters",
+        "currentCode": "Current Code",
+        "deleteCode": "Delete Code",
+        "deleteConfirm": "Are you sure you want to delete your antiphishing code?",
+        "deleteError": "Failed to delete code",
+        "deleteSuccess": "Antiphishing code deleted",
+        "deleting": "Deleting...",
+        "description": "Set a unique code that will appear in all emails from us. This helps you verify that emails are genuine.",
+        "error": "Failed to update code",
+        "newCode": "New Code",
+        "noCode": "No code set",
+        "setCode": "Set Code",
+        "submitting": "Saving...",
+        "success": "Antiphishing code updated",
+        "title": "Antiphishing Code",
+        "updateCode": "Update Code"
+      },
+      "antiphishingCode": "Antiphishing Code",
+      "changePassword": "Change Password",
+      "codeCopied": "Referral code copied to clipboard",
+      "copy": "Copy",
+      "copyError": "Failed to copy to clipboard",
+      "deleteAccount": "Delete Account",
+      "deleteAccountConfirm": "Are you sure? This action cannot be undone.",
+      "deleteAccountError": "Failed to delete account. Please try again.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "guest": "Guest User",
+      "language": "Language",
+      "languageNote": "Language follows your Telegram settings",
+      "logout": "Logout",
+      "logoutConfirm": "Are you sure you want to logout?",
+      "noEmail": "No email set",
+      "noPayments": "No payment history yet",
+      "notifications": "Notifications",
+      "notificationsNote": "Configure notification preferences",
+      "partner": "Partner Dashboard",
+      "partnerDashboard": {
+        "bindCode": "Bind Partner Code",
+        "bindCodeDescription": "Enter a partner code to join the partner program and start earning commissions",
+        "bindError": "Failed to bind partner code",
+        "bindSuccess": "Partner code bound successfully!",
+        "codeLabel": "Code",
+        "codePlaceholder": "Enter partner code",
+        "codeRequired": "Partner code is required",
+        "createdAt": "Created",
+        "isPartner": "You are a Partner",
+        "markup": "Markup",
+        "noCodes": "No partner codes yet",
+        "notPartner": "Become a Partner",
+        "partnerCodes": "Your Partner Codes",
+        "submit": "Bind Code",
+        "submitting": "Binding...",
+        "tier": "Partner Tier",
+        "totalClients": "Total Clients",
+        "totalEarned": "Total Earned"
+      },
+      "partnerNote": "Contact support for partner program information",
+      "passwordChange": {
+        "confirmPassword": "Confirm New Password",
+        "confirmPasswordRequired": "Please confirm your new password",
+        "currentPassword": "Current Password",
+        "currentPasswordRequired": "Current password is required",
+        "error": "Failed to change password",
+        "newPassword": "New Password",
+        "newPasswordRequired": "New password is required",
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "submit": "Change Password",
+        "submitting": "Changing...",
+        "success": "Password changed successfully",
+        "title": "Change Password"
+      },
+      "paymentHistory": "Payment History",
+      "referral": "Referral Program",
+      "referralShareText": "Join CyberVPN with my code: {code}",
+      "security": "Security",
+      "securityNote": "Manage your password and 2FA settings in the full dashboard",
+      "settings": "Settings",
+      "share": "Share",
+      "totalEarnings": "Total Earnings",
+      "totalReferrals": "Total Referrals",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "viewAll": "View All",
+      "yourReferralCode": "Your Referral Code"
+    },
+    "referral": {
+      "commissionAmount": "Amount",
+      "commissionDate": "Date",
+      "commissionFrom": "From",
+      "copied": "Code copied to clipboard!",
+      "howItWorks": "How It Works",
+      "noCommissions": "No commissions yet",
+      "qrCodeTitle": "QR Code",
+      "recentCommissions": "Recent Commissions",
+      "referralRate": "Commission Rate",
+      "scanToJoin": "Scan to join with your code",
+      "shareCode": "Share Code",
+      "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
+      "shareTitle": "Share & Earn",
+      "stats": "Your Stats",
+      "step1": "Share your unique code",
+      "step2": "Friends sign up with your code",
+      "step3": "Earn commission on their purchases",
+      "title": "Referral Program",
+      "totalEarned": "Total Earned",
+      "totalReferrals": "Total Referrals",
+      "yourCode": "Your Referral Code"
+    },
+    "wallet": {
+      "amount": "Amount",
+      "available": "Available",
+      "balance": "Wallet Balance",
+      "close": "Close",
+      "frozen": "Frozen",
+      "insufficientBalance": "Insufficient balance",
+      "invalidAmount": "Please enter a valid amount",
+      "loading": "Loading...",
+      "loadMore": "Load More",
+      "noTransactions": "No transactions yet",
+      "paymentMethod": "Payment Method",
+      "paymentMethodPlaceholder": "e.g., Crypto wallet address, PayPal email",
+      "paymentMethodRequired": "Payment method is required",
+      "processing": "Processing...",
+      "status_cancelled": "Cancelled",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "submitWithdrawal": "Submit Withdrawal Request",
+      "total": "total",
+      "transactions": "Transaction History",
+      "type_deposit": "Deposit",
+      "type_purchase": "Purchase",
+      "type_referral_commission": "Referral Commission",
+      "type_refund": "Refund",
+      "type_withdrawal": "Withdrawal",
+      "withdraw": "Withdraw Funds",
+      "withdrawalNote": "Withdrawals require admin approval and may take 1-3 business days.",
+      "withdrawError": "Withdrawal request failed. Please try again.",
+      "withdrawFunds": "Withdraw Funds"
+    }
+  },
+  "Monitoring": {
+    "subtitle": "Real-time system health and performance metrics",
+    "title": "SYSTEM MONITORING"
+  },
+  "Navigation": {
+    "analytics": "NET OP",
+    "billing": "BILLING",
+    "closeMenu": "Close menu",
+    "dashboard": "DASHBOARD",
+    "mainNavigation": "Main navigation",
+    "openMenu": "Open menu",
+    "partner": "PARTNER",
+    "paymentHistory": "PAYMENTS",
+    "referral": "REFERRAL",
+    "security": "SECURITY",
+    "servers": "SERVERS",
+    "settings": "CONFIG",
+    "sidebar": "Sidebar",
+    "users": "CLIENTS",
+    "wallet": "WALLET"
+  },
+  "Network": {
+    "description": "5000+ RAM-only nodes deployed across structurally secure jurisdictions. Real-time telemetry routing for zero latency.",
+    "labels": {
+      "activeNodes": "Active Nodes",
+      "encryption": "AES-256-GCM",
+      "latency": "AVG PING: 12ms",
+      "status": "STATUS: ONLINE",
+      "threatsIntercepted": "Threats Blocked",
+      "totalBandwidth": "Core Bandwidth"
+    },
+    "metrics": {
+      "bandwidth": "100+ Gbps",
+      "nodes": "5,204",
+      "threats": "14.2M/s"
+    },
+    "regions": {
+      "asia": "Asia Pacific",
+      "europe": "Europe",
+      "latam": "Latin America",
+      "namerica": "North America"
+    },
+    "servers": {
+      "1": "New York, USA",
+      "2": "London, UK",
+      "3": "Tokyo, Japan",
+      "4": "Singapore",
+      "5": "Frankfurt, EU",
+      "6": "São Paulo, BR",
+      "7": "Sydney, AU"
+    },
+    "title": "Global Infrastructure"
+  },
+  "Partner": {
+    "pageDescription": "Manage your partner codes and track earnings",
+    "pageTitle": "Partner Dashboard - CyberVPN",
+    "subtitle": "Manage codes, track earnings, grow your network",
+    "title": "PARTNER DASHBOARD"
+  },
+  "PaymentHistory": {
+    "history": "Payment History",
+    "noPayments": "No payment history yet",
+    "subtitle": "View all your payment transactions",
+    "title": "PAYMENT HISTORY"
+  },
+  "Placeholder": {
+    "descriptionLine1": "This cyber-deck module is currently under development.",
+    "descriptionLine2": "Check back later for firmware updates.",
+    "errorCode": "ERROR_CODE: FEATURE_NOT_READY",
+    "title": "SYSTEM MODULE OFFLINE"
+  },
+  "Pricing": {
+    "faq": {
+      "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
+      "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
+      "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive.",
+      "q1": "Are my logs recorded?",
+      "q2": "What happens if I exceed the Stealth tier bandwidth?",
+      "q3": "Do you accept crypto?",
+      "title": "DECRYPTED ARCHIVES"
+    },
+    "subtitle": "Network Power Allocation",
+    "tiers": {
+      "basic": {
+        "button": "INITIATE STEALTH",
+        "description": "Essential encryption for navigating the digital outer rims.",
+        "features": [
+          "AES-256 Core Encryption",
+          "5 Global Relay Nodes",
+          "10 GB/mc Bandwidth limit",
+          "Standard Support Ping"
+        ],
+        "name": "STEALTH",
+        "period": "/forever",
+        "price": "Free"
+      },
+      "elite": {
+        "button": "ACQUIRE ELITE",
+        "description": "Full network override. Dedicated IPs and total infrastructure control.",
+        "features": [
+          "Dedicated Cyber-IP Address",
+          "Obfuscated Stealth Protocols",
+          "Priority Node Selection",
+          "10Gbps Network Links",
+          "Access to Beta Directives"
+        ],
+        "name": "ELITE_SYNC",
+        "period": "/month",
+        "price": "$15.99"
+      },
+      "pro": {
+        "badge": "MOST POPULAR",
+        "button": "UPGRADE TO PRO",
+        "description": "Unrestricted speed and matrix-level anonymity for true runners.",
+        "features": [
+          "Quantum-Resistant Protocols",
+          "8,000+ Tier-1 Relays",
+          "Unlimited Bandwidth",
+          "Zero-Log Hardened Cores",
+          "Double VPN Routing"
+        ],
+        "name": "CYBER_PRO",
+        "period": "/month",
+        "price": "$8.99"
+      }
+    },
+    "title": "ACCESS TIERS"
+  },
+  "Privacy": {
+    "description": "TOP SECRET. DECRYPTING PRIVACY POLICY...",
+    "sections": {
+      "dataCollection": {
+        "content": "To maintain the protocol protocol, we require an absolute minimum of information. We collect only: authorization credentials (password hash) and subscription metadata (token expiration date).",
+        "radarLabels": {
+          "blocked": "TRAFFIC LOGS",
+          "collected": "AUTHORIZATION"
+        },
+        "title": "02. DATA COLLECTION"
+      },
+      "encryption": {
+        "content": "Your traffic is protected by AES-256-GCM standard with Perfect Forward Secrecy (PFS). This means that even if a future quantum computer breaks the current key, your past sessions will remain secure.",
+        "title": "04. CRYPTOGRAPHY"
+      },
+      "introduction": {
+        "content": "This document represents the official Privacy Policy of the CyberVPN network. Our core principle is simple: we cannot surrender what we do not possess. We have engineered an infrastructure that is physically incapable of storing your personal data, activity logs, or browsing history.",
+        "title": "01. INTRODUCTION & OVERVIEW"
+      },
+      "noLogs": {
+        "content": "Our entire network operates on RAM disks (volatile memory). The moment a server is rebooted, any traces of your presence are irretrievably destroyed. We do not keep DNS query logs, IP addresses, or session timestamps.",
+        "title": "03. ZERO-LOGS POLICY"
+      },
+      "thirdParties": {
+        "content": "CyberVPN does not share, sell, or trade your data. We do not cooperate with advertising networks or data brokers. Our sole source of income is the subscription fees paid by our users.",
+        "title": "05. THIRD PARTIES"
+      }
+    },
+    "status": {
+      "decrypted": "DECRYPTED",
+      "decrypting": "DECRYPTING...",
+      "encrypted": "ENCRYPTED"
+    },
+    "title": "TRANSPARENCY PROTOCOL"
+  },
+  "PrivacyPolicy": {
+    "lastUpdated": "Last Updated",
+    "meta": {
+      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "title": "Privacy Policy - CyberVPN"
+    },
+    "sections": {
+      "changes": {
+        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
+        "title": "Changes to This Policy"
+      },
+      "contact": {
+        "address": "Address",
+        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "email": "Email",
+        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+        "title": "Contact Information"
+      },
+      "dataCollection": {
+        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "items": {
+          "accountInfo": "Account information (email address, username)",
+          "deviceInfo": "Device and connection metadata (device type, operating system)",
+          "paymentInfo": "Payment information (processed securely by third-party providers)",
+          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+        },
+        "title": "Data Collection"
+      },
+      "dataRetention": {
+        "description": "We retain data only as long as necessary:",
+        "policies": {
+          "accountData": "Account data: retained while your account is active",
+          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
+          "paymentRecords": "Payment records: 7 years for legal compliance",
+          "supportLogs": "Support logs: 90 days after ticket closure"
+        },
+        "title": "Data Retention"
+      },
+      "dataSecurity": {
+        "description": "We implement industry-standard security measures:",
+        "measures": {
+          "accessControl": "Strict access controls and authentication",
+          "encryption": "End-to-end encryption for all VPN traffic",
+          "regularAudits": "Regular security audits and vulnerability assessments",
+          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+        },
+        "title": "Data Security"
+      },
+      "gdprRights": {
+        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "rights": {
+          "access": {
+            "description": "Request a copy of your personal data",
+            "title": "Right to Access"
+          },
+          "erasure": {
+            "description": "Request deletion of your personal data",
+            "title": "Right to Erasure"
+          },
+          "objection": {
+            "description": "Object to processing of your data",
+            "title": "Right to Object"
+          },
+          "portability": {
+            "description": "Receive your data in a machine-readable format",
+            "title": "Right to Data Portability"
+          },
+          "rectification": {
+            "description": "Correct inaccurate or incomplete data",
+            "title": "Right to Rectification"
+          }
+        },
+        "title": "Your GDPR Rights"
+      },
+      "noLogPolicy": {
+        "details": "This means:",
+        "notLogged": {
+          "browsing": "No browsing history or website visits",
+          "connections": "No connection timestamps or session duration",
+          "dns": "No DNS queries or IP addresses",
+          "traffic": "No traffic data or content inspection"
+        },
+        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
+        "title": "No-Log Policy"
+      },
+      "thirdParty": {
+        "description": "We work with trusted third-party providers:",
+        "services": {
+          "analytics": "Anonymous analytics (no personally identifiable information)",
+          "infrastructure": "Cloud infrastructure providers (servers and network)",
+          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+        },
+        "title": "Third-Party Services"
+      }
+    },
+    "title": "Privacy Policy"
+  },
+  "Referral": {
+    "commissionRate": "Commission Rate",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "noCommissions": "No commissions yet",
+    "recentCommissions": "Recent Commissions",
+    "shareDescription": "Share this code with friends to earn commissions on their subscriptions",
+    "startReferring": "Start referring friends to earn commissions!",
+    "subtitle": "Earn commissions by referring friends",
+    "title": "REFERRAL PROGRAM",
+    "totalEarnings": "Total Earnings",
+    "totalReferrals": "Total Referrals",
+    "yourCode": "Your Referral Code"
+  },
+  "Security": {
+    "classified": {
+      "text1": "Our [OBFUSCATION] algorithms were engineered by former [REDACTED] architects, allowing our traffic to blend seamlessly with the background noise of the internet.",
+      "text2": "In the event of a physical server seizure, the [CONTAGION PROTOCOL] automatically zero-fills all disk arrays [REDACTED].",
+      "title": "TOP SECRET"
+    },
+    "description": "ABSOLUTE PROTECTION. INITIALIZING PROTOCOLS OF BLISSFUL IGNORANCE...",
+    "protocols": {
+      "headers": [
+        "PROTOCOL",
+        "ENCRYPTION",
+        "SPEED",
+        "DPI BYPASS"
+      ],
+      "openvpn": [
+        "OpenVPN",
+        "AES-256",
+        "Medium",
+        "Medium"
+      ],
+      "stealth": [
+        "Cyber-Stealth",
+        "AES-256 + Obf",
+        "High",
+        "Absolute"
+      ],
+      "title": "PROTOCOL BENCHMARKS",
+      "wireguard": [
+        "WireGuard",
+        "ChaCha20",
+        "Maximum",
+        "Low"
+      ]
+    },
+    "radar": {
+      "blocked": "BLOCKED",
+      "deflected": "DEFLECTED",
+      "events": {
+        "brute": "SSH Brute-force",
+        "dpi": "Deep Packet Inspection (DPI) Attempt",
+        "malware": "Known Parser Signature",
+        "syn": "TCP SYN Flood Attack",
+        "tracker": "Ad Tracker Injection"
+      },
+      "status": "LIVE INTRUSION BROADCAST",
+      "title": "THREAT RADAR"
+    },
+    "stack": {
+      "bareMetal": {
+        "description": "We utilize exclusively leased bare-metal servers. No VPS neighbors. Memory operates in RAM-only mode (Tails-like architecture), completely annihilating all data upon power cycle.",
+        "title": "01. BARE METAL TIER"
+      },
+      "client": {
+        "description": "Open-source applications subjected to rigorous independent audits. Embedded Network Lock (Kill Switch) instantly severs traffic upon the slightest loss of core connection.",
+        "title": "04. CLIENT TIER"
+      },
+      "crypto": {
+        "description": "AES-256-GCM cipher with Perfect Forward Secrecy (PFS) via ECDHE (Curve25519) key exchange. Even if math breaks tomorrow, yesterday's traffic remains illegible.",
+        "title": "03. CRYPTOGRAPHY"
+      },
+      "network": {
+        "description": "Complex Anycast DNS and traffic obfuscation engine. Your packets are masked as standard HTTPS traffic (TLS 1.3), rendering the VPN connection invisible to state firewalls (DPI).",
+        "title": "02. NETWORK TIER"
+      },
+      "title": "ARCHITECTURE STACK"
+    },
+    "title": "ENCRYPTION CORE"
+  },
+  "ServerCard": {
+    "ip": "IP",
+    "load": "LOAD",
+    "protocol": "PROTOCOL"
+  },
+  "Servers": {
+    "globalStatus": "GLOBAL STATUS: {status}",
+    "globalStatusValue": "PROVISIONED",
+    "lastSync": "LAST SYNC: {time} AGO",
+    "subtitle": "Manage VPN nodes, protocols, and deployment regions.",
+    "title": "SERVER MANAGEMENT"
+  },
+  "ServersTable": {
+    "actions": {
+      "config": "Config",
+      "restart": "Restart",
+      "stop": "Stop"
+    },
+    "columns": {
+      "controls": "CONTROLS",
+      "ipAddress": "IP ADDRESS",
+      "load": "LOAD",
+      "location": "LOCATION",
+      "protocol": "PROTOCOL",
+      "serverName": "SERVER NAME",
+      "status": "STATUS"
+    },
+    "deployNode": "+ DEPLOY NODE",
+    "error": "Failed to load server data. Please try again.",
+    "status": {
+      "maintenance": "MAINTENANCE",
+      "offline": "OFFLINE",
+      "online": "ONLINE",
+      "warning": "WARNING"
+    },
+    "title": "ACTIVE INFRASTRUCTURE"
+  },
+  "Settings": {
+    "antiphishing": "Antiphishing Code",
+    "antiphishingDesc": "Protect yourself from phishing emails",
+    "cancel": "Cancel",
+    "change": "Change",
+    "devices": "Active Devices",
+    "disable": "Disable",
+    "displayName": "Display Name",
+    "edit": "Edit",
+    "email": "Email",
+    "enable": "Enable",
+    "language": "Language",
+    "linkedAccounts": "Linked Accounts",
+    "manage": "Manage",
+    "password": "Password",
+    "passwordDesc": "Change your account password",
+    "profile": "Profile",
+    "save": "Save",
+    "security": "Security",
+    "subtitle": "Manage your account preferences and security",
+    "tfaDisabled": "Add an extra layer of security",
+    "tfaEnabled": "Your account is protected with 2FA",
+    "timezone": "Timezone",
+    "title": "SETTINGS",
+    "twoFactor": "Two-Factor Authentication"
+  },
+  "Status": {
+    "history": {
+      "title": "90-Day History",
+      "tooltip_date": "Date",
+      "tooltip_status": "Status"
+    },
+    "incidents": {
+      "empty": "No active incidents. Network secure.",
+      "title": "INCIDENT LOG",
+      "view_all": "VIEW ARCHIVE"
+    },
+    "metrics": {
+      "active_nodes": "ACTIVE CORES",
+      "bandwidth": "THROUGHPUT",
+      "latency": "AVG LATENCY",
+      "status_nominal": "ALL SYSTEMS NOMINAL",
+      "status_outage": "MAJOR OUTAGE DETECTED",
+      "status_warning": "DEGRADED PERFORMANCE",
+      "uptime": "99.99% UPTIME"
+    },
+    "subtitle": "Global Network Operations Center",
+    "title": "SYSTEM TELEMETRY"
+  },
+  "Subscriptions": {
+    "autoRenew": "Auto-Renew",
+    "availablePlans": "Available Plans",
+    "cancelSubscription": "Cancel Subscription",
+    "choosePlanBelow": "Choose a plan below to get started",
+    "codesAndRewards": "Codes & Rewards",
+    "currentSubscription": "Current Subscription",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
+    "errorLoading": "Error loading subscriptions",
+    "errorLoadingPlans": "Error loading plans",
+    "expiresAt": "Expires",
+    "noActiveSubscription": "No active subscription",
+    "noPlansAvailable": "No plans available at the moment",
+    "startedAt": "Started",
+    "status": "Status",
+    "subscriptionHistory": "Subscription History",
+    "subtitle": "Manage your VPN subscription plans",
+    "title": "SUBSCRIPTIONS"
+  },
+  "Terms": {
+    "description": "CRITICAL CLEARANCE: TERMS OF SERVICE. AWAITING ACKNOWLEDGMENT...",
+    "sections": {
+      "acceptance": {
+        "content": "By utilizing the CyberVPN infrastructure, you are initiating a binding cybernetic contract. Access to our communication nodes (Servers) is granted strictly on the condition of unconditional acceptance of these Directives. If your protocols do not agree with the terms, terminate your connection immediately.",
+        "title": "01. AGREEMENT INITIALIZATION"
+      },
+      "liability": {
+        "content": "You bear sole responsibility for the data packets transmitted through our network. To the maximum extent permitted by law, CyberVPN shall not be liable for any direct, indirect, or incidental damages, loss of profits, or systemic failures resulting from the use of our infrastructure.",
+        "title": "04. LIMITATION OF LIABILITY"
+      },
+      "prohibited": {
+        "content": "The CyberVPN network was engineered to bypass censorship and protect digital identities, not to inflict damage upon other systems. The following traffic patterns are strictly prohibited at the hardware layer:",
+        "rules": {
+          "botnets": "Botnet command & control",
+          "csam": "Any content exploiting minors",
+          "ddos": "DDoS attacks and network flooding",
+          "malware": "Malware propagation",
+          "spam": "Mass spam distribution"
+        },
+        "title": "02. PATTERN LOCKDOWN"
+      },
+      "service": {
+        "content": "While our infrastructure is designed for maximum resilience (99.9% uptime), we provide access on an \"as-is\" basis. We reserve the right to offline, migrate, or upgrade any communication nodes without prior notification to ensure the aggregate security of the matrix.",
+        "title": "03. WARRANTIES & UPTIME"
+      },
+      "termination": {
+        "content": "We reserve the right to instantly, without explanation or prior notice, terminate your access token if our neural networks or administrators detect a violation of Section 02 (Pattern Lockdown). Funds for the remaining subscription period will not be refunded in such events.",
+        "title": "05. TERMINATION PROTOCOL"
+      }
+    },
+    "status": {
+      "acknowledged": "ACKNOWLEDGED",
+      "unverified": "UNVERIFIED"
+    },
+    "terminal": {
+      "command": "ACCEPT_DIRECTIVES",
+      "prompt": "AWAITING USER INPUT...",
+      "verified": "SYSTEM: ACCESS GRANTED. CONTRACT SIGNED."
+    },
+    "title": "SYSTEM DIRECTIVES"
+  },
+  "Users": {
+    "newToday": "NEW TODAY: {count}",
+    "subtitle": "Access control and subscription monitoring.",
+    "title": "USER MANAGEMENT",
+    "totalUsers": "TOTAL USERS: {count}"
+  },
+  "UsersTable": {
+    "columns": {
+      "actions": "ACTIONS",
+      "dataUsage": "DATA USAGE",
+      "identity": "IDENTITY",
+      "lastSeen": "LAST SEEN",
+      "status": "STATUS",
+      "subscription": "SUBSCRIPTION"
+    },
+    "searchPlaceholder": "SEARCH_IDENTITY...",
+    "status": {
+      "active": "ACTIVE",
+      "banned": "BANNED",
+      "disabled": "DISABLED",
+      "expired": "EXPIRED",
+      "limited": "LIMITED",
+      "trial": "TRIAL"
+    },
+    "title": "CLIENT DATABASE"
+  },
+  "Wallet": {
+    "balance": "Available Balance",
+    "next": "Next",
+    "noTransactions": "No transactions yet",
+    "page": "Page",
+    "previous": "Previous",
+    "subtitle": "Manage your balance and transactions",
+    "title": "WALLET",
+    "transactions": "Transaction History",
+    "withdraw": "Withdraw"
+  }
+}

@@ -15,6 +15,7 @@ interface WebVitalMetric {
 }
 
 const WEB_VITALS_ENDPOINT = '/api/analytics/web-vitals';
+let webVitalsRegistrationPromise: Promise<void> | null = null;
 
 function getPerformanceContextTags(pathname?: string): Record<string, string> {
   const context = getMobileTelemetryContext(pathname);
@@ -181,89 +182,96 @@ export function measurePerformance(
 export async function reportWebVitals(): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  try {
-    const { onCLS, onLCP, onFCP, onTTFB, onINP } = await import('web-vitals');
-    const publishMetric = (
-      metricName: 'web-vitals.cls' | 'web-vitals.fcp' | 'web-vitals.inp' | 'web-vitals.lcp' | 'web-vitals.ttfb',
-      value: number,
-      unit: string,
-      rating: string
-    ) => {
-      const path = window.location.pathname;
-      const context = getPerformanceContextTags(path);
-      const shortMetric = metricName.replace('web-vitals.', '') as 'cls' | 'fcp' | 'inp' | 'lcp' | 'ttfb';
-      const attributes = {
-        ...context,
-        metric: shortMetric,
-        rating,
+  if (webVitalsRegistrationPromise) {
+    return webVitalsRegistrationPromise;
+  }
+
+  webVitalsRegistrationPromise = (async () => {
+    try {
+      const { onCLS, onLCP, onFCP, onTTFB, onINP } = await import('web-vitals');
+      const publishMetric = (
+        metricName: 'web-vitals.cls' | 'web-vitals.fcp' | 'web-vitals.inp' | 'web-vitals.lcp' | 'web-vitals.ttfb',
+        value: number,
+        unit: string,
+        rating: string
+      ) => {
+        const path = window.location.pathname;
+        const context = getPerformanceContextTags(path);
+        const shortMetric = metricName.replace('web-vitals.', '') as 'cls' | 'fcp' | 'inp' | 'lcp' | 'ttfb';
+        const attributes = {
+          ...context,
+          metric: shortMetric,
+          rating,
+        };
+
+        recordDistribution(
+          metricName,
+          value,
+          unit === 'none' ? 'none' : 'millisecond',
+          attributes
+        );
+
+        Sentry.addBreadcrumb({
+          category: 'web-vitals',
+          level: 'info',
+          message: metricName,
+          data: attributes,
+        });
+
+        sendWebVitalMetric({
+          metric: shortMetric,
+          path,
+          rating,
+          value,
+        });
       };
 
-      recordDistribution(
-        metricName,
-        value,
-        unit === 'none' ? 'none' : 'millisecond',
-        attributes
-      );
-
-      Sentry.addBreadcrumb({
-        category: 'web-vitals',
-        level: 'info',
-        message: metricName,
-        data: attributes,
+      onCLS((metric: WebVitalMetric) => {
+        publishMetric('web-vitals.cls', metric.value, 'none', metric.rating);
       });
 
-      sendWebVitalMetric({
-        metric: shortMetric,
-        path,
-        rating,
-        value,
+      onLCP((metric: WebVitalMetric) => {
+        publishMetric(
+          'web-vitals.lcp',
+          metric.value,
+          'millisecond',
+          metric.rating
+        );
       });
-    };
 
-    // Core Web Vitals
-    onCLS((metric: WebVitalMetric) => {
-      publishMetric('web-vitals.cls', metric.value, 'none', metric.rating);
-    });
+      onINP((metric: WebVitalMetric) => {
+        publishMetric(
+          'web-vitals.inp',
+          metric.value,
+          'millisecond',
+          metric.rating
+        );
+      });
 
-    onLCP((metric: WebVitalMetric) => {
-      publishMetric(
-        'web-vitals.lcp',
-        metric.value,
-        'millisecond',
-        metric.rating
-      );
-    });
+      onFCP((metric: WebVitalMetric) => {
+        publishMetric(
+          'web-vitals.fcp',
+          metric.value,
+          'millisecond',
+          metric.rating
+        );
+      });
 
-    onINP((metric: WebVitalMetric) => {
-      publishMetric(
-        'web-vitals.inp',
-        metric.value,
-        'millisecond',
-        metric.rating
-      );
-    });
+      onTTFB((metric: WebVitalMetric) => {
+        publishMetric(
+          'web-vitals.ttfb',
+          metric.value,
+          'millisecond',
+          metric.rating
+        );
+      });
+    } catch (error) {
+      webVitalsRegistrationPromise = null;
+      console.error('Failed to load web-vitals:', error);
+    }
+  })();
 
-    // Additional metrics
-    onFCP((metric: WebVitalMetric) => {
-      publishMetric(
-        'web-vitals.fcp',
-        metric.value,
-        'millisecond',
-        metric.rating
-      );
-    });
-
-    onTTFB((metric: WebVitalMetric) => {
-      publishMetric(
-        'web-vitals.ttfb',
-        metric.value,
-        'millisecond',
-        metric.rating
-      );
-    });
-  } catch (error) {
-    console.error('Failed to load web-vitals:', error);
-  }
+  return webVitalsRegistrationPromise;
 }
 
 /**

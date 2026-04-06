@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
@@ -40,8 +40,9 @@ const config: NextConfigWithCompiler = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,
   skipTrailingSlashRedirect: true,
+  // Keep Turbopack scoped to the Next.js app so WSL does not watch the entire monorepo.
   turbopack: {
-    root: join(CONFIG_DIR, '..'),
+    root: CONFIG_DIR,
   },
   async headers() {
     return [

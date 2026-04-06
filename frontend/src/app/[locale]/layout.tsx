@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import { Orbitron, JetBrains_Mono, Share_Tech_Mono } from 'next/font/google';
 import Script from 'next/script';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Organization, WebSite } from 'schema-dts';
+import { AnalyticsReporters } from '@/app/providers/analytics-reporters';
 import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
-import { locales } from '@/i18n/config';
+import { getStaticParamsLocales } from '@/i18n/config';
+import { getCachedTranslations, setRequestLocale } from '@/i18n/server';
 import { JsonLd } from '@/shared/lib/json-ld';
 import {
   SITE_URL,
@@ -15,8 +16,6 @@ import {
   withSiteMetadata,
 } from '@/shared/lib/site-metadata';
 import { SkipNavLink } from '@/shared/ui/atoms/skip-nav-link';
-import { TrafficAnalyticsReporter } from '@/shared/ui/atoms/traffic-analytics-reporter';
-import { WebVitalsReporter } from '@/shared/ui/atoms/web-vitals-reporter';
 import '../globals.css';
 
 const orbitron = Orbitron({
@@ -39,9 +38,10 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+  return getStaticParamsLocales().map((locale) => ({ locale }));
 }
 
 export async function generateMetadata({
@@ -75,7 +75,7 @@ export default async function RootLayout({
   const htmlAttributes = getHtmlLanguageAttributes(locale);
 
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'A11y' });
+  const t = await getCachedTranslations(locale, 'A11y');
 
   return (
     <html lang={htmlAttributes.lang} dir={htmlAttributes.dir} suppressHydrationWarning>
@@ -100,9 +100,8 @@ export default async function RootLayout({
             <div className="relative z-10 min-h-full w-full">{children}</div>
             <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
 
-            <WebVitalsReporter />
-            <TrafficAnalyticsReporter />
-            <DevTools />
+            <AnalyticsReporters />
+            {isDevelopment ? <DevTools /> : null}
           </MotionProvider>
         </ThemeProvider>
 

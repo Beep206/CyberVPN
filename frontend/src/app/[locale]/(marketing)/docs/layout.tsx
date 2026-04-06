@@ -1,10 +1,10 @@
 import { setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
+import { getStaticParamsLocales } from '@/i18n/config';
 import { Footer } from '@/widgets/footer';
 import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
 
 export function generateStaticParams() {
-    return locales.map((locale) => ({ locale }));
+    return getStaticParamsLocales().map((locale) => ({ locale }));
 }
 
 export default async function DocsLayout({

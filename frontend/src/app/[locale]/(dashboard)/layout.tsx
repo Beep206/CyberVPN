@@ -1,8 +1,8 @@
 import type { SoftwareApplication } from 'schema-dts';
-import { getTranslations } from 'next-intl/server';
 import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { DASHBOARD_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
+import { getCachedTranslations } from '@/i18n/server';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 import { AuthGuard } from '@/features/auth/components';
 import { JsonLd } from '@/shared/lib/json-ld';
@@ -17,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Dashboard.meta' });
+  const t = await getCachedTranslations(locale, 'Dashboard.meta');
 
   return withSiteMetadata({
     title: t('title'),

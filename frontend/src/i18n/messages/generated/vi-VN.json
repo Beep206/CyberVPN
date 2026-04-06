@@ -1,0 +1,906 @@
+{
+  "A11y": {
+    "closeModal": "Close modal",
+    "mainContent": "Main content",
+    "skipToMainContent": "Skip to main content"
+  },
+  "Analytics": {},
+  "Api": {},
+  "Auth": {
+    "errors": {
+      "accountDisabled": "Your account has been disabled",
+      "accountExists": "An account with this email already exists",
+      "accountNotFound": "No account found with this email",
+      "emailInvalid": "Please enter a valid email address",
+      "emailRequired": "Email is required",
+      "invalidCredentials": "Invalid email or password",
+      "networkError": "Network error. Please check your connection",
+      "passwordMismatch": "Passwords do not match",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "rateLimited": "Too many attempts. Please try again in {seconds} seconds",
+      "rateLimitedMinutes": "Too many attempts. Please try again in {minutes} minutes",
+      "serverError": "Server error. Please try again later",
+      "sessionExpired": "Your session has expired. Please sign in again",
+      "unknownError": "An unexpected error occurred"
+    },
+    "login": {
+      "divider": "HOAC",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "forgotPassword": "Forgot password?",
+      "magicLinkAlt": "Dang nhap bang lien ket ma thuat",
+      "noAccount": "Don't have an account?",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "signUpLink": "Sign up",
+      "submitButton": "Sign In",
+      "submitting": "Signing in...",
+      "subtitle": "Access your secure connection",
+      "title": "Sign In"
+    },
+    "logout": {
+      "button": "Sign Out",
+      "cancelButton": "Cancel",
+      "confirmButton": "Sign Out",
+      "confirmMessage": "Are you sure you want to sign out?",
+      "confirmTitle": "Sign Out"
+    },
+    "magicLink": {
+      "backToLogin": "Quay lai dang nhap",
+      "checkInbox": "Kiem tra hop thu den cua ban",
+      "codeLabel": "Ma 6 chu so",
+      "codePlaceholder": "000000",
+      "emailLabel": "Dia chi email",
+      "emailPlaceholder": "user@cybervpn.io",
+      "expiresIn": "Lien ket hoac ma het han trong 1 gio",
+      "orEnterCode": "Hoac nhap ma tu email",
+      "sendAgain": "Gui lai",
+      "sentTo": "Chung toi da gui lien ket ma thuat den",
+      "submitButton": "Gui lien ket ma thuat",
+      "submitting": "Dang gui...",
+      "subtitle": "Dang nhap khong can mat khau",
+      "title": "Lien ket ma thuat",
+      "verify": {
+        "errorIcon": "Bieu tuong loi xac minh",
+        "failed": "Xac minh that bai",
+        "invalidOrExpired": "Lien ket ma thuat khong hop le hoac da het han. Vui long yeu cau lien ket moi.",
+        "missingToken": "Thieu token lien ket ma thuat. Vui long yeu cau lien ket moi.",
+        "redirecting": "Dang chuyen huong den bang dieu khien...",
+        "requestNewLink": "Yeu cau lien ket moi",
+        "successIcon": "Bieu tuong xac minh thanh cong",
+        "validating": "Dang xac minh lien ket ma thuat cua ban",
+        "verified": "Da xac minh!",
+        "verifyIcon": "Bieu tuong xac minh lien ket ma thuat",
+        "verifying": "Dang xac minh..."
+      },
+      "verifyCode": "Xac minh ma",
+      "verifyingCode": "Dang xac minh..."
+    },
+    "oauth": {
+      "accountCreated": "Tai khoan da duoc tao qua {provider}",
+      "alreadyLinked": "Tai khoan {provider} nay da duoc lien ket voi nguoi dung khac",
+      "continueWithApple": "Tiep tuc voi Apple",
+      "continueWithDiscord": "Tiep tuc voi Discord",
+      "continueWithGithub": "Tiep tuc voi GitHub",
+      "continueWithGoogle": "Tiep tuc voi Google",
+      "continueWithMicrosoft": "Tiep tuc voi Microsoft",
+      "continueWithTelegram": "Tiep tuc voi Telegram",
+      "continueWithX": "Tiep tuc voi X",
+      "error": "Xac thuc OAuth that bai",
+      "noEmail": "Khong co email tu {provider}",
+      "processing": "Dang xu ly OAuth..."
+    },
+    "oauthCallback": {
+      "authenticating": "Dang xac thuc...",
+      "defaultError": "Xac thuc that bai. Vui long thu lai.",
+      "errorIcon": "Bieu tuong loi xac thuc",
+      "errorTitle": "Xac thuc that bai",
+      "missingParams": "Thieu tham so OAuth. Vui long dang nhap lai.",
+      "securityIcon": "Bieu tuong xac minh bao mat",
+      "tryAgain": "Thu lai",
+      "verifyingIdentity": "Dang xac minh danh tinh cua ban"
+    },
+    "passwordStrength": {
+      "fair": "Fair",
+      "good": "Good",
+      "requirements": {
+        "length": "At least 8 characters",
+        "lowercase": "One lowercase letter",
+        "number": "One number",
+        "special": "One special character",
+        "uppercase": "One uppercase letter"
+      },
+      "strong": "Strong",
+      "weak": "Weak"
+    },
+    "profile": {
+      "cantUnlinkOnly": "Cannot unlink — this is your only login method",
+      "linkedAccounts": "Linked Accounts",
+      "linkSuccess": "Telegram linked successfully",
+      "linkTelegram": "Link Telegram",
+      "telegramLinked": "Telegram linked: @{username}",
+      "unlinkConfirm": "Are you sure you want to unlink Telegram?",
+      "unlinkSuccess": "Telegram unlinked successfully",
+      "unlinkTelegram": "Unlink Telegram"
+    },
+    "register": {
+      "acceptTerms": "Toi chap nhan",
+      "and": " va ",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "continueWithTelegram": "Đăng ký bằng Telegram",
+      "divider": "HOAC",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email",
+      "hasAccount": "Already have an account?",
+      "passwordLabel": "Password",
+      "passwordMismatch": "Mat khau khong khop",
+      "passwordPlaceholder": "Create a password",
+      "privacyLink": "Chinh sach bao mat",
+      "registerModeEmail": "Email",
+      "registerModeUsername": "Chi ten nguoi dung",
+      "signInLink": "Sign in",
+      "submitButton": "Create Account",
+      "submitting": "Creating account...",
+      "subtitle": "Join the secure network",
+      "telegramAutoRegister": "Tài khoản Telegram của bạn sẽ được sử dụng để đăng ký nhanh",
+      "termsAgreement": "By creating an account, you agree to our Terms of Service and Privacy Policy",
+      "termsLink": "Dieu khoan",
+      "title": "Create Account",
+      "usernameLabel": "Ten nguoi dung",
+      "usernamePlaceholder": "cyberpunk_hacker"
+    },
+    "telegram": {
+      "botLinkAuth": "Verifying your Telegram login...",
+      "botLinkExpired": "Login link expired. Please request a new one from the bot.",
+      "botLinkInvalid": "Invalid login link. Please try again.",
+      "connecting": "Connecting to Telegram...",
+      "errors": {
+        "alreadyLinked": "This Telegram account is already linked to another user",
+        "authFailed": "Telegram authentication failed",
+        "dataInvalid": "Invalid Telegram data received",
+        "expired": "Telegram authentication expired. Please try again",
+        "hashMismatch": "Telegram data verification failed",
+        "notLinked": "This Telegram account is not linked to any user",
+        "widgetFailed": "Telegram widget failed to load"
+      },
+      "loginButton": "Sign in with Telegram",
+      "miniAppAutoAuth": "Signing you in via Telegram..."
+    }
+  },
+  "Contact": {
+    "form": {
+      "department": "Select Sub-net",
+      "department_sales": "Enterprise Acquisitions",
+      "department_support": "Technical Operations",
+      "email": "Encrypted Reply Address",
+      "message": "Transmission Payload",
+      "name": "Alias / Designation",
+      "submit": "INITIATE UPLINK",
+      "success": "Payload Delivered. Trace wiped."
+    },
+    "subtitle": "Global encrypted relay",
+    "title": "SECURE COMMS"
+  },
+  "Dashboard": {
+    "activeSessions": "PHIÊN HOẠT ĐỘNG",
+    "aggregateThroughput": "Thông lượng tổng hợp",
+    "connectionStatus": "KẾT NỐI BẢO MẬT ĐÃ THIẾT LẬP",
+    "currentConnections": "Kết nối hiện tại",
+    "encryptionStatus": "MÃ HÓA: AN TOÀN LƯỢNG TỬ",
+    "networkLoad": "TẢI MẠNG",
+    "nodesOnline": "NÚT TRỰC TUYẾN",
+    "serverMatrix": "MA TRẬN MÁY CHỦ",
+    "serverStatus": "TRẠNG THÁI MÁY CHỦ",
+    "statusLabel": "TRẠNG THÁI HỆ THỐNG:",
+    "statusValue": "TỐI ƯU",
+    "title": "TRUNG TÂM CHỈ HUY VPN"
+  },
+  "DeleteAccount": {
+    "contact": {
+      "description": "If you have questions about account deletion or data privacy:",
+      "email": "Email",
+      "emailAddress": "privacy@cybervpn.app",
+      "title": "Need help?"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password",
+      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "networkError": "Network error. Please check your connection.",
+      "serverError": "Server error. Please try again later.",
+      "title": "Deletion failed"
+    },
+    "form": {
+      "cancel": "Cancel",
+      "description": "To proceed with account deletion, please confirm your identity and reason.",
+      "fields": {
+        "confirmation": {
+          "error": "You must confirm to proceed",
+          "label": "I understand this action is permanent and cannot be undone"
+        },
+        "email": {
+          "error": "Valid email is required",
+          "label": "Email address",
+          "placeholder": "Enter your account email"
+        },
+        "feedback": {
+          "label": "Additional feedback (optional)",
+          "placeholder": "Any additional comments..."
+        },
+        "password": {
+          "error": "Password is required",
+          "label": "Password",
+          "placeholder": "Enter your password"
+        },
+        "reason": {
+          "label": "Reason for deletion (optional)",
+          "options": {
+            "foundAlternative": "Found an alternative",
+            "notUsing": "Not using the service",
+            "other": "Other",
+            "privacyConcerns": "Privacy concerns",
+            "technicalIssues": "Technical issues",
+            "tooExpensive": "Too expensive"
+          },
+          "placeholder": "Help us improve by sharing why you're leaving"
+        }
+      },
+      "submit": "Delete My Account",
+      "submitting": "Processing...",
+      "title": "Delete account request"
+    },
+    "meta": {
+      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "title": "Delete Account - CyberVPN"
+    },
+    "sections": {
+      "alternativeOptions": {
+        "description": "If you're experiencing issues, consider these alternatives:",
+        "items": {
+          "changeSettings": "Adjust your account or privacy settings",
+          "contactSupport": "Contact support for assistance",
+          "pauseSubscription": "Pause your subscription temporarily"
+        },
+        "title": "Alternative options"
+      },
+      "beforeDelete": {
+        "items": {
+          "cancelSubscriptions": "Cancel any active subscriptions",
+          "exportData": "Export your data if needed (GDPR right to data portability)",
+          "saveConfigs": "Save any custom VPN configurations",
+          "useReferrals": "Use any pending referral rewards"
+        },
+        "title": "Before you delete"
+      },
+      "consequences": {
+        "items": {
+          "accountData": "Your account information and profile",
+          "configs": "VPN configurations and connection history",
+          "referrals": "Referral data and earned rewards",
+          "subscriptions": "All active subscriptions (no refunds)",
+          "support": "Support tickets and communication history"
+        },
+        "title": "What will be deleted"
+      }
+    },
+    "subtitle": "Permanently delete your CyberVPN account",
+    "success": {
+      "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized.",
+      "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
+      "title": "Account deletion requested"
+    },
+    "title": "Delete Account",
+    "warning": {
+      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
+      "title": "Warning: This action is permanent"
+    }
+  },
+  "Devices": {},
+  "Docs": {
+    "doc_config_desc": "Establish secure pathways through hostile networks.",
+    "doc_config_title": "Configuring Tunnels",
+    "doc_install_desc": "Deploy the core engine on supported physical architectures.",
+    "doc_install_title": "Core Installation",
+    "doc_protocols_desc": "Specifications for VLESS, VMess, and Trojan Reality.",
+    "doc_protocols_title": "Supported Protocols",
+    "meta_description": "Comprehensive schematics and guides for integrating and utilizing the CyberVPN network.",
+    "meta_title": "Neural Documentation | CyberVPN",
+    "search_placeholder": "Search blueprints...",
+    "section_api": "NEURAL API",
+    "section_getting_started": "INITIALIZATION",
+    "section_routing": "SIGNAL ROUTING",
+    "section_security": "ENCRYPTION PROTOCOLS",
+    "sidebar_category_advanced": "Deep Integration",
+    "sidebar_category_basics": "Core Systems",
+    "subtitle": "SYSTEM DOCUMENTATION & SCHEMATICS",
+    "title": "NEURAL BLUEPRINTS"
+  },
+  "Download": {
+    "changelog": {
+      "empty": "No recent updates for this architecture.",
+      "title": "LATEST DIRECTIVES"
+    },
+    "platforms": {
+      "android": "Android (APK / Play Store)",
+      "ios": "iOS (App Store)",
+      "linux": "Linux (Debian / Ubuntu / RHEL)",
+      "macos": "macOS (Apple Silicon / Intel)",
+      "windows": "Windows x64"
+    },
+    "subtitle": "Acquire Payload",
+    "terminal": {
+      "button": "DOWNLOAD PAYLOAD",
+      "compiling": "COMPILING SECURE BINARIES...",
+      "init": "[SYS] INITIALIZING DOWNLOAD PROTOCOL...",
+      "ready": "PAYLOAD COMPILED. READY FOR EXTRACTION.",
+      "verify": "VERIFYING ARCHITECTURE: ",
+      "version": "VERSION:"
+    },
+    "title": "SECURE PACKAGE"
+  },
+  "Features": {},
+  "Footer": {},
+  "Header": {
+    "encryptionLabel": "MÃ HÓA",
+    "encryptionValue": "HOẠT ĐỘNG - AES-256",
+    "fps": "FPS",
+    "integrity": "KIỂM TRA TOÀN VẸN THÀNH CÔNG",
+    "language": "NN",
+    "netUplink": "ĐƯỜNG_TRUYỀN",
+    "ping": "PING",
+    "systemLabel": "HỆ THỐNG"
+  },
+  "HelpCenter": {
+    "categories_title": "KNOWLEDGE MODULES",
+    "category_billing": "Access Credits",
+    "category_billing_desc": "Subscription, payments, and bandwidth allocation.",
+    "category_getting_started": "Initialization",
+    "category_getting_started_desc": "System startup and basic configuration protocols.",
+    "category_security": "Encryption Protocols",
+    "category_security_desc": "Details on Anti-DPI, obfuscation, and zero-logs policies.",
+    "category_troubleshooting": "Signal Routing",
+    "category_troubleshooting_desc": "Diagnostics for connection and tunneling errors.",
+    "contact_button_telegram": "INITIATE TELEGRAM LINK",
+    "contact_button_ticket": "OPEN SECURE TICKET",
+    "contact_desc": "Unable to resolve your anomaly in the archives? Establish a direct secure comm channel with our operators.",
+    "contact_title": "SECURE TRANSMISSION",
+    "faq_billing_1_a": "You can acquire additional Access Credits via the Billing terminal using supported crypto or fiat gateways.",
+    "faq_billing_1_q": "How do I increase my bandwidth quota?",
+    "faq_billing_2_a": "Refunds are processed strictly within the first 72 hours of establishing a new connection cycle.",
+    "faq_billing_2_q": "Are refunds available for inactive cycles?",
+    "faq_billing_3_a": "Affirmative. We accept Monero (XMR), USDT, and Bitcoin for completely untraceable transactions.",
+    "faq_billing_3_q": "Do you support anonymous payments?",
+    "faq_getting_started_1_a": "Download the CyberVPN core module for your OS, authenticate with your Neural ID, and click 'Engage'.",
+    "faq_getting_started_1_q": "How do I initialize my first connection?",
+    "faq_getting_started_2_a": "The network accepts connections from Windows, macOS, Linux, iOS, and Android clients via standard Xray/Sing-box protocols.",
+    "faq_getting_started_2_q": "What devices are supported?",
+    "faq_getting_started_3_a": "Yes, depending on your Access Credit tier, you can link up to 10 concurrent neural pathways.",
+    "faq_getting_started_3_q": "Can I connect multiple devices simultaneously?",
+    "faq_security_1_a": "Negative. All databanks are volatile. We operate on a strict zero-knowledge architecture.",
+    "faq_security_1_q": "Is my data logged?",
+    "faq_security_2_a": "We utilize ChaCha20-Poly1305 and AES-256-GCM ciphers, providing military-grade cryptographic integrity.",
+    "faq_security_2_q": "What encryption standard is deployed?",
+    "faq_security_3_a": "Yes. If the secure tunnel drops, the client immediately terminates all external network adapters to prevent IP leaks.",
+    "faq_security_3_q": "Do you offer a Kill Switch?",
+    "faq_title": "COMMON QUERIES",
+    "faq_troubleshooting_1_a": "Check your node's ping. If packet loss exceeds 5%, reroute to an alternate shard in the Server Grid.",
+    "faq_troubleshooting_1_q": "Why is my connection speed degraded?",
+    "faq_troubleshooting_2_a": "The system automatically engages fallback routing. If manual override is needed, flush your DNS cache and reconnect.",
+    "faq_troubleshooting_2_q": "What if the primary proxy fails?",
+    "faq_troubleshooting_3_a": "Our core utilizing VLESS+Reality automatically masks your traffic as standard HTTPS. Ensure you have the latest core update applied.",
+    "faq_troubleshooting_3_q": "How do I bypass DPI restrictions?",
+    "hero_subtitle": "ACCESSING CENTRAL DATABANKS...",
+    "hero_title": "NEURAL ARCHIVES",
+    "meta_description": "Access the databanks for troubleshooting, guides, and secure communication channels.",
+    "meta_title": "Neural Archives | CyberVPN Help Center",
+    "search_button": "DECRYPT",
+    "search_placeholder": "Enter neural query..."
+  },
+  "Landing": {},
+  "LanguageSelector": {
+    "noResults": "NO_MATCHES_FOUND",
+    "searchPlaceholder": "SEARCH_LANGUAGE...",
+    "title": "SELECT_LANGUAGE"
+  },
+  "MiniApp": {
+    "home": {
+      "activateTrial": "Activate Trial",
+      "configCopied": "VPN config copied to clipboard!",
+      "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
+      "configQRTitle": "VPN Config QR Code",
+      "connections": "Connections",
+      "copyConfig": "Copy Config",
+      "dataUsed": "Data Used",
+      "daysRemaining": "Days Remaining",
+      "expires": "Expires",
+      "lastConnected": "Last Connected",
+      "never": "Never",
+      "noConfigAvailable": "No VPN config available",
+      "noConfigDescription": "Activate a subscription to get your VPN configuration",
+      "noSubscription": "No Active Subscription",
+      "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
+      "openInApp": "Open in App",
+      "plan": "Plan",
+      "quickActions": "Quick Actions",
+      "settings": "Settings",
+      "subscriptionActive": "Subscription Active",
+      "trial": "TRIAL",
+      "trialAvailable": "Free Trial Available",
+      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+      "trialPlan": "7-Day Free Trial",
+      "unknown": "Unknown",
+      "usage": "Usage Statistics",
+      "viewPlans": "View Plans",
+      "viewQR": "View QR Code",
+      "vpnConfig": "VPN Config",
+      "vpnConfigDescription": "Get your VPN config to connect from any device",
+      "vpnConfigTitle": "VPN Configuration",
+      "wallet": "Wallet"
+    },
+    "meta": {
+      "description": "Manage your VPN subscription in Telegram",
+      "title": "CyberVPN Mini App"
+    },
+    "nav": {
+      "bottomNav": "Main navigation",
+      "home": "Home",
+      "plans": "Plans",
+      "profile": "Profile",
+      "wallet": "Wallet"
+    },
+    "payments": {
+      "noPayments": "No payment history yet",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "status_refunded": "Refunded",
+      "title": "Payment History",
+      "total": "total"
+    },
+    "plans": {
+      "activateTrial": "Activate 7-Day Trial",
+      "activating": "Activating...",
+      "apply": "Apply",
+      "availablePlans": "Subscription Plans",
+      "contactForPrice": "Contact",
+      "daysCount": "{count} days",
+      "discountApplied": "Discount applied: ${amount}",
+      "free": "Free",
+      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
+      "freeTrialTitle": "Try CyberVPN Free",
+      "haveInviteCode": "Have an Invite Code?",
+      "havePromoCode": "Have a Promo Code?",
+      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "inviteCodePlaceholder": "INVITE123",
+      "inviteInvalid": "Invalid or already used invite code",
+      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
+      "monthly": "per month",
+      "noPlans": "No plans available at the moment",
+      "paymentError": "Payment failed. Please try again.",
+      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+      "processing": "Processing...",
+      "promoCodePlaceholder": "PROMO2024",
+      "promoInvalid": "Invalid or expired promo code",
+      "promoValid": "Promo code applied! Discount: ${discount}",
+      "purchasePlan": "Purchase Plan",
+      "quarterly": "per quarter",
+      "redeem": "Redeem",
+      "selectPlanFirst": "Please select a plan first",
+      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "trialError": "Failed to activate trial. Please try again.",
+      "yearly": "per year"
+    },
+    "profile": {
+      "accountDeleted": "Account deleted successfully",
+      "antiphishing": {
+        "codePlaceholder": "Enter 4-32 characters",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be less than 32 characters",
+        "codeTooShort": "Code must be at least 4 characters",
+        "currentCode": "Current Code",
+        "deleteCode": "Delete Code",
+        "deleteConfirm": "Are you sure you want to delete your antiphishing code?",
+        "deleteError": "Failed to delete code",
+        "deleteSuccess": "Antiphishing code deleted",
+        "deleting": "Deleting...",
+        "description": "Set a unique code that will appear in all emails from us. This helps you verify that emails are genuine.",
+        "error": "Failed to update code",
+        "newCode": "New Code",
+        "noCode": "No code set",
+        "setCode": "Set Code",
+        "submitting": "Saving...",
+        "success": "Antiphishing code updated",
+        "title": "Antiphishing Code",
+        "updateCode": "Update Code"
+      },
+      "antiphishingCode": "Antiphishing Code",
+      "changePassword": "Change Password",
+      "codeCopied": "Referral code copied to clipboard",
+      "copy": "Copy",
+      "copyError": "Failed to copy to clipboard",
+      "deleteAccount": "Delete Account",
+      "deleteAccountConfirm": "Are you sure? This action cannot be undone.",
+      "deleteAccountError": "Failed to delete account. Please try again.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "guest": "Guest User",
+      "language": "Language",
+      "languageNote": "Language follows your Telegram settings",
+      "logout": "Logout",
+      "logoutConfirm": "Are you sure you want to logout?",
+      "noEmail": "No email set",
+      "noPayments": "No payment history yet",
+      "notifications": "Notifications",
+      "notificationsNote": "Configure notification preferences",
+      "partner": "Partner Dashboard",
+      "partnerDashboard": {
+        "bindCode": "Bind Partner Code",
+        "bindCodeDescription": "Enter a partner code to join the partner program and start earning commissions",
+        "bindError": "Failed to bind partner code",
+        "bindSuccess": "Partner code bound successfully!",
+        "codeLabel": "Code",
+        "codePlaceholder": "Enter partner code",
+        "codeRequired": "Partner code is required",
+        "createdAt": "Created",
+        "isPartner": "You are a Partner",
+        "markup": "Markup",
+        "noCodes": "No partner codes yet",
+        "notPartner": "Become a Partner",
+        "partnerCodes": "Your Partner Codes",
+        "submit": "Bind Code",
+        "submitting": "Binding...",
+        "tier": "Partner Tier",
+        "totalClients": "Total Clients",
+        "totalEarned": "Total Earned"
+      },
+      "partnerNote": "Contact support for partner program information",
+      "passwordChange": {
+        "confirmPassword": "Confirm New Password",
+        "confirmPasswordRequired": "Please confirm your new password",
+        "currentPassword": "Current Password",
+        "currentPasswordRequired": "Current password is required",
+        "error": "Failed to change password",
+        "newPassword": "New Password",
+        "newPasswordRequired": "New password is required",
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "submit": "Change Password",
+        "submitting": "Changing...",
+        "success": "Password changed successfully",
+        "title": "Change Password"
+      },
+      "paymentHistory": "Payment History",
+      "referral": "Referral Program",
+      "referralShareText": "Join CyberVPN with my code: {code}",
+      "security": "Security",
+      "securityNote": "Manage your password and 2FA settings in the full dashboard",
+      "settings": "Settings",
+      "share": "Share",
+      "totalEarnings": "Total Earnings",
+      "totalReferrals": "Total Referrals",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "viewAll": "View All",
+      "yourReferralCode": "Your Referral Code"
+    },
+    "referral": {
+      "commissionAmount": "Amount",
+      "commissionDate": "Date",
+      "commissionFrom": "From",
+      "copied": "Code copied to clipboard!",
+      "howItWorks": "How It Works",
+      "noCommissions": "No commissions yet",
+      "qrCodeTitle": "QR Code",
+      "recentCommissions": "Recent Commissions",
+      "referralRate": "Commission Rate",
+      "scanToJoin": "Scan to join with your code",
+      "shareCode": "Share Code",
+      "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
+      "shareTitle": "Share & Earn",
+      "stats": "Your Stats",
+      "step1": "Share your unique code",
+      "step2": "Friends sign up with your code",
+      "step3": "Earn commission on their purchases",
+      "title": "Referral Program",
+      "totalEarned": "Total Earned",
+      "totalReferrals": "Total Referrals",
+      "yourCode": "Your Referral Code"
+    },
+    "wallet": {
+      "amount": "Amount",
+      "available": "Available",
+      "balance": "Wallet Balance",
+      "close": "Close",
+      "frozen": "Frozen",
+      "insufficientBalance": "Insufficient balance",
+      "invalidAmount": "Please enter a valid amount",
+      "loading": "Loading...",
+      "loadMore": "Load More",
+      "noTransactions": "No transactions yet",
+      "paymentMethod": "Payment Method",
+      "paymentMethodPlaceholder": "e.g., Crypto wallet address, PayPal email",
+      "paymentMethodRequired": "Payment method is required",
+      "processing": "Processing...",
+      "status_cancelled": "Cancelled",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "submitWithdrawal": "Submit Withdrawal Request",
+      "total": "total",
+      "transactions": "Transaction History",
+      "type_deposit": "Deposit",
+      "type_purchase": "Purchase",
+      "type_referral_commission": "Referral Commission",
+      "type_refund": "Refund",
+      "type_withdrawal": "Withdrawal",
+      "withdraw": "Withdraw Funds",
+      "withdrawalNote": "Withdrawals require admin approval and may take 1-3 business days.",
+      "withdrawError": "Withdrawal request failed. Please try again.",
+      "withdrawFunds": "Withdraw Funds"
+    }
+  },
+  "Monitoring": {},
+  "Navigation": {
+    "analytics": "PHÂN TÍCH MẠNG",
+    "billing": "THANH TOÁN",
+    "dashboard": "BẢNG ĐIỀU KHIỂN",
+    "security": "BẢO MẬT",
+    "servers": "MÁY CHỦ",
+    "settings": "CẤU HÌNH",
+    "users": "KHÁCH HÀNG"
+  },
+  "Network": {},
+  "Partner": {},
+  "PaymentHistory": {},
+  "Placeholder": {
+    "descriptionLine1": "Mô-đun cyber-deck này hiện đang được phát triển.",
+    "descriptionLine2": "Quay lại sau để cập nhật firmware.",
+    "errorCode": "MÃ_LỖI: TÍNH_NĂNG_CHƯA_SẴN_SÀNG",
+    "title": "MÔ-ĐUN HỆ THỐNG NGOẠI TUYẾN"
+  },
+  "Pricing": {
+    "faq": {
+      "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
+      "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
+      "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive.",
+      "q1": "Are my logs recorded?",
+      "q2": "What happens if I exceed the Stealth tier bandwidth?",
+      "q3": "Do you accept crypto?",
+      "title": "DECRYPTED ARCHIVES"
+    },
+    "subtitle": "Network Power Allocation",
+    "tiers": {
+      "basic": {
+        "button": "INITIATE STEALTH",
+        "description": "Essential encryption for navigating the digital outer rims.",
+        "features": [
+          "AES-256 Core Encryption",
+          "5 Global Relay Nodes",
+          "10 GB/mc Bandwidth limit",
+          "Standard Support Ping"
+        ],
+        "name": "STEALTH",
+        "period": "/forever",
+        "price": "Free"
+      },
+      "elite": {
+        "button": "ACQUIRE ELITE",
+        "description": "Full network override. Dedicated IPs and total infrastructure control.",
+        "features": [
+          "Dedicated Cyber-IP Address",
+          "Obfuscated Stealth Protocols",
+          "Priority Node Selection",
+          "10Gbps Network Links",
+          "Access to Beta Directives"
+        ],
+        "name": "ELITE_SYNC",
+        "period": "/month",
+        "price": "$15.99"
+      },
+      "pro": {
+        "badge": "MOST POPULAR",
+        "button": "UPGRADE TO PRO",
+        "description": "Unrestricted speed and matrix-level anonymity for true runners.",
+        "features": [
+          "Quantum-Resistant Protocols",
+          "8,000+ Tier-1 Relays",
+          "Unlimited Bandwidth",
+          "Zero-Log Hardened Cores",
+          "Double VPN Routing"
+        ],
+        "name": "CYBER_PRO",
+        "period": "/month",
+        "price": "$8.99"
+      }
+    },
+    "title": "ACCESS TIERS"
+  },
+  "Privacy": {},
+  "PrivacyPolicy": {
+    "lastUpdated": "Last Updated",
+    "meta": {
+      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "title": "Privacy Policy - CyberVPN"
+    },
+    "sections": {
+      "changes": {
+        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
+        "title": "Changes to This Policy"
+      },
+      "contact": {
+        "address": "Address",
+        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "email": "Email",
+        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+        "title": "Contact Information"
+      },
+      "dataCollection": {
+        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "items": {
+          "accountInfo": "Account information (email address, username)",
+          "deviceInfo": "Device and connection metadata (device type, operating system)",
+          "paymentInfo": "Payment information (processed securely by third-party providers)",
+          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+        },
+        "title": "Data Collection"
+      },
+      "dataRetention": {
+        "description": "We retain data only as long as necessary:",
+        "policies": {
+          "accountData": "Account data: retained while your account is active",
+          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
+          "paymentRecords": "Payment records: 7 years for legal compliance",
+          "supportLogs": "Support logs: 90 days after ticket closure"
+        },
+        "title": "Data Retention"
+      },
+      "dataSecurity": {
+        "description": "We implement industry-standard security measures:",
+        "measures": {
+          "accessControl": "Strict access controls and authentication",
+          "encryption": "End-to-end encryption for all VPN traffic",
+          "regularAudits": "Regular security audits and vulnerability assessments",
+          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+        },
+        "title": "Data Security"
+      },
+      "gdprRights": {
+        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "rights": {
+          "access": {
+            "description": "Request a copy of your personal data",
+            "title": "Right to Access"
+          },
+          "erasure": {
+            "description": "Request deletion of your personal data",
+            "title": "Right to Erasure"
+          },
+          "objection": {
+            "description": "Object to processing of your data",
+            "title": "Right to Object"
+          },
+          "portability": {
+            "description": "Receive your data in a machine-readable format",
+            "title": "Right to Data Portability"
+          },
+          "rectification": {
+            "description": "Correct inaccurate or incomplete data",
+            "title": "Right to Rectification"
+          }
+        },
+        "title": "Your GDPR Rights"
+      },
+      "noLogPolicy": {
+        "details": "This means:",
+        "notLogged": {
+          "browsing": "No browsing history or website visits",
+          "connections": "No connection timestamps or session duration",
+          "dns": "No DNS queries or IP addresses",
+          "traffic": "No traffic data or content inspection"
+        },
+        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
+        "title": "No-Log Policy"
+      },
+      "thirdParty": {
+        "description": "We work with trusted third-party providers:",
+        "services": {
+          "analytics": "Anonymous analytics (no personally identifiable information)",
+          "infrastructure": "Cloud infrastructure providers (servers and network)",
+          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+        },
+        "title": "Third-Party Services"
+      }
+    },
+    "title": "Privacy Policy"
+  },
+  "Referral": {},
+  "Security": {},
+  "ServerCard": {
+    "ip": "IP",
+    "load": "TẢI",
+    "protocol": "GIAO THỨC"
+  },
+  "Servers": {
+    "globalStatus": "TRẠNG THÁI TOÀN CẦU: {status}",
+    "globalStatusValue": "ĐÃ CUNG CẤP",
+    "lastSync": "ĐỒNG BỘ CUỐI: {time} TRƯỚC",
+    "subtitle": "Quản lý các nút VPN, giao thức và vùng triển khai.",
+    "title": "QUẢN LÝ MÁY CHỦ"
+  },
+  "ServersTable": {
+    "actions": {
+      "config": "Cấu hình",
+      "restart": "Khởi động lại",
+      "stop": "Dừng"
+    },
+    "columns": {
+      "controls": "ĐIỀU KHIỂN",
+      "ipAddress": "ĐỊA CHỈ IP",
+      "load": "TẢI",
+      "location": "VỊ TRÍ",
+      "protocol": "GIAO THỨC",
+      "serverName": "TÊN MÁY CHỦ",
+      "status": "TRẠNG THÁI"
+    },
+    "deployNode": "+ TRIỂN KHAI NÚT",
+    "status": {
+      "maintenance": "BẢO TRÌ",
+      "offline": "NGOẠI TUYẾN",
+      "online": "TRỰC TUYẾN",
+      "warning": "CẢNH BÁO"
+    },
+    "title": "CƠ SỞ HẠ TẦNG HOẠT ĐỘNG"
+  },
+  "Settings": {},
+  "Status": {
+    "history": {
+      "title": "90-Day History",
+      "tooltip_date": "Date",
+      "tooltip_status": "Status"
+    },
+    "incidents": {
+      "empty": "No active incidents. Network secure.",
+      "title": "INCIDENT LOG",
+      "view_all": "VIEW ARCHIVE"
+    },
+    "metrics": {
+      "active_nodes": "ACTIVE CORES",
+      "bandwidth": "THROUGHPUT",
+      "latency": "AVG LATENCY",
+      "status_nominal": "ALL SYSTEMS NOMINAL",
+      "status_outage": "MAJOR OUTAGE DETECTED",
+      "status_warning": "DEGRADED PERFORMANCE",
+      "uptime": "99.99% UPTIME"
+    },
+    "subtitle": "Global Network Operations Center",
+    "title": "SYSTEM TELEMETRY"
+  },
+  "Subscriptions": {},
+  "Terms": {},
+  "Users": {
+    "newToday": "MỚI HÔM NAY: {count}",
+    "subtitle": "Kiểm soát truy cập và giám sát gói đăng ký.",
+    "title": "QUẢN LÝ NGƯỜI DÙNG",
+    "totalUsers": "TỔNG NGƯỜI DÙNG: {count}"
+  },
+  "UsersTable": {
+    "columns": {
+      "actions": "THAO TÁC",
+      "dataUsage": "SỬ DỤNG DỮ LIỆU",
+      "identity": "DANH TÍNH",
+      "lastSeen": "LẦN CUỐI TRỰC TUYẾN",
+      "status": "TRẠNG THÁI",
+      "subscription": "GÓI ĐĂNG KÝ"
+    },
+    "searchPlaceholder": "TÌM_KIẾM_DANH_TÍNH...",
+    "status": {
+      "active": "HOẠT ĐỘNG",
+      "banned": "BỊ CẤM",
+      "expired": "HẾT HẠN",
+      "trial": "DÙNG THỬ"
+    },
+    "title": "CƠ SỞ DỮ LIỆU KHÁCH HÀNG"
+  },
+  "Wallet": {}
+}

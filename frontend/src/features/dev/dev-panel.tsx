@@ -28,9 +28,6 @@ import { XRayTab } from './tabs/xray-tab';
 import { QueryTab } from './tabs/query-tab';
 import { AutofillTab } from './tabs/autofill-tab';
 import { ToolsTab } from "./tabs/tools-tab";
-import { networkLogger } from "./lib/network-logger";
-import { renderProfiler } from "./lib/render-profiler";
-import { cssXRay } from "./lib/css-xray";
 
 // ----------------------------------------------------------------------
 // Mini FPS Graph for Header
@@ -83,8 +80,12 @@ function MiniFPSGraph({ isDark }: { isDark: boolean }) {
     );
 }
 
-export function DevPanel() {
-    const [isOpen, setIsOpen] = useState(false);
+interface DevPanelProps {
+    defaultOpen?: boolean;
+}
+
+export function DevPanel({ defaultOpen = false }: DevPanelProps) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const [activeTab, setActiveTab] = useState<"nav" | "auth" | "system" | "browser" | "performance" | "network" | "flags" | "chaos" | "i18n" | "theme" | "tools" | "storage" | "mocker" | "a11y" | "render" | "events" | "twa" | "console" | "xray" | "query" | "autofill">("nav");
     const [bypassAuth, setBypassAuth] = useState(false);
     const { resolvedTheme } = useTheme();
@@ -94,47 +95,6 @@ export function DevPanel() {
     useEffect(() => {
         setMounted(true);
         setBypassAuth(document.cookie.split(';').some((item) => item.trim().startsWith('DEV_BYPASS_AUTH=')));
-
-        // Global Persistence Initializations for Dev Panel features
-        networkLogger.start();
-        renderProfiler.start();
-
-        if (typeof window !== 'undefined') {
-            // Restore Mock Rules globally
-            const savedMocks = localStorage.getItem('DEV_MOCK_RULES');
-            if (savedMocks) {
-                try { networkLogger.mockRules = JSON.parse(savedMocks); } catch {}
-            }
-            
-            // Restore RTL setting
-            if (localStorage.getItem('DEV_RTL') === 'true') {
-                document.documentElement.dir = 'rtl';
-            }
-
-            // Restore custom theme
-            const savedTheme = localStorage.getItem('DEV_CUSTOM_THEME');
-            if (savedTheme) {
-                try {
-                    const theme = JSON.parse(savedTheme);
-                    if (theme && typeof theme === 'object') {
-                        Object.keys(theme).forEach(key => {
-                            if (theme[key]) document.documentElement.style.setProperty(key, theme[key]);
-                        });
-                    }
-                } catch (e) { }
-            }
-
-            // Start global instances
-            networkLogger.start(); // Keep networkLogger.start() here as it's a global instance
-            renderProfiler.start();
-            cssXRay.start();
-            
-            // Set mock rules
-            const localRules = localStorage.getItem('dev_mock_rules');
-            if (localRules) {
-                try { networkLogger.mockRules = JSON.parse(localRules); } catch {}
-            }
-        }
     }, []);
     /* eslint-enable react-hooks/set-state-in-effect */
 

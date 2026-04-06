@@ -1,0 +1,1479 @@
+{
+  "A11y": {
+    "closeModal": "Закрыть модальное окно",
+    "mainContent": "Основное содержимое",
+    "skipToMainContent": "Перейти к основному содержимому"
+  },
+  "Analytics": {},
+  "Api": {
+    "description": "Программный доступ к глобальной инфраструктуре CyberVPN. Автоматизируйте маршрутизацию серверов, управление пользователями и политики безопасности.",
+    "endpoints": {
+      "auth": {
+        "category": "Аутентификация",
+        "items": {
+          "generateToken": {
+            "description": "Обменивает client ID и secret на короткоживущий токен Bearer. Необходим для всех последующих вызовов API.",
+            "params": [
+              {
+                "desc": "Ваш API Client ID.",
+                "name": "client_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "Ваш API Client Secret.",
+                "name": "client_secret",
+                "req": true,
+                "type": "string"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/auth/token \\\n  -d \"client_id=your_id\" \\\n  -d \"client_secret=your_secret\"",
+            "response": "{\n  \"access_token\": \"eyJhbGci...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}",
+            "title": "Генерация API Токена"
+          }
+        }
+      },
+      "servers": {
+        "category": "Инфраструктура",
+        "items": {
+          "connect": {
+            "description": "Запрашивает оптимизированный маршрут и эфемерные ключи для конкретного целевого узла.",
+            "params": [
+              {
+                "desc": "ID целевого сервера.",
+                "name": "node_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "WireGuard, OpenVPN, или Stealth.",
+                "name": "protocol",
+                "req": true,
+                "type": "enum"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/servers/connect \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"node_id\": \"eu-frankfurt-01\", \"protocol\": \"WireGuard\"}'",
+            "response": "{\n  \"connection_ip\": \"198.51.100.14\",\n  \"port\": 51820,\n  \"public_key\": \"base64_pub_key...\"\n}",
+            "title": "Инициация Соединения"
+          },
+          "listServers": {
+            "description": "Возвращает статус в реальном времени, загрузку и геолокацию всех VPN инстансов онлайн.",
+            "params": [
+              {
+                "desc": "Фильтр по региону (например, 'europe').",
+                "name": "region",
+                "req": false,
+                "type": "string"
+              },
+              {
+                "desc": "Максимум результатов.",
+                "name": "limit",
+                "req": false,
+                "type": "int"
+              }
+            ],
+            "request": "curl -X GET https://api.cybervpn.com/v1/servers?region=europe \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"",
+            "response": "{\n  \"nodes\": [\n    {\n      \"id\": \"eu-frankfurt-01\",\n      \"load\": 42,\n      \"status\": \"online\"\n    }\n  ]\n}",
+            "title": "Список Активных Узлов"
+          }
+        }
+      }
+    },
+    "labels": {
+      "body": "ТЕЛО (BODY)",
+      "copied": "СКОПИРОВАНО",
+      "endpoint": "ЭНДПОИНТ",
+      "headers": "ЗАГОЛОВКИ",
+      "method": "МЕТОД",
+      "parameters": "ПАРАМЕТРЫ",
+      "request": "ЗАПРОС (cURL)",
+      "response": "ОТВЕТ (JSON)"
+    },
+    "title": "API Документация"
+  },
+  "Auth": {
+    "errors": {
+      "accountDisabled": "Ваш аккаунт отключён",
+      "accountExists": "Аккаунт с таким email уже существует",
+      "accountNotFound": "Аккаунт с таким email не найден",
+      "emailInvalid": "Введите корректный email адрес",
+      "emailRequired": "Email обязателен",
+      "invalidCredentials": "Неверный email или пароль",
+      "networkError": "Ошибка сети. Проверьте подключение",
+      "passwordMismatch": "Пароли не совпадают",
+      "passwordRequired": "Пароль обязателен",
+      "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+      "rateLimited": "Слишком много попыток. Повторите через {seconds} сек.",
+      "rateLimitedMinutes": "Слишком много попыток. Повторите через {minutes} мин.",
+      "serverError": "Ошибка сервера. Попробуйте позже",
+      "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова",
+      "unknownError": "Произошла неизвестная ошибка"
+    },
+    "login": {
+      "divider": "ИЛИ",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "Введите email",
+      "forgotPassword": "Забыли пароль?",
+      "magicLinkAlt": "Войти по магической ссылке",
+      "noAccount": "Нет аккаунта?",
+      "oauthErrors": {
+        "authFailed": "Провайдер принял запрос, но проверка личности не прошла.",
+        "callbackFailed": "OAuth-вход завершился ошибкой. Попробуйте ещё раз.",
+        "collision": "Этот провайдер нельзя автоматически привязать к существующему аккаунту.",
+        "deprecatedCallback": "Этот callback URL устарел. Начните вход заново со страницы логина.",
+        "invalidProvider": "Этот провайдер входа сейчас недоступен.",
+        "invalidTransaction": "Сессия входа истекла или была открыта в другой вкладке. Начните заново.",
+        "linkingRequired": "Сначала войдите в существующий аккаунт, затем привяжите этого провайдера вручную.",
+        "missingParams": "Отсутствуют параметры OAuth callback. Запустите вход заново.",
+        "notConfigured": "OAuth для этого окружения ещё не настроен.",
+        "providerDenied": "Вход был отменён или отклонён на стороне провайдера.",
+        "startFailed": "Не удалось начать процесс входа. Попробуйте ещё раз.",
+        "stateInvalid": "Сессия входа недействительна или истекла. Начните заново.",
+        "upstreamUnavailable": "Провайдер входа временно недоступен. Попробуйте позже."
+      },
+      "passwordLabel": "Пароль",
+      "passwordPlaceholder": "Введите пароль",
+      "rememberMe": "Запомнить меня",
+      "signUpLink": "Зарегистрироваться",
+      "submitButton": "Войти",
+      "submitting": "Вход...",
+      "subtitle": "Доступ к защищённому соединению",
+      "title": "Вход",
+      "twoFactorCodeLabel": "Код аутентификатора",
+      "twoFactorCodePlaceholder": "000000",
+      "twoFactorInfo": "Введите 6-значный код из приложения-аутентификатора, чтобы завершить вход.",
+      "twoFactorSubmitButton": "Подтвердить код",
+      "twoFactorSubmitting": "Проверка кода..."
+    },
+    "logout": {
+      "button": "Выйти",
+      "cancelButton": "Отмена",
+      "confirmButton": "Выйти",
+      "confirmMessage": "Вы уверены, что хотите выйти?",
+      "confirmTitle": "Выход"
+    },
+    "magicLink": {
+      "backToLogin": "Назад к входу",
+      "checkInbox": "Проверьте почту",
+      "codeLabel": "6-значный код",
+      "codePlaceholder": "000000",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "user@cybervpn.io",
+      "expiresIn": "Ссылка или код действительны 1 час",
+      "orEnterCode": "Или введите код из письма",
+      "sendAgain": "Отправить повторно",
+      "sentTo": "Мы отправили магическую ссылку на",
+      "submitButton": "Отправить магическую ссылку",
+      "submitting": "Отправка...",
+      "subtitle": "Войти без пароля",
+      "title": "Магическая ссылка",
+      "verify": {
+        "errorIcon": "Иконка ошибки проверки",
+        "failed": "Ошибка проверки",
+        "invalidOrExpired": "Недействительная или просроченная магическая ссылка. Запросите новую.",
+        "missingToken": "Отсутствует токен магической ссылки. Запросите новую ссылку.",
+        "redirecting": "Перенаправление в панель управления...",
+        "requestNewLink": "Запросить новую ссылку",
+        "successIcon": "Иконка успешной проверки",
+        "validating": "Проверяем вашу магическую ссылку",
+        "verified": "Подтверждено!",
+        "verifyIcon": "Иконка проверки магической ссылки",
+        "verifying": "Проверка..."
+      },
+      "verifyCode": "Подтвердить код",
+      "verifyingCode": "Проверка..."
+    },
+    "oauth": {
+      "accountCreated": "Аккаунт создан через {provider}",
+      "alreadyLinked": "Этот аккаунт {provider} уже привязан к другому пользователю",
+      "continueWithApple": "Продолжить с Apple",
+      "continueWithDiscord": "Продолжить с Discord",
+      "continueWithGithub": "Продолжить с GitHub",
+      "continueWithGoogle": "Продолжить с Google",
+      "continueWithMicrosoft": "Продолжить с Microsoft",
+      "continueWithTelegram": "Продолжить с Telegram",
+      "continueWithX": "Продолжить с X",
+      "error": "Ошибка аутентификации OAuth",
+      "noEmail": "Email не предоставлен от {provider}",
+      "processing": "Обработка OAuth..."
+    },
+    "oauthCallback": {
+      "authenticating": "Аутентификация...",
+      "defaultError": "Ошибка аутентификации. Попробуйте снова.",
+      "errorIcon": "Иконка ошибки аутентификации",
+      "errorTitle": "Ошибка аутентификации",
+      "missingParams": "Отсутствуют параметры OAuth. Попробуйте войти снова.",
+      "securityIcon": "Иконка проверки безопасности",
+      "tryAgain": "Попробовать снова",
+      "verifyingIdentity": "Проверка вашей личности"
+    },
+    "passwordStrength": {
+      "fair": "Средний",
+      "good": "Хороший",
+      "requirements": {
+        "length": "Минимум 8 символов",
+        "lowercase": "Одна строчная буква",
+        "number": "Одна цифра",
+        "special": "Один спецсимвол",
+        "uppercase": "Одна заглавная буква"
+      },
+      "strong": "Сильный",
+      "weak": "Слабый"
+    },
+    "profile": {
+      "cantUnlinkOnly": "Невозможно отвязать — это ваш единственный способ входа",
+      "linkedAccounts": "Привязанные аккаунты",
+      "linkSuccess": "Telegram успешно привязан",
+      "linkTelegram": "Привязать Telegram",
+      "telegramLinked": "Telegram привязан: @{username}",
+      "unlinkConfirm": "Вы уверены, что хотите отвязать Telegram?",
+      "unlinkSuccess": "Telegram успешно отвязан",
+      "unlinkTelegram": "Отвязать Telegram"
+    },
+    "register": {
+      "acceptTerms": "Я принимаю",
+      "and": " и ",
+      "confirmPasswordLabel": "Подтвердите пароль",
+      "confirmPasswordPlaceholder": "Подтвердите пароль",
+      "continueWithTelegram": "Регистрация через Telegram",
+      "divider": "ИЛИ",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "Введите email",
+      "hasAccount": "Уже есть аккаунт?",
+      "passwordLabel": "Пароль",
+      "passwordMismatch": "Пароли не совпадают",
+      "passwordPlaceholder": "Создайте пароль",
+      "privacyLink": "Политику конфиденциальности",
+      "registerModeEmail": "Email",
+      "registerModeUsername": "Только имя пользователя",
+      "signInLink": "Войти",
+      "submitButton": "Создать аккаунт",
+      "submitting": "Создание аккаунта...",
+      "subtitle": "Присоединяйтесь к защищённой сети",
+      "telegramAutoRegister": "Ваш аккаунт Telegram будет использован для быстрой регистрации",
+      "termsAgreement": "Создавая аккаунт, вы соглашаетесь с Условиями использования и Политикой конфиденциальности",
+      "termsLink": "Условия",
+      "title": "Создать аккаунт",
+      "usernameLabel": "Имя пользователя",
+      "usernamePlaceholder": "cyberpunk_hacker"
+    },
+    "telegram": {
+      "botLinkAuth": "Ожидаем подтверждение входа в Telegram...",
+      "botLinkExpired": "Запрос на вход через Telegram истек. Запустите вход заново на сайте.",
+      "botLinkInvalid": "Не удалось восстановить сессию входа через Telegram. Начните вход заново на сайте.",
+      "checkStatusButton": "Я подтвердил вход в Telegram",
+      "connecting": "Подтвердите вход в нашем боте и вернитесь сюда - мы завершим авторизацию автоматически.",
+      "copiedStartCommand": "Скопировано",
+      "copyStartCommand": "Копировать команду",
+      "errors": {
+        "alreadyLinked": "Этот Telegram аккаунт уже привязан к другому пользователю",
+        "authFailed": "Ошибка авторизации Telegram",
+        "dataInvalid": "Получены некорректные данные Telegram",
+        "expired": "Авторизация Telegram истекла. Попробуйте снова",
+        "hashMismatch": "Ошибка проверки данных Telegram",
+        "notLinked": "Этот Telegram аккаунт не привязан к пользователю",
+        "widgetFailed": "Не удалось загрузить виджет Telegram"
+      },
+      "loginButton": "Открыть Telegram",
+      "manualFallback": "Если Telegram открылся как обычный чат, отправьте эту команду вручную:",
+      "miniAppAutoAuth": "Вход через Telegram..."
+    }
+  },
+  "Contact": {
+    "form": {
+      "department": "Выберите подсеть",
+      "department_sales": "Корпоративный отдел",
+      "department_support": "Техническая поддержка",
+      "email": "Адрес для ответа",
+      "establishing": "УСТАНОВКА TLS ТУННЕЛЯ...",
+      "message": "Текст передачи",
+      "name": "Позывной / Имя",
+      "new_uplink": "[ ИНИЦИИРОВАТЬ НОВОЕ ПОДКЛЮЧЕНИЕ ]",
+      "placeholder_email": "secure@proton.me",
+      "placeholder_message": "< НАЧАЛО ПЕРЕДАЧИ >",
+      "placeholder_name": "гость_774",
+      "scanning": "СКАНИРОВАНИЕ ЗАЩИЩЕННЫХ ЧАСТОТ...",
+      "submit": "НАЧАТЬ ПЕРЕДАЧУ",
+      "success": "Пакет доставлен. Следы стерты.",
+      "verified": "СВЯЗЬ УСТАНОВЛЕНА"
+    },
+    "subtitle": "Глобальный зашифрованный ретранслятор",
+    "title": "ЗАЩИЩЕННАЯ СВЯЗЬ"
+  },
+  "Dashboard": {
+    "activeSessions": "АКТИВНЫЕ СЕССИИ",
+    "aggregateThroughput": "Суммарная пропускная способность",
+    "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
+    "currentConnections": "Текущие подключения",
+    "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
+    "networkLoad": "НАГРУЗКА СЕТИ",
+    "nodesOnline": "УЗЛОВ В СЕТИ",
+    "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
+    "serverStatus": "СТАТУС СЕРВЕРОВ",
+    "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
+    "statusValue": "ОПТИМАЛЬНО",
+    "title": "ЦЕНТР УПРАВЛЕНИЯ VPN"
+  },
+  "DeleteAccount": {
+    "contact": {
+      "description": "If you have questions about account deletion or data privacy:",
+      "email": "Email",
+      "emailAddress": "privacy@cybervpn.app",
+      "title": "Need help?"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password",
+      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "networkError": "Network error. Please check your connection.",
+      "serverError": "Server error. Please try again later.",
+      "title": "Deletion failed"
+    },
+    "form": {
+      "cancel": "Cancel",
+      "description": "To proceed with account deletion, please confirm your identity and reason.",
+      "fields": {
+        "confirmation": {
+          "error": "You must confirm to proceed",
+          "label": "I understand this action is permanent and cannot be undone"
+        },
+        "email": {
+          "error": "Valid email is required",
+          "label": "Email address",
+          "placeholder": "Enter your account email"
+        },
+        "feedback": {
+          "label": "Additional feedback (optional)",
+          "placeholder": "Any additional comments..."
+        },
+        "password": {
+          "error": "Password is required",
+          "label": "Password",
+          "placeholder": "Enter your password"
+        },
+        "reason": {
+          "label": "Reason for deletion (optional)",
+          "options": {
+            "foundAlternative": "Found an alternative",
+            "notUsing": "Not using the service",
+            "other": "Other",
+            "privacyConcerns": "Privacy concerns",
+            "technicalIssues": "Technical issues",
+            "tooExpensive": "Too expensive"
+          },
+          "placeholder": "Help us improve by sharing why you're leaving"
+        }
+      },
+      "submit": "Delete My Account",
+      "submitting": "Processing...",
+      "title": "Delete account request"
+    },
+    "meta": {
+      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "title": "Delete Account - CyberVPN"
+    },
+    "sections": {
+      "alternativeOptions": {
+        "description": "If you're experiencing issues, consider these alternatives:",
+        "items": {
+          "changeSettings": "Adjust your account or privacy settings",
+          "contactSupport": "Contact support for assistance",
+          "pauseSubscription": "Pause your subscription temporarily"
+        },
+        "title": "Alternative options"
+      },
+      "beforeDelete": {
+        "items": {
+          "cancelSubscriptions": "Cancel any active subscriptions",
+          "exportData": "Export your data if needed (GDPR right to data portability)",
+          "saveConfigs": "Save any custom VPN configurations",
+          "useReferrals": "Use any pending referral rewards"
+        },
+        "title": "Before you delete"
+      },
+      "consequences": {
+        "items": {
+          "accountData": "Your account information and profile",
+          "configs": "VPN configurations and connection history",
+          "referrals": "Referral data and earned rewards",
+          "subscriptions": "All active subscriptions (no refunds)",
+          "support": "Support tickets and communication history"
+        },
+        "title": "What will be deleted"
+      }
+    },
+    "subtitle": "Permanently delete your CyberVPN account",
+    "success": {
+      "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized.",
+      "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
+      "title": "Account deletion requested"
+    },
+    "title": "Delete Account",
+    "warning": {
+      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
+      "title": "Warning: This action is permanent"
+    }
+  },
+  "Devices": {},
+  "Docs": {
+    "doc_config_desc": "Создание защищенных путей через враждебные сети.",
+    "doc_config_title": "Настройка Туннелей",
+    "doc_install_desc": "Развертывание базового движка на поддерживаемых физических архитектурах.",
+    "doc_install_title": "Установка Ядра",
+    "doc_protocols_desc": "Спецификации для VLESS, VMess и Trojan Reality.",
+    "doc_protocols_title": "Поддерживаемые Протоколы",
+    "meta_description": "Комплексные схемы и руководства по интеграции и использованию сети CyberVPN.",
+    "meta_title": "Нейронная Документация | CyberVPN",
+    "search_placeholder": "Поиск по чертежам...",
+    "section_api": "НЕЙРОННЫЙ API",
+    "section_getting_started": "ИНИЦИАЛИЗАЦИЯ",
+    "section_routing": "МАРШРУТИЗАЦИЯ",
+    "section_security": "ПРОТОКОЛЫ ШИФРОВАНИЯ",
+    "sidebar_category_advanced": "Глубокая Интеграция",
+    "sidebar_category_basics": "Базовые Системы",
+    "subtitle": "СИСТЕМНАЯ ДОКУМЕНТАЦИЯ И СХЕМЫ",
+    "title": "НЕЙРОННЫЕ ЧЕРТЕЖИ"
+  },
+  "Download": {
+    "changelog": {
+      "empty": "Нет записей для выбранной архитектуры.",
+      "title": "ПОСЛЕДНИЕ ИЗМЕНЕНИЯ"
+    },
+    "platforms": {
+      "android": "Android (APK / Play Store)",
+      "ios": "iOS (App Store)",
+      "linux": "Linux (Debian / Ubuntu / RHEL)",
+      "macos": "macOS (Apple M-series / Intel)",
+      "windows": "Windows x64"
+    },
+    "subtitle": "Получить клиент",
+    "terminal": {
+      "button": "СКАЧАТЬ КЛИЕНТ",
+      "compiling": "КОМПИЛЯЦИЯ БИНАРНЫХ ФАЙЛОВ...",
+      "init": "[СИСТЕМА] ИНИЦИАЛИЗАЦИЯ ПРОТОКОЛА ЗАГРУЗКИ...",
+      "ready": "ПАКЕТ СФОРМИРОВАН. ГОТОВ К ИЗВЛЕЧЕНИЮ.",
+      "verify": "ПРОВЕРКА АРХИТЕКТУРЫ: ",
+      "version": "ВЕРСИЯ:"
+    },
+    "title": "ЗАЩИЩЕННЫЙ ПАКЕТ"
+  },
+  "Features": {
+    "description": "Шифрование военного уровня и квантово-устойчивая инфраструктура. Изучите модульные компоненты, защищающие ваше цифровое существование.",
+    "features": {
+      "killswitch": {
+        "description": "Постоянно отслеживает целостность туннеля. При разрыве соединения блокирует весь сетевой трафик устройства для предотвращения утечек IP-адреса.",
+        "specs": [
+          "Уровень: Правила маршрутизации ядра ОС",
+          "Время реакции: < 1мс",
+          "Предотвращение утечек: DNS, IPv6, WebRTC"
+        ],
+        "subtitle": "Изоляция на Системном Уровне",
+        "title": "Нейронный Kill Switch"
+      },
+      "multihop": {
+        "description": "Ваш трафик фрагментируется, шифруется и маршрутизируется через множество независимых юрисдикций. Если один узел скомпрометирован, происхождение остается невозможным для отслеживания.",
+        "specs": [
+          "Узлов: Настраиваемые цепи из 2-4",
+          "Юрисдикции: Глобальное распределение",
+          "Перешифрование: На каждом выходе из туннеля"
+        ],
+        "subtitle": "Распределенная Маршрутизация",
+        "title": "Multi-Hop Каскадирование"
+      },
+      "obfuscation": {
+        "description": "Обходит глубокий анализ пакетов в странах с жесткой цензурой. VPN-трафик стеганографически маскируется под стандартный веб-трафик HTTPS.",
+        "specs": [
+          "Протокол: V2Ray / Shadowsocks / XTLS",
+          "Сигнатура: Неотличима от TLS 1.3",
+          "Устойчивость: Автоматическая ротация при блокировке"
+        ],
+        "subtitle": "Обход DPI",
+        "title": "Теневая Обфускация"
+      },
+      "quantum": {
+        "description": "Готовность к криптографическому апокалипсису. Использование алгоритмов на решетках для защиты криптографических рукопожатий от атак с использованием квантовых компьютеров.",
+        "specs": [
+          "Алгоритм: Kyber-1024 / NTRU",
+          "Обмен ключами: Гибридный ECDHE + PQ",
+          "Модель угрозы: 'Собери сейчас, расшифруй потом'"
+        ],
+        "subtitle": "Постквантовая Криптография",
+        "title": "Квантовая Устойчивость"
+      }
+    },
+    "secondary": {
+      "items": [
+        {
+          "desc": "Только RAM-серверы. Ежедневная перезагрузка. Данные никогда не касаются HDD.",
+          "title": "Строгая Политика 'Без Логов'"
+        },
+        {
+          "desc": "Защитите весь свой арсенал оборудования с помощью одного ключа доступа.",
+          "title": "10 Устройств Одновременно"
+        },
+        {
+          "desc": "Фильтрация на уровне DNS нейтрализует вредоносные скрипты до их загрузки.",
+          "title": "Блокировка Рекламы и Трекеров"
+        },
+        {
+          "desc": "Выделенные узлы с высокой пропускной способностью, аппаратно ускоренные для торрентов.",
+          "title": "Оптимизация для P2P"
+        }
+      ],
+      "title": "Вспомогательные Системы"
+    },
+    "title": "Ключевые Возможности"
+  },
+  "Footer": {
+    "brandDescription": "Передовая инфраструктура защиты конфиденциальности для интернета следующего поколения. Навигация в цифровой пустоте с шифрованием военного уровня.",
+    "knowledgeLinks": {
+      "audits": "Аудиты",
+      "compare": "Сравнения",
+      "devices": "Устройства",
+      "guides": "Гайды",
+      "trust": "Центр доверия"
+    },
+    "links": {
+      "api": "API",
+      "contact": "Контакты",
+      "documentation": "Документация",
+      "download": "Скачать",
+      "features": "Возможности",
+      "helpCenter": "Центр помощи",
+      "pricing": "Цены",
+      "privacy": "Политика конфиденциальности",
+      "security": "Безопасность",
+      "servers": "Серверы",
+      "status": "Статус системы",
+      "terms": "Условия использования"
+    },
+    "newsletter": {
+      "cta": "СТАРТ",
+      "description": "Подключайтесь к нашему зашифрованному каналу. Получайте обновления по локациям, протоколам безопасности и критическим патчам.",
+      "placeholder": "введите_email.exe",
+      "prompt": "root@user:~$"
+    },
+    "operationalStatus": "Все системы работают штатно.",
+    "sections": {
+      "knowledge": "База знаний",
+      "paymentMethods": "Способы оплаты",
+      "product": "Продукт",
+      "stayConnected": "Оставайтесь на связи",
+      "support": "Поддержка"
+    }
+  },
+  "Header": {
+    "encryptionLabel": "ШИФРОВАНИЕ",
+    "encryptionValue": "АКТИВНО - AES-256",
+    "fps": "FPS",
+    "integrity": "ПРОВЕРКА ЦЕЛОСТНОСТИ ПРОЙДЕНА",
+    "language": "ЯЗЫК",
+    "netUplink": "СЕТЬ_АПЛИНК",
+    "ping": "PING",
+    "systemLabel": "СИСТЕМА"
+  },
+  "HelpCenter": {
+    "categories_title": "МОДУЛИ ЗНАНИЙ",
+    "category_billing": "Кредиты Доступа",
+    "category_billing_desc": "Подписки, платежи и распределение пропускной способности.",
+    "category_getting_started": "Инициализация",
+    "category_getting_started_desc": "Запуск системы и протоколы базовой конфигурации.",
+    "category_security": "Протоколы Шифрования",
+    "category_security_desc": "Детали о Anti-DPI, обфускации и политике отсутствия логов.",
+    "category_troubleshooting": "Маршрутизация",
+    "category_troubleshooting_desc": "Диагностика ошибок подключения и туннелирования.",
+    "contact_button_telegram": "ИНИЦИИРОВАТЬ СВЯЗЬ В TELEGRAM",
+    "contact_button_ticket": "ОТКРЫТЬ ЗАЩИЩЕННЫЙ ТИКЕТ",
+    "contact_desc": "Не удалось решить аномалию в архивах? Установите прямой защищенный канал связи с нашими операторами.",
+    "contact_title": "ЗАЩИЩЕННАЯ ПЕРЕДАЧА",
+    "faq_billing_1_a": "Вы можете приобрести дополнительные Кредиты Доступа через терминал биллинга, используя поддерживаемые крипто или фиатные шлюзы.",
+    "faq_billing_1_q": "Как увеличить квоту пропускной способности?",
+    "faq_billing_2_a": "Возвраты обрабатываются строго в течение первых 72 часов после установления нового цикла подключения.",
+    "faq_billing_2_q": "Возможен ли возврат средств?",
+    "faq_billing_3_a": "Утвердительно. Мы принимаем Monero (XMR), USDT и Bitcoin для полностью неотслеживаемых транзакций.",
+    "faq_billing_3_q": "Поддерживаете ли вы анонимные платежи?",
+    "faq_getting_started_1_a": "Загрузите модуль ядра CyberVPN для вашей ОС, авторизуйтесь с вашим Neural ID и нажмите 'Engage'.",
+    "faq_getting_started_1_q": "Как мне инициализировать первое подключение?",
+    "faq_getting_started_2_a": "Сеть принимает соединения от клиентов на Windows, macOS, Linux, iOS и Android по стандартным протоколам Xray/Sing-box.",
+    "faq_getting_started_2_q": "Какие устройства поддерживаются?",
+    "faq_getting_started_3_a": "Да, в зависимости от вашего уровня Кредитов Доступа, вы можете связать до 10 одновременных нейронных путей.",
+    "faq_getting_started_3_q": "Могу ли я подключить несколько устройств одновременно?",
+    "faq_security_1_a": "Отрицательно. Все базы данных волатильны. Мы работаем по строгой архитектуре нулевого знания.",
+    "faq_security_1_q": "Служба ведет логирование моих данных?",
+    "faq_security_2_a": "Мы используем шифры ChaCha20-Poly1305 и AES-256-GCM, обеспечивая криптографическую целостность военного уровня.",
+    "faq_security_2_q": "Какой стандарт шифрования используется?",
+    "faq_security_3_a": "Да. В случае обрыва защищенного туннеля клиент немедленно блокирует все внешние сетевые адаптеры для предотвращения утечки IP.",
+    "faq_security_3_q": "Есть ли у вас функция Kill Switch?",
+    "faq_title": "ЧАСТЫЕ ЗАПРОСЫ",
+    "faq_troubleshooting_1_a": "Проверьте пинг вашего узла. Если потеря пакетов превышает 5%, перенаправьтесь на альтернативный шард в Server Grid.",
+    "faq_troubleshooting_1_q": "Почему скорость моего соединения снижена?",
+    "faq_troubleshooting_2_a": "Система автоматически включает резервную маршрутизацию. Если нужно ручное вмешательство, сбросьте DNS-кэш и переподключитесь.",
+    "faq_troubleshooting_2_q": "Что делать, если основной прокси не отвечает?",
+    "faq_troubleshooting_3_a": "Наше ядро, использующее VLESS+Reality, автоматически маскирует ваш трафик под стандартный HTTPS. Убедитесь, что у вас установлено последнее обновление ядра.",
+    "faq_troubleshooting_3_q": "Как мне обойти ограничения DPI?",
+    "hero_subtitle": "ДОСТУП К ЦЕНТРАЛЬНЫМ БАЗАМ ДАННЫХ...",
+    "hero_title": "НЕЙРОННЫЕ АРХИВЫ",
+    "meta_description": "Доступ к базам данных для устранения неполадок, руководствам и защищенным каналам связи.",
+    "meta_title": "Нейронные Архивы | CyberVPN Help Center",
+    "search_button": "ДЕШИФРОВАТЬ",
+    "search_placeholder": "Введите нейро-запрос..."
+  },
+  "Landing": {
+    "comparison_table": {
+      "headers": {
+        "cybervpn": "CyberVPN (VLESS-Reality)",
+        "feature": "Функция",
+        "legacy": "Устаревший VPN (WireGuard/OpenVPN)"
+      },
+      "rows": {
+        "dpi": {
+          "cybervpn": "Неотличимо от HTTPS",
+          "feature": "Обнаружение DPI",
+          "legacy": "Легко определяется и блокируется"
+        },
+        "ip_blocking": {
+          "cybervpn": "Нулевой (динамическая маскировка Reality)",
+          "feature": "Риск блокировки IP",
+          "legacy": "Высокий (статичные паттерны)"
+        },
+        "privacy": {
+          "cybervpn": "Шифрование только в RAM (Без следов)",
+          "feature": "Уровень Приватности",
+          "legacy": "Стандартное шифрование"
+        },
+        "speed": {
+          "cybervpn": "Полная скорость магистрали (10 Гбит/с)",
+          "feature": "Скорость под нагрузкой",
+          "legacy": "Ограничивается провайдером"
+        }
+      },
+      "title": "Устаревшее против Нового поколения"
+    },
+    "features": {
+      "backbone": {
+        "desc": "Нативные аплинки 10 Гбит/с в дата-центрах Tier-3. Оптимизировано для 4K/8K стриминга и гейминга с низким пингом.",
+        "title": "Магистральная Производительность"
+      },
+      "badge": "МАТРИЦА ВОЗМОЖНОСТЕЙ",
+      "multiplatform": {
+        "desc": "Одна подписка для Telegram бота, iOS, Android, Windows, macOS и Linux.",
+        "title": "Нативная Кроссплатформенность"
+      },
+      "protocols": {
+        "desc": "Полная поддержка VLESS, Trojan. Поддержка XHTTP для обхода самых жестких корпоративных и государственных файрволов. Ваш трафик выглядит как стандартные HTTP-запросы к доверенным ресурсам.",
+        "title": "Продвинутые Протоколы"
+      },
+      "ram": {
+        "desc": "Никаких дисков, никаких логов, никакого сохранения данных. Инфраструктура стирается при каждом перезапуске.",
+        "title": "Инфраструктура только в RAM"
+      },
+      "routing": {
+        "desc": "Глобальная сеть из 100+ узлов с автоматическим выбором на основе задержки.",
+        "title": "Умная Маршрутизация"
+      },
+      "sectionSubtitle": "Шесть уровней защиты для современного кибер-гражданина",
+      "sectionTitle": "ТЕХНОЛОГИЧЕСКОЕ ПРЕВОСХОДСТВО",
+      "stats": {
+        "bandwidth": "Гбит/с",
+        "locations": "локации",
+        "logs": "логи",
+        "uptime": "аптайм"
+      },
+      "stealth": {
+        "desc": "Трафик неотличим от посещения Google/Microsoft/Apple. Никакого отпечатка VPN.",
+        "title": "Стелс Режим (Reality)"
+      }
+    },
+    "hero": {
+      "cta_app": "СКАЧАТЬ ПРИЛОЖЕНИЕ",
+      "cta_telegram": "ЗАПУСТИТЬ В TELEGRAM",
+      "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
+      "subtitle": "Обход DPI-блокировок любой сложности. Маскировка трафика под стандартный HTTPS. Скорость до 10 Гбит/с без потерь на инкапсуляцию.",
+      "title": "НЕВИДИМЫЙ VPN. РАБОТАЕТ НА VLESS-REALITY",
+      "titleHighlight": "НЕВИДИМЫЙ VPN."
+    },
+    "how_it_works": {
+      "badge": "ANTI-DPI ДВИЖОК",
+      "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт. Интеллектуальный выбор транспорта: автоматическое переключение на XHTTP, если сеть блокирует нестандартные протоколы.",
+      "title": "Как работает Reality"
+    },
+    "network_stats": {
+      "bandwidth": "Пропускная способность магистрали 1.2 Тбит/с",
+      "coverage": "50+ Стран, 100+ Городов",
+      "nodes": "100+ Активных высокопроизводительных узлов",
+      "title": "Сетевая Инфраструктура",
+      "uptime": "99.9% Доступность сети"
+    },
+    "pricing": {
+      "basic": "Basic: Пробный / Начальный уровень",
+      "cyber": "Cyber: Премиум / Полный доступ",
+      "pro": "Pro: Самый популярный",
+      "ultra": "Ultra: Высокая пропускная способность"
+    },
+    "quick_start": {
+      "badge": "Быстрый старт",
+      "step1": "Запустите бота (@CyberVPN_Bot)",
+      "step2": "Активация Trial в один клик (2 дня / 2 ГБ)",
+      "step3": "Импортируйте конфиг в любое приложение и оставайтесь свободными",
+      "terminalComment": "# Автоматическое развёртывание VPN-туннеля...",
+      "terminalStatus": "> Туннель установлен. DPI обойдён. Защищаем транспорт...",
+      "terminalTitle": "Развертывание подключения",
+      "title": "Путь в 30 Секунд"
+    },
+    "speed_tunnel": {
+      "featureNoAds": "YouTube без рекламы",
+      "featureTorrent": "Торренты",
+      "online": "ОНЛАЙН",
+      "servers": {
+        "amsterdam": {
+          "city": "Амстердам",
+          "country": "Нидерланды"
+        },
+        "frankfurt": {
+          "city": "Франкфурт",
+          "country": "Германия"
+        },
+        "london": {
+          "city": "Лондон",
+          "country": "Великобритания"
+        },
+        "newYork": {
+          "city": "Нью-Йорк",
+          "country": "США"
+        },
+        "paris": {
+          "city": "Париж",
+          "country": "Франция"
+        },
+        "seoul": {
+          "city": "Сеул",
+          "country": "Южная Корея"
+        },
+        "singapore": {
+          "city": "Сингапур",
+          "country": "Сингапур"
+        },
+        "sydney": {
+          "city": "Сидней",
+          "country": "Австралия"
+        },
+        "tokyo": {
+          "city": "Токио",
+          "country": "Япония"
+        },
+        "toronto": {
+          "city": "Торонто",
+          "country": "Канада"
+        }
+      },
+      "subtitle": "100+ локаций. Каналы 10 Гбит/с. Никаких ограничений.",
+      "titleEnd": "СЕТЬ",
+      "titleHighlight": "УЛЬТРАСКОРОСТНАЯ",
+      "titleStart": "ГЛОБАЛЬНАЯ"
+    },
+    "status_board": {
+      "item_online": "ОНЛАЙН",
+      "live": "В РЕАЛЬНОМ ВРЕМЕНИ",
+      "protocols": {
+        "reality": "Reality",
+        "vless_grpc": "VLESS-gRPC"
+      },
+      "title": "Статус Узлов"
+    },
+    "tech_specs": {
+      "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
+      "network": "Сеть: Аплинки 10 Гбит/с, глобальная поддержка IPv6",
+      "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP"
+    },
+    "technical": {
+      "labels": {
+        "encryption": "Шифрование",
+        "network": "Сеть",
+        "transport": "Транспорт"
+      },
+      "networkLabels": {
+        "bandwidth": "Пропускная способность",
+        "coverage": "Покрытие",
+        "nodes": "Активные узлы",
+        "uptime": "Доступность сети"
+      },
+      "specificationsTitle": "Технические характеристики"
+    }
+  },
+  "LanguageSelector": {
+    "noResults": "NO_MATCHES_FOUND",
+    "searchPlaceholder": "SEARCH_LANGUAGE...",
+    "title": "SELECT_LANGUAGE"
+  },
+  "MiniApp": {
+    "home": {
+      "activateTrial": "Activate Trial",
+      "configCopied": "VPN config copied to clipboard!",
+      "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
+      "configQRTitle": "VPN Config QR Code",
+      "connections": "Connections",
+      "copyConfig": "Copy Config",
+      "dataUsed": "Data Used",
+      "daysRemaining": "Days Remaining",
+      "expires": "Expires",
+      "lastConnected": "Last Connected",
+      "never": "Never",
+      "noConfigAvailable": "No VPN config available",
+      "noConfigDescription": "Activate a subscription to get your VPN configuration",
+      "noSubscription": "No Active Subscription",
+      "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
+      "openInApp": "Open in App",
+      "plan": "Plan",
+      "quickActions": "Quick Actions",
+      "settings": "Settings",
+      "subscriptionActive": "Subscription Active",
+      "trial": "TRIAL",
+      "trialAvailable": "Free Trial Available",
+      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+      "trialPlan": "7-Day Free Trial",
+      "unknown": "Unknown",
+      "usage": "Usage Statistics",
+      "viewPlans": "View Plans",
+      "viewQR": "View QR Code",
+      "vpnConfig": "VPN Config",
+      "vpnConfigDescription": "Get your VPN config to connect from any device",
+      "vpnConfigTitle": "VPN Configuration",
+      "wallet": "Wallet"
+    },
+    "meta": {
+      "description": "Manage your VPN subscription in Telegram",
+      "title": "CyberVPN Mini App"
+    },
+    "nav": {
+      "bottomNav": "Main navigation",
+      "home": "Home",
+      "plans": "Plans",
+      "profile": "Profile",
+      "wallet": "Wallet"
+    },
+    "payments": {
+      "noPayments": "No payment history yet",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "status_refunded": "Refunded",
+      "title": "Payment History",
+      "total": "total"
+    },
+    "plans": {
+      "activateTrial": "Activate 7-Day Trial",
+      "activating": "Activating...",
+      "apply": "Apply",
+      "availablePlans": "Subscription Plans",
+      "contactForPrice": "Contact",
+      "daysCount": "{count} days",
+      "discountApplied": "Discount applied: ${amount}",
+      "free": "Free",
+      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
+      "freeTrialTitle": "Try CyberVPN Free",
+      "haveInviteCode": "Have an Invite Code?",
+      "havePromoCode": "Have a Promo Code?",
+      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "inviteCodePlaceholder": "INVITE123",
+      "inviteInvalid": "Invalid or already used invite code",
+      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
+      "monthly": "per month",
+      "noPlans": "No plans available at the moment",
+      "paymentError": "Payment failed. Please try again.",
+      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+      "processing": "Processing...",
+      "promoCodePlaceholder": "PROMO2024",
+      "promoInvalid": "Invalid or expired promo code",
+      "promoValid": "Promo code applied! Discount: ${discount}",
+      "purchasePlan": "Purchase Plan",
+      "quarterly": "per quarter",
+      "redeem": "Redeem",
+      "selectPlanFirst": "Please select a plan first",
+      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "trialError": "Failed to activate trial. Please try again.",
+      "yearly": "per year"
+    },
+    "profile": {
+      "accountDeleted": "Account deleted successfully",
+      "antiphishing": {
+        "codePlaceholder": "Enter 4-32 characters",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be less than 32 characters",
+        "codeTooShort": "Code must be at least 4 characters",
+        "currentCode": "Current Code",
+        "deleteCode": "Delete Code",
+        "deleteConfirm": "Are you sure you want to delete your antiphishing code?",
+        "deleteError": "Failed to delete code",
+        "deleteSuccess": "Antiphishing code deleted",
+        "deleting": "Deleting...",
+        "description": "Set a unique code that will appear in all emails from us. This helps you verify that emails are genuine.",
+        "error": "Failed to update code",
+        "newCode": "New Code",
+        "noCode": "No code set",
+        "setCode": "Set Code",
+        "submitting": "Saving...",
+        "success": "Antiphishing code updated",
+        "title": "Antiphishing Code",
+        "updateCode": "Update Code"
+      },
+      "antiphishingCode": "Antiphishing Code",
+      "changePassword": "Change Password",
+      "codeCopied": "Referral code copied to clipboard",
+      "copy": "Copy",
+      "copyError": "Failed to copy to clipboard",
+      "deleteAccount": "Delete Account",
+      "deleteAccountConfirm": "Are you sure? This action cannot be undone.",
+      "deleteAccountError": "Failed to delete account. Please try again.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "guest": "Guest User",
+      "language": "Language",
+      "languageNote": "Language follows your Telegram settings",
+      "logout": "Logout",
+      "logoutConfirm": "Are you sure you want to logout?",
+      "noEmail": "No email set",
+      "noPayments": "No payment history yet",
+      "notifications": "Notifications",
+      "notificationsNote": "Configure notification preferences",
+      "partner": "Partner Dashboard",
+      "partnerDashboard": {
+        "bindCode": "Bind Partner Code",
+        "bindCodeDescription": "Enter a partner code to join the partner program and start earning commissions",
+        "bindError": "Failed to bind partner code",
+        "bindSuccess": "Partner code bound successfully!",
+        "codeLabel": "Code",
+        "codePlaceholder": "Enter partner code",
+        "codeRequired": "Partner code is required",
+        "createdAt": "Created",
+        "isPartner": "You are a Partner",
+        "markup": "Markup",
+        "noCodes": "No partner codes yet",
+        "notPartner": "Become a Partner",
+        "partnerCodes": "Your Partner Codes",
+        "submit": "Bind Code",
+        "submitting": "Binding...",
+        "tier": "Partner Tier",
+        "totalClients": "Total Clients",
+        "totalEarned": "Total Earned"
+      },
+      "partnerNote": "Contact support for partner program information",
+      "passwordChange": {
+        "confirmPassword": "Confirm New Password",
+        "confirmPasswordRequired": "Please confirm your new password",
+        "currentPassword": "Current Password",
+        "currentPasswordRequired": "Current password is required",
+        "error": "Failed to change password",
+        "newPassword": "New Password",
+        "newPasswordRequired": "New password is required",
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "submit": "Change Password",
+        "submitting": "Changing...",
+        "success": "Password changed successfully",
+        "title": "Change Password"
+      },
+      "paymentHistory": "Payment History",
+      "referral": "Referral Program",
+      "referralShareText": "Join CyberVPN with my code: {code}",
+      "security": "Security",
+      "securityNote": "Manage your password and 2FA settings in the full dashboard",
+      "settings": "Settings",
+      "share": "Share",
+      "totalEarnings": "Total Earnings",
+      "totalReferrals": "Total Referrals",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "viewAll": "View All",
+      "yourReferralCode": "Your Referral Code"
+    },
+    "referral": {
+      "commissionAmount": "Amount",
+      "commissionDate": "Date",
+      "commissionFrom": "From",
+      "copied": "Code copied to clipboard!",
+      "howItWorks": "How It Works",
+      "noCommissions": "No commissions yet",
+      "qrCodeTitle": "QR Code",
+      "recentCommissions": "Recent Commissions",
+      "referralRate": "Commission Rate",
+      "scanToJoin": "Scan to join with your code",
+      "shareCode": "Share Code",
+      "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
+      "shareTitle": "Share & Earn",
+      "stats": "Your Stats",
+      "step1": "Share your unique code",
+      "step2": "Friends sign up with your code",
+      "step3": "Earn commission on their purchases",
+      "title": "Referral Program",
+      "totalEarned": "Total Earned",
+      "totalReferrals": "Total Referrals",
+      "yourCode": "Your Referral Code"
+    },
+    "wallet": {
+      "amount": "Amount",
+      "available": "Available",
+      "balance": "Wallet Balance",
+      "close": "Close",
+      "frozen": "Frozen",
+      "insufficientBalance": "Insufficient balance",
+      "invalidAmount": "Please enter a valid amount",
+      "loading": "Loading...",
+      "loadMore": "Load More",
+      "noTransactions": "No transactions yet",
+      "paymentMethod": "Payment Method",
+      "paymentMethodPlaceholder": "e.g., Crypto wallet address, PayPal email",
+      "paymentMethodRequired": "Payment method is required",
+      "processing": "Processing...",
+      "status_cancelled": "Cancelled",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "submitWithdrawal": "Submit Withdrawal Request",
+      "total": "total",
+      "transactions": "Transaction History",
+      "type_deposit": "Deposit",
+      "type_purchase": "Purchase",
+      "type_referral_commission": "Referral Commission",
+      "type_refund": "Refund",
+      "type_withdrawal": "Withdrawal",
+      "withdraw": "Withdraw Funds",
+      "withdrawalNote": "Withdrawals require admin approval and may take 1-3 business days.",
+      "withdrawError": "Withdrawal request failed. Please try again.",
+      "withdrawFunds": "Withdraw Funds"
+    }
+  },
+  "Monitoring": {},
+  "Navigation": {
+    "analytics": "СЕТЬ",
+    "billing": "ОПЛАТА",
+    "dashboard": "ПАНЕЛЬ",
+    "security": "БЕЗОПАСНОСТЬ",
+    "servers": "СЕРВЕРЫ",
+    "settings": "КОНФИГ",
+    "users": "КЛИЕНТЫ"
+  },
+  "Network": {
+    "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",
+    "labels": {
+      "activeNodes": "Активные Узлы",
+      "encryption": "AES-256-GCM",
+      "latency": "СР. ПИНГ: 12мс",
+      "status": "СТАТУС: ОНЛАЙН",
+      "threatsIntercepted": "Заблокировано Угроз",
+      "totalBandwidth": "Пропускная Способность"
+    },
+    "metrics": {
+      "bandwidth": "100+ Гбит/с",
+      "nodes": "5,204",
+      "threats": "14.2М/с"
+    },
+    "regions": {
+      "asia": "Аз.-Тихоокеанский",
+      "europe": "Европа",
+      "latam": "Лат. Америка",
+      "namerica": "Сев. Америка"
+    },
+    "servers": {
+      "1": "Нью-Йорк, США",
+      "2": "Лондон, ВБ",
+      "3": "Токио, Япония",
+      "4": "Сингапур",
+      "5": "Франкфурт, ЕС",
+      "6": "Сан-Паулу, БР",
+      "7": "Сидней, АВСТР"
+    },
+    "title": "Глобальная Инфраструктура"
+  },
+  "Partner": {},
+  "PaymentHistory": {},
+  "Placeholder": {
+    "descriptionLine1": "Этот модуль кибер-дека сейчас в разработке.",
+    "descriptionLine2": "Проверьте позже для обновлений прошивки.",
+    "errorCode": "КОД_ОШИБКИ: ФУНКЦИЯ_НЕ_ГОТОВА",
+    "title": "МОДУЛЬ СИСТЕМЫ ОФЛАЙН"
+  },
+  "Pricing": {
+    "faq": {
+      "a1": "Никак нет. Мы работаем на строгой инфраструктуре Zero-Log. Ваш цифровой след стирается при отключении.",
+      "a2": "Ваше соединение перейдет на базовую сниженную скорость (128 kbps). Обновитесь до Pro для безлимитной передачи.",
+      "a3": "Подтверждаю. Мы принимаем Bitcoin, Monero и защищенные цифровые кредиты. Абсолютная анонимность — наша главная директива.",
+      "q1": "Ведутся ли логи моей активности?",
+      "q2": "Что будет, если я превышу лимит трафика на тарифе Stealth?",
+      "q3": "Принимаете ли вы крипту?",
+      "title": "РАСШИФРОВАННЫЕ АРХИВЫ"
+    },
+    "subtitle": "Распределение мощности сети",
+    "tiers": {
+      "basic": {
+        "button": "ИНИЦИАЛИЗАЦИЯ STEALTH",
+        "description": "Базовое шифрование для навигации по окраинам цифрового мира.",
+        "features": [
+          "Ядерное шифрование AES-256",
+          "5 Глобальных Ретрансляторов",
+          "Лимит 10 ГБ/мес",
+          "Стандартный Пинг Поддержки"
+        ],
+        "name": "STEALTH",
+        "period": "/навсегда",
+        "price": "Free"
+      },
+      "elite": {
+        "button": "ПОЛУЧИТЬ ELITE",
+        "description": "Полный перехват сети. Выделенные IP и тотальный контроль инфраструктуры.",
+        "features": [
+          "Выделенный Cyber-IP Адрес",
+          "Обфусцированные Стелс Протоколы",
+          "Приоритетный Выбор Узлов",
+          "Сетевые Каналы 10Гбит/с",
+          "Доступ к Бета Директивам"
+        ],
+        "name": "ELITE_SYNC",
+        "period": "/месяц",
+        "price": "$15.99"
+      },
+      "pro": {
+        "badge": "ПОПУЛЯРНЫЙ_ВЫБОР",
+        "button": "ОБНОВИТЬ ДО PRO",
+        "description": "Неограниченная скорость и анонимность матричного уровня для истинных раннеров.",
+        "features": [
+          "Квантово-Устойчивые Протоколы",
+          "8,000+ Узлов 1-го Уровня",
+          "Безлимитная Пропускная Способность",
+          "Усиленные Ядра без Логов",
+          "Двойная Маршрутизация (Double VPN)"
+        ],
+        "name": "CYBER_PRO",
+        "period": "/месяц",
+        "price": "$8.99"
+      }
+    },
+    "title": "УРОВНИ ДОСТУПА"
+  },
+  "Privacy": {
+    "description": "СОВЕРШЕННО СЕКРЕТНО. РАСШИФРОВКА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ...",
+    "sections": {
+      "dataCollection": {
+        "content": "Для поддержания работы протокола нам необходим абсолютный минимум информации. Мы собираем только: учетные данные для авторизации (хэш пароля) и метаданные подписки (срок действия токена).",
+        "radarLabels": {
+          "blocked": "TRAFFIC LOGS",
+          "collected": "АВТОРИЗАЦИЯ"
+        },
+        "title": "02. СБОР ДАННЫХ"
+      },
+      "encryption": {
+        "content": "Ваш трафик защищен по стандарту AES-256-GCM с использованием совершенной прямой секретности (PFS). Это означает, что даже если квантовый компьютер будущего взломает текущий ключ, ваши прошлые сессии останутся в безопасности.",
+        "title": "04. КРИПТОГРАФИЯ"
+      },
+      "introduction": {
+        "content": "Данный документ представляет собой официальную Политику Конфиденциальности сети CyberVPN. Наш главный принцип: мы не можем выдать то, чего у нас нет. Мы создали инфраструктуру, которая физически не способна хранить ваши личные данные, логи активности или историю посещений.",
+        "title": "01. ВВЕДЕНИЕ & ОБЗОР"
+      },
+      "noLogs": {
+        "content": "Вся наша сеть работает на базе RAM-дисков (оперативной памяти). Как только сервер перезагружается, любые следы вашего присутствия уничтожаются безвозвратно. Мы не ведем журналы DNS-запросов, IP-адресов или временных меток сессий.",
+        "title": "03. ПОЛИТИКА ZERO-LOGS"
+      },
+      "thirdParties": {
+        "content": "CyberVPN не передает, не продает и не обменивает ваши данные. Мы не сотрудничаем с рекламными сетями или дата-брокерами. Наш единственный источник дохода — оплата подписки пользователями.",
+        "title": "05. ТРЕТЬИ СТОРОНЫ"
+      }
+    },
+    "status": {
+      "decrypted": "РАСШИФРОВАНО",
+      "decrypting": "РАСШИФРОВКА...",
+      "encrypted": "ЗАШИФРОВАНО"
+    },
+    "title": "ПРОТОКОЛ ПРОЗРАЧНОСТИ"
+  },
+  "PrivacyPolicy": {
+    "lastUpdated": "Last Updated",
+    "meta": {
+      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "title": "Privacy Policy - CyberVPN"
+    },
+    "sections": {
+      "changes": {
+        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
+        "title": "Changes to This Policy"
+      },
+      "contact": {
+        "address": "Address",
+        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "email": "Email",
+        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+        "title": "Contact Information"
+      },
+      "dataCollection": {
+        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "items": {
+          "accountInfo": "Account information (email address, username)",
+          "deviceInfo": "Device and connection metadata (device type, operating system)",
+          "paymentInfo": "Payment information (processed securely by third-party providers)",
+          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+        },
+        "title": "Data Collection"
+      },
+      "dataRetention": {
+        "description": "We retain data only as long as necessary:",
+        "policies": {
+          "accountData": "Account data: retained while your account is active",
+          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
+          "paymentRecords": "Payment records: 7 years for legal compliance",
+          "supportLogs": "Support logs: 90 days after ticket closure"
+        },
+        "title": "Data Retention"
+      },
+      "dataSecurity": {
+        "description": "We implement industry-standard security measures:",
+        "measures": {
+          "accessControl": "Strict access controls and authentication",
+          "encryption": "End-to-end encryption for all VPN traffic",
+          "regularAudits": "Regular security audits and vulnerability assessments",
+          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+        },
+        "title": "Data Security"
+      },
+      "gdprRights": {
+        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "rights": {
+          "access": {
+            "description": "Request a copy of your personal data",
+            "title": "Right to Access"
+          },
+          "erasure": {
+            "description": "Request deletion of your personal data",
+            "title": "Right to Erasure"
+          },
+          "objection": {
+            "description": "Object to processing of your data",
+            "title": "Right to Object"
+          },
+          "portability": {
+            "description": "Receive your data in a machine-readable format",
+            "title": "Right to Data Portability"
+          },
+          "rectification": {
+            "description": "Correct inaccurate or incomplete data",
+            "title": "Right to Rectification"
+          }
+        },
+        "title": "Your GDPR Rights"
+      },
+      "noLogPolicy": {
+        "details": "This means:",
+        "notLogged": {
+          "browsing": "No browsing history or website visits",
+          "connections": "No connection timestamps or session duration",
+          "dns": "No DNS queries or IP addresses",
+          "traffic": "No traffic data or content inspection"
+        },
+        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
+        "title": "No-Log Policy"
+      },
+      "thirdParty": {
+        "description": "We work with trusted third-party providers:",
+        "services": {
+          "analytics": "Anonymous analytics (no personally identifiable information)",
+          "infrastructure": "Cloud infrastructure providers (servers and network)",
+          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+        },
+        "title": "Third-Party Services"
+      }
+    },
+    "title": "Privacy Policy"
+  },
+  "Referral": {},
+  "Security": {
+    "classified": {
+      "text1": "Наши алгоритмы [ОБФУСКАЦИИ] разработаны бывшими инженерами [УДАЛЕНО], что позволяет нашему трафику сливаться с фоновым шумом интернета.",
+      "text2": "В случае физического захвата сервера [ПРОТОКОЛ ЗАРАЖЕНИЯ] автоматически форматирует все дисковые массивы [УДАЛЕНО].",
+      "title": "СОВЕРШЕННО СЕКРЕТНО"
+    },
+    "description": "АБСОЛЮТНАЯ ЗАЩИТА. ИНИЦИАЛИЗАЦИЯ ПРОТОКОЛОВ БЛАЖЕННОГО НЕВЕДЕНИЯ...",
+    "protocols": {
+      "headers": [
+        "ПРОТОКОЛ",
+        "ШИФРОВАНИЕ",
+        "СКОРОСТЬ",
+        "ОБХОД DPI"
+      ],
+      "openvpn": [
+        "OpenVPN",
+        "AES-256",
+        "Средняя",
+        "Средний"
+      ],
+      "stealth": [
+        "Cyber-Stealth",
+        "AES-256 + Obf",
+        "Высокая",
+        "Абсолютный"
+      ],
+      "title": "СРАВНЕНИЕ ПРОТОКОЛОВ",
+      "wireguard": [
+        "WireGuard",
+        "ChaCha20",
+        "Максимальная",
+        "Низкий"
+      ]
+    },
+    "radar": {
+      "blocked": "ЗАБЛОКИРОВАНО",
+      "deflected": "ОТРАЖЕНО",
+      "events": {
+        "brute": "Brute-force SSH",
+        "dpi": "Попытка глубокого анализа пакетов (DPI)",
+        "malware": "Сигнатура известного парсера",
+        "syn": "TCP SYN Flood атака",
+        "tracker": "Инъекция рекламного трекера"
+      },
+      "status": "ПРЯМАЯ ТРАНСЛЯЦИЯ ВТОРЖЕНИЙ",
+      "title": "РАДАР УГРОЗ"
+    },
+    "stack": {
+      "bareMetal": {
+        "description": "Мы используем исключительно арендованные bare-metal серверы. Никаких VPS соседей. Оперативная память работает в режиме RAM-only (Tails-подобная архитектура), уничтожая все данные при перезагрузке по питанию.",
+        "title": "01. АППАРАТНЫЙ УРОВЕНЬ"
+      },
+      "client": {
+        "description": "Приложения с открытым исходным кодом, проходящие строгий независимый аудит. Встроенный Network Lock (Kill Switch) моментально рубит трафик при малейшей потере связи с ядром.",
+        "title": "04. КЛИЕНТСКИЙ УРОВЕНЬ"
+      },
+      "crypto": {
+        "description": " AES-256-GCM шифрование с совершенной прямой секретностью (PFS) через обмен ключами ECDHE (Curve25519). Даже если математика будет взломана в будущем, прошлый трафик останется нечитаемым.",
+        "title": "03. КРИПТОГРАФИЯ"
+      },
+      "network": {
+        "description": "Сложная система Anycast DNS и обфускации трафика. Ваши пакеты маскируются под обычный HTTPS-трафик (TLS 1.3), делая VPN-соединение невидимым для систем государственного фаервола (DPI).",
+        "title": "02. СЕТЕВОЙ УРОВЕНЬ"
+      },
+      "title": "АРХИТЕКТУРНЫЙ СТЕК"
+    },
+    "title": "ЯДРО ШИФРОВАНИЯ"
+  },
+  "ServerCard": {
+    "ip": "IP",
+    "load": "НАГРУЗКА",
+    "protocol": "ПРОТОКОЛ"
+  },
+  "Servers": {
+    "globalStatus": "ОБЩИЙ СТАТУС: {status}",
+    "globalStatusValue": "РАЗВЕРНУТО",
+    "lastSync": "ПОСЛЕДНЯЯ СИНХРОНИЗАЦИЯ: {time} НАЗАД",
+    "subtitle": "Управление узлами VPN, протоколами и регионами размещения.",
+    "title": "УПРАВЛЕНИЕ СЕРВЕРАМИ"
+  },
+  "ServersTable": {
+    "actions": {
+      "config": "Конфиг",
+      "restart": "Перезапуск",
+      "stop": "Остановить"
+    },
+    "columns": {
+      "controls": "УПРАВЛЕНИЕ",
+      "ipAddress": "IP АДРЕС",
+      "load": "НАГРУЗКА",
+      "location": "ЛОКАЦИЯ",
+      "protocol": "ПРОТОКОЛ",
+      "serverName": "ИМЯ СЕРВЕРА",
+      "status": "СТАТУС"
+    },
+    "deployNode": "+ РАЗВЕРНУТЬ УЗЕЛ",
+    "status": {
+      "maintenance": "ОБСЛУЖИВАНИЕ",
+      "offline": "ОФФЛАЙН",
+      "online": "ОНЛАЙН",
+      "warning": "ВНИМАНИЕ"
+    },
+    "title": "АКТИВНАЯ ИНФРАСТРУКТУРА"
+  },
+  "Settings": {},
+  "Status": {
+    "history": {
+      "title": "История за 90 дней",
+      "tooltip_date": "Дата",
+      "tooltip_status": "Статус"
+    },
+    "incidents": {
+      "empty": "Инцидентов нет. Сеть защищена.",
+      "title": "ЛОГ ИНЦИДЕНТОВ",
+      "view_all": "СМОТРЕТЬ АРХИВ"
+    },
+    "metrics": {
+      "active_nodes": "АКТИВНЫЕ ЯДРА",
+      "bandwidth": "ПРОПУСКНАЯ СПОСОБНОСТЬ",
+      "latency": "СРЕДНИЙ ПИНГ",
+      "status_nominal": "СИСТЕМЫ В НОРМЕ",
+      "status_outage": "ЗАФИКСИРОВАН СБОЙ",
+      "status_warning": "СНИЖЕНИЕ ПРОИЗВОДИТЕЛЬНОСТИ",
+      "uptime": "99.99% АПТАЙМ"
+    },
+    "subtitle": "Глобальный центр управления сетью",
+    "title": "СИСТЕМНАЯ РАДАР"
+  },
+  "Subscriptions": {},
+  "Terms": {
+    "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
+    "sections": {
+      "acceptance": {
+        "content": "Используя инфраструктуру CyberVPN, вы инициируете обязательный кибернетический контракт. Доступ к нашим узлам связи (Серверам) предоставляется исключительно на условиях безоговорочного принятия данных Директив. Если ваши протоколы не согласны с условиями, немедленно разорвите соединение.",
+        "title": "01. ИНИЦИАЛИЗАЦИЯ СОГЛАШЕНИЯ"
+      },
+      "liability": {
+        "content": "Вы несете единоличную ответственность за пакеты данных, которые вы передаете через нашу сеть. В максимальной степени, разрешенной законом, CyberVPN не несет ответственности за любой прямой, косвенный или случайный ущерб, потерю прибыли или сбои в ваших системах.",
+        "title": "04. ОГРАНИЧЕНИЕ ОТВЕТСТВЕННОСТИ"
+      },
+      "prohibited": {
+        "content": "Сеть CyberVPN создана для обхода цензуры и защиты цифровой личности, а не для нанесения ущерба другим системам. Следующие паттерны трафика строго запрещены на аппаратном уровне:",
+        "rules": {
+          "botnets": "Управление ботнетами",
+          "csam": "Любой контент, эксплуатирующий несовершеннолетних",
+          "ddos": "DDoS-атаки и флуд сетей",
+          "malware": "Распространение вредоносного ПО",
+          "spam": "Массовая рассылка спама"
+        },
+        "title": "02. БЛОКИРОВКА ПАТТЕРНОВ"
+      },
+      "service": {
+        "content": "Хотя наша инфраструктура спроектирована с учетом максимальной отказоустойчивости (99.9% аптайм), мы предоставляем доступ «как есть» (as-is). Мы оставляем за собой право отключать, переносить или обновлять любые узлы связи (Ноды) без предварительного уведомления для обеспечения суммарной безопасности матрицы.",
+        "title": "03. ГАРАНТИИ И ДОСТУПНОСТЬ"
+      },
+      "termination": {
+        "content": "Мы оставляем за собой право мгновенно, без объяснения причин и предварительного уведомления терминировать ваш токен доступа, если наши нейросети или администраторы зафиксируют нарушение пункта 02 (Блокировка Паттернов). Деньги за оставшийся период подписки в таком случае не возвращаются.",
+        "title": "05. ПРОТОКОЛ УНИЧТОЖЕНИЯ"
+      }
+    },
+    "status": {
+      "acknowledged": "ОЗНАКОМЛЕН",
+      "unverified": "НЕ ПОДТВЕРЖДЕНО"
+    },
+    "terminal": {
+      "command": "ПРИНЯТЬ_ДИРЕКТИВЫ",
+      "prompt": "ОЖИДАНИЕ ВВОДА ПОЛЬЗОВАТЕЛЯ...",
+      "verified": "СИСТЕМА: ДОСТУП РАЗРЕШЕН. КОНТРАКТ ПОДПИСАН."
+    },
+    "title": "СИСТЕМНЫЕ ДИРЕКТИВЫ"
+  },
+  "Users": {
+    "newToday": "СЕГОДНЯ НОВЫХ: {count}",
+    "subtitle": "Контроль доступа и мониторинг подписок.",
+    "title": "УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ",
+    "totalUsers": "ПОЛЬЗОВАТЕЛЕЙ ВСЕГО: {count}"
+  },
+  "UsersTable": {
+    "columns": {
+      "actions": "ДЕЙСТВИЯ",
+      "dataUsage": "ТРАФИК",
+      "identity": "ИДЕНТИФИКАТОР",
+      "lastSeen": "ПОСЛЕДНИЙ ВИЗИТ",
+      "status": "СТАТУС",
+      "subscription": "ПОДПИСКА"
+    },
+    "searchPlaceholder": "ПОИСК_ПОЛЬЗОВАТЕЛЯ...",
+    "status": {
+      "active": "АКТИВЕН",
+      "banned": "ЗАБЛОКИРОВАН",
+      "expired": "ИСТЕК",
+      "trial": "ПРОБНЫЙ"
+    },
+    "title": "БАЗА КЛИЕНТОВ"
+  },
+  "Wallet": {}
+}

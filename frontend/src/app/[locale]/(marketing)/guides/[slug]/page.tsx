@@ -2,7 +2,7 @@ import type { BreadcrumbList, TechArticle } from 'schema-dts';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { getSeoUiLabels } from '@/content/seo/market-localization';
-import { locales } from '@/i18n/config';
+import { getStaticParamsLocales } from '@/i18n/config';
 import { getGuideEntries, getGuideEntry } from '@/content/seo/guides';
 import { JsonLd } from '@/shared/lib/json-ld';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
@@ -17,7 +17,7 @@ import { SeoKnowledgeArticlePage } from '@/widgets/seo/knowledge-article-page';
 export async function generateStaticParams() {
   const entries = await getGuideEntries();
 
-  return locales.flatMap((locale) =>
+  return getStaticParamsLocales().flatMap((locale) =>
     entries.map((entry) => ({
       locale,
       slug: entry.slug,
