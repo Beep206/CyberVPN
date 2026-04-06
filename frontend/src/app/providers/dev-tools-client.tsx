@@ -1,19 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
-import { DevPanel } from '@/features/dev/dev-panel';
-import { consoleInterceptor } from '@/features/dev/lib/console-interceptor';
-import { injectTwaMock } from '@/features/dev/lib/twa-mock';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { DevToolsBootstrap } from '@/app/providers/dev-tools-bootstrap';
+import { DevButton } from '@/features/dev/dev-button';
+
+const LazyDevPanel = dynamic(
+  () => import('@/features/dev/dev-panel').then((module) => module.DevPanel),
+  {
+    ssr: false,
+  },
+);
 
 export function DevToolsClient() {
-  useEffect(() => {
-    injectTwaMock();
-    consoleInterceptor.start();
+  const [isPanelEnabled, setPanelEnabled] = useState(false);
 
-    return () => {
-      consoleInterceptor.stop();
-    };
-  }, []);
-
-  return <DevPanel />;
+  return (
+    <>
+      <DevToolsBootstrap />
+      {isPanelEnabled ? (
+        <LazyDevPanel defaultOpen />
+      ) : (
+        <DevButton onClick={() => setPanelEnabled(true)} />
+      )}
+    </>
+  );
 }

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { AUTH_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
+import { getCachedTranslations } from '@/i18n/server';
 import { AuthSceneLoader } from '@/features/auth/components/AuthSceneLoader';
 import { MiniAppNavGuard } from '@/features/auth/components/MiniAppNavGuard';
 import { TelegramMiniAppAuthProvider } from '@/features/auth/components/TelegramMiniAppAuthProvider';
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Auth.meta' });
+  const t = await getCachedTranslations(locale, 'Auth.meta');
 
   return withSiteMetadata({
     title: t('title'),

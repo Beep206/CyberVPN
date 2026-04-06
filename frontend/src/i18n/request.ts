@@ -1,185 +1,65 @@
 import { cache } from 'react';
 import { getRequestConfig } from 'next-intl/server';
 import { defaultLocale, locales } from './config';
+import { loadCompiledLocaleMessages } from './messages.generated';
 
 type Locale = (typeof locales)[number];
 type Messages = Record<string, unknown>;
 type RequestLocale = Promise<string | undefined> | string | undefined;
 
-// Helper for deep merging translation objects
 function deepMerge(target: Messages, source: Messages): Messages {
-    const output = { ...target };
+  const output = { ...target };
 
-    for (const key in source) {
-        if (
-            Object.prototype.hasOwnProperty.call(source, key) &&
-            source[key] != null &&
-            typeof source[key] === 'object' &&
-            !Array.isArray(source[key]) &&
-            key in target &&
-            target[key] != null &&
-            typeof target[key] === 'object' &&
-            !Array.isArray(target[key])
-        ) {
-            output[key] = deepMerge(target[key] as Messages, source[key] as Messages);
-        } else {
-            output[key] = source[key];
-        }
+  for (const key in source) {
+    if (
+      Object.prototype.hasOwnProperty.call(source, key) &&
+      source[key] != null &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key]) &&
+      key in target &&
+      target[key] != null &&
+      typeof target[key] === 'object' &&
+      !Array.isArray(target[key])
+    ) {
+      output[key] = deepMerge(target[key] as Messages, source[key] as Messages);
+    } else {
+      output[key] = source[key];
     }
+  }
 
-    return output;
+  return output;
 }
 
+const loadLocaleMessages = cache(async (locale: Locale) => loadCompiledLocaleMessages(locale));
+
 export default getRequestConfig(async ({ requestLocale }) => {
-    const resolvedLocale = await resolveRequestLocale(requestLocale);
+  const resolvedLocale = await resolveRequestLocale(requestLocale);
 
-    // Load base messages (English) and current locale messages
-    const baseMessages = await loadLocaleMessages(defaultLocale);
-    let messages = baseMessages;
+  const baseMessages = await loadLocaleMessages(defaultLocale);
+  let messages = baseMessages;
 
-    if (resolvedLocale !== defaultLocale) {
-        try {
-            const currentMessages = await loadLocaleMessages(resolvedLocale);
-            // Deep merge ensures that missing keys in current locale fall back to English
-            messages = deepMerge(baseMessages as Messages, currentMessages as Messages) as typeof baseMessages;
-        } catch (error) {
-            console.error(`Failed to load messages for ${resolvedLocale}, falling back to ${defaultLocale}`, error);
-        }
+  if (resolvedLocale !== defaultLocale) {
+    try {
+      const currentMessages = await loadLocaleMessages(resolvedLocale);
+      messages = deepMerge(baseMessages, currentMessages) as typeof baseMessages;
+    } catch (error) {
+      console.error(
+        `Failed to load messages for ${resolvedLocale}, falling back to ${defaultLocale}`,
+        error,
+      );
     }
+  }
 
-    return {
-        locale: resolvedLocale,
-        messages
-    };
+  return {
+    locale: resolvedLocale,
+    messages,
+  };
 });
 
 export async function resolveRequestLocale(requestLocale: RequestLocale): Promise<Locale> {
-    const requestedLocale = await requestLocale;
+  const requestedLocale = await requestLocale;
 
-    return locales.includes(requestedLocale as Locale)
-        ? (requestedLocale as Locale)
-        : defaultLocale;
+  return locales.includes(requestedLocale as Locale)
+    ? (requestedLocale as Locale)
+    : defaultLocale;
 }
-
-const loadLocaleMessages = cache(async function loadLocaleMessages(locale: Locale) {
-    const [
-        header,
-        navigation,
-        dashboard,
-        users,
-        servers,
-        placeholder,
-        usersTable,
-        serversTable,
-        serverCard,
-        landing,
-        footer,
-        languageSelector,
-        privacyPolicy,
-        deleteAccount,
-        auth,
-        a11y,
-        miniApp,
-        settings,
-        analytics,
-        monitoring,
-        subscriptions,
-        wallet,
-        paymentHistory,
-        referral,
-        partner,
-        devices,
-        helpCenter,
-        docs,
-        contact,
-        status,
-        download,
-        pricing,
-        features,
-        network,
-        api,
-        privacy,
-        terms,
-        security
-    ] = await Promise.all([
-        import(`../../messages/${locale}/header.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/navigation.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/dashboard.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/users.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/servers.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/placeholder.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/users-table.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/servers-table.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/server-card.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/landing.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/footer.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/language-selector.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/privacy-policy.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/delete-account.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/auth.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/a11y.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/MiniApp.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/settings.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/analytics.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/monitoring.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/subscriptions.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/wallet.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/payment-history.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/referral.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/partner.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/devices.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/HelpCenter.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Docs.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Contact.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Status.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Download.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Pricing.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Features.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Network.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Api.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Privacy.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Terms.json`).catch(() => ({ default: {} })),
-        import(`../../messages/${locale}/Security.json`).catch(() => ({ default: {} }))
-    ]);
-
-    return {
-        Header: header.default,
-        Navigation: navigation.default,
-        Dashboard: dashboard.default,
-        Users: users.default,
-        Servers: servers.default,
-        Placeholder: placeholder.default,
-        UsersTable: usersTable.default,
-        ServersTable: serversTable.default,
-        ServerCard: serverCard.default,
-        Landing: landing.default,
-        Footer: footer.default,
-        LanguageSelector: languageSelector.default,
-        PrivacyPolicy: privacyPolicy.default,
-        DeleteAccount: deleteAccount.default,
-        Auth: auth.default,
-        A11y: a11y.default,
-        MiniApp: miniApp.default,
-        Settings: settings.default,
-        Analytics: analytics.default,
-        Monitoring: monitoring.default,
-        Subscriptions: subscriptions.default,
-        Wallet: wallet.default,
-        PaymentHistory: paymentHistory.default,
-        Referral: referral.default,
-        Partner: partner.default,
-        Devices: devices.default,
-        HelpCenter: helpCenter.default,
-        Docs: docs.default,
-        Contact: contact.default,
-        Status: status.default,
-        Download: download.default,
-        Pricing: pricing.default,
-        Features: features.default,
-        Network: network.default,
-        Api: api.default,
-        Privacy: privacy.default,
-        Terms: terms.default,
-        Security: security.default
-    };
-});
