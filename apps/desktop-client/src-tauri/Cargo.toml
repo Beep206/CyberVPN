@@ -58,6 +58,13 @@ tokio-util = "0.7.18"
 rust-embed = "8.11.0"
 tower-http = { version = "0.6.8", features = ["cors", "fs", "trace"] }
 helix-runtime = { path = "../../../packages/helix-runtime" }
+zettabgp = "0.2.1"
+rtnetlink = { version = "0.14", optional = true }
+netlink-packet-route = { version = "0.19", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rtnetlink = "0.14"
+netlink-packet-route = "0.19"
 
 [profile.release]
 panic = "abort"
