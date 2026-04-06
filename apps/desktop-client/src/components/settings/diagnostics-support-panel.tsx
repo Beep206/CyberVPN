@@ -913,7 +913,7 @@ export function DiagnosticsSupportPanel() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-lg border border-border/40 bg-black/30 p-4">
           <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
             Desktop Snapshot
@@ -960,6 +960,25 @@ export function DiagnosticsSupportPanel() {
             {lastExport ? `${lastExport.event_count} recent events packed` : "ZIP includes logs + snapshot"}
           </div>
         </div>
+        <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Startup Recovery
+          </div>
+          <div className="mt-2 text-sm text-foreground">
+            {snapshot
+              ? snapshot.lifecycle.previous_unclean_shutdown_detected
+                ? "Recovered after unclean exit"
+                : "Clean startup"
+              : "Loading..."}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {snapshot
+              ? snapshot.lifecycle.hidden_launch_requested
+                ? "Hidden launch requested"
+                : "Visible launch"
+              : "Waiting..."}
+          </div>
+        </div>
       </div>
 
       {snapshot ? (
@@ -996,10 +1015,30 @@ export function DiagnosticsSupportPanel() {
               </div>
               <div>
                 <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                  Launch Mode
+                </div>
+                <div className="mt-1 text-sm text-foreground">
+                  {snapshot.lifecycle.hidden_launch_requested ? "Hidden" : "Visible"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                   Local SOCKS Port
                 </div>
                 <div className="mt-1 text-sm text-foreground">
                   {snapshot.local_socks_port ?? "Default"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                  Previous Exit
+                </div>
+                <div className="mt-1 text-sm text-foreground">
+                  {snapshot.lifecycle.previous_exit_kind
+                    ? `${snapshot.lifecycle.previous_exit_kind} at ${formatTimestamp(
+                        snapshot.lifecycle.previous_exit_at,
+                      )}`
+                    : "No prior exit signal"}
                 </div>
               </div>
               <div>
@@ -1016,6 +1055,18 @@ export function DiagnosticsSupportPanel() {
                 </div>
                 <div className="mt-1 text-sm text-foreground">
                   {snapshot.allow_lan ? "LAN on" : "LAN off"}, {snapshot.split_tunneling_app_count} apps
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                  Startup Recovery Detail
+                </div>
+                <div className="mt-1 text-sm text-foreground">
+                  {snapshot.lifecycle.previous_unclean_shutdown_detected
+                    ? `Recovered previous run ${snapshot.lifecycle.previous_run_id ?? "unknown"}; proxy cleanup ${
+                        snapshot.lifecycle.system_proxy_cleanup_succeeded ? "succeeded" : "attempted"
+                      }.`
+                    : "No unclean previous desktop shutdown detected."}
                 </div>
               </div>
             </div>

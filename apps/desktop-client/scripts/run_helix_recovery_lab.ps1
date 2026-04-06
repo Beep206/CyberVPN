@@ -146,6 +146,46 @@ try {
         -Attempts ([Math]::Max($PostRecoveryAttempts, 1)) `
         -ConnectTimeoutSeconds $ConnectTimeoutSeconds `
         -DownloadBytesLimit $DownloadBytesLimit
+    $recoveryReadyAck = $null
+    $recoveryReadyError = $null
+    $proxyReadyGapMs = if (
+        $null -ne $proxyReadyProbe.connect_latency_ms -and
+        $null -ne $proxyReadyProbe.first_byte_latency_ms
+    ) {
+        Convert-ToNullableInt ([Math]::Max(
+            [double]$proxyReadyProbe.first_byte_latency_ms - [double]$proxyReadyProbe.connect_latency_ms,
+            0
+        ))
+    } else {
+        $null
+    }
+
+    $recoveryEvidence = [ordered]@{
+        same_route_recovered = if ($actionReport.route_before -and $actionReport.route_after) {
+            $actionReport.route_before -eq $actionReport.route_after
+        } else {
+            $null
+        }
+        ready_recovery_latency_ms = Convert-ToNullableInt $readyRecoveryLatencyMs
+        proxy_ready_latency_ms = Convert-ToNullableInt $proxyReadyLatencyMs
+        proxy_ready_open_to_first_byte_gap_ms = $proxyReadyGapMs
+        successful_cross_route_recovers = $healthAfter.active_route_successful_cross_route_recovers
+        last_cross_route_recovery_ms = $healthAfter.active_route_last_cross_route_recovery_ms
+    }
+
+    try {
+        $recoveryReadyAck = Publish-HelixReadyEvent `
+            -AdapterUrl $AdapterUrl `
+            -InternalToken $InternalToken `
+            -Session $session `
+            -Health $healthAfter `
+            -Telemetry $telemetryAfter `
+            -LatencyMs (Convert-ToNullableInt $proxyReadyLatencyMs) `
+            -Reason "headless recovery evidence ($Mode)" `
+            -RecoveryEvidence $recoveryEvidence
+    } catch {
+        $recoveryReadyError = $_.Exception.Message
+    }
 
     $healthBeforePath = Join-Path $session.run_dir "helix-health-before.json"
     $healthAfterPath = Join-Path $session.run_dir "helix-health-after.json"
@@ -183,6 +223,7 @@ try {
         action = $actionReport
         ready_recovery_latency_ms = $readyRecoveryLatencyMs
         proxy_ready_latency_ms = $proxyReadyLatencyMs
+        proxy_ready_open_to_first_byte_gap_ms = $proxyReadyGapMs
         proxy_ready_measurement = "time-to-first-byte-through-socks-probe"
         standby_rewarm_latency_ms = $standbyRewarmLatencyMs
         proxy_ready_probe = $proxyReadyProbe
@@ -191,6 +232,12 @@ try {
         telemetry_after = $telemetryAfter
         post_recovery_benchmark = $postRecoveryBenchmark
         warmup_probe = $warmupProbe
+        evidence_publish = [ordered]@{
+            startup_ready_ack = $session.startup_ready_event_ack
+            startup_ready_error = $session.startup_ready_event_error
+            recovery_ready_ack = $recoveryReadyAck
+            recovery_ready_error = $recoveryReadyError
+        }
         artifacts = [ordered]@{
             runtime_config = $session.runtime_config_path
             manifest = $session.manifest_path

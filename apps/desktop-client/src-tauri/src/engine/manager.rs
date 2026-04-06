@@ -5,7 +5,7 @@ use reqwest::Client;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
@@ -204,6 +204,45 @@ async fn poll_helix_health(
     }
 }
 
+async fn handle_unexpected_runtime_exit(app_handle: &AppHandle, reason: &str) {
+    let _ = crate::engine::sysproxy::clear_system_proxy();
+
+    if let Some(state) = app_handle.try_state::<crate::ipc::AppState>() {
+        let previous_status = state.status.read().await.clone();
+        let mut status_lock = state.status.write().await;
+        status_lock.status = "error".to_string();
+        status_lock.proxy_url = None;
+        status_lock.message = Some(reason.to_string());
+        status_lock.active_core = None;
+        status_lock.active_id = None;
+        status_lock.up_bytes = 0;
+        status_lock.down_bytes = 0;
+        let status_snapshot = status_lock.clone();
+        drop(status_lock);
+        let _ = app_handle.emit("connection-status", status_snapshot);
+
+        let _ = crate::engine::diagnostics::record_event(
+            app_handle,
+            crate::engine::diagnostics::DiagnosticLevel::Error,
+            "vpn.process",
+            "VPN runtime exited unexpectedly",
+            serde_json::json!({
+                "reason": reason,
+                "previous_status": previous_status.status,
+                "previous_core": previous_status.active_core,
+                "previous_proxy_url": previous_status.proxy_url,
+            }),
+        );
+    }
+
+    if let Ok(mut store_data) = crate::engine::store::load_store(app_handle) {
+        if store_data.active_profile_id.is_some() {
+            store_data.active_profile_id = None;
+            let _ = crate::engine::store::save_store(app_handle, &store_data);
+        }
+    }
+}
+
 impl Default for ProcessManager {
     fn default() -> Self {
         Self::new()
@@ -394,6 +433,11 @@ impl ProcessManager {
                         }
 
                         if !is_running {
+                            handle_unexpected_runtime_exit(
+                                &app_clone_watchdog,
+                                "Elevated VPN runtime exited unexpectedly",
+                            )
+                            .await;
                             use tauri::Manager;
                             if let Some(guard) = app_clone_watchdog
                                 .try_state::<crate::engine::sys::sentinel::SentinelGuard>(
@@ -548,14 +592,11 @@ impl ProcessManager {
                 }
 
                 if !is_running {
-                    // Unexpected exit detected
-                    let _ = crate::engine::diagnostics::record_event(
+                    handle_unexpected_runtime_exit(
                         &app_clone_watchdog,
-                        crate::engine::diagnostics::DiagnosticLevel::Error,
-                        "vpn.process",
                         "VPN runtime exited unexpectedly",
-                        serde_json::json!({}),
-                    );
+                    )
+                    .await;
                     use tauri::Manager;
                     if let Some(guard) = app_clone_watchdog
                         .try_state::<crate::engine::sys::sentinel::SentinelGuard>()

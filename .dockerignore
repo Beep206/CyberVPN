@@ -3,6 +3,8 @@
 .idea
 .vscode
 .coverage
+.artifacts
+.cargo-targets
 .hypothesis
 **/.hypothesis
 **/.pytest_cache
@@ -13,6 +15,10 @@
 **/.next
 **/coverage
 **/target
+**/.cargo-targets
+**/.artifacts
+**/artifacts
 **/.turbo
 **/.DS_Store
 **/Thumbs.db
+*.log

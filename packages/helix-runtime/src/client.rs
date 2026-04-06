@@ -25,13 +25,17 @@ use crate::{
 const CONTROL_FRAME_CHANNEL_CAPACITY: usize = 256;
 const DATA_FRAME_CHANNEL_CAPACITY: usize = 8;
 const CONTROL_COMMAND_CHANNEL_CAPACITY: usize = 256;
-const DATA_COMMAND_CHANNEL_CAPACITY: usize = 2;
+const DATA_COMMAND_CHANNEL_CAPACITY: usize = 4;
 const STREAM_CHANNEL_CAPACITY: usize = 96;
 const MAX_STREAM_FRAME_PAYLOAD: usize = 8 * 1024;
 const CONTENDED_STREAM_FRAME_PAYLOAD: usize = 4 * 1024;
 const HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD: usize = 1024;
+const MAX_INBOUND_STREAM_FRAME_PAYLOAD: usize = 16 * 1024;
+const CONTENDED_INBOUND_STREAM_FRAME_PAYLOAD: usize = 2 * 1024;
+const HEAVILY_CONTENDED_INBOUND_STREAM_FRAME_PAYLOAD: usize = 1024;
 const MAX_PENDING_INBOUND_BYTES: usize = 8 * 1024 * 1024;
 const MAX_PENDING_INBOUND_BYTES_PER_STREAM: usize = 512 * 1024;
+const MAX_PENDING_INBOUND_BYTES_PER_STREAM_WITH_SIBLINGS: usize = 16 * 1024;
 const WRITER_CONTROL_BURST_LIMIT: usize = 2;
 
 #[derive(Debug, Clone)]
@@ -122,16 +126,11 @@ pub struct ClientStreamWriter {
 
 impl ClientStreamWriter {
     pub async fn send(&self, data: Vec<u8>) -> Result<(), TransportError> {
-        let command_bus = self
-            .session_commands
-            .read()
-            .await
-            .clone()
-            .ok_or_else(|| {
-                TransportError::Protocol(
-                    "Helix session is reconnecting and is not ready for writes".to_string(),
-                )
-            })?;
+        let command_bus = self.session_commands.read().await.clone().ok_or_else(|| {
+            TransportError::Protocol(
+                "Helix session is reconnecting and is not ready for writes".to_string(),
+            )
+        })?;
 
         command_bus
             .data_tx
@@ -144,16 +143,11 @@ impl ClientStreamWriter {
     }
 
     pub async fn close(&self, reason: impl Into<String>) -> Result<(), TransportError> {
-        let command_bus = self
-            .session_commands
-            .read()
-            .await
-            .clone()
-            .ok_or_else(|| {
-                TransportError::Protocol(
-                    "Helix session is reconnecting and is not ready for close".to_string(),
-                )
-            })?;
+        let command_bus = self.session_commands.read().await.clone().ok_or_else(|| {
+            TransportError::Protocol(
+                "Helix session is reconnecting and is not ready for close".to_string(),
+            )
+        })?;
 
         command_bus
             .data_tx
@@ -166,16 +160,11 @@ impl ClientStreamWriter {
     }
 
     pub async fn finish(&self) -> Result<(), TransportError> {
-        let command_bus = self
-            .session_commands
-            .read()
-            .await
-            .clone()
-            .ok_or_else(|| {
-                TransportError::Protocol(
-                    "Helix session is reconnecting and is not ready for finish".to_string(),
-                )
-            })?;
+        let command_bus = self.session_commands.read().await.clone().ok_or_else(|| {
+            TransportError::Protocol(
+                "Helix session is reconnecting and is not ready for finish".to_string(),
+            )
+        })?;
 
         command_bus
             .data_tx
@@ -315,10 +304,12 @@ fn outbound_stream_frame_payload(stream_count: usize) -> usize {
 }
 
 fn inbound_stream_frame_payload(stream_count: usize) -> usize {
-    if stream_count >= 2 {
-        HEAVILY_CONTENDED_STREAM_FRAME_PAYLOAD
+    if stream_count >= 4 {
+        HEAVILY_CONTENDED_INBOUND_STREAM_FRAME_PAYLOAD
+    } else if stream_count >= 2 {
+        CONTENDED_INBOUND_STREAM_FRAME_PAYLOAD
     } else {
-        MAX_STREAM_FRAME_PAYLOAD
+        MAX_INBOUND_STREAM_FRAME_PAYLOAD
     }
 }
 
@@ -471,7 +462,12 @@ async fn enqueue_client_inbound_data(
     stream_id: u64,
     data: Vec<u8>,
     inbound: &ClientInbound,
+    session_state: &Arc<Mutex<ClientSessionState>>,
 ) -> ClientInboundEnqueueResult {
+    let active_stream_count = {
+        let state = session_state.lock().await;
+        state.active.len()
+    };
     let mut state = inbound.state.lock().await;
     if state.pending_closes.contains_key(&stream_id) {
         return ClientInboundEnqueueResult::IgnoredClosing;
@@ -484,7 +480,12 @@ async fn enqueue_client_inbound_data(
         .get(&stream_id)
         .copied()
         .unwrap_or(0);
-    if stream_pending_bytes.saturating_add(data.len()) > MAX_PENDING_INBOUND_BYTES_PER_STREAM {
+    let inbound_stream_limit = if active_stream_count > 1 {
+        MAX_PENDING_INBOUND_BYTES_PER_STREAM_WITH_SIBLINGS
+    } else {
+        MAX_PENDING_INBOUND_BYTES_PER_STREAM
+    };
+    if stream_pending_bytes.saturating_add(data.len()) > inbound_stream_limit {
         return ClientInboundEnqueueResult::StreamQuotaExceeded;
     }
 
@@ -858,31 +859,21 @@ async fn run_client_session(
         .unwrap_or(false);
 
     if prior_session_id.is_some() && !resumed_last_session {
-        reset_client_runtime_state(&snapshot, &session_state, &inbound, "client session replaced")
-            .await;
+        reset_client_runtime_state(
+            &snapshot,
+            &session_state,
+            &inbound,
+            "client session replaced",
+        )
+        .await;
     }
 
     let (active_streams, pending_open_streams) = client_session_counts(&session_state).await;
 
-    {
-        let mut guard = snapshot.write().await;
-        guard.status = "ready".to_string();
-        guard.ready = true;
-        guard.connected = true;
-        guard.session_id = Some(welcome.session_id.clone());
-        guard.resumed_last_session = resumed_last_session;
-        guard.remote_addr = Some(
-            stream
-                .peer_addr()
-                .map(|addr| addr.to_string())
-                .unwrap_or_else(|_| config.route.dial_addr()),
-        );
-        guard.active_streams = active_streams;
-        guard.pending_open_streams = pending_open_streams;
-        guard.frame_queue_depth = 0;
-        guard.last_error = None;
-    }
-
+    let remote_addr = stream
+        .peer_addr()
+        .map(|addr| addr.to_string())
+        .unwrap_or_else(|_| config.route.dial_addr());
     let (reader, writer) = stream.into_split();
     let (control_frame_tx, control_frame_rx) = mpsc::channel(CONTROL_FRAME_CHANNEL_CAPACITY);
     let (data_frame_tx, data_frame_rx) = mpsc::channel(DATA_FRAME_CHANNEL_CAPACITY);
@@ -907,13 +898,8 @@ async fn run_client_session(
     ));
 
     if resumed_last_session {
-        resend_pending_client_opens(
-            &session_state,
-            &control_frame_tx,
-            &data_frame_tx,
-            &snapshot,
-        )
-        .await?;
+        resend_pending_client_opens(&session_state, &control_frame_tx, &data_frame_tx, &snapshot)
+            .await?;
     }
 
     let mut data_scheduler_task = tokio::spawn(run_client_data_scheduler(
@@ -930,6 +916,27 @@ async fn run_client_session(
         session_commands.clone(),
         data_command_tx.clone(),
     ));
+
+    {
+        let mut guard = snapshot.write().await;
+        guard.status = "warming".to_string();
+        guard.ready = false;
+        guard.connected = true;
+        guard.session_id = Some(welcome.session_id.clone());
+        guard.resumed_last_session = resumed_last_session;
+        guard.remote_addr = Some(remote_addr);
+        guard.active_streams = active_streams;
+        guard.pending_open_streams = pending_open_streams;
+        guard.frame_queue_depth = 0;
+        guard.last_error = None;
+    }
+
+    control_frame_tx
+        .send(ControlFrame::Ping {
+            sent_at_ms: unix_timestamp_ms(),
+        })
+        .await
+        .map_err(|_| TransportError::ChannelClosed("client warmup ping"))?;
     let mut reader_task = tokio::spawn(run_frame_reader(
         reader,
         session_key,
@@ -1242,9 +1249,9 @@ where
             }
         };
 
-            let data_len = match &frame {
-                ControlFrame::StreamData { data, .. } => u64::try_from(data.len()).unwrap_or(u64::MAX),
-                _ => 0,
+        let data_len = match &frame {
+            ControlFrame::StreamData { data, .. } => u64::try_from(data.len()).unwrap_or(u64::MAX),
+            _ => 0,
         };
 
         if from_control {
@@ -1490,7 +1497,7 @@ where
                 guard.active_streams = active_count;
                 guard.max_concurrent_streams = guard.max_concurrent_streams.max(active_count);
             }
-                ControlFrame::StreamData { stream_id, data } => {
+            ControlFrame::StreamData { stream_id, data } => {
                 let (stream_known, stream_aborting) = {
                     let state = session_state.lock().await;
                     (
@@ -1509,7 +1516,7 @@ where
                     )));
                 }
 
-                match enqueue_client_inbound_data(stream_id, data, &inbound).await {
+                match enqueue_client_inbound_data(stream_id, data, &inbound, &session_state).await {
                     ClientInboundEnqueueResult::Accepted {
                         session_pending_bytes,
                     } => {
@@ -1708,9 +1715,7 @@ async fn run_client_inbound_scheduler(
     }
 }
 
-async fn client_session_counts(
-    session_state: &Arc<Mutex<ClientSessionState>>,
-) -> (u64, u64) {
+async fn client_session_counts(session_state: &Arc<Mutex<ClientSessionState>>) -> (u64, u64) {
     let state = session_state.lock().await;
     (
         u64::try_from(state.active.len()).unwrap_or(u64::MAX),
@@ -1833,9 +1838,11 @@ async fn write_encrypted_frame<W: AsyncWrite + Unpin>(
     let ciphertext = encrypt_frame(session_key, direction, *sequence, frame)?;
     let len = u32::try_from(ciphertext.len())
         .map_err(|_| TransportError::Protocol("encrypted frame too large".to_string()))?;
-    stream.write_u64(*sequence).await?;
-    stream.write_u32(len).await?;
-    stream.write_all(&ciphertext).await?;
+    let mut payload = Vec::with_capacity(12 + ciphertext.len());
+    payload.extend_from_slice(&sequence.to_be_bytes());
+    payload.extend_from_slice(&len.to_be_bytes());
+    payload.extend_from_slice(&ciphertext);
+    stream.write_all(&payload).await?;
     *sequence = sequence.saturating_add(1);
     Ok(())
 }

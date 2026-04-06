@@ -94,6 +94,31 @@ function Get-HelixInternalToken {
     throw "HELIX internal token was not provided and could not be loaded from infra/.env."
 }
 
+function Get-LatestHelixManifestResponse {
+    param(
+        [Parameter(Mandatory = $true)][string]$Channel
+    )
+
+    $query = @"
+SELECT json_build_object(
+  'manifest_version_id', manifest_version_id,
+  'manifest', manifest_json
+)::text
+FROM helix.manifest_versions
+WHERE channel = '$Channel'
+  AND revoked_at IS NULL
+ORDER BY created_at DESC
+LIMIT 1;
+"@
+
+    $raw = (& docker exec remnawave-db psql -U postgres -d postgres -At -c $query | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw "No persisted Helix manifest version is available for channel '$Channel'."
+    }
+
+    return ($raw | ConvertFrom-Json)
+}
+
 function Resolve-HelixDesktopBinaryPath {
     param([string]$DesktopBinaryPath)
 
@@ -186,6 +211,142 @@ function Get-HelixSidecarEndpointUrl {
     $uriBuilder = [System.UriBuilder]::new($HealthUrl)
     $uriBuilder.Path = $Path
     return $uriBuilder.Uri.AbsoluteUri
+}
+
+function Convert-ToNullableInt {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    return [int][Math]::Round([double]$Value, 0)
+}
+
+function New-HelixContinuityEvidence {
+    param(
+        [Parameter(Mandatory = $false)]$Health
+    )
+
+    if ($null -eq $Health) {
+        return $null
+    }
+
+    return [ordered]@{
+        active_streams = $Health.active_streams
+        pending_open_streams = $Health.pending_open_streams
+        continuity_grace_active = $Health.continuity_grace_active
+        continuity_grace_route_endpoint_ref = $Health.continuity_grace_route_endpoint_ref
+        continuity_grace_remaining_ms = $Health.continuity_grace_remaining_ms
+        continuity_grace_entries = $Health.active_route_continuity_grace_entries
+        successful_continuity_recovers = $Health.active_route_successful_continuity_recovers
+        failed_continuity_recovers = $Health.active_route_failed_continuity_recovers
+        last_continuity_recovery_ms = $Health.active_route_last_continuity_recovery_ms
+        successful_cross_route_recovers = $Health.active_route_successful_cross_route_recovers
+        last_cross_route_recovery_ms = $Health.active_route_last_cross_route_recovery_ms
+        active_route_quarantined = $Health.active_route_quarantined
+        active_route_quarantine_remaining_ms = $Health.active_route_quarantine_remaining_ms
+        active_route_endpoint_ref = $Health.active_route_endpoint_ref
+        active_route_score = $Health.active_route_score
+    }
+}
+
+function Publish-HelixRuntimeEvent {
+    param(
+        [Parameter(Mandatory = $true)][string]$AdapterUrl,
+        [Parameter(Mandatory = $true)][string]$InternalToken,
+        [Parameter(Mandatory = $true)]$Session,
+        [Parameter(Mandatory = $true)][ValidateSet("ready", "fallback", "disconnect", "benchmark")][string]$EventKind,
+        [Parameter(Mandatory = $false)][string]$ActiveCore = "helix",
+        [Parameter(Mandatory = $false)][AllowNull()][string]$FallbackCore = $null,
+        [Parameter(Mandatory = $false)][AllowNull()][Nullable[int]]$LatencyMs = $null,
+        [Parameter(Mandatory = $false)][AllowNull()][Nullable[int]]$RouteCount = $null,
+        [Parameter(Mandatory = $false)][AllowNull()][string]$Reason = $null,
+        [Parameter(Mandatory = $false)][AllowNull()]$Payload = $null
+    )
+
+    $headers = @{
+        "x-internal-token" = $InternalToken
+        "content-type" = "application/json"
+    }
+
+    $desktopClientId = if (-not [string]::IsNullOrWhiteSpace($Session.manifest_response.manifest.subject.desktop_client_id)) {
+        $Session.manifest_response.manifest.subject.desktop_client_id
+    } else {
+        "desktop-helix-bench"
+    }
+
+    $request = [ordered]@{
+        schema_version = "1.0"
+        event_id = [guid]::NewGuid().ToString()
+        user_id = "lab-bench-user"
+        desktop_client_id = $desktopClientId
+        manifest_version_id = $Session.manifest_response.manifest_version_id
+        rollout_id = $Session.manifest_response.manifest.rollout_id
+        transport_profile_id = $Session.manifest_response.manifest.transport_profile.transport_profile_id
+        event_kind = $EventKind
+        active_core = $ActiveCore
+        fallback_core = if ([string]::IsNullOrWhiteSpace($FallbackCore)) { $null } else { $FallbackCore }
+        latency_ms = $LatencyMs
+        route_count = $RouteCount
+        reason = if ([string]::IsNullOrWhiteSpace($Reason)) { $null } else { $Reason }
+        observed_at = (Get-Date).ToUniversalTime().ToString("o")
+        payload = if ($null -eq $Payload) { [ordered]@{} } else { $Payload }
+    }
+
+    try {
+        return Invoke-RestMethod `
+            -Uri "$AdapterUrl/internal/desktop/runtime-events" `
+            -Headers $headers `
+            -Method Post `
+            -Body ($request | ConvertTo-Json -Depth 16)
+    } catch {
+        if (-not [string]::IsNullOrWhiteSpace($_.ErrorDetails.Message)) {
+            throw "Helix runtime event publish failed: $($_.ErrorDetails.Message)"
+        }
+        throw
+    }
+}
+
+function Publish-HelixReadyEvent {
+    param(
+        [Parameter(Mandatory = $true)][string]$AdapterUrl,
+        [Parameter(Mandatory = $true)][string]$InternalToken,
+        [Parameter(Mandatory = $true)]$Session,
+        [Parameter(Mandatory = $false)]$Health,
+        [Parameter(Mandatory = $false)]$Telemetry,
+        [Parameter(Mandatory = $false)][AllowNull()][Nullable[int]]$LatencyMs = $null,
+        [Parameter(Mandatory = $false)][AllowNull()][string]$Reason = $null,
+        [Parameter(Mandatory = $false)][AllowNull()]$RecoveryEvidence = $null
+    )
+
+    $payload = [ordered]@{
+        stage = "runtime"
+        runtime = "embedded-sidecar"
+        requested_core = "helix"
+        status = "ready"
+        proxy_url = $Session.runtime_config.proxy_url
+    }
+
+    $continuity = New-HelixContinuityEvidence -Health $Health
+    if ($null -ne $continuity) {
+        $payload.continuity = $continuity
+    }
+
+    if ($null -ne $RecoveryEvidence) {
+        $payload.recovery = $RecoveryEvidence
+    }
+
+    return Publish-HelixRuntimeEvent `
+        -AdapterUrl $AdapterUrl `
+        -InternalToken $InternalToken `
+        -Session $Session `
+        -EventKind "ready" `
+        -ActiveCore "helix" `
+        -LatencyMs $LatencyMs `
+        -RouteCount (Convert-ToNullableInt (@($Session.manifest_response.manifest.routes).Count)) `
+        -Reason $Reason `
+        -Payload $payload
 }
 
 function Invoke-HelixSidecarAction {
@@ -476,8 +637,25 @@ function Invoke-HelixBenchmarkSeries {
         [Parameter(Mandatory = $true)][string]$TargetPath,
         [Parameter(Mandatory = $true)][int]$Attempts,
         [Parameter(Mandatory = $true)][int]$ConnectTimeoutSeconds,
-        [Parameter(Mandatory = $true)][int]$DownloadBytesLimit
+        [Parameter(Mandatory = $true)][int]$DownloadBytesLimit,
+        [int]$WarmupAttempts = 0
     )
+
+    $warmupDownloadBytesLimit = [Math]::Min($DownloadBytesLimit, 65536)
+    for ($warmupAttempt = 1; $warmupAttempt -le $WarmupAttempts; $warmupAttempt++) {
+        try {
+            $null = Invoke-HelixBenchmarkAttempt `
+                -ProxyUrl $ProxyUrl `
+                -TargetHost $TargetHost `
+                -TargetPort $TargetPort `
+                -TargetPath $TargetPath `
+                -Attempt 0 `
+                -ConnectTimeoutSeconds $ConnectTimeoutSeconds `
+                -DownloadBytesLimit $warmupDownloadBytesLimit
+        } catch {
+            throw "Warmup attempt failed for proxy ${ProxyUrl}: $($_.Exception.Message)"
+        }
+    }
 
     $attemptResults = @()
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
@@ -582,11 +760,23 @@ function New-HelixLabSession {
         preferred_fallback_core = "sing-box"
     }
 
-    $manifestResponse = Invoke-RestMethod `
-        -Uri "$AdapterUrl/internal/manifests/resolve" `
-        -Headers $postHeaders `
-        -Method Post `
-        -Body ($manifestRequest | ConvertTo-Json -Depth 10)
+    try {
+        $manifestResponse = Invoke-RestMethod `
+            -Uri "$AdapterUrl/internal/manifests/resolve" `
+            -Headers $postHeaders `
+            -Method Post `
+            -Body ($manifestRequest | ConvertTo-Json -Depth 10)
+    } catch {
+        $message = @(
+            $_.Exception.Message
+            $_.ErrorDetails.Message
+        ) -join "`n"
+        if ($message -like "*no Helix transport profile is currently eligible for new desktop sessions*") {
+            $manifestResponse = Get-LatestHelixManifestResponse -Channel $manifestRequest.channel
+        } else {
+            throw
+        }
+    }
 
     $healthPort = Get-FreeTcpPort
     $proxyPort = Get-FreeTcpPort
@@ -624,6 +814,7 @@ function New-HelixLabSession {
     Write-Utf8NoBomFile -Path $manifestPath -Content ($manifestResponse | ConvertTo-Json -Depth 16)
     Write-Utf8NoBomFile -Path $runtimeConfigPath -Content ($runtimeConfig | ConvertTo-Json -Depth 16)
 
+    $startedAt = [DateTime]::UtcNow
     $process = Start-Process `
         -FilePath $DesktopBinaryPath `
         -ArgumentList @("run", "-c", $runtimeConfigPath) `
@@ -632,6 +823,31 @@ function New-HelixLabSession {
         -RedirectStandardError $stderrPath
 
     $initialHealth = Wait-ForHelixHealth -Url $runtimeConfig.health_url -TimeoutSeconds $StartupTimeoutSeconds
+    $startupLatencyMs = Convert-ToNullableInt ([Math]::Round(([DateTime]::UtcNow - $startedAt).TotalMilliseconds, 0))
+    $initialTelemetry = $null
+    $startupReadyEventAck = $null
+    $startupReadyEventError = $null
+    try {
+        $initialTelemetryUrl = Get-HelixSidecarEndpointUrl -HealthUrl $runtimeConfig.health_url -Path "/telemetry"
+        $initialTelemetry = Get-HelixSidecarJson -Url $initialTelemetryUrl
+    } catch {
+    }
+
+    try {
+        $startupReadyEventAck = Publish-HelixReadyEvent `
+            -AdapterUrl $AdapterUrl `
+            -InternalToken $InternalToken `
+            -Session ([pscustomobject]@{
+                manifest_response = $manifestResponse
+                runtime_config = $runtimeConfig
+            }) `
+            -Health $initialHealth `
+            -Telemetry $initialTelemetry `
+            -LatencyMs $startupLatencyMs `
+            -Reason "headless lab session ready"
+    } catch {
+        $startupReadyEventError = $_.Exception.Message
+    }
 
     return [pscustomobject]@{
         scenario = $ScenarioName
@@ -644,6 +860,10 @@ function New-HelixLabSession {
         stderr_path = $stderrPath
         process = $process
         initial_health = $initialHealth
+        initial_telemetry = $initialTelemetry
+        startup_latency_ms = $startupLatencyMs
+        startup_ready_event_ack = $startupReadyEventAck
+        startup_ready_event_error = $startupReadyEventError
     }
 }
 

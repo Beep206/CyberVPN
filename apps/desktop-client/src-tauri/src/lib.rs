@@ -21,8 +21,13 @@ pub fn run_embedded_helix_sidecar() -> Result<bool, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let launch_options =
+        crate::engine::lifecycle::parse_launch_options_from_args(std::env::args().skip(1));
+    let setup_launch_options = launch_options.clone();
+
     std::panic::set_hook(Box::new(|info| {
         let _ = crate::engine::sysproxy::clear_system_proxy();
+        let _ = crate::engine::lifecycle::mark_panic(format!("{info:?}"));
         eprintln!("Panic occurred: {:?}", info);
     }));
 
@@ -78,8 +83,30 @@ pub fn run() {
                 })
                 .build(),
         )
-        .setup(|app| {
+        .setup(move |app| {
             let app_handle = app.handle().clone();
+            let lifecycle_state =
+                crate::engine::lifecycle::initialize(&app_handle, &setup_launch_options)?;
+
+            if lifecycle_state.previous_unclean_shutdown_detected {
+                let _ = crate::engine::diagnostics::record_event(
+                    &app_handle,
+                    crate::engine::diagnostics::DiagnosticLevel::Warn,
+                    "app.lifecycle",
+                    "Previous desktop session ended uncleanly",
+                    serde_json::json!({
+                        "current_run_id": lifecycle_state.current_run_id,
+                        "previous_run_id": lifecycle_state.previous_run_id,
+                        "previous_started_at": lifecycle_state.previous_started_at,
+                        "previous_exit_kind": lifecycle_state.previous_exit_kind,
+                        "previous_exit_at": lifecycle_state.previous_exit_at,
+                        "previous_exit_message": lifecycle_state.previous_exit_message,
+                        "startup_cleanup_performed": lifecycle_state.startup_cleanup_performed,
+                        "system_proxy_cleanup_succeeded": lifecycle_state.system_proxy_cleanup_succeeded,
+                    }),
+                );
+            }
+
             let _ = crate::engine::diagnostics::record_event(
                 &app_handle,
                 crate::engine::diagnostics::DiagnosticLevel::Info,
@@ -87,8 +114,52 @@ pub fn run() {
                 "Desktop client started",
                 serde_json::json!({
                     "version": env!("CARGO_PKG_VERSION"),
+                    "run_id": lifecycle_state.current_run_id,
+                    "hidden_launch_requested": lifecycle_state.hidden_launch_requested,
+                    "startup_cleanup_performed": lifecycle_state.startup_cleanup_performed,
                 }),
             );
+
+            if setup_launch_options.hidden {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
+
+            if let Some(delay_ms) = setup_launch_options.smoke_exit_after_ms {
+                let smoke_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+                    let _ = crate::engine::diagnostics::record_event(
+                        &smoke_handle,
+                        crate::engine::diagnostics::DiagnosticLevel::Info,
+                        "app.lifecycle",
+                        "Desktop smoke harness requested clean exit",
+                        serde_json::json!({
+                            "delay_ms": delay_ms,
+                        }),
+                    );
+                    smoke_handle.exit(0);
+                });
+            }
+
+            if let Some(delay_ms) = setup_launch_options.smoke_crash_after_ms {
+                let smoke_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+                    let _ = crate::engine::diagnostics::record_event(
+                        &smoke_handle,
+                        crate::engine::diagnostics::DiagnosticLevel::Warn,
+                        "app.lifecycle",
+                        "Desktop smoke harness requested crash simulation",
+                        serde_json::json!({
+                            "delay_ms": delay_ms,
+                        }),
+                    );
+                    std::process::abort();
+                });
+            }
+
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = engine::provision::ensure_sing_box_binary(&app_handle).await {
                     eprintln!("Failed to provision sing-box: {}", e);
@@ -257,6 +328,8 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app_handle, event| {
             if let tauri::RunEvent::Exit = event {
+                let _ =
+                    crate::engine::lifecycle::mark_clean_exit(app_handle, "Desktop client exited");
                 let _ = crate::engine::diagnostics::record_event(
                     app_handle,
                     crate::engine::diagnostics::DiagnosticLevel::Info,

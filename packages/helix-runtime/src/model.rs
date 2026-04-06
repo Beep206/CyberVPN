@@ -140,7 +140,7 @@ pub struct HandshakeWelcome {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum ControlFrame {
     Ping {
         sent_at_ms: u64,

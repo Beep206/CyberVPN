@@ -3,6 +3,7 @@ use crate::engine::helix::config::{
     HelixPreparedRuntime, HelixRecoveryBenchmarkReport, HelixResolvedManifest,
     TransportBenchmarkComparisonReport, TransportBenchmarkMatrixReport, TransportBenchmarkReport,
 };
+use crate::engine::lifecycle::StartupRecoveryInfo;
 use crate::engine::sys::net_monitor::NetworkProfile;
 use crate::ipc::models::ProxyNode;
 use serde::{Deserialize, Serialize};
@@ -60,6 +61,8 @@ pub struct AppDataStore {
     pub helix_last_matrix_report: Option<TransportBenchmarkMatrixReport>,
     #[serde(default)]
     pub helix_last_recovery_report: Option<HelixRecoveryBenchmarkReport>,
+    #[serde(default)]
+    pub last_startup_recovery: Option<StartupRecoveryInfo>,
 }
 
 fn default_privacy_shield_level() -> String {
@@ -102,11 +105,20 @@ impl Default for AppDataStore {
             helix_last_comparison_report: None,
             helix_last_matrix_report: None,
             helix_last_recovery_report: None,
+            last_startup_recovery: None,
         }
     }
 }
 
 pub fn get_app_dir(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    if let Ok(override_dir) = std::env::var("CYBERVPN_APP_DIR_OVERRIDE") {
+        let app_dir = PathBuf::from(override_dir);
+        if !app_dir.exists() {
+            fs::create_dir_all(&app_dir)?;
+        }
+        return Ok(app_dir);
+    }
+
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             let portable_flag = parent.join(".portable");

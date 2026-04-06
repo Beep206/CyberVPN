@@ -355,16 +355,31 @@ impl TransportProfileRepository {
                 COUNT(*) FILTER (WHERE event_kind = 'ready')::DOUBLE PRECISION AS ready_total,
                 COUNT(*) FILTER (WHERE event_kind = 'fallback')::DOUBLE PRECISION AS fallback_total,
                 COUNT(*) FILTER (
-                    WHERE jsonb_typeof(payload -> 'continuity') = 'object'
-                       OR jsonb_typeof(payload -> 'recovery') = 'object'
+                    WHERE COALESCE((payload -> 'continuity' ->> 'continuity_grace_entries')::INT, 0) > 0
+                       OR COALESCE((payload -> 'continuity' ->> 'successful_continuity_recovers')::INT, 0) > 0
+                       OR COALESCE((payload -> 'continuity' ->> 'failed_continuity_recovers')::INT, 0) > 0
+                       OR COALESCE((payload -> 'continuity' ->> 'successful_cross_route_recovers')::INT, 0) > 0
+                       OR jsonb_typeof(payload -> 'recovery' -> 'same_route_recovered') = 'boolean'
+                       OR (payload -> 'recovery' ->> 'ready_recovery_latency_ms') IS NOT NULL
+                       OR (payload -> 'recovery' ->> 'proxy_ready_latency_ms') IS NOT NULL
                 )::DOUBLE PRECISION AS continuity_total,
                 COUNT(*) FILTER (
                     WHERE COALESCE((payload -> 'continuity' ->> 'successful_continuity_recovers')::INT, 0) > 0
-                       OR COALESCE((payload -> 'recovery' ->> 'same_route_recovered')::BOOLEAN, FALSE) = TRUE
+                       OR COALESCE((payload -> 'continuity' ->> 'successful_cross_route_recovers')::INT, 0) > 0
+                       OR (
+                            event_kind = 'ready'
+                            AND jsonb_typeof(payload -> 'recovery' -> 'same_route_recovered') = 'boolean'
+                          )
+                       OR COALESCE((payload -> 'recovery' ->> 'successful_cross_route_recovers')::INT, 0) > 0
                 )::DOUBLE PRECISION AS continuity_success_total,
                 COUNT(*) FILTER (
                     WHERE COALESCE((payload -> 'continuity' ->> 'successful_cross_route_recovers')::INT, 0) > 0
                        OR COALESCE((payload -> 'recovery' ->> 'successful_cross_route_recovers')::INT, 0) > 0
+                       OR (
+                            event_kind = 'ready'
+                            AND jsonb_typeof(payload -> 'recovery' -> 'same_route_recovered') = 'boolean'
+                            AND COALESCE((payload -> 'recovery' ->> 'same_route_recovered')::BOOLEAN, TRUE) = FALSE
+                          )
                 )::DOUBLE PRECISION AS cross_route_success_total
             FROM helix.desktop_runtime_events
             WHERE rollout_id = $1

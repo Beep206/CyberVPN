@@ -50,7 +50,9 @@ TRUNCATE TABLE
     helix.manifest_versions,
     helix.last_known_good_bundles,
     helix.rollout_batches,
-    helix.nodes
+    helix.nodes,
+    helix.rollout_policy_actuations,
+    helix.profile_suppression_windows
 RESTART IDENTITY;
 SQL
 
