@@ -504,6 +504,28 @@ describe('Auth Store', () => {
       expect(mockRegisterSuccess).toHaveBeenCalledWith('usr_analytics_reg');
     });
 
+    it('test_register_username_only_sends_login_without_email', async () => {
+      mockRegister.mockResolvedValue({
+        data: {
+          id: 'usr_username_only',
+          login: 'cyberpunk_hacker',
+          email: null,
+          is_active: true,
+          is_email_verified: false,
+          message: 'Registration successful.',
+        },
+      });
+
+      await useAuthStore.getState().register('cyberpunk_hacker', 'pass', { mode: 'username' });
+
+      expect(mockRegister).toHaveBeenCalledWith({
+        login: 'cyberpunk_hacker',
+        password: 'pass',
+      });
+      expect(useAuthStore.getState().user?.email).toBe('');
+      expect(useAuthStore.getState().user?.is_active).toBe(true);
+    });
+
     it('test_register_failure_sets_error', async () => {
       // Arrange
       mockRegister.mockRejectedValue({
@@ -1501,24 +1523,21 @@ describe('Auth Store', () => {
       expect(useAuthStore.getState().error).toBe('Email is required');
     });
 
-    it('test_register_with_email_having_no_at_symbol', async () => {
-      // The store derives login from email.split('@')[0]
-      // With no '@', the full email becomes the login
+    it('test_register_username_mode_does_not_fabricate_email', async () => {
       mockRegister.mockResolvedValue({
         data: {
           id: 'usr_edge',
           login: 'noatsymbol',
-          email: 'noatsymbol',
-          is_active: false,
+          email: null,
+          is_active: true,
           is_email_verified: false,
         },
       });
 
-      await useAuthStore.getState().register('noatsymbol', 'password');
+      await useAuthStore.getState().register('noatsymbol', 'password', { mode: 'username' });
 
       expect(mockRegister).toHaveBeenCalledWith({
         login: 'noatsymbol',
-        email: 'noatsymbol',
         password: 'password',
       });
     });

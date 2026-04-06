@@ -33,6 +33,13 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [acceptTerms, setAcceptTerms] = useState(false);
+    const isEmailMode = !usernameOnly;
+    const identifierValue = isEmailMode ? email : username;
+    const identifierLabel = isEmailMode ? t('emailLabel') : t('usernameLabel');
+    const identifierPrefix = isEmailMode ? 'email' : 'user';
+    const identifierPlaceholder = isEmailMode ? 'user@cybervpn.io' : t('usernamePlaceholder');
+    const identifierType = isEmailMode ? 'email' : 'text';
+    const identifierAutocomplete = isEmailMode ? 'email' : 'username';
 
     const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
     const canSubmit = usernameOnly
@@ -71,9 +78,7 @@ export default function RegisterPage() {
 
         try {
             if (usernameOnly) {
-                await register(username, password);
-                // Backend requires verification/activation even for username-only
-                // Redirect to login with a success message
+                await register(username, password, { mode: 'username' });
                 router.push(`/${locale}/login?registered=true`);
             } else {
                 await register(email, password);
@@ -103,28 +108,30 @@ export default function RegisterPage() {
                 <button
                     type="button"
                     onClick={() => setUsernameOnly(false)}
+                    aria-pressed={!usernameOnly}
                     className={cn(
                         "touch-target flex-1 px-3 py-2 rounded-lg border transition-all cursor-pointer",
                         !usernameOnly
                             ? "border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan"
                             : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
                     )}
-                    aria-label="Register with email"
+                    aria-label={t('registerModeEmail')}
                 >
-                    Email
+                    {t('registerModeEmail')}
                 </button>
                 <button
                     type="button"
                     onClick={() => setUsernameOnly(true)}
+                    aria-pressed={usernameOnly}
                     className={cn(
                         "touch-target flex-1 px-3 py-2 rounded-lg border transition-all cursor-pointer",
                         usernameOnly
                             ? "border-neon-purple/50 bg-neon-purple/10 text-neon-purple"
                             : "border-grid-line/30 text-muted-foreground hover:border-grid-line/50"
                     )}
-                    aria-label="Register with username only"
+                    aria-label={t('registerModeUsername')}
                 >
-                    Username Only
+                    {t('registerModeUsername')}
                 </button>
             </div>
 
@@ -150,33 +157,25 @@ export default function RegisterPage() {
 
             {/* Register form */}
             <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isLoading}>
-                {usernameOnly ? (
-                    <CyberInput
-                        label="Username"
-                        type="text"
-                        prefix="user"
-                        placeholder="cyberpunk_hacker"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        autoComplete="username"
-                        disabled={isLoading || isRateLimited}
-                        className="mobile-form-input"
-                    />
-                ) : (
-                    <CyberInput
-                        label={t('emailLabel')}
-                        type="email"
-                        prefix="email"
-                        placeholder="user@cybervpn.io"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                        disabled={isLoading || isRateLimited}
-                        className="mobile-form-input"
-                    />
-                )}
+                <CyberInput
+                    label={identifierLabel}
+                    type={identifierType}
+                    prefix={identifierPrefix}
+                    placeholder={identifierPlaceholder}
+                    value={identifierValue}
+                    onChange={(e) => {
+                        if (isEmailMode) {
+                            setEmail(e.target.value);
+                            return;
+                        }
+
+                        setUsername(e.target.value);
+                    }}
+                    required
+                    autoComplete={identifierAutocomplete}
+                    disabled={isLoading || isRateLimited}
+                    className="mobile-form-input"
+                />
 
                 <div className="space-y-2">
                     <CyberInput

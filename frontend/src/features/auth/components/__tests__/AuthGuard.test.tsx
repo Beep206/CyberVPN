@@ -12,11 +12,16 @@ let currentAuthState: { isAuthenticated: boolean; user: Record<string, unknown> 
   isAuthenticated: false,
   user: null,
 };
-let currentPathname = '/ru-RU/dashboard/servers';
+let currentLocale = 'ru-RU';
+let currentPathname = '/dashboard/servers';
 
 vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => currentPathname,
+}));
+
+vi.mock('next-intl', () => ({
+  useLocale: () => currentLocale,
 }));
 
 vi.mock('lucide-react', () => ({
@@ -51,7 +56,9 @@ describe('AuthGuard', () => {
     mockMe.mockReset();
     mockSetState.mockReset();
     currentAuthState = { isAuthenticated: false, user: null };
-    currentPathname = '/ru-RU/dashboard/servers';
+    currentLocale = 'ru-RU';
+    currentPathname = '/dashboard/servers';
+    window.history.replaceState({}, '', '/ru-RU/dashboard/servers');
   });
 
   it('calls authApi.session on mount', async () => {
@@ -116,7 +123,7 @@ describe('AuthGuard', () => {
     );
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/ru-RU/login?redirect=%2Fru-RU%2Fdashboard%2Fservers');
+      expect(mockPush).toHaveBeenCalledWith('/login?redirect=%2Fru-RU%2Fdashboard%2Fservers');
     });
 
     expect(mockSetState).toHaveBeenCalledWith(
@@ -145,7 +152,7 @@ describe('AuthGuard', () => {
   });
 
   it('redirects public auth paths to the localized dashboard target', async () => {
-    currentPathname = '/ru-RU/login';
+    currentPathname = '/login';
     mockMe.mockRejectedValueOnce(new Error('401'));
 
     render(
@@ -155,7 +162,25 @@ describe('AuthGuard', () => {
     );
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/ru-RU/login?redirect=%2Fru-RU%2Fdashboard');
+      expect(mockPush).toHaveBeenCalledWith('/login?redirect=%2Fru-RU%2Fdashboard');
     });
+  });
+
+  it('preserves the active locale when next-intl usePathname returns an internal route', async () => {
+    currentLocale = 'ru-RU';
+    currentPathname = '/dashboard';
+    mockMe.mockRejectedValueOnce(new Error('401'));
+
+    render(
+      <AuthGuard>
+        <div>Dashboard</div>
+      </AuthGuard>,
+    );
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/login?redirect=%2Fru-RU%2Fdashboard');
+    });
+
+    expect(mockPush).not.toHaveBeenCalledWith('/en-EN/login?redirect=%2Fdashboard');
   });
 });

@@ -204,9 +204,9 @@ export const authHandlers = [
       password?: string;
     };
 
-    if (!body.login || !body.email || !body.password) {
+    if (!body.login || !body.password) {
       return HttpResponse.json(
-        { detail: 'All fields are required' },
+        { detail: 'Login and password are required' },
         { status: 422 },
       );
     }
@@ -221,10 +221,12 @@ export const authHandlers = [
     return HttpResponse.json({
       id: 'usr_new_001',
       login: body.login,
-      email: body.email,
-      is_active: false,
+      email: body.email ?? null,
+      is_active: !body.email,
       is_email_verified: false,
-      message: 'Registration successful. Please verify your email.',
+      message: body.email
+        ? 'Registration successful. Please verify your email.'
+        : 'Registration successful.',
     });
   }),
 

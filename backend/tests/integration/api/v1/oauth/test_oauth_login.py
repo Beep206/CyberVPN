@@ -11,6 +11,7 @@ from httpx import AsyncClient
 from src.application.use_cases.auth.oauth_login import OAuthLoginResult
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.main import app
 from src.presentation.dependencies.database import get_db
@@ -310,3 +311,28 @@ class TestOAuthLoginRoutes:
 
         assert response.status_code == 409
         assert "Automatic account linking is disabled" in response.json()["detail"]
+
+    @pytest.mark.integration
+    async def test_callback_returns_503_when_google_is_temporarily_unavailable(
+        self,
+        async_client: AsyncClient,
+        oauth_route_dependencies,
+    ):
+        with (
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch(
+                "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
+                new=AsyncMock(return_value={"code_verifier": "verifier_123"}),
+            ),
+            patch(
+                "src.infrastructure.oauth.google.GoogleOAuthProvider.exchange_code",
+                new=AsyncMock(side_effect=OAuthProviderUnavailableError("Google OAuth provider is temporarily unavailable")),
+            ),
+        ):
+            response = await async_client.post(
+                "/api/v1/oauth/google/login/callback",
+                json={"code": "google_code_123", "state": "csrf_state_123"},
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Google OAuth provider is temporarily unavailable"

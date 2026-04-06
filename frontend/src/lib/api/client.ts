@@ -4,9 +4,30 @@ import {
   isPublicAuthRoute,
 } from '@/features/auth/lib/session';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
 const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
+
+/**
+ * Web auth relies on same-origin httpOnly cookies and Next.js rewrites.
+ *
+ * In the browser we intentionally use a relative `/api/v1` base path so the
+ * app never reaches out to loopback/private backend origins like
+ * `http://localhost:8000` from a public site origin.
+ *
+ * Server-only code should use `API_URL` directly (see route handlers), not this
+ * browser client.
+ */
+export function resolveApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!configuredBaseUrl) {
+    return '/api/v1';
+  }
+
+  return `${configuredBaseUrl.replace(/\/$/, '')}/api/v1`;
+}
 
 /**
  * Normalizes API request URLs to avoid mixed trailing-slash variants.
@@ -87,7 +108,7 @@ function parseRetryAfter(header: string | null): number {
 }
 
 export const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: resolveApiBaseUrl(),
   timeout: 10000,
   withCredentials: true, // Required for httpOnly cookies
   headers: {
@@ -205,7 +226,8 @@ apiClient.interceptors.response.use(
           && !isNonBlockingAuthRequest
           && !isPublicAuthRoute(window.location.pathname)
         ) {
-          window.location.href = buildLocalizedLoginRedirect(window.location.pathname);
+          const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.href = buildLocalizedLoginRedirect(currentLocation);
         }
         return Promise.reject(refreshError);
       } finally {

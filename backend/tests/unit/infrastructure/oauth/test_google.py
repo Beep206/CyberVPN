@@ -241,6 +241,35 @@ class TestGoogleOAuthProvider:
             assert result is None
 
     @pytest.mark.unit
+    async def test_exchange_code_retryable_http_status_raises_unavailable(self):
+        """Retryable upstream token statuses surface as provider unavailability."""
+        with patch("src.infrastructure.oauth.google.settings") as mock_settings:
+            mock_settings.google_client_id = "test_client_id"
+            mock_settings.google_client_secret = MagicMock()
+            mock_settings.google_client_secret.get_secret_value.return_value = "test_secret"
+
+            from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
+            from src.infrastructure.oauth.google import GoogleOAuthProvider
+
+            provider = GoogleOAuthProvider()
+
+            mock_token_response = MagicMock()
+            mock_token_response.status_code = 503
+            mock_token_response.json.return_value = {"error": "server_error"}
+
+            mock_client = AsyncMock()
+            mock_client.post.return_value = mock_token_response
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+
+            with patch("httpx.AsyncClient", return_value=mock_client):
+                with pytest.raises(OAuthProviderUnavailableError):
+                    await provider.exchange_code(
+                        code="bad_code",
+                        redirect_uri="http://localhost/callback",
+                    )
+
+    @pytest.mark.unit
     async def test_exchange_code_error_in_token_data_returns_none(self):
         """Token response containing 'error' key returns None."""
         with patch("src.infrastructure.oauth.google.settings") as mock_settings:
@@ -340,6 +369,50 @@ class TestGoogleOAuthProvider:
             assert result is None
 
     @pytest.mark.unit
+    async def test_exchange_code_oidc_metadata_failure_raises_unavailable(self):
+        """OIDC metadata/JWKS outages bubble up as provider unavailability."""
+        with patch("src.infrastructure.oauth.google.settings") as mock_settings:
+            mock_settings.google_client_id = "test_client_id"
+            mock_settings.google_client_secret = MagicMock()
+            mock_settings.google_client_secret.get_secret_value.return_value = "test_secret"
+
+            from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
+            from src.infrastructure.oauth.google import GoogleOAuthProvider
+
+            provider = GoogleOAuthProvider()
+
+            mock_token_response = MagicMock()
+            mock_token_response.status_code = 200
+            mock_token_response.json.return_value = {
+                "access_token": "valid_token",
+                "id_token": "google_id_token",
+                "token_type": "Bearer",
+            }
+
+            mock_client = AsyncMock()
+            mock_client.post.return_value = mock_token_response
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=None)
+
+            with (
+                patch("httpx.AsyncClient", return_value=mock_client),
+                patch.object(
+                    GoogleOAuthProvider,
+                    "_verify_id_token",
+                    AsyncMock(
+                        side_effect=OAuthProviderUnavailableError(
+                            "OIDC provider metadata is temporarily unavailable"
+                        )
+                    ),
+                ),
+            ):
+                with pytest.raises(OAuthProviderUnavailableError):
+                    await provider.exchange_code(
+                        code="code",
+                        redirect_uri="http://localhost/callback",
+                    )
+
+    @pytest.mark.unit
     async def test_exchange_code_missing_credentials_returns_none(self):
         """Missing client credentials returns None without HTTP calls."""
         with patch("src.infrastructure.oauth.google.settings") as mock_settings:
@@ -360,12 +433,13 @@ class TestGoogleOAuthProvider:
 
     @pytest.mark.unit
     async def test_exchange_code_network_error_returns_none(self):
-        """Network error (httpx.RequestError) during exchange returns None."""
+        """Repeated network errors raise a provider-unavailable error."""
         with patch("src.infrastructure.oauth.google.settings") as mock_settings:
             mock_settings.google_client_id = "test_client_id"
             mock_settings.google_client_secret = MagicMock()
             mock_settings.google_client_secret.get_secret_value.return_value = "test_secret"
 
+            from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
             from src.infrastructure.oauth.google import GoogleOAuthProvider
 
             provider = GoogleOAuthProvider()
@@ -376,12 +450,11 @@ class TestGoogleOAuthProvider:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             with patch("httpx.AsyncClient", return_value=mock_client):
-                result = await provider.exchange_code(
-                    code="code",
-                    redirect_uri="http://localhost/callback",
-                )
-
-            assert result is None
+                with pytest.raises(OAuthProviderUnavailableError):
+                    await provider.exchange_code(
+                        code="code",
+                        redirect_uri="http://localhost/callback",
+                    )
 
     @pytest.mark.unit
     async def test_exchange_code_no_refresh_token(self):
