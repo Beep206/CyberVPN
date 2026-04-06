@@ -1,6 +1,7 @@
 import { defaultLocale, locales } from '@/i18n/config';
 
 const AUTH_REDIRECT_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
+const LOCALE_PREFIX_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2})(\/.*|$)/;
 const SUPPORTED_LOCALES = new Set<string>(locales);
 
 export function normalizeAuthLocale(locale: string | null | undefined): string {
@@ -13,6 +14,31 @@ export function normalizeAuthLocale(locale: string | null | undefined): string {
 
 export function getDefaultPostLoginPath(locale: string): string {
   return `/${normalizeAuthLocale(locale)}/dashboard`;
+}
+
+function stripLocalePrefix(pathname: string): string {
+  const match = pathname.match(LOCALE_PREFIX_RE);
+  if (!match) {
+    return pathname;
+  }
+
+  return match[1] || '/';
+}
+
+export function localizePathname(pathname: string, locale: string): string {
+  const normalizedLocale = normalizeAuthLocale(locale);
+
+  if (!pathname.startsWith('/')) {
+    return getDefaultPostLoginPath(normalizedLocale);
+  }
+
+  const parsed = new URL(pathname, 'http://localhost');
+  const basePathname = stripLocalePrefix(parsed.pathname);
+  const localizedPathname = basePathname === '/'
+    ? `/${normalizedLocale}`
+    : `/${normalizedLocale}${basePathname}`;
+
+  return `${localizedPathname}${parsed.search}${parsed.hash}`;
 }
 
 export function getSafeRedirectPath(rawRedirect: string | null, locale: string): string {
@@ -38,5 +64,5 @@ export function getSafeRedirectPath(rawRedirect: string | null, locale: string):
     return fallback;
   }
 
-  return candidate;
+  return localizePathname(candidate, locale);
 }

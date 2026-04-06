@@ -36,7 +36,11 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (
+    identifier: string,
+    password: string,
+    options?: { mode?: 'email' | 'username' }
+  ) => Promise<void>;
   verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;
@@ -102,19 +106,21 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email, password) => {
+      register: async (identifier, password, options) => {
         authAnalytics.registerStarted();
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
-          // Generate login from email (part before @)
-          const login = email.split('@')[0];
-          const { data } = await authApi.register({ login, email, password });
+          const mode = options?.mode ?? 'email';
+          const payload = mode === 'username'
+            ? { login: identifier.trim(), password }
+            : { login: identifier.split('@')[0], email: identifier.trim(), password };
+          const { data } = await authApi.register(payload);
           // User is registered but NOT authenticated yet - needs OTP verification
           // Store minimal user info for OTP flow, but don't set isAuthenticated
           set({
             user: {
               id: data.id,
-              email: data.email,
+              email: data.email ?? '',
               login: data.login,
               is_active: data.is_active,
               is_email_verified: data.is_email_verified,

@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
-import { buildLocalizedLoginRedirect } from '@/features/auth/lib/session';
+import { buildInternalLoginHref } from '@/features/auth/lib/session';
 import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
@@ -20,6 +21,7 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
     const router = useRouter();
     const pathname = usePathname();
+    const locale = useLocale();
     const [isChecking, setIsChecking] = useState(true);
     const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -103,9 +105,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     useEffect(() => {
         if (!isChecking && !isAuthorized) {
-                router.push(buildLocalizedLoginRedirect(pathname));
+                router.push(buildInternalLoginHref(pathname, locale));
         }
-    }, [isChecking, isAuthorized, pathname, router]);
+    }, [isChecking, isAuthorized, locale, pathname, router]);
 
     if (isChecking) {
         return (

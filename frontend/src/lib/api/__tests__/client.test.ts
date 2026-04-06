@@ -5,7 +5,7 @@
  * redirect helper from src/lib/api/client.ts.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tokenStorage, RateLimitError, normalizeApiRequestPath } from '../client';
+import { tokenStorage, RateLimitError, normalizeApiRequestPath, resolveApiBaseUrl } from '../client';
 
 // ---------------------------------------------------------------------------
 // tokenStorage (SEC-01: now a no-op shim)
@@ -97,6 +97,12 @@ describe('normalizeApiRequestPath', () => {
 
   it('preserves absolute URLs', () => {
     expect(normalizeApiRequestPath('https://api.example.com/api/v1/servers/stats/')).toBe('https://api.example.com/api/v1/servers/stats');
+  });
+});
+
+describe('resolveApiBaseUrl', () => {
+  it('uses same-origin api path in the browser', () => {
+    expect(resolveApiBaseUrl()).toBe('/api/v1');
   });
 });
 

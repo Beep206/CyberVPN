@@ -29,6 +29,7 @@ from src.infrastructure.database.repositories.oauth_account_repo import OAuthAcc
 from src.infrastructure.monitoring.instrumentation.routes import track_oauth_attempt
 from src.infrastructure.oauth.apple import AppleOAuthProvider
 from src.infrastructure.oauth.discord import DiscordOAuthProvider
+from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
 from src.infrastructure.oauth.facebook import FacebookOAuthProvider
 from src.infrastructure.oauth.github import GitHubOAuthProvider
 from src.infrastructure.oauth.google import GoogleOAuthProvider
@@ -739,7 +740,13 @@ async def oauth_login_callback(
     if code_verifier:
         exchange_kwargs["code_verifier"] = code_verifier
 
-    user_info = await oauth_provider.exchange_code(**exchange_kwargs)
+    try:
+        user_info = await oauth_provider.exchange_code(**exchange_kwargs)
+    except OAuthProviderUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
     if not user_info:
         raise HTTPException(

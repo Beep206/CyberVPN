@@ -11,7 +11,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   login: string;
-  email: string;
+  email?: string;
   password: string;
 }
 
@@ -37,7 +37,7 @@ export interface ResendOtpRequest {
 // Response interfaces
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
   login?: string;
   telegram_id?: number;
   role: 'viewer' | 'user' | 'admin' | 'super_admin';
@@ -67,7 +67,7 @@ export interface VerifyOtpResponse extends TokenResponse {
 export interface RegisterResponse {
   id: string;
   login: string;
-  email: string;
+  email: string | null;
   is_active: boolean;
   is_email_verified: boolean;
   message: string;

@@ -170,6 +170,34 @@ describe('GET /api/oauth/callback/[provider]', () => {
     );
   });
 
+  it('maps backend upstream outages to oauth_upstream_unavailable', async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ detail: 'Google OAuth provider is temporarily unavailable' }),
+        {
+          status: 503,
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      ),
+    ) as typeof fetch;
+
+    const transaction = createOAuthTransactionCookieValue('google', 'ru-RU', '/ru-RU/dashboard');
+    const request = new NextRequest(
+      'http://localhost:3000/api/oauth/callback/google?code=auth_code&state=csrf123',
+    );
+    request.cookies.set(OAUTH_TRANSACTION_COOKIE, transaction.cookieValue);
+
+    const response = await GET(request, {
+      params: Promise.resolve({ provider: 'google' }),
+    });
+
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/ru-RU/login?oauth_error=oauth_upstream_unavailable&oauth_provider=google',
+    );
+  });
+
   it('maps provider-denied callbacks to provider_denied', async () => {
     const transaction = createOAuthTransactionCookieValue('github', 'ru-RU', '/ru-RU/dashboard');
     const request = new NextRequest(

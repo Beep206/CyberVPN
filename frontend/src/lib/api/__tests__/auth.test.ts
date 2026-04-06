@@ -222,7 +222,7 @@ describe('authApi.register', () => {
 
   it('test_register_missing_fields_rejects_with_422', async () => {
     // Arrange -- empty login triggers 422
-    const data = { login: '', email: 'x@y.com', password: 'abc123' };
+    const data = { login: '', password: 'abc123' };
 
     // Act & Assert
     try {
@@ -234,6 +234,17 @@ describe('authApi.register', () => {
         expect(error.response?.status).toBe(422);
       }
     }
+  });
+
+  it('test_register_username_only_success_returns_active_user_without_email', async () => {
+    const data = { login: 'cyberpunk_hacker', password: 'S3cure!Pass' };
+
+    const response = await authApi.register(data);
+
+    expect(response.status).toBe(200);
+    expect(response.data.login).toBe('cyberpunk_hacker');
+    expect(response.data.email).toBeNull();
+    expect(response.data.is_active).toBe(true);
   });
 });
 

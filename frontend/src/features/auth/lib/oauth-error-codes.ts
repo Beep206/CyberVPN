@@ -78,6 +78,10 @@ export function normalizeOAuthUiErrorCode(rawError: string | null | undefined): 
 export function inferOAuthUpstreamErrorCode(status: number, detail: string | null | undefined): OAuthUiErrorCode {
   const normalizedDetail = detail?.trim().toLowerCase() ?? '';
 
+  if (status === 502 || status === 503 || status === 504) {
+    return OAUTH_ERROR_CODES.oauthUpstreamUnavailable;
+  }
+
   if (status === 409) {
     if (normalizedDetail.includes('linking') || normalizedDetail.includes('link')) {
       return OAUTH_ERROR_CODES.oauthLinkingRequired;
