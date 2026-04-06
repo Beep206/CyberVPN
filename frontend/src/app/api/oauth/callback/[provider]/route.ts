@@ -46,6 +46,10 @@ function buildForwardHeaders(request: NextRequest): Headers {
   if (forwardedFor) {
     headers.set('x-forwarded-for', forwardedFor);
   }
+  
+  // Local environment workaround for ProxyCheckMiddleware
+  headers.set('x-forwarded-proto', 'https');
+
   if (userAgent) {
     headers.set('user-agent', userAgent);
   }
