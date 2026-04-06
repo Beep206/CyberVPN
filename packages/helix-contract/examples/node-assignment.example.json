@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.1",
+  "assignment_id": "2bbcdc80-fe47-4263-8939-8c71b8654db6",
+  "rollout_id": "rollout-canary-2026-03-31-a",
+  "node_id": "node-eu-west-01",
+  "channel": "canary",
+  "issued_at": "2026-03-31T09:00:00Z",
+  "expires_at": "2026-03-31T12:00:00Z",
+  "desired_state": "active",
+  "transport_profile": {
+    "transport_profile_id": "ptp-canary-edge-v3",
+    "profile_family": "edge-hybrid",
+    "profile_version": 3,
+    "policy_version": 7,
+    "compatibility_window": {
+      "min_transport_profile_version": 2,
+      "max_transport_profile_version": 4
+    }
+  },
+  "runtime_profile": {
+    "bundle_version": "bundle-2026-03-31-01",
+    "min_daemon_version": "v0.1.0",
+    "ports": [
+      443,
+      8443
+    ],
+    "health_check_interval_seconds": 15
+  },
+  "credentials": {
+    "key_id": "sig-key-2026-q1",
+    "token": "pts_canary_rollout_session_token_abcdefghijklmnopqrstuvwxyz"
+  },
+  "recovery": {
+    "last_known_good_bundle": "bundle-2026-03-24-02",
+    "rollback_timeout_seconds": 90
+  },
+  "integrity": {
+    "assignment_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "signature": {
+      "alg": "ed25519",
+      "key_id": "sig-key-2026-q1",
+      "sig": "ed25519signodeassignmentabcdefghijklmnopqrstuvwxyz"
+    }
+  }
+}

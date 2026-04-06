@@ -227,7 +227,7 @@ groups:
 
       # Prometheus scrape failures
       - alert: PrometheusScrapeFailures
-        expr: up == 0
+        expr: up{optional_profile!="true"} == 0
         for: 5m
         labels:
           severity: warning

@@ -30,17 +30,18 @@ pub async fn run_stealth_diagnostics(
     let ip_clone = ip.clone();
     let ip_probe: tokio::task::JoinHandle<bool> = tokio::spawn(async move {
         let _ = app_ip.emit("stealth-probe-log", "Probing IP connectivity... [START]");
-        let res = timeout(Duration::from_secs(5), TcpStream::connect((ip_clone.as_str(), port))).await;
+        let res = timeout(
+            Duration::from_secs(5),
+            TcpStream::connect((ip_clone.as_str(), port)),
+        )
+        .await;
         match res {
             Ok(Ok(_)) => {
                 let _ = app_ip.emit("stealth-probe-log", "Probing IP connectivity... [OK]");
                 false
             }
             Ok(Err(_)) | Err(_) => {
-                let _ = app_ip.emit(
-                    "stealth-probe-log",
-                    "Probing IP connectivity... [BLOCKED]",
-                );
+                let _ = app_ip.emit("stealth-probe-log", "Probing IP connectivity... [BLOCKED]");
                 true // Blocked or Unreachable
             }
         }
@@ -99,7 +100,8 @@ pub async fn run_stealth_diagnostics(
 
         // We explicitly test UDP. If it times out, the ISP is aggressively dropping or the remote doesn't respond.
         // For CyberVPN heuristics, we treat timeout unconditionally as Throttled/Blocked for UDP probes expecting echo.
-        let res: Result<(), tokio::time::error::Elapsed> = timeout(Duration::from_secs(5), udp_task).await;
+        let res: Result<(), tokio::time::error::Elapsed> =
+            timeout(Duration::from_secs(5), udp_task).await;
         if res.is_err() {
             let _ = app_udp.emit(
                 "stealth-probe-log",
@@ -115,12 +117,9 @@ pub async fn run_stealth_diagnostics(
     // 4. TLS Handshake Audit
     let app_tls = app_handle.clone();
     let tls_probe: tokio::task::JoinHandle<bool> = tokio::spawn(async move {
-        let _ = app_tls.emit(
-            "stealth-probe-log",
-            "Analyzing TLS Fingerprint... [START]",
-        );
+        let _ = app_tls.emit("stealth-probe-log", "Analyzing TLS Fingerprint... [START]");
         tokio::time::sleep(Duration::from_secs(2)).await; // Simulating local deep cert tree validation
-        
+
         // As a demonstration of AI pattern recognition simulation: if UDP and SNI are blocked, we'll mark this true.
         // We evaluate this after join, but since we are parallelizing, we just roll a heuristic.
         // For Phase 29 safety, we leave it false unless specifically targeting an SSL-split test.
@@ -140,7 +139,7 @@ pub async fn run_stealth_diagnostics(
     let sni_filtered = sni_filtered_res.unwrap_or(false);
     let udp_blocked = udp_blocked_res.unwrap_or(false);
     let mut tls_intercepted = tls_intercepted_res.unwrap_or(false);
-    
+
     // Heuristic override: if both IP and UDP are blocked, assume full TLS MITM / AI DPI mapping.
     if udp_blocked && ip_blocked {
         tls_intercepted = true;

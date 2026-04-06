@@ -246,7 +246,9 @@ pub fn parse_trojan(link: &str) -> Result<ProxyNode, AppError> {
             "security" => security = Some(v.into_owned()),
             "flow" => flow = Some(v.into_owned()),
             "tls_fragment" | "tls-fragment" => tls_fragment = Some(v == "true" || v == "1"),
-            "tls_record_fragment" | "tls-record-fragment" => tls_record_fragment = Some(v == "true" || v == "1"),
+            "tls_record_fragment" | "tls-record-fragment" => {
+                tls_record_fragment = Some(v == "true" || v == "1")
+            }
             _ => {}
         }
     }
@@ -426,7 +428,9 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
             "sid" => short_id = Some(v.into_owned()),
             "pbk" => public_key = Some(v.into_owned()),
             "tls_fragment" | "tls-fragment" => tls_fragment = Some(v == "true" || v == "1"),
-            "tls_record_fragment" | "tls-record-fragment" => tls_record_fragment = Some(v == "true" || v == "1"),
+            "tls_record_fragment" | "tls-record-fragment" => {
+                tls_record_fragment = Some(v == "true" || v == "1")
+            }
             _ => {}
         }
     }
@@ -1016,7 +1020,11 @@ fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
 
     let name = url
         .fragment()
-        .map(|f| urlencoding::decode(f).unwrap_or_else(|_| f.into()).into_owned())
+        .map(|f| {
+            urlencoding::decode(f)
+                .unwrap_or_else(|_| f.into())
+                .into_owned()
+        })
         .unwrap_or_else(|| "Tailscale Node".to_string());
 
     Ok(ProxyNode {

@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "heartbeat_id": "5f1a0b23-00eb-43d2-93a4-5d27817c18dc",
+  "node_id": "node-eu-west-01",
+  "rollout_id": "rollout-canary-2026-03-31-a",
+  "observed_at": "2026-03-31T09:05:00Z",
+  "transport_profile": {
+    "transport_profile_id": "ptp-canary-edge-v3",
+    "profile_family": "edge-hybrid",
+    "profile_version": 3,
+    "policy_version": 7
+  },
+  "daemon": {
+    "version": "v0.1.0",
+    "instance_id": "ptnd-0001",
+    "status": "ready"
+  },
+  "bundle": {
+    "active_version": "bundle-2026-03-31-01",
+    "pending_version": null,
+    "last_known_good_version": "bundle-2026-03-24-02"
+  },
+  "health": {
+    "ready": true,
+    "runtime_healthy": true,
+    "apply_state": "idle",
+    "latency_ms": 37,
+    "reason": null
+  },
+  "counters": {
+    "rollback_total": 0,
+    "apply_fail_total": 0
+  },
+  "capabilities": [
+    "protocol.v1",
+    "runtime.rollback",
+    "metrics.prometheus",
+    "profile.edge-hybrid"
+  ]
+}

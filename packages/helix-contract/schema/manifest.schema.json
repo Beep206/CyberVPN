@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/manifest.schema.json",
+  "title": "Helix Desktop Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "rollout_id",
+    "issued_at",
+    "expires_at",
+    "subject",
+    "transport",
+    "transport_profile",
+    "compatibility_window",
+    "capability_profile",
+    "routes",
+    "credentials",
+    "integrity",
+    "observability"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.1"
+    },
+    "manifest_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "rollout_id": {
+      "type": "string",
+      "pattern": "^rollout-[a-z0-9-]+$"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "desktop_client_id",
+        "entitlement_id",
+        "channel"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "desktop_client_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entitlement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "lab",
+            "canary",
+            "stable"
+          ]
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport_family",
+        "protocol_version",
+        "session_mode"
+      ],
+      "properties": {
+        "transport_family": {
+          "const": "helix"
+        },
+        "protocol_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "session_mode": {
+          "type": "string",
+          "enum": [
+            "stateful",
+            "hybrid"
+          ]
+        }
+      }
+    },
+    "transport_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport_profile_id",
+        "profile_family",
+        "profile_version",
+        "policy_version",
+        "deprecation_state"
+      ],
+      "properties": {
+        "transport_profile_id": {
+          "type": "string",
+          "pattern": "^ptp-[a-z0-9-]+$"
+        },
+        "profile_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deprecation_state": {
+          "type": "string",
+          "enum": [
+            "active",
+            "deprecated"
+          ]
+        }
+      }
+    },
+    "compatibility_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_family",
+        "min_transport_profile_version",
+        "max_transport_profile_version"
+      ],
+      "properties": {
+        "profile_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min_transport_profile_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_transport_profile_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "capability_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_capabilities",
+        "fallback_core",
+        "health_policy"
+      ],
+      "properties": {
+        "required_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fallback_core": {
+          "type": "string",
+          "enum": [
+            "sing-box",
+            "xray"
+          ]
+        },
+        "health_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "startup_timeout_seconds",
+            "runtime_unhealthy_threshold"
+          ],
+          "properties": {
+            "startup_timeout_seconds": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 120
+            },
+            "runtime_unhealthy_threshold": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          }
+        }
+      }
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "endpoint_ref",
+          "dial_host",
+          "dial_port",
+          "preference",
+          "policy_tag"
+        ],
+        "properties": {
+          "endpoint_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dial_host": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dial_port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "server_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "preference": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "policy_tag": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_id",
+        "token"
+      ],
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "token": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_hash",
+        "signature"
+      ],
+      "properties": {
+        "manifest_hash": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "signature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "alg",
+            "key_id",
+            "sig"
+          ],
+          "properties": {
+            "alg": {
+              "const": "ed25519"
+            },
+            "key_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sig": {
+              "type": "string",
+              "minLength": 32
+            }
+          }
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "metrics_namespace"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metrics_namespace": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

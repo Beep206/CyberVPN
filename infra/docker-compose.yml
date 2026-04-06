@@ -164,12 +164,16 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@remnawave-db:5432/${POSTGRES_DB:-postgres}
       - REDIS_URL=redis://remnawave-redis:6379/0
       - REMNAWAVE_URL=http://remnawave:3000
+      - HELIX_ENABLED=${HELIX_ENABLED:-false}
+      - HELIX_ADAPTER_URL=http://helix-adapter:8088
+      - HELIX_ADAPTER_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN:-}
       - ADMIN_TELEGRAM_IDS=${ADMIN_TELEGRAM_IDS:-}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-2}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PORT=${WORKER_METRICS_PORT:-9091}
+      - METRICS_PROTECT=false
       - MAGIC_LINK_BASE_URL=${MAGIC_LINK_BASE_URL:-http://localhost:9001}
       # Override SMTP servers to use Docker network hostnames
       - SMTP_SERVERS=mailpit-1:1025,mailpit-2:1025,mailpit-3:1025
@@ -201,6 +205,210 @@ services:
           memory: 128M
           cpus: "0.25"
 
+  helix-adapter:
+    build:
+      context: ../services/helix-adapter
+      dockerfile: Dockerfile
+    container_name: helix-adapter
+    hostname: helix-adapter
+    profiles: ["helix", "helix-lab"]
+    <<: [*common, *logging]
+    environment:
+      - ADAPTER_BIND_ADDR=0.0.0.0:8088
+      - REMNAWAVE_URL=http://remnawave:${APP_PORT:-3000}
+      - REMNAWAVE_TOKEN=${HELIX_REMNAWAVE_TOKEN:-replace-me}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@remnawave-db:5432/${POSTGRES_DB:-postgres}
+      - DATABASE_MAX_CONNECTIONS=${HELIX_DATABASE_MAX_CONNECTIONS:-10}
+      - DATABASE_ACQUIRE_TIMEOUT_SECONDS=${HELIX_DATABASE_ACQUIRE_TIMEOUT_SECONDS:-5}
+      - METRICS_PREFIX=${HELIX_METRICS_PREFIX:-helix}
+      - INTERNAL_AUTH_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
+      - MANIFEST_SIGNING_KEY=${HELIX_MANIFEST_SIGNING_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}
+      - MANIFEST_SIGNING_KEY_ID=${HELIX_MANIFEST_SIGNING_KEY_ID:-sig-key-local-dev}
+      - MANIFEST_TTL_SECONDS=${HELIX_MANIFEST_TTL_SECONDS:-3600}
+      - DEFAULT_ROLLOUT_CHANNEL=${HELIX_DEFAULT_ROLLOUT_CHANNEL:-lab}
+      - LOG_LEVEL=${HELIX_LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:${HELIX_ADAPTER_PORT:-8088}:8088"
+    depends_on:
+      remnawave-db:
+        condition: service_healthy
+      remnawave:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8088/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cybervpn-backend
+      - cybervpn-data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+
+  helix-node-lab:
+    build:
+      context: ..
+      dockerfile: services/helix-node/Dockerfile
+    container_name: helix-node-lab
+    hostname: helix-node-lab
+    profiles: ["helix-lab"]
+    <<: [*common, *logging]
+    environment:
+      - NODE_DAEMON_BIND_ADDR=0.0.0.0:8091
+      - ADAPTER_URL=http://helix-adapter:8088
+      - ADAPTER_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
+      - NODE_ID=${HELIX_LAB_NODE_ID:-node-lab-01}
+      - STATE_DIR=/var/lib/helix-node
+      - INSTANCE_ID=${HELIX_LAB_INSTANCE_ID:-}
+      - DAEMON_VERSION=${HELIX_NODE_DAEMON_VERSION:-v0.1.0}
+      - ASSIGNMENT_POLL_INTERVAL_SECONDS=${HELIX_ASSIGNMENT_POLL_INTERVAL_SECONDS:-15}
+      - HEALTH_GATE_TIMEOUT_SECONDS=${HELIX_HEALTH_GATE_TIMEOUT_SECONDS:-15}
+      - METRICS_PREFIX=${HELIX_NODE_METRICS_PREFIX:-helix_node}
+      - LOG_LEVEL=${HELIX_LOG_LEVEL:-info}
+      - ALLOW_PRIVATE_TARGETS=${HELIX_LAB_ALLOW_PRIVATE_TARGETS:-true}
+    ports:
+      - "127.0.0.1:${HELIX_NODE_PORT:-8091}:8091"
+      - "127.0.0.1:${HELIX_LAB_DATA_PORT:-9443}:9443"
+    volumes:
+      - helix_node_state:/var/lib/helix-node
+    depends_on:
+      helix-adapter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cybervpn-backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
+          cpus: "0.10"
+
+  helix-node-lab-02:
+    build:
+      context: ..
+      dockerfile: services/helix-node/Dockerfile
+    container_name: helix-node-lab-02
+    hostname: helix-node-lab-02
+    profiles: ["helix-lab"]
+    <<: [*common, *logging]
+    environment:
+      - NODE_DAEMON_BIND_ADDR=0.0.0.0:8091
+      - ADAPTER_URL=http://helix-adapter:8088
+      - ADAPTER_TOKEN=${HELIX_INTERNAL_AUTH_TOKEN:-replace-me-too}
+      - NODE_ID=${HELIX_LAB_NODE_2_ID:-node-lab-02}
+      - STATE_DIR=/var/lib/helix-node
+      - INSTANCE_ID=${HELIX_LAB_INSTANCE_ID_2:-}
+      - DAEMON_VERSION=${HELIX_NODE_DAEMON_VERSION:-v0.1.0}
+      - ASSIGNMENT_POLL_INTERVAL_SECONDS=${HELIX_ASSIGNMENT_POLL_INTERVAL_SECONDS:-15}
+      - HEALTH_GATE_TIMEOUT_SECONDS=${HELIX_HEALTH_GATE_TIMEOUT_SECONDS:-15}
+      - METRICS_PREFIX=${HELIX_NODE_METRICS_PREFIX:-helix_node}
+      - LOG_LEVEL=${HELIX_LOG_LEVEL:-info}
+      - ALLOW_PRIVATE_TARGETS=${HELIX_LAB_ALLOW_PRIVATE_TARGETS:-true}
+    ports:
+      - "127.0.0.1:${HELIX_NODE_2_PORT:-8092}:8091"
+      - "127.0.0.1:${HELIX_LAB_NODE_2_DATA_PORT:-9444}:9444"
+    volumes:
+      - helix_node_state_2:/var/lib/helix-node
+    depends_on:
+      helix-adapter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8091/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cybervpn-backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+        reservations:
+          memory: 64M
+          cpus: "0.10"
+
+  helix-bench-target:
+    image: nginx:1.29-alpine
+    container_name: helix-bench-target
+    hostname: helix-bench-target
+    profiles: ["helix-lab"]
+    <<: [*common, *logging]
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - dd if=/dev/zero of=/usr/share/nginx/html/8mb.bin bs=1M count=8 && exec nginx -g 'daemon off;'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/8mb.bin"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cybervpn-backend
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+
+  helix-stable-http-proxy:
+    image: python:3.12-slim
+    container_name: helix-stable-http-proxy
+    hostname: helix-stable-http-proxy
+    profiles: ["helix-lab"]
+    <<: [*common, *logging]
+    working_dir: /app
+    command: ["python", "serve.py"]
+    volumes:
+      - ./helix/stable-http-proxy:/app:ro
+    environment:
+      - HELIX_STABLE_PROXY_BIND_HOST=0.0.0.0
+      - HELIX_STABLE_PROXY_BIND_PORT=8899
+    ports:
+      - "127.0.0.1:${HELIX_STABLE_PROXY_PORT:-8899}:8899"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8899/healthz', timeout=2).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cybervpn-backend
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+        reservations:
+          memory: 32M
+          cpus: "0.05"
+
   cybervpn-scheduler:
     build:
       context: ../services/task-worker
@@ -217,6 +425,7 @@ services:
       - REMNAWAVE_URL=http://remnawave:3000
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - METRICS_PROTECT=false
     command: ["taskiq", "scheduler", "src.broker:scheduler"]
     depends_on:
       cybervpn-worker:
@@ -396,7 +605,7 @@ services:
       - "127.0.0.1:9093:9093"
     environment:
       - ALERTMANAGER_WEBHOOK_URL=${ALERTMANAGER_WEBHOOK_URL:-https://your-telegram-relay.example.com/alert}
-    entrypoint: ["/docker-entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     command:
       - "--storage.path=/alertmanager"
       - "--web.external-url=http://localhost:9093"
@@ -530,7 +739,11 @@ services:
       loki:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'exec 3<>/dev/tcp/127.0.0.1/9080; printf \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; grep -q \"200 OK\" <&3'",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -797,6 +1010,10 @@ volumes:
     name: promtail_positions
   tempo_data:
     name: tempo_data
+  helix_node_state:
+    name: helix_node_state
+  helix_node_state_2:
+    name: helix_node_state_2
   mailpit_1_data:
     name: mailpit_1_data
   mailpit_2_data:

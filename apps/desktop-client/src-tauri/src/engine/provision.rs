@@ -273,7 +273,7 @@ pub async fn ensure_xray_binary(app_handle: &AppHandle) -> Result<PathBuf, AppEr
 pub async fn update_geo_assets(app_handle: &AppHandle) -> Result<(), AppError> {
     let app_dir = crate::engine::store::get_app_dir(app_handle)?;
     let bin_dir = app_dir.join("bin");
-    
+
     if !bin_dir.exists() {
         tokio::fs::create_dir_all(&bin_dir)
             .await
@@ -281,21 +281,37 @@ pub async fn update_geo_assets(app_handle: &AppHandle) -> Result<(), AppError> {
     }
 
     let geoip_url = "https://github.com/SagerNet/sing-geoip/releases/latest/download/geoip.db";
-    let geosite_url = "https://github.com/SagerNet/sing-geosite/releases/latest/download/geosite.db";
+    let geosite_url =
+        "https://github.com/SagerNet/sing-geosite/releases/latest/download/geosite.db";
 
     let client = reqwest::Client::new();
-    
+
     for (url, filename) in [(geoip_url, "geoip.db"), (geosite_url, "geosite.db")] {
         let dest = bin_dir.join(filename);
         let tmp_dest = bin_dir.join(format!("{}.tmp", filename));
-        
-        let response = client.get(url).send().await.map_err(|e| AppError::System(e.to_string()))?;
+
+        let response = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| AppError::System(e.to_string()))?;
         if response.status().is_success() {
-            let bytes = response.bytes().await.map_err(|e| AppError::System(e.to_string()))?;
-            tokio::fs::write(&tmp_dest, bytes).await.map_err(|e| AppError::System(e.to_string()))?;
-            tokio::fs::rename(&tmp_dest, &dest).await.map_err(|e| AppError::System(e.to_string()))?;
+            let bytes = response
+                .bytes()
+                .await
+                .map_err(|e| AppError::System(e.to_string()))?;
+            tokio::fs::write(&tmp_dest, bytes)
+                .await
+                .map_err(|e| AppError::System(e.to_string()))?;
+            tokio::fs::rename(&tmp_dest, &dest)
+                .await
+                .map_err(|e| AppError::System(e.to_string()))?;
         } else {
-            return Err(AppError::System(format!("Failed to download {}: {}", filename, response.status())));
+            return Err(AppError::System(format!(
+                "Failed to download {}: {}",
+                filename,
+                response.status()
+            )));
         }
     }
 
@@ -313,7 +329,7 @@ pub async fn check_pqc_support(app_handle: &AppHandle) -> Result<(), AppError> {
         .map_err(|e| AppError::System(format!("Failed to execute sing-box version: {}", e)))?;
 
     let version_str = String::from_utf8_lossy(&output.stdout);
-    
+
     // sing-box version output typically starts with "sing-box version 1.11.4"
     if let Some(ver_line) = version_str.lines().next() {
         if ver_line.contains("version") {
@@ -322,7 +338,10 @@ pub async fn check_pqc_support(app_handle: &AppHandle) -> Result<(), AppError> {
                 // Parse version, e.g., "1.11.4"
                 let semver_parts: Vec<&str> = v_str.split('.').collect();
                 if semver_parts.len() >= 2 {
-                    if let (Ok(major), Ok(minor)) = (semver_parts[0].parse::<u32>(), semver_parts[1].parse::<u32>()) {
+                    if let (Ok(major), Ok(minor)) = (
+                        semver_parts[0].parse::<u32>(),
+                        semver_parts[1].parse::<u32>(),
+                    ) {
                         if major == 1 && minor < 9 {
                             return Err(AppError::UnsupportedCoreVersion(
                                 "Sing-box core is older than 1.9.0 and does not support ML-KEM/Kyber Post-Quantum Cryptography. Please update your core.".to_string()

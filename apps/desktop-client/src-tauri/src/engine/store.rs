@@ -1,4 +1,9 @@
 use crate::engine::error::AppError;
+use crate::engine::helix::config::{
+    HelixPreparedRuntime, HelixRecoveryBenchmarkReport, HelixResolvedManifest,
+    TransportBenchmarkComparisonReport, TransportBenchmarkMatrixReport, TransportBenchmarkReport,
+};
+use crate::engine::lifecycle::StartupRecoveryInfo;
 use crate::engine::sys::net_monitor::NetworkProfile;
 use crate::ipc::models::ProxyNode;
 use serde::{Deserialize, Serialize};
@@ -32,12 +37,32 @@ pub struct AppDataStore {
     pub pqc_enforcement_mode: bool,
     #[serde(default = "default_privacy_shield_level")]
     pub privacy_shield_level: String,
-    
+
     // Phase 28 features
     #[serde(default)]
     pub smart_connect_enabled: bool,
     #[serde(default)]
     pub network_rules: HashMap<String, NetworkProfile>,
+    #[serde(default)]
+    pub helix_backend_url: Option<String>,
+    #[serde(default)]
+    pub helix_desktop_client_id: Option<String>,
+    #[serde(default)]
+    pub helix_last_manifest: Option<HelixResolvedManifest>,
+    #[serde(default)]
+    pub helix_last_prepared_runtime: Option<HelixPreparedRuntime>,
+    #[serde(default)]
+    pub helix_last_fallback_reason: Option<String>,
+    #[serde(default)]
+    pub helix_last_benchmark_report: Option<TransportBenchmarkReport>,
+    #[serde(default)]
+    pub helix_last_comparison_report: Option<TransportBenchmarkComparisonReport>,
+    #[serde(default)]
+    pub helix_last_matrix_report: Option<TransportBenchmarkMatrixReport>,
+    #[serde(default)]
+    pub helix_last_recovery_report: Option<HelixRecoveryBenchmarkReport>,
+    #[serde(default)]
+    pub last_startup_recovery: Option<StartupRecoveryInfo>,
 }
 
 fn default_privacy_shield_level() -> String {
@@ -71,11 +96,29 @@ impl Default for AppDataStore {
             privacy_shield_level: default_privacy_shield_level(),
             smart_connect_enabled: false,
             network_rules: HashMap::new(),
+            helix_backend_url: None,
+            helix_desktop_client_id: None,
+            helix_last_manifest: None,
+            helix_last_prepared_runtime: None,
+            helix_last_fallback_reason: None,
+            helix_last_benchmark_report: None,
+            helix_last_comparison_report: None,
+            helix_last_matrix_report: None,
+            helix_last_recovery_report: None,
+            last_startup_recovery: None,
         }
     }
 }
 
 pub fn get_app_dir(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    if let Ok(override_dir) = std::env::var("CYBERVPN_APP_DIR_OVERRIDE") {
+        let app_dir = PathBuf::from(override_dir);
+        if !app_dir.exists() {
+            fs::create_dir_all(&app_dir)?;
+        }
+        return Ok(app_dir);
+    }
+
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             let portable_flag = parent.join(".portable");

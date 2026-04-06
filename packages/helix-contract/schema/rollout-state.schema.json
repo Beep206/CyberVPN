@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cybervpn.dev/helix/schema/rollout-state.schema.json",
+  "title": "Helix Rollout State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "rollout_id",
+    "channel",
+    "desired_state",
+    "published_at",
+    "current_batch",
+    "nodes",
+    "desktop",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "rollout_id": {
+      "type": "string",
+      "pattern": "^rollout-[a-z0-9-]+$"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "lab",
+        "canary",
+        "stable"
+      ]
+    },
+    "desired_state": {
+      "type": "string",
+      "enum": [
+        "running",
+        "paused",
+        "revoked",
+        "completed"
+      ]
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "current_batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_id",
+        "manifest_version",
+        "target_nodes",
+        "completed_nodes",
+        "failed_nodes"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_nodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_nodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_nodes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "nodes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "healthy",
+        "stale",
+        "rolled_back"
+      ],
+      "properties": {
+        "healthy": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rolled_back": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "desktop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connect_success_rate",
+        "fallback_rate"
+      ],
+      "properties": {
+        "connect_success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fallback_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pause_on_rollback_spike",
+        "revoke_on_manifest_error"
+      ],
+      "properties": {
+        "pause_on_rollback_spike": {
+          "type": "boolean"
+        },
+        "revoke_on_manifest_error": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

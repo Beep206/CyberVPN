@@ -1,0 +1,25 @@
+[package]
+name = "helix-node"
+version = "0.1.0"
+edition = "2021"
+description = "CyberVPN Helix node daemon"
+
+[dependencies]
+axum = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+prometheus = "0.13"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+uuid = { version = "1", features = ["serde", "v4"] }
+helix-runtime = { path = "../../packages/helix-runtime" }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread", "sync", "time"] }

@@ -1,10 +1,11 @@
 use crate::engine::error::AppError;
 use lazy_static::lazy_static;
 use regex::Regex;
+use reqwest::Client;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
@@ -15,7 +16,8 @@ lazy_static! {
     static ref TRAFFIC_REGEX_REV: Regex =
         Regex::new(r"(?i)(?:down|recv)\D*(\d+)\D*(?:up|sent)\D*(\d+)").unwrap();
     static ref FAILURE_REGEX: Regex =
-        Regex::new(r"(?i)(connection reset|timeout|dns failure).*?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})").unwrap();
+        Regex::new(r"(?i)(connection reset|timeout|dns failure).*?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})")
+            .unwrap();
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -30,12 +32,18 @@ async fn check_routing_failures(
     app_handle: AppHandle,
 ) {
     if let Some(caps) = FAILURE_REGEX.captures(line) {
-        let reason = caps.get(1).map(|m| m.as_str().to_string()).unwrap_or_default();
-        let domain = caps.get(2).map(|m| m.as_str().to_string()).unwrap_or_default();
-        
+        let reason = caps
+            .get(1)
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+        let domain = caps
+            .get(2)
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+
         let mut failures = domain_failures.lock().await;
         let now = std::time::Instant::now();
-        
+
         // Cleanup old entries
         failures.retain(|_, (_, time)| now.duration_since(*time).as_secs() < 120);
 
@@ -44,10 +52,7 @@ async fn check_routing_failures(
         entry.1 = now;
 
         if entry.0 == 3 {
-             let _ = app_handle.emit("routing-suggestion", RoutingSuggestion {
-                 domain,
-                 reason,
-             });
+            let _ = app_handle.emit("routing-suggestion", RoutingSuggestion { domain, reason });
         }
     }
 }
@@ -58,19 +63,22 @@ struct TrafficUpdate {
     down: u64,
 }
 
-async fn check_privacy_threats(
-    line: &str,
-    threats_blocked: Arc<AtomicU64>,
-    app_handle: AppHandle,
-) {
-    if line.contains("rejected by rule 'adblock-standard'") || line.contains("rejected by rule 'block'") {
+#[derive(Debug, Clone)]
+pub struct RuntimeMonitorConfig {
+    pub health_url: String,
+}
+
+async fn check_privacy_threats(line: &str, threats_blocked: Arc<AtomicU64>, app_handle: AppHandle) {
+    if line.contains("rejected by rule 'adblock-standard'")
+        || line.contains("rejected by rule 'block'")
+    {
         // Typical string: "[Route] [XX tcp] connection to tcp:metrics.icloud.com:443 rejected by rule 'adblock-standard'"
         let mut domain = "unknown".to_string();
         if let Some(idx) = line.find("connection to ") {
             let substr = &line[idx + 14..];
             let end_idx = substr.find(" rejected").unwrap_or(substr.len());
             let target = &substr[..end_idx];
-            
+
             // Extract domain from tcp:domain:port if applicable
             let parts: Vec<&str> = target.split(':').collect();
             if parts.len() >= 2 {
@@ -79,7 +87,7 @@ async fn check_privacy_threats(
                 domain = parts[0].to_string();
             }
         }
-        
+
         threats_blocked.fetch_add(1, Ordering::Relaxed);
         let _ = app_handle.emit("tracker-blocked", domain);
     }
@@ -89,9 +97,150 @@ pub struct ProcessManager {
     child: Arc<Mutex<Option<Child>>>,
     #[cfg(target_os = "windows")]
     is_elevated_run: Arc<Mutex<bool>>,
+    #[cfg(target_os = "windows")]
+    elevated_process_name: Arc<Mutex<Option<String>>>,
     expected_exit: Arc<Mutex<bool>>,
     domain_failures: Arc<Mutex<std::collections::HashMap<String, (u32, std::time::Instant)>>>,
     pub threats_blocked: Arc<AtomicU64>,
+}
+
+async fn poll_helix_health(
+    health_url: String,
+    expected_exit: Arc<Mutex<bool>>,
+    app_handle: AppHandle,
+) {
+    let client = match Client::builder()
+        .timeout(tokio::time::Duration::from_millis(1200))
+        .build()
+    {
+        Ok(client) => client,
+        Err(error) => {
+            eprintln!("Failed to build Helix health client: {error}");
+            return;
+        }
+    };
+
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(750));
+    let mut degraded_emitted = false;
+
+    loop {
+        interval.tick().await;
+
+        if *expected_exit.lock().await {
+            break;
+        }
+
+        match client.get(&health_url).send().await {
+            Ok(response) => match response.error_for_status() {
+                Ok(response) => match response
+                    .json::<crate::engine::helix::config::HelixSidecarHealth>()
+                    .await
+                {
+                    Ok(health) => {
+                        degraded_emitted = false;
+                        let _ = app_handle.emit(
+                            "traffic_update",
+                            TrafficUpdate {
+                                up: health.bytes_sent,
+                                down: health.bytes_received,
+                            },
+                        );
+                        crate::engine::sys::stats::update_absolute_bytes(
+                            health.bytes_sent,
+                            health.bytes_received,
+                        );
+                        let _ = app_handle.emit("helix-health", health);
+                    }
+                    Err(error) => {
+                        eprintln!("Failed to parse Helix health payload: {error}");
+                        let _ = crate::engine::diagnostics::record_event(
+                            &app_handle,
+                            crate::engine::diagnostics::DiagnosticLevel::Warn,
+                            "helix.health",
+                            "Failed to parse Helix health payload",
+                            serde_json::json!({
+                                "error": error.to_string(),
+                            }),
+                        );
+                    }
+                },
+                Err(error) => {
+                    if !degraded_emitted {
+                        let error_message =
+                            format!("Helix health endpoint returned error: {error}");
+                        let _ = app_handle.emit("helix-runtime-degraded", error_message.clone());
+                        let _ = crate::engine::diagnostics::record_event(
+                            &app_handle,
+                            crate::engine::diagnostics::DiagnosticLevel::Warn,
+                            "helix.health",
+                            "Helix health endpoint returned error",
+                            serde_json::json!({
+                                "error": error.to_string(),
+                                "health_url": health_url,
+                            }),
+                        );
+                        degraded_emitted = true;
+                    }
+                }
+            },
+            Err(error) => {
+                if !degraded_emitted {
+                    let error_message = format!("Helix health endpoint is unavailable: {error}");
+                    let _ = app_handle.emit("helix-runtime-degraded", error_message.clone());
+                    let _ = crate::engine::diagnostics::record_event(
+                        &app_handle,
+                        crate::engine::diagnostics::DiagnosticLevel::Warn,
+                        "helix.health",
+                        "Helix health endpoint is unavailable",
+                        serde_json::json!({
+                            "error": error.to_string(),
+                            "health_url": health_url,
+                        }),
+                    );
+                    degraded_emitted = true;
+                }
+            }
+        }
+    }
+}
+
+async fn handle_unexpected_runtime_exit(app_handle: &AppHandle, reason: &str) {
+    let _ = crate::engine::sysproxy::clear_system_proxy();
+
+    if let Some(state) = app_handle.try_state::<crate::ipc::AppState>() {
+        let previous_status = state.status.read().await.clone();
+        let mut status_lock = state.status.write().await;
+        status_lock.status = "error".to_string();
+        status_lock.proxy_url = None;
+        status_lock.message = Some(reason.to_string());
+        status_lock.active_core = None;
+        status_lock.active_id = None;
+        status_lock.up_bytes = 0;
+        status_lock.down_bytes = 0;
+        let status_snapshot = status_lock.clone();
+        drop(status_lock);
+        let _ = app_handle.emit("connection-status", status_snapshot);
+
+        let _ = crate::engine::diagnostics::record_event(
+            app_handle,
+            crate::engine::diagnostics::DiagnosticLevel::Error,
+            "vpn.process",
+            "VPN runtime exited unexpectedly",
+            serde_json::json!({
+                "reason": reason,
+                "previous_status": previous_status.status,
+                "previous_core": previous_status.active_core,
+                "previous_proxy_url": previous_status.proxy_url,
+            }),
+        );
+    }
+
+    if let Ok(mut store_data) = crate::engine::store::load_store(app_handle) {
+        if store_data.active_profile_id.is_some() {
+            store_data.active_profile_id = None;
+            let _ = crate::engine::store::save_store(app_handle, &store_data);
+        }
+    }
 }
 
 impl Default for ProcessManager {
@@ -106,6 +255,8 @@ impl ProcessManager {
             child: Arc::new(Mutex::new(None)),
             #[cfg(target_os = "windows")]
             is_elevated_run: Arc::new(Mutex::new(false)),
+            #[cfg(target_os = "windows")]
+            elevated_process_name: Arc::new(Mutex::new(None)),
             expected_exit: Arc::new(Mutex::new(false)),
             domain_failures: Arc::new(Mutex::new(std::collections::HashMap::new())),
             threats_blocked: Arc::new(AtomicU64::new(0)),
@@ -119,11 +270,12 @@ impl ProcessManager {
         config_path: std::path::PathBuf,
         tun_mode: bool,
         core_name: &str,
+        runtime_monitor: Option<RuntimeMonitorConfig>,
     ) -> Result<(), AppError> {
         let mut child_guard = self.child.lock().await;
 
         if child_guard.is_some() {
-            return Err(AppError::System("Sing-box is already running".to_string()));
+            return Err(AppError::System("VPN core is already running".to_string()));
         }
 
         *self.expected_exit.lock().await = false;
@@ -138,6 +290,17 @@ impl ProcessManager {
             config_path.display()
         );
         println!("TUN Mode Enabled: {}", tun_mode);
+        let _ = crate::engine::diagnostics::record_event(
+            &app_handle,
+            crate::engine::diagnostics::DiagnosticLevel::Info,
+            "vpn.connect",
+            format!("Starting {core_name} runtime"),
+            serde_json::json!({
+                "core": core_name,
+                "tun_mode": tun_mode,
+                "config_path": config_path.display().to_string(),
+            }),
+        );
 
         let mut command = if tun_mode && !crate::engine::sys::is_elevated() {
             #[cfg(target_os = "windows")]
@@ -148,6 +311,13 @@ impl ProcessManager {
 
                 let mut elevated_guard = self.is_elevated_run.lock().await;
                 *elevated_guard = true;
+                *self.elevated_process_name.lock().await = Some(
+                    bin_path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or("sing-box.exe")
+                        .to_string(),
+                );
 
                 // We must tail the log file asynchronously
                 let log_path = config_path.with_file_name("run.log");
@@ -183,7 +353,9 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
-                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
+                                            crate::engine::sys::stats::update_absolute_bytes(
+                                                up, down,
+                                            );
                                         }
                                     } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
                                         if let (Ok(down), Ok(up)) =
@@ -191,22 +363,29 @@ impl ProcessManager {
                                         {
                                             let _ = app_clone
                                                 .emit("traffic_update", TrafficUpdate { up, down });
-                                            crate::engine::sys::stats::update_absolute_bytes(up, down);
+                                            crate::engine::sys::stats::update_absolute_bytes(
+                                                up, down,
+                                            );
                                         }
                                     }
                                     let _ = app_clone.emit("singbox-log", trimmed);
-                                    
+                                    let _ = crate::engine::diagnostics::append_core_runtime_log(
+                                        &app_clone, "sing-box", "stdout", trimmed,
+                                    );
+
                                     check_routing_failures(
                                         trimmed,
                                         failures_clone1.clone(),
-                                        app_clone.clone()
-                                    ).await;
+                                        app_clone.clone(),
+                                    )
+                                    .await;
 
                                     check_privacy_threats(
                                         trimmed,
                                         threats_clone1.clone(),
-                                        app_clone.clone()
-                                    ).await;
+                                        app_clone.clone(),
+                                    )
+                                    .await;
                                 }
                                 Err(_) => {
                                     break;
@@ -219,9 +398,11 @@ impl ProcessManager {
                 let app_clone_watchdog = app_handle.clone();
                 let expected_exit_arc = self.expected_exit.clone();
                 let is_elevated_arc = self.is_elevated_run.clone();
+                let elevated_process_name_arc = self.elevated_process_name.clone();
 
                 tokio::spawn(async move {
-                    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+                    let mut interval =
+                        tokio::time::interval(tokio::time::Duration::from_millis(500));
                     let mut sys = sysinfo::System::new();
 
                     loop {
@@ -235,20 +416,32 @@ impl ProcessManager {
                         if *is_elevated_arc.lock().await {
                             is_running = true;
                             sys.refresh_processes();
-                            let mut found = false;
-                            for _ in sys.processes_by_exact_name("sing-box.exe".as_ref()) {
-                                found = true;
-                                break;
-                            }
+                            let expected_process_name = elevated_process_name_arc
+                                .lock()
+                                .await
+                                .clone()
+                                .unwrap_or_else(|| "sing-box.exe".to_string());
+                            let found = sys
+                                .processes_by_exact_name(expected_process_name.as_str())
+                                .next()
+                                .is_some();
                             if !found {
                                 is_running = false;
                                 *is_elevated_arc.lock().await = false;
+                                *elevated_process_name_arc.lock().await = None;
                             }
                         }
 
                         if !is_running {
+                            handle_unexpected_runtime_exit(
+                                &app_clone_watchdog,
+                                "Elevated VPN runtime exited unexpectedly",
+                            )
+                            .await;
                             use tauri::Manager;
-                            if let Some(guard) = app_clone_watchdog.try_state::<crate::engine::sys::sentinel::SentinelGuard>() {
+                            if let Some(guard) = app_clone_watchdog
+                                .try_state::<crate::engine::sys::sentinel::SentinelGuard>(
+                            ) {
                                 if guard.is_active() {
                                     let _ = guard.enable();
                                 }
@@ -301,6 +494,7 @@ impl ProcessManager {
         let app_clone1 = app_handle.clone();
         let failures_clone2 = self.domain_failures.clone();
         let threats_clone2 = self.threats_blocked.clone();
+        let core_name_stdout = core_name.to_string();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -319,24 +513,23 @@ impl ProcessManager {
 
                 // Forward Sing-box stdout to React frontend
                 let _ = app_clone1.emit("singbox-log", &line);
-                
-                check_routing_failures(
+                let _ = crate::engine::diagnostics::append_core_runtime_log(
+                    &app_clone1,
+                    &core_name_stdout,
+                    "stdout",
                     &line,
-                    failures_clone2.clone(),
-                    app_clone1.clone()
-                ).await;
+                );
 
-                check_privacy_threats(
-                    &line,
-                    threats_clone2.clone(),
-                    app_clone1.clone()
-                ).await;
+                check_routing_failures(&line, failures_clone2.clone(), app_clone1.clone()).await;
+
+                check_privacy_threats(&line, threats_clone2.clone(), app_clone1.clone()).await;
             }
         });
 
         let app_clone2 = app_handle.clone();
         let failures_clone3 = self.domain_failures.clone();
         let threats_clone3 = self.threats_blocked.clone();
+        let core_name_stderr = core_name.to_string();
         tokio::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
@@ -355,18 +548,16 @@ impl ProcessManager {
 
                 // Forward Sing-box stderr to React frontend
                 let _ = app_clone2.emit("singbox-log", &line);
-                
-                check_routing_failures(
+                let _ = crate::engine::diagnostics::append_core_runtime_log(
+                    &app_clone2,
+                    &core_name_stderr,
+                    "stderr",
                     &line,
-                    failures_clone3.clone(),
-                    app_clone2.clone()
-                ).await;
+                );
 
-                check_privacy_threats(
-                    &line,
-                    threats_clone3.clone(),
-                    app_clone2.clone()
-                ).await;
+                check_routing_failures(&line, failures_clone3.clone(), app_clone2.clone()).await;
+
+                check_privacy_threats(&line, threats_clone3.clone(), app_clone2.clone()).await;
             }
         });
 
@@ -388,7 +579,7 @@ impl ProcessManager {
                 }
 
                 let mut is_running = false;
-                
+
                 {
                     let mut cg = child_arc.lock().await;
                     if let Some(child) = cg.as_mut() {
@@ -401,9 +592,15 @@ impl ProcessManager {
                 }
 
                 if !is_running {
-                    // Unexpected exit detected
+                    handle_unexpected_runtime_exit(
+                        &app_clone_watchdog,
+                        "VPN runtime exited unexpectedly",
+                    )
+                    .await;
                     use tauri::Manager;
-                    if let Some(guard) = app_clone_watchdog.try_state::<crate::engine::sys::sentinel::SentinelGuard>() {
+                    if let Some(guard) = app_clone_watchdog
+                        .try_state::<crate::engine::sys::sentinel::SentinelGuard>()
+                    {
                         if guard.is_active() {
                             let _ = guard.enable();
                         }
@@ -413,6 +610,34 @@ impl ProcessManager {
                 }
             }
         });
+
+        if let Some(runtime_monitor) = runtime_monitor {
+            let _ = crate::engine::diagnostics::record_event(
+                &app_handle,
+                crate::engine::diagnostics::DiagnosticLevel::Info,
+                "vpn.connect",
+                format!("{core_name} runtime started"),
+                serde_json::json!({
+                    "core": core_name,
+                    "health_url": runtime_monitor.health_url,
+                }),
+            );
+            tokio::spawn(poll_helix_health(
+                runtime_monitor.health_url,
+                self.expected_exit.clone(),
+                app_handle.clone(),
+            ));
+        } else {
+            let _ = crate::engine::diagnostics::record_event(
+                &app_handle,
+                crate::engine::diagnostics::DiagnosticLevel::Info,
+                "vpn.connect",
+                format!("{core_name} runtime started"),
+                serde_json::json!({
+                    "core": core_name,
+                }),
+            );
+        }
 
         Ok(())
     }
@@ -424,12 +649,19 @@ impl ProcessManager {
         {
             let mut elevated_guard = self.is_elevated_run.lock().await;
             if *elevated_guard {
-                println!("Stopping elevated sing-box process via taskkill...");
+                let process_name = self
+                    .elevated_process_name
+                    .lock()
+                    .await
+                    .clone()
+                    .unwrap_or_else(|| "sing-box.exe".to_string());
+                println!("Stopping elevated VPN core via taskkill...");
                 let _ = tokio::process::Command::new("taskkill")
-                    .args(&["/F", "/IM", "sing-box.exe"])
+                    .args(["/F", "/IM", process_name.as_str()])
                     .output()
                     .await;
                 *elevated_guard = false;
+                *self.elevated_process_name.lock().await = None;
                 return Ok(());
             }
         }
@@ -440,13 +672,13 @@ impl ProcessManager {
         };
 
         if let Some(mut child) = child_process {
-            println!("Stopping sing-box process...");
+            println!("Stopping VPN core process...");
             child.kill().await?;
             child.wait().await?;
             return Ok(());
         }
 
-        Err(AppError::System("Sing-box is not running".to_string()))
+        Err(AppError::System("VPN core is not running".to_string()))
     }
 
     pub async fn is_running(&self) -> bool {

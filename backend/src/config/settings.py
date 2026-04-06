@@ -19,10 +19,19 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+    redis_max_connections: int = 100
+    redis_pool_wait_seconds: float = 5.0
 
     # Remnawave API
     remnawave_url: str = "http://localhost:3000"
     remnawave_token: SecretStr
+
+    # Helix adapter
+    helix_enabled: bool = False
+    helix_admin_enabled: bool = False
+    helix_adapter_url: str = "http://localhost:8090"
+    helix_adapter_token: SecretStr = SecretStr("")
+    helix_default_channel: str = "lab"
 
     # JWT
     jwt_secret: SecretStr
@@ -117,6 +126,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_requests: int = 100
     rate_limit_window: int = 60  # seconds
+    helix_admin_read_rate_limit_requests: int = 1500
     trust_proxy_headers: bool = False
 
     # OTP Configuration

@@ -72,7 +72,7 @@ pub struct ProxyNode {
     pub mux: Option<String>,                // Multiplexing
     pub group_id: Option<String>,           // Profile Grouping
     // Phase 19 Additions
-    pub plugin: Option<String>,             // Shadowsocks obfs/v2ray-plugin
+    pub plugin: Option<String>, // Shadowsocks obfs/v2ray-plugin
     pub plugin_opts: Option<String>,
     pub tls_fragment: Option<bool>,
     pub tls_record_fragment: Option<bool>,
@@ -157,6 +157,10 @@ pub struct ProfileState {
 pub struct ConnectionStatus {
     pub status: String, // "disconnected", "connecting", "connected", "error"
     pub active_id: Option<String>,
+    #[serde(default)]
+    pub active_core: Option<String>,
+    #[serde(default)]
+    pub proxy_url: Option<String>,
     pub message: Option<String>,
     pub up_bytes: u64,
     pub down_bytes: u64,
