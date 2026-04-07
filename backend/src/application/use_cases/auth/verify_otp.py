@@ -7,13 +7,13 @@ from typing import Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
-
 from src.application.services.auth_service import AuthService
 from src.application.services.otp_service import OtpService, OtpVerificationResult
 from src.config.settings import settings
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class RemnawaveGateway(Protocol):
@@ -80,7 +80,14 @@ class VerifyOtpUseCase:
         self._session = session
         self._remnawave_gateway = remnawave_gateway
 
-    async def execute(self, email: str, code: str) -> VerifyOtpResult:
+    async def execute(
+        self,
+        email: str,
+        code: str,
+        client_fingerprint: str | None = None,
+        client_ip: str | None = None,
+        user_agent: str | None = None,
+    ) -> VerifyOtpResult:
         """
         Verify OTP code and activate user.
 
@@ -149,7 +156,10 @@ class VerifyOtpUseCase:
             subject=str(user.id),
             role=user.role,
         )
-        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(subject=str(user.id))
+        refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
+            subject=str(user.id),
+            fingerprint=client_fingerprint,
+        )
 
         # Store refresh token hash in database
         token_hash = sha256(refresh_token.encode()).hexdigest()
@@ -159,6 +169,9 @@ class VerifyOtpUseCase:
             user_id=user.id,
             token_hash=token_hash,
             expires_at=expires_at,
+            device_id=client_fingerprint,
+            ip_address=client_ip,
+            user_agent=user_agent,
         )
         self._session.add(refresh_token_record)
 

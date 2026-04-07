@@ -35,6 +35,8 @@ class LoginUseCase:
         login_or_email: str,
         password: str,
         client_fingerprint: str | None = None,
+        client_ip: str | None = None,
+        user_agent: str | None = None,
     ) -> dict:
         """
         Authenticate user and generate token pair.
@@ -68,7 +70,11 @@ class LoginUseCase:
             raise InvalidCredentialsError()
 
         if not self._auth_service.verify_password(password, user.password_hash):
+            user.failed_login_attempts += 1
+            await self._session.flush()
             raise InvalidCredentialsError()
+
+        is_first_username_only_login = user.email is None and user.sign_in_count == 0
 
         # Create access and refresh tokens
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
@@ -90,12 +96,20 @@ class LoginUseCase:
             user_id=user.id,
             token_hash=token_hash,
             expires_at=expires_at,
+            device_id=client_fingerprint,
+            ip_address=client_ip,
+            user_agent=user_agent,
         )
         self._session.add(refresh_token_record)
         await self._session.flush()
 
         # Update last login information
-        user.last_login_at = datetime.now(UTC)
+        user.last_login_at = user.current_sign_in_at
+        user.last_login_ip = user.current_sign_in_ip
+        user.current_sign_in_at = datetime.now(UTC)
+        user.current_sign_in_ip = client_ip
+        user.sign_in_count += 1
+        user.failed_login_attempts = 0
         await self._session.flush()
 
         return {
@@ -103,4 +117,5 @@ class LoginUseCase:
             "refresh_token": refresh_token,
             "token_type": "bearer",
             "expires_in": settings.access_token_expire_minutes * 60,
+            "is_first_username_only_login": is_first_username_only_login,
         }

@@ -113,7 +113,7 @@ Close every remaining gap so that **every backend endpoint has a working fronten
 | TMA-6 | Profile & Security | `GET /auth/me`, `PATCH /users/me/profile`, `GET /2fa/status`, `POST /auth/change-password`, `GET/POST/DELETE /security/antiphishing` | User info card. Edit display name. 2FA status badge. Password change form. Antiphishing code management |
 | TMA-7 | Payment History | `GET /payments/history` | Payment list with status badges, dates, amounts |
 | TMA-8 | VPN Config | `GET /subscriptions/config/{user_uuid}` | Download/copy VPN config. QR code display for easy scanning. Deep link to mobile app |
-| TMA-9 | Settings | `PATCH /users/me/profile`, `GET/PATCH /users/me/notifications` | Language selector (27 locales). Notification preferences. Theme toggle (use Telegram theme by default) |
+| TMA-9 | Settings | `PATCH /users/me/profile`, `GET/PATCH /users/me/notifications` | Language selector (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE). Notification preferences. Theme toggle (use Telegram theme by default) |
 | TMA-10 | Partner section | `GET /partner/dashboard`, `POST /partner/codes`, `GET /partner/earnings`, `POST /partner/bind` | Partner dashboard (if user is partner). Bind to partner code (for regular users) |
 
 ### Test Gaps (TE2-*)
@@ -345,7 +345,7 @@ DONE CRITERIA: All pages render, all API calls fire correctly, npm run lint && n
 
 ```
 You are mobile-dev on the CyberVPN team (Phase 2). You work ONLY in cybervpn_mobile/.
-Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture + DDD, 27 locales.
+Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture + DDD, 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 
 CONTEXT — What's already done:
 - OTP Verification Screen (509 LOC) — feature flag disabled ✅

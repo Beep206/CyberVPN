@@ -11,6 +11,8 @@ import json
 import logging
 import re
 import uuid
+from datetime import UTC, datetime
+from time import perf_counter
 from urllib.parse import urlparse
 
 import redis.asyncio as redis
@@ -26,7 +28,21 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.oauth_account_repo import OAuthAccountRepository
-from src.infrastructure.monitoring.instrumentation.routes import track_oauth_attempt
+from src.infrastructure.monitoring.client_context import resolve_web_client_context
+from src.infrastructure.monitoring.instrumentation.routes import (
+    observe_auth_activation_duration,
+    observe_auth_request_duration,
+    sync_active_sessions,
+    sync_auth_security_posture,
+    track_auth_attempt,
+    track_auth_error,
+    track_auth_flow_event,
+    track_auth_security_event,
+    track_first_login_after_activation,
+    track_oauth_attempt,
+    track_oauth_callback_failure,
+    track_registration,
+)
 from src.infrastructure.oauth.apple import AppleOAuthProvider
 from src.infrastructure.oauth.discord import DiscordOAuthProvider
 from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
@@ -38,6 +54,7 @@ from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.oauth.twitter import TwitterOAuthProvider
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.presentation.api.v1.auth.cookies import set_auth_cookies
+from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.api.v1.oauth.schemas import (
     FacebookCallbackRequest,
     GitHubCallbackRequest,
@@ -75,12 +92,21 @@ _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
     "github": (GitHubOAuthProvider, True),
 }
 
+
 def _get_client_ip(request: Request) -> str:
     """Extract client IP from request, considering proxy headers."""
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = None) -> str:
+    if fallback:
+        return fallback
+    if user and user.language:
+        return user.language
+    return "unknown"
 
 
 def _get_magic_link_key(token: str) -> str:
@@ -422,7 +448,6 @@ async def telegram_callback(
         extra={"user_id": str(user.id), "telegram_id": user_info["id"]},
     )
 
-    track_oauth_attempt(provider="telegram", success=True)
     return OAuthLinkResponse(
         status="linked",
         provider="telegram",
@@ -517,6 +542,11 @@ async def check_telegram_magic_link_status(
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMagicLinkStatusResponse:
     """Poll the status of the Magic Link login session."""
+    started_at = perf_counter()
+    client_context = resolve_web_client_context(
+        request.headers.get("User-Agent"),
+        request.headers.get("sec-ch-ua-mobile"),
+    )
     redis_key = _get_magic_link_key(token)
     raw_status = await redis_client.get(redis_key)
     if not raw_status:
@@ -555,8 +585,21 @@ async def check_telegram_magic_link_status(
             provider="telegram",
             user_info=user_info,
             client_fingerprint=generate_client_fingerprint(request),
+            client_ip=_get_client_ip(request),
         )
     except ValueError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("invalid_credentials")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        observe_auth_request_duration("telegram", started_at)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
@@ -582,7 +625,70 @@ async def check_telegram_magic_link_status(
     )
 
     if result.access_token and result.refresh_token:
+        refresh_payload = auth_service.decode_token(result.refresh_token)
+        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
+        await store_refresh_token(
+            db,
+            user_id=result.user.id,
+            refresh_token=result.refresh_token,
+            expires_at=refresh_exp,
+            device_id=generate_client_fingerprint(request),
+            ip_address=_get_client_ip(request),
+            user_agent=request.headers.get("User-Agent"),
+        )
         set_auth_cookies(response, result.access_token, result.refresh_token)
+        await sync_active_sessions(db)
+        await sync_auth_security_posture(db, redis_client)
+
+    track_auth_attempt(method="telegram", success=True)
+    locale = _resolve_locale(result.user, user_info.get("language_code") if isinstance(user_info, dict) else None)
+    track_auth_flow_event(
+        channel="web",
+        method="telegram",
+        provider="telegram",
+        locale=locale,
+        client_context=client_context,
+        step="login",
+        status="success",
+    )
+    track_auth_flow_event(
+        channel="web",
+        method="telegram",
+        provider="telegram",
+        locale=locale,
+        client_context=client_context,
+        step="session_started",
+        status="success",
+    )
+    if result.is_new_user:
+        track_registration(method="telegram")
+        track_first_login_after_activation("telegram")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale=locale,
+            client_context=client_context,
+            step="registered",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale=locale,
+            client_context=client_context,
+            step="activated",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale=locale,
+            client_context=client_context,
+            step="first_successful_login",
+        )
+    await sync_auth_security_posture(db, redis_client)
+    observe_auth_request_duration("telegram", started_at)
 
     return TelegramMagicLinkStatusResponse(status="completed", login_result=login_result)
 
@@ -710,6 +816,11 @@ async def oauth_login_callback(
 
     Validates state, exchanges code with provider, finds or creates user.
     """
+    started_at = perf_counter()
+    client_context = resolve_web_client_context(
+        request.headers.get("User-Agent"),
+        request.headers.get("sec-ch-ua-mobile"),
+    )
     _validate_oauth_login_provider(provider)
     resolved_redirect_uri = _resolve_oauth_login_redirect_uri(provider.value, callback_data.redirect_uri)
 
@@ -722,6 +833,27 @@ async def oauth_login_callback(
     )
 
     if not state_data:
+        track_oauth_attempt(provider=provider.value, success=False)
+        track_auth_attempt(method="oauth", success=False)
+        track_auth_error("expired_token")
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            error_type="expired_token",
+        )
+        track_oauth_callback_failure(channel="web", provider=provider.value, reason="invalid_state")
+        observe_auth_request_duration("oauth", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired OAuth state.",
@@ -743,12 +875,46 @@ async def oauth_login_callback(
     try:
         user_info = await oauth_provider.exchange_code(**exchange_kwargs)
     except OAuthProviderUnavailableError as exc:
+        track_oauth_attempt(provider=provider.value, success=False)
+        track_auth_attempt(method="oauth", success=False)
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_oauth_callback_failure(channel="web", provider=provider.value, reason="provider_unavailable")
+        observe_auth_request_duration("oauth", started_at)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
     if not user_info:
+        track_oauth_attempt(provider=provider.value, success=False)
+        track_auth_attempt(method="oauth", success=False)
+        track_auth_error("invalid_credentials")
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            error_type="invalid_credentials",
+        )
+        track_oauth_callback_failure(channel="web", provider=provider.value, reason="exchange_failed")
+        observe_auth_request_duration("oauth", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="OAuth authentication failed.",
@@ -770,8 +936,30 @@ async def oauth_login_callback(
             provider=provider.value,
             user_info=user_info,
             client_fingerprint=generate_client_fingerprint(request),
+            client_ip=_get_client_ip(request),
         )
     except ValueError as e:
+        track_oauth_attempt(provider=provider.value, success=False)
+        track_auth_attempt(method="oauth", success=False)
+        track_auth_error("invalid_credentials")
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            error_type="invalid_credentials",
+        )
+        track_oauth_callback_failure(channel="web", provider=provider.value, reason="account_conflict")
+        observe_auth_request_duration("oauth", started_at)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
@@ -787,7 +975,78 @@ async def oauth_login_callback(
     )
 
     if result.access_token and result.refresh_token:
+        refresh_payload = auth_service.decode_token(result.refresh_token)
+        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
+        await store_refresh_token(
+            db,
+            user_id=result.user.id,
+            refresh_token=result.refresh_token,
+            expires_at=refresh_exp,
+            device_id=generate_client_fingerprint(request),
+            ip_address=_get_client_ip(request),
+            user_agent=request.headers.get("User-Agent"),
+        )
         set_auth_cookies(response, result.access_token, result.refresh_token)
+        await sync_active_sessions(db)
+        await sync_auth_security_posture(db, redis_client)
+
+    track_oauth_attempt(provider=provider.value, success=True)
+    track_auth_attempt(method="oauth", success=True)
+    locale = _resolve_locale(result.user, user_info.get("language_code") if isinstance(user_info, dict) else None)
+    track_auth_flow_event(
+        channel="web",
+        method="oauth",
+        provider=provider.value,
+        locale=locale,
+        client_context=client_context,
+        step="login",
+        status="success",
+    )
+    track_auth_flow_event(
+        channel="web",
+        method="oauth",
+        provider=provider.value,
+        locale=locale,
+        client_context=client_context,
+        step="session_started",
+        status="success",
+    )
+    if result.is_new_user:
+        track_registration(method="oauth")
+        track_first_login_after_activation("oauth")
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale=locale,
+            client_context=client_context,
+            step="registered",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale=locale,
+            client_context=client_context,
+            step="activated",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale=locale,
+            client_context=client_context,
+            step="first_successful_login",
+        )
+        observe_auth_activation_duration(
+            channel="web",
+            method="oauth",
+            locale=locale,
+            stage="first_login",
+            started_at=result.user.created_at,
+        )
+    await sync_auth_security_posture(db, redis_client)
+    observe_auth_request_duration("oauth", started_at)
 
     return OAuthLoginResponse(
         access_token=result.access_token,

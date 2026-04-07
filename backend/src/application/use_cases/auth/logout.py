@@ -49,7 +49,7 @@ class LogoutUseCase:
             token_record.revoked_at = datetime.now(UTC)
             await self._session.flush()
 
-    async def execute_all(self, user_id: UUID) -> None:
+    async def execute_all(self, user_id: UUID) -> int:
         """
         Revoke all refresh tokens for a specific user.
 
@@ -60,9 +60,12 @@ class LogoutUseCase:
 
         Args:
             user_id: UUID of the user whose tokens should be revoked
+
+        Returns:
+            Number of refresh token records revoked
         """
         # Revoke all active tokens for the user
-        await self._session.execute(
+        result = await self._session.execute(
             update(RefreshToken)
             .where(
                 RefreshToken.user_id == user_id,
@@ -71,3 +74,4 @@ class LogoutUseCase:
             .values(revoked_at=datetime.now(UTC))
         )
         await self._session.flush()
+        return int(result.rowcount or 0)

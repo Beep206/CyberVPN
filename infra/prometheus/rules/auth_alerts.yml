@@ -1,0 +1,377 @@
+groups:
+  - name: auth_alerts
+    rules:
+      # ── High auth failure rate ──────────────────────────────────────
+      - alert: HighAuthFailureRate
+        expr: |
+          (
+            sum(rate(auth_attempts_total{status="failure"}[5m]))
+            /
+            clamp_min(sum(rate(auth_attempts_total[5m])), 1e-9)
+          ) > 0.30
+        for: 5m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "High authentication failure rate ({{ $value | humanizePercentage }})"
+          description: "Auth failure rate exceeds 30% over last 5 minutes. Possible brute-force attack or service issue."
+
+      # ── Sustained auth failure rate (critical) ──────────────────────
+      - alert: CriticalAuthFailureRate
+        expr: |
+          (
+            sum(rate(auth_attempts_total{status="failure"}[15m]))
+            /
+            clamp_min(sum(rate(auth_attempts_total[15m])), 1e-9)
+          ) > 0.50
+        for: 10m
+        labels:
+          severity: critical
+          component: auth
+        annotations:
+          summary: "Critical authentication failure rate ({{ $value | humanizePercentage }})"
+          description: "Auth failure rate exceeds 50% for 10+ minutes. Immediate investigation required."
+
+      # ── Registration spike (possible spam) ──────────────────────────
+      - alert: RegistrationSpike
+        expr: |
+          sum(increase(registrations_total[10m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Registration spike detected ({{ $value }} in 10m)"
+          description: "Unusual registration volume detected. Possible bot/spam registration attack."
+
+      # ── Email verification rate drop ────────────────────────────────
+      - alert: LowEmailVerificationRate
+        expr: |
+          (
+            sum(increase(email_verification_total{status="success"}[1h]))
+            /
+            clamp_min(sum(increase(registration_funnel_total{step="email_sent"}[1h])), 1e-9)
+          ) < 0.50
+        for: 30m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Low email verification rate ({{ $value | humanizePercentage }})"
+          description: "Email verification rate dropped below 50%. Check email delivery or OTP issues."
+
+      # ── Account lockout spike ───────────────────────────────────────
+      - alert: AccountLockoutSpike
+        expr: |
+          sum(increase(auth_errors_total{error_type="account_locked"}[15m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Account lockout spike ({{ $value }} lockouts in 15m)"
+          description: "Elevated account lockouts may indicate credential stuffing attack."
+
+      # ── Magic link delivery failures ────────────────────────────────
+      - alert: MagicLinkDeliveryFailures
+        expr: |
+          (
+            sum(rate(magic_link_requests_total{status="error"}[15m]))
+            /
+            clamp_min(sum(rate(magic_link_requests_total[15m])), 1e-9)
+          ) > 0.10
+        for: 15m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Magic link delivery failure rate high ({{ $value | humanizePercentage }})"
+          description: "More than 10% of magic link requests are failing. Check email infrastructure."
+
+      # ── Auth latency degradation ────────────────────────────────────
+      - alert: AuthLatencyDegraded
+        expr: |
+          histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le))
+          > 3.0
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Auth latency P95 exceeded 3s"
+          description: "95th percentile authentication latency is above 3 seconds. Check DB or external service performance."
+
+      # ── Email delivery degradation for auth flows ──────────────────
+      - alert: AuthEmailDeliveryDegraded
+        expr: |
+          (
+            sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"}[30m]))
+            /
+            clamp_min(sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link"}[30m])), 1e-9)
+          ) < 0.90
+        for: 15m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Auth email delivery success rate dropped below 90%"
+          description: "OTP or magic-link delivery is degraded. Check worker queues, SMTP/API providers, and Mailpit/ESP health."
+
+      - alert: LowRefreshSuccessRate
+        expr: |
+          auth:session_refresh_success_rate:1h < 0.90
+        for: 15m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Refresh-token success rate dropped below 90%"
+          description: "Refresh flow is degrading. Check token rotation, revocation, and device/session binding logic."
+
+      - alert: OAuthCallbackStateFailuresSpike
+        expr: |
+          sum(increase(oauth_callback_failures_total{reason="invalid_state"}[15m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "OAuth callback state failures are spiking"
+          description: "Invalid or expired OAuth state tokens exceeded the threshold in the last 15 minutes."
+
+      - alert: EmailQueueBacklog
+        expr: |
+          sum(cybervpn_queue_depth{queue="email"}) > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: worker
+        annotations:
+          summary: "Email queue backlog exceeded 50 tasks"
+          description: "Task worker is accumulating auth email backlog. Check SMTP/API providers, worker concurrency, and Redis streams."
+
+      - alert: AuthBruteforceIdentifierPressure
+        expr: |
+          auth_bruteforce_identifiers_current > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Brute-force pressure detected across {{ $value }} identifiers"
+          description: "Redis is tracking failed login attempts for too many identifiers at once. Investigate credential stuffing or bot traffic."
+
+      - alert: AuthRedisLockoutPressure
+        expr: |
+          sum(auth_lockouts_current_total{source="redis",lockout_tier!="none"}) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Redis lockout pressure is elevated"
+          description: "More than five identifiers are currently lockout-tracked in Redis. Check password attack patterns and throttling."
+
+      - alert: AuthFailedLoginBacklogGrowing
+        expr: |
+          auth_failed_login_attempts_backlog_current > 25
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Failed login backlog exceeded {{ $value }}"
+          description: "Database-backed failed login attempts are accumulating. This usually indicates ongoing password attacks or users repeatedly failing authentication."
+
+  - name: auth_recording_rules
+    interval: 30s
+    rules:
+      # Pre-computed rates for efficient dashboard queries
+      - record: auth:success_rate:5m
+        expr: |
+          sum(increase(auth_attempts_total{status="success"}[5m])) + sum((min_over_time(auth_attempts_total{status="success"}[5m])) unless (auth_attempts_total{status="success"} offset 5m))
+          /
+          clamp_min(sum(increase(auth_attempts_total[5m])) + sum((min_over_time(auth_attempts_total[5m])) unless (auth_attempts_total offset 5m)), 1e-9)
+      - record: auth:success_rate:1h
+        expr: |
+          sum(increase(auth_attempts_total{status="success"}[1h])) + sum((min_over_time(auth_attempts_total{status="success"}[1h])) unless (auth_attempts_total{status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(auth_attempts_total[1h])) + sum((min_over_time(auth_attempts_total[1h])) unless (auth_attempts_total offset 1h)), 1e-9)
+      - record: auth:registrations_per_hour
+        expr: |
+          sum(increase(registrations_total[1h])) + sum((min_over_time(registrations_total[1h])) unless (registrations_total offset 1h))
+      - record: auth:registrations:24h
+        expr: |
+          sum(increase(registrations_total[24h])) + sum((min_over_time(registrations_total[24h])) unless (registrations_total offset 24h))
+      - record: auth:registrations:7d
+        expr: |
+          sum(increase(registrations_total[7d])) + sum((min_over_time(registrations_total[7d])) unless (registrations_total offset 7d))
+      - record: auth:registrations:30d
+        expr: |
+          sum(increase(registrations_total[30d])) + sum((min_over_time(registrations_total[30d])) unless (registrations_total offset 30d))
+      - record: auth:email_verification_rate:1h
+        expr: |
+          sum(increase(email_verification_total{status="success"}[1h])) + sum((min_over_time(email_verification_total{status="success"}[1h])) unless (email_verification_total{status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(email_verification_total[1h])) + sum((min_over_time(email_verification_total[1h])) unless (email_verification_total offset 1h)), 1e-9)
+      - record: auth:email_verification_rate:24h
+        expr: |
+          sum(increase(email_verification_total{status="success"}[24h])) + sum((min_over_time(email_verification_total{status="success"}[24h])) unless (email_verification_total{status="success"} offset 24h))
+          /
+          clamp_min(sum(increase(email_verification_total[24h])) + sum((min_over_time(email_verification_total[24h])) unless (email_verification_total offset 24h)), 1e-9)
+      - record: auth:email_verifications:24h
+        expr: |
+          sum(increase(email_verification_total{status="success"}[24h])) + sum((min_over_time(email_verification_total{status="success"}[24h])) unless (email_verification_total{status="success"} offset 24h))
+      - record: auth:oauth_success_rate_by_provider:5m
+        expr: |
+          sum by (provider) (increase(oauth_attempts_total{status="success"}[5m])) + sum by (provider) ((min_over_time(oauth_attempts_total{status="success"}[5m])) unless (oauth_attempts_total{status="success"} offset 5m))
+          /
+          clamp_min(sum by (provider) (increase(oauth_attempts_total[5m])) + sum by (provider) ((min_over_time(oauth_attempts_total[5m])) unless (oauth_attempts_total offset 5m)), 1e-9)
+      - record: auth:session_refresh_success_rate:1h
+        expr: |
+          sum(increase(auth_session_detailed_total{operation="refresh",status="success"}[1h])) + sum((min_over_time(auth_session_detailed_total{operation="refresh",status="success"}[1h])) unless (auth_session_detailed_total{operation="refresh",status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(auth_session_detailed_total{operation="refresh"}[1h])) + sum((min_over_time(auth_session_detailed_total{operation="refresh"}[1h])) unless (auth_session_detailed_total{operation="refresh"} offset 1h)), 1e-9)
+      - record: auth:first_login_after_activation:24h
+        expr: |
+          sum(increase(auth_flow_events_total{step="first_successful_login",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="first_successful_login",status="success"}[24h])) unless (auth_flow_events_total{step="first_successful_login",status="success"} offset 24h))
+      - record: auth:activation_to_first_login_rate:24h
+        expr: |
+          sum(increase(auth_flow_events_total{step="first_successful_login",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="first_successful_login",status="success"}[24h])) unless (auth_flow_events_total{step="first_successful_login",status="success"} offset 24h))
+          /
+          clamp_min(sum(increase(auth_flow_events_total{step="activated",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="activated",status="success"}[24h])) unless (auth_flow_events_total{step="activated",status="success"} offset 24h)), 1e-9)
+      - record: auth:email_delivery_success_rate:1h
+        expr: |
+          sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"}[1h])) + sum((min_over_time(cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"}[1h])) unless (cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link"}[1h])) + sum((min_over_time(cybervpn_email_send_total{email_type=~"otp|magic_link"}[1h])) unless (cybervpn_email_send_total{email_type=~"otp|magic_link"} offset 1h)), 1e-9)
+      - record: auth:email_delivery_success_rate:24h
+        expr: |
+          sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"}[24h])) + sum((min_over_time(cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"}[24h])) unless (cybervpn_email_send_total{email_type=~"otp|magic_link",status="success"} offset 24h))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_total{email_type=~"otp|magic_link"}[24h])) + sum((min_over_time(cybervpn_email_send_total{email_type=~"otp|magic_link"}[24h])) unless (cybervpn_email_send_total{email_type=~"otp|magic_link"} offset 24h)), 1e-9)
+      - record: auth:otp_delivery_success_rate:5m
+        expr: |
+          sum(increase(cybervpn_email_send_context_total{email_type="otp",status="success"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="otp",status="success"}[5m])) unless (cybervpn_email_send_context_total{email_type="otp",status="success"} offset 5m))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_context_total{email_type="otp"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="otp"}[5m])) unless (cybervpn_email_send_context_total{email_type="otp"} offset 5m)), 1e-9)
+      - record: auth:otp_delivery_success_rate:1h
+        expr: |
+          sum(increase(cybervpn_email_send_context_total{email_type="otp",status="success"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="otp",status="success"}[1h])) unless (cybervpn_email_send_context_total{email_type="otp",status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_context_total{email_type="otp"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="otp"}[1h])) unless (cybervpn_email_send_context_total{email_type="otp"} offset 1h)), 1e-9)
+      - record: auth:magic_link_delivery_success_rate:5m
+        expr: |
+          sum(increase(cybervpn_email_send_context_total{email_type="magic_link",status="success"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="magic_link",status="success"}[5m])) unless (cybervpn_email_send_context_total{email_type="magic_link",status="success"} offset 5m))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_context_total{email_type="magic_link"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="magic_link"}[5m])) unless (cybervpn_email_send_context_total{email_type="magic_link"} offset 5m)), 1e-9)
+      - record: auth:magic_link_delivery_success_rate:1h
+        expr: |
+          sum(increase(cybervpn_email_send_context_total{email_type="magic_link",status="success"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="magic_link",status="success"}[1h])) unless (cybervpn_email_send_context_total{email_type="magic_link",status="success"} offset 1h))
+          /
+          clamp_min(sum(increase(cybervpn_email_send_context_total{email_type="magic_link"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{email_type="magic_link"}[1h])) unless (cybervpn_email_send_context_total{email_type="magic_link"} offset 1h)), 1e-9)
+      - record: auth:registered_to_verified_rate:24h
+        expr: |
+          sum(increase(auth_flow_events_total{step="email_verified",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="email_verified",status="success"}[24h])) unless (auth_flow_events_total{step="email_verified",status="success"} offset 24h))
+          /
+          clamp_min(sum(increase(auth_flow_events_total{step="registered",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="registered",status="success"}[24h])) unless (auth_flow_events_total{step="registered",status="success"} offset 24h)), 1e-9)
+      - record: auth:failure_rate_by_method:1h
+        expr: |
+          sum by (method) (increase(auth_flow_events_total{step="login",status="failure"}[1h])) + sum by (method) ((min_over_time(auth_flow_events_total{step="login",status="failure"}[1h])) unless (auth_flow_events_total{step="login",status="failure"} offset 1h))
+          /
+          clamp_min(sum by (method) (increase(auth_flow_events_total{step="login"}[1h])) + sum by (method) ((min_over_time(auth_flow_events_total{step="login"}[1h])) unless (auth_flow_events_total{step="login"} offset 1h)), 1e-9)
+      - record: auth:password_identifier_success_rate:1h
+        expr: |
+          sum by (channel, identifier_type) (increase(auth_password_identifier_events_total{step="login",status="success"}[1h])) + sum by (channel, identifier_type) ((min_over_time(auth_password_identifier_events_total{step="login",status="success"}[1h])) unless (auth_password_identifier_events_total{step="login",status="success"} offset 1h))
+          /
+          clamp_min(sum by (channel, identifier_type) (increase(auth_password_identifier_events_total{step="login"}[1h])) + sum by (channel, identifier_type) ((min_over_time(auth_password_identifier_events_total{step="login"}[1h])) unless (auth_password_identifier_events_total{step="login"} offset 1h)), 1e-9)
+      - record: auth:session_churn_rate:24h
+        expr: |
+          sum(increase(auth_session_detailed_total{operation=~"logout|logout_all|revoke_device",status="success"}[24h])) + sum((min_over_time(auth_session_detailed_total{operation=~"logout|logout_all|revoke_device",status="success"}[24h])) unless (auth_session_detailed_total{operation=~"logout|logout_all|revoke_device",status="success"} offset 24h))
+          /
+          clamp_min(sum(increase(auth_flow_events_total{step="session_started",status="success"}[24h])) + sum((min_over_time(auth_flow_events_total{step="session_started",status="success"}[24h])) unless (auth_flow_events_total{step="session_started",status="success"} offset 24h)), 1e-9)
+      - record: auth:successful_logins_by_client_type:24h
+        expr: |
+          sum by (channel, client_type) (increase(auth_client_activity_total{step="login",status="success"}[24h])) + sum by (channel, client_type) ((min_over_time(auth_client_activity_total{step="login",status="success"}[24h])) unless (auth_client_activity_total{step="login",status="success"} offset 24h))
+      - record: auth:successful_logins_by_os_family:24h
+        expr: |
+          sum by (channel, os_family) (increase(auth_client_activity_total{step="login",status="success"}[24h])) + sum by (channel, os_family) ((min_over_time(auth_client_activity_total{step="login",status="success"}[24h])) unless (auth_client_activity_total{step="login",status="success"} offset 24h))
+      - record: auth:successful_logins_by_client_app:24h
+        expr: |
+          sum by (channel, client_app) (increase(auth_client_activity_total{step="login",status="success"}[24h])) + sum by (channel, client_app) ((min_over_time(auth_client_activity_total{step="login",status="success"}[24h])) unless (auth_client_activity_total{step="login",status="success"} offset 24h))
+      - record: auth:success_rate_by_client_type:1h
+        expr: |
+          sum by (channel, client_type) (increase(auth_client_activity_total{step="login",status="success"}[1h])) + sum by (channel, client_type) ((min_over_time(auth_client_activity_total{step="login",status="success"}[1h])) unless (auth_client_activity_total{step="login",status="success"} offset 1h))
+          /
+          clamp_min(sum by (channel, client_type) (increase(auth_client_activity_total{step="login"}[1h])) + sum by (channel, client_type) ((min_over_time(auth_client_activity_total{step="login"}[1h])) unless (auth_client_activity_total{step="login"} offset 1h)), 1e-9)
+      - record: auth:success_rate_by_os_family:1h
+        expr: |
+          sum by (channel, os_family) (increase(auth_client_activity_total{step="login",status="success"}[1h])) + sum by (channel, os_family) ((min_over_time(auth_client_activity_total{step="login",status="success"}[1h])) unless (auth_client_activity_total{step="login",status="success"} offset 1h))
+          /
+          clamp_min(sum by (channel, os_family) (increase(auth_client_activity_total{step="login"}[1h])) + sum by (channel, os_family) ((min_over_time(auth_client_activity_total{step="login"}[1h])) unless (auth_client_activity_total{step="login"} offset 1h)), 1e-9)
+      - record: auth:bruteforce_failed_attempts:24h
+        expr: |
+          sum by (channel, identifier_type) (increase(auth_bruteforce_events_total{outcome="failed_attempt"}[24h])) + sum by (channel, identifier_type) ((min_over_time(auth_bruteforce_events_total{outcome="failed_attempt"}[24h])) unless (auth_bruteforce_events_total{outcome="failed_attempt"} offset 24h))
+      - record: auth:lockout_escalations:24h
+        expr: |
+          sum by (channel, identifier_type, lockout_tier) (increase(auth_bruteforce_events_total{outcome=~"temporary_lockout|permanent_lockout|blocked_locked_account"}[24h])) + sum by (channel, identifier_type, lockout_tier) ((min_over_time(auth_bruteforce_events_total{outcome=~"temporary_lockout|permanent_lockout|blocked_locked_account"}[24h])) unless (auth_bruteforce_events_total{outcome=~"temporary_lockout|permanent_lockout|blocked_locked_account"} offset 24h))
+      - record: auth:time_to_verify_p50:24h
+        expr: |
+          histogram_quantile(
+            0.50,
+            sum(
+              increase(auth_activation_duration_seconds_bucket{stage="verify"}[24h])
+              +
+              (
+                (min_over_time(auth_activation_duration_seconds_bucket{stage="verify"}[24h]))
+                unless
+                (auth_activation_duration_seconds_bucket{stage="verify"} offset 24h)
+              )
+            ) by (le)
+          )
+
+      - record: auth:time_to_verify_p95:24h
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(
+              increase(auth_activation_duration_seconds_bucket{stage="verify"}[24h])
+              +
+              (
+                (min_over_time(auth_activation_duration_seconds_bucket{stage="verify"}[24h]))
+                unless
+                (auth_activation_duration_seconds_bucket{stage="verify"} offset 24h)
+              )
+            ) by (le)
+          )
+
+      - record: auth:time_to_first_login_p50:24h
+        expr: |
+          histogram_quantile(
+            0.50,
+            sum(
+              increase(auth_activation_duration_seconds_bucket{stage="first_login"}[24h])
+              +
+              (
+                (min_over_time(auth_activation_duration_seconds_bucket{stage="first_login"}[24h]))
+                unless
+                (auth_activation_duration_seconds_bucket{stage="first_login"} offset 24h)
+              )
+            ) by (le)
+          )
+
+      - record: auth:time_to_first_login_p95:24h
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(
+              increase(auth_activation_duration_seconds_bucket{stage="first_login"}[24h])
+              +
+              (
+                (min_over_time(auth_activation_duration_seconds_bucket{stage="first_login"}[24h]))
+                unless
+                (auth_activation_duration_seconds_bucket{stage="first_login"} offset 24h)
+              )
+            ) by (le)
+          )

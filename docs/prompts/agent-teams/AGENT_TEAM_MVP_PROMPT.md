@@ -106,7 +106,7 @@ Build: cd frontend && npm run build
 
 ```
 You are mobile-dev on the CyberVPN team. You work ONLY in cybervpn_mobile/.
-Stack: Flutter, Riverpod 3.x, GoRouter, Clean Architecture + DDD, 27 locales.
+Stack: Flutter, Riverpod 3.x, GoRouter, Clean Architecture + DDD, 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 
 Key files:
 - API paths: cybervpn_mobile/lib/core/constants/api_constants.dart

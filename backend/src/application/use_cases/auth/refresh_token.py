@@ -41,6 +41,8 @@ class RefreshTokenUseCase:
         self,
         refresh_token: str,
         client_fingerprint: str | None = None,
+        client_ip: str | None = None,
+        user_agent: str | None = None,
     ) -> dict:
         """
         Rotate refresh token and generate new token pair.
@@ -143,6 +145,9 @@ class RefreshTokenUseCase:
             user_id=user.id,
             token_hash=new_token_hash,
             expires_at=new_expires_at,
+            device_id=client_fingerprint or token_record.device_id,
+            ip_address=client_ip or token_record.ip_address,
+            user_agent=user_agent or token_record.user_agent,
         )
         self._session.add(new_token_record)
         await self._session.flush()

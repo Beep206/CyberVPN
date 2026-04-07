@@ -2,7 +2,7 @@
 
 **Design Doc Reference:** `docs/superpowers/specs/2026-03-14-frontend-landing-redesign.md`
 **Date:** March 14, 2026
-**Tech Stack:** Next.js 16 (App Router), Tailwind CSS 4, Motion, next-intl (39 locales).
+**Tech Stack:** Next.js 16 (App Router), Tailwind CSS 4, Motion, next-intl (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE).
 
 ---
 

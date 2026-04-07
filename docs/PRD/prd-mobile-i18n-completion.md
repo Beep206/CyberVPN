@@ -288,7 +288,7 @@ Text(context.l10n.connect)
 
 ### Phase 3: Professional Translation (Week 4-6)
 
-**Objective:** Replace English placeholder values with real translations for all 27 locales.
+**Objective:** Replace English placeholder values with real translations for all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 
 #### 5.3.1 Priority Tier 1 — High-Traffic Languages
 
@@ -478,9 +478,9 @@ Follow the existing pattern:
 |-------|----------|-------------|
 | Phase 1: Critical fixes | 1-2 weeks | Plurals fixed, missing keys added, stubs completed |
 | Phase 2: Wire UI | 2-3 weeks | All 574+ strings use `context.l10n`, ~250 new ARB keys |
-| Phase 3: Translation | 2-3 weeks | All 27 locales professionally translated |
+| Phase 3: Translation | 2-3 weeks | All 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE professionally translated |
 | Phase 4: QA & CI | 1 week | CI coverage checks, visual QA, lint rules |
-| **Total** | **6-9 weeks** | Production-grade i18n across 27 locales |
+| **Total** | **6-9 weeks** | Production-grade i18n across 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE |
 
 ---
 

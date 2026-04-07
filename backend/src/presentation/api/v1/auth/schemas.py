@@ -28,6 +28,8 @@ class RegisterRequest(BaseModel):
     email: EmailStr | None = None
     password: str = Field(..., min_length=12, max_length=128)
     locale: str = Field(default="en-EN", max_length=10)
+    tos_accepted: bool = Field(..., description="Must accept Terms of Service")
+    marketing_consent: bool = Field(default=False)
 
     @field_validator("password")
     @classmethod
@@ -62,6 +64,9 @@ class AdminUserResponse(BaseModel):
     is_active: bool
     is_email_verified: bool = False
     created_at: datetime
+    sign_in_count: int = 0
+    current_sign_in_ip: str | None = None
+    last_login_at: datetime | None = None
 
 
 # OTP Verification schemas
@@ -76,6 +81,7 @@ class ResendOtpRequest(BaseModel):
     """Request to resend OTP code."""
 
     email: EmailStr
+    locale: str = Field(default="en-EN", max_length=10)
 
 
 class VerifyOtpResponse(BaseModel):
@@ -129,6 +135,7 @@ class MagicLinkRequest(BaseModel):
     """Request for magic link email."""
 
     email: EmailStr
+    locale: str = Field(default="en-EN", max_length=10)
 
 
 class MagicLinkVerifyRequest(BaseModel):
@@ -240,6 +247,7 @@ class ForgotPasswordRequest(BaseModel):
     """Request for password reset OTP."""
 
     email: EmailStr
+    locale: str = Field(default="en-EN", max_length=10)
 
 
 class ForgotPasswordResponse(BaseModel):

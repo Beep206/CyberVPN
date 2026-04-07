@@ -717,7 +717,7 @@ NOTIFY: Message ui-dev when DOM-1 is done (they need entities for screen design)
 
 ```
 You are ui-dev on the CyberVPN team (Multi-Profile). You build all presentation layer components — screens, widgets, providers/notifiers.
-Stack: Flutter, Dart 3.10+, Riverpod 3.x, GoRouter 17, Material 3, Cyberpunk theme (Orbitron + JetBrains Mono), 27 locales.
+Stack: Flutter, Dart 3.10+, Riverpod 3.x, GoRouter 17, Material 3, Cyberpunk theme (Orbitron + JetBrains Mono), 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 You work ONLY in cybervpn_mobile/.
 
 CONTEXT — What already exists:
@@ -730,7 +730,7 @@ CONTEXT — What already exists:
 - Router: lib/app/router/app_router.dart
 - Shared widgets: lib/shared/widgets/
 - Existing screens follow pattern: Screen widget (stateless) + separate provider (Riverpod)
-- Localization: lib/core/l10n/arb/app_en.arb (base), 27 locales total
+- Localization: lib/core/l10n/arb/app_en.arb (base), 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE total
 - Existing UI patterns:
   - Cards with neon border glow
   - Shimmer loading placeholders

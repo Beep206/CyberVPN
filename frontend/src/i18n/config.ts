@@ -49,7 +49,6 @@ export const additionalLocales = [
   'ro-RO',
   'hu-HU',
   'sv-SE',
-  'zh-Hant',
 ] as const;
 
 export const locales = [

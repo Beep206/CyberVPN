@@ -14,15 +14,14 @@ rule_files:
   - /etc/prometheus/rules/redis_alerts.yml
   - /etc/prometheus/rules/infra_alerts.yml
   - /etc/prometheus/rules/helix_alerts.yml
+  - /etc/prometheus/rules/auth_alerts.yml
 
 scrape_configs:
-  # IC-2: cybervpn-backend service does not exist in docker-compose.yml
-  # Backend is not yet deployed as a Docker service. Uncomment when service is added.
-  # - job_name: 'cybervpn-backend'
-  #   static_configs:
-  #     - targets: ['cybervpn-backend:9091']
-  #   metrics_path: /metrics
-  #   scrape_interval: 15s
+  - job_name: 'cybervpn-local-backend'
+    static_configs:
+      - targets: ['host.docker.internal:9092']
+    metrics_path: /metrics
+    scrape_interval: 15s
 
   - job_name: 'remnawave'
     static_configs:

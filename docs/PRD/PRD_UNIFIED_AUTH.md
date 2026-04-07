@@ -1189,7 +1189,7 @@ Layout: grid of circular icon buttons below the login form, matching cyberpunk t
 }
 ```
 
-All 27 locales need these keys translated.
+All 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE need these keys translated.
 
 ---
 
@@ -1478,7 +1478,7 @@ Content-Type: application/json
 6. Create magic link screen
 7. Update login/register screens with all social buttons
 8. Update `SocialAccountsScreen` with all providers
-9. Add i18n keys for all 27 locales
+9. Add i18n keys for all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 10. Write mobile tests
 
 ### Phase 4: QA & Hardening (Week 4-5)

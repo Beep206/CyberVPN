@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Shield, ShieldAlert, ShieldCheck, Activity, AlertTriangle, EyeOff, RadioTower, RotateCw } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   getPrivacyShieldLevel,
   setPrivacyShieldLevel,
@@ -11,6 +12,7 @@ import {
 } from "../../shared/api/ipc";
 
 export function PrivacyShieldPage() {
+  const { t } = useTranslation();
   const [level, setLevel] = useState("disabled");
   const [threatCount, setThreatCount] = useState<number>(0);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -37,19 +39,19 @@ export function PrivacyShieldPage() {
     try {
       await setPrivacyShieldLevel(newLevel);
       setLevel(newLevel);
-      toast.success(`Privacy Shield set to ${newLevel}`);
+      toast.success(t('privacyShield.setSuccess', { level: newLevel }));
     } catch (e: any) {
-      toast.error(`Failed to change shield level: ${e}`);
+      toast.error(t('privacyShield.setError', { error: e }));
     }
   };
 
   const handleForceUpdate = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
-    toast.info("Updating Privacy Shield Neural databases...");
+    toast.info(t('privacyShield.updating'));
     try {
       await forceUpdateBlocklists();
-      toast.success("Blocklists updated successfully");
+      toast.success(t('privacyShield.updateSuccess'));
     } catch (e: any) {
       toast.error(e.toString());
     } finally {
@@ -75,10 +77,10 @@ export function PrivacyShieldPage() {
             >
               <EyeOff size={36} className={isActive ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"} />
             </motion.div>
-            Anti-DPI Shield
+            {t('privacyShield.title')}
           </h1>
           <p className="text-muted-foreground mt-3 max-w-xl text-lg relative">
-            <span className="relative z-10">Neural firewall actively terminating invasive trackers, ads, and telemetry at the protocol sub-layer.</span>
+            <span className="relative z-10">{t('privacyShield.description')}</span>
           </p>
         </div>
         
@@ -91,7 +93,7 @@ export function PrivacyShieldPage() {
           >
             {threatCount.toLocaleString()}
           </motion.div>
-          <p className={`text-sm tracking-[0.2em] font-bold ${isActive ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"} uppercase`}>Threats Neutralized</p>
+          <p className={`text-sm tracking-[0.2em] font-bold ${isActive ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"} uppercase`}>{t('privacyShield.threatsNeutralized')}</p>
         </div>
       </div>
 
@@ -99,7 +101,7 @@ export function PrivacyShieldPage() {
         <div className="space-y-6">
           <div className="p-6 rounded-2xl border border-border/50 bg-black/40 backdrop-blur-md relative overflow-hidden group">
             <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <ShieldCheck className="text-[var(--color-neon-cyan)]" /> Configuration
+              <ShieldCheck className="text-[var(--color-neon-cyan)]" /> {t('privacyShield.configuration')}
             </h3>
             
             <div className="space-y-4">
@@ -109,8 +111,8 @@ export function PrivacyShieldPage() {
               >
                 <ShieldAlert className={level === "disabled" ? "text-red-500" : "text-muted-foreground"} size={24} />
                 <div>
-                  <h4 className={`font-bold ${level === "disabled" ? "text-red-500" : ""}`}>Disabled</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Traffic flows freely without protocol-level inspection.</p>
+                  <h4 className={`font-bold ${level === "disabled" ? "text-red-500" : ""}`}>{t('privacyShield.disabled')}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{t('privacyShield.disabledDesc')}</p>
                 </div>
               </button>
 
@@ -120,8 +122,8 @@ export function PrivacyShieldPage() {
               >
                 <Shield className={level === "standard" ? "text-[var(--color-neon-cyan)]" : "text-muted-foreground"} size={24} />
                 <div>
-                  <h4 className={`font-bold ${level === "standard" ? "text-[var(--color-neon-cyan)]" : ""}`}>Standard Protection</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Blocks known malware and intrusive advertising networks.</p>
+                  <h4 className={`font-bold ${level === "standard" ? "text-[var(--color-neon-cyan)]" : ""}`}>{t('privacyShield.standard')}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{t('privacyShield.standardDesc')}</p>
                 </div>
               </button>
 
@@ -131,8 +133,8 @@ export function PrivacyShieldPage() {
               >
                 <ShieldCheck className={level === "strict" ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"} size={24} />
                 <div>
-                  <h4 className={`font-bold ${level === "strict" ? "text-[var(--color-matrix-green)]" : ""}`}>Strict (Anti-Tracker)</h4>
-                  <p className="text-sm text-muted-foreground mt-1">Aggressively drops telemetry, social trackers, and analytical domains.</p>
+                  <h4 className={`font-bold ${level === "strict" ? "text-[var(--color-matrix-green)]" : ""}`}>{t('privacyShield.strict')}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{t('privacyShield.strictDesc')}</p>
                 </div>
               </button>
             </div>
@@ -144,7 +146,7 @@ export function PrivacyShieldPage() {
                 className="w-full py-3 rounded-lg bg-black/50 border border-white/10 hover:border-white/30 transition-all font-mono text-sm uppercase flex items-center justify-center gap-2"
               >
                 <RotateCw className={isUpdating ? "animate-spin" : ""} size={16} /> 
-                {isUpdating ? "Syncing..." : "Update Threat DB"}
+                {isUpdating ? t('privacyShield.syncing') : t('privacyShield.updateDb')}
               </button>
             </div>
           </div>
@@ -153,7 +155,7 @@ export function PrivacyShieldPage() {
         <div className="rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-black/60 relative overflow-hidden flex flex-col h-[500px]">
           <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/80 z-10">
             <h3 className="font-bold font-mono tracking-widest text-sm flex items-center gap-2 text-[var(--color-neon-cyan)]">
-              <Activity size={16} /> LIVE THREAT FEED
+              <Activity size={16} /> {t('privacyShield.liveFeed')}
             </h3>
             {isActive && <span className="flex h-3 w-3"><span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-[var(--color-matrix-green)] opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--color-matrix-green)]"></span></span>}
           </div>
@@ -162,7 +164,7 @@ export function PrivacyShieldPage() {
             {!isActive && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50 opacity-50 z-20">
                 <ShieldAlert size={64} className="mb-4" />
-                <p className="font-mono">SHIELD OFFLINE</p>
+                <p className="font-mono">{t('privacyShield.offline')}</p>
               </div>
             )}
             
@@ -188,7 +190,7 @@ export function PrivacyShieldPage() {
             {isActive && recentBlocks.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30 space-y-4">
                 <RadioTower size={48} className="animate-pulse" />
-                <p className="font-mono text-sm tracking-widest">MONITORING TRAFFIC...</p>
+                <p className="font-mono text-sm tracking-widest">{t('privacyShield.monitoring')}</p>
               </div>
             )}
           </div>

@@ -29,6 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.infrastructure.database.session import Base
+from src.infrastructure.database.models import *  # Import all models to register with MetaData
 
 target_metadata = Base.metadata
 

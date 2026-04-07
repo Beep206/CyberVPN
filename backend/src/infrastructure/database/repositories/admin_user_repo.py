@@ -26,7 +26,8 @@ class AdminUserRepository:
     async def get_by_login_or_email(self, login_or_email: str) -> AdminUserModel | None:
         result = await self._session.execute(
             select(AdminUserModel).where(
-                (AdminUserModel.login == login_or_email) | (AdminUserModel.email == login_or_email)
+                (AdminUserModel.login == login_or_email)
+                | (func.lower(AdminUserModel.email) == login_or_email.lower())
             )
         )
         return result.scalar_one_or_none()

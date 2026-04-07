@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 import { ThemeProvider } from "./app/theme-provider";
+import "./shared/i18n/i18n";
 import { Layout } from "./widgets/Layout";
 import "./index.css";
 

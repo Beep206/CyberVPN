@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
 import { Shield } from "lucide-react";
+import { LanguageSelector } from "./LanguageSelector";
 
 export function Titlebar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -45,7 +46,9 @@ export function Titlebar() {
             <Shield size={14} className="drop-shadow-[0_0_8px_var(--color-matrix-green)] opacity-80" />
             <span className="text-[10px] font-mono font-semibold tracking-widest opacity-90">CYBERVPN</span>
         </div>
-      <div className="flex h-full pointer-events-auto">
+      <div className="flex h-full pointer-events-auto items-center">
+        <LanguageSelector />
+        <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
         <div 
           className="inline-flex justify-center items-center w-12 h-full hover:bg-white/10 transition-colors cursor-default text-muted-foreground hover:text-white"
           onClick={minimize}

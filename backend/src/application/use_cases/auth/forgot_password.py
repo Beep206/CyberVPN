@@ -29,7 +29,7 @@ class ForgotPasswordUseCase:
         self._email_dispatcher = email_dispatcher
         self._session = session
 
-    async def execute(self, email: str) -> None:
+    async def execute(self, email: str, locale: str = "en-EN") -> None:
         """Generate password reset OTP and dispatch email.
 
         Silently succeeds even if email not found (prevent enumeration).
@@ -59,6 +59,7 @@ class ForgotPasswordUseCase:
             await self._email_dispatcher.dispatch_password_reset_email(
                 email=user.email or email,
                 otp_code=otp.code,
+                locale=locale,
             )
         except Exception as e:
             logger.exception("Failed to dispatch password reset email: %s", e)

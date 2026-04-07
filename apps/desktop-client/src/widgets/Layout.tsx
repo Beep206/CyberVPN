@@ -9,10 +9,12 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { listen } from "@tauri-apps/api/event";
 import { applyRoutingFix } from "../shared/api/ipc";
 import { Titlebar } from "./Titlebar";
+import { useTranslation } from "react-i18next";
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!localStorage.getItem("onboarding_complete")) {
@@ -25,12 +27,12 @@ export function Layout() {
       try {
         const update = await check();
         if (update) {
-          toast.info(`Update Available: ${update.version}`, {
-            description: "A new version of CyberVPN is ready to install.",
+          toast.info(t('layout.updateAvailable', { version: update.version }), {
+            description: t('layout.updateDesc'),
             action: {
-              label: "Install & Relaunch",
+              label: t('layout.updateAction'),
               onClick: async () => {
-                toast.loading("Downloading and installing update...");
+                toast.loading(t('layout.updateLoading'));
                 await update.downloadAndInstall();
                 await relaunch();
               }
@@ -47,24 +49,24 @@ export function Layout() {
 
     // AI Routing Assistant Listener
     const unlistenRouting = listen<{ domain: string, reason: string }>("routing-suggestion", (event) => {
-      toast("Traffic Block Detected", {
-        description: `CyberVPN Assistant detected a failure (${event.payload.reason}) connecting to ${event.payload.domain}.`,
+      toast(t('layout.trafficBlockDetected'), {
+        description: t('layout.trafficBlockDesc', { reason: event.payload.reason, domain: event.payload.domain }),
         duration: 20000,
         icon: <Shield className="text-[var(--color-neon-pink)] animate-pulse" />,
         action: {
-          label: "Magic Fix",
+          label: t('layout.magicFix'),
           onClick: async () => {
              try {
-                toast.loading("Applying Magic Fix...", { id: "magic-fix" });
+                toast.loading(t('layout.magicFixLoading'), { id: "magic-fix" });
                 await applyRoutingFix(event.payload.domain);
-                toast.success("Rule Injected! Re-routing traffic.", { id: "magic-fix" });
+                toast.success(t('layout.magicFixSuccess'), { id: "magic-fix" });
              } catch (e: any) {
-                toast.error(`Fix Failed: ${e}`, { id: "magic-fix" });
+                toast.error(t('layout.fixFailed', { error: e }), { id: "magic-fix" });
              }
           }
         },
         cancel: {
-          label: "Ignore",
+          label: t('layout.ignore'),
           onClick: () => {}
         }
       });
@@ -77,20 +79,20 @@ export function Layout() {
   }, []);
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: Activity },
-    { path: "/analytics", label: "Command Center", icon: Activity },
-    { path: "/remote", label: "Remote Controller", icon: Smartphone },
-    { path: "/stealth-lab", label: "Stealth Lab", icon: Terminal },
-    { path: "/automation", label: "Smart Connect", icon: Brain },
-    { path: "/security", label: "Safety Center", icon: Shield },
-    { path: "/privacy-shield", label: "Privacy Shield", icon: Shield },
-    { path: "/profiles", label: "Profiles", icon: Shield },
-    { path: "/routing", label: "Routing", icon: Route },
-    { path: "/hotspot", label: "Hotspot", icon: WifiHigh },
-    { path: "/split-tunneling", label: "Split Tunneling", icon: Split },
-    { path: "/subscriptions", label: "Subscriptions", icon: Rss },
-    { path: "/account", label: "My Account", icon: Shield },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/", label: t('sidebar.dashboard'), icon: Activity },
+    { path: "/analytics", label: t('sidebar.analytics'), icon: Activity },
+    { path: "/remote", label: t('sidebar.remote'), icon: Smartphone },
+    { path: "/stealth-lab", label: t('sidebar.stealthLab'), icon: Terminal },
+    { path: "/automation", label: t('sidebar.automation'), icon: Brain },
+    { path: "/security", label: t('sidebar.security'), icon: Shield },
+    { path: "/privacy-shield", label: t('sidebar.privacyShield'), icon: Shield },
+    { path: "/profiles", label: t('sidebar.profiles'), icon: Shield },
+    { path: "/routing", label: t('sidebar.routing'), icon: Route },
+    { path: "/hotspot", label: t('sidebar.hotspot'), icon: WifiHigh },
+    { path: "/split-tunneling", label: t('sidebar.splitTunneling'), icon: Split },
+    { path: "/subscriptions", label: t('sidebar.subscriptions'), icon: Rss },
+    { path: "/account", label: t('sidebar.account'), icon: Shield },
+    { path: "/settings", label: t('sidebar.settings'), icon: Settings },
   ];
 
   return (
@@ -134,7 +136,7 @@ export function Layout() {
         </nav>
         
         <div className="mt-auto px-4 py-4 w-full text-xs text-muted-foreground/60 text-center font-mono">
-            Tauri v2 • Rust + Sing-box
+            {t('layout.versionSlogan')}
         </div>
       </aside>
 

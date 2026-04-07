@@ -34,10 +34,7 @@ class TestPrometheusMetrics:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
 
@@ -49,10 +46,7 @@ class TestPrometheusMetrics:
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
 
@@ -66,19 +60,14 @@ class TestPrometheusMetrics:
             assert "# TYPE" in body
 
     @pytest.mark.integration
-    async def test_metrics_includes_default_http_metrics(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_includes_default_http_metrics(self, async_client: AsyncClient):
         """Test default Python/process metrics are present."""
         from httpx import ASGITransport
         from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
             body = response.text
@@ -89,9 +78,7 @@ class TestPrometheusMetrics:
             assert "python_info" in body.lower()
 
     @pytest.mark.integration
-    async def test_metrics_excludes_health_and_docs_endpoints(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_excludes_health_and_docs_endpoints(self, async_client: AsyncClient):
         """Test that /health, /metrics, /docs are excluded from metrics."""
         from httpx import ASGITransport
         from httpx import AsyncClient as HTTPXAsyncClient
@@ -102,10 +89,7 @@ class TestPrometheusMetrics:
         await async_client.get("/health")
 
         # Fetch metrics
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
             body = response.text
@@ -121,19 +105,14 @@ class TestPrometheusMetrics:
                 assert "/docs" not in line
 
     @pytest.mark.integration
-    async def test_metrics_includes_custom_application_metrics(
-        self, async_client: AsyncClient
-    ):
+    async def test_metrics_includes_custom_application_metrics(self, async_client: AsyncClient):
         """Test custom application metrics are present (BOB-3)."""
         from httpx import ASGITransport
         from httpx import AsyncClient as HTTPXAsyncClient
 
         from src.main import metrics_app
 
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
             response = await client.get("/metrics")
             assert response.status_code == 200
             body = response.text
@@ -144,10 +123,175 @@ class TestPrometheusMetrics:
             assert "cache_operations_total" in body
             assert "external_api_duration_seconds" in body
             assert "auth_attempts_total" in body
+            assert "auth_client_activity_total" in body
+            assert "auth_bruteforce_events_total" in body
+            assert "auth_password_identifier_events_total" in body
+            assert "auth_flow_events_total" in body
+            assert "auth_session_operations_total" in body
+            assert "auth_session_detailed_total" in body
+            assert "auth_errors_total" in body
+            assert "auth_security_events_total" in body
+            assert "auth_users_risk_level_total" in body
+            assert "auth_users_verification_state_total" in body
+            assert "auth_users_with_failed_login_attempts_current" in body
+            assert "auth_failed_login_attempts_backlog_current" in body
+            assert "auth_bruteforce_identifiers_current" in body
+            assert "auth_bruteforce_attempts_current" in body
+            assert "auth_lockouts_current_total" in body
+            assert "auth_locked_users_db_current" in body
+            assert "auth_active_sessions_client_type_total" in body
+            assert "auth_active_sessions_os_family_total" in body
+            assert "auth_active_sessions_client_app_total" in body
+            assert "auth_mobile_devices_total" in body
+            assert "auth_request_duration_seconds" in body
+            assert "auth_activation_duration_seconds" in body
+            assert "email_verification_total" in body
+            assert "first_login_after_activation_total" in body
+            assert "magic_link_requests_total" in body
+            assert "oauth_callback_failures_total" in body
+            assert "password_reset_total" in body
+            assert "registration_funnel_total" in body
             assert "registrations_total" in body
+            assert "active_sessions_total" in body
             assert "subscriptions_activated_total" in body
             assert "payments_total" in body
             assert "trials_activated_total" in body
+
+    @pytest.mark.integration
+    async def test_auth_metric_samples_are_exposed_after_tracking(self, async_client: AsyncClient):
+        """Test auth-specific metric samples are exposed with expected labels."""
+        from time import perf_counter
+
+        from httpx import ASGITransport
+        from httpx import AsyncClient as HTTPXAsyncClient
+
+        from src.infrastructure.monitoring.instrumentation.routes import (
+            observe_auth_activation_duration,
+            observe_auth_request_duration,
+            track_auth_attempt,
+            track_auth_bruteforce_event,
+            track_auth_error,
+            track_auth_flow_event,
+            track_auth_password_identifier_event,
+            track_auth_security_event,
+            track_auth_session_detail,
+            track_auth_session_operation,
+            track_email_verification,
+            track_first_login_after_activation,
+            track_magic_link_request,
+            track_oauth_callback_failure,
+            track_password_reset,
+            track_registration,
+            track_registration_funnel_step,
+        )
+        from src.main import metrics_app
+
+        track_registration(method="email")
+        track_registration_funnel_step("email_sent")
+        track_auth_attempt(method="password", success=True)
+        track_auth_password_identifier_event(
+            channel="web",
+            identifier_type="email",
+            client_context=None,
+            step="login",
+            status="success",
+        )
+        track_auth_password_identifier_event(
+            channel="web",
+            identifier_type="username",
+            client_context=None,
+            step="registered",
+            status="success",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale="ru-RU",
+            client_context=None,
+            step="registered",
+            status="success",
+        )
+        track_auth_bruteforce_event(
+            channel="web",
+            identifier_type="email",
+            outcome="temporary_lockout",
+            lockout_tier="tier_1_30s",
+        )
+        track_auth_error("invalid_credentials")
+        track_auth_security_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale="ru-RU",
+            error_type="invalid_credentials",
+        )
+        track_auth_session_operation("refresh", "success")
+        track_auth_session_detail(
+            channel="web",
+            method="session",
+            operation="refresh",
+            status="success",
+            reason="none",
+        )
+        track_email_verification(success=True)
+        track_first_login_after_activation("email_verification")
+        track_magic_link_request("sent")
+        track_oauth_callback_failure(channel="web", provider="github", reason="invalid_state")
+        track_password_reset(operation="request", success=True)
+        observe_auth_activation_duration(
+            channel="web",
+            method="email_verification",
+            locale="ru-RU",
+            stage="verify",
+            started_at=None,
+        )
+        observe_auth_request_duration("password", perf_counter() - 0.05)
+
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as client:
+            response = await client.get("/metrics")
+            assert response.status_code == 200
+            body = response.text
+
+            assert 'registrations_total{method="email"}' in body
+            assert 'registration_funnel_total{step="email_sent"}' in body
+            assert 'auth_attempts_total{method="password",status="success"}' in body
+            assert (
+                'auth_client_activity_total{channel="web",client_app="unknown",client_type="unknown",'
+                'method="password",os_family="unknown",provider="native",status="success",step="registered"}'
+            ) in body
+            assert (
+                'auth_bruteforce_events_total{channel="web",identifier_type="email",'
+                'lockout_tier="tier_1_30s",outcome="temporary_lockout"}'
+            ) in body
+            assert (
+                'auth_password_identifier_events_total{channel="web",identifier_type="email",status="success",'
+                'step="login"}'
+            ) in body
+            assert (
+                'auth_password_identifier_events_total{channel="web",identifier_type="username",status="success",'
+                'step="registered"}'
+            ) in body
+            assert (
+                'auth_flow_events_total{channel="web",locale="ru-RU",method="password",provider="native",'
+                'status="success",step="registered"}'
+            ) in body
+            assert 'auth_session_operations_total{operation="refresh",status="success"}' in body
+            assert (
+                'auth_session_detailed_total{channel="web",method="session",operation="refresh",reason="none",'
+                'status="success"}'
+            ) in body
+            assert 'auth_errors_total{error_type="invalid_credentials"}' in body
+            assert (
+                'auth_security_events_total{channel="web",error_type="invalid_credentials",locale="ru-RU",'
+                'method="password",provider="native"}'
+            ) in body
+            assert 'email_verification_total{status="success"}' in body
+            assert 'first_login_after_activation_total{method="email_verification"}' in body
+            assert 'magic_link_requests_total{status="sent"}' in body
+            assert 'oauth_callback_failures_total{channel="web",provider="github",reason="invalid_state"}' in body
+            assert 'password_reset_total{operation="request",status="success"}' in body
+            assert 'auth_request_duration_seconds_sum{method="password"}' in body
 
     @pytest.mark.integration
     async def test_metrics_increments_after_request(self, async_client: AsyncClient):
@@ -158,10 +302,7 @@ class TestPrometheusMetrics:
         from src.main import metrics_app
 
         # Fetch initial metrics
-        async with HTTPXAsyncClient(
-            transport=ASGITransport(app=metrics_app),
-            base_url="http://test"
-        ) as metrics_client:
+        async with HTTPXAsyncClient(transport=ASGITransport(app=metrics_app), base_url="http://test") as metrics_client:
             initial_response = await metrics_client.get("/metrics")
             assert initial_response.status_code == 200
             initial_body = initial_response.text
@@ -217,9 +358,7 @@ class TestReadinessEndpoint:
                 assert data["status"] == "ready"
 
     @pytest.mark.integration
-    async def test_readiness_checks_database_connection(
-        self, async_client: AsyncClient
-    ):
+    async def test_readiness_checks_database_connection(self, async_client: AsyncClient):
         """Test readiness endpoint checks database connectivity."""
 
         # Mock DB connection failure
@@ -253,9 +392,7 @@ class TestReadinessEndpoint:
                 assert response.status_code == 503
 
     @pytest.mark.integration
-    async def test_readiness_returns_503_when_redis_down(
-        self, async_client: AsyncClient
-    ):
+    async def test_readiness_returns_503_when_redis_down(self, async_client: AsyncClient):
         """Test readiness fails when Redis is unavailable."""
 
         # Mock Redis connection failure
@@ -298,21 +435,15 @@ class TestSentryInitialization:
         assert hasattr(hub, "client")
 
     @pytest.mark.integration
-    async def test_sentry_captures_unhandled_exceptions(
-        self, async_client: AsyncClient
-    ):
+    async def test_sentry_captures_unhandled_exceptions(self, async_client: AsyncClient):
         """Test that unhandled exceptions are sent to Sentry."""
         import sentry_sdk
 
-        with patch.object(sentry_sdk, "capture_exception") as mock_capture:
+        with patch.object(sentry_sdk, "capture_exception"):
             # Try to trigger an error endpoint if it exists
             # In real app, unhandled exceptions would be captured
             # For test purposes, we just verify the mechanism exists
-            try:
-                # Make a request that might raise an exception
-                await async_client.get("/nonexistent-endpoint-that-raises")
-            except Exception:
-                pass
+            await async_client.get("/nonexistent-endpoint-that-raises")
 
             # Verify the capture_exception function exists and can be called
             assert callable(sentry_sdk.capture_exception)
@@ -367,10 +498,7 @@ class TestSentryInitialization:
 
         with patch.object(sentry_sdk, "capture_event", side_effect=mock_capture):
             # Make request with Authorization header
-            await async_client.get(
-                "/api/v1/status",
-                headers={"Authorization": "Bearer sensitive-token"}
-            )
+            await async_client.get("/api/v1/status", headers={"Authorization": "Bearer sensitive-token"})
 
             # Verify Sentry has scrubbing capabilities
             # The actual filtering is configured in Sentry SDK init
@@ -481,10 +609,7 @@ class TestStructuredLogging:
 
         with caplog.at_level(logging.INFO):
             # Make login request with password
-            await async_client.post(
-                "/api/v1/auth/login",
-                json={"email": "test@example.com", "password": "secret123"}
-            )
+            await async_client.post("/api/v1/auth/login", json={"email": "test@example.com", "password": "secret123"})
 
             # Check logs don't contain the password
             for record in caplog.records:
@@ -498,10 +623,7 @@ class TestStructuredLogging:
 
         with caplog.at_level(logging.INFO):
             # Make authenticated request with Bearer token
-            await async_client.get(
-                "/api/v1/status",
-                headers={"Authorization": "Bearer fake-jwt-token-12345"}
-            )
+            await async_client.get("/api/v1/status", headers={"Authorization": "Bearer fake-jwt-token-12345"})
 
             # Check logs don't contain the token
             for record in caplog.records:
@@ -510,9 +632,7 @@ class TestStructuredLogging:
                 assert "fake-jwt-token-12345" not in log_message
 
     @pytest.mark.integration
-    async def test_logs_include_exception_info_on_errors(
-        self, async_client: AsyncClient, caplog
-    ):
+    async def test_logs_include_exception_info_on_errors(self, async_client: AsyncClient, caplog):
         """Test that exception logs include traceback."""
 
         with caplog.at_level(logging.ERROR):

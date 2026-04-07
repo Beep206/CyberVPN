@@ -996,7 +996,7 @@ REQUEST_ID_HEADER=X-Request-ID
 - [ ] Mobile registration requires 12+ character passwords
 - [ ] Passwords must contain uppercase, lowercase, digit, special character
 - [ ] Common passwords rejected with specific error message
-- [ ] Validation errors are localized (27 locales)
+- [ ] Validation errors are localized (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE)
 
 ### 6.3 MED-002: Token Device Binding
 

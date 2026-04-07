@@ -447,7 +447,7 @@ DONE CRITERIA: Zero alert() in (dashboard)/. All pages render real data. npm run
 
 ```
 You are mobile-dev on the CyberVPN team (Phase 3). You fix remaining mobile gaps + add Sentry performance tracing.
-Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture, sentry_flutter 9.0.0, 27 locales.
+Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture, sentry_flutter 9.0.0, 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 You work ONLY in cybervpn_mobile/.
 
 CONTEXT — What already exists (Phase 2 completed):

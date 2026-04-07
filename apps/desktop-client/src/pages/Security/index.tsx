@@ -4,8 +4,10 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { enableKillswitchCmd, disableKillswitchCmd, repairNetwork, auditQuantumReadiness, AuditResult } from "../../shared/api/ipc";
 import { toast } from "sonner";
 import { Shield, ShieldAlert, ShieldCheck, Wrench, Activity, Fingerprint, Search, Server } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function SecurityPage() {
+  const { t } = useTranslation();
   const [isKillSwitchActive, setIsKillSwitchActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRepairing, setIsRepairing] = useState(false);
@@ -20,8 +22,8 @@ export function SecurityPage() {
     async function setupListener() {
       unlisten = await listen("vpn-process-died", () => {
         if (isKillSwitchActive) {
-           toast.error("VPN Connection Dropped!", {
-             description: "Kill Switch has automatically blocked all internet traffic.",
+           toast.error(t('security.vpnDropped'), {
+             description: t('security.killSwitchBlocked'),
              icon: <ShieldAlert className="text-red-500" />
            });
         }
@@ -43,16 +45,16 @@ export function SecurityPage() {
       if (!isKillSwitchActive) {
         await enableKillswitchCmd();
         setIsKillSwitchActive(true);
-        toast.success("Kill Switch Enabled - Traffic Secured");
+        toast.success(t('security.killSwitchEnabled'));
       } else {
         await disableKillswitchCmd();
         setIsKillSwitchActive(false);
-        toast.success("Kill Switch Disabled");
+        toast.success(t('security.killSwitchDisabled'));
       }
     } catch (err: any) {
       if (err.includes("Elevation Required") || err.includes("Administrator privileges") || err.includes("elevation")) {
-        toast.error("Administrator Required", {
-           description: "Please run CyberVPN as Administrator to alter firewall rules.",
+        toast.error(t('security.adminRequired'), {
+           description: t('security.runAsAdmin'),
            icon: <ShieldAlert className="text-red-500" />
         });
       } else {
@@ -66,7 +68,7 @@ export function SecurityPage() {
   const handleRepairNetwork = async () => {
     if (isRepairing) return;
     setIsRepairing(true);
-    toast.info("Repairing Network Stack...");
+    toast.info(t('security.repairing'));
     
     try {
       await repairNetwork();
@@ -74,7 +76,7 @@ export function SecurityPage() {
       if (isKillSwitchActive) {
          setIsKillSwitchActive(false);
       }
-      toast.success("Network Repair Complete - Internet Restored");
+      toast.success(t('security.repairComplete'));
     } catch (err: any) {
       toast.error(`Repair failed: ${err}`);
     } finally {
@@ -90,7 +92,7 @@ export function SecurityPage() {
       await new Promise(r => setTimeout(r, 1500));
       const results = await auditQuantumReadiness();
       setAuditResults(results);
-      toast.success("Quantum Readiness Audit Complete");
+      toast.success(t('security.quantumComplete'));
     } catch (err: any) {
       toast.error(`Quantum Audit Failed: ${err}`);
     } finally {
@@ -122,10 +124,10 @@ export function SecurityPage() {
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--color-matrix-green)] to-[var(--color-neon-cyan)] bg-clip-text text-transparent flex items-center gap-3">
           <Shield size={32} className="text-[var(--color-matrix-green)]" />
-          Safety Center
+          {t('security.title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          Advanced network security tools to prevent data leaks and maintain connectivity.
+          {t('security.description')}
         </p>
       </div>
 
@@ -152,14 +154,14 @@ export function SecurityPage() {
                   <ShieldAlert size={48} className={`mb-2 ${isProcessing ? "animate-pulse" : ""}`} />
                 )}
                 <span className="font-bold tracking-wider leading-tight text-center">
-                  {isKillSwitchActive ? "KILL SWITCH\nON" : "KILL SWITCH\nOFF"}
+                  {isKillSwitchActive ? t('security.killSwitchOn') : t('security.killSwitchOff')}
                 </span>
              </motion.button>
              
              {/* Subtitle description */}
              <div className="absolute bottom-4 left-0 right-0 text-center px-6">
                <p className="text-xs text-muted-foreground/70 transition-opacity">
-                  {isKillSwitchActive ? "All non-VPN traffic is strictly blocked at the OS layer." : "Unsafe. Network leaks are possible if VPN drops."}
+                  {isKillSwitchActive ? t('security.strictBlock') : t('security.unsafe')}
                </p>
              </div>
            </div>
@@ -167,30 +169,30 @@ export function SecurityPage() {
            <div className="p-6 rounded-xl border border-border/50 bg-card/30">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                  <Activity size={18} className="text-[var(--color-neon-cyan)]" />
-                 Leak Protection Status
+                 {t('security.leakProtection')}
               </h3>
               <div className="space-y-3">
                  <div className="flex items-center justify-between p-3 rounded bg-black/40 border border-border/30">
-                    <span className="text-sm">DNS Leak Protection</span>
+                    <span className="text-sm">{t('security.dnsLeak')}</span>
                     <span className="text-xs px-2 py-1 rounded bg-[var(--color-matrix-green)]/20 text-[var(--color-matrix-green)] flex items-center gap-1">
-                      <ShieldCheck size={14} /> Active
+                      <ShieldCheck size={14} /> {t('security.active')}
                     </span>
                  </div>
                  <div className="flex items-center justify-between p-3 rounded bg-black/40 border border-border/30">
-                    <span className="text-sm">IPv6 Leak Protection</span>
+                    <span className="text-sm">{t('security.ipv6Leak')}</span>
                     <span className="text-xs px-2 py-1 rounded bg-[var(--color-matrix-green)]/20 text-[var(--color-matrix-green)] flex items-center gap-1">
-                      <ShieldCheck size={14} /> Active
+                      <ShieldCheck size={14} /> {t('security.active')}
                     </span>
                  </div>
                  <div className="flex items-center justify-between p-3 rounded bg-black/40 border border-border/30">
-                    <span className="text-sm">OS Sentinel Guard</span>
+                    <span className="text-sm">{t('security.osGuard')}</span>
                     {isKillSwitchActive ? (
                       <span className="text-xs px-2 py-1 rounded bg-[var(--color-matrix-green)]/20 text-[var(--color-matrix-green)] flex items-center gap-1">
-                        <ShieldCheck size={14} /> Active
+                        <ShieldCheck size={14} /> {t('security.active')}
                       </span>
                     ) : (
                       <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 flex items-center gap-1">
-                        <ShieldAlert size={14} /> Inactive
+                        <ShieldAlert size={14} /> {t('security.inactive')}
                       </span>
                     )}
                  </div>
@@ -206,9 +208,9 @@ export function SecurityPage() {
                  <Wrench size={32} className="text-[var(--color-neon-pink)]" />
               </div>
               
-              <h3 className="text-2xl font-bold mb-3">Network Self-Healing</h3>
+              <h3 className="text-2xl font-bold mb-3">{t('security.selfHealing')}</h3>
               <p className="text-muted-foreground text-sm max-w-[280px] mb-8">
-                 Internet broken? App crashed? Use the Repair tool to flush DNS, clear ghost proxies, and forcefully reset Windows firewall block rules.
+                 {t('security.repairDesc')}
               </p>
               
               <motion.button
@@ -221,12 +223,12 @@ export function SecurityPage() {
                  {isRepairing ? (
                    <>
                      <Activity size={18} className="animate-spin" />
-                     Fixing Network Stack...
+                     {t('security.fixing')}
                    </>
                  ) : (
                    <>
                      <Wrench size={18} />
-                     Factory Reset Network
+                     {t('security.factoryReset')}
                    </>
                  )}
               </motion.button>
@@ -268,10 +270,10 @@ export function SecurityPage() {
           <div>
             <h3 className="text-2xl font-bold flex items-center gap-3 text-[var(--color-neon-cyan)]">
               <Fingerprint size={28} />
-              Quantum Forge Audit
+              {t('security.quantumForge')}
             </h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-              Audit your cryptographic profiles for Post-Quantum Cryptography (PQC) readiness. Protects against "Harvest Now, Decrypt Later" (HNDL) attacks.
+              {t('security.quantumDesc')}
             </p>
           </div>
           <motion.button
@@ -286,7 +288,7 @@ export function SecurityPage() {
              }`}
           >
             {isScanning ? <Activity className="animate-spin" size={18} /> : <Search size={18} />}
-            {isScanning ? "Scanning Matrix..." : "Quantum Scan"}
+            {isScanning ? t('security.scanning') : t('security.quantumScan')}
           </motion.button>
         </div>
 
@@ -295,11 +297,11 @@ export function SecurityPage() {
           {!auditResults && !isScanning && (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/50">
               <Shield size={48} className="mb-4 opacity-20" />
-              <p>Initiate a scan to analyze your secure connections.</p>
+              <p>{t('security.initScan')}</p>
             </div>
           )}
           {auditResults && auditResults.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-10">No profiles found in the system.</p>
+            <p className="text-sm text-muted-foreground text-center py-10">{t('security.noProfiles')}</p>
           )}
           
           <AnimatePresence>
@@ -326,10 +328,10 @@ export function SecurityPage() {
                     <div className="relative group cursor-help">
                        <span className="text-xs px-3 py-1.5 rounded-md bg-[var(--color-matrix-green)]/10 text-[var(--color-matrix-green)] flex items-center gap-1.5 border border-[#8a2be2]/50 shadow-[0_0_15px_rgba(138,43,226,0.3)] font-medium tracking-wide">
                          <ShieldCheck size={16} className="text-[#8a2be2] drop-shadow-[0_0_8px_rgba(138,43,226,0.8)]" /> 
-                         Quantum Shield Active
+                         {t('security.quantumShieldActive')}
                        </span>
                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
-                          Hybrid ML-KEM-768 is active. This session is mathematically secured against quantum computer decryption.
+                          {t('security.quantumShieldDesc')}
                        </div>
                     </div>
                   )}
@@ -337,10 +339,10 @@ export function SecurityPage() {
                     <div className="relative group cursor-help">
                        <span className="text-xs px-3 py-1.5 rounded-md bg-yellow-500/10 text-yellow-500 flex items-center gap-1.5 border border-yellow-500/20 font-medium tracking-wide">
                          <ShieldAlert size={16} /> 
-                         Partially Ready
+                         {t('security.partiallyReady')}
                        </span>
                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
-                          Protocol handles PQC at transport layer (QUIC) or partially supports it.
+                          {t('security.partiallyReadyDesc')}
                        </div>
                     </div>
                   )}
@@ -348,10 +350,10 @@ export function SecurityPage() {
                     <div className="relative group cursor-help">
                        <span className="text-xs px-3 py-1.5 rounded-md bg-red-500/10 text-red-500 flex items-center gap-1.5 border border-red-500/20 font-medium tracking-wide">
                          <ShieldAlert size={16} /> 
-                         Vulnerable
+                         {t('security.vulnerable')}
                        </span>
                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bottom-full right-0 mb-2 w-64 p-3 bg-black border border-border/50 rounded-lg text-xs text-muted-foreground z-50 pointer-events-none">
-                          Vulnerable to "Harvest Now, Decrypt Later" (HNDL) attacks by quantum computers.
+                          {t('security.vulnerableDesc')}
                        </div>
                     </div>
                   )}

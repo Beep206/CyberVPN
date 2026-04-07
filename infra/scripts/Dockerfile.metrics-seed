@@ -1,0 +1,11 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir prometheus-client==0.22.1
+
+COPY auth-metrics-seed.py .
+
+EXPOSE 9099
+
+CMD ["python", "auth-metrics-seed.py"]

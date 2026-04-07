@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { ConnectionStatus } from '@/shared/api/ipc';
+import { useTranslation } from 'react-i18next';
 
 interface ConnectButtonProps {
     status: ConnectionStatus;
@@ -10,6 +11,7 @@ interface ConnectButtonProps {
 }
 
 export function ConnectButton({ status, onConnect, onDisconnect }: ConnectButtonProps) {
+    const { t } = useTranslation();
     const isConnected = status.status === "connected";
     const isConnecting = status.status === "connecting";
 
@@ -60,7 +62,7 @@ export function ConnectButton({ status, onConnect, onDisconnect }: ConnectButton
                 >
                     {getIcon()}
                     <span className="font-bold tracking-widest uppercase text-sm">
-                        {status.status}
+                        {t(`dashboard.status_${status.status}`, { defaultValue: status.status })}
                     </span>
                 </motion.div>
                 
@@ -85,7 +87,7 @@ export function ConnectButton({ status, onConnect, onDisconnect }: ConnectButton
             
             {(isConnected || isConnecting) && status.activeId && (
                 <div className="text-sm font-mono text-muted-foreground bg-black/40 px-4 py-2 rounded-md border border-border/40">
-                    Profile ID: <span className="text-[var(--color-neon-cyan)]">{status.activeId}</span>
+                    {t('dashboard.profileId')}: <span className="text-[var(--color-neon-cyan)]">{status.activeId}</span>
                 </div>
             )}
         </div>

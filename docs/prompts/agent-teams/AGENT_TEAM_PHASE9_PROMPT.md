@@ -3,7 +3,7 @@
 > Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 > User presses **Shift+Tab** to enter delegate mode, then pastes this prompt.
 > Teammates load `CLAUDE.md` automatically. Spawn prompts contain ONLY task-specific context.
-> **Scope**: Sync all 39 locales across Frontend, Mobile, and Telegram Bot middleware. Verify Docker network segmentation is complete. Fix all remaining lint/build/test issues. Achieve 100% completion across all 8 phases.
+> **Scope**: Sync all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE across Frontend, Mobile, and Telegram Bot middleware. Verify Docker network segmentation is complete. Fix all remaining lint/build/test issues. Achieve 100% completion across all 8 phases.
 > **Out of scope**: Certificate pinning SHA-256 values (require real production certs), TanStack Table `react-hooks/incompatible-library` warning (upstream library issue), professional human translation of locale placeholder files.
 
 ---
@@ -12,7 +12,7 @@
 
 This is **Phase 9 — 100% Completion**. Phases 1-8 built, polished, hardened, and nearly completed the entire CyberVPN platform. Phase 9 closes the final ~3% gap to achieve full 100% completion:
 
-1. **39 locales everywhere** — Telegram Bot has 39 locales but middleware only loads 2. Frontend has 38 (missing zh-Hant). Mobile has 38 (missing zh-Hant). Sync ALL to 39.
+1. **38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE everywhere** — Telegram Bot has 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE but middleware only loads 2. Frontend has 38 (missing zh-Hant). Mobile has 38 (missing zh-Hant). Sync ALL to 39.
 2. **Bot i18n middleware** — Expand `SUPPORTED_LOCALES` from 2 → 39, expand `LANGUAGE_MAP` to cover all Telegram language codes.
 3. **Docker network verification** — Phase 8 defined 4 tiered networks. Verify ALL services use them (no remaining `remnawave-network` references).
 4. **Final lint/build/test sweep** — Ensure all platforms pass their respective checks with zero regressions.
@@ -24,7 +24,7 @@ This is **Phase 9 — 100% Completion**. Phases 1-8 built, polished, hardened, a
 | 1 | Add zh-Hant locale to Frontend (config + messages directory) | Frontend | P0 | ~10 files |
 | 2 | Add zh-Hant locale to Mobile (ARB + language_repository + l10n.yaml) | Mobile | P0 | ~4 files |
 | 3 | Expand Bot SUPPORTED_LOCALES from 2→39 + LANGUAGE_MAP for all Telegram codes | Telegram Bot | P0 | 2 files |
-| 4 | Update Bot config.py default available_languages to all 39 locales | Telegram Bot | P0 | 1 file |
+| 4 | Update Bot config.py default available_languages to all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE | Telegram Bot | P0 | 1 file |
 | 5 | Verify Docker 4-tier network assignment for all services | Infrastructure | P1 | 1 file |
 | 6 | Frontend i18n config: add zh-Hant to locales array | Frontend | P0 | 1 file |
 | 7 | Frontend CLAUDE.md: update "41 locales" reference to match reality (39) | Frontend | P2 | 1 file |
@@ -35,8 +35,8 @@ This is **Phase 9 — 100% Completion**. Phases 1-8 built, polished, hardened, a
 2. `grep "zh-Hant" frontend/src/i18n/config.ts` matches
 3. `ls cybervpn_mobile/lib/core/l10n/arb/app_zh_Hant.arb` exists
 4. `grep "zh_Hant" cybervpn_mobile/lib/features/settings/data/repositories/language_repository.dart` matches
-5. `grep "SUPPORTED_LOCALES" services/telegram-bot/src/middlewares/i18n.py | head -1` shows 39 locales (not 2)
-6. `grep "available_languages" services/telegram-bot/src/config.py` shows all 39 locales
+5. `grep "SUPPORTED_LOCALES" services/telegram-bot/src/middlewares/i18n.py | head -1` shows 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE (not 2)
+6. `grep "available_languages" services/telegram-bot/src/config.py` shows all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 7. All services reference 4-tier Docker networks (cybervpn-frontend, cybervpn-backend, cybervpn-data, cybervpn-monitoring)
 8. `cd frontend && npm run build` passes
 9. `cd cybervpn_mobile && flutter analyze --no-fatal-infos 2>&1 | grep "error" | wc -l` returns 0
@@ -97,7 +97,7 @@ This is **Phase 9 — 100% Completion**. Phases 1-8 built, polished, hardened, a
 - `cybervpn_mobile/lib/features/settings/data/repositories/language_repository.dart` — add zh-Hant LanguageItem
 - `cybervpn_mobile/l10n.yaml` — verify `zh_Hant` is included (Flutter uses underscore, not hyphen)
 
-#### ISSUE-3: Telegram Bot — Middleware only loads 2 of 39 locales
+#### ISSUE-3: Telegram Bot — Middleware only loads 2 of 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 
 Despite 39 locale directories existing with full .ftl translations, the bot only loads `ru` and `en`.
 
@@ -151,7 +151,7 @@ Need to verify ALL services reference these networks (not the old `remnawave-net
 ### frontend-i18n
 
 ```
-You are frontend-i18n on the CyberVPN team (Phase 9). You add the missing zh-Hant (Traditional Chinese) locale to achieve 39 locales in the Frontend.
+You are frontend-i18n on the CyberVPN team (Phase 9). You add the missing zh-Hant (Traditional Chinese) locale to achieve 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE in the Frontend.
 Stack: Next.js 16, React 19, TypeScript 5.9, next-intl 4.7.
 You work ONLY in frontend/. Do NOT touch other directories.
 
@@ -174,7 +174,7 @@ RULES:
 - Do NOT change the default locale (en-EN).
 - zh-Hant message files should initially be copies of zh-CN (placeholder until professionally translated).
 - Follow the existing naming pattern: locale directories use hyphen format (zh-CN, not zh_CN).
-- Update frontend/CLAUDE.md "41 locales" references to "39 locales" to match reality.
+- Update frontend/CLAUDE.md "41 locales" references to "38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE" to match reality.
 
 YOUR TASKS:
 
@@ -221,7 +221,7 @@ FI-2: Create zh-Hant message directory (P0)
 FI-3: Fix locale count in CLAUDE.md (P2)
 
   File: frontend/CLAUDE.md
-  Search for "41 locales" and replace with "39 locales" (2 occurrences).
+  Search for "41 locales" and replace with "38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE" (2 occurrences).
 
 VERIFICATION:
   ls frontend/messages/ | wc -l
@@ -239,7 +239,7 @@ DONE CRITERIA: 39 locale directories in messages/. zh-Hant in config.ts. CLAUDE.
 ### mobile-i18n
 
 ```
-You are mobile-i18n on the CyberVPN team (Phase 9). You add the missing zh-Hant (Traditional Chinese) locale to achieve 39 locales in the Flutter mobile app.
+You are mobile-i18n on the CyberVPN team (Phase 9). You add the missing zh-Hant (Traditional Chinese) locale to achieve 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE in the Flutter mobile app.
 Stack: Flutter 3.x, Dart 3.x, Riverpod 3.x.
 You work ONLY in cybervpn_mobile/. Do NOT touch frontend/, backend/, or services/.
 
@@ -292,7 +292,7 @@ MI-2: Add zh_Hant to language_repository.dart (P0)
   ),
   ```
 
-  Also update the comment at the top: "All 36 locales" → "All 39 locales" (to match actual count).
+  Also update the comment at the top: "All 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE" → "All 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE" (to match actual count).
 
 VERIFICATION:
   ls cybervpn_mobile/lib/core/l10n/arb/app_zh_Hant.arb
@@ -498,7 +498,7 @@ BI-2: Expand available_languages default in config.py (P0)
   ```
 
   This is the PRIMARY control — I18nManager reads settings.available_languages to decide
-  which locale bundles to load. With 39 locales listed, all 39 directories will be loaded.
+  which locale bundles to load. With 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE listed, all 39 directories will be loaded.
 
 VERIFICATION:
   python -c "import ast; ast.parse(open('services/telegram-bot/src/middlewares/i18n.py').read()); print('OK')"
@@ -522,9 +522,9 @@ for node in ast.walk(tree):
                     sys.exit(0)
 print('SUPPORTED_LOCALES not found as tuple')
 "
-  # Must print: SUPPORTED_LOCALES has 39 locales
+  # Must print: SUPPORTED_LOCALES has 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 
-DONE CRITERIA: SUPPORTED_LOCALES has 39 entries. LANGUAGE_MAP covers all Telegram codes. config.py default has 39 locales. All Python files parse without syntax errors.
+DONE CRITERIA: SUPPORTED_LOCALES has 39 entries. LANGUAGE_MAP covers all Telegram codes. config.py default has 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE. All Python files parse without syntax errors.
 ```
 
 ### infra-verify
@@ -662,7 +662,7 @@ for node in ast.walk(tree):
                 if isinstance(node.value, ast.Tuple):
                     print(f'SUPPORTED_LOCALES: {len(node.value.elts)} locales')
 "
-  → Must print: SUPPORTED_LOCALES: 39 locales
+  → Must print: SUPPORTED_LOCALES: 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 
   STEP 3: Config available_languages
   grep -A2 "available_languages" services/telegram-bot/src/config.py | head -5
@@ -702,7 +702,7 @@ VF-5: Cross-platform locale consistency check
   ls services/telegram-bot/src/locales/zh-Hant/ >/dev/null 2>&1 && echo "Bot zh-Hant: OK" || echo "MISSING"
   → All must show OK
 
-DONE CRITERIA: All 5 verification blocks pass. All platforms at 39 locales. Zero regressions.
+DONE CRITERIA: All 5 verification blocks pass. All platforms at 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE. Zero regressions.
 ```
 
 ---
@@ -745,7 +745,7 @@ PHASE 9 START ───────+-- MI-1 (create app_zh_Hant.arb) ───�
 |----|------|-------|------------|----------|
 | FI-1 | Add zh-Hant to frontend/src/i18n/config.ts locales array | frontend-i18n | -- | P0 |
 | FI-2 | Create frontend/messages/zh-Hant/ directory with JSON files | frontend-i18n | -- | P0 |
-| FI-3 | Fix "41 locales" → "39 locales" in frontend/CLAUDE.md | frontend-i18n | -- | P2 |
+| FI-3 | Fix "41 locales" → "38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE" in frontend/CLAUDE.md | frontend-i18n | -- | P2 |
 | MI-1 | Create cybervpn_mobile/lib/core/l10n/arb/app_zh_Hant.arb | mobile-i18n | -- | P0 |
 | MI-2 | Add zh_Hant LanguageItem to language_repository.dart | mobile-i18n | -- | P0 |
 | BI-1 | Expand SUPPORTED_LOCALES (2→39) + LANGUAGE_MAP in i18n.py | bot-i18n | -- | P0 |
@@ -755,7 +755,7 @@ PHASE 9 START ───────+-- MI-1 (create app_zh_Hant.arb) ───�
 | VF-2 | Mobile: ARB count + zh_Hant + flutter analyze | verify | MI-* | P0 |
 | VF-3 | Bot: syntax + SUPPORTED_LOCALES count + config + colored buttons | verify | BI-* | P0 |
 | VF-4 | Infra: compose validation + network count | verify | IV-1 | P0 |
-| VF-5 | Cross-platform: all 3 services at 39 locales + zh-Hant everywhere | verify | VF-1..VF-3 | P0 |
+| VF-5 | Cross-platform: all 3 services at 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE + zh-Hant everywhere | verify | VF-1..VF-3 | P0 |
 
 ### Task Counts
 
@@ -902,7 +902,7 @@ All commands must pass with expected values. If any fail, assign fix to the resp
 ### Frontend — zh-Hant Locale (frontend-i18n)
 - [ ] `zh-Hant` added to `frontend/src/i18n/config.ts` locales array
 - [ ] `frontend/messages/zh-Hant/` directory created with all JSON message files
-- [ ] `frontend/CLAUDE.md` updated: "41 locales" → "39 locales"
+- [ ] `frontend/CLAUDE.md` updated: "41 locales" → "38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE"
 - [ ] `ls frontend/messages/ | wc -l` returns 39
 - [ ] `npm run build` passes
 - [ ] `npm run lint` passes
@@ -910,14 +910,14 @@ All commands must pass with expected values. If any fail, assign fix to the resp
 ### Mobile — zh-Hant Locale (mobile-i18n)
 - [ ] `cybervpn_mobile/lib/core/l10n/arb/app_zh_Hant.arb` created with `"@@locale": "zh_Hant"`
 - [ ] LanguageItem for zh_Hant added to language_repository.dart
-- [ ] Comment in language_repository.dart updated to "39 locales"
+- [ ] Comment in language_repository.dart updated to "38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE"
 - [ ] `ls cybervpn_mobile/lib/core/l10n/arb/app_*.arb | wc -l` returns 39
 - [ ] `flutter analyze` passes with 0 errors
 
 ### Telegram Bot — Middleware Expansion (bot-i18n)
 - [ ] `SUPPORTED_LOCALES` in i18n.py has 39 entries
 - [ ] `LANGUAGE_MAP` in i18n.py maps all Telegram language codes
-- [ ] `available_languages` in config.py defaults to 39 locales
+- [ ] `available_languages` in config.py defaults to 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 - [ ] All Python files pass syntax check
 - [ ] Colored buttons unchanged (227+ style= usages)
 
@@ -927,9 +927,9 @@ All commands must pass with expected values. If any fail, assign fix to the resp
 - [ ] 0 `remnawave-network` references
 
 ### Cross-Platform Consistency
-- [ ] Frontend: 39 locales
-- [ ] Mobile: 39 locales
-- [ ] Bot: 39 locales (directories) + 39 active (middleware)
+- [ ] Frontend: 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
+- [ ] Mobile: 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
+- [ ] Bot: 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE (directories) + 39 active (middleware)
 - [ ] zh-Hant present in ALL 3 services
 
 ### Build Verification

@@ -1,0 +1,6 @@
+tray:
+  quit: "Quit"
+  show: "Show App"
+  connect: "Connect"
+  disconnect: "Disconnect"
+  connecting: "Connecting..."

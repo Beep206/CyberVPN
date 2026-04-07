@@ -605,7 +605,7 @@ final userId = ref.watch(currentUserProvider.select((u) => u?.id));
 
 **File:** `features/settings/data/repositories/language_repository.dart`
 
-**Solution:** Expand `_supportedLanguages` list to all 27 locales.
+**Solution:** Expand `_supportedLanguages` list to all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 
 ### 11.3 Fix Hardcoded Strings
 

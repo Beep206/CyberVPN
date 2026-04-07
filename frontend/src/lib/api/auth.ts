@@ -13,6 +13,8 @@ export interface RegisterRequest {
   login: string;
   email?: string;
   password: string;
+  tos_accepted: boolean;
+  marketing_consent?: boolean;
 }
 
 export interface TelegramWidgetData {
@@ -44,6 +46,9 @@ export interface User {
   is_active: boolean;
   is_email_verified: boolean;
   created_at: string;
+  sign_in_count?: number;
+  current_sign_in_ip?: string | null;
+  last_login_at?: string | null;
 }
 
 export interface AuthResponse {

@@ -174,10 +174,16 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PORT=${WORKER_METRICS_PORT:-9091}
       - METRICS_PROTECT=false
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus-multiproc
       - MAGIC_LINK_BASE_URL=${MAGIC_LINK_BASE_URL:-http://localhost:9001}
       # Override SMTP servers to use Docker network hostnames
       - SMTP_SERVERS=mailpit-1:1025,mailpit-2:1025,mailpit-3:1025
-    command: ["taskiq", "worker", "src.broker:broker", "--workers", "${WORKER_CONCURRENCY:-2}", "--fs-discover"]
+    command:
+      [
+        "sh",
+        "-c",
+        "mkdir -p \"$$PROMETHEUS_MULTIPROC_DIR\" && rm -f \"$$PROMETHEUS_MULTIPROC_DIR\"/* && exec taskiq worker src.broker:broker --workers ${WORKER_CONCURRENCY:-2} --fs-discover"
+      ]
     ports:
       - "127.0.0.1:${WORKER_METRICS_PORT:-9091}:${WORKER_METRICS_PORT:-9091}"
     depends_on:
@@ -546,6 +552,39 @@ services:
           memory: 128M
           cpus: "0.25"
 
+  # ============ AUTH METRICS SEED (fake data for dashboard development) ============
+  # Generates realistic auth/registration Prometheus metrics for Grafana dashboards.
+  # Remove or disable after connecting real backend metrics.
+  auth-metrics-seed:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.metrics-seed
+    container_name: auth-metrics-seed
+    hostname: auth-metrics-seed
+    profiles: ["monitoring"]
+    <<: [*common, *logging]
+    environment:
+      - SEED_PORT=9099
+      - TICK_INTERVAL=30
+    ports:
+      - "127.0.0.1:9099:9099"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9099/health', timeout=2).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cybervpn-monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+        reservations:
+          memory: 16M
+          cpus: "0.05"
+
   prometheus:
     image: prom/prometheus:v3.2.1
     container_name: prometheus
@@ -557,6 +596,8 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/rules:/etc/prometheus/rules
       - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"

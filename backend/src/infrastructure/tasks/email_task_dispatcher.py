@@ -52,6 +52,7 @@ class EmailTaskDispatcher:
         otp_code: str,
         locale: str = "en-EN",
         is_resend: bool = False,
+        channel: str = "web",
     ) -> str:
         """
         Dispatch OTP email task to task-worker.
@@ -92,6 +93,7 @@ class EmailTaskDispatcher:
                 "otp_code": otp_code,
                 "locale": locale,
                 "is_resend": is_resend,
+                "channel": channel,
             },
         }
         message_bytes = self._serializer.dumpb(full_message)
@@ -122,6 +124,7 @@ class EmailTaskDispatcher:
         otp_code: str = "",
         locale: str = "en-EN",
         is_resend: bool = False,
+        channel: str = "web",
     ) -> str:
         """Dispatch magic link email task to task-worker.
 
@@ -158,6 +161,7 @@ class EmailTaskDispatcher:
                 "otp_code": otp_code,
                 "locale": locale,
                 "is_resend": is_resend,
+                "channel": channel,
             },
         }
         message_bytes = self._serializer.dumpb(full_message)
@@ -183,6 +187,7 @@ class EmailTaskDispatcher:
         email: str,
         otp_code: str,
         locale: str = "en-EN",
+        channel: str = "web",
     ) -> str:
         """Dispatch password reset email task to task-worker.
 
@@ -214,6 +219,7 @@ class EmailTaskDispatcher:
                 "email": email,
                 "otp_code": otp_code,
                 "locale": locale,
+                "channel": channel,
             },
         }
         message_bytes = self._serializer.dumpb(full_message)

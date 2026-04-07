@@ -117,7 +117,7 @@ entities/              # Domain models with TypeScript types
   user/model/types.ts    # User types
 
 i18n/                  # Internationalization (next-intl)
-  config.ts            # 27 locales, RTL support (ar-SA, he-IL, fa-IR)
+  config.ts            # 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE, RTL support (ar-SA, he-IL, fa-IR)
 ```
 
 ### Key Patterns
@@ -158,4 +158,4 @@ Local Docker stack includes:
 
 ### i18n
 
-27 locales configured in `frontend/src/i18n/config.ts`. Message files in `frontend/messages/{locale}/`. Default: `en-EN`. RTL support for Arabic, Hebrew, Farsi.
+38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE configured in `frontend/src/i18n/config.ts`. Message files in `frontend/messages/{locale}/`. Default: `en-EN`. RTL support for Arabic, Hebrew, Farsi.

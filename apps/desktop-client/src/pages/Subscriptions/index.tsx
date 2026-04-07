@@ -15,8 +15,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
+import { useTranslation } from "react-i18next";
 
 export function SubscriptionsPage() {
+  const { t } = useTranslation();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [profiles, setProfiles] = useState<ProxyNode[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,7 +47,7 @@ export function SubscriptionsPage() {
 
   const handleCreateSubscription = async () => {
     if (!name || !url) {
-        toast.error("Please fill all fields");
+        toast.error(t('subscriptions.fillAllFields'));
         return;
     }
     
@@ -65,7 +67,7 @@ export function SubscriptionsPage() {
       await handleSync(newSubscription.id);
     } catch (e: any) {
       console.error("Failed to create subscription", e);
-      toast.error(`Error: ${e}`);
+      toast.error(t('subscriptions.createError', { error: e }));
     }
   };
 
@@ -73,17 +75,17 @@ export function SubscriptionsPage() {
     setIsSyncing(prev => ({ ...prev, [subId]: true }));
     try {
         await updateSubscription(subId);
-        toast.success("Subscription synced successfully");
+        toast.success(t('subscriptions.syncSuccess'));
         await refreshData();
     } catch (e: any) {
-        toast.error(`Sync failed: ${e}`);
+        toast.error(t('subscriptions.syncError', { error: e }));
     } finally {
         setIsSyncing(prev => ({ ...prev, [subId]: false }));
     }
   };
 
   const formatDate = (timestamp?: number) => {
-      if (!timestamp) return "Never updated";
+      if (!timestamp) return t('subscriptions.neverUpdated');
       return new Date(timestamp * 1000).toLocaleString();
   };
 
@@ -98,37 +100,37 @@ export function SubscriptionsPage() {
       <header className="flex items-center justify-between">
         <div>
            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-neon-cyan)] drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
-               Subscriptions
+               {t('subscriptions.title')}
            </h1>
-           <p className="text-muted-foreground mt-2">Manage auto-updating node links.</p>
+           <p className="text-muted-foreground mt-2">{t('subscriptions.description')}</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger>
             <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all">
               <Plus size={16} />
-              Add Url
+              {t('subscriptions.addUrl')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] border-[var(--color-matrix-green)]/30 bg-card/95 backdrop-blur shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">Add Subscription</DialogTitle>
+              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">{t('subscriptions.addSubscription')}</DialogTitle>
               <DialogDescription>
-                Provide a URL to automatically fetch and sync nodes.
+                {t('subscriptions.addDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="My Provider" />
+                <Label htmlFor="name" className="text-right">{t('subscriptions.name')}</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder={t('subscriptions.namePlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="url" className="text-right">URL</Label>
+                <Label htmlFor="url" className="text-right">{t('subscriptions.urlLabel')}</Label>
                 <Input id="url" value={url} onChange={e => setUrl(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="https://..." />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateSubscription} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">Save & Sync</Button>
+              <Button onClick={handleCreateSubscription} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">{t('subscriptions.saveSync')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -169,11 +171,11 @@ export function SubscriptionsPage() {
                      <div className="space-y-3 text-sm text-muted-foreground/80 font-mono">
                          <div className="flex items-center gap-2">
                              <Layers size={14} className="text-muted-foreground" />
-                             <span>{nodeCount} Nodes Synced</span>
+                             <span>{t('subscriptions.nodesSynced', { count: nodeCount })}</span>
                          </div>
                          <div className="flex flex-col gap-1 text-xs opacity-70 border-t border-border/30 pt-3 mt-1">
                              <span className="truncate">{sub.url}</span>
-                             <span>Last Sync: {formatDate(sub.lastUpdated)}</span>
+                             <span>{t('subscriptions.lastSync')}: {formatDate(sub.lastUpdated)}</span>
                          </div>
                      </div>
                  </motion.div>
@@ -183,7 +185,7 @@ export function SubscriptionsPage() {
          {subscriptions.length === 0 && (
              <div className="col-span-full py-16 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/60 rounded-xl">
                  <Rss className="w-12 h-12 mb-4 opacity-20" />
-                 <p className="font-mono text-sm">No subscriptions yet.</p>
+                 <p className="font-mono text-sm">{t('subscriptions.empty')}</p>
              </div>
          )}
       </div>

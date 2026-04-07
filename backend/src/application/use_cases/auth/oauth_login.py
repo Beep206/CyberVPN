@@ -91,6 +91,7 @@ class OAuthLoginUseCase:
         provider: str,
         user_info: dict,
         client_fingerprint: str | None = None,
+        client_ip: str | None = None,
     ) -> OAuthLoginResult:
         """Execute OAuth login flow.
 
@@ -112,6 +113,7 @@ class OAuthLoginUseCase:
         avatar_url = user_info.get("avatar_url")
         provider_access_token = user_info.get("access_token", "")
         provider_refresh_token = user_info.get("refresh_token")
+        provider_locale = user_info.get("language_code") or user_info.get("locale")
         stored_provider_tokens = build_stored_oauth_tokens(
             provider=provider,
             access_token=provider_access_token,
@@ -196,6 +198,7 @@ class OAuthLoginUseCase:
                     email=email,
                     password_hash=password_hash,
                     role="viewer",
+                    language=provider_locale or "en-EN",
                     is_active=True,
                     # Telegram is possession-based; other providers must explicitly
                     # prove a trustworthy verified email before we mark it verified.
@@ -240,6 +243,14 @@ class OAuthLoginUseCase:
                 refresh_token=stored_provider_tokens.refresh_token,
             )
             await self._oauth_repo.create(oauth_account)
+
+        # Update last login information
+        user.last_login_at = user.current_sign_in_at
+        user.last_login_ip = user.current_sign_in_ip
+        user.current_sign_in_at = datetime.now(UTC)
+        user.current_sign_in_ip = client_ip
+        user.sign_in_count += 1
+        user.failed_login_attempts = 0
 
         # Commit the transaction
         await self._session.commit()
