@@ -4,8 +4,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { Smartphone, QrCode, Server, WifiOff, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { useTranslation } from "react-i18next";
 
 export function RemotePage() {
+    const { t } = useTranslation();
     const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -18,14 +20,14 @@ export function RemotePage() {
             if (remoteUrl) {
                 await invoke("stop_remote_server");
                 setRemoteUrl(null);
-                toast.success("Remote Controller Offline");
+                toast.success(t('remote.offlineNotice'));
             } else {
                 const url = await invoke<string>("start_remote_server");
                 setRemoteUrl(url);
-                toast.success("Remote Controller Online");
+                toast.success(t('remote.onlineNotice'));
             }
         } catch (err: any) {
-            toast.error(`Remote Server Error: ${err}`);
+            toast.error(t('remote.serverError', { error: err }));
         } finally {
             setLoading(false);
         }
@@ -39,10 +41,10 @@ export function RemotePage() {
         >
             <header className="border-b border-white/5 pb-4">
                 <h1 className="text-4xl font-extrabold tracking-tighter text-[#00ff88] uppercase" style={{ textShadow: "0 0 15px rgba(0,255,136,0.4)" }}>
-                    Remote Controller
+                    {t('remote.title')}
                 </h1>
                 <p className="text-muted-foreground font-mono text-sm mt-2 flex items-center gap-2">
-                    <Smartphone className="text-[#00ff88]" size={16} /> Manage the VPN connection via Mobile Dashboard
+                    <Smartphone className="text-[#00ff88]" size={16} /> {t('remote.subtitle')}
                 </p>
             </header>
 
@@ -52,7 +54,7 @@ export function RemotePage() {
                     <div className="absolute inset-0 bg-[#00ff88]/5 pointer-events-none" />
                     
                     <h3 className="text-xl font-bold font-mono tracking-widest text-[#00ff88] mb-6 flex items-center gap-2 relative z-10">
-                        <QrCode size={24} /> DEVICE PAIRING
+                        <QrCode size={24} /> {t('remote.devicePairing')}
                     </h3>
 
                     {remoteUrl ? (
@@ -62,7 +64,7 @@ export function RemotePage() {
                     ) : (
                         <div className="w-[200px] h-[200px] border-2 border-dashed border-[#00ff88]/20 rounded-xl mb-6 flex flex-col items-center justify-center text-[#00ff88]/40">
                             <WifiOff size={48} className="mb-2" />
-                            <span className="font-mono text-xs">OFFLINE</span>
+                            <span className="font-mono text-xs">{t('remote.offlineLabel')}</span>
                         </div>
                     )}
 
@@ -75,12 +77,12 @@ export function RemotePage() {
                                 : "bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/50 hover:bg-[#00ff88]/30 hover:shadow-[0_0_20px_rgba(0,255,136,0.4)]"
                         }`}
                     >
-                        {loading ? "INITIALIZING..." : remoteUrl ? "DISABLE REMOTE" : "ENABLE REMOTE"}
+                        {loading ? t('remote.initializing') : remoteUrl ? t('remote.disableRemote') : t('remote.enableRemote')}
                     </button>
 
                     {remoteUrl && (
                         <div className="mt-6 text-xs font-mono text-white/50 break-all w-full max-w-[250px] relative z-10">
-                            Or browse to:<br/>
+                            {t('remote.browseTo')}<br/>
                             <a href={remoteUrl} target="_blank" className="text-[#00ffff] hover:underline selection:bg-[#ff00ff]/30">{remoteUrl}</a>
                         </div>
                     )}
@@ -89,41 +91,41 @@ export function RemotePage() {
                 {/* Instructions & Sessions */}
                 <div className="flex flex-col gap-6">
                     <div className="bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur">
-                        <h3 className="text-lg font-bold font-mono tracking-wider mb-4 text-white/80">INSTRUCTIONS</h3>
+                        <h3 className="text-lg font-bold font-mono tracking-wider mb-4 text-white/80">{t('remote.instructions')}</h3>
                         <ul className="space-y-4 text-sm text-muted-foreground font-mono">
                             <li className="flex gap-3 items-start">
                                 <span className="bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded text-xs font-bold shrink-0">1</span>
-                                <div>Click <strong>ENABLE REMOTE</strong> to deploy the hardened Axum HTTP server on your local network zero-trust boundary.</div>
+                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction1') }} />
                             </li>
                             <li className="flex gap-3 items-start">
                                 <span className="bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded text-xs font-bold shrink-0">2</span>
-                                <div>Take your primary smart device (Mobile/Tablet) ensuring it is connected to the same Local Area Network (WiFi).</div>
+                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction2') }} />
                             </li>
                             <li className="flex gap-3 items-start">
                                 <span className="bg-[#00ff88]/20 text-[#00ff88] px-2 py-0.5 rounded text-xs font-bold shrink-0">3</span>
-                                <div>Scan the <strong>QR Code</strong> with the device camera to instantly authenticate a bearer token mapped natively without cloud brokering.</div>
+                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction3') }} />
                             </li>
                         </ul>
                     </div>
 
                     <div className="bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur flex-1">
                         <h3 className="text-lg font-bold font-mono tracking-wider mb-4 text-white/80 flex items-center gap-2">
-                            <Server size={18} /> ACTIVE SESSIONS
+                            <Server size={18} /> {t('remote.activeSessions')}
                         </h3>
                         {remoteUrl ? (
                             <div className="flex items-center justify-between p-3 border border-[#00ff88]/30 bg-[#00ff88]/10 rounded-lg font-mono">
                                 <div className="flex items-center gap-3">
                                     <CheckCircle className="text-[#00ff88]" size={16} />
                                     <div>
-                                        <div className="text-sm font-bold text-white">LAN Server Online</div>
-                                        <div className="text-xs text-[#00ff88]">Awaiting Bearer Handshake...</div>
+                                        <div className="text-sm font-bold text-white">{t('remote.lanServerOnline')}</div>
+                                        <div className="text-xs text-[#00ff88]">{t('remote.awaitingHandshake')}</div>
                                     </div>
                                 </div>
-                                <span className="text-[10px] text-white/40">PORT: 8080</span>
+                                <span className="text-[10px] text-white/40">{t('remote.port')}</span>
                             </div>
                         ) : (
                             <div className="text-center text-sm font-mono text-white/30 mt-6">
-                                Server is offline.
+                                {t('remote.serverOffline')}
                             </div>
                         )}
                     </div>

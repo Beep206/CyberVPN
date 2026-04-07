@@ -16,8 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
+import { useTranslation } from "react-i18next";
 
 export function ProfilesPage() {
+  const { t } = useTranslation();
   const [profiles, setProfiles] = useState<ProxyNode[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -67,10 +69,10 @@ export function ProfilesPage() {
       setUuid("");
       
       refreshProfiles();
-      toast.success("Profile created successfully!");
+      toast.success(t('profiles.createSuccess'));
     } catch (e: any) {
       console.error("Failed to create profile", e);
-      toast.error(`Error: ${e}`);
+      toast.error(t('profiles.createError', { error: e }));
     }
   };
 
@@ -78,30 +80,30 @@ export function ProfilesPage() {
     try {
       const text = await navigator.clipboard.readText();
       if (!text) {
-        toast.error("Clipboard is empty.");
+        toast.error(t('profiles.clipboardEmpty'));
         return;
       }
       
       const parsedNode = await parseClipboardLink(text);
       await addProfile(parsedNode);
       await refreshProfiles();
-      toast.success(`Imported profile: ${parsedNode.name}`);
+      toast.success(t('profiles.importSuccess', { name: parsedNode.name }));
     } catch (e: any) {
-      toast.error(`Failed to parse link: ${e}`);
+      toast.error(t('profiles.importError', { error: e }));
     }
   };
 
   const handleScanScreen = async () => {
     setIsScanning(true);
     try {
-      toast.info("Scanning screens for QR Code...");
+      toast.info(t('profiles.scanning'));
       const parsedNode = await scanScreenForQr();
       await addProfile(parsedNode);
       await refreshProfiles();
-      toast.success(`Imported profile securely from QR: ${parsedNode.name}`);
+      toast.success(t('profiles.scanSuccess', { name: parsedNode.name }));
     } catch (e: any) {
       console.error(e);
-      toast.error(`Scan Failed: ${e}`);
+      toast.error(t('profiles.scanError', { error: e }));
     } finally {
       setIsScanning(false);
     }
@@ -114,7 +116,7 @@ export function ProfilesPage() {
       setShareNodeName(node.name);
       setIsShareOpen(true);
     } catch (e: any) {
-      toast.error(`Sharing failed: ${e}`);
+      toast.error(t('profiles.shareFailed', { error: e }));
     }
   };
 
@@ -129,66 +131,66 @@ export function ProfilesPage() {
       <header className="flex items-center justify-between">
         <div>
            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-neon-cyan)] drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
-               Profiles
+               {t('profiles.title')}
            </h1>
-           <p className="text-muted-foreground mt-2">Manage your VPN and Proxy node configurations.</p>
+           <p className="text-muted-foreground mt-2">{t('profiles.description')}</p>
         </div>
         
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleScanScreen} disabled={isScanning} className="gap-2 border-[var(--color-neon-cyan)]/30 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10 transition-all">
             <ScanLine size={16} className={isScanning ? "animate-spin" : ""} />
-            Scan QR
+            {t('profiles.scanQr')}
           </Button>
           
           <Button variant="outline" onClick={handlePasteFromClipboard} className="gap-2 border-border/50 bg-black/40 hover:bg-black/60 transition-all">
             <ClipboardPaste size={16} />
-            Paste
+            {t('profiles.paste')}
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger>
               <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all">
                 <Plus size={16} />
-                Add Node
+                {t('profiles.addNode')}
               </Button>
             </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] border-[var(--color-matrix-green)]/30 bg-card/95 backdrop-blur shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">Add Proxy Node</DialogTitle>
+              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">{t('profiles.addDialogTitle')}</DialogTitle>
               <DialogDescription>
-                Enter the connection details for your new secure tunnel.
+                {t('profiles.addDialogDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="e.g. Frankfurt VLESS" />
+                <Label htmlFor="name" className="text-right">{t('profiles.name')}</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder={t('profiles.namePlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="server" className="text-right">Server IP</Label>
-                <Input id="server" value={server} onChange={e => setServer(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="192.168.1.1" />
+                <Label htmlFor="server" className="text-right">{t('profiles.serverIp')}</Label>
+                <Input id="server" value={server} onChange={e => setServer(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder={t('profiles.serverPlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="port" className="text-right">Port</Label>
+                <Label htmlFor="port" className="text-right">{t('profiles.port')}</Label>
                 <Input id="port" value={port} onChange={e => setPort(e.target.value)} className="col-span-3 bg-black/40 border-border/50" type="number" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="protocol" className="text-right">Protocol</Label>
+                <Label htmlFor="protocol" className="text-right">{t('profiles.protocol')}</Label>
                 <Input id="protocol" value={protocol} onChange={e => setProtocol(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="vless" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="uuid" className="text-right">UUID</Label>
+                <Label htmlFor="uuid" className="text-right">{t('profiles.uuid')}</Label>
                 <Input id="uuid" value={uuid} onChange={e => setUuid(e.target.value)} className="col-span-3 bg-black/40 border-border/50" type="password" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="nextHop" className="text-right">Next Hop (Optional)</Label>
+                <Label htmlFor="nextHop" className="text-right">{t('profiles.nextHop')}</Label>
                 <select 
                     id="nextHop" 
                     value={nextHopId} 
                     onChange={e => setNextHopId(e.target.value)} 
                     className="col-span-3 flex h-10 w-full rounded-md border border-border/50 bg-black/40 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-matrix-green)]"
                 >
-                    <option value="">None (Direct)</option>
+                    <option value="">{t('profiles.noneDirect')}</option>
                     {profiles.map(p => (
                         <option key={p.id} value={p.id}>{p.name} ({p.server})</option>
                     ))}
@@ -196,7 +198,7 @@ export function ProfilesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateProfile} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">Save Profile</Button>
+              <Button onClick={handleCreateProfile} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">{t('profiles.saveProfile')}</Button>
             </DialogFooter>
           </DialogContent>
           </Dialog>
@@ -206,7 +208,7 @@ export function ProfilesPage() {
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="sm:max-w-[400px] border-[var(--color-neon-cyan)]/30 bg-card/95 backdrop-blur shadow-2xl flex flex-col items-center pt-8 pb-8">
             <DialogHeader className="w-full text-center mb-4">
-              <DialogTitle className="text-[var(--color-neon-cyan)] tracking-wide">Share Node</DialogTitle>
+              <DialogTitle className="text-[var(--color-neon-cyan)] tracking-wide">{t('profiles.shareNode')}</DialogTitle>
               <DialogDescription>{shareNodeName}</DialogDescription>
             </DialogHeader>
             <div className="bg-white p-4 rounded-xl shadow-[0_0_20px_rgba(0,255,255,0.2)]">
@@ -221,11 +223,11 @@ export function ProfilesPage() {
                     className="w-full mt-4 border-[var(--color-neon-cyan)]/50 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10"
                     onClick={() => {
                         navigator.clipboard.writeText(shareLink);
-                        toast.success("Link copied to clipboard");
+                        toast.success(t('profiles.copied'));
                     }}
                 >
                     <ClipboardPaste size={16} className="mr-2" />
-                    Copy Raw Link
+                    {t('profiles.copyRawLink')}
                 </Button>
             </div>
         </DialogContent>
@@ -277,7 +279,7 @@ export function ProfilesPage() {
                          {p.nextHopId && (
                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
                                  <Globe size={14} className="text-[var(--color-neon-pink)]" />
-                                 <span className="text-xs text-[var(--color-neon-pink)]">Chain → {profiles.find(x => x.id === p.nextHopId)?.name || "Unknown"}</span>
+                                 <span className="text-xs text-[var(--color-neon-pink)]">{t('profiles.chain')} → {profiles.find(x => x.id === p.nextHopId)?.name || t('profiles.unknown')}</span>
                              </div>
                          )}
                      </div>
@@ -288,7 +290,7 @@ export function ProfilesPage() {
          {profiles.length === 0 && (
              <div className="col-span-full py-16 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/60 rounded-xl">
                  <Shield className="w-12 h-12 mb-4 opacity-20" />
-                 <p className="font-mono text-sm">No profiles found. Create one securely.</p>
+                 <p className="font-mono text-sm">{t('profiles.noProfiles')}</p>
              </div>
          )}
       </div>

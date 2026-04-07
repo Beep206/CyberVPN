@@ -39,7 +39,7 @@ interface AuthState {
   register: (
     identifier: string,
     password: string,
-    options?: { mode?: 'email' | 'username' }
+    options?: { mode?: 'email' | 'username', tos_accepted?: boolean, marketing_consent?: boolean }
   ) => Promise<void>;
   verifyOtpAndLogin: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -88,11 +88,13 @@ export const useAuthStore = create<AuthState>()(
             });
             throw error;
           }
-          const axiosError = error as { response?: { data?: { detail?: unknown } } };
+          const axiosError = error as { response?: { status?: number, data?: { detail?: unknown } } };
           const detail = axiosError.response?.data?.detail;
           let message = 'Login failed';
 
-          if (typeof detail === 'string') {
+          if (axiosError.response?.status === 423) {
+            message = 'Account temporarily locked. Please try again later.';
+          } else if (typeof detail === 'string') {
             message = detail;
           } else if (Array.isArray(detail)) {
             message = detail.map((err: { msg?: string }) => err.msg || JSON.stringify(err)).join(', ');
@@ -112,8 +114,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const mode = options?.mode ?? 'email';
           const payload = mode === 'username'
-            ? { login: identifier.trim(), password }
-            : { login: identifier.split('@')[0], email: identifier.trim(), password };
+            ? { login: identifier.trim(), password, tos_accepted: options?.tos_accepted ?? true, marketing_consent: options?.marketing_consent ?? false }
+            : { login: identifier.split('@')[0], email: identifier.trim(), password, tos_accepted: options?.tos_accepted ?? true, marketing_consent: options?.marketing_consent ?? false };
           const { data } = await authApi.register(payload);
           // User is registered but NOT authenticated yet - needs OTP verification
           // Store minimal user info for OTP flow, but don't set isAuthenticated

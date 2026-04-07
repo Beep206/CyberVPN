@@ -13,8 +13,10 @@ import {
 } from "../../shared/api/ipc";
 import { toast } from "sonner";
 import { WifiHigh, Info, ShieldAlert, MonitorSmartphone, Power, ArrowRightLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function HotspotPage() {
+  const { t } = useTranslation();
   const [isActive, setIsActive] = useState(false);
   const [lanInfo, setLanInfo] = useState<LanInfo | null>(null);
   const [devices, setDevices] = useState<LanDevice[]>([]);
@@ -28,7 +30,7 @@ export function HotspotPage() {
         const info = await getLanConnectionInfo();
         setLanInfo(info);
       } catch (err) {
-        toast.error("Failed to read LAN info");
+        toast.error(t('hotspot.readError'));
       }
 
       // Subscribe to real-time ARP discovery events pushed from Rust!
@@ -53,18 +55,18 @@ export function HotspotPage() {
         await enableLanForwarding();
         await startDeviceDiscovery();
         setIsActive(true);
-        toast.success("Hotspot Proxy Started");
+        toast.success(t('hotspot.started'));
       } else {
         await disableLanForwarding();
         await stopDeviceDiscovery();
         setIsActive(false);
         setDevices([]);
-        toast.success("Hotspot Proxy Stopped");
+        toast.success(t('hotspot.stopped'));
       }
     } catch (err: any) {
       if (err.includes("ELEVATION_REQUIRED")) {
-        toast.error("Administrator / Root rights required!", {
-           description: "To enable IP Forwarding, please run CyberVPN as Administrator.",
+        toast.error(t('hotspot.adminRequired'), {
+           description: t('hotspot.adminDesc'),
            icon: <ShieldAlert className="text-red-500" />
         });
       } else {
@@ -88,10 +90,10 @@ export function HotspotPage() {
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--color-neon-cyan)] to-[var(--color-matrix-green)] bg-clip-text text-transparent flex items-center gap-3">
           <WifiHigh size={32} className="text-[var(--color-neon-cyan)]" />
-          LAN Share Pro
+          {t('hotspot.title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          Turn your PC into a secure VPN gateway for your Smart TVs, Consoles, and Mobile devices on the local network.
+          {t('hotspot.description')}
         </p>
       </div>
 
@@ -125,29 +127,29 @@ export function HotspotPage() {
                 }`}
              >
                 <Power size={48} className={`mb-2 ${isProcessing ? "animate-pulse" : ""}`} />
-                <span className="font-bold tracking-wider">{isActive ? "SHARING" : "START"}</span>
+                <span className="font-bold tracking-wider">{isActive ? t('hotspot.sharing') : t('hotspot.start')}</span>
              </motion.button>
            </div>
 
            <div className="p-6 rounded-xl border border-border/50 bg-card/30">
              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                <Info size={18} className="text-[var(--color-matrix-green)]" />
-               Proxy Configuration
+               {t('hotspot.proxyConfig')}
              </h3>
              {lanInfo ? (
                <div className="space-y-4">
                  <div className="bg-black/60 p-4 rounded-lg font-mono text-sm space-y-2 border border-border/30">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Gateway IP:</span>
+                      <span className="text-muted-foreground">{t('hotspot.gatewayIp')}</span>
                       <span className="text-[var(--color-neon-cyan)] font-bold">{lanInfo.ip}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">SOCKS5 Port:</span>
+                      <span className="text-muted-foreground">{t('hotspot.socksPort')}</span>
                       <span className="text-[var(--color-neon-pink)] font-bold">{lanInfo.port}</span>
                     </div>
                  </div>
                  <p className="text-xs text-muted-foreground">
-                   Enter these identical Proxy settings into the Wi-Fi configuration of your other devices, or scan the QR code using a supported client.
+                   {t('hotspot.proxyDesc')}
                  </p>
                </div>
              ) : (
@@ -165,15 +167,15 @@ export function HotspotPage() {
                  {isActive ? (
                     <QRCodeSVG value={proxyString} size={104} />
                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-lg text-xs font-medium border border-border">
-                       Start Hotspot
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-lg text-xs font-medium border border-border text-center px-2">
+                       {t('hotspot.startHotspot')}
                     </div>
                  )}
               </div>
               <div>
-                 <h4 className="font-medium text-lg mb-1">Auto-Configure</h4>
+                 <h4 className="font-medium text-lg mb-1">{t('hotspot.autoConfigure')}</h4>
                  <p className="text-sm text-muted-foreground">
-                   Scan this code with CyberVPN mobile apps to automatically lock onto this Desktop node.
+                   {t('hotspot.autoConfigureDesc')}
                  </p>
               </div>
            </div>
@@ -183,7 +185,7 @@ export function HotspotPage() {
               <h3 className="text-lg font-semibold mb-4 flex items-center justify-between">
                  <span className="flex items-center gap-2">
                    <MonitorSmartphone size={18} className="text-[var(--color-neon-pink)]" />
-                   Active Discovery
+                   {t('hotspot.activeDiscovery')}
                  </span>
                  {isActive && (
                    <span className="flex h-3 w-3 relative">
@@ -196,13 +198,13 @@ export function HotspotPage() {
               {!isActive ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/50 h-32">
                   <ArrowRightLeft size={32} className="mb-2 opacity-50" />
-                  <p className="text-sm">Hotspot is Offline</p>
+                  <p className="text-sm">{t('hotspot.offline')}</p>
                 </div>
               ) : devices.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-neon-cyan)]/50 h-32">
                    <div className="animate-pulse flex flex-col items-center">
                       <MonitorSmartphone size={32} className="mb-2 opacity-50" />
-                      <p className="text-sm tracking-widest uppercase">Scanning LAN...</p>
+                      <p className="text-sm tracking-widest uppercase">{t('hotspot.scanning')}</p>
                    </div>
                 </div>
               ) : (
@@ -227,7 +229,7 @@ export function HotspotPage() {
                            </div>
                          </div>
                          <div className="text-xs text-[var(--color-matrix-green)] bg-[var(--color-matrix-green)]/10 px-2 py-1 rounded">
-                           Connected
+                           {t('hotspot.connected')}
                          </div>
                       </motion.div>
                     ))}

@@ -4,6 +4,7 @@ import { getUsageHistory, getGlobalFootprint, UsageRecord } from "../../shared/a
 import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip, PieChart, Pie, Cell, Label } from "recharts";
 import { Globe, Shield, Activity, HardDrive } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // High tech formatting tools
 const formatBytes = (bytes: number): string => {
@@ -15,6 +16,7 @@ const formatBytes = (bytes: number): string => {
 };
 
 export function AnalyticsPage() {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<UsageRecord[]>([]);
   const [footprint, setFootprint] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export function AnalyticsPage() {
         setHistory(hist);
         setFootprint(foot);
       } catch (err: any) {
-        toast.error(`SysError pulling telemetry graph: ${err}`);
+        toast.error(t('analytics.sysError', { error: err }));
       } finally {
         setLoading(false);
       }
@@ -67,10 +69,10 @@ export function AnalyticsPage() {
       <header className="flex justify-between items-end border-b border-white/5 pb-4 mb-8">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tighter text-[var(--color-neon-cyan)] uppercase" style={{ textShadow: "0 0 15px rgba(0,255,255,0.4)" }}>
-            Command Center
+            {t('analytics.title')}
           </h1>
           <p className="text-muted-foreground font-mono text-sm mt-2 flex items-center gap-2">
-            <Activity className="text-[var(--color-neon-cyan)]" size={16} /> Global Telemetry & Traffic Historian
+            <Activity className="text-[var(--color-neon-cyan)]" size={16} /> {t('analytics.subtitle')}
           </p>
         </div>
       </header>
@@ -79,33 +81,33 @@ export function AnalyticsPage() {
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-black/40 border border-[var(--color-neon-cyan)]/20 rounded-xl p-6 backdrop-blur">
           <Globe className="text-[var(--color-neon-cyan)] mb-4" size={24} />
-          <div className="text-sm font-mono text-muted-foreground uppercase">Global Footprint</div>
-          <div className="text-3xl font-bold mt-1">{Object.keys(footprint).length} <span className="text-base text-white/50">Regions</span></div>
+          <div className="text-sm font-mono text-muted-foreground uppercase">{t('analytics.globalFootprint')}</div>
+          <div className="text-3xl font-bold mt-1">{Object.keys(footprint).length} <span className="text-base text-white/50">{t('analytics.regions')}</span></div>
         </div>
         <div className="bg-black/40 border border-[#ff00ff]/20 rounded-xl p-6 backdrop-blur relative overflow-hidden">
           <div className="absolute inset-0 bg-[#ff00ff]/5" />
           <HardDrive className="text-[#ff00ff] mb-4 relative z-10" size={24} />
-          <div className="text-sm font-mono text-muted-foreground uppercase relative z-10">Total Bandwidth (30d)</div>
+          <div className="text-sm font-mono text-muted-foreground uppercase relative z-10">{t('analytics.totalBandwidth')}</div>
           <div className="text-3xl font-bold mt-1 text-white relative z-10">{formatBytes(totalBytes)}</div>
         </div>
         <div className="bg-black/40 border border-[var(--color-matrix-green)]/20 rounded-xl p-6 backdrop-blur">
           <Shield className="text-[var(--color-matrix-green)] mb-4" size={24} />
-          <div className="text-sm font-mono text-muted-foreground uppercase">Privacy Actions</div>
-          <div className="text-3xl font-bold mt-1 text-[var(--color-matrix-green)]">Secured</div>
+          <div className="text-sm font-mono text-muted-foreground uppercase">{t('analytics.privacyActions')}</div>
+          <div className="text-3xl font-bold mt-1 text-[var(--color-matrix-green)]">{t('analytics.secured')}</div>
           {/* Milestone text */}
-          <div className="text-xs text-[var(--color-matrix-green)]/70 mt-2 font-mono">You've saved roughly {formatBytes(totalBytes * 0.15)} of ad-data this month.</div>
+          <div className="text-xs text-[var(--color-matrix-green)]/70 mt-2 font-mono">{t('analytics.savedData', { saved: formatBytes(totalBytes * 0.15) })}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6 h-[400px]">
         {/* Main Bar Chart */}
         <div className="col-span-2 bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur flex flex-col">
-          <h3 className="text-lg font-bold font-mono tracking-wider mb-6 text-white/80">DATA USAGE OVER TIME</h3>
+          <h3 className="text-lg font-bold font-mono tracking-wider mb-6 text-white/80">{t('analytics.usageData')}</h3>
           <div className="flex-1 w-full relative">
             {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center font-mono text-[var(--color-neon-cyan)] animate-pulse">Loading Telemetry...</div>
+              <div className="absolute inset-0 flex items-center justify-center font-mono text-[var(--color-neon-cyan)] animate-pulse">{t('analytics.loading')}</div>
             ) : dailyData.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center font-mono text-white/30">No usage data found for this period.</div>
+                <div className="absolute inset-0 flex items-center justify-center font-mono text-white/30">{t('analytics.noData')}</div>
             ) : (
                 <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -113,7 +115,7 @@ export function AnalyticsPage() {
                     <Tooltip 
                         cursor={{fill: 'rgba(0,255,255,0.05)'}} 
                         contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'var(--color-neon-cyan)', borderRadius: '8px', color: '#fff' }}
-                        formatter={(value: any) => [formatBytes(value as number), "Traffic"]}
+                        formatter={(value: any) => [formatBytes(value as number), t('analytics.traffic')]}
                     />
                     <Bar dataKey="bytes" fill="var(--color-neon-cyan)" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -124,7 +126,7 @@ export function AnalyticsPage() {
 
         {/* Protocol Donut Chart */}
         <div className="col-span-1 bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur flex flex-col">
-          <h3 className="text-lg font-bold font-mono tracking-wider mb-6 text-white/80 text-center">PROTOCOL DISTRIBUTION</h3>
+          <h3 className="text-lg font-bold font-mono tracking-wider mb-6 text-white/80 text-center">{t('analytics.protocolDist')}</h3>
           <div className="flex-1 w-full relative -mt-4">
              <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -142,7 +144,7 @@ export function AnalyticsPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                   <Label 
-                    value="PROTOCOLS" position="center" 
+                    value={t('analytics.protocols')} position="center" 
                     style={{ fill: 'var(--color-neon-cyan)', fontSize: '12px', fontWeight: 'bold', fontFamily: 'monospace', opacity: 0.7 }}
                   />
                 </Pie>
@@ -173,12 +175,12 @@ export function AnalyticsPage() {
       <div className="bg-black/60 border border-[var(--color-neon-cyan)]/20 rounded-xl p-6 backdrop-blur overflow-hidden relative group">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,255,0.05)_0%,transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
           <h3 className="text-lg font-bold font-mono tracking-wider mb-6 text-[var(--color-neon-cyan)] flex items-center gap-2">
-              <Globe size={18} /> ACTIVE GLOBAL MAPPING
+              <Globe size={18} /> {t('analytics.activeMapping')}
           </h3>
           
           <div className="flex flex-wrap gap-4 relative z-10">
               {Object.entries(footprint).length === 0 ? (
-                  <div className="text-muted-foreground font-mono text-sm">No telemetry footprint captured yet.</div>
+                  <div className="text-muted-foreground font-mono text-sm">{t('analytics.noTelemetry')}</div>
               ) : (
                   Object.entries(footprint).map(([country, bytes]) => (
                       <div key={country} className="flex items-center gap-3 px-4 py-3 bg-[var(--color-neon-cyan)]/10 border border-[var(--color-neon-cyan)]/30 rounded-lg">
@@ -188,7 +190,7 @@ export function AnalyticsPage() {
                           </div>
                           <div className="font-mono">
                               <div className="font-bold text-lg text-white">{country}</div>
-                              <div className="text-xs text-[var(--color-neon-cyan)]">{formatBytes(bytes)} Transmitted</div>
+                              <div className="text-xs text-[var(--color-neon-cyan)]">{formatBytes(bytes)} {t('analytics.transmitted')}</div>
                           </div>
                       </div>
                   ))

@@ -40,7 +40,7 @@ class MagicLinkService:
     PREFIX = "magic_link:"
     CONSUMED_PREFIX = "magic_link_consumed:"
     CONSUMED_REPLAY_PREFIX = "magic_link_consumed_replay:"
-    EMAIL_TOKEN_PREFIX = "magic_link_email:"  # Reverse lookup: email -> token
+    EMAIL_TOKEN_PREFIX = "magic_link_email:"  # noqa: S105 - Redis key prefix, not a secret
     OTP_PREFIX = "magic_link_otp:"  # Reverse lookup: email -> 6-digit OTP code
     RATE_LIMIT_PREFIX = "magic_link_rate:"
     TTL_SECONDS = 3600  # 1 hour
@@ -55,6 +55,7 @@ class MagicLinkService:
         self,
         email: str,
         ip_address: str | None = None,
+        locale: str | None = None,
     ) -> tuple[str, str]:
         """Generate a new magic link token and companion OTP code.
 
@@ -120,6 +121,7 @@ class MagicLinkService:
         data = {
             "email": email,
             "ip_address": ip_address,
+            "locale": locale,
             "created_at": datetime.now(UTC).isoformat(),
         }
 
@@ -244,6 +246,7 @@ class MagicLinkService:
                 return {
                     "email": decoded,
                     "ip_address": None,
+                    "locale": None,
                     "created_at": None,
                 }
             return None
@@ -255,6 +258,7 @@ class MagicLinkService:
             return {
                 "email": payload,
                 "ip_address": None,
+                "locale": None,
                 "created_at": None,
             }
 

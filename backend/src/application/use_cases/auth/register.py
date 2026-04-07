@@ -3,16 +3,17 @@ Registration use case for creating new admin users with email verification.
 """
 
 import logging
+from datetime import UTC, datetime
 from typing import Protocol
 
 from src.application.services.auth_service import AuthService
-
-logger = logging.getLogger(__name__)
 from src.application.services.otp_service import OtpService
 from src.domain.enums import AdminRole
 from src.domain.exceptions import DuplicateUsernameError
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+
+logger = logging.getLogger(__name__)
 
 
 class EmailTaskDispatcher(Protocol):
@@ -24,6 +25,7 @@ class EmailTaskDispatcher(Protocol):
         otp_code: str,
         locale: str = "en-EN",
         is_resend: bool = False,
+        channel: str = "web",
     ) -> None:
         """Dispatch OTP email task."""
         ...
@@ -62,6 +64,8 @@ class RegisterUseCase:
         self,
         login: str,
         password: str,
+        tos_accepted: bool,
+        marketing_consent: bool = False,
         email: str | None = None,
         role: AdminRole = AdminRole.VIEWER,
         locale: str = "en-EN",
@@ -97,6 +101,10 @@ class RegisterUseCase:
             if existing_user:
                 raise DuplicateUsernameError(username=email)
 
+        # Require tos_accepted
+        if not tos_accepted:
+            raise ValueError("Terms of Service must be accepted to register.")
+
         # Hash password
         password_hash = await self._auth_service.hash_password(password)
 
@@ -106,8 +114,11 @@ class RegisterUseCase:
             email=email,
             password_hash=password_hash,
             role=role.value,
+            language=locale,
             is_active=email is None,  # Active immediately for username-only registration
-            is_email_verified=False,
+            is_email_verified=email is None,
+            tos_accepted_at=datetime.now(UTC),
+            marketing_consent=marketing_consent,
         )
 
         # Persist to database

@@ -21,7 +21,7 @@ This PRD consolidates findings from five independent, parallel audits of the Cyb
 | Dart Expert Code Quality | B+ | 85/100 | Type safety, idioms, error handling, collections, memory |
 | Mobile Security | HIGH risk | — | Auth/tokens, network, data protection, VPN, platform |
 
-**Composite Assessment:** The codebase is architecturally sound with excellent i18n (27 locales), clean FSD structure, and strong Riverpod patterns. The primary risks are **4 CRITICAL security vulnerabilities**, a **God class** (798 lines), **silent error swallowing** (31 instances), and **missing certificate pinning enforcement** for production.
+**Composite Assessment:** The codebase is architecturally sound with excellent i18n (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE), clean FSD structure, and strong Riverpod patterns. The primary risks are **4 CRITICAL security vulnerabilities**, a **God class** (798 lines), **silent error swallowing** (31 instances), and **missing certificate pinning enforcement** for production.
 
 ### Finding Distribution
 
@@ -43,7 +43,7 @@ CyberVPN Mobile is a Flutter-based VPN client targeting Android and iOS. Key fac
 - **Architecture:** Feature-Sliced Design + Clean Architecture (data → domain → presentation)
 - **Features:** 11 feature modules, 140 Riverpod providers, 22+ repositories
 - **Tests:** 158 test files, 2506+ test cases, 70% coverage target
-- **i18n:** 27 locales including RTL (Arabic, Farsi, Hebrew)
+- **i18n:** 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE including RTL (Arabic, Farsi, Hebrew)
 - **VPN:** Xray-core via `flutter_v2ray_plus` (VLESS, VMess, Trojan, Shadowsocks)
 
 The app completed a 136-task quality remediation (Phases 1-6) immediately prior to this audit. This PRD addresses remaining findings not covered by that remediation.

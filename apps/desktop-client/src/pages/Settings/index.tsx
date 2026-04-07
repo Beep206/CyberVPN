@@ -36,6 +36,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "../../app/theme-provider";
+import { useTranslation } from "react-i18next";
 
 const DiagnosticsSupportPanel = lazy(() =>
   import("../../components/settings/diagnostics-support-panel").then((module) => ({
@@ -106,6 +107,7 @@ function formatProfileLabel(profile: ProxyNode): string {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const [useCustomConfig, setUseCustomConfig] = useState(false);
   const [jsonConfig, setJsonConfig] = useState("");
   const [activeCore, setActiveCore] = useState<EngineCore>("sing-box");
@@ -226,9 +228,9 @@ export function SettingsPage() {
       }
 
       await saveActiveCore(activeCore);
-      toast.success("Settings saved successfully.");
+      toast.success(t('settings.saveSuccess'));
     } catch (error) {
-      toast.error(`Invalid JSON or save failed: ${formatError(error)}`);
+      toast.error(t('settings.saveError', { error: formatError(error) }));
     } finally {
       setIsSaving(false);
     }
@@ -238,9 +240,9 @@ export function SettingsPage() {
     setActiveCore(core);
     try {
       await saveActiveCore(core);
-      toast.success(`Active core switched to ${core}.`);
+      toast.success(t('settings.coreSwitched', { core }));
     } catch (error) {
-      toast.error(`Failed to change core: ${formatError(error)}`);
+      toast.error(t('settings.coreSwitchError', { error: formatError(error) }));
     }
   };
 
@@ -345,10 +347,10 @@ export function SettingsPage() {
     >
       <header className="mb-2">
         <h1 className="text-3xl font-bold tracking-tight text-[var(--color-neon-cyan)] drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
-          Settings
+          {t('settings.title')}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Configure core app preferences, experimental transport handshakes, and routing.
+          {t('settings.description')}
         </p>
       </header>
 
@@ -357,7 +359,7 @@ export function SettingsPage() {
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-cyan)]">
               <Monitor size={24} />
-              <h2>Appearance</h2>
+              <h2>{t('settings.appearance')}</h2>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -366,21 +368,21 @@ export function SettingsPage() {
               className={theme === "dark" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
               onClick={() => setTheme("dark")}
             >
-              <Moon size={16} className="mr-2" /> Dark
+              <Moon size={16} className="mr-2" /> {t('settings.themeDark')}
             </Button>
             <Button
               variant={theme === "light" ? "default" : "outline"}
               className={theme === "light" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
               onClick={() => setTheme("light")}
             >
-              <Sun size={16} className="mr-2" /> Light
+              <Sun size={16} className="mr-2" /> {t('settings.themeLight')}
             </Button>
             <Button
               variant={theme === "system" ? "default" : "outline"}
               className={theme === "system" ? "bg-[var(--color-neon-cyan)] text-black" : ""}
               onClick={() => setTheme("system")}
             >
-              <Monitor size={16} className="mr-2" /> System
+              <Monitor size={16} className="mr-2" /> {t('settings.themeSystem')}
             </Button>
           </div>
         </div>
@@ -389,12 +391,11 @@ export function SettingsPage() {
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-matrix-green)]">
               <Cpu size={24} />
-              <h2>Proxy Engine Core</h2>
+              <h2>{t('settings.proxyEngineCore')}</h2>
             </div>
           </div>
           <p className="mb-2 text-sm text-muted-foreground">
-            Sing-box is recommended for modern protocols, while Xray-core stays available as the
-            stable fallback core for Helix recovery.
+            {t('settings.proxyEngineDesc')}
           </p>
           <div className="grid grid-cols-3 gap-4">
             <Button
@@ -406,7 +407,7 @@ export function SettingsPage() {
               }
               onClick={() => handleCoreChange("sing-box")}
             >
-              Sing-box (Modern)
+              Sing-box ({t('settings.modern')})
             </Button>
             <Button
               variant={activeCore === "xray" ? "default" : "outline"}
@@ -417,7 +418,7 @@ export function SettingsPage() {
               }
               onClick={() => handleCoreChange("xray")}
             >
-              Xray (Legacy)
+              Xray ({t('settings.legacy')})
             </Button>
             <Button
               variant={activeCore === "helix" ? "default" : "outline"}
@@ -428,7 +429,7 @@ export function SettingsPage() {
               }
               onClick={() => handleCoreChange("helix")}
             >
-              Helix (Experimental)
+              Helix ({t('settings.experimental')})
             </Button>
           </div>
         </div>

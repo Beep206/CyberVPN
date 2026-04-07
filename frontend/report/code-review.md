@@ -323,7 +323,7 @@ memory: navigator.deviceMemory || 0,
 2. **Atomic Design** (atoms/molecules/organisms) provides consistent component hierarchy
 3. **Server/Client component separation** follows Next.js 16 patterns correctly
 4. **`params` as `Promise`** - correctly handled with async/await in all pages
-5. **i18n architecture** is comprehensive (27 locales, RTL support, message namespaces)
+5. **i18n architecture** is comprehensive (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE, RTL support, message namespaces)
 6. **Error boundary for 3D** in `GlobalNetworkWrapper` is a good pattern
 7. **Type-safe status maps** using `Record<Status, string>` is clean
 8. **Design system** with CSS custom properties enables consistent theming

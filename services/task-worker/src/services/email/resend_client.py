@@ -186,6 +186,52 @@ class ResendClient:
             logger.error("resend_request_error", error=str(e), email=email)
             raise ResendError(f"Request failed: {e}") from e
 
+    async def send_password_reset(
+        self,
+        email: str,
+        code: str,
+        locale: str = "en-EN",
+        expires_in: str = "3 hours",
+    ) -> dict[str, Any]:
+        """Send password reset OTP email."""
+        if not self._client:
+            raise ResendError("Client not initialized. Use async context manager.")
+
+        if not self._api_key:
+            logger.warning("resend_skipped_no_api_key", email=email)
+            return {"id": "mock_no_key", "status": "skipped"}
+
+        payload = {
+            "from": self._from_email,
+            "to": [email],
+            "subject": self._get_password_reset_subject(locale),
+            "html": self._render_password_reset_template(code, expires_in, locale),
+            "text": f"Use this CyberVPN password reset code: {code}\n\nThis code expires in {expires_in}.",
+        }
+
+        try:
+            response = await self._client.post("/emails", json=payload)
+
+            if response.status_code >= 400:
+                error_data = response.json() if response.content else {}
+                raise ResendError(
+                    f"Resend API error: {error_data.get('message', response.text)}",
+                    status_code=response.status_code,
+                )
+
+            result = response.json()
+            logger.info(
+                "password_reset_email_sent",
+                provider="resend",
+                email=email,
+                message_id=result.get("id"),
+            )
+            return result
+
+        except httpx.RequestError as e:
+            logger.error("resend_request_error", error=str(e), email=email)
+            raise ResendError(f"Request failed: {e}") from e
+
     def _get_magic_link_subject(self, locale: str) -> str:
         """Get localized magic link email subject."""
         subjects = {
@@ -215,3 +261,26 @@ class ResendClient:
     def _render_otp_template(self, code: str, expires_in: str, locale: str) -> str:
         """Render email-compatible OTP template."""
         return render_otp_template(code, expires_in, locale)
+
+    def _get_password_reset_subject(self, locale: str) -> str:
+        """Get localized password reset email subject."""
+        subjects = {
+            "en-EN": "CyberVPN - Reset your password",
+            "ru-RU": "CyberVPN - Сброс пароля",  # noqa: RUF001
+            "de-DE": "CyberVPN - Passwort zurücksetzen",
+            "es-ES": "CyberVPN - Restablece tu contraseña",
+            "fr-FR": "CyberVPN - Réinitialisez votre mot de passe",
+        }
+        return subjects.get(locale, subjects["en-EN"])
+
+    def _render_password_reset_template(self, code: str, expires_in: str, locale: str) -> str:
+        """Render password reset OTP template."""
+        return render_otp_template(
+            code,
+            expires_in,
+            locale,
+            html_title="Reset Your CyberVPN Password",
+            title="Reset Your Password",
+            subtitle="Enter the following code to reset your password:",
+            disclaimer="If you didn't request a password reset, ignore this email and keep your account secure.",
+        )

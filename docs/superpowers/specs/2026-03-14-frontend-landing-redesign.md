@@ -86,7 +86,7 @@ Position CyberVPN not just as a "privacy tool", but as a high-performance **Anti
 ## 3. Implementation Details (Data Schema)
 
 ### 3.1 i18n Update (`landing.json`)
-Structure includes new technical keys for all 39 locales.
+Structure includes new technical keys for all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 
 ### 3.2 Visual Constraints
 - **Color Palette:** Matrix Green (#00ff88), Neon Cyan (#00ffff), Terminal Black (#0a0a0a).

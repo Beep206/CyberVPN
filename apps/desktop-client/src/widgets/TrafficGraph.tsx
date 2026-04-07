@@ -1,5 +1,5 @@
-
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 interface TrafficData {
     time: string;
@@ -12,6 +12,7 @@ interface TrafficGraphProps {
 }
 
 export function TrafficGraph({ data }: TrafficGraphProps) {
+    const { t } = useTranslation();
     // Format bytes to KB/s or MB/s
     const formatSpeed = (bytes: number) => {
         if (bytes === 0) return '0 B/s';
@@ -25,7 +26,7 @@ export function TrafficGraph({ data }: TrafficGraphProps) {
         <div className="w-full h-64 bg-black/20 rounded-xl border border-border/40 p-4">
             <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-4 uppercase flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[var(--color-matrix-green)] animate-pulse" />
-                Network Traffic
+                {t('dashboard.networkTraffic')}
             </h3>
             <div className="w-full h-[calc(100%-2rem)]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -69,7 +70,7 @@ export function TrafficGraph({ data }: TrafficGraphProps) {
                             strokeWidth={2}
                             fillOpacity={1} 
                             fill="url(#colorDown)" 
-                            name="Download"
+                            name={t('dashboard.download')}
                             isAnimationActive={false}
                         />
                         <Area 
@@ -79,7 +80,7 @@ export function TrafficGraph({ data }: TrafficGraphProps) {
                             strokeWidth={2}
                             fillOpacity={1} 
                             fill="url(#colorUp)" 
-                            name="Upload"
+                            name={t('dashboard.upload')}
                             isAnimationActive={false}
                         />
                     </AreaChart>

@@ -257,6 +257,68 @@ class SmtpClient:
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 
+    async def send_password_reset(
+        self,
+        email: str,
+        code: str,
+        locale: str = "en-EN",
+        expires_in: str = "3 hours",
+    ) -> dict[str, Any]:
+        """Send password reset OTP email via SMTP."""
+        host, port, index = await self._get_next_server()
+        server_id = f"mailpit-{index + 1}"
+
+        logger.info(
+            "smtp_sending_password_reset",
+            email=email,
+            server=f"{host}:{port}",
+            server_id=server_id,
+        )
+
+        html_content = self._render_password_reset_template(code, expires_in, locale)
+        subject = self._get_password_reset_subject(locale)
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = self._from_email
+        msg["To"] = email
+        msg["X-Mailpit-Server"] = server_id
+        msg["X-Password-Reset"] = "true"
+        msg["X-OTP-Code"] = code
+
+        text_part = MIMEText(
+            f"Use this CyberVPN password reset code: {code}\n\nThis code expires in {expires_in}.",
+            "plain",
+        )
+        msg.attach(text_part)
+        msg.attach(MIMEText(html_content, "html"))
+
+        try:
+            with smtplib.SMTP(host, port, timeout=10) as server:
+                server.sendmail(self._from_email, [email], msg.as_string())
+
+            logger.info(
+                "smtp_password_reset_sent",
+                email=email,
+                server=f"{host}:{port}",
+                server_id=server_id,
+            )
+            return {
+                "id": f"smtp_{server_id}_{index}",
+                "server": server_id,
+                "host": host,
+                "port": port,
+                "status": "sent",
+            }
+        except Exception as e:
+            logger.error(
+                "smtp_password_reset_failed",
+                email=email,
+                server=f"{host}:{port}",
+                error=str(e),
+            )
+            raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
+
     def _get_magic_link_subject(self, locale: str) -> str:
         """Get localized magic link email subject."""
         subjects = {
@@ -286,3 +348,27 @@ class SmtpClient:
     def _render_otp_template(self, code: str, expires_in: str, locale: str) -> str:
         """Render email-compatible OTP template with DEV banner."""
         return render_otp_template(code, expires_in, locale, dev_banner=True)
+
+    def _get_password_reset_subject(self, locale: str) -> str:
+        """Get localized password reset subject."""
+        subjects = {
+            "en-EN": "[DEV] CyberVPN - Reset your password",
+            "ru-RU": "[DEV] CyberVPN - Сброс пароля",  # noqa: RUF001
+            "de-DE": "[DEV] CyberVPN - Passwort zurücksetzen",
+            "es-ES": "[DEV] CyberVPN - Restablece tu contraseña",
+            "fr-FR": "[DEV] CyberVPN - Réinitialisez votre mot de passe",
+        }
+        return subjects.get(locale, subjects["en-EN"])
+
+    def _render_password_reset_template(self, code: str, expires_in: str, locale: str) -> str:
+        """Render password reset OTP template with DEV banner."""
+        return render_otp_template(
+            code,
+            expires_in,
+            locale,
+            dev_banner=True,
+            html_title="Reset Your CyberVPN Password",
+            title="Reset Your Password",
+            subtitle="Enter the following code to reset your password:",
+            disclaimer="If you didn't request a password reset, ignore this email and keep your account secure.",
+        )

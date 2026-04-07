@@ -24,4 +24,7 @@ export interface User {
     dataLimit: number; // GB limit
     expiresAt: string;
     lastActive: string;
+    signInCount?: number;
+    currentSignInIp?: string;
+    lastLoginAt?: string;
 }

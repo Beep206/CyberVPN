@@ -1,0 +1,6108 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "AAA+ auth and registration monitoring for CyberVPN with product funnel, security posture, session lifecycle, email delivery, drilldowns, and template filters.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "OTP Drilldown",
+      "type": "link",
+      "url": "/d/cybervpn-otp"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "Worker Drilldown",
+      "type": "link",
+      "url": "/d/cybervpn-worker"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "Prometheus Explore",
+      "type": "link",
+      "url": "/explore"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "Logs Drilldown",
+      "type": "link",
+      "url": "/d/logs-overview"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "Trace Drilldown",
+      "type": "link",
+      "url": "/d/traces-overview"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "📊 Overview KPI",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#00ff88",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 50
+              },
+              {
+                "color": "#00ffff",
+                "value": 200
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": true,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "title": "Registrations (24h)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "auth:registrations:24h or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 100
+              },
+              {
+                "color": "#00ffff",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "title": "Registrations (7d)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "auth:registrations:7d or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 500
+              },
+              {
+                "color": "#00ffff",
+                "value": 5000
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "title": "Registrations (30d)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "auth:registrations:30d or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "title": "Login Success Rate (1h)",
+      "type": "gauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * auth:success_rate:1h or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#00ffff",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 100
+              },
+              {
+                "color": "yellow",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "title": "Active Sessions",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(active_sessions_total) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "#00ff88",
+                "value": 75
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "title": "Email Verification Rate (24h)",
+      "type": "gauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * auth:email_verification_rate:24h or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 101,
+      "title": "📝 Registration Analytics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "email"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "oauth"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ffff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "telegram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff00ff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Registrations Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (method) (increase(registrations_total[1h])) + sum by (method) ((min_over_time(registrations_total[1h])) unless (registrations_total offset 1h))",
+          "legendFormat": "{{ method }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "email"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "oauth"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ffff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "telegram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff00ff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 7
+      },
+      "id": 11,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "title": "Registration Methods (24h)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (method) (increase(registrations_total[24h])) + sum by (method) ((min_over_time(registrations_total[24h])) unless (registrations_total offset 24h))) or label_replace((((scalar(sum(registrations_total) or vector(0)) == bool 0) * vector(1)) > 0), \"method\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ method }}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff006e",
+                "value": null
+              },
+              {
+                "color": "#ff6b35",
+                "value": 30
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 60
+              },
+              {
+                "color": "#00ff88",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 7
+      },
+      "id": 12,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "title": "Email Registration Funnel (24h)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (step) (increase(registration_funnel_total[24h])) + sum by (step) ((min_over_time(registration_funnel_total[24h])) unless (registration_funnel_total offset 24h))",
+          "legendFormat": "{{ step }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 102,
+      "title": "🔐 Auth Methods & OAuth Providers",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "req/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Auth Attempts Rate (by method)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (method) (increase(auth_attempts_total{status=\"success\"}[5m])) + sum by (method) ((min_over_time(auth_attempts_total{status=\"success\"}[5m])) unless (auth_attempts_total{status=\"success\"} offset 5m))) / 300",
+          "legendFormat": "✅ {{ method }}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (method) (increase(auth_attempts_total{status=\"failure\"}[5m])) + sum by (method) ((min_over_time(auth_attempts_total{status=\"failure\"}[5m])) unless (auth_attempts_total{status=\"failure\"} offset 5m))) / 300",
+          "legendFormat": "❌ {{ method }}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "google"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4285f4",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "github"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#8b5cf6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "discord"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#5865f2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "twitter"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#1da1f2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "facebook"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#1877f2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "apple"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#a3a3a3",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "microsoft"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f25022",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 16
+      },
+      "id": 21,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "title": "OAuth Providers (24h)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (provider) (increase(oauth_attempts_total{status=\"success\"}[24h])) + sum by (provider) ((min_over_time(oauth_attempts_total{status=\"success\"}[24h])) unless (oauth_attempts_total{status=\"success\"} offset 24h))) or label_replace((((scalar(sum(oauth_attempts_total{status=\"success\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"provider\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ provider }}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 16
+      },
+      "id": 22,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "title": "Auth Method Success Rate (1h)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * ((sum by (method) (increase(auth_attempts_total{status=\"success\"}[1h])) + sum by (method) ((min_over_time(auth_attempts_total{status=\"success\"}[1h])) unless (auth_attempts_total{status=\"success\"} offset 1h))) / clamp_min((sum by (method) (increase(auth_attempts_total[1h])) + sum by (method) ((min_over_time(auth_attempts_total[1h])) unless (auth_attempts_total offset 1h))), 1e-9))",
+          "legendFormat": "{{ method }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 103,
+      "title": "📧 Email Verification & Magic Links",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failure"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff006e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expired"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ffbe0b",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 25
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Email Verification Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (status) (increase(email_verification_total[1h])) + sum by (status) ((min_over_time(email_verification_total[1h])) unless (email_verification_total offset 1h))",
+          "legendFormat": "{{ status }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failure"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff006e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expired"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ffbe0b",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 8,
+        "y": 25
+      },
+      "id": 31,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "title": "Email Verification Status (24h)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (status) (increase(email_verification_total[24h])) + sum by (status) ((min_over_time(email_verification_total[24h])) unless (email_verification_total offset 24h))) or label_replace((((scalar(sum(email_verification_total) or vector(0)) == bool 0) * vector(1)) > 0), \"status\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ status }}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ffff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rate_limited"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ffbe0b",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff006e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 25
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Magic Link Requests",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (status) (increase(magic_link_requests_total[1h])) + sum by (status) ((min_over_time(magic_link_requests_total[1h])) unless (magic_link_requests_total offset 1h))",
+          "legendFormat": "{{ status }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 104,
+      "title": "⚠️ Security Posture",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events / hour",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 34
+      },
+      "id": 40,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (method, error_type) (increase(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"invalid_credentials|rate_limited|invalid_otp|expired_token|account_locked\"}[1h])) + sum by (method, error_type) ((min_over_time(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"invalid_credentials|rate_limited|invalid_otp|expired_token|account_locked\"}[1h])) unless (auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"invalid_credentials|rate_limited|invalid_otp|expired_token|account_locked\"} offset 1h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Security Errors by Method (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 34
+      },
+      "id": 41,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (error_type) (increase(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\"}[24h])) + sum by (error_type) ((min_over_time(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\"}[24h])) unless (auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\"} offset 24h))) or label_replace((((scalar(sum(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"error_type\", \"no_data\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "Security Error Mix (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "lockouts / 24h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 34
+      },
+      "id": 42,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(increase(auth_errors_total{error_type=\"account_locked\"}[24h])) + sum((min_over_time(auth_errors_total{error_type=\"account_locked\"}[24h])) unless (auth_errors_total{error_type=\"account_locked\"} offset 24h))) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Account Lockouts (24h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "#00ff88",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 42
+      },
+      "id": 43,
+      "options": {
+        "displayMode": "lcd",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * ((sum by (method) (increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\",status=\"failure\"}[1h])) + sum by (method) ((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\",status=\"failure\"}[1h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\",status=\"failure\"} offset 1h))) / clamp_min((sum by (method) (increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\"}[1h])) + sum by (method) ((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\"}[1h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"login\"} offset 1h))), 1e-9))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Failure Rate by Method (1h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "failures / hour",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 42
+      },
+      "id": 44,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (provider, reason) (increase(oauth_callback_failures_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\"}[1h])) + sum by (provider, reason) ((min_over_time(oauth_callback_failures_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\"}[1h])) unless (oauth_callback_failures_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\"} offset 1h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "OAuth Callback Failures (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events / 24h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 42
+      },
+      "id": 45,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (method, error_type) (increase(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"rate_limited|invalid_otp\"}[24h])) + sum by (method, error_type) ((min_over_time(auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"rate_limited|invalid_otp\"}[24h])) unless (auth_security_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",error_type=~\"rate_limited|invalid_otp\"} offset 24h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Rate Limits & OTP Issues (24h)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "id": 105,
+      "title": "🔑 2FA, Password & Latency",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 51
+      },
+      "id": 50,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "2FA Operations",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (operation) (increase(two_factor_operations_total{status=\"success\"}[1h])) + sum by (operation) ((min_over_time(two_factor_operations_total{status=\"success\"}[1h])) unless (two_factor_operations_total{status=\"success\"} offset 1h))",
+          "legendFormat": "✅ {{ operation }}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (operation) (increase(two_factor_operations_total{status=\"failure\"}[1h])) + sum by (operation) ((min_over_time(two_factor_operations_total{status=\"failure\"}[1h])) unless (two_factor_operations_total{status=\"failure\"} offset 1h))",
+          "legendFormat": "❌ {{ operation }}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "✅ request"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ffff",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "✅ complete"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "❌ complete"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff006e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 51
+      },
+      "id": 51,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Password Resets",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (operation) (increase(password_reset_total{status=\"success\"}[1h])) + sum by (operation) ((min_over_time(password_reset_total{status=\"success\"}[1h])) unless (password_reset_total{status=\"success\"} offset 1h))",
+          "legendFormat": "✅ {{ operation }}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (operation) (increase(password_reset_total{status=\"failure\"}[1h])) + sum by (operation) ((min_over_time(password_reset_total{status=\"failure\"}[1h])) unless (password_reset_total{status=\"failure\"} offset 1h))",
+          "legendFormat": "❌ {{ operation }}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "latency (s)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P50"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#00ff88",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ffbe0b",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P99"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff006e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 51
+      },
+      "id": 52,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Auth Latency P50/P95/P99",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.50, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le))) == (histogram_quantile(0.50, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le)))) or vector(0)",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le))) == (histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le)))) or vector(0)",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.99, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le))) == (histogram_quantile(0.99, sum(rate(auth_request_duration_seconds_bucket[5m])) by (le)))) or vector(0)",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "id": 106,
+      "title": "📮 Email Delivery & Queue",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 61
+      },
+      "id": 60,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"}[5m])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"} offset 5m))) / clamp_min((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"}[5m])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"} offset 5m))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "OTP Delivery Success Rate (5m)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 61
+      },
+      "id": 61,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"}[1h])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\",status=\"success\"} offset 1h))) / clamp_min((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"}[1h])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"otp\"} offset 1h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "OTP Delivery Success Rate (1h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 61
+      },
+      "id": 62,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"}[5m])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"} offset 5m))) / clamp_min((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"}[5m])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"}[5m])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"} offset 5m))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Magic Link Delivery Success Rate (5m)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 61
+      },
+      "id": 63,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"}[1h])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\",status=\"success\"} offset 1h))) / clamp_min((sum(increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"}[1h])) + sum((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"}[1h])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=\"magic_link\"} offset 1h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Magic Link Delivery Success Rate (1h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 61
+      },
+      "id": 64,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(cybervpn_queue_depth{job=\"cybervpn-worker\",queue=\"email\"}) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Email Queue Depth",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 61
+      },
+      "id": 65,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(taskiq_tasks_total{job=\"cybervpn-worker\",status=\"error\"}[15m])) + sum((min_over_time(taskiq_tasks_total{job=\"cybervpn-worker\",status=\"error\"}[15m])) unless (taskiq_tasks_total{job=\"cybervpn-worker\",status=\"error\"} offset 15m))) / clamp_min((sum(increase(taskiq_tasks_total{job=\"cybervpn-worker\"}[15m])) + sum((min_over_time(taskiq_tasks_total{job=\"cybervpn-worker\"}[15m])) unless (taskiq_tasks_total{job=\"cybervpn-worker\"} offset 15m))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Task Error Rate (15m)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "seconds",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 66
+      },
+      "id": 66,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(cybervpn_email_send_context_duration_seconds_bucket{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=~\"otp|magic_link\"}[5m])))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(cybervpn_email_send_context_duration_seconds_bucket{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=~\"otp|magic_link\"}[5m])))",
+          "legendFormat": "P95",
+          "refId": "B"
+        }
+      ],
+      "title": "Email Send Latency P50/P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "emails / hour",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 66
+      },
+      "id": 67,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (email_type, provider, status) (increase(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=~\"otp|magic_link\"}[1h])) + sum by (email_type, provider, status) ((min_over_time(cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=~\"otp|magic_link\"}[1h])) unless (cybervpn_email_send_context_total{channel=~\"${channel:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",email_type=~\"otp|magic_link\"} offset 1h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Email Delivery by Type & Provider (1h)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 74
+      },
+      "id": 107,
+      "title": "🚀 Activation To First Login",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "#00ff88",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 75
+      },
+      "id": 70,
+      "options": {
+        "displayMode": "lcd",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (step) (increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=~\"registered|email_sent|email_verified|activated|first_successful_login\",status=\"success\"}[24h])) + sum by (step) ((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=~\"registered|email_sent|email_verified|activated|first_successful_login\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=~\"registered|email_sent|email_verified|activated|first_successful_login\",status=\"success\"} offset 24h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Activation Funnel (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 75
+      },
+      "id": 71,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"} offset 24h))) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "First Successful Login (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 75
+      },
+      "id": 72,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"email_verified\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"email_verified\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"email_verified\",status=\"success\"} offset 24h))) / clamp_min((sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"registered\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"registered\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"registered\",status=\"success\"} offset 24h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Email Registered To Verified Rate (24h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 75
+      },
+      "id": 73,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"} offset 24h))) / clamp_min((sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"activated\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"activated\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"activated\",status=\"success\"} offset 24h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Activation To First Login Rate (24h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 75
+      },
+      "id": 74,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (method) (increase(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) + sum by (method) ((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"} offset 24h))) or label_replace((((scalar(sum(auth_flow_events_total{channel=~\"${channel:regex}\",method=~\"${method:regex}\",provider=~\"${provider:regex}\",locale=~\"${locale:regex}\",step=\"first_successful_login\",status=\"success\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"method\", \"no_data\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "First Login Method Mix (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "seconds",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 80
+      },
+      "id": 75,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.50, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"} offset 24h))))) == (histogram_quantile(0.50, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"} offset 24h)))))) or vector(0)",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.95, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"} offset 24h))))) == (histogram_quantile(0.95, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"verify\"} offset 24h)))))) or vector(0)",
+          "legendFormat": "P95",
+          "refId": "B"
+        }
+      ],
+      "title": "Time To Email Verify P50/P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "seconds",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 80
+      },
+      "id": 76,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.50, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"} offset 24h))))) == (histogram_quantile(0.50, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"} offset 24h)))))) or vector(0)",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "((histogram_quantile(0.95, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"} offset 24h))))) == (histogram_quantile(0.95, sum by (le) (increase(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h]) + ((min_over_time(auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"}[24h])) unless (auth_activation_duration_seconds_bucket{channel=~\"${channel:regex}\",method=~\"${method:regex}\",locale=~\"${locale:regex}\",stage=\"first_login\"} offset 24h)))))) or vector(0)",
+          "legendFormat": "P95",
+          "refId": "B"
+        }
+      ],
+      "title": "Time To First Login P50/P95",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
+      "id": 108,
+      "title": "🧭 Session Lifecycle",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 89
+      },
+      "id": 80,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status=\"success\"}[1h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status=\"success\"}[1h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status=\"success\"} offset 1h))) / clamp_min((sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\"}[1h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\"}[1h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\"} offset 1h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Refresh Success Rate (1h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 89
+      },
+      "id": 81,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(active_sessions_total) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Sessions",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 89
+      },
+      "id": 82,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout\",status=\"success\"}[24h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout\",status=\"success\"}[24h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout\",status=\"success\"} offset 24h))) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Logouts (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 89
+      },
+      "id": 83,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout_all\",status=\"success\"}[24h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout_all\",status=\"success\"}[24h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"logout_all\",status=\"success\"} offset 24h))) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Logout-All (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 89
+      },
+      "id": 84,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"revoke_device\",status=\"success\"}[24h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"revoke_device\",status=\"success\"}[24h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"revoke_device\",status=\"success\"} offset 24h))) or vector(0)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Remote Session Revokes (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 89
+      },
+      "id": 85,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * (((sum(increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=~\"logout|logout_all|revoke_device\",status=\"success\"}[24h])) + sum((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=~\"logout|logout_all|revoke_device\",status=\"success\"}[24h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=~\"logout|logout_all|revoke_device\",status=\"success\"} offset 24h))) / clamp_min((sum(increase(auth_flow_events_total{channel=~\"${channel:regex}\",step=\"session_started\",status=\"success\"}[24h])) + sum((min_over_time(auth_flow_events_total{channel=~\"${channel:regex}\",step=\"session_started\",status=\"success\"}[24h])) unless (auth_flow_events_total{channel=~\"${channel:regex}\",step=\"session_started\",status=\"success\"} offset 24h))), 1e-9)) or vector(0))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Session Churn Rate (24h)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events / hour",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 94
+      },
+      "id": 86,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (operation, status) (increase(auth_session_detailed_total{channel=~\"${channel:regex}\",status=~\"${status:regex}\"}[1h])) + sum by (operation, status) ((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",status=~\"${status:regex}\"}[1h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",status=~\"${status:regex}\"} offset 1h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Session Lifecycle Events (1h)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 20,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "#00ff88",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 94
+      },
+      "id": 87,
+      "options": {
+        "displayMode": "lcd",
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (reason) (increase(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status!=\"success\"}[24h])) + sum by (reason) ((min_over_time(auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status!=\"success\"}[24h])) unless (auth_session_detailed_total{channel=~\"${channel:regex}\",operation=\"refresh\",status!=\"success\"} offset 24h))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Suspicious Refresh Failures by Reason (24h)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 102
+      },
+      "id": 109,
+      "title": "🪪 Password Identifier Split",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 103
+      },
+      "id": 88,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "(sum by (identifier_type) (increase(auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=\"login\",status=\"success\"}[24h])) + sum by (identifier_type) ((min_over_time(auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=\"login\",status=\"success\"}[24h])) unless (auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=\"login\",status=\"success\"} offset 24h))) or label_replace((((scalar(sum(auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=\"login\",status=\"success\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"identifier_type\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ identifier_type }}",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "Password Login Mix (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 103
+      },
+      "id": 89,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * auth:password_identifier_success_rate:1h{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\"}",
+          "legendFormat": "{{ identifier_type }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Password Success Rate by Identifier (1h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff006e",
+                "value": null
+              },
+              {
+                "color": "#ff6b35",
+                "value": 1
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 5
+              },
+              {
+                "color": "#00ff88",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 103
+      },
+      "id": 90,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (identifier_type, step) (increase(auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=~\"registered|email_sent|activated|first_successful_login\",status=\"success\"}[24h])) + sum by (identifier_type, step) ((min_over_time(auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=~\"registered|email_sent|activated|first_successful_login\",status=\"success\"}[24h])) unless (auth_password_identifier_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",step=~\"registered|email_sent|activated|first_successful_login\",status=\"success\"} offset 24h))",
+          "legendFormat": "{{ identifier_type }} • {{ step }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Password Registration & Activation Split (24h)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 111
+      },
+      "id": 110,
+      "title": "📱 Client & Device Intelligence",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 112
+      },
+      "id": 111,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "auth:successful_logins_by_client_type:24h{channel=~\"${channel:regex}\",client_type=~\"${client_type:regex}\"} or label_replace((((scalar(sum(auth:successful_logins_by_client_type:24h{channel=~\"${channel:regex}\",client_type=~\"${client_type:regex}\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"client_type\", \"no_data\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{ client_type }}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Successful Logins by Client Type (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 112
+      },
+      "id": 112,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "auth:successful_logins_by_os_family:24h{channel=~\"${channel:regex}\",os_family=~\"${os_family:regex}\"} or label_replace((((scalar(sum(auth:successful_logins_by_os_family:24h{channel=~\"${channel:regex}\",os_family=~\"${os_family:regex}\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"os_family\", \"no_data\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{ os_family }}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Successful Logins by OS Family (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 112
+      },
+      "id": 113,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "auth:successful_logins_by_client_app:24h{channel=~\"${channel:regex}\",client_app=~\"${client_app:regex}\"} or label_replace((((scalar(sum(auth:successful_logins_by_client_app:24h{channel=~\"${channel:regex}\",client_app=~\"${client_app:regex}\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"client_app\", \"no_data\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{ client_app }}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Successful Logins by Client App (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "#00ff88",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 120
+      },
+      "id": 114,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * auth:success_rate_by_client_type:1h{channel=~\"${channel:regex}\",client_type=~\"${client_type:regex}\"}",
+          "legendFormat": "{{ client_type }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Login Success Rate by Client Type (1h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 120
+      },
+      "id": 115,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (client_type) (auth_active_sessions_client_type_total{client_type=~\"${client_type:regex}\"}) or label_replace(absent(sum(auth_active_sessions_client_type_total{client_type=~\"${client_type:regex}\"})) * 0, \"client_type\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ client_type }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Sessions by Client Type",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 120
+      },
+      "id": 116,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (os_family) (auth_active_sessions_os_family_total{os_family=~\"${os_family:regex}\"}) or label_replace(absent(sum(auth_active_sessions_os_family_total{os_family=~\"${os_family:regex}\"})) * 0, \"os_family\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ os_family }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Sessions by OS Family",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#00ff88",
+                "value": 1
+              },
+              {
+                "color": "#00ffff",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 128
+      },
+      "id": 117,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (platform, state) (auth_mobile_devices_total) or label_replace(absent(sum(auth_mobile_devices_total)) * 0, \"state\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ platform }} • {{ state }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Mobile Devices by Platform & Activity",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 136
+      },
+      "id": 120,
+      "title": "🛡️ Brute-Force & Risk",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 14,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 137
+      },
+      "id": 121,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (identifier_type) (increase(auth_bruteforce_events_total{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",outcome=\"failed_attempt\"}[1h]))",
+          "legendFormat": "{{ identifier_type }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Brute-Force Failed Attempts (1h rolling)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff006e",
+                "value": null
+              },
+              {
+                "color": "#ff6b35",
+                "value": 1
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 5
+              },
+              {
+                "color": "#00ff88",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 137
+      },
+      "id": 122,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (lockout_tier) (auth:lockout_escalations:24h{channel=~\"${channel:regex}\",identifier_type=~\"${identifier_type:regex}\",lockout_tier=~\"${lockout_tier:regex}\"})",
+          "legendFormat": "{{ lockout_tier }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Lockout Escalations by Tier (24h)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 1
+              },
+              {
+                "color": "#ff6b35",
+                "value": 5
+              },
+              {
+                "color": "#ff006e",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 145
+      },
+      "id": 123,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_bruteforce_identifiers_current) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Tracked Brute-Force Identifiers",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 5
+              },
+              {
+                "color": "#ff6b35",
+                "value": 15
+              },
+              {
+                "color": "#ff006e",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 145
+      },
+      "id": 124,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_bruteforce_attempts_current) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Brute-Force Attempt Pressure",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 1
+              },
+              {
+                "color": "#ff6b35",
+                "value": 3
+              },
+              {
+                "color": "#ff006e",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 145
+      },
+      "id": 125,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_lockouts_current_total{source=\"redis\",lockout_tier!=\"none\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Redis Lockouts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 1
+              },
+              {
+                "color": "#ff6b35",
+                "value": 3
+              },
+              {
+                "color": "#ff006e",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 145
+      },
+      "id": 126,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_locked_users_db_current) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "DB Locked Users",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 1
+              },
+              {
+                "color": "#ff6b35",
+                "value": 5
+              },
+              {
+                "color": "#ff006e",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 145
+      },
+      "id": 127,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_users_with_failed_login_attempts_current) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Users With Failed Login Attempts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1a1a2e",
+                "value": null
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 5
+              },
+              {
+                "color": "#ff6b35",
+                "value": 15
+              },
+              {
+                "color": "#ff006e",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 145
+      },
+      "id": 128,
+      "options": {
+        "colorMode": "background_solid",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(auth_failed_login_attempts_backlog_current) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed Login Backlog Current",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ff006e",
+                "value": null
+              },
+              {
+                "color": "#ff6b35",
+                "value": 1
+              },
+              {
+                "color": "#ffbe0b",
+                "value": 3
+              },
+              {
+                "color": "#00ff88",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 150
+      },
+      "id": 129,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "text"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (lockout_tier) (auth_lockouts_current_total{source=\"redis\",lockout_tier=~\"${lockout_tier:regex}\",lockout_tier!=\"none\"}) or label_replace(absent(sum(auth_lockouts_current_total{source=\"redis\",lockout_tier=~\"${lockout_tier:regex}\",lockout_tier!=\"none\"})) * 0, \"lockout_tier\", \"no_data\", \"\", \"\")",
+          "legendFormat": "{{ lockout_tier }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Redis Lockouts by Tier",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 150
+      },
+      "id": 130,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "sum by (risk_level) (auth_users_risk_level_total) or label_replace((((scalar(sum(auth_users_risk_level_total) or vector(0)) == bool 0) * vector(1)) > 0), \"risk_level\", \"no_data\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{ risk_level }}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Risk Level Distribution",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 150
+      },
+      "id": 131,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent",
+          "value"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+      "expr": "sum by (verification_state) (auth_users_verification_state_total) or label_replace((((scalar(sum(auth_users_verification_state_total) or vector(0)) == bool 0) * vector(1)) > 0), \"verification_state\", \"no_data\", \"\", \"\")",
+          "instant": true,
+          "legendFormat": "{{ verification_state }}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Verification State Distribution",
+      "type": "bargauge"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "auth",
+    "registration",
+    "cybervpn",
+    "security"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "web,mobile",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "channel",
+        "options": [],
+        "query": "web,mobile",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "password,email_verification,magic_link,magic_link_otp,oauth,telegram,session",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "method",
+        "options": [],
+        "query": "password,email_verification,magic_link,magic_link_otp,oauth,telegram,session",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "native,email,otp,telegram,google,github,discord,facebook,apple,microsoft,twitter,smtp,resend,brevo,unknown",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "provider",
+        "options": [],
+        "query": "native,email,otp,telegram,google,github,discord,facebook,apple,microsoft,twitter,smtp,resend,brevo,unknown",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "email,username",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "identifier_type",
+        "options": [],
+        "query": "email,username",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "desktop,mobile,tablet,bot,unknown",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "client_type",
+        "options": [],
+        "query": "desktop,mobile,tablet,bot,unknown",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "windows,macos,linux,android,ios,other,unknown",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "os_family",
+        "options": [],
+        "query": "windows,macos,linux,android,ios,other,unknown",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "chrome,safari,firefox,edge,telegram_webview,mobile_app,other,unknown",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "client_app",
+        "options": [],
+        "query": "chrome,safari,firefox,edge,telegram_webview,mobile_app,other,unknown",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "none,tier_1_30s,tier_2_5m,tier_3_30m,permanent",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "lockout_tier",
+        "options": [],
+        "query": "none,tier_1_30s,tier_2_5m,tier_3_30m,permanent",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(auth_flow_events_total, locale)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "locale",
+        "options": [],
+        "query": {
+          "query": "label_values(auth_flow_events_total, locale)",
+          "refId": "PrometheusVariableQueryEditor-locale"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "success,failure,failed,error,rate_limited,missing_token,not_found,invalid_token,expired_token",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "status",
+        "options": [],
+        "query": "success,failure,failed,error,rate_limited,missing_token,not_found,invalid_token,expired_token",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Auth & Registration",
+  "uid": "cybervpn-auth-registration",
+  "version": 16,
+  "weekStart": ""
+}

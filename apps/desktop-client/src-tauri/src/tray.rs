@@ -6,9 +6,14 @@ use tauri::{
 };
 
 pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let show_i = MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
-    let connect_i = MenuItem::with_id(app, "connect", "Disconnect / Connect", true, None::<&str>)?;
+    let quit_text = rust_i18n::t!("tray.quit");
+    let show_text = rust_i18n::t!("tray.show");
+    // We fetch the current status to decide what text to show for connect? Handled by states normally, but we can have generic ones.
+    let connect_text = rust_i18n::t!("tray.connect") + " / " + &rust_i18n::t!("tray.disconnect");
+
+    let quit_i = MenuItem::with_id(app, "quit", &quit_text, true, None::<&str>)?;
+    let show_i = MenuItem::with_id(app, "show", &show_text, true, None::<&str>)?;
+    let connect_i = MenuItem::with_id(app, "connect", &connect_text, true, None::<&str>)?;
 
     let menu = Menu::with_items(app, &[&show_i, &connect_i, &quit_i])?;
 
@@ -17,7 +22,13 @@ pub fn setup(app: &tauri::AppHandle) -> tauri::Result<()> {
         unreachable!("Default icon is expected to be configured")
     });
 
-    let _tray = TrayIconBuilder::new()
+    // If tray already exists, just update the menu
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_menu(Some(menu));
+        return Ok(());
+    }
+
+    let _tray = TrayIconBuilder::with_id("main")
         .menu(&menu)
         .icon(icon)
         .tooltip("CyberVPN")

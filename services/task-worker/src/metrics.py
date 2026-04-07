@@ -4,7 +4,11 @@ Provides additional metrics beyond the built-in TaskIQ middleware metrics.
 These metrics track queue depth, external service interactions, and worker metadata.
 """
 
+import os
+
 from prometheus_client import Counter, Gauge, Histogram, Info
+
+MULTIPROC_ENABLED = bool(os.getenv("PROMETHEUS_MULTIPROC_DIR"))
 
 # Task metrics (additional to middleware metrics)
 TASK_TOTAL = Counter(
@@ -24,6 +28,7 @@ TASK_IN_PROGRESS = Gauge(
     "cybervpn_tasks_in_progress",
     "Tasks currently executing",
     ["task_name"],
+    multiprocess_mode="livesum" if MULTIPROC_ENABLED else "all",
 )
 
 # Queue metrics
@@ -31,6 +36,7 @@ QUEUE_DEPTH = Gauge(
     "cybervpn_queue_depth",
     "Current queue depth",
     ["queue"],
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
 )
 
 # External service metrics
@@ -78,10 +84,30 @@ OTP_FAILED = Counter(
 )
 
 # Generic email metrics (BOB-6: metrics hardening)
+EMAIL_SEND_TOTAL = Counter(
+    "cybervpn_email_send_total",
+    "Total email send attempts",
+    ["provider", "email_type", "status"],  # provider=resend|brevo|smtp
+    # email_type=otp|magic_link|notification, status=success|failed
+)
+
+EMAIL_SEND_CONTEXT_TOTAL = Counter(
+    "cybervpn_email_send_context_total",
+    "Total email send attempts with auth delivery context",
+    ["channel", "provider", "email_type", "locale", "status"],
+)
+
 EMAIL_SEND_DURATION = Histogram(
     "cybervpn_email_send_duration_seconds",
     "Email sending duration in seconds",
-    ["provider", "email_type"],  # provider=resend|brevo|smtp, email_type=otp|notification
+    ["provider", "email_type"],  # provider=resend|brevo|smtp, email_type=otp|magic_link|notification
+    buckets=[0.1, 0.5, 1, 2, 5, 10, 30],
+)
+
+EMAIL_SEND_CONTEXT_DURATION = Histogram(
+    "cybervpn_email_send_context_duration_seconds",
+    "Email sending duration in seconds with auth delivery context",
+    ["channel", "provider", "email_type", "locale"],
     buckets=[0.1, 0.5, 1, 2, 5, 10, 30],
 )
 

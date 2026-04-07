@@ -17,8 +17,10 @@ import {
     saveStealthMode
 } from "../../shared/api/ipc";
 import { StealthWave } from "../../components/ui/stealth-wave";
+import { useTranslation } from "react-i18next";
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<ConnectionStatus>({
       status: "disconnected",
       upBytes: 0,
@@ -79,17 +81,17 @@ export function DashboardPage() {
       try {
           const profiles = await getProfiles();
           if (profiles.length === 0) {
-              toast.error("No profiles available. Please add one in Profiles first.");
+              toast.error(t('dashboard.noProfilesError'));
               return;
           }
           setStatus(prev => ({ ...prev, status: "connecting" }));
           await connectProfile(profiles[0].id, tunMode);
       } catch (e: any) {
           console.error("Failed to connect", e);
-          if (e.includes("Elevation Required")) {
-              toast.error("TUN Mode requires Administrator / Root privileges. Please restart the app with elevation.", { duration: 8000 });
+          if (e.includes("Elevation Required") || e.includes("Administrator")) {
+              toast.error(t('dashboard.tunErrorAdmin'), { duration: 8000 });
           } else {
-              toast.error(`Connection failed: ${e}`);
+              toast.error(t('dashboard.connectionFailed', { error: e }));
           }
           setStatus(prev => ({ ...prev, status: "error" }));
       }
@@ -108,13 +110,13 @@ export function DashboardPage() {
           await saveStealthMode(checked);
           setStealthMode(checked);
           if (checked) {
-              toast.success("Stealth Camouflage Enabled: Traffic Reshaping Active");
+              toast.success(t('dashboard.stealthActive'));
           } else {
-              toast.info("Stealth Camouflage Disabled");
+              toast.info(t('dashboard.stealthDisabled'));
           }
       } catch (e) {
           console.error(e);
-          toast.error("Failed to map Stealth state");
+          toast.error(t('dashboard.stealthError'));
       }
   };
 
@@ -133,10 +135,10 @@ export function DashboardPage() {
       <header className="flex items-center justify-between">
         <div>
            <h1 className="text-4xl font-black tracking-tighter uppercase text-[var(--color-matrix-green)] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]">
-               Terminal
+               {t('dashboard.title')}
            </h1>
            <p className="text-muted-foreground mt-1 font-mono text-sm tracking-widest">
-               STATUS: {status.status.toUpperCase()}
+               {t('dashboard.status')}: {status.status.toUpperCase()}
            </p>
         </div>
       </header>
@@ -158,10 +160,10 @@ export function DashboardPage() {
          <div className="flex items-center space-x-3 bg-black/40 px-6 py-4 rounded-xl border border-border/50 backdrop-blur-sm">
              <div className="flex flex-col gap-1">
                  <Label htmlFor="tun-mode" className="text-sm font-bold tracking-wider uppercase text-[var(--color-matrix-green)]">
-                     TUN Mode Virtual Interface
+                     {t('dashboard.tunModeTitle')}
                  </Label>
                  <span className="text-xs text-muted-foreground w-64 leading-tight">
-                     Routes ALL system traffic through the VPN. Requires Administrator / Root privileges.
+                     {t('dashboard.tunModeDesc')}
                  </span>
              </div>
              <Switch 
@@ -176,10 +178,10 @@ export function DashboardPage() {
          <div className={`flex items-center space-x-3 px-6 py-4 rounded-xl border backdrop-blur-sm transition-colors duration-500 ${stealthMode ? 'bg-[var(--color-matrix-green)]/10 border-[var(--color-matrix-green)]/40 shadow-[0_0_15px_rgba(0,255,136,0.15)]' : 'bg-black/40 border-border/50'}`}>
              <div className="flex flex-col gap-1">
                  <Label htmlFor="stealth-mode" className={`text-sm font-bold tracking-wider uppercase ${stealthMode ? 'text-[var(--color-matrix-green)]' : 'text-muted-foreground'}`}>
-                     Stealth Camouflage
+                     {t('dashboard.stealthModeTitle')}
                  </Label>
                  <span className="text-xs text-muted-foreground w-64 leading-tight">
-                     Reshapes packet timing and volume to evade Deep Packet Inspection (DPI) heuristics.
+                     {t('dashboard.stealthModeDesc')}
                  </span>
              </div>
              <Switch 

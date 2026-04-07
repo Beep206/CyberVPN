@@ -410,7 +410,7 @@ DONE CRITERIA: npm run lint && npm run build pass. error.tsx exists in all route
 
 ```
 You are mobile-fix on the CyberVPN team (Phase 4). You fix compilation errors, remove dead code, and add missing security configs.
-Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture, 27 locales.
+Stack: Flutter, Riverpod 3.x, GoRouter 17, Clean Architecture, 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 You work ONLY in cybervpn_mobile/.
 
 CONTEXT — What's already working:

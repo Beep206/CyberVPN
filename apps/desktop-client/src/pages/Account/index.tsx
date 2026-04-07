@@ -4,8 +4,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { Cloud, CloudUpload, CloudDownload, RefreshCw, KeyRound, QrCode, Trash2, Smartphone } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { useTranslation } from "react-i18next";
 
 export function AccountPage() {
+  const { t } = useTranslation();
   const [syncPassword, setSyncPassword] = useState("");
   const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -44,9 +46,9 @@ export function AccountPage() {
       await invoke("save_sync_password", { password: syncPassword });
       setHasSavedPassword(true);
       generateQr(syncPassword);
-      toast.success("Sync Password saved securely in native Keyring");
+      toast.success(t('account.saveSuccess'));
     } catch (e) {
-      toast.error(`Failed to save password: ${e}`);
+      toast.error(t('account.saveError', { error: e }));
     }
   };
 
@@ -56,9 +58,9 @@ export function AccountPage() {
       setHasSavedPassword(false);
       setSyncPassword("");
       setPairingToken("");
-      toast.success("Sync Password forgotten");
+      toast.success(t('account.deleteSuccess'));
     } catch (e) {
-      toast.error(`Failed to delete password: ${e}`);
+      toast.error(t('account.deleteError', { error: e }));
     }
   };
 
@@ -69,9 +71,9 @@ export function AccountPage() {
     try {
       await invoke("cloud_push", { password: syncPassword });
       setSyncStatus("synced");
-      toast.success("Cloud Sync Complete: Data Pushed");
+      toast.success(t('account.pushSuccess'));
     } catch (e) {
-      toast.error(`Push Failed: ${e}`);
+      toast.error(t('account.pushError', { error: e }));
       setSyncStatus("unsynced");
     } finally {
       setIsSyncing(false);
@@ -81,14 +83,14 @@ export function AccountPage() {
   const handleCloudPull = async () => {
     if (!hasSavedPassword || isSyncing) return;
     setIsSyncing(true);
-    toast.info("Pulling data from cloud...");
+    toast.info(t('account.pulling'));
     
     try {
       await invoke("cloud_pull", { password: syncPassword });
       setSyncStatus("synced");
-      toast.success("Cloud Sync Complete: Data Pulled");
+      toast.success(t('account.pullSuccess'));
     } catch (e) {
-      toast.error(`Pull Failed: ${e}`);
+      toast.error(t('account.pullError', { error: e }));
       setSyncStatus("unsynced");
     } finally {
       setIsSyncing(false);
@@ -106,10 +108,10 @@ export function AccountPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[var(--color-matrix-green)] to-[var(--color-neon-cyan)] bg-clip-text text-transparent flex items-center gap-3">
           <Cloud size={32} className="text-[var(--color-matrix-green)]" />
-          My Ecosystem
+          {t('account.title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          End-to-end encrypted synchronization. Securely manage your VPN configurations across devices.
+          {t('account.description')}
         </p>
       </div>
 
@@ -133,8 +135,8 @@ export function AccountPage() {
                    )}
                  </div>
                  <div>
-                   <h3 className="font-semibold">{syncStatus === "synced" ? "Cloud Connected" : "Local Changes Unsynced"}</h3>
-                   <p className="text-xs text-muted-foreground">E2EE Data Synchronization</p>
+                   <h3 className="font-semibold">{syncStatus === "synced" ? t('account.synced') : t('account.unsynced')}</h3>
+                   <p className="text-xs text-muted-foreground">{t('account.syncDesc')}</p>
                  </div>
               </div>
             </div>
@@ -152,7 +154,7 @@ export function AccountPage() {
                   ) : (
                     <CloudUpload size={24} className="text-[var(--color-neon-cyan)]" />
                   )}
-                  <span className="text-sm font-medium">Backup to Cloud</span>
+                  <span className="text-sm font-medium">{t('account.backup')}</span>
                </motion.button>
 
                <motion.button
@@ -167,7 +169,7 @@ export function AccountPage() {
                   ) : (
                     <CloudDownload size={24} className="text-[var(--color-matrix-green)]" />
                   )}
-                  <span className="text-sm font-medium">Pull from Cloud</span>
+                  <span className="text-sm font-medium">{t('account.pull')}</span>
                </motion.button>
             </div>
           </div>
@@ -176,17 +178,17 @@ export function AccountPage() {
           <div className="p-6 rounded-2xl border border-border/50 bg-black/20">
              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <KeyRound size={18} className="text-[var(--color-neon-pink)]" />
-                Sync Password
+                {t('account.syncPassword')}
              </h3>
              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                Your data is AES-GCM encrypted locally before transit. The server never sees your passwords.
+                {t('account.passwordDesc')}
              </p>
 
              {!hasSavedPassword ? (
                 <div className="space-y-4">
                   <input
                     type="password"
-                    placeholder="Enter an Encryption Password..."
+                    placeholder={t('account.passwordPlaceholder')}
                     value={syncPassword}
                     onChange={(e) => setSyncPassword(e.target.value)}
                     className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-neon-pink)] transition-colors"
@@ -195,20 +197,20 @@ export function AccountPage() {
                     onClick={handleSavePassword}
                     className="w-full bg-[var(--color-neon-pink)]/20 text-[var(--color-neon-pink)] border border-[var(--color-neon-pink)]/50 rounded-md py-2 font-medium hover:bg-[var(--color-neon-pink)]/30 transition-colors"
                   >
-                     Unlock Sync Ecosystem
+                     {t('account.unlock')}
                   </button>
                 </div>
              ) : (
                 <div className="flex items-center justify-between p-3 rounded bg-black/40 border border-green-500/30">
                    <div className="flex items-center gap-2 text-green-400">
                       <KeyRound size={16} />
-                      <span className="text-sm font-medium">Key Securely Saved</span>
+                      <span className="text-sm font-medium">{t('account.keySaved')}</span>
                    </div>
                    <button 
                      onClick={handleDeletePassword}
                      className="text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 text-sm"
                    >
-                     <Trash2 size={14} /> Clear Key
+                     <Trash2 size={14} /> {t('account.clearKey')}
                    </button>
                 </div>
              )}
@@ -222,9 +224,9 @@ export function AccountPage() {
                  <Smartphone size={32} className="text-[var(--color-neon-cyan)]" />
               </div>
 
-              <h3 className="text-xl font-bold mb-2">Device Handover Pairing</h3>
+              <h3 className="text-xl font-bold mb-2">{t('account.handover')}</h3>
               <p className="text-xs text-muted-foreground max-w-[260px] mx-auto mb-8">
-                 Scan this QR code with the CyberVPN mobile or TV app to instantly synchronize.
+                 {t('account.handoverDesc')}
               </p>
 
               {pairingToken ? (
@@ -249,7 +251,7 @@ export function AccountPage() {
               ) : (
                 <div className="w-[200px] h-[200px] rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground p-6">
                    <QrCode size={48} className="mb-2 opacity-50" />
-                   <span className="text-xs font-medium">Set a Sync Password first</span>
+                   <span className="text-xs font-medium text-center">{t('account.requirePassword')}</span>
                 </div>
               )}
            </div>

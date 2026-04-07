@@ -5,7 +5,10 @@ Uses lazy initialization pattern to defer expensive operations until broker star
 Implements production-grade error handling and resource cleanup.
 """
 
+import asyncio
+import os
 import platform
+from contextlib import suppress
 
 import httpx
 import structlog
@@ -51,12 +54,10 @@ broker = broker.with_result_backend(result_backend)
 # Register middleware chain.
 # Order: Logging (captures all) → Metrics (timing) → ErrorHandler (alerts) → Retry (re-queue)
 broker.add_middlewares(
-    [
-        LoggingMiddleware(),
-        MetricsMiddleware(),
-        ErrorHandlerMiddleware(),
-        RetryMiddleware(),
-    ],
+    LoggingMiddleware(),
+    MetricsMiddleware(),
+    ErrorHandlerMiddleware(),
+    RetryMiddleware(),
 )
 
 # Initialize schedule source with ListRedisScheduleSource (latest durable variant)
@@ -106,16 +107,24 @@ async def startup_event(state) -> None:
                 ),
             )
 
-        # Set worker information metrics
-        WORKER_INFO.info(
-            {
-                "version": "1.0.0",
-                "environment": settings.environment,
-                "python_version": platform.python_version(),
-                "platform": platform.system(),
-                "concurrency": str(settings.worker_concurrency),
-            }
-        )
+            # Keep queue depth gauges fresh even when the scheduler is not running.
+            from src.tasks.monitoring.queue_depth import queue_depth_metrics_loop
+
+            state.queue_depth_metrics_task = asyncio.create_task(queue_depth_metrics_loop())
+
+        # Info metrics are not supported by prometheus_client multiprocess mode.
+        if os.getenv("PROMETHEUS_MULTIPROC_DIR"):
+            logger.info("worker_info_metric_skipped_in_multiprocess_mode")
+        else:
+            WORKER_INFO.info(
+                {
+                    "version": "1.0.0",
+                    "environment": settings.environment,
+                    "python_version": platform.python_version(),
+                    "platform": platform.system(),
+                    "concurrency": str(settings.worker_concurrency),
+                }
+            )
 
         # Initialize database engine (cached via lru_cache)
         engine = get_engine()
@@ -159,6 +168,13 @@ async def shutdown_event(state) -> None:
         if hasattr(state, "http_client"):
             await state.http_client.aclose()
             logger.info("http_client_closed")
+
+        queue_depth_task = getattr(state, "queue_depth_metrics_task", None)
+        if isinstance(queue_depth_task, asyncio.Task):
+            queue_depth_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await queue_depth_task
+            logger.info("queue_depth_metrics_loop_cancelled")
 
         # Dispose database engine
         if hasattr(state, "db_engine"):

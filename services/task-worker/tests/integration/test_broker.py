@@ -10,8 +10,9 @@ These tests do NOT connect to real Redis - they inspect the broker object
 configuration and use mocks for lifecycle events.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.middleware import (
     ErrorHandlerMiddleware,
@@ -29,14 +30,13 @@ class TestBrokerLifecycle:
         """Verify middleware chain is registered in correct order."""
         from src.broker import broker
 
-        # TaskIQ stores middleware differently - check that broker exists
-        # and has been configured (middleware is added via add_middlewares)
         assert broker is not None, "Broker should be initialized"
-
-        # The middleware configuration happens in broker.py via add_middlewares
-        # We can't easily inspect the internal middleware list in newer TaskIQ,
-        # so we verify the broker was created successfully
         assert hasattr(broker, "add_middlewares"), "Broker should have add_middlewares method"
+        assert len(broker.middlewares) >= 4, "Expected TaskIQ middlewares to be registered"
+        assert isinstance(broker.middlewares[0], LoggingMiddleware)
+        assert isinstance(broker.middlewares[1], MetricsMiddleware)
+        assert isinstance(broker.middlewares[2], ErrorHandlerMiddleware)
+        assert isinstance(broker.middlewares[3], RetryMiddleware)
 
     def test_broker_has_result_backend(self):
         """Verify broker has result backend configured."""
@@ -61,6 +61,7 @@ class TestBrokerLifecycle:
     def test_broker_is_redis_stream_broker(self):
         """Verify broker is RedisStreamBroker instance."""
         from taskiq_redis import RedisStreamBroker
+
         from src.broker import broker
 
         assert isinstance(broker, RedisStreamBroker), "Broker should be RedisStreamBroker"
@@ -72,10 +73,12 @@ class TestBrokerLifecycle:
         mock_state = MagicMock()
 
         # Mock dependencies
-        with patch("src.broker.get_engine") as mock_get_engine, \
-             patch("src.broker.get_session_factory") as mock_get_session_factory, \
-             patch("src.broker.start_metrics_server") as mock_start_metrics, \
-             patch("httpx.AsyncClient") as mock_http_client:
+        with (
+            patch("src.broker.get_engine") as mock_get_engine,
+            patch("src.broker.get_session_factory") as mock_get_session_factory,
+            patch("src.broker.start_metrics_server") as mock_start_metrics,
+            patch("httpx.AsyncClient"),
+        ):
 
             mock_engine = AsyncMock()
             mock_session_factory = MagicMock()
@@ -125,8 +128,10 @@ class TestBrokerLifecycle:
         mock_state = MagicMock()
 
         # Mock get_engine to raise an error
-        with patch("src.broker.get_engine") as mock_get_engine, \
-             patch("src.broker.start_metrics_server"):
+        with (
+            patch("src.broker.get_engine") as mock_get_engine,
+            patch("src.broker.start_metrics_server"),
+        ):
 
             mock_get_engine.side_effect = Exception("Database connection failed")
 
@@ -152,14 +157,15 @@ class TestBrokerLifecycle:
 
     def test_broker_has_event_handlers_registered(self):
         """Verify broker has startup and shutdown event handlers registered."""
-        from src.broker import broker, startup_event, shutdown_event
+        import inspect
+
+        from src.broker import broker, shutdown_event, startup_event
 
         # Verify event handler functions exist
         assert startup_event is not None, "Startup event handler should exist"
         assert shutdown_event is not None, "Shutdown event handler should exist"
 
         # Verify they are async callables
-        import inspect
         assert inspect.iscoroutinefunction(startup_event), "Startup event should be async"
         assert inspect.iscoroutinefunction(shutdown_event), "Shutdown event should be async"
 

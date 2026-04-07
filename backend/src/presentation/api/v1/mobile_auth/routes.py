@@ -3,6 +3,7 @@
 Endpoints for mobile app authentication: register, login, refresh, logout, me, device.
 """
 
+from time import perf_counter
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -41,6 +42,19 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
+)
+from src.infrastructure.monitoring.client_context import resolve_mobile_client_context
+from src.infrastructure.monitoring.instrumentation.routes import (
+    observe_auth_activation_duration,
+    observe_auth_request_duration,
+    sync_auth_security_posture,
+    track_auth_attempt,
+    track_auth_error,
+    track_auth_flow_event,
+    track_auth_security_event,
+    track_auth_session_detail,
+    track_auth_session_operation,
+    track_registration,
 )
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import remnawave_client
@@ -192,6 +206,8 @@ async def register(
     **Error Codes:**
     - `EMAIL_EXISTS`: Email already registered (409)
     """
+    started_at = perf_counter()
+    client_context = resolve_mobile_client_context(request.device.platform.value)
     user_repo = MobileUserRepository(db)
     device_repo = MobileDeviceRepository(db)
     auth_service = AuthService()
@@ -207,9 +223,52 @@ async def register(
         result = await use_case.execute(dto_request)
         await db.commit()
         route_operations_total.labels(route="mobile_auth", action="register", status="success").inc()
+        track_registration(method="email")
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="registered",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="activated",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="first_successful_login",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="session_started",
+        )
+        await sync_auth_security_posture(db)
+        observe_auth_activation_duration(
+            channel="mobile",
+            method="password",
+            locale="unknown",
+            stage="first_login",
+            started_at=result.user.created_at,
+        )
+        observe_auth_request_duration("mobile_register", started_at)
         return _auth_response_from_dto(result)
 
     except DuplicateUsernameError:
+        observe_auth_request_duration("mobile_register", started_at)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "EMAIL_EXISTS", "message": "Email already registered"},
@@ -243,6 +302,8 @@ async def login(
     **Error Codes:**
     - `INVALID_CREDENTIALS`: Wrong email/password or account disabled (401)
     """
+    started_at = perf_counter()
+    client_context = resolve_mobile_client_context(request.device.platform.value)
     user_repo = MobileUserRepository(db)
     device_repo = MobileDeviceRepository(db)
     auth_service = AuthService()
@@ -259,9 +320,49 @@ async def login(
         result = await use_case.execute(dto_request)
         await db.commit()
         route_operations_total.labels(route="mobile_auth", action="login", status="success").inc()
+        track_auth_attempt(method="password", success=True)
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="success",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="session_started",
+            status="success",
+        )
+        await sync_auth_security_posture(db)
+        observe_auth_request_duration("password", started_at)
         return _auth_response_from_dto(result)
 
     except InvalidCredentialsError:
+        track_auth_attempt(method="password", success=False)
+        track_auth_error("invalid_credentials")
+        track_auth_flow_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="password",
+            provider="native",
+            locale="unknown",
+            error_type="invalid_credentials",
+        )
+        observe_auth_request_duration("password", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_CREDENTIALS", "message": "Invalid email or password"},
@@ -289,6 +390,7 @@ async def refresh_token(
     **Error Codes:**
     - `INVALID_TOKEN`: Refresh token is invalid, expired, or device mismatch (401)
     """
+    started_at = perf_counter()
     user_repo = MobileUserRepository(db)
     device_repo = MobileDeviceRepository(db)
     auth_service = AuthService()
@@ -305,6 +407,15 @@ async def refresh_token(
             device_id=request.device_id,
         )
         result = await use_case.execute(dto_request)
+        track_auth_session_operation("refresh", "success")
+        track_auth_session_detail(
+            channel="mobile",
+            method="session",
+            operation="refresh",
+            status="success",
+            reason="none",
+        )
+        observe_auth_request_duration("refresh_token", started_at)
         return TokenResponse(
             access_token=result.access_token,
             refresh_token=result.refresh_token,
@@ -313,6 +424,23 @@ async def refresh_token(
         )
 
     except InvalidTokenError:
+        track_auth_error("expired_token")
+        track_auth_session_operation("refresh", "failure")
+        track_auth_session_detail(
+            channel="mobile",
+            method="session",
+            operation="refresh",
+            status="failure",
+            reason="invalid_token",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="session",
+            provider="native",
+            locale="unknown",
+            error_type="expired_token",
+        )
+        observe_auth_request_duration("refresh_token", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"},
@@ -357,8 +485,24 @@ async def logout(
         )
         await use_case.execute(dto_request)
         await db.commit()
+        track_auth_session_operation("logout", "success")
+        track_auth_session_detail(
+            channel="mobile",
+            method="session",
+            operation="logout",
+            status="success",
+            reason="none",
+        )
 
     except InvalidTokenError:
+        track_auth_session_operation("logout", "failure")
+        track_auth_session_detail(
+            channel="mobile",
+            method="session",
+            operation="logout",
+            status="failure",
+            reason="invalid_token",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
@@ -442,6 +586,7 @@ async def register_device(
     try:
         result = await use_case.execute(user_id, _device_dto(request.device))
         await db.commit()
+        await sync_auth_security_posture(db)
         return DeviceResponse(
             device_id=result.device_id,
             registered_at=result.registered_at,
@@ -491,6 +636,8 @@ async def telegram_callback(
     - `INVALID_TELEGRAM_AUTH`: Invalid signature or malformed data (400)
     - `TELEGRAM_AUTH_EXPIRED`: auth_date is older than 24 hours (401)
     """
+    started_at = perf_counter()
+    client_context = resolve_mobile_client_context(request.device.platform.value)
     user_repo = MobileUserRepository(db)
     device_repo = MobileDeviceRepository(db)
     auth_service = AuthService()
@@ -514,14 +661,106 @@ async def telegram_callback(
 
         # Note: Clients should check is_new_user flag in response
         # to determine if this was a new registration.
+        track_auth_attempt(method="telegram", success=True)
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="success",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="session_started",
+            status="success",
+        )
+        if result.is_new_user:
+            track_registration(method="telegram")
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="registered",
+            )
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="activated",
+            )
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="first_successful_login",
+            )
+            observe_auth_activation_duration(
+                channel="mobile",
+                method="telegram",
+                locale="unknown",
+                stage="first_login",
+                started_at=result.user.created_at,
+            )
+        await sync_auth_security_posture(db)
+        observe_auth_request_duration("telegram", started_at)
         return _auth_response_from_dto(result)
 
     except InvalidTelegramAuthError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("invalid_credentials")
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="invalid_credentials",
+        )
+        observe_auth_request_duration("telegram", started_at)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_TELEGRAM_AUTH", "message": str(e.message)},
         )
     except TelegramAuthExpiredError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("expired_token")
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="expired_token",
+        )
+        observe_auth_request_duration("telegram", started_at)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "TELEGRAM_AUTH_EXPIRED", "message": str(e.message)},

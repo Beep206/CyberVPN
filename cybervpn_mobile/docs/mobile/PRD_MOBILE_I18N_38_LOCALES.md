@@ -13,11 +13,11 @@
 
 ## 1. Problem Statement
 
-CyberVPN Mobile currently supports **27 locales**. The target is **36 locales** with **100% translation coverage**. The mobile app is missing **13 locales**, and 2 existing locales (`da`, `zh_Hant`) are outside the target list and must be removed.
+CyberVPN Mobile currently supports **38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE**. The target is **38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE** with **100% translation coverage**. The mobile app is missing **13 locales**, and 2 existing locales (`da`, `zh_Hant`) are outside the target list and must be removed.
 
 ---
 
-## 2. Target Locale List (36 locales)
+## 2. Target Locale List (38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE)
 
 ### High Priority (5)
 
@@ -95,7 +95,7 @@ CyberVPN Mobile currently supports **27 locales**. The target is **36 locales** 
 
 | # | Goal | Metric |
 |---|------|--------|
-| G1 | 100% string coverage | 0 untranslated keys across all 36 locales |
+| G1 | 100% string coverage | 0 untranslated keys across all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE |
 | G2 | 0 hardcoded UI strings | All user-visible text via `AppLocalizations` |
 | G3 | Full RTL support | 5 RTL locales (ar, he, fa, ur, ku) |
 | G4 | Relative date localization | `l10n_formatters.dart` uses ARB, not English fallback |
@@ -131,7 +131,7 @@ CyberVPN Mobile currently supports **27 locales**. The target is **36 locales** 
 | `lib/features/settings/presentation/screens/trusted_wifi_screen.dart` | Modify | Localize 1 error string |
 | `lib/features/profile/presentation/screens/social_accounts_screen.dart` | Modify | Localize ~4 hardcoded strings |
 | `lib/features/profile/presentation/screens/delete_account_screen.dart` | Modify | Localize `'DELETE'` hint text |
-| `test/core/l10n/locale_config_test.dart` | Modify | Update tests for 36 locales, 5 RTL |
+| `test/core/l10n/locale_config_test.dart` | Modify | Update tests for 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE, 5 RTL |
 
 ### 5.2 Hardcoded Strings to Eliminate
 
@@ -172,7 +172,7 @@ These keys replace the hardcoded English fallback in `L10nFormatters._getLocaleS
 
 ### Epic 1: Locale Infrastructure (add 13, remove 2)
 
-**Goal**: Register all 36 locales in configuration, remove `da` and `zh_Hant`.
+**Goal**: Register all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE in configuration, remove `da` and `zh_Hant`.
 
 #### E1.1 Update `locale_config.dart`
 - Replace `supportedLocaleCodes` list with exactly 36 codes
@@ -210,7 +210,7 @@ These keys replace the hardcoded English fallback in `L10nFormatters._getLocaleS
 - Remove `da` -> `da_DK` and `zh_Hant` -> `zh_TW` mappings
 
 #### E1.4 Update tests
-- `locale_config_test.dart`: Expect exactly 36 locales, 5 RTL codes
+- `locale_config_test.dart`: Expect exactly 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE, 5 RTL codes
 - Verify all 36 codes are present in `supportedLocaleCodes`
 - Verify `da` and `zh_Hant` are NOT present
 
@@ -243,7 +243,7 @@ These keys replace the hardcoded English fallback in `L10nFormatters._getLocaleS
 
 #### E2.5 Run `flutter gen-l10n` and verify
 - All generated files compile
-- `AppLocalizations.supportedLocales` lists exactly 36 locales
+- `AppLocalizations.supportedLocales` lists exactly 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 - 0 missing key warnings
 
 ---
@@ -328,7 +328,7 @@ These keys replace the hardcoded English fallback in `L10nFormatters._getLocaleS
 
 #### E6.2 Create coverage report
 - Output: table showing % coverage per locale
-- Target: 100% for all 36 locales
+- Target: 100% for all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 - Flag any locale below 100% as build failure
 
 #### E6.3 Add `flutter gen-l10n` to CI pipeline
@@ -341,7 +341,7 @@ These keys replace the hardcoded English fallback in `L10nFormatters._getLocaleS
 
 | # | Criterion | Verification |
 |---|-----------|-------------|
-| AC1 | Exactly 36 locales in `LocaleConfig.supportedLocaleCodes` | Unit test |
+| AC1 | Exactly 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE in `LocaleConfig.supportedLocaleCodes` | Unit test |
 | AC2 | 36 ARB files exist (1 per target locale) | File count check |
 | AC3 | Every ARB file has 100% of template keys | Validation script |
 | AC4 | 5 RTL locales in `rtlLocaleCodes`: ar, he, fa, ur, ku | Unit test |
@@ -411,7 +411,7 @@ E3, E4, E5 can run in parallel after E2 completes. E6 is the final validation ga
 
 - [ ] `flutter gen-l10n` produces 0 warnings
 - [ ] `flutter test` passes (including updated locale_config_test)
-- [ ] Validation script reports 100% coverage for all 36 locales
+- [ ] Validation script reports 100% coverage for all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE
 - [ ] `grep -r "hardcoded string patterns" lib/` returns 0 results (excluding debug-only)
 - [ ] RTL rendering verified for ar, he, fa, ur, ku
 - [ ] `da` and `zh_Hant` fully removed from codebase

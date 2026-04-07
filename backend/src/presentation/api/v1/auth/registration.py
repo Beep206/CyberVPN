@@ -3,7 +3,7 @@
 import logging
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -16,6 +16,14 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
+from src.infrastructure.monitoring.client_context import resolve_web_client_context
+from src.infrastructure.monitoring.instrumentation.routes import (
+    sync_auth_security_posture,
+    track_auth_flow_event,
+    track_auth_password_identifier_event,
+    track_registration,
+    track_registration_funnel_step,
+)
 from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
@@ -31,7 +39,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def _log_registration_attempt(
     audit_repo: AuditLogRepository,
     success: bool,
-    email: str,
+    email: str | None,
     login: str,
     reason: str | None = None,
     invite_token: str | None = None,
@@ -62,6 +70,7 @@ async def _log_registration_attempt(
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     request: RegisterRequest,
+    http_request: Request,
     invite_token: str | None = Query(
         default=None,
         description="Invite token required for registration when invite-only mode is enabled",
@@ -195,9 +204,68 @@ async def register(
         login=request.login,
         email=request.email,
         password=request.password,
+        tos_accepted=request.tos_accepted,
+        marketing_consent=request.marketing_consent,
         role=role,
         locale=request.locale or "en-EN",
     )
+
+    registration_method = "email" if request.email else "username"
+    password_identifier_type = "email" if request.email else "username"
+    client_context = resolve_web_client_context(
+        http_request.headers.get("User-Agent"),
+        http_request.headers.get("sec-ch-ua-mobile"),
+    )
+
+    track_registration(method=registration_method)
+    track_registration_funnel_step("started")
+    track_auth_password_identifier_event(
+        channel="web",
+        identifier_type=password_identifier_type,
+        client_context=client_context,
+        step="registered",
+    )
+    track_auth_flow_event(
+        channel="web",
+        method="password",
+        provider="native",
+        locale=request.locale,
+        client_context=client_context,
+        step="registered",
+    )
+    if result.otp_sent:
+        track_registration_funnel_step("email_sent")
+        track_auth_password_identifier_event(
+            channel="web",
+            identifier_type="email",
+            client_context=client_context,
+            step="email_sent",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale=request.locale,
+            client_context=client_context,
+            step="email_sent",
+        )
+    elif request.email is None:
+        track_registration_funnel_step("activated")
+        track_auth_password_identifier_event(
+            channel="web",
+            identifier_type="username",
+            client_context=client_context,
+            step="activated",
+        )
+        track_auth_flow_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale=request.locale,
+            client_context=client_context,
+            step="activated",
+        )
+    await sync_auth_security_posture(db, redis_client)
 
     # Log successful registration
     await _log_registration_attempt(
@@ -225,5 +293,9 @@ async def register(
         email=result.user.email or "",
         is_active=result.user.is_active,
         is_email_verified=result.user.is_email_verified,
-        message="Registration successful. Please check your email for verification code.",
+        message=(
+            "Registration successful. Please check your email for verification code."
+            if request.email
+            else "Registration successful. You can sign in with your username and password."
+        ),
     )

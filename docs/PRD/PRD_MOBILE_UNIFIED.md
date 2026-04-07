@@ -26,7 +26,7 @@ This document unifies three separate engineering analyses into a single actionab
 - **574+ hardcoded strings** requiring localization across ~39 files
 - **13 architecture recommendations** for long-term maintainability
 - **0 working tests** (test suite does not compile)
-- **23/27 locales** are effectively untranslated
+- **23/38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE** are effectively untranslated
 - **2 compile errors** in production code, **10+ in test code**
 - **27 warnings** and **60+ info-level issues** from `flutter analyze`
 
@@ -693,7 +693,7 @@ Duration _calculateBackoff() {
 
 ### Phase 4: Internationalization -- 4-6 weeks
 
-**Objective**: Bring the app to production-grade multilingual quality across all 27 locales.
+**Objective**: Bring the app to production-grade multilingual quality across all 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE.
 **Dependency**: Phase 3 (structured errors with `localizedMessage()` must exist).
 
 | # | Task | Description | Files | Issues |
@@ -779,7 +779,7 @@ Text(context.l10n.connect)
 
 | # | Task | Description | Files | Issues |
 |---|------|-------------|-------|--------|
-| 4.6 | **Professional translation for 27 locales** | Replace English placeholder values with real translations. | All 27 ARB files | M12 |
+| 4.6 | **Professional translation for 38 locales: en-EN, ru-RU, zh-CN, hi-IN, id-ID, vi-VN, th-TH, ja-JP, ko-KR, ar-SA, fa-IR, tr-TR, ur-PK, bn-BD, ms-MY, es-ES, kk-KZ, be-BY, my-MM, uz-UZ, ha-NG, yo-NG, ku-IQ, am-ET, fr-FR, tk-TM, he-IL, de-DE, pt-PT, it-IT, nl-NL, pl-PL, fil-PH, uk-UA, cs-CZ, ro-RO, hu-HU, sv-SE** | Replace English placeholder values with real translations. | All 27 ARB files | M12 |
 
 **Tiered priority:**
 

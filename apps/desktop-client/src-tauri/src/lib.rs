@@ -3,10 +3,18 @@ pub mod engine;
 pub mod ipc;
 pub mod tray;
 
+rust_i18n::i18n!("locales", fallback = "en-EN");
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+pub fn set_app_locale(locale: String, app_handle: tauri::AppHandle) {
+    rust_i18n::set_locale(&locale);
+    let _ = crate::tray::setup(&app_handle);
 }
 
 use ipc::models::ConnectionStatus;
@@ -252,6 +260,7 @@ pub fn run() {
         .manage(crate::engine::sys::sentinel::SentinelGuard::new())
         .invoke_handler(tauri::generate_handler![
             greet,
+            set_app_locale,
             ipc::get_profiles,
             ipc::add_profile,
             ipc::connect_profile,

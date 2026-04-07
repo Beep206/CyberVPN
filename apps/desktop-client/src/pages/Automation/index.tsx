@@ -10,10 +10,12 @@ import {
   listenNetworkChanged,
   NetworkProfile
 } from "../../shared/api/ipc";
+import { useTranslation } from "react-i18next";
 
 export function AutomationPage() {
+  const { t } = useTranslation();
   const [isSmartEnabled, setIsSmartEnabled] = useState(false);
-  const [currentNetwork, setCurrentNetwork] = useState<string>("Scanning...");
+  const [currentNetwork, setCurrentNetwork] = useState<string>(t('automation.scanning'));
   const [rules, setRules] = useState<Record<string, NetworkProfile>>({});
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export function AutomationPage() {
 
     const unlisten = listenNetworkChanged((event) => {
       setCurrentNetwork(event.ssid);
-      toast.info(`Network shifted to: ${event.ssid}`);
+      toast.info(t('automation.networkShifted', { ssid: event.ssid }));
     });
 
     return () => {
@@ -34,9 +36,9 @@ export function AutomationPage() {
     try {
       await setSmartConnectStatus(enabled);
       setIsSmartEnabled(enabled);
-      toast.success(enabled ? "Intelligent Automation online." : "Automation suspended.");
+      toast.success(enabled ? t('automation.online') : t('automation.suspended'));
     } catch (e: any) {
-      toast.error(`Automation toggle failed: ${e}`);
+      toast.error(t('automation.toggleFailed', { error: e }));
     }
   };
 
@@ -44,9 +46,9 @@ export function AutomationPage() {
     try {
       await updateNetworkRule(ssid, p);
       setRules((prev) => ({ ...prev, [ssid]: p }));
-      toast.success(`Network "${ssid}" classification applied.`);
+      toast.success(t('automation.ruleApplied', { ssid }));
     } catch (e: any) {
-      toast.error(`Constraint failure: ${e}`);
+      toast.error(t('automation.constraintFailure', { error: e }));
     }
   };
 
@@ -71,17 +73,17 @@ export function AutomationPage() {
         <div>
           <h1 className="text-4xl font-black text-white tracking-widest uppercase flex items-center gap-4">
             <Brain size={36} className="text-[var(--color-neon-pink)] drop-shadow-[0_0_15px_rgba(255,0,255,0.7)]" />
-            Smart Connect
+            {t('automation.title')}
           </h1>
           <p className="text-muted-foreground mt-3 max-w-xl text-lg">
-            Neural environment awareness. Automatically shift VPN protocols and shields based on network hostility.
+            {t('automation.description')}
           </p>
         </div>
         
         <div className="flex flex-col items-end">
           <label className="flex items-center gap-3 cursor-pointer p-2 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
             <span className={`text-sm tracking-widest uppercase font-bold ${isSmartEnabled ? "text-[var(--color-neon-cyan)]" : "text-muted-foreground"}`}>
-              {isSmartEnabled ? "System Active" : "System Dormant"}
+              {isSmartEnabled ? t('automation.systemActive') : t('automation.systemDormant')}
             </span>
             <div className={`relative w-14 h-7 flex items-center rounded-full p-1 transition-colors ${isSmartEnabled ? "bg-[var(--color-neon-cyan)]" : "bg-black"}`}>
               <motion.div
@@ -115,7 +117,7 @@ export function AutomationPage() {
             </div>
             
             <div className="text-center space-y-2">
-              <p className="text-sm font-mono tracking-widest text-[var(--color-neon-cyan)] uppercase">Current Environmental Vector</p>
+              <p className="text-sm font-mono tracking-widest text-[var(--color-neon-cyan)] uppercase">{t('automation.currentVector')}</p>
               <h2 className="text-3xl font-black text-white">{currentNetwork}</h2>
             </div>
             
@@ -125,7 +127,7 @@ export function AutomationPage() {
                 className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
               >
                 <Home size={24} className="text-blue-400" />
-                <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Home</span>
+                <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground">{t('automation.home')}</span>
               </button>
               
               <button 
@@ -133,7 +135,7 @@ export function AutomationPage() {
                 className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
               >
                 <ShieldAlert size={24} className="text-red-400" />
-                <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Hostile</span>
+                <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground">{t('automation.hostile')}</span>
               </button>
             </div>
           </div>
@@ -142,7 +144,7 @@ export function AutomationPage() {
         {/* Configurations List */}
         <div className="space-y-6">
           <h3 className="text-xl font-bold flex items-center gap-3">
-             <Cpu className="text-[var(--color-neon-pink)]" /> Enforced Policies
+             <Cpu className="text-[var(--color-neon-pink)]" /> {t('automation.enforcedPolicies')}
           </h3>
           
           <div className="grid gap-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
@@ -159,7 +161,7 @@ export function AutomationPage() {
                   <div>
                     <h4 className="font-bold font-mono tracking-wide text-white">{ssid}</h4>
                     <span className="text-xs text-muted-foreground uppercase tracking-widest">
-                       {profile.auto_connect ? "Auto-Shield active" : "Trusted Sector"}
+                       {profile.auto_connect ? t('automation.autoShieldActive') : t('automation.trustedSector')}
                     </span>
                   </div>
                 </div>
@@ -175,7 +177,7 @@ export function AutomationPage() {
             {Object.keys(rules).length === 0 && (
               <div className="p-8 border border-dashed border-white/10 rounded-2xl flex flex-col items-center text-center text-muted-foreground/50 gap-4">
                  <ShieldAlert size={32} />
-                 <p className="font-mono text-sm tracking-widest">NO RULES CONFIGURED</p>
+                 <p className="font-mono text-sm tracking-widest">{t('automation.noRules')}</p>
               </div>
             )}
           </div>

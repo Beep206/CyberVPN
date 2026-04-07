@@ -6,8 +6,10 @@ import { RoutingRule, getRoutingRules, addRoutingRule, updateRoutingRule, delete
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Switch } from "../../components/ui/switch";
 import { Label } from "../../components/ui/label";
+import { useTranslation } from "react-i18next";
 
 export function RoutingPage() {
+    const { t } = useTranslation();
     const [rules, setRules] = useState<RoutingRule[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     
@@ -21,7 +23,7 @@ export function RoutingPage() {
             const data = await getRoutingRules();
             setRules(data);
         } catch (e: any) {
-            toast.error("Failed to load routing rules");
+            toast.error(t('routingEngine.loadError'));
         }
     };
 
@@ -36,7 +38,7 @@ export function RoutingPage() {
         const ipList = ips.split(",").map(i => i.trim()).filter(i => i.length > 0);
         
         if (domainList.length === 0 && ipList.length === 0) {
-            toast.error("Please provide at least one Domain or IP");
+            toast.error(t('routingEngine.atLeastOne'));
             return;
         }
 
@@ -50,14 +52,14 @@ export function RoutingPage() {
 
         try {
             await addRoutingRule(newRule);
-            toast.success("Rule added successfully");
+            toast.success(t('routingEngine.ruleAdded'));
             setDomains("");
             setIps("");
             setOutbound("proxy");
             setIsAdding(false);
             fetchRules();
         } catch (error: any) {
-            toast.error(`Failed to add rule: ${error}`);
+            toast.error(t('routingEngine.addError', { error }));
         }
     };
 
@@ -67,17 +69,17 @@ export function RoutingPage() {
             await updateRoutingRule(updated);
             fetchRules();
         } catch (e: any) {
-            toast.error(`Failed to update rule`);
+            toast.error(t('routingEngine.toggleError'));
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await deleteRoutingRule(id);
-            toast.success("Rule deleted");
+            toast.success(t('routingEngine.ruleDeleted'));
             fetchRules();
         } catch (e: any) {
-            toast.error(`Failed to delete rule`);
+            toast.error(t('routingEngine.deleteError'));
         }
     };
 
@@ -87,13 +89,13 @@ export function RoutingPage() {
 
         if (packId === "social") {
              presetDomains = ["domain:twitter.com", "domain:x.com", "domain:facebook.com", "domain:instagram.com", "domain:chatgpt.com"];
-             packName = "Social Media Pack";
+             packName = t('routingEngine.socialPack');
         } else if (packId === "dev") {
              presetDomains = ["domain:github.com", "domain:docker.com", "domain:stackoverflow.com"];
-             packName = "Developer Pack";
+             packName = t('routingEngine.devPack');
         } else if (packId === "stream") {
              presetDomains = ["domain:youtube.com", "domain:twitch.tv", "domain:netflix.com"];
-             packName = "Streamer Pack";
+             packName = t('routingEngine.streamerPack');
         }
 
         const newRule: RoutingRule = {
@@ -105,12 +107,12 @@ export function RoutingPage() {
         };
 
         try {
-            toast.loading(`Injecting ${packName}...`, { id: "preset" });
+            toast.loading(t('routingEngine.injecting', { pack: packName }), { id: "preset" });
             await addRoutingRule(newRule);
-            toast.success(`${packName} injected into the Engine`, { id: "preset" });
+            toast.success(t('routingEngine.injected', { pack: packName }), { id: "preset" });
             fetchRules();
         } catch (error: any) {
-            toast.error(`Injection failed: ${error}`, { id: "preset" });
+            toast.error(t('routingEngine.injectionFailed', { error }), { id: "preset" });
         }
     };
 
@@ -125,30 +127,30 @@ export function RoutingPage() {
             <div className="flex justify-between items-end border-b border-border/50 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold tracking-wider text-[var(--color-matrix-green)] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)] uppercase flex items-center gap-3">
-                        <RouteIcon /> Routing Engine
+                        <RouteIcon /> {t('routingEngine.title')}
                     </h1>
                     <p className="text-muted-foreground mt-2 text-sm tracking-wide">
-                        Configure custom detours and DNS overrides. Rules are evaluated top to bottom.
+                        {t('routingEngine.description')}
                     </p>
                 </div>
                 <button 
                     onClick={() => setIsAdding(!isAdding)}
                     className="flex items-center gap-2 bg-[var(--color-neon-cyan)]/10 hover:bg-[var(--color-neon-cyan)]/20 text-[var(--color-neon-cyan)] border border-[var(--color-neon-cyan)]/50 px-4 py-2 rounded-md transition-all font-bold tracking-widest uppercase text-xs shadow-[0_0_15px_rgba(0,255,255,0.1)]"
                 >
-                    <Plus size={16} /> {isAdding ? "Cancel" : "Add Rule"}
+                    <Plus size={16} /> {isAdding ? t('routingEngine.cancel') : t('routingEngine.addRule')}
                 </button>
             </div>
 
             {isAdding && (
                 <Card className="border-[var(--color-neon-cyan)]/30 bg-black/40 backdrop-blur shadow-[0_0_20px_rgba(0,255,255,0.05)]">
                     <CardHeader>
-                        <CardTitle className="text-[var(--color-neon-cyan)] uppercase tracking-widest text-sm">New Route Directive</CardTitle>
+                        <CardTitle className="text-[var(--color-neon-cyan)] uppercase tracking-widest text-sm">{t('routingEngine.newRouteDirective')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleAdd} className="flex flex-col gap-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label className="text-muted-foreground uppercase text-xs tracking-wider">Domains (comma separated)</Label>
+                                    <Label className="text-muted-foreground uppercase text-xs tracking-wider">{t('routingEngine.domainsLabel')}</Label>
                                     <input 
                                         type="text" 
                                         value={domains}
@@ -158,7 +160,7 @@ export function RoutingPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-muted-foreground uppercase text-xs tracking-wider">IPs / CIDRs (comma separated)</Label>
+                                    <Label className="text-muted-foreground uppercase text-xs tracking-wider">{t('routingEngine.ipsLabel')}</Label>
                                     <input 
                                         type="text" 
                                         value={ips}
@@ -170,20 +172,20 @@ export function RoutingPage() {
                             </div>
                             
                             <div className="space-y-2 w-1/3">
-                                <Label className="text-muted-foreground uppercase text-xs tracking-wider">Target Outbound</Label>
+                                <Label className="text-muted-foreground uppercase text-xs tracking-wider">{t('routingEngine.targetOutbound')}</Label>
                                 <select 
                                     value={outbound}
                                     onChange={e => setOutbound(e.target.value)}
                                     className="flex h-10 w-full rounded-md border border-border/50 bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-matrix-green)]"
                                 >
-                                    <option value="proxy">Proxy</option>
-                                    <option value="direct">Direct (Bypass)</option>
-                                    <option value="block">Block (Reject)</option>
+                                    <option value="proxy">{t('routingEngine.outboundProxy')}</option>
+                                    <option value="direct">{t('routingEngine.outboundDirect')}</option>
+                                    <option value="block">{t('routingEngine.outboundBlock')}</option>
                                 </select>
                             </div>
 
                             <button type="submit" className="mt-2 bg-[var(--color-matrix-green)]/20 hover:bg-[var(--color-matrix-green)]/30 text-[var(--color-matrix-green)] border border-[var(--color-matrix-green)]/50 px-4 py-2 rounded-md transition-all font-bold tracking-widest uppercase text-xs w-fit">
-                                Inject Rule
+                                {t('routingEngine.injectRule')}
                             </button>
                         </form>
                     </CardContent>
@@ -204,8 +206,8 @@ export function RoutingPage() {
                         className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(0,255,255,0.05)] hover:border-[var(--color-neon-cyan)] hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all"
                     >
                          <Hexagon size={28} className="text-[var(--color-neon-cyan)]" />
-                         <div>
-                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-cyan)] uppercase">Social/AI Pack</h3>
+                     <div>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-cyan)] uppercase">{t('routingEngine.socialPack')}</h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">X, Meta, ChatGPT</p>
                          </div>
                     </motion.div>
@@ -219,7 +221,7 @@ export function RoutingPage() {
                     >
                          <Code size={28} className="text-[var(--color-matrix-green)]" />
                          <div>
-                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-matrix-green)] uppercase">Developer Pack</h3>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-matrix-green)] uppercase">{t('routingEngine.devPack')}</h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">GitHub, Docker</p>
                          </div>
                     </motion.div>
@@ -233,7 +235,7 @@ export function RoutingPage() {
                     >
                          <PlaySquare size={28} className="text-[var(--color-neon-pink)]" />
                          <div>
-                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-pink)] uppercase">Streamer Pack</h3>
+                            <h3 className="font-bold tracking-widest text-sm text-[var(--color-neon-pink)] uppercase">{t('routingEngine.streamerPack')}</h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Youtube, Twitch</p>
                          </div>
                     </motion.div>
@@ -243,7 +245,7 @@ export function RoutingPage() {
             <div className="flex flex-col gap-3">
                 {rules.length === 0 && !isAdding && (
                     <div className="text-center py-12 text-muted-foreground/50 border border-dashed border-border/30 rounded-xl bg-black/20">
-                        No custom routing rules defined. All traffic flows through strictly default paths.
+                        {t('routingEngine.noRules')}
                     </div>
                 )}
                 

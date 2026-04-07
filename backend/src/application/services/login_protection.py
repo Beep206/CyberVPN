@@ -24,6 +24,15 @@ class LockoutThreshold:
     duration: timedelta | None  # None = permanent lock
 
 
+@dataclass(frozen=True)
+class FailedAttemptResult:
+    """Structured brute-force outcome for observability and UX."""
+
+    attempts: int
+    lockout_tier: str
+    lockout_applied: bool
+
+
 class LockoutPolicy:
     """Progressive lockout policy."""
 
@@ -49,6 +58,19 @@ class LockoutPolicy:
                 return threshold.duration
         return timedelta(0)  # No lockout
 
+    @classmethod
+    def get_lockout_tier(cls, attempts: int) -> str:
+        """Return a bounded tier label for the given attempt count."""
+        if attempts >= 20:
+            return "permanent"
+        if attempts >= 15:
+            return "tier_3_30m"
+        if attempts >= 10:
+            return "tier_2_5m"
+        if attempts >= 5:
+            return "tier_1_30s"
+        return "none"
+
 
 class LoginProtectionService:
     """Service for managing login brute force protection.
@@ -63,14 +85,14 @@ class LoginProtectionService:
     def __init__(self, redis_client: redis.Redis) -> None:
         self._redis = redis_client
 
-    async def record_failed_attempt(self, identifier: str) -> int:
+    async def record_failed_attempt(self, identifier: str) -> FailedAttemptResult:
         """Record a failed login attempt.
 
         Args:
             identifier: The account identifier (email or username)
 
         Returns:
-            Total number of failed attempts
+            Structured lockout outcome for the current identifier
         """
         key = f"{self.ATTEMPTS_PREFIX}{identifier}"
 
@@ -80,10 +102,14 @@ class LoginProtectionService:
         # Check if lockout should be applied
         lockout_duration = LockoutPolicy.get_lockout_duration(attempts)
 
+        lockout_tier = LockoutPolicy.get_lockout_tier(attempts)
+        lockout_applied = False
+
         if lockout_duration is None:
             # Permanent lock
             lockout_key = f"{self.LOCKOUT_PREFIX}{identifier}"
             await self._redis.set(lockout_key, "permanent")
+            lockout_applied = True
             logger.warning(
                 "Account permanently locked due to excessive failed attempts",
                 extra={"identifier": identifier, "attempts": attempts},
@@ -96,6 +122,7 @@ class LoginProtectionService:
                 int(lockout_duration.total_seconds()),
                 str(attempts),
             )
+            lockout_applied = True
             logger.warning(
                 "Account locked due to failed attempts",
                 extra={
@@ -105,7 +132,11 @@ class LoginProtectionService:
                 },
             )
 
-        return attempts
+        return FailedAttemptResult(
+            attempts=attempts,
+            lockout_tier=lockout_tier,
+            lockout_applied=lockout_applied,
+        )
 
     async def get_attempts(self, identifier: str) -> int:
         """Get number of failed login attempts.
@@ -153,7 +184,7 @@ class LoginProtectionService:
         ttl = await self._redis.ttl(key)
         return max(0, ttl)
 
-    async def reset_on_success(self, identifier: str) -> None:
+    async def reset_on_success(self, identifier: str) -> int:
         """Reset failed attempts on successful login.
 
         Args:
@@ -163,13 +194,14 @@ class LoginProtectionService:
         lockout_key = f"{self.LOCKOUT_PREFIX}{identifier}"
 
         # Only reset if not permanently locked
+        previous_attempts = await self.get_attempts(identifier)
         lockout_value = await self._redis.get(lockout_key)
         if lockout_value == "permanent":
             logger.info(
                 "Successful login on permanently locked account - keeping lock",
                 extra={"identifier": identifier},
             )
-            return
+            return previous_attempts
 
         await self._redis.delete(attempts_key, lockout_key)
 
@@ -177,6 +209,7 @@ class LoginProtectionService:
             "Login attempts reset on successful login",
             extra={"identifier": identifier},
         )
+        return previous_attempts
 
     async def admin_unlock(self, identifier: str) -> bool:
         """Admin action to unlock a locked account.

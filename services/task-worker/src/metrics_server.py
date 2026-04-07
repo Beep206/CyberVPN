@@ -7,11 +7,12 @@ with optional IP allowlist and BasicAuth protection.
 import base64
 import hmac
 import ipaddress
+import os
 from threading import Thread
+from wsgiref.simple_server import make_server
 
 import structlog
-from prometheus_client import REGISTRY, make_wsgi_app
-from wsgiref.simple_server import make_server
+from prometheus_client import REGISTRY, CollectorRegistry, make_wsgi_app, multiprocess
 
 logger = structlog.get_logger(__name__)
 
@@ -46,7 +47,14 @@ def _build_metrics_app(
     basic_auth_user: str | None,
     basic_auth_password: str | None,
 ):
-    app = make_wsgi_app(REGISTRY)
+    multiproc_dir = os.getenv("PROMETHEUS_MULTIPROC_DIR")
+    if multiproc_dir:
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+    else:
+        registry = REGISTRY
+
+    app = make_wsgi_app(registry)
 
     def metrics_app(environ, start_response):
         path = environ.get("PATH_INFO", "")
@@ -116,7 +124,7 @@ def start_metrics_server(
             basic_auth_user=basic_auth_user,
             basic_auth_password=basic_auth_password,
         )
-        server = make_server("0.0.0.0", port, app=app)
+        server = make_server("0.0.0.0", port, app=app)  # noqa: S104 - container-local listener for Prometheus scraping
         logger.info(
             "metrics_server_started",
             port=port,

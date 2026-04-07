@@ -14,6 +14,8 @@ STRICT RULES (see CLAUDE.md + AGENTS.md for full spec):
 - text-decoration: only "none" (overline broken in Outlook).
 """
 
+# ruff: noqa: E501
+
 # -- Shared fragments --------------------------------------------------------
 
 _FONT = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
@@ -38,6 +40,10 @@ def render_otp_template(
     locale: str,
     *,
     dev_banner: bool = False,
+    html_title: str = "Verify Your CyberVPN Account",
+    title: str = "Verify Your Email Address",
+    subtitle: str = "Enter the following code to complete your registration:",
+    disclaimer: str = "If you didn't request this code, you can safely ignore this email.",
 ) -> str:
     """Render email-compatible OTP verification email."""
     banner = _dev_banner_html() if dev_banner else ""
@@ -48,7 +54,7 @@ def render_otp_template(
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Verify Your CyberVPN Account</title>
+    <title>{html_title}</title>
 </head>
 <body bgcolor="{_BG_BODY}" style="margin: 0; padding: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     <!--
@@ -81,14 +87,14 @@ def render_otp_template(
                     <!-- Title -->
                     <tr>
                         <td align="center" style="padding: 30px 40px 0 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; color: {_WHITE};">
-                            Verify Your Email Address
+                            {title}
                         </td>
                     </tr>
 
                     <!-- Subtitle -->
                     <tr>
                         <td align="center" style="padding: 12px 40px 30px 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
-                            Enter the following code to complete your registration:
+                            {subtitle}
                         </td>
                     </tr>
 
@@ -115,7 +121,7 @@ def render_otp_template(
                     <!-- Disclaimer -->
                     <tr>
                         <td align="center" style="padding: 12px 40px 40px 40px; font-family: {_FONT}; font-size: 13px; color: {_DIM};">
-                            If you didn't request this code, you can safely ignore this email.
+                            {disclaimer}
                         </td>
                     </tr>
 

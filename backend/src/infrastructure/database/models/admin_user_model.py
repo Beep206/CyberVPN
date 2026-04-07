@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, DateTime, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, String, func, Integer, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -49,6 +49,24 @@ class AdminUserModel(Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     last_login_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+
+    # Modern Auth Tracking (Devise-style)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sign_in_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    current_sign_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    current_sign_in_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # SaaS/VPN Anti-Fraud & Legal Compliance
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    ban_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fraud_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(20), default="low", nullable=False)
+    tos_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    marketing_consent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    referred_by_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("admin_users.id"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

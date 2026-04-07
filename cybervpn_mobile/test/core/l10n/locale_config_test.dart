@@ -6,7 +6,7 @@ import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 
 void main() {
   group('LocaleConfig', () {
-    test('supportedLocaleCodes has 36 locales', () {
+    test('supportedLocaleCodes has 38 locales', () {
       expect(LocaleConfig.supportedLocaleCodes.length, equals(38));
     });
 
@@ -61,7 +61,7 @@ void main() {
         'ja', 'ko', 'he', 'de', 'pt', 'it', 'nl', 'pl',
         'fil', 'uk', 'cs', 'ro', 'hu', 'sv',
       ];
-      // User listed 36, but Additional group actually has 14 items = 38 total
+      // Additional group actually has 14 items = 38 total
       expect(expected.length, equals(38));
       for (final code in expected) {
         expect(

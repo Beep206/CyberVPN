@@ -23,8 +23,10 @@ import {
   Box,
   Route
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function SplitTunnelingPage() {
+  const { t } = useTranslation();
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -45,7 +47,7 @@ export function SplitTunnelingPage() {
         setSelectedApps(new Set(savedApps));
         setMode(savedMode as "allow" | "disallow");
       } catch (e: any) {
-        toast.error(`Failed to load apps: ${e}`);
+        toast.error(t('splitTunneling.loadError', { error: e }));
       } finally {
         setLoading(false);
       }
@@ -88,7 +90,7 @@ export function SplitTunnelingPage() {
     });
 
     setSelectedApps(next);
-    toast.success(`Applied ${preset} preset!`);
+    toast.success(t('splitTunneling.appliedPreset', { preset }));
   };
 
   const handleSave = async () => {
@@ -96,9 +98,9 @@ export function SplitTunnelingPage() {
     try {
       await saveSplitTunnelingMode(mode);
       await saveSplitTunnelingApps(Array.from(selectedApps));
-      toast.success("Split tunneling configuration saved!");
+      toast.success(t('splitTunneling.saveSuccess'));
     } catch (e: any) {
-      toast.error(`Failed to save: ${e}`);
+      toast.error(t('splitTunneling.saveError', { error: e }));
     } finally {
       setIsSaving(false);
     }
@@ -115,10 +117,10 @@ export function SplitTunnelingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--color-matrix-green)] to-[var(--color-neon-cyan)] bg-clip-text text-transparent">
-            Split Tunneling
+            {t('splitTunneling.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Intelligently route specific applications through or around the VPN.
+            {t('splitTunneling.description')}
           </p>
         </div>
         <Button
@@ -127,7 +129,7 @@ export function SplitTunnelingPage() {
           className="bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 gap-2"
         >
           {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-          Save Configuration
+          {t('splitTunneling.saveConfig')}
         </Button>
       </div>
 
@@ -137,7 +139,7 @@ export function SplitTunnelingPage() {
           <div className="p-6 rounded-xl border border-[var(--color-matrix-green)]/30 bg-black/40 shadow-[0_0_15px_rgba(0,255,136,0.1)]">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Route size={20} className="text-[var(--color-matrix-green)]" />
-              Operation Mode
+              {t('splitTunneling.operationMode')}
             </h2>
             
             <div className="space-y-4">
@@ -154,10 +156,10 @@ export function SplitTunnelingPage() {
                     size={20}
                     className={mode === "allow" ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"}
                   />
-                  <span className="font-medium text-[var(--color-matrix-green)]">Exclusive VPN (Allow)</span>
+                  <span className="font-medium text-[var(--color-matrix-green)]">{t('splitTunneling.allowMode')}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  ONLY selected apps will be secured by the VPN. All other traffic skips the tunnel.
+                  {t('splitTunneling.allowDesc')}
                 </p>
               </button>
 
@@ -174,17 +176,17 @@ export function SplitTunnelingPage() {
                     size={20}
                     className={mode === "disallow" ? "text-red-500" : "text-muted-foreground"}
                   />
-                  <span className="font-medium text-red-500">Bypass VPN (Disallow)</span>
+                  <span className="font-medium text-red-500">{t('splitTunneling.disallowMode')}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Selected apps will BYPASS the VPN. All other traffic is secured by default.
+                  {t('splitTunneling.disallowDesc')}
                 </p>
               </button>
             </div>
           </div>
 
           <div className="p-6 rounded-xl border border-border/50 bg-black/40">
-            <h2 className="text-lg font-semibold mb-4 text-white">Quick Presets</h2>
+            <h2 className="text-lg font-semibold mb-4 text-white">{t('splitTunneling.quickPresets')}</h2>
             <div className="space-y-3">
               <Button
                 variant="outline"
@@ -192,7 +194,7 @@ export function SplitTunnelingPage() {
                 onClick={() => applyPreset("gaming")}
                 disabled={loading}
               >
-                <Gamepad2 size={18} /> Add Gaming Clients
+                <Gamepad2 size={18} /> {t('splitTunneling.gaming')}
               </Button>
               <Button
                 variant="outline"
@@ -200,7 +202,7 @@ export function SplitTunnelingPage() {
                 onClick={() => applyPreset("browsing")}
                 disabled={loading}
               >
-                <Globe size={18} /> Add Web Browsers
+                <Globe size={18} /> {t('splitTunneling.browsing')}
               </Button>
             </div>
           </div>
@@ -211,7 +213,7 @@ export function SplitTunnelingPage() {
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <Input
-              placeholder="Search installed applications..."
+              placeholder={t('splitTunneling.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 bg-black/50 border-border/50 focus-visible:ring-[var(--color-matrix-green)]"
@@ -234,7 +236,7 @@ export function SplitTunnelingPage() {
             ) : filteredApps.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
                 <Box size={48} className="mb-4" />
-                <p>No compatible applications found.</p>
+                <p>{t('splitTunneling.noApps')}</p>
               </div>
             ) : (
               <AnimatePresence>

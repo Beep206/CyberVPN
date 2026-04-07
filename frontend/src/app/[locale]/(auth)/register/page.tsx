@@ -33,6 +33,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [acceptTerms, setAcceptTerms] = useState(false);
+    const [marketingConsent, setMarketingConsent] = useState(false);
     const isEmailMode = !usernameOnly;
     const identifierValue = isEmailMode ? email : username;
     const identifierLabel = isEmailMode ? t('emailLabel') : t('usernameLabel');
@@ -78,10 +79,10 @@ export default function RegisterPage() {
 
         try {
             if (usernameOnly) {
-                await register(username, password, { mode: 'username' });
+                await register(username, password, { mode: 'username', tos_accepted: acceptTerms, marketing_consent: marketingConsent });
                 router.push(`/${locale}/login?registered=true`);
             } else {
-                await register(email, password);
+                await register(email, password, { mode: 'email', tos_accepted: acceptTerms, marketing_consent: marketingConsent });
                 router.push(`/${locale}/verify?email=${encodeURIComponent(email)}`);
             }
         } catch {
@@ -232,6 +233,25 @@ export default function RegisterPage() {
                         <Link href="/privacy-policy" className="touch-target inline-flex items-center text-neon-cyan hover:underline">
                             {t('privacyLink')}
                         </Link>
+                    </span>
+                </label>
+
+                {/* Marketing consent checkbox */}
+                <label className="touch-target flex items-start gap-3 cursor-pointer group mt-4">
+                    <div className="relative mt-0.5">
+                        <input
+                            type="checkbox"
+                            checked={marketingConsent}
+                            onChange={(e) => setMarketingConsent(e.target.checked)}
+                            className="peer sr-only"
+                            aria-label={t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive marketing emails'}
+                        />
+                        <div className="w-5 h-5 rounded border border-grid-line bg-terminal-bg peer-checked:bg-neon-cyan peer-checked:border-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50 transition-all flex items-center justify-center">
+                            {marketingConsent && <Check className="h-3 w-3 text-black" />}
+                        </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
+                        {t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive news, special offers, and other updates'}
                     </span>
                 </label>
 
