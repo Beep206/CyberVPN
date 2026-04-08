@@ -4,7 +4,19 @@ import type { components } from '@/lib/api/generated/types';
 export type ServerStatus = components['schemas']['ServerStatus'];
 
 /** Frontend-only — backend does not expose a VpnProtocol enum */
-export type VpnProtocol = 'wireguard' | 'vless' | 'xhttp';
+export type VpnProtocol =
+  | 'wireguard'
+  | 'vless'
+  | 'vmess'
+  | 'trojan'
+  | 'shadowsocks'
+  | 'xhttp'
+  | 'reality'
+  | 'grpc'
+  | 'kcp'
+  | 'hysteria2'
+  | 'unknown'
+  | (string & {});
 
 /**
  * Frontend-only display model for the servers data grid / cards.

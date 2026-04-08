@@ -23,9 +23,12 @@ class ServerResponse(BaseModel):
     is_disabled: bool
     created_at: datetime
     updated_at: datetime
+    country_code: str | None = None
     traffic_used_bytes: int
     inbound_count: int
     users_online: int
+    xray_version: str | None = None
+    vpn_protocol: str | None = None
 
 
 class CreateServerRequest(BaseModel):

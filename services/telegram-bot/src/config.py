@@ -46,6 +46,25 @@ class BackendSettings(BaseSettings):
     retry_backoff: Annotated[float, Field(gt=0)] = 0.5
 
 
+class AuthBackendSettings(BaseSettings):
+    """Dedicated auth backend for Telegram magic-link completion."""
+
+    model_config = SettingsConfigDict(env_prefix="AUTH_BACKEND_")
+
+    api_url: AnyHttpUrl | None = None
+    internal_secret: SecretStr | None = None
+    timeout: Annotated[int, Field(gt=0, le=120)] = 30
+
+    @model_validator(mode="after")
+    def validate_pair(self) -> AuthBackendSettings:
+        has_url = self.api_url is not None
+        has_secret = self.internal_secret is not None and bool(self.internal_secret.get_secret_value().strip())
+        if has_url != has_secret:
+            msg = "AUTH_BACKEND_API_URL and AUTH_BACKEND_INTERNAL_SECRET must be configured together"
+            raise ValueError(msg)
+        return self
+
+
 class RedisSettings(BaseSettings):
     """Redis/Valkey connection settings."""
 
@@ -233,6 +252,7 @@ class BotSettings(BaseSettings):
     # ── Nested groups ────────────────────────────────────────────────────
     webhook: WebhookSettings = Field(default_factory=WebhookSettings)
     backend: BackendSettings = Field(default_factory=BackendSettings)
+    auth_backend: AuthBackendSettings = Field(default_factory=AuthBackendSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     cryptobot: CryptoBotSettings = Field(default_factory=CryptoBotSettings)
     yookassa: YooKassaSettings = Field(default_factory=YooKassaSettings)

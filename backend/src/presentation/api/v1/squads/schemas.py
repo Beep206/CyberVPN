@@ -1,5 +1,7 @@
 """Squad API schemas for Remnawave proxy."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -11,14 +13,14 @@ class CreateSquadRequest(BaseModel):
             "example": {
                 "name": "Premium Users",
                 "squad_type": "internal",
-                "max_members": 100,
-                "is_active": True,
+                "inbounds": ["985d2bf6-b0c5-4299-8c75-bd78422bb47d"],
             }
         }
     )
 
     name: str = Field(..., min_length=1, max_length=100, description="Squad name")
-    squad_type: str = Field(..., min_length=1, max_length=50, description="Squad type (internal/external)")
+    squad_type: Literal["internal", "external"] = Field(..., description="Squad type")
+    inbounds: list[str] = Field(default_factory=list, description="Internal squad inbound UUIDs")
     max_members: int | None = Field(None, ge=1, le=10_000, description="Maximum squad members")
     is_active: bool = Field(True, description="Whether squad is active")
     description: str | None = Field(None, max_length=500, description="Squad description")

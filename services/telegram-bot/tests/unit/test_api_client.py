@@ -142,7 +142,7 @@ class TestAPIClientGetUser:
         }
 
         with respx.mock:
-            route = respx.get("https://api.test.cybervpn.local/telegram/users/123456").mock(
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456").mock(
                 return_value=httpx.Response(200, json=user_data)
             )
 
@@ -158,7 +158,7 @@ class TestAPIClientGetUser:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/999999").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/999999").mock(
                 return_value=httpx.Response(404, json={"detail": "User not found"})
             )
 
@@ -185,11 +185,16 @@ class TestAPIClientRegisterUser:
         }
 
         with respx.mock:
-            route = respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            route = respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=httpx.Response(200, json=expected_response)
             )
 
-            result = await client.register_user(telegram_id=123456, username="newuser", language="en")
+            result = await client.register_user(
+                telegram_id=123456,
+                username="newuser",
+                first_name="New",
+                language="en",
+            )
 
             assert result == expected_response
             assert route.called
@@ -211,7 +216,7 @@ class TestAPIClientRegisterUser:
         }
 
         with respx.mock:
-            route = respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            route = respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=httpx.Response(200, json=expected_response)
             )
 
@@ -227,7 +232,7 @@ class TestAPIClientRegisterUser:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=httpx.Response(409, json={"detail": "User already exists"})
             )
 
@@ -310,7 +315,7 @@ class TestAPIClientGetAvailablePlans:
         ]
 
         with respx.mock:
-            route = respx.get("https://api.test.cybervpn.local/telegram/plans").mock(
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/plans").mock(
                 return_value=httpx.Response(200, json=plans)
             )
 
@@ -328,14 +333,29 @@ class TestAPIClientGetAvailablePlans:
         plans = [{"id": "custom", "name": "Custom Plan"}]
 
         with respx.mock:
-            route = respx.get(
-                "https://api.test.cybervpn.local/telegram/plans",
-                params={"telegram_id": 123456},
-            ).mock(return_value=httpx.Response(200, json=plans))
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/plans").mock(
+                return_value=httpx.Response(200, json=plans)
+            )
 
             result = await client.get_available_plans(telegram_id=123456)
 
             assert result == plans
+            assert route.called
+
+        await client.close()
+
+    async def test_get_plans_returns_empty_list_on_backend_error(self, mock_settings: BotSettings) -> None:
+        """Test plans retrieval degrades gracefully when catalog is unavailable."""
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+
+        with respx.mock:
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/plans").mock(
+                return_value=httpx.Response(500, json={"detail": "Internal server error"})
+            )
+
+            result = await client.get_available_plans()
+
+            assert result == []
             assert route.called
 
         await client.close()
@@ -350,7 +370,7 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(401, json={"detail": "Unauthorized"})
             )
 
@@ -366,7 +386,7 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(
                     429,
                     json={"detail": "Too many requests"},
@@ -387,7 +407,7 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(500, json={"detail": "Internal server error"})
             )
 
@@ -403,7 +423,7 @@ class TestAPIClientErrorHandling:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(418, json={"detail": "I'm a teapot"})
             )
 
@@ -431,7 +451,7 @@ class TestCircuitBreakerIntegration:
         client._circuit = CircuitBreaker(failure_threshold=3)
 
         with respx.mock:
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(500, json={"detail": "Error"})
             )
 
@@ -461,7 +481,7 @@ class TestCircuitBreakerIntegration:
 
         with respx.mock:
             # Fail to open circuit - will retry and hit threshold during first call
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(return_value=httpx.Response(500))
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(return_value=httpx.Response(500))
 
             # First call retries twice, recording 2 failures and opening circuit
             with pytest.raises(ServerError):
@@ -476,7 +496,7 @@ class TestCircuitBreakerIntegration:
             assert client._circuit.state == CircuitState.HALF_OPEN
 
             # Successful request should close it
-            respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(200, json={"telegram_id": 123})
             )
 
@@ -496,7 +516,7 @@ class TestRetryLogic:
 
         with respx.mock:
             # Simulate connection error
-            route = respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 side_effect=httpx.ConnectError("Connection failed")
             )
 
@@ -513,7 +533,7 @@ class TestRetryLogic:
         client = CyberVPNAPIClient(settings=mock_settings.backend)
 
         with respx.mock:
-            route = respx.get("https://api.test.cybervpn.local/telegram/users/123").mock(
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 return_value=httpx.Response(404, json={"detail": "Not found"})
             )
 

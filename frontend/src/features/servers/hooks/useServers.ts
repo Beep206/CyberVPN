@@ -24,6 +24,14 @@ interface ServerApiResponse {
   traffic_used_bytes?: number;
   users_online?: number;
   created_at?: string;
+  vpn_protocol?: string | null;
+}
+
+function normalizeProtocol(protocol?: string | null): VpnProtocol {
+  const value = protocol?.trim().toLowerCase();
+  if (!value) return 'unknown';
+  if (value === 'hy2') return 'hysteria2';
+  return value as VpnProtocol;
 }
 
 function mapServerResponse(raw: ServerApiResponse): Server {
@@ -39,7 +47,7 @@ function mapServerResponse(raw: ServerApiResponse): Server {
     name: raw.name,
     location: [raw.city, raw.country_code].filter(Boolean).join(', ') || raw.address,
     ip: `${raw.address}:${raw.port}`,
-    protocol: 'wireguard' as VpnProtocol,
+    protocol: normalizeProtocol(raw.vpn_protocol),
     status: statusMap[raw.status] ?? 'offline',
     load: raw.users_online ? Math.min(Math.round((raw.users_online / 100) * 100), 100) : 0,
     uptime: raw.created_at ? formatUptime(raw.created_at) : '—',

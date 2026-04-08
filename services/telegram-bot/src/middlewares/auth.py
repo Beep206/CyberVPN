@@ -88,6 +88,12 @@ class AuthMiddleware(BaseMiddleware):
         data["promo_code"] = promo_code
         user_data = None
 
+        if self._should_bypass_user_bootstrap(event):
+            data["user"] = None
+            data["telegram_user"] = telegram_user
+            logger.info("auth_bootstrap_bypassed", telegram_id=telegram_id, reason="telegram_magic_link")
+            return await handler(event, data)
+
         # Try cache first
         user_data = await self._cache.get_user(telegram_id)
 
@@ -175,6 +181,7 @@ class AuthMiddleware(BaseMiddleware):
             user_data = await self._api.register_user(
                 telegram_id=telegram_id,
                 username=username,
+                first_name=telegram_user.first_name,
                 language=language,
                 referrer_id=referrer_id,
             )
@@ -223,3 +230,10 @@ class AuthMiddleware(BaseMiddleware):
             return decode_payload(payload)
         except Exception:
             return payload
+
+    @classmethod
+    def _should_bypass_user_bootstrap(cls, event: TelegramObject) -> bool:
+        if not isinstance(event, Message):
+            return False
+        payload = cls._parse_start_payload(getattr(event, "text", None))
+        return bool(payload and payload.startswith("auth_"))

@@ -33,13 +33,6 @@ exporters:
     tls:
       insecure: true
 
-  # Export metrics to Prometheus (OTEL Collector's own metrics)
-  prometheus:
-    endpoint: "0.0.0.0:8888"
-    namespace: otelcol
-    const_labels:
-      service: otel-collector
-
   # Debug exporter for debugging (optional, can disable in production)
   debug:
     verbosity: basic
@@ -53,17 +46,11 @@ service:
       processors: [memory_limiter, batch, resource]
       exporters: [otlp/tempo, debug]
 
-    # Collector's own metrics
-    metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [prometheus]
-
   telemetry:
     logs:
       level: info
     metrics:
       level: detailed
-      address: 0.0.0.0:8889
+      address: 0.0.0.0:8888
 
   extensions: []

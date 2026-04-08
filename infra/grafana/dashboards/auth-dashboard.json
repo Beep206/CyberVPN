@@ -1125,7 +1125,7 @@
           "sort": "none"
         }
       },
-      "title": "OAuth Providers (24h)",
+      "title": "Identity Providers (24h)",
       "type": "bargauge",
       "targets": [
         {
@@ -1133,7 +1133,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-      "expr": "(sum by (provider) (increase(oauth_attempts_total{status=\"success\"}[24h])) + sum by (provider) ((min_over_time(oauth_attempts_total{status=\"success\"}[24h])) unless (oauth_attempts_total{status=\"success\"} offset 24h))) or label_replace((((scalar(sum(oauth_attempts_total{status=\"success\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"provider\", \"no_data\", \"\", \"\")",
+      "expr": "(sum by (provider) (increase(auth_flow_events_total{provider!=\"\",step=\"login\",status=\"success\"}[24h])) + sum by (provider) ((min_over_time(auth_flow_events_total{provider!=\"\",step=\"login\",status=\"success\"}[24h])) unless (auth_flow_events_total{provider!=\"\",step=\"login\",status=\"success\"} offset 24h))) or label_replace((((scalar(sum(auth_flow_events_total{provider!=\"\",step=\"login\",status=\"success\"}) or vector(0)) == bool 0) * vector(1)) > 0), \"provider\", \"no_data\", \"\", \"\")",
           "legendFormat": "{{ provider }}",
           "refId": "A",
           "instant": true,

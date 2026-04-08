@@ -71,7 +71,7 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123456"
+                "https://api.test.cybervpn.local/telegram/bot/user/123456"
             ).mock(return_value=respx.MockResponse(200, json=user_data))
 
             user = User(id=123456, is_bot=False, first_name="Test")
@@ -109,7 +109,7 @@ class TestAuthMiddleware:
         with respx.mock:
             # First call returns 404
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/999999"
+                "https://api.test.cybervpn.local/telegram/bot/user/999999"
             ).mock(
                 return_value=respx.MockResponse(
                     404, json={"detail": "Not found"}
@@ -118,7 +118,7 @@ class TestAuthMiddleware:
 
             # Registration succeeds
             respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
+                "https://api.test.cybervpn.local/telegram/bot/user"
             ).mock(return_value=respx.MockResponse(200, json=new_user_data))
 
             user = User(
@@ -157,11 +157,11 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/555"
+                "https://api.test.cybervpn.local/telegram/bot/user/555"
             ).mock(return_value=respx.MockResponse(404))
 
             registration_route = respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
+                "https://api.test.cybervpn.local/telegram/bot/user"
             ).mock(
                 return_value=respx.MockResponse(
                     200, json={"telegram_id": 555}
@@ -203,11 +203,11 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/666"
+                "https://api.test.cybervpn.local/telegram/bot/user/666"
             ).mock(return_value=respx.MockResponse(404))
 
             respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
+                "https://api.test.cybervpn.local/telegram/bot/user"
             ).mock(
                 return_value=respx.MockResponse(
                     200, json={"telegram_id": 666, "language": "ru"}
@@ -247,7 +247,7 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/123"
+                "https://api.test.cybervpn.local/telegram/bot/user/123"
             ).mock(
                 return_value=respx.MockResponse(
                     500, json={"detail": "Server error"}
@@ -283,12 +283,12 @@ class TestAuthMiddleware:
         with respx.mock:
             # Get returns 404
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/777"
+                "https://api.test.cybervpn.local/telegram/bot/user/777"
             ).mock(return_value=respx.MockResponse(404))
 
             # Registration fails
             respx.post(
-                "https://api.test.cybervpn.local/telegram/users"
+                "https://api.test.cybervpn.local/telegram/bot/user"
             ).mock(
                 return_value=respx.MockResponse(
                     500, json={"detail": "Registration failed"}
@@ -324,7 +324,7 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/888"
+                "https://api.test.cybervpn.local/telegram/bot/user/888"
             ).mock(return_value=respx.MockResponse(200, json=user_data))
 
             user = User(id=888, is_bot=False, first_name="Test")
@@ -382,7 +382,7 @@ class TestAuthMiddleware:
 
         with respx.mock:
             api_route = respx.get(
-                "https://api.test.cybervpn.local/telegram/users/111"
+                "https://api.test.cybervpn.local/telegram/bot/user/111"
             ).mock(return_value=respx.MockResponse(200, json=user_data))
 
             user = User(id=111, is_bot=False, first_name="Test")
@@ -417,7 +417,7 @@ class TestAuthMiddleware:
 
         with respx.mock:
             respx.get(
-                "https://api.test.cybervpn.local/telegram/users/222"
+                "https://api.test.cybervpn.local/telegram/bot/user/222"
             ).mock(return_value=respx.MockResponse(200, json=user_data))
 
             user = User(id=222, is_bot=False, first_name="Test")

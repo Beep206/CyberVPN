@@ -79,6 +79,13 @@ async def _handle_start(
                 status_code=exc.status_code,
                 detail=exc.detail,
             )
+        if magic_auth_success:
+            await message.answer(
+                "<b>Success!</b>\nYou can return to the browser - sign-in completed automatically.",
+                reply_markup=main_menu_keyboard(i18n),
+            )
+            logger.info("start_command_completed", user_id=user_id, flow="magic_link_auth")
+            return
 
     # Update user data on /start and ensure registration exists
     try:
@@ -86,6 +93,7 @@ async def _handle_start(
             user = await api_client.register_user(
                 telegram_id=user_id,
                 username=username or None,
+                first_name=first_name or None,
                 language=language_code,
                 referrer_id=referrer_id,
             )
@@ -156,7 +164,9 @@ async def start_with_deep_link_handler(
     )
 
 
-@router.message(CommandStart())
+# aiogram 3.27 changed the default deep_link behavior to "accept both";
+# keep plain /start explicit so auth/referral payloads stay on the deep-link route.
+@router.message(CommandStart(deep_link=False))
 async def start_handler(
     message: Message,
     command: CommandObject,

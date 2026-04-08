@@ -14,6 +14,7 @@ from src.presentation.api.v1.invites.routes import router as invite_codes_router
 from src.presentation.api.v1.keygen.routes import router as keygen_router
 from src.presentation.api.v1.mobile_auth.routes import router as mobile_auth_router
 from src.presentation.api.v1.monitoring.routes import router as monitoring_router
+from src.presentation.api.v1.node_plugins.routes import router as node_plugins_router
 from src.presentation.api.v1.notifications.routes import router as notifications_router
 from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.partners.routes import router as partners_router
@@ -92,6 +93,7 @@ api_router.include_router(fcm_router)
 api_router.include_router(hosts_router)
 api_router.include_router(config_profiles_router)
 api_router.include_router(inbounds_router)
+api_router.include_router(node_plugins_router)
 api_router.include_router(squads_router)
 api_router.include_router(snippets_router)
 api_router.include_router(keygen_router)

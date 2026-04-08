@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Remnawave API
     remnawave_url: str = "http://localhost:3000"
     remnawave_token: SecretStr
+    remnawave_default_user_expire_days: int = 7
+    remnawave_default_internal_squad_uuid: str = ""
+    remnawave_default_internal_squad_name: str = "Default-Squad"
 
     # Helix adapter
     helix_enabled: bool = False
@@ -82,6 +85,7 @@ class Settings(BaseSettings):
     telegram_bot_token: SecretStr = SecretStr("")
     telegram_bot_username: str = ""  # Bot username without @
     telegram_auth_max_age_seconds: int = 86400  # 24 hours
+    telegram_bot_internal_secret: SecretStr = SecretStr("")
 
     # Google OAuth (optional)
     google_client_id: str = ""

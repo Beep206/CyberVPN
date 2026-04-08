@@ -128,6 +128,12 @@ class OAuthLoginUseCase:
         ) and trusted_provider
 
         is_telegram = provider == "telegram"
+        telegram_user_id: int | None = None
+        if is_telegram:
+            try:
+                telegram_user_id = int(provider_user_id)
+            except (TypeError, ValueError):
+                telegram_user_id = None
         is_new_user = False
 
         # Step 1: Check if OAuth account already exists (provider + provider_user_id)
@@ -157,9 +163,16 @@ class OAuthLoginUseCase:
             user = None
             if email:
                 user = await self._user_repo.get_by_email(email)
+            elif telegram_user_id is not None:
+                user = await self._user_repo.get_by_telegram_id(telegram_user_id)
 
             if user:
-                if not (is_telegram or (email_trusted and email_verified)):
+                if is_telegram and telegram_user_id is not None:
+                    logger.info(
+                        "Auto-linking Telegram OAuth to existing user by telegram_id",
+                        extra={"provider": provider, "telegram_id": telegram_user_id, "user_id": str(user.id)},
+                    )
+                elif not (is_telegram or (email_trusted and email_verified)):
                     logger.warning(
                         "Rejected automatic OAuth email linking due to untrusted provider email",
                         extra={"provider": provider, "email": email, "user_id": str(user.id)},
@@ -218,7 +231,7 @@ class OAuthLoginUseCase:
                         await self._remnawave_gateway.create_user(
                             username=login,
                             email=email or "",
-                            telegram_id=int(provider_user_id) if is_telegram else None,
+                            telegram_id=telegram_user_id if is_telegram else None,
                         )
                         logger.info(
                             "Remnawave user created for OAuth registration",

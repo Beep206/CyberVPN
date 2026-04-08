@@ -8,6 +8,7 @@ Security improvements:
 """
 
 import json
+import hmac
 import logging
 import re
 import uuid
@@ -16,7 +17,7 @@ from time import perf_counter
 from urllib.parse import urlparse
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -70,7 +71,7 @@ from src.presentation.api.v1.oauth.schemas import (
     TelegramMagicLinkResponse,
     TelegramMagicLinkStatusResponse,
 )
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_user, optional_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -111,6 +112,13 @@ def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = N
 
 def _get_magic_link_key(token: str) -> str:
     return f"auth_magic_link:{token}"
+
+
+def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
+    configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
 
 
 def _is_allowed_oauth_redirect_uri(redirect_uri: str) -> bool:
@@ -486,9 +494,16 @@ async def create_telegram_magic_link(
 async def complete_telegram_magic_link(
     payload: TelegramMagicLinkCompleteRequest,
     redis_client: redis.Redis = Depends(get_redis),
-    _current_user: AdminUserModel = Depends(get_current_active_user),
+    authenticated_user: AdminUserModel | None = Depends(optional_user),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
 ) -> TelegramMagicLinkCompleteResponse:
     """Accept trusted Telegram bot data for a pending magic-link session."""
+    if authenticated_user is None and not _is_valid_telegram_bot_secret(telegram_bot_secret):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+        )
+
     redis_key = _get_magic_link_key(payload.token)
     current_status = await redis_client.get(redis_key)
 

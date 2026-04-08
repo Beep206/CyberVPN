@@ -16,7 +16,9 @@ from remnawave.controllers import (
     InfraBillingController,
     InternalSquadsController,
     KeygenController,
+    MetadataController,
     NodesController,
+    NodePluginsController,
     SubscriptionController,
     SubscriptionsController,
     SubscriptionsSettingsController,
@@ -80,7 +82,9 @@ class RemnawaveSDK:
         self.infra_billing = InfraBillingController(self._client)
         self.internal_squads = InternalSquadsController(self._client)
         self.keygen = KeygenController(self._client)
+        self.metadata = MetadataController(self._client)
         self.nodes = NodesController(self._client)
+        self.node_plugins = NodePluginsController(self._client)
         self.subscription = SubscriptionController(self._client)
         self.subscriptions = SubscriptionsController(self._client)
         self.subscriptions_settings = SubscriptionsSettingsController(self._client)

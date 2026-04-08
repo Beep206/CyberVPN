@@ -93,7 +93,7 @@ def create_dispatcher(settings: BotSettings, bot: Bot) -> Dispatcher:
         decode_responses=True,
     )
     cache = CacheService(redis=redis, key_prefix=settings.redis.key_prefix)
-    api_client = CyberVPNAPIClient(settings.backend)
+    api_client = CyberVPNAPIClient(settings.backend, auth_backend=settings.auth_backend)
 
     dp["settings"] = settings
     dp["api_client"] = api_client

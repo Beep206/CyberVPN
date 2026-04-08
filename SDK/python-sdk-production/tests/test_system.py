@@ -2,7 +2,9 @@ import pytest
 
 from remnawave.models import (
     GetBandwidthStatsResponseDto,
+    GetMetadataResponseDto,
     GetNodesStatisticsResponseDto,
+    GetRecapResponseDto,
     GetStatsResponseDto,
     GetNodesMetricsResponseDto,
     GetRemnawaveHealthResponseDto,
@@ -26,6 +28,23 @@ class TestSystemStatistics:
         bandwidth_stats = await remnawave.system.get_bandwidth_stats()
         assert isinstance(bandwidth_stats, GetBandwidthStatsResponseDto)
         assert hasattr(bandwidth_stats, 'current_year')
+
+    @pytest.mark.asyncio
+    async def test_get_metadata(self, remnawave):
+        """Тест получения системной метаинформации"""
+        metadata = await remnawave.system.get_metadata()
+        assert isinstance(metadata, GetMetadataResponseDto)
+        assert metadata.version
+        assert metadata.build.time
+        assert metadata.git.backend.commit_sha
+
+    @pytest.mark.asyncio
+    async def test_get_recap(self, remnawave):
+        """Тест получения общего recap по системе"""
+        recap = await remnawave.system.get_recap()
+        assert isinstance(recap, GetRecapResponseDto)
+        assert hasattr(recap, 'total')
+        assert hasattr(recap, 'this_month')
     
     @pytest.mark.asyncio
     async def test_get_nodes_statistics(self, remnawave):
@@ -48,19 +67,18 @@ class TestSystemMonitoring:
         
         if nodes_metrics.nodes:  # Если список не пустой
             node = nodes_metrics.nodes[0]
-            assert hasattr(node, 'uuid')
-            assert hasattr(node, 'name')
-            assert hasattr(node, 'cpu_usage')
-            assert hasattr(node, 'memory_usage')
-            assert hasattr(node, 'network_upload')
-            assert hasattr(node, 'network_download')
-            assert hasattr(node, 'uptime')
-            assert hasattr(node, 'last_seen')
-            assert hasattr(node, 'connected_users')
+            assert hasattr(node, 'node_uuid')
+            assert hasattr(node, 'node_name')
+            assert hasattr(node, 'country_emoji')
+            assert hasattr(node, 'provider_name')
+            assert hasattr(node, 'users_online')
+            assert hasattr(node, 'inbounds_stats')
+            assert hasattr(node, 'outbounds_stats')
     
     @pytest.mark.asyncio
     async def test_get_health(self, remnawave):
         """Тест получения состояния здоровья системы"""
         health = await remnawave.system.get_health()
         assert isinstance(health, GetRemnawaveHealthResponseDto)
-        assert hasattr(health, 'pm2_stats')
+        assert hasattr(health, 'runtime_metrics')
+        assert isinstance(health.runtime_metrics, list)

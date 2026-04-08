@@ -16,7 +16,7 @@ x-env: &env
 
 services:
   remnawave:
-    image: remnawave/backend:2
+    image: remnawave/backend:2.7.4
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env]
@@ -37,6 +37,8 @@ services:
     networks:
       - cybervpn-backend
       - cybervpn-data
+    volumes:
+      - ./remnawave/notifications/notifications-config.yml:/var/lib/remnawave/configs/notifications/notifications-config.yml:ro
     deploy:
       resources:
         limits:
@@ -97,13 +99,13 @@ services:
     # INFRA-04: Valkey runs with zero persistence (--save "" --appendonly no).
     # This is intentional: Valkey is used only for cache and task queues.
     # All data is ephemeral and reconstructed on restart. No backup needed.
-    # Trade-off: faster writes, lower disk I/O, but data lost on container restart.
+    # Remnawave requires ``noeviction`` to avoid silently dropping queue data.
     command: >
       valkey-server
       --save ""
       --appendonly no
       --maxmemory 128mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory-policy noeviction
       --loglevel warning
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
@@ -486,7 +488,7 @@ services:
       start_period: 10s
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:latest
+    image: remnawave/subscription-page:latest@sha256:5327ed32e3f2ba24b85aa64bf60c4f256da9540bc08bf573e8d15c2b095865f9
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     profiles: ["subscription"]
@@ -521,12 +523,16 @@ services:
       - BOT_MODE=${BOT_MODE:-polling}
       - BACKEND_API_URL=http://remnawave:${APP_PORT:-3000}/api
       - BACKEND_API_KEY=${BACKEND_API_KEY:-}
+      - AUTH_BACKEND_API_URL=http://host.docker.internal:8000/api/v1
+      - AUTH_BACKEND_INTERNAL_SECRET=${TELEGRAM_BOT_INTERNAL_SECRET:-}
       - REDIS_URL=redis://remnawave-redis:6379
       - REDIS_DB=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_JSON_FORMAT=true
       - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
       - PROMETHEUS_PORT=9092
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:${BOT_METRICS_PORT:-9092}:9092"
     depends_on:
@@ -683,7 +689,7 @@ services:
       prometheus:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8888/metrics"]
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol/otel-collector-config.yml"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -67,9 +67,8 @@ export function TelegramLinkClient() {
   const loginWithBotLink = useAuthStore((state) => state.loginWithBotLink);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [magicLinkSession, setMagicLinkSession] = useState<TelegramMagicLinkSession | null>(() =>
-    readTelegramMagicLinkSession()
-  );
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [magicLinkSession, setMagicLinkSession] = useState<TelegramMagicLinkSession | null>(null);
   const processedRouteTokenRef = useRef<string | null>(null);
   const activePollingTokenRef = useRef<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +86,7 @@ export function TelegramLinkClient() {
 
   useEffect(() => {
     const syncSessionFromStorage = () => {
+      setHasHydrated(true);
       const storedSession = readTelegramMagicLinkSession();
       setMagicLinkSession((currentSession) => {
         const currentToken = currentSession?.token ?? null;
@@ -309,6 +309,7 @@ export function TelegramLinkClient() {
   };
 
   const startCommand = magicLinkSession ? `/start auth_${magicLinkSession.token}` : null;
+  const showMagicLinkActions = hasHydrated && magicLinkSession !== null;
 
   const renderStartCommandFallback = () => {
     if (!startCommand) return null;
@@ -351,7 +352,7 @@ export function TelegramLinkClient() {
             {error}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {magicLinkSession ? (
+            {showMagicLinkActions ? (
               <Button
                 onClick={handleOpenTelegram}
                 className="bg-[#2AABEE] font-bold font-mono text-white hover:bg-[#2AABEE]/90"
@@ -398,7 +399,7 @@ export function TelegramLinkClient() {
             <h2 className="font-display text-lg font-bold text-foreground">{t('botLinkAuth')}</h2>
             <p className="text-xs font-mono text-muted-foreground">{t('connecting')}</p>
           </div>
-          {magicLinkSession ? (
+          {showMagicLinkActions ? (
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button
                 onClick={handleOpenTelegram}
