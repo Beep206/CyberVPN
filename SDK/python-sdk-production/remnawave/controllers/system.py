@@ -1,6 +1,8 @@
 from typing import Annotated
 from rapid_api_client import PydanticBody
 from remnawave.models import (
+    GetMetadataResponseDto,
+    GetRecapResponseDto,
     GetBandwidthStatsResponseDto,
     GetNodesStatisticsResponseDto,
     GetStatsResponseDto,
@@ -16,6 +18,13 @@ from remnawave.rapid import BaseController, get, post
 
 
 class SystemController(BaseController):
+    @get("/system/metadata", response_class=GetMetadataResponseDto)
+    async def get_metadata(
+        self,
+    ) -> GetMetadataResponseDto:
+        """Get System Metadata"""
+        ...
+
     @get("/system/stats", response_class=GetStatsResponseDto)
     async def get_stats(
         self,
@@ -28,6 +37,13 @@ class SystemController(BaseController):
         self,
     ) -> GetBandwidthStatsResponseDto:
         """Get System Bandwidth Statistics"""
+        ...
+
+    @get("/system/stats/recap", response_class=GetRecapResponseDto)
+    async def get_recap(
+        self,
+    ) -> GetRecapResponseDto:
+        """Get System Recap"""
         ...
 
     @get("/system/stats/nodes", response_class=GetNodesStatisticsResponseDto)

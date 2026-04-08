@@ -6,8 +6,9 @@ Includes rate limiting, connection pooling, timeouts, retries, and structured lo
 
 import asyncio
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Optional
+from typing import Any
 
 import httpx
 import structlog
@@ -54,7 +55,7 @@ class RemnawaveClient:
             await client.disable_user(user_uuid)
     """
 
-    def __init__(self, rate_limiter: Optional[AsyncTokenBucket] = None) -> None:
+    def __init__(self, rate_limiter: AsyncTokenBucket | None = None) -> None:
         """Initialize Remnawave client with settings from environment.
 
         Configures httpx.AsyncClient with:
@@ -70,7 +71,7 @@ class RemnawaveClient:
         """
         settings = get_settings()
 
-        self._base_url = settings.remnawave_url.rstrip("/")
+        self._base_url = self._normalize_base_url(settings.remnawave_url)
         self._api_token = settings.remnawave_api_token.get_secret_value()
 
         # Rate limiting: Use token bucket if provided, otherwise fallback to semaphore
@@ -95,13 +96,31 @@ class RemnawaveClient:
         # Initialize httpx client with Bearer token auth
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
-            headers={"Authorization": f"Bearer {self._api_token}"},
+            headers={
+                "Authorization": f"Bearer {self._api_token}",
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-For": "127.0.0.1",
+            },
             timeout=timeout_config,
             limits=limits_config,
             transport=transport,
         )
 
         logger.info("remnawave_client_initialized", base_url=self._base_url)
+
+    @staticmethod
+    def _normalize_base_url(base_url: str) -> str:
+        normalized = base_url.rstrip("/")
+        return normalized.removesuffix("/api")
+
+    @staticmethod
+    def _normalize_path(path: str) -> str:
+        normalized = path if path.startswith("/") else f"/{path}"
+        if normalized == "/api":
+            return normalized
+        if normalized.startswith("/api/"):
+            return normalized
+        return f"/api{normalized}"
 
     async def __aenter__(self) -> "RemnawaveClient":
         """Context manager entry - returns self for async with usage."""
@@ -137,7 +156,7 @@ class RemnawaveClient:
 
         async with rate_limit_ctx if rate_limit_ctx else _dummy_context():
             try:
-                response = await self._client.request(method, path, **kwargs)
+                response = await self._client.request(method, self._normalize_path(path), **kwargs)
                 duration = time.perf_counter() - start_time
 
                 logger.info(
@@ -170,7 +189,7 @@ class RemnawaveClient:
                     )
 
                 # Parse and return JSON response
-                return response.json()
+                return self._normalize_response(response.json())
 
             except httpx.HTTPError as e:
                 duration = time.perf_counter() - start_time
@@ -182,6 +201,13 @@ class RemnawaveClient:
                     duration_ms=round(duration * 1000, 2),
                 )
                 raise RemnawaveAPIError(status_code=0, message=f"HTTP error: {e}") from e
+
+    @staticmethod
+    def _normalize_response(data: Any) -> Any:
+        """Unwrap the common Remnawave ``response`` envelope."""
+        if isinstance(data, dict) and "response" in data and len(data) == 1:
+            return data["response"]
+        return data
 
     async def get(self, path: str, params: dict | None = None) -> dict:
         """Make a GET request to the API.
@@ -249,14 +275,15 @@ class RemnawaveClient:
             True if API is healthy, False otherwise
         """
         try:
-            await self.get("/health")
-            return True
+            for path in ("/system/health", "/health"):
+                try:
+                    await self.get(path)
+                    return True
+                except RemnawaveAPIError:
+                    continue
+            return False
         except RemnawaveAPIError:
-            try:
-                await self.get("/api/health")
-                return True
-            except RemnawaveAPIError:
-                return False
+            return False
 
     async def get_nodes(self) -> list[dict]:
         """Get list of all VPN nodes.
@@ -308,7 +335,7 @@ class RemnawaveClient:
         Raises:
             RemnawaveAPIError: If request fails or user not found
         """
-        return await self.patch(f"/api/users/{uuid}", json={"status": "disabled"})
+        return await self.post(f"/api/users/{uuid}/actions/disable")
 
     async def enable_user(self, uuid: str) -> dict:
         """Enable a user account.
@@ -322,7 +349,7 @@ class RemnawaveClient:
         Raises:
             RemnawaveAPIError: If request fails or user not found
         """
-        return await self.patch(f"/api/users/{uuid}", json={"status": "active"})
+        return await self.post(f"/api/users/{uuid}/actions/enable")
 
     async def reset_user_traffic(self, uuid: str) -> dict:
         """Reset traffic counters for a user.
@@ -336,7 +363,7 @@ class RemnawaveClient:
         Raises:
             RemnawaveAPIError: If request fails or user not found
         """
-        return await self.patch(f"/api/users/{uuid}/traffic/reset")
+        return await self.post(f"/api/users/{uuid}/actions/reset-traffic")
 
     async def bulk_extend_expiration_date(self, uuids: list[str], extend_days: int) -> dict:
         """Extend expiration date for multiple users.

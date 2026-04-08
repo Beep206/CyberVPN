@@ -25,7 +25,7 @@ from tenacity import (
 logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
-    from src.config import BackendSettings
+    from src.config import AuthBackendSettings, BackendSettings
 
 
 # ── Exceptions ───────────────────────────────────────────────────────────
@@ -144,9 +144,22 @@ class CyberVPNAPIClient:
     - Structured logging and error handling
     """
 
-    def __init__(self, settings: BackendSettings) -> None:
+    def __init__(
+        self,
+        settings: BackendSettings,
+        auth_backend: AuthBackendSettings | None = None,
+    ) -> None:
         self._settings = settings
         self._circuit = CircuitBreaker()
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "CyberVPN-TelegramBot/1.0",
+            # Local environment workaround for ProxyCheckMiddleware in upstream backends.
+            "X-Forwarded-Proto": "https",
+        }
+        api_key = settings.api_key.get_secret_value().strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         self._client = httpx.AsyncClient(
             base_url=str(settings.api_url),
             timeout=httpx.Timeout(
@@ -160,13 +173,31 @@ class CyberVPNAPIClient:
                 max_keepalive_connections=20,
                 keepalive_expiry=30.0,
             ),
-            headers={
-                "Authorization": f"Bearer {settings.api_key.get_secret_value().strip()}",
-                "Content-Type": "application/json",
-                "User-Agent": "CyberVPN-TelegramBot/1.0",
-            },
+            headers=headers,
             transport=httpx.AsyncHTTPTransport(retries=1),
         )
+        self._auth_backend_client: httpx.AsyncClient | None = None
+        if auth_backend and auth_backend.api_url and auth_backend.internal_secret:
+            self._auth_backend_client = httpx.AsyncClient(
+                base_url=str(auth_backend.api_url),
+                timeout=httpx.Timeout(
+                    connect=5.0,
+                    read=float(auth_backend.timeout),
+                    write=10.0,
+                    pool=5.0,
+                ),
+                limits=httpx.Limits(
+                    max_connections=20,
+                    max_keepalive_connections=10,
+                    keepalive_expiry=30.0,
+                ),
+                headers={
+                    "X-Telegram-Bot-Secret": auth_backend.internal_secret.get_secret_value().strip(),
+                    "Content-Type": "application/json",
+                    "User-Agent": "CyberVPN-TelegramBot/1.0",
+                },
+                transport=httpx.AsyncHTTPTransport(retries=1),
+            )
 
     # ── Core request method ──────────────────────────────────────────
 
@@ -217,7 +248,7 @@ class CyberVPNAPIClient:
                 return {}
             return response.json()
 
-        except (httpx.ConnectError, httpx.PoolTimeout, httpx.ReadTimeout) as exc:
+        except (httpx.TransportError, httpx.RemoteProtocolError) as exc:
             self._circuit.record_failure()
             logger.error("api_connection_error", path=path, error=str(exc))
             raise ServerError(
@@ -251,6 +282,80 @@ class CyberVPNAPIClient:
         params: dict[str, Any] | None = None,
     ) -> list[Any]:
         data = await self._request(method, path, json=json, params=params)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            items = data.get("items")
+            if isinstance(items, list):
+                return items
+        raise APIError(
+            message="Unexpected response format",
+            status_code=500,
+            detail=f"Expected list for {method} {path}",
+        )
+
+    async def _request_auth_backend_dict(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if self._auth_backend_client is None:
+            return await self._request_dict(method, path, json=json, params=params)
+
+        try:
+            response = await self._auth_backend_client.request(
+                method=method,
+                url=path,
+                json=json,
+                params=params,
+            )
+        except (httpx.TransportError, httpx.RemoteProtocolError) as exc:
+            logger.error("auth_backend_connection_error", path=path, error=str(exc))
+            raise ServerError(
+                message=f"Auth backend connection error: {exc}",
+                status_code=503,
+            ) from exc
+
+        self._handle_response(response)
+        data = response.json()
+        if isinstance(data, dict):
+            return data
+        raise APIError(
+            message="Unexpected response format",
+            status_code=500,
+            detail=f"Expected object for {method} {path}",
+        )
+
+    async def _request_auth_backend_list(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> list[Any]:
+        if self._auth_backend_client is None:
+            return await self._request_list(method, path, json=json, params=params)
+
+        try:
+            response = await self._auth_backend_client.request(
+                method=method,
+                url=path,
+                json=json,
+                params=params,
+            )
+        except (httpx.TransportError, httpx.RemoteProtocolError) as exc:
+            logger.error("auth_backend_connection_error", path=path, error=str(exc))
+            raise ServerError(
+                message=f"Auth backend connection error: {exc}",
+                status_code=503,
+            ) from exc
+
+        self._handle_response(response)
+        data = response.json()
         if isinstance(data, list):
             return data
         if isinstance(data, dict):
@@ -306,12 +411,13 @@ class CyberVPNAPIClient:
         Returns:
             User data dict.
         """
-        return await self._request_dict("GET", f"/telegram/users/{telegram_id}")
+        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}")
 
     async def register_user(
         self,
         telegram_id: int,
         username: str | None = None,
+        first_name: str | None = None,
         language: str = "ru",
         referrer_id: int | None = None,
     ) -> dict[str, Any]:
@@ -329,11 +435,12 @@ class CyberVPNAPIClient:
         payload: dict[str, Any] = {
             "telegram_id": telegram_id,
             "username": username,
-            "language": language,
+            "language_code": language,
+            "first_name": first_name,
         }
         if referrer_id is not None:
             payload["referrer_id"] = referrer_id
-        return await self._request_dict("POST", "/telegram/users", json=payload)
+        return await self._request_auth_backend_dict("POST", "/telegram/bot/user", json=payload)
 
     async def update_user_language(
         self,
@@ -349,17 +456,20 @@ class CyberVPNAPIClient:
         Returns:
             Updated user data dict.
         """
-        return await self._request_dict(
+        return await self._request_auth_backend_dict(
             "PATCH",
-            f"/telegram/users/{telegram_id}",
-            json={"language": language},
+            f"/telegram/bot/user/{telegram_id}",
+            json={"language_code": language},
         )
 
     async def update_user(self, telegram_id: int, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request_dict(
+        normalized_payload = dict(payload)
+        if "language" in normalized_payload and "language_code" not in normalized_payload:
+            normalized_payload["language_code"] = normalized_payload.pop("language")
+        return await self._request_auth_backend_dict(
             "PATCH",
-            f"/telegram/users/{telegram_id}",
-            json=payload,
+            f"/telegram/bot/user/{telegram_id}",
+            json=normalized_payload,
         )
 
     async def complete_telegram_magic_link(
@@ -385,7 +495,23 @@ class CyberVPNAPIClient:
         if language_code is not None:
             payload["language_code"] = language_code
 
-        return await self._request_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
+        if self._auth_backend_client is None:
+            return await self._request_dict("POST", "/oauth/telegram/magic-link/complete", json=payload)
+
+        response = await self._auth_backend_client.request(
+            method="POST",
+            url="/oauth/telegram/magic-link/complete",
+            json=payload,
+        )
+        self._handle_response(response)
+        data = response.json()
+        if isinstance(data, dict):
+            return data
+        raise APIError(
+            message="Unexpected response format",
+            status_code=500,
+            detail="Expected object for Telegram magic-link completion",
+        )
 
     # ── Subscriptions ────────────────────────────────────────────────
 
@@ -398,7 +524,7 @@ class CyberVPNAPIClient:
         Returns:
             Subscription config with connection link.
         """
-        return await self._request_dict("GET", f"/telegram/users/{telegram_id}/config")
+        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/config")
 
     async def get_available_plans(
         self,
@@ -412,24 +538,22 @@ class CyberVPNAPIClient:
         Returns:
             List of available plan dicts.
         """
-        params = {}
-        if telegram_id is not None:
-            params["telegram_id"] = telegram_id
-        return await self._request_list("GET", "/telegram/plans", params=params)
+        _ = telegram_id
+        try:
+            return await self._request_auth_backend_list("GET", "/telegram/bot/plans")
+        except APIError as exc:
+            logger.warning("plans_fetch_failed", status_code=exc.status_code, detail=exc.detail)
+            return []
 
     async def get_plans(self) -> list[Any]:
         return await self.get_available_plans()
 
     async def get_plan(self, plan_id: str) -> dict[str, Any]:
-        try:
-            result = await self._request_dict("GET", f"/telegram/plans/{plan_id}")
-            return result if isinstance(result, dict) else {}
-        except NotFoundError:
-            plans = await self.get_available_plans()
-            for plan in plans:
-                if str(plan.get("id")) == str(plan_id):
-                    return plan
-            raise
+        plans = await self.get_available_plans()
+        for plan in plans:
+            if str(plan.get("id") or plan.get("uuid")) == str(plan_id):
+                return plan
+        raise NotFoundError("Resource not found", status_code=404, detail=f"Plan {plan_id} not found")
 
     async def create_subscription(
         self,
@@ -463,7 +587,7 @@ class CyberVPNAPIClient:
 
     async def get_user_subscriptions(self, telegram_id: int) -> list[Any]:
         try:
-            return await self._request_list("GET", f"/telegram/users/{telegram_id}/subscriptions")
+            return await self._request_auth_backend_list("GET", f"/telegram/bot/user/{telegram_id}/subscriptions")
         except NotFoundError:
             user_data = await self.get_user(telegram_id)
             if isinstance(user_data, dict):
@@ -476,18 +600,16 @@ class CyberVPNAPIClient:
             return []
 
     async def check_trial_eligibility(self, telegram_id: int) -> dict[str, Any]:
-        return await self._request_dict(
-            "GET",
-            "/telegram/trial/eligibility",
-            params={"telegram_id": telegram_id},
-        )
+        trial_status = await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/trial-status")
+        return {
+            "eligible": bool(trial_status.get("eligible", False)),
+            "reason": trial_status.get("reason"),
+            "is_trial_active": bool(trial_status.get("is_trial_active", False)),
+            "trial_end": trial_status.get("trial_end"),
+        }
 
     async def activate_trial(self, telegram_id: int) -> dict[str, Any]:
-        return await self._request_dict(
-            "POST",
-            "/telegram/trial/activate",
-            json={"telegram_id": telegram_id},
-        )
+        return await self._request_auth_backend_dict("POST", f"/telegram/bot/user/{telegram_id}/trial/activate")
 
     # ── Payments ─────────────────────────────────────────────────────
 
@@ -627,7 +749,7 @@ class CyberVPNAPIClient:
         Returns:
             Referral stats (count, bonus days, referral link).
         """
-        return await self._request_dict("GET", f"/telegram/referrals/{telegram_id}")
+        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/referral-stats")
 
     async def withdraw_referral_points(
         self,
@@ -868,7 +990,10 @@ class CyberVPNAPIClient:
         Returns:
             Access settings (mode, channel_id, rules_url, etc.).
         """
-        return await self._request_dict("GET", "/telegram/admin/settings/access")
+        try:
+            return await self._request_auth_backend_dict("GET", "/telegram/bot/settings/access")
+        except NotFoundError:
+            return {}
 
     async def get_referral_settings(self) -> dict[str, Any]:
         return await self._request_dict("GET", "/telegram/admin/settings/referral")
@@ -974,6 +1099,8 @@ class CyberVPNAPIClient:
     async def close(self) -> None:
         """Close the HTTP client and release resources."""
         await self._client.aclose()
+        if self._auth_backend_client is not None:
+            await self._auth_backend_client.aclose()
         logger.info("api_client_closed")
 
     async def health_check(self) -> bool:

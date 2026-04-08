@@ -59,9 +59,12 @@ async def list_servers(
                 is_disabled=server.is_disabled,
                 created_at=server.created_at,
                 updated_at=server.updated_at,
+                country_code=server.country_code,
                 traffic_used_bytes=server.used_traffic_bytes or 0,
                 inbound_count=server.inbound_count or 0,
                 users_online=server.users_online or 0,
+                xray_version=server.xray_version,
+                vpn_protocol=server.vpn_protocol,
             ).model_dump(mode="json")
             for server in servers
         ]
@@ -98,9 +101,12 @@ async def create_server(
         is_disabled=server.is_disabled,
         created_at=server.created_at,
         updated_at=server.updated_at,
+        country_code=server.country_code,
         traffic_used_bytes=server.used_traffic_bytes or 0,
         inbound_count=server.inbound_count or 0,
         users_online=server.users_online or 0,
+        xray_version=server.xray_version,
+        vpn_protocol=server.vpn_protocol,
     )
 
 
@@ -157,9 +163,12 @@ async def get_server(
         is_disabled=server.is_disabled,
         created_at=server.created_at,
         updated_at=server.updated_at,
+        country_code=server.country_code,
         traffic_used_bytes=server.used_traffic_bytes or 0,
         inbound_count=server.inbound_count or 0,
         users_online=server.users_online or 0,
+        xray_version=server.xray_version,
+        vpn_protocol=server.vpn_protocol,
     )
 
 
@@ -197,9 +206,12 @@ async def update_server(
         is_disabled=server.is_disabled,
         created_at=server.created_at,
         updated_at=server.updated_at,
+        country_code=server.country_code,
         traffic_used_bytes=server.used_traffic_bytes or 0,
         inbound_count=server.inbound_count or 0,
         users_online=server.users_online or 0,
+        xray_version=server.xray_version,
+        vpn_protocol=server.vpn_protocol,
     )
 
 

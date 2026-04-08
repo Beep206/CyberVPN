@@ -1,5 +1,7 @@
 """Bandwidth analytics use case."""
 
+from typing import Any
+
 from src.infrastructure.remnawave.client import RemnawaveClient
 
 
@@ -26,16 +28,32 @@ class BandwidthAnalyticsUseCase:
         Raises:
             Exception: If API request fails
         """
-        endpoint = f"/api/analytics/bandwidth?period={period}"
-        data = await self.client.get(endpoint)
+        data = await self.client.get("/api/system/stats/bandwidth")
+        key = self._period_key(period)
+        current_stat = self._as_dict(data.get(key))
+        current_total = self._parse_int(current_stat.get("current"))
 
-        if isinstance(data, dict):
-            return data
-
-        # If API returns raw data, structure it
         return {
-            "period": period,
-            "data": data if data else [],
-            "total_usage": 0,
-            "peak_usage": 0,
+            "bytes_in": 0,
+            "bytes_out": current_total,
         }
+
+    @staticmethod
+    def _period_key(period: str) -> str:
+        mapping = {
+            "today": "bandwidthLastTwoDays",
+            "week": "bandwidthLastSevenDays",
+            "month": "bandwidthCalendarMonth",
+        }
+        return mapping.get(period, "bandwidthLastTwoDays")
+
+    @staticmethod
+    def _as_dict(value: Any) -> dict[str, Any]:
+        return value if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _parse_int(value: Any) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0

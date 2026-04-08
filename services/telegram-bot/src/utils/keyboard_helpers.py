@@ -18,7 +18,7 @@ def custom_emoji(emoji_id: str | None, fallback: str) -> str:
         HTML string with custom emoji tag, or plain fallback.
     """
     if emoji_id:
-        return f'<tg-emoji emoji_id="{emoji_id}">{fallback}</tg-emoji>'
+        return f'<tg-emoji emoji-id="{emoji_id}">{fallback}</tg-emoji>'
     return fallback
 
 

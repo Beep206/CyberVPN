@@ -87,7 +87,7 @@ src/
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
-| **aiogram** | 3.24+ | Telegram Bot framework |
+| **aiogram** | 3.27.0 | Telegram Bot framework |
 | **pydantic-settings** | 2.12+ | Type-safe configuration |
 | **httpx** | 0.28.1+ | Async HTTP client |
 | **redis** | 7.1+ | FSM storage and caching |
@@ -492,4 +492,4 @@ MIT
 
 ---
 
-**CyberVPN Telegram Bot** — Built with aiogram 3.24, Python 3.13, and Clean Architecture principles.
+**CyberVPN Telegram Bot** — Built with aiogram 3.27.0, Python 3.13, and Clean Architecture principles.

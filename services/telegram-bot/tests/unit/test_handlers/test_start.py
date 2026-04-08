@@ -41,7 +41,7 @@ class TestStartHandler:
 
         # Mock API response
         with respx.mock:
-            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=respx.MockResponse(
                     200,
                     json={
@@ -137,6 +137,10 @@ class TestStartHandler:
             username="alice",
             language_code="en",
         )
+        message.answer.assert_awaited_once()
+        call_args = message.answer.await_args
+        assert call_args.args[0].startswith("<b>Success!</b>")
+        assert call_args.kwargs["reply_markup"] is not None
 
     async def test_get_start_payload_falls_back_to_raw_message_text(self) -> None:
         """Test payload extraction from raw /start message when CommandObject args are empty."""
@@ -206,7 +210,7 @@ class TestStartHandler:
 
         with respx.mock:
             # Registration fails
-            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=respx.MockResponse(500, json={"detail": "Server error"})
             )
 
@@ -272,7 +276,7 @@ class TestStartHandler:
 
         with respx.mock:
             # First time: creates user
-            respx.post("https://api.test.cybervpn.local/telegram/users").mock(
+            respx.post("https://api.test.cybervpn.local/telegram/bot/user").mock(
                 return_value=respx.MockResponse(200, json={"telegram_id": 111})
             )
 

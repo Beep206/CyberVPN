@@ -34,7 +34,9 @@ async def remnawave() -> RemnawaveSDK:
     assert sdk.inbounds is not None
     assert sdk.inbounds_bulk_actions is not None
     assert sdk.keygen is not None
+    assert sdk.metadata is not None
     assert sdk.nodes is not None
+    assert sdk.node_plugins is not None
     assert sdk.subscription is not None
     assert sdk.subscriptions_settings is not None
     assert sdk.subscriptions_template is not None

@@ -36,7 +36,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             }
@@ -65,7 +65,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__RefreshTokenRequest"
               }
             }
           },
@@ -77,7 +77,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             }
@@ -993,7 +993,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__RegisterRequest"
+                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           }
@@ -1034,7 +1034,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__RegisterRequest"
               }
             }
           },
@@ -1158,7 +1158,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest"
+                "$ref": "#/components/schemas/RefreshTokenRequest"
               }
             }
           },
@@ -1170,7 +1170,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse"
                 }
               }
             }
@@ -1777,15 +1777,38 @@
         "summary": "Complete Telegram Magic Link",
         "description": "Accept trusted Telegram bot data for a pending magic-link session.",
         "operationId": "complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TelegramMagicLinkCompleteRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1808,12 +1831,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/oauth/telegram/magic-link/{token}/status": {
@@ -2150,13 +2168,20 @@
           {
             "name": "redirect_uri",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "description": "Redirect URI after authentication",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact native/universal callback URI. Omit for canonical web flow.",
               "title": "Redirect Uri"
             },
-            "description": "Redirect URI after authentication"
+            "description": "Exact native/universal callback URI. Omit for canonical web flow."
           }
         ],
         "responses": {
@@ -2402,6 +2427,62 @@
           },
           "400": {
             "description": "2FA not enabled"
+          },
+          "429": {
+            "description": "Too many verification attempts"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/2fa/complete": {
+      "post": {
+        "tags": [
+          "two-factor"
+        ],
+        "summary": "Complete 2Fa Login",
+        "description": "Finish a login that is paused behind a pending 2FA token.",
+        "operationId": "complete_2fa_login_api_v1_2fa_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid 2FA code"
+          },
+          "401": {
+            "description": "Invalid or expired pending 2FA session"
           },
           "429": {
             "description": "Too many verification attempts"
@@ -3817,6 +3898,465 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StatusMessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/helix/capabilities": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Get Capability Defaults",
+        "operationId": "get_capability_defaults_api_v1_helix_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterClientCapabilityDefaults"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/manifest": {
+      "post": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Resolve Manifest",
+        "operationId": "resolve_manifest_api_v1_helix_manifest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelixResolveManifestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterResolveManifestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/events/runtime": {
+      "post": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Report Runtime Event",
+        "operationId": "report_runtime_event_api_v1_helix_events_runtime_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelixRuntimeEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterDesktopRuntimeEventAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/admin/nodes": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "List Nodes",
+        "operationId": "list_nodes_api_v1_helix_admin_nodes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdapterNodeRegistryRecord"
+                  },
+                  "type": "array",
+                  "title": "Response List Nodes Api V1 Helix Admin Nodes Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/admin/rollouts/{rollout_id}": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Get Rollout Status",
+        "operationId": "get_rollout_status_api_v1_helix_admin_rollouts__rollout_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rollout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rollout Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRolloutStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/helix/admin/rollouts/{rollout_id}/canary-evidence": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Get Rollout Canary Evidence",
+        "operationId": "get_rollout_canary_evidence_api_v1_helix_admin_rollouts__rollout_id__canary_evidence_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rollout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rollout Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRolloutCanaryEvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/helix/admin/transport-profiles": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "List Transport Profiles",
+        "operationId": "list_transport_profiles_api_v1_helix_admin_transport_profiles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdapterTransportProfileRecord"
+                  },
+                  "type": "array",
+                  "title": "Response List Transport Profiles Api V1 Helix Admin Transport Profiles Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/admin/nodes/{node_id}/assignment": {
+      "get": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Preview Node Assignment",
+        "operationId": "preview_node_assignment_api_v1_helix_admin_nodes__node_id__assignment_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Node Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterNodeAssignmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/helix/admin/rollouts": {
+      "post": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Publish Rollout",
+        "operationId": "publish_rollout_api_v1_helix_admin_rollouts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HelixPublishRolloutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRolloutBatchRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/helix/admin/rollouts/{rollout_id}/pause": {
+      "post": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Pause Rollout",
+        "operationId": "pause_rollout_api_v1_helix_admin_rollouts__rollout_id__pause_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rollout_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rollout Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterRolloutBatchRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/helix/admin/manifests/{manifest_version_id}/revoke": {
+      "post": {
+        "tags": [
+          "helix"
+        ],
+        "summary": "Revoke Manifest",
+        "operationId": "revoke_manifest_api_v1_helix_admin_manifests__manifest_version_id__revoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "manifest_version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Manifest Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdapterManifestVersionRecord"
                 }
               }
             }
@@ -6282,6 +6822,596 @@
         }
       }
     },
+    "/api/v1/telegram/bot/settings/access": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot Access Settings",
+        "description": "Return bot access settings for the Telegram bot service.",
+        "operationId": "get_bot_access_settings_api_v1_telegram_bot_settings_access_get",
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotAccessSettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/plans": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot Plans",
+        "description": "Return bot-facing plan catalog.\n\nThe FastAPI auth backend is the integration boundary for the Telegram bot.\nUntil plan catalog data is migrated into this backend, return an empty list\ninstead of forcing the bot to call legacy upstreams directly.",
+        "operationId": "get_bot_plans_api_v1_telegram_bot_plans_get",
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Get Bot Plans Api V1 Telegram Bot Plans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User",
+        "description": "Return Telegram bot-facing user payload for bot menus/profile screens.",
+        "operationId": "get_bot_user_api_v1_telegram_bot_user__telegram_id__get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Update Bot User",
+        "description": "Update Telegram-facing profile details for a bot user.",
+        "operationId": "update_bot_user_api_v1_telegram_bot_user__telegram_id__patch",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramBotUserUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user": {
+      "post": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Create Or Bootstrap Bot User",
+        "description": "Create or refresh a Telegram bot user in the FastAPI auth backend.",
+        "operationId": "create_or_bootstrap_bot_user_api_v1_telegram_bot_user_post",
+        "parameters": [
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramBotUserCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/subscriptions": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User Subscriptions",
+        "description": "Return Telegram bot-facing subscriptions list.",
+        "operationId": "get_bot_user_subscriptions_api_v1_telegram_bot_user__telegram_id__subscriptions_get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramBotSubscriptionResponse"
+                  },
+                  "title": "Response Get Bot User Subscriptions Api V1 Telegram Bot User  Telegram Id  Subscriptions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/trial-status": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User Trial Status",
+        "description": "Return Telegram bot-facing trial eligibility/status.",
+        "operationId": "get_bot_user_trial_status_api_v1_telegram_bot_user__telegram_id__trial_status_get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotTrialStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/trial/activate": {
+      "post": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Activate Bot User Trial",
+        "description": "Activate trial for a Telegram bot user.",
+        "operationId": "activate_bot_user_trial_api_v1_telegram_bot_user__telegram_id__trial_activate_post",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotTrialStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/referral-stats": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User Referral Stats",
+        "description": "Return Telegram bot-facing referral stats.",
+        "operationId": "get_bot_user_referral_stats_api_v1_telegram_bot_user__telegram_id__referral_stats_get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotReferralStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/config": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User Config",
+        "description": "Return Telegram bot-facing VPN config using the FastAPI backend as gateway.",
+        "operationId": "get_bot_user_config_api_v1_telegram_bot_user__telegram_id__config_get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me/fcm-token": {
       "post": {
         "tags": [
@@ -6729,6 +7859,553 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RemnawaveInboundResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/node-plugins/torrent-blocker/reports": {
+      "get": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Get Torrent Blocker Reports",
+        "operationId": "get_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Size"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filters"
+            }
+          },
+          {
+            "name": "filterModes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filtermodes"
+            }
+          },
+          {
+            "name": "globalFilterMode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Globalfiltermode"
+            }
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sorting"
+            }
+          },
+          {
+            "name": "extra_data",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Extra Data"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TorrentBlockerReportsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Truncate Torrent Blocker Reports",
+        "operationId": "truncate_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TorrentBlockerReportsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/node-plugins/torrent-blocker/stats": {
+      "get": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Get Torrent Blocker Stats",
+        "operationId": "get_torrent_blocker_stats_api_v1_node_plugins_torrent_blocker_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TorrentBlockerReportsStatsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/node-plugins/": {
+      "get": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "List Node Plugins",
+        "operationId": "list_node_plugins_api_v1_node_plugins__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginCollectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Create Node Plugin",
+        "operationId": "create_node_plugin_api_v1_node_plugins__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNodePluginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/node-plugins/reorder": {
+      "post": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Reorder Node Plugins",
+        "operationId": "reorder_node_plugins_api_v1_node_plugins_reorder_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderNodePluginsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginCollectionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/node-plugins/clone": {
+      "post": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Clone Node Plugin",
+        "operationId": "clone_node_plugin_api_v1_node_plugins_clone_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneNodePluginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/node-plugins/execute": {
+      "post": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Execute Node Plugin",
+        "operationId": "execute_node_plugin_api_v1_node_plugins_execute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PluginExecutorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginExecutorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/node-plugins/{uuid}": {
+      "get": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Get Node Plugin",
+        "operationId": "get_node_plugin_api_v1_node_plugins__uuid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Update Node Plugin",
+        "operationId": "update_node_plugin_api_v1_node_plugins__uuid__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNodePluginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePluginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "node-plugins"
+        ],
+        "summary": "Delete Node Plugin",
+        "operationId": "delete_node_plugin_api_v1_node_plugins__uuid__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteNodePluginResponse"
                 }
               }
             }
@@ -7406,6 +9083,2381 @@
         "title": "ActiveSubscriptionResponse",
         "description": "Response schema for active subscription."
       },
+      "AdapterClientCapabilityDefaults": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "client_family": {
+            "type": "string",
+            "title": "Client Family"
+          },
+          "default_channel": {
+            "type": "string",
+            "title": "Default Channel"
+          },
+          "supported_protocol_versions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Supported Protocol Versions"
+          },
+          "supported_transport_profiles": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterSupportedTransportProfile"
+            },
+            "type": "array",
+            "title": "Supported Transport Profiles"
+          },
+          "required_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Capabilities"
+          },
+          "fallback_cores": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fallback Cores"
+          },
+          "rollout_channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rollout Channels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "client_family",
+          "default_channel",
+          "supported_protocol_versions",
+          "supported_transport_profiles",
+          "required_capabilities",
+          "fallback_cores",
+          "rollout_channels"
+        ],
+        "title": "AdapterClientCapabilityDefaults"
+      },
+      "AdapterDesktopRuntimeEventAck": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "event_kind": {
+            "type": "string",
+            "title": "Event Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "rollout_id",
+          "event_kind"
+        ],
+        "title": "AdapterDesktopRuntimeEventAck"
+      },
+      "AdapterDesktopRuntimeEventBenchmarkEvidence": {
+        "properties": {
+          "benchmark_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmark Kind"
+          },
+          "baseline_core": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Core"
+          },
+          "target_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Count"
+          },
+          "successful_targets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successful Targets"
+          },
+          "attempts": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempts"
+          },
+          "successes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successes"
+          },
+          "failures": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failures"
+          },
+          "throughput_kbps": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throughput Kbps"
+          },
+          "relative_throughput_ratio_vs_baseline": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Throughput Ratio Vs Baseline"
+          },
+          "median_connect_latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Connect Latency Ms"
+          },
+          "median_first_byte_latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median First Byte Latency Ms"
+          },
+          "median_open_to_first_byte_gap_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Open To First Byte Gap Ms"
+          },
+          "p95_open_to_first_byte_gap_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95 Open To First Byte Gap Ms"
+          },
+          "relative_open_to_first_byte_gap_ratio_vs_baseline": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Open To First Byte Gap Ratio Vs Baseline"
+          },
+          "frame_queue_peak": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Queue Peak"
+          },
+          "recent_rtt_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Rtt P95 Ms"
+          },
+          "active_streams": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Streams"
+          },
+          "pending_open_streams": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Open Streams"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AdapterDesktopRuntimeEventBenchmarkEvidence"
+      },
+      "AdapterDesktopRuntimeEventContinuityEvidence": {
+        "properties": {
+          "active_streams": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Streams"
+          },
+          "pending_open_streams": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Open Streams"
+          },
+          "continuity_grace_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuity Grace Active"
+          },
+          "continuity_grace_route_endpoint_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuity Grace Route Endpoint Ref"
+          },
+          "continuity_grace_remaining_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuity Grace Remaining Ms"
+          },
+          "continuity_grace_entries": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continuity Grace Entries"
+          },
+          "successful_continuity_recovers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successful Continuity Recovers"
+          },
+          "failed_continuity_recovers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Continuity Recovers"
+          },
+          "last_continuity_recovery_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Continuity Recovery Ms"
+          },
+          "successful_cross_route_recovers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successful Cross Route Recovers"
+          },
+          "last_cross_route_recovery_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Cross Route Recovery Ms"
+          },
+          "active_route_quarantined": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Route Quarantined"
+          },
+          "active_route_quarantine_remaining_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Route Quarantine Remaining Ms"
+          },
+          "active_route_endpoint_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Route Endpoint Ref"
+          },
+          "active_route_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Route Score"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AdapterDesktopRuntimeEventContinuityEvidence"
+      },
+      "AdapterDesktopRuntimeEventPayload": {
+        "properties": {
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "runtime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime"
+          },
+          "requested_core": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Core"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "proxy_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Url"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "recovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterDesktopRuntimeEventRecoveryEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "continuity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterDesktopRuntimeEventContinuityEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "benchmark": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterDesktopRuntimeEventBenchmarkEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AdapterDesktopRuntimeEventPayload"
+      },
+      "AdapterDesktopRuntimeEventRecoveryEvidence": {
+        "properties": {
+          "same_route_recovered": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same Route Recovered"
+          },
+          "ready_recovery_latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ready Recovery Latency Ms"
+          },
+          "proxy_ready_latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Ready Latency Ms"
+          },
+          "proxy_ready_open_to_first_byte_gap_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proxy Ready Open To First Byte Gap Ms"
+          },
+          "successful_cross_route_recovers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successful Cross Route Recovers"
+          },
+          "last_cross_route_recovery_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Cross Route Recovery Ms"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AdapterDesktopRuntimeEventRecoveryEvidence"
+      },
+      "AdapterManifestCapabilityProfile": {
+        "properties": {
+          "required_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Capabilities"
+          },
+          "fallback_core": {
+            "type": "string",
+            "title": "Fallback Core"
+          },
+          "health_policy": {
+            "$ref": "#/components/schemas/AdapterManifestHealthPolicy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "required_capabilities",
+          "fallback_core",
+          "health_policy"
+        ],
+        "title": "AdapterManifestCapabilityProfile"
+      },
+      "AdapterManifestCompatibilityWindow": {
+        "properties": {
+          "profile_family": {
+            "type": "string",
+            "title": "Profile Family"
+          },
+          "min_transport_profile_version": {
+            "type": "integer",
+            "title": "Min Transport Profile Version"
+          },
+          "max_transport_profile_version": {
+            "type": "integer",
+            "title": "Max Transport Profile Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_family",
+          "min_transport_profile_version",
+          "max_transport_profile_version"
+        ],
+        "title": "AdapterManifestCompatibilityWindow"
+      },
+      "AdapterManifestCredentials": {
+        "properties": {
+          "key_id": {
+            "type": "string",
+            "title": "Key Id"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key_id",
+          "token"
+        ],
+        "title": "AdapterManifestCredentials"
+      },
+      "AdapterManifestDocument": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "manifest_id": {
+            "type": "string",
+            "title": "Manifest Id"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issued At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/AdapterManifestSubject"
+          },
+          "transport": {
+            "$ref": "#/components/schemas/AdapterManifestTransport"
+          },
+          "transport_profile": {
+            "$ref": "#/components/schemas/AdapterManifestTransportProfile"
+          },
+          "compatibility_window": {
+            "$ref": "#/components/schemas/AdapterManifestCompatibilityWindow"
+          },
+          "capability_profile": {
+            "$ref": "#/components/schemas/AdapterManifestCapabilityProfile"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/AdapterManifestRoute"
+            },
+            "type": "array",
+            "title": "Routes"
+          },
+          "credentials": {
+            "$ref": "#/components/schemas/AdapterManifestCredentials"
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/AdapterManifestIntegrity"
+          },
+          "observability": {
+            "$ref": "#/components/schemas/AdapterManifestObservability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "manifest_id",
+          "rollout_id",
+          "issued_at",
+          "expires_at",
+          "subject",
+          "transport",
+          "transport_profile",
+          "compatibility_window",
+          "capability_profile",
+          "routes",
+          "credentials",
+          "integrity",
+          "observability"
+        ],
+        "title": "AdapterManifestDocument"
+      },
+      "AdapterManifestHealthPolicy": {
+        "properties": {
+          "startup_timeout_seconds": {
+            "type": "integer",
+            "title": "Startup Timeout Seconds"
+          },
+          "runtime_unhealthy_threshold": {
+            "type": "integer",
+            "title": "Runtime Unhealthy Threshold"
+          }
+        },
+        "type": "object",
+        "required": [
+          "startup_timeout_seconds",
+          "runtime_unhealthy_threshold"
+        ],
+        "title": "AdapterManifestHealthPolicy"
+      },
+      "AdapterManifestIntegrity": {
+        "properties": {
+          "manifest_hash": {
+            "type": "string",
+            "title": "Manifest Hash"
+          },
+          "signature": {
+            "$ref": "#/components/schemas/AdapterSignature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifest_hash",
+          "signature"
+        ],
+        "title": "AdapterManifestIntegrity"
+      },
+      "AdapterManifestObservability": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "metrics_namespace": {
+            "type": "string",
+            "title": "Metrics Namespace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "metrics_namespace"
+        ],
+        "title": "AdapterManifestObservability"
+      },
+      "AdapterManifestRoute": {
+        "properties": {
+          "endpoint_ref": {
+            "type": "string",
+            "title": "Endpoint Ref"
+          },
+          "preference": {
+            "type": "integer",
+            "title": "Preference"
+          },
+          "policy_tag": {
+            "type": "string",
+            "title": "Policy Tag"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint_ref",
+          "preference",
+          "policy_tag"
+        ],
+        "title": "AdapterManifestRoute"
+      },
+      "AdapterManifestSubject": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "desktop_client_id": {
+            "type": "string",
+            "title": "Desktop Client Id"
+          },
+          "entitlement_id": {
+            "type": "string",
+            "title": "Entitlement Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "desktop_client_id",
+          "entitlement_id",
+          "channel"
+        ],
+        "title": "AdapterManifestSubject"
+      },
+      "AdapterManifestTransport": {
+        "properties": {
+          "transport_family": {
+            "type": "string",
+            "title": "Transport Family"
+          },
+          "protocol_version": {
+            "type": "integer",
+            "title": "Protocol Version"
+          },
+          "session_mode": {
+            "type": "string",
+            "title": "Session Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transport_family",
+          "protocol_version",
+          "session_mode"
+        ],
+        "title": "AdapterManifestTransport"
+      },
+      "AdapterManifestTransportProfile": {
+        "properties": {
+          "transport_profile_id": {
+            "type": "string",
+            "title": "Transport Profile Id"
+          },
+          "profile_family": {
+            "type": "string",
+            "title": "Profile Family"
+          },
+          "profile_version": {
+            "type": "integer",
+            "title": "Profile Version"
+          },
+          "policy_version": {
+            "type": "integer",
+            "title": "Policy Version"
+          },
+          "deprecation_state": {
+            "type": "string",
+            "title": "Deprecation State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transport_profile_id",
+          "profile_family",
+          "profile_version",
+          "policy_version",
+          "deprecation_state"
+        ],
+        "title": "AdapterManifestTransportProfile"
+      },
+      "AdapterManifestVersionRecord": {
+        "properties": {
+          "manifest_version_id": {
+            "type": "string",
+            "title": "Manifest Version Id"
+          },
+          "manifest_id": {
+            "type": "string",
+            "title": "Manifest Id"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "manifest_template_version": {
+            "type": "string",
+            "title": "Manifest Template Version"
+          },
+          "transport_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport Profile Id"
+          },
+          "profile_family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Family"
+          },
+          "profile_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Version"
+          },
+          "policy_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Version"
+          },
+          "subject_user_id": {
+            "type": "string",
+            "title": "Subject User Id"
+          },
+          "desktop_client_id": {
+            "type": "string",
+            "title": "Desktop Client Id"
+          },
+          "entitlement_id": {
+            "type": "string",
+            "title": "Entitlement Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "protocol_version": {
+            "type": "integer",
+            "title": "Protocol Version"
+          },
+          "manifest_hash": {
+            "type": "string",
+            "title": "Manifest Hash"
+          },
+          "signature_alg": {
+            "type": "string",
+            "title": "Signature Alg"
+          },
+          "signature_key_id": {
+            "type": "string",
+            "title": "Signature Key Id"
+          },
+          "signature": {
+            "type": "string",
+            "title": "Signature"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifest_version_id",
+          "manifest_id",
+          "rollout_id",
+          "manifest_template_version",
+          "subject_user_id",
+          "desktop_client_id",
+          "entitlement_id",
+          "channel",
+          "protocol_version",
+          "manifest_hash",
+          "signature_alg",
+          "signature_key_id",
+          "signature",
+          "created_at"
+        ],
+        "title": "AdapterManifestVersionRecord"
+      },
+      "AdapterNodeAssignmentCompatibilityWindow": {
+        "properties": {
+          "min_transport_profile_version": {
+            "type": "integer",
+            "title": "Min Transport Profile Version"
+          },
+          "max_transport_profile_version": {
+            "type": "integer",
+            "title": "Max Transport Profile Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_transport_profile_version",
+          "max_transport_profile_version"
+        ],
+        "title": "AdapterNodeAssignmentCompatibilityWindow"
+      },
+      "AdapterNodeAssignmentIntegrity": {
+        "properties": {
+          "assignment_hash": {
+            "type": "string",
+            "title": "Assignment Hash"
+          },
+          "signature": {
+            "$ref": "#/components/schemas/AdapterSignature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment_hash",
+          "signature"
+        ],
+        "title": "AdapterNodeAssignmentIntegrity"
+      },
+      "AdapterNodeAssignmentResponse": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "assignment_id": {
+            "type": "string",
+            "title": "Assignment Id"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issued At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "desired_state": {
+            "type": "string",
+            "title": "Desired State"
+          },
+          "transport_profile": {
+            "$ref": "#/components/schemas/AdapterNodeAssignmentTransportProfile"
+          },
+          "runtime_profile": {
+            "$ref": "#/components/schemas/AdapterNodeRuntimeProfile"
+          },
+          "recovery": {
+            "$ref": "#/components/schemas/AdapterNodeRecovery"
+          },
+          "integrity": {
+            "$ref": "#/components/schemas/AdapterNodeAssignmentIntegrity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "assignment_id",
+          "rollout_id",
+          "node_id",
+          "channel",
+          "issued_at",
+          "expires_at",
+          "desired_state",
+          "transport_profile",
+          "runtime_profile",
+          "recovery",
+          "integrity"
+        ],
+        "title": "AdapterNodeAssignmentResponse"
+      },
+      "AdapterNodeAssignmentTransportProfile": {
+        "properties": {
+          "transport_profile_id": {
+            "type": "string",
+            "title": "Transport Profile Id"
+          },
+          "profile_family": {
+            "type": "string",
+            "title": "Profile Family"
+          },
+          "profile_version": {
+            "type": "integer",
+            "title": "Profile Version"
+          },
+          "policy_version": {
+            "type": "integer",
+            "title": "Policy Version"
+          },
+          "compatibility_window": {
+            "$ref": "#/components/schemas/AdapterNodeAssignmentCompatibilityWindow"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transport_profile_id",
+          "profile_family",
+          "profile_version",
+          "policy_version",
+          "compatibility_window"
+        ],
+        "title": "AdapterNodeAssignmentTransportProfile"
+      },
+      "AdapterNodeRecovery": {
+        "properties": {
+          "last_known_good_bundle": {
+            "type": "string",
+            "title": "Last Known Good Bundle"
+          },
+          "rollback_timeout_seconds": {
+            "type": "integer",
+            "title": "Rollback Timeout Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_known_good_bundle",
+          "rollback_timeout_seconds"
+        ],
+        "title": "AdapterNodeRecovery"
+      },
+      "AdapterNodeRegistryRecord": {
+        "properties": {
+          "service_node_id": {
+            "type": "string",
+            "title": "Service Node Id"
+          },
+          "remnawave_node_id": {
+            "type": "string",
+            "title": "Remnawave Node Id"
+          },
+          "node_name": {
+            "type": "string",
+            "title": "Node Name"
+          },
+          "hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostname"
+          },
+          "transport_enabled": {
+            "type": "boolean",
+            "title": "Transport Enabled"
+          },
+          "rollout_channel": {
+            "type": "string",
+            "title": "Rollout Channel"
+          },
+          "node_group": {
+            "type": "string",
+            "title": "Node Group"
+          },
+          "adapter_node_label": {
+            "type": "string",
+            "title": "Adapter Node Label"
+          },
+          "last_heartbeat_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Heartbeat At"
+          },
+          "daemon_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daemon Version"
+          },
+          "active_rollout_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Rollout Id"
+          },
+          "last_synced_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Synced At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service_node_id",
+          "remnawave_node_id",
+          "node_name",
+          "transport_enabled",
+          "rollout_channel",
+          "node_group",
+          "adapter_node_label",
+          "last_synced_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdapterNodeRegistryRecord"
+      },
+      "AdapterNodeRuntimeProfile": {
+        "properties": {
+          "bundle_version": {
+            "type": "string",
+            "title": "Bundle Version"
+          },
+          "min_daemon_version": {
+            "type": "string",
+            "title": "Min Daemon Version"
+          },
+          "ports": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Ports"
+          },
+          "health_check_interval_seconds": {
+            "type": "integer",
+            "title": "Health Check Interval Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bundle_version",
+          "min_daemon_version",
+          "ports",
+          "health_check_interval_seconds"
+        ],
+        "title": "AdapterNodeRuntimeProfile"
+      },
+      "AdapterResolveManifestResponse": {
+        "properties": {
+          "manifest_version_id": {
+            "type": "string",
+            "title": "Manifest Version Id"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/AdapterManifestDocument"
+          },
+          "selected_profile_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterTransportProfilePolicySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifest_version_id",
+          "manifest"
+        ],
+        "title": "AdapterResolveManifestResponse"
+      },
+      "AdapterRolloutBatchRecord": {
+        "properties": {
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "desired_state": {
+            "type": "string",
+            "title": "Desired State"
+          },
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "manifest_version": {
+            "type": "string",
+            "title": "Manifest Version"
+          },
+          "target_nodes": {
+            "type": "integer",
+            "title": "Target Nodes"
+          },
+          "completed_nodes": {
+            "type": "integer",
+            "title": "Completed Nodes"
+          },
+          "failed_nodes": {
+            "type": "integer",
+            "title": "Failed Nodes"
+          },
+          "desktop_connect_success_rate": {
+            "type": "number",
+            "title": "Desktop Connect Success Rate"
+          },
+          "desktop_fallback_rate": {
+            "type": "number",
+            "title": "Desktop Fallback Rate"
+          },
+          "pause_on_rollback_spike": {
+            "type": "boolean",
+            "title": "Pause On Rollback Spike"
+          },
+          "revoke_on_manifest_error": {
+            "type": "boolean",
+            "title": "Revoke On Manifest Error"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Published At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rollout_id",
+          "channel",
+          "desired_state",
+          "batch_id",
+          "manifest_version",
+          "target_nodes",
+          "completed_nodes",
+          "failed_nodes",
+          "desktop_connect_success_rate",
+          "desktop_fallback_rate",
+          "pause_on_rollback_spike",
+          "revoke_on_manifest_error",
+          "published_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdapterRolloutBatchRecord"
+      },
+      "AdapterRolloutBatchSummary": {
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "manifest_version": {
+            "type": "string",
+            "title": "Manifest Version"
+          },
+          "target_nodes": {
+            "type": "integer",
+            "title": "Target Nodes"
+          },
+          "completed_nodes": {
+            "type": "integer",
+            "title": "Completed Nodes"
+          },
+          "failed_nodes": {
+            "type": "integer",
+            "title": "Failed Nodes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "batch_id",
+          "manifest_version",
+          "target_nodes",
+          "completed_nodes",
+          "failed_nodes"
+        ],
+        "title": "AdapterRolloutBatchSummary"
+      },
+      "AdapterRolloutCanaryEvidenceResponse": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons",
+            "default": []
+          },
+          "evidence_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Gaps",
+            "default": []
+          },
+          "recommended_follow_up_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Follow Up Action"
+          },
+          "recommended_follow_up_severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Follow Up Severity"
+          },
+          "recommended_follow_up_tasks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommended Follow Up Tasks",
+            "default": []
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/AdapterRolloutCanaryThresholdSummary"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/AdapterRolloutCanarySnapshotSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "rollout_id",
+          "channel",
+          "evaluated_at",
+          "decision",
+          "thresholds",
+          "snapshot"
+        ],
+        "title": "AdapterRolloutCanaryEvidenceResponse"
+      },
+      "AdapterRolloutCanarySnapshotSummary": {
+        "properties": {
+          "desired_state": {
+            "type": "string",
+            "title": "Desired State"
+          },
+          "failed_nodes": {
+            "type": "integer",
+            "title": "Failed Nodes"
+          },
+          "rolled_back_nodes": {
+            "type": "integer",
+            "title": "Rolled Back Nodes"
+          },
+          "connect_success_rate": {
+            "type": "number",
+            "title": "Connect Success Rate"
+          },
+          "fallback_rate": {
+            "type": "number",
+            "title": "Fallback Rate"
+          },
+          "continuity_observed_events": {
+            "type": "integer",
+            "title": "Continuity Observed Events"
+          },
+          "continuity_success_rate": {
+            "type": "number",
+            "title": "Continuity Success Rate"
+          },
+          "cross_route_recovery_rate": {
+            "type": "number",
+            "title": "Cross Route Recovery Rate"
+          },
+          "benchmark_observed_events": {
+            "type": "integer",
+            "title": "Benchmark Observed Events",
+            "default": 0
+          },
+          "throughput_evidence_observed_events": {
+            "type": "integer",
+            "title": "Throughput Evidence Observed Events",
+            "default": 0
+          },
+          "average_benchmark_throughput_kbps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Benchmark Throughput Kbps"
+          },
+          "average_relative_throughput_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Relative Throughput Ratio"
+          },
+          "average_relative_open_to_first_byte_gap_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Relative Open To First Byte Gap Ratio"
+          },
+          "channel_posture": {
+            "type": "string",
+            "title": "Channel Posture"
+          },
+          "active_profile_advisory_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Profile Advisory State"
+          },
+          "active_profile_new_session_posture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Profile New Session Posture"
+          },
+          "applied_automatic_reaction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Automatic Reaction"
+          },
+          "applied_transport_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Transport Profile Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "desired_state",
+          "failed_nodes",
+          "rolled_back_nodes",
+          "connect_success_rate",
+          "fallback_rate",
+          "continuity_observed_events",
+          "continuity_success_rate",
+          "cross_route_recovery_rate",
+          "channel_posture"
+        ],
+        "title": "AdapterRolloutCanarySnapshotSummary"
+      },
+      "AdapterRolloutCanaryThresholdSummary": {
+        "properties": {
+          "min_connect_success_rate": {
+            "type": "number",
+            "title": "Min Connect Success Rate"
+          },
+          "max_fallback_rate": {
+            "type": "number",
+            "title": "Max Fallback Rate"
+          },
+          "min_continuity_observations": {
+            "type": "integer",
+            "title": "Min Continuity Observations"
+          },
+          "require_throughput_evidence": {
+            "type": "boolean",
+            "title": "Require Throughput Evidence"
+          },
+          "min_relative_throughput_ratio": {
+            "type": "number",
+            "title": "Min Relative Throughput Ratio"
+          },
+          "max_relative_open_to_first_byte_gap_ratio": {
+            "type": "number",
+            "title": "Max Relative Open To First Byte Gap Ratio"
+          },
+          "min_continuity_success_rate": {
+            "type": "number",
+            "title": "Min Continuity Success Rate"
+          },
+          "min_cross_route_recovery_rate": {
+            "type": "number",
+            "title": "Min Cross Route Recovery Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_connect_success_rate",
+          "max_fallback_rate",
+          "min_continuity_observations",
+          "require_throughput_evidence",
+          "min_relative_throughput_ratio",
+          "max_relative_open_to_first_byte_gap_ratio",
+          "min_continuity_success_rate",
+          "min_cross_route_recovery_rate"
+        ],
+        "title": "AdapterRolloutCanaryThresholdSummary"
+      },
+      "AdapterRolloutDesktopSummary": {
+        "properties": {
+          "connect_success_rate": {
+            "type": "number",
+            "title": "Connect Success Rate"
+          },
+          "fallback_rate": {
+            "type": "number",
+            "title": "Fallback Rate"
+          },
+          "continuity_observed_events": {
+            "type": "integer",
+            "title": "Continuity Observed Events",
+            "default": 0
+          },
+          "continuity_success_rate": {
+            "type": "number",
+            "title": "Continuity Success Rate",
+            "default": 0.0
+          },
+          "cross_route_recovery_rate": {
+            "type": "number",
+            "title": "Cross Route Recovery Rate",
+            "default": 0.0
+          },
+          "benchmark_observed_events": {
+            "type": "integer",
+            "title": "Benchmark Observed Events",
+            "default": 0
+          },
+          "throughput_evidence_observed_events": {
+            "type": "integer",
+            "title": "Throughput Evidence Observed Events",
+            "default": 0
+          },
+          "average_benchmark_throughput_kbps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Benchmark Throughput Kbps"
+          },
+          "average_relative_throughput_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Relative Throughput Ratio"
+          },
+          "average_relative_open_to_first_byte_gap_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Relative Open To First Byte Gap Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "connect_success_rate",
+          "fallback_rate"
+        ],
+        "title": "AdapterRolloutDesktopSummary"
+      },
+      "AdapterRolloutNodeSummary": {
+        "properties": {
+          "healthy": {
+            "type": "integer",
+            "title": "Healthy"
+          },
+          "stale": {
+            "type": "integer",
+            "title": "Stale"
+          },
+          "rolled_back": {
+            "type": "integer",
+            "title": "Rolled Back"
+          }
+        },
+        "type": "object",
+        "required": [
+          "healthy",
+          "stale",
+          "rolled_back"
+        ],
+        "title": "AdapterRolloutNodeSummary"
+      },
+      "AdapterRolloutPolicySummary": {
+        "properties": {
+          "pause_on_rollback_spike": {
+            "type": "boolean",
+            "title": "Pause On Rollback Spike"
+          },
+          "revoke_on_manifest_error": {
+            "type": "boolean",
+            "title": "Revoke On Manifest Error"
+          },
+          "active_transport_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Transport Profile Id"
+          },
+          "active_profile_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterTransportProfilePolicySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommended_transport_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Transport Profile Id"
+          },
+          "healthy_candidate_count": {
+            "type": "integer",
+            "title": "Healthy Candidate Count",
+            "default": 0
+          },
+          "eligible_candidate_count": {
+            "type": "integer",
+            "title": "Eligible Candidate Count",
+            "default": 0
+          },
+          "suppressed_candidate_count": {
+            "type": "integer",
+            "title": "Suppressed Candidate Count",
+            "default": 0
+          },
+          "active_profile_suppressed": {
+            "type": "boolean",
+            "title": "Active Profile Suppressed",
+            "default": false
+          },
+          "channel_posture": {
+            "type": "string",
+            "title": "Channel Posture",
+            "default": "healthy"
+          },
+          "automatic_reaction": {
+            "type": "string",
+            "title": "Automatic Reaction",
+            "default": "none"
+          },
+          "applied_automatic_reaction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Automatic Reaction"
+          },
+          "applied_transport_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Transport Profile Id"
+          },
+          "automatic_reaction_trigger_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automatic Reaction Trigger Reason"
+          },
+          "automatic_reaction_updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automatic Reaction Updated At"
+          },
+          "pause_recommended": {
+            "type": "boolean",
+            "title": "Pause Recommended",
+            "default": false
+          },
+          "profile_rotation_recommended": {
+            "type": "boolean",
+            "title": "Profile Rotation Recommended",
+            "default": false
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pause_on_rollback_spike",
+          "revoke_on_manifest_error"
+        ],
+        "title": "AdapterRolloutPolicySummary"
+      },
+      "AdapterRolloutStateResponse": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "rollout_id": {
+            "type": "string",
+            "title": "Rollout Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "desired_state": {
+            "type": "string",
+            "title": "Desired State"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Published At"
+          },
+          "current_batch": {
+            "$ref": "#/components/schemas/AdapterRolloutBatchSummary"
+          },
+          "nodes": {
+            "$ref": "#/components/schemas/AdapterRolloutNodeSummary"
+          },
+          "desktop": {
+            "$ref": "#/components/schemas/AdapterRolloutDesktopSummary"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AdapterRolloutPolicySummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema_version",
+          "rollout_id",
+          "channel",
+          "desired_state",
+          "published_at",
+          "current_batch",
+          "nodes",
+          "desktop",
+          "policy"
+        ],
+        "title": "AdapterRolloutStateResponse"
+      },
+      "AdapterSignature": {
+        "properties": {
+          "alg": {
+            "type": "string",
+            "title": "Alg"
+          },
+          "key_id": {
+            "type": "string",
+            "title": "Key Id"
+          },
+          "sig": {
+            "type": "string",
+            "title": "Sig"
+          }
+        },
+        "type": "object",
+        "required": [
+          "alg",
+          "key_id",
+          "sig"
+        ],
+        "title": "AdapterSignature"
+      },
+      "AdapterSupportedTransportProfile": {
+        "properties": {
+          "profile_family": {
+            "type": "string",
+            "title": "Profile Family"
+          },
+          "min_transport_profile_version": {
+            "type": "integer",
+            "title": "Min Transport Profile Version"
+          },
+          "max_transport_profile_version": {
+            "type": "integer",
+            "title": "Max Transport Profile Version"
+          },
+          "supported_policy_versions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Supported Policy Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_family",
+          "min_transport_profile_version",
+          "max_transport_profile_version",
+          "supported_policy_versions"
+        ],
+        "title": "AdapterSupportedTransportProfile"
+      },
+      "AdapterTransportProfilePolicySummary": {
+        "properties": {
+          "observed_events": {
+            "type": "integer",
+            "title": "Observed Events"
+          },
+          "connect_success_rate": {
+            "type": "number",
+            "title": "Connect Success Rate"
+          },
+          "fallback_rate": {
+            "type": "number",
+            "title": "Fallback Rate"
+          },
+          "continuity_success_rate": {
+            "type": "number",
+            "title": "Continuity Success Rate"
+          },
+          "cross_route_recovery_rate": {
+            "type": "number",
+            "title": "Cross Route Recovery Rate"
+          },
+          "policy_score": {
+            "type": "integer",
+            "title": "Policy Score"
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded"
+          },
+          "advisory_state": {
+            "type": "string",
+            "title": "Advisory State",
+            "default": "healthy"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action"
+          },
+          "selection_eligible": {
+            "type": "boolean",
+            "title": "Selection Eligible",
+            "default": true
+          },
+          "new_session_issuable": {
+            "type": "boolean",
+            "title": "New Session Issuable",
+            "default": true
+          },
+          "new_session_posture": {
+            "type": "string",
+            "title": "New Session Posture",
+            "default": "preferred"
+          },
+          "suppression_window_active": {
+            "type": "boolean",
+            "title": "Suppression Window Active",
+            "default": false
+          },
+          "suppression_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppression Reason"
+          },
+          "suppression_observation_count": {
+            "type": "integer",
+            "title": "Suppression Observation Count",
+            "default": 0
+          },
+          "suppressed_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppressed Until"
+          }
+        },
+        "type": "object",
+        "required": [
+          "observed_events",
+          "connect_success_rate",
+          "fallback_rate",
+          "continuity_success_rate",
+          "cross_route_recovery_rate",
+          "policy_score",
+          "degraded"
+        ],
+        "title": "AdapterTransportProfilePolicySummary"
+      },
+      "AdapterTransportProfileRecord": {
+        "properties": {
+          "transport_profile_id": {
+            "type": "string",
+            "title": "Transport Profile Id"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "profile_family": {
+            "type": "string",
+            "title": "Profile Family"
+          },
+          "profile_version": {
+            "type": "integer",
+            "title": "Profile Version"
+          },
+          "policy_version": {
+            "type": "integer",
+            "title": "Policy Version"
+          },
+          "protocol_version": {
+            "type": "integer",
+            "title": "Protocol Version"
+          },
+          "session_mode": {
+            "type": "string",
+            "title": "Session Mode"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "fallback_core": {
+            "type": "string",
+            "title": "Fallback Core"
+          },
+          "required_capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Capabilities"
+          },
+          "compatibility_min_profile_version": {
+            "type": "integer",
+            "title": "Compatibility Min Profile Version"
+          },
+          "compatibility_max_profile_version": {
+            "type": "integer",
+            "title": "Compatibility Max Profile Version"
+          },
+          "startup_timeout_seconds": {
+            "type": "integer",
+            "title": "Startup Timeout Seconds"
+          },
+          "runtime_unhealthy_threshold": {
+            "type": "integer",
+            "title": "Runtime Unhealthy Threshold"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterTransportProfilePolicySummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transport_profile_id",
+          "channel",
+          "profile_family",
+          "profile_version",
+          "policy_version",
+          "protocol_version",
+          "session_mode",
+          "status",
+          "fallback_core",
+          "required_capabilities",
+          "compatibility_min_profile_version",
+          "compatibility_max_profile_version",
+          "startup_timeout_seconds",
+          "runtime_unhealthy_threshold",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdapterTransportProfileRecord"
+      },
       "AdminCreateInviteRequest": {
         "properties": {
           "user_id": {
@@ -7551,6 +11603,34 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "sign_in_count": {
+            "type": "integer",
+            "title": "Sign In Count",
+            "default": 0
+          },
+          "current_sign_in_ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Sign In Ip"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
           }
         },
         "type": "object",
@@ -7691,7 +11771,7 @@
       "AuthResponse": {
         "properties": {
           "tokens": {
-            "$ref": "#/components/schemas/TokenResponse",
+            "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse",
             "description": "Authentication tokens"
           },
           "user": {
@@ -7957,6 +12037,20 @@
         "title": "CheckoutResponse",
         "description": "Checkout calculation result."
       },
+      "CloneNodePluginRequest": {
+        "properties": {
+          "cloneFromUuid": {
+            "type": "string",
+            "title": "Clonefromuuid"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "cloneFromUuid"
+        ],
+        "title": "CloneNodePluginRequest"
+      },
       "ComponentStatus": {
         "properties": {
           "status": {
@@ -8021,6 +12115,28 @@
           "client_type": "vless",
           "config_string": "vless://uuid@server:port?encryption=none&security=tls"
         }
+      },
+      "ConnectionDropPluginConfigResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "whitelistIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Whitelistips"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled",
+          "whitelistIps"
+        ],
+        "title": "ConnectionDropPluginConfigResponse"
       },
       "CreateConfigProfileRequest": {
         "properties": {
@@ -8279,6 +12395,20 @@
           "plan_id": "premium_monthly",
           "user_uuid": "550e8400-e29b-41d4-a716-446655440000"
         }
+      },
+      "CreateNodePluginRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateNodePluginRequest"
       },
       "CreatePartnerCodeRequest": {
         "properties": {
@@ -8965,6 +13095,20 @@
         "title": "DeleteAntiPhishingCodeResponse",
         "description": "Response after deleting anti-phishing code."
       },
+      "DeleteNodePluginResponse": {
+        "properties": {
+          "isDeleted": {
+            "type": "boolean",
+            "title": "Isdeleted"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "isDeleted"
+        ],
+        "title": "DeleteNodePluginResponse"
+      },
       "DeviceInfo": {
         "properties": {
           "device_id": {
@@ -9170,6 +13314,48 @@
         "title": "DeviceSessionResponse",
         "description": "Response schema for active device session (BF2-4)."
       },
+      "EgressFilterPluginConfigResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "blockedIps": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blockedips"
+          },
+          "blockedPorts": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blockedports"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "EgressFilterPluginConfigResponse"
+      },
       "FCMTokenDeleteRequest": {
         "properties": {
           "device_id": {
@@ -9288,6 +13474,12 @@
             "type": "string",
             "format": "email",
             "title": "Email"
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
           }
         },
         "type": "object",
@@ -9423,6 +13615,295 @@
         "title": "HealthResponse",
         "description": "Overall system health check response."
       },
+      "HelixPublishRolloutRequest": {
+        "properties": {
+          "rollout_id": {
+            "type": "string",
+            "pattern": "^rollout-[a-z0-9-]+$",
+            "title": "Rollout Id"
+          },
+          "batch_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "title": "Batch Id"
+          },
+          "channel": {
+            "type": "string",
+            "pattern": "^(lab|canary|stable)$",
+            "title": "Channel"
+          },
+          "manifest_version": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Manifest Version"
+          },
+          "target_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Target Node Ids"
+          },
+          "pause_on_rollback_spike": {
+            "type": "boolean",
+            "title": "Pause On Rollback Spike",
+            "default": true
+          },
+          "revoke_on_manifest_error": {
+            "type": "boolean",
+            "title": "Revoke On Manifest Error",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "rollout_id",
+          "batch_id",
+          "channel",
+          "manifest_version",
+          "target_node_ids"
+        ],
+        "title": "HelixPublishRolloutRequest"
+      },
+      "HelixResolveManifestRequest": {
+        "properties": {
+          "desktop_client_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desktop Client Id"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(lab|canary|stable)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "supported_protocol_versions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported Protocol Versions"
+          },
+          "supported_transport_profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdapterSupportedTransportProfile"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported Transport Profiles"
+          },
+          "preferred_fallback_core": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(sing-box|xray)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Fallback Core"
+          }
+        },
+        "type": "object",
+        "title": "HelixResolveManifestRequest",
+        "example": {
+          "channel": "lab",
+          "desktop_client_id": "desktop-win11-primary",
+          "preferred_fallback_core": "sing-box",
+          "supported_protocol_versions": [
+            1
+          ],
+          "supported_transport_profiles": [
+            {
+              "max_transport_profile_version": 4,
+              "min_transport_profile_version": 1,
+              "profile_family": "edge-hybrid",
+              "supported_policy_versions": [
+                4,
+                5,
+                6,
+                7
+              ]
+            }
+          ]
+        }
+      },
+      "HelixRuntimeEventRequest": {
+        "properties": {
+          "desktop_client_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "title": "Desktop Client Id"
+          },
+          "manifest_version_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 36,
+            "title": "Manifest Version Id"
+          },
+          "rollout_id": {
+            "type": "string",
+            "pattern": "^rollout-[a-z0-9-]+$",
+            "title": "Rollout Id"
+          },
+          "transport_profile_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 3,
+            "title": "Transport Profile Id"
+          },
+          "event_kind": {
+            "type": "string",
+            "pattern": "^(ready|fallback|disconnect|benchmark)$",
+            "title": "Event Kind"
+          },
+          "active_core": {
+            "type": "string",
+            "pattern": "^(helix|private-transport|sing-box|xray)$",
+            "title": "Active Core"
+          },
+          "fallback_core": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(sing-box|xray)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Core"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "route_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Count"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AdapterDesktopRuntimeEventPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "desktop_client_id",
+          "manifest_version_id",
+          "rollout_id",
+          "transport_profile_id",
+          "event_kind",
+          "active_core"
+        ],
+        "title": "HelixRuntimeEventRequest",
+        "example": {
+          "active_core": "helix",
+          "desktop_client_id": "desktop-win11-primary",
+          "event_kind": "ready",
+          "latency_ms": 142,
+          "manifest_version_id": "de33fcba-b71d-4f5f-82d2-34ae78977e31",
+          "payload": {
+            "benchmark": {
+              "baseline_core": "sing-box",
+              "benchmark_kind": "comparison",
+              "median_open_to_first_byte_gap_ms": 24,
+              "relative_open_to_first_byte_gap_ratio_vs_baseline": 1.04,
+              "relative_throughput_ratio_vs_baseline": 0.97,
+              "throughput_kbps": 68400.0
+            },
+            "continuity": {
+              "active_streams": 3,
+              "continuity_grace_active": false,
+              "pending_open_streams": 0,
+              "successful_continuity_recovers": 2
+            },
+            "recovery": {
+              "proxy_ready_latency_ms": 56,
+              "ready_recovery_latency_ms": 41,
+              "same_route_recovered": true
+            },
+            "runtime": "embedded-sidecar",
+            "status": "ready"
+          },
+          "rollout_id": "rollout-lab-1",
+          "route_count": 2,
+          "transport_profile_id": "ptp-lab-edge-v2"
+        }
+      },
       "HostResponse": {
         "properties": {
           "uuid": {
@@ -9517,6 +13998,28 @@
         ],
         "title": "HostResponse",
         "description": "Expected response from Remnawave hosts API."
+      },
+      "IngressFilterPluginConfigResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "blockedIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blockedips"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled",
+          "blockedIps"
+        ],
+        "title": "IngressFilterPluginConfigResponse"
       },
       "InviteCodeResponse": {
         "properties": {
@@ -9760,6 +14263,12 @@
             "type": "string",
             "format": "email",
             "title": "Email"
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
           }
         },
         "type": "object",
@@ -9886,6 +14395,175 @@
         ],
         "title": "MobileAuthError",
         "description": "Error response schema for mobile authentication.\n\nStandardized error format for mobile clients."
+      },
+      "NodePluginCollectionResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "nodePlugins": {
+            "items": {
+              "$ref": "#/components/schemas/NodePluginResponse"
+            },
+            "type": "array",
+            "title": "Nodeplugins"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "total",
+          "nodePlugins"
+        ],
+        "title": "NodePluginCollectionResponse"
+      },
+      "NodePluginConfigResponse-Input": {
+        "properties": {
+          "sharedLists": {
+            "items": {
+              "$ref": "#/components/schemas/SharedListResponse"
+            },
+            "type": "array",
+            "title": "Sharedlists"
+          },
+          "torrentBlocker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TorrentBlockerPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ingressFilter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IngressFilterPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "egressFilter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EgressFilterPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectionDrop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionDropPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "NodePluginConfigResponse"
+      },
+      "NodePluginConfigResponse-Output": {
+        "properties": {
+          "sharedLists": {
+            "items": {
+              "$ref": "#/components/schemas/SharedListResponse"
+            },
+            "type": "array",
+            "title": "Sharedlists"
+          },
+          "torrentBlocker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TorrentBlockerPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ingressFilter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IngressFilterPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "egressFilter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EgressFilterPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectionDrop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionDropPluginConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "NodePluginConfigResponse"
+      },
+      "NodePluginResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "viewPosition": {
+            "type": "integer",
+            "title": "Viewposition"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "pluginConfig": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NodePluginConfigResponse-Output"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pluginconfig"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "uuid",
+          "viewPosition",
+          "name"
+        ],
+        "title": "NodePluginResponse"
       },
       "NotificationPreferencesResponse": {
         "properties": {
@@ -10063,16 +14741,22 @@
             "description": "CSRF state token"
           },
           "redirect_uri": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Redirect Uri",
-            "description": "Redirect URI used in authorization"
+            "description": "Redirect URI used in authorization for native/universal-link flows"
           }
         },
         "type": "object",
         "required": [
           "code",
-          "state",
-          "redirect_uri"
+          "state"
         ],
         "title": "OAuthLoginCallbackRequest",
         "description": "OAuth login callback request (unauthenticated)."
@@ -10424,6 +15108,41 @@
         ],
         "title": "Platform",
         "description": "Mobile platform identifiers."
+      },
+      "PluginExecutorRequest": {
+        "properties": {
+          "command": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Command"
+          },
+          "targetNodes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Targetnodes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "command",
+          "targetNodes"
+        ],
+        "title": "PluginExecutorRequest"
+      },
+      "PluginExecutorResponse": {
+        "properties": {
+          "eventSent": {
+            "type": "boolean",
+            "title": "Eventsent"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "eventSent"
+        ],
+        "title": "PluginExecutorResponse"
       },
       "ProfileResponse": {
         "properties": {
@@ -10797,50 +15516,79 @@
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Refresh Token",
+            "description": "Current refresh token to exchange for new tokens"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Device Id",
+            "description": "Device ID for session validation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token",
+          "device_id"
+        ],
+        "title": "RefreshTokenRequest",
+        "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
+      },
+      "RegisterRequest": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_]+$",
+            "title": "Login"
+          },
+          "email": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 1000,
-                "minLength": 1
+                "format": "email"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Refresh Token"
-          }
-        },
-        "type": "object",
-        "title": "RefreshTokenRequest"
-      },
-      "RegisterRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address (must be valid and unique)"
+            "title": "Email"
           },
           "password": {
             "type": "string",
             "maxLength": 128,
             "minLength": 12,
-            "title": "Password",
-            "description": "User password (minimum 12 characters, requires complexity)"
+            "title": "Password"
           },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for registration"
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
+          },
+          "tos_accepted": {
+            "type": "boolean",
+            "title": "Tos Accepted",
+            "description": "Must accept Terms of Service"
+          },
+          "marketing_consent": {
+            "type": "boolean",
+            "title": "Marketing Consent",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "email",
+          "login",
           "password",
-          "device"
+          "tos_accepted"
         ],
         "title": "RegisterRequest",
-        "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
+        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
       },
       "RegisterResponse": {
         "properties": {
@@ -11420,6 +16168,28 @@
             "title": "Config",
             "description": "Generated VPN configuration string"
           },
+          "isFound": {
+            "type": "boolean",
+            "title": "Isfound",
+            "description": "Whether the upstream subscription record exists",
+            "default": true
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Links",
+            "description": "All generated connection links"
+          },
+          "ssConfLinks": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Ssconflinks",
+            "description": "Shadowsocks config links keyed by remark"
+          },
           "subscriptionUrl": {
             "anyOf": [
               {
@@ -11608,12 +16378,54 @@
         "title": "RemnawaveXrayConfigResponse",
         "description": "Xray-core configuration blob from Remnawave ``/api/xray/config``."
       },
+      "ReorderNodePluginItem": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "viewPosition": {
+            "type": "integer",
+            "title": "Viewposition"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "uuid",
+          "viewPosition"
+        ],
+        "title": "ReorderNodePluginItem"
+      },
+      "ReorderNodePluginsRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReorderNodePluginItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ReorderNodePluginsRequest"
+      },
       "ResendOtpRequest": {
         "properties": {
           "email": {
             "type": "string",
             "format": "email",
             "title": "Email"
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
           }
         },
         "type": "object",
@@ -11756,6 +16568,17 @@
             "format": "date-time",
             "title": "Updated At"
           },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
           "traffic_used_bytes": {
             "type": "integer",
             "title": "Traffic Used Bytes"
@@ -11767,6 +16590,28 @@
           "users_online": {
             "type": "integer",
             "title": "Users Online"
+          },
+          "xray_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xray Version"
+          },
+          "vpn_protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vpn Protocol"
           }
         },
         "type": "object",
@@ -11866,6 +16711,34 @@
         ],
         "title": "SetAntiPhishingCodeRequest",
         "description": "Request to set or update anti-phishing code."
+      },
+      "SharedListResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "const": "ipList",
+            "title": "Type"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "items"
+        ],
+        "title": "SharedListResponse"
       },
       "SignPayloadRequest": {
         "properties": {
@@ -12104,6 +16977,40 @@
         "title": "TelegramAuthRequest",
         "description": "Request schema for Telegram OAuth callback.\n\nUsed by POST /api/v1/mobile/auth/telegram/callback endpoint."
       },
+      "TelegramBotAccessSettingsResponse": {
+        "properties": {
+          "access_mode": {
+            "type": "string",
+            "title": "Access Mode",
+            "default": "open"
+          },
+          "rules_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rules Url"
+          },
+          "channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Id"
+          }
+        },
+        "type": "object",
+        "title": "TelegramBotAccessSettingsResponse",
+        "description": "Bot access settings returned to the Telegram bot service."
+      },
       "TelegramBotLinkRequest": {
         "properties": {
           "token": {
@@ -12142,6 +17049,22 @@
           },
           "user": {
             "$ref": "#/components/schemas/AdminUserResponse"
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
           }
         },
         "type": "object",
@@ -12152,6 +17075,371 @@
         ],
         "title": "TelegramBotLinkResponse",
         "description": "Response for Telegram bot deep-link authentication."
+      },
+      "TelegramBotReferralStatsResponse": {
+        "properties": {
+          "total_referrals": {
+            "type": "integer",
+            "title": "Total Referrals",
+            "default": 0
+          },
+          "bonus_days": {
+            "type": "integer",
+            "title": "Bonus Days",
+            "default": 0
+          },
+          "referral_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Link"
+          }
+        },
+        "type": "object",
+        "title": "TelegramBotReferralStatsResponse",
+        "description": "Bot-facing referral summary."
+      },
+      "TelegramBotSubscriptionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes"
+          },
+          "auto_renew": {
+            "type": "boolean",
+            "title": "Auto Renew",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TelegramBotSubscriptionResponse",
+        "description": "Bot-facing subscription summary."
+      },
+      "TelegramBotTrialStatusResponse": {
+        "properties": {
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "is_trial_active": {
+            "type": "boolean",
+            "title": "Is Trial Active",
+            "default": false
+          },
+          "trial_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Start"
+          },
+          "trial_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial End"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "eligible"
+        ],
+        "title": "TelegramBotTrialStatusResponse",
+        "description": "Bot-facing trial status and eligibility."
+      },
+      "TelegramBotUserCreateRequest": {
+        "properties": {
+          "telegram_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Telegram Id"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "language_code": {
+            "type": "string",
+            "maxLength": 16,
+            "title": "Language Code",
+            "default": "en"
+          },
+          "referrer_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "telegram_id"
+        ],
+        "title": "TelegramBotUserCreateRequest",
+        "description": "Internal bot request to create or bootstrap a Telegram user."
+      },
+      "TelegramBotUserResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "telegram_id": {
+            "type": "integer",
+            "title": "Telegram Id"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "language_code": {
+            "type": "string",
+            "title": "Language Code",
+            "default": "en"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "none"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin",
+            "default": false
+          },
+          "personal_discount": {
+            "type": "number",
+            "title": "Personal Discount",
+            "default": 0.0
+          },
+          "next_purchase_discount": {
+            "type": "number",
+            "title": "Next Purchase Discount",
+            "default": 0.0
+          },
+          "referrer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referrer Id"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points",
+            "default": 0
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription"
+          },
+          "subscriptions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Subscriptions"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uuid",
+          "telegram_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TelegramBotUserResponse",
+        "description": "Telegram bot-facing user payload compatible with the bot service DTO."
+      },
+      "TelegramBotUserUpdateRequest": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "language_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language Code"
+          }
+        },
+        "type": "object",
+        "title": "TelegramBotUserUpdateRequest",
+        "description": "Internal bot request to update Telegram-side profile details."
       },
       "TelegramCallbackRequest": {
         "properties": {
@@ -12414,6 +17702,22 @@
             "type": "boolean",
             "title": "Is New User",
             "default": false
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
           }
         },
         "type": "object",
@@ -12606,6 +17910,22 @@
             "type": "boolean",
             "title": "Is New User",
             "default": false
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
           }
         },
         "type": "object",
@@ -12621,26 +17941,21 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "title": "Access Token",
-            "description": "JWT access token (TTL: 15 minutes)"
+            "title": "Access Token"
           },
           "refresh_token": {
             "type": "string",
-            "title": "Refresh Token",
-            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
+            "title": "Refresh Token"
           },
           "token_type": {
             "type": "string",
             "title": "Token Type",
-            "description": "Token type for Authorization header",
-            "default": "Bearer"
+            "default": "bearer"
           },
           "expires_in": {
             "type": "integer",
-            "minimum": 0.0,
             "title": "Expires In",
-            "description": "Access token expiration in seconds (default: 15 minutes)",
-            "default": 900
+            "default": 0
           }
         },
         "type": "object",
@@ -12648,8 +17963,493 @@
           "access_token",
           "refresh_token"
         ],
-        "title": "TokenResponse",
-        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
+        "title": "TokenResponse"
+      },
+      "TorrentBlockerActionReportResponse": {
+        "properties": {
+          "blocked": {
+            "type": "boolean",
+            "title": "Blocked"
+          },
+          "ip": {
+            "type": "string",
+            "title": "Ip"
+          },
+          "blockDuration": {
+            "type": "integer",
+            "title": "Blockduration"
+          },
+          "willUnblockAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Willunblockat"
+          },
+          "userId": {
+            "type": "string",
+            "title": "Userid"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Processedat"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "blocked",
+          "ip",
+          "blockDuration",
+          "willUnblockAt",
+          "userId",
+          "processedAt"
+        ],
+        "title": "TorrentBlockerActionReportResponse"
+      },
+      "TorrentBlockerIgnoreListsResponse": {
+        "properties": {
+          "ip": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userid"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TorrentBlockerIgnoreListsResponse"
+      },
+      "TorrentBlockerNodeResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "countryCode": {
+            "type": "string",
+            "title": "Countrycode"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "countryCode"
+        ],
+        "title": "TorrentBlockerNodeResponse"
+      },
+      "TorrentBlockerPluginConfigResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "blockDuration": {
+            "type": "integer",
+            "title": "Blockduration"
+          },
+          "ignoreLists": {
+            "$ref": "#/components/schemas/TorrentBlockerIgnoreListsResponse"
+          },
+          "includeRuleTags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Includeruletags"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled",
+          "blockDuration",
+          "ignoreLists"
+        ],
+        "title": "TorrentBlockerPluginConfigResponse"
+      },
+      "TorrentBlockerReportPayloadResponse": {
+        "properties": {
+          "actionReport": {
+            "$ref": "#/components/schemas/TorrentBlockerActionReportResponse"
+          },
+          "xrayReport": {
+            "$ref": "#/components/schemas/TorrentBlockerXrayReportResponse"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "actionReport",
+          "xrayReport"
+        ],
+        "title": "TorrentBlockerReportPayloadResponse"
+      },
+      "TorrentBlockerReportResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "userId": {
+            "type": "integer",
+            "title": "Userid"
+          },
+          "nodeId": {
+            "type": "integer",
+            "title": "Nodeid"
+          },
+          "user": {
+            "$ref": "#/components/schemas/TorrentBlockerUserResponse"
+          },
+          "node": {
+            "$ref": "#/components/schemas/TorrentBlockerNodeResponse"
+          },
+          "report": {
+            "$ref": "#/components/schemas/TorrentBlockerReportPayloadResponse"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "nodeId",
+          "user",
+          "node",
+          "report",
+          "createdAt"
+        ],
+        "title": "TorrentBlockerReportResponse"
+      },
+      "TorrentBlockerReportsResponse": {
+        "properties": {
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/TorrentBlockerReportResponse"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "records",
+          "total"
+        ],
+        "title": "TorrentBlockerReportsResponse"
+      },
+      "TorrentBlockerReportsStatsResponse": {
+        "properties": {
+          "stats": {
+            "$ref": "#/components/schemas/TorrentBlockerStatsResponse"
+          },
+          "topUsers": {
+            "items": {
+              "$ref": "#/components/schemas/TorrentBlockerTopEntityResponse"
+            },
+            "type": "array",
+            "title": "Topusers"
+          },
+          "topNodes": {
+            "items": {
+              "$ref": "#/components/schemas/TorrentBlockerTopEntityResponse"
+            },
+            "type": "array",
+            "title": "Topnodes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "stats",
+          "topUsers",
+          "topNodes"
+        ],
+        "title": "TorrentBlockerReportsStatsResponse"
+      },
+      "TorrentBlockerStatsResponse": {
+        "properties": {
+          "distinctNodes": {
+            "type": "integer",
+            "title": "Distinctnodes"
+          },
+          "distinctUsers": {
+            "type": "integer",
+            "title": "Distinctusers"
+          },
+          "totalReports": {
+            "type": "integer",
+            "title": "Totalreports"
+          },
+          "reportsLast24Hours": {
+            "type": "integer",
+            "title": "Reportslast24Hours"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "distinctNodes",
+          "distinctUsers",
+          "totalReports",
+          "reportsLast24Hours"
+        ],
+        "title": "TorrentBlockerStatsResponse"
+      },
+      "TorrentBlockerTopEntityResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "countryCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Countrycode"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "uuid",
+          "color",
+          "total"
+        ],
+        "title": "TorrentBlockerTopEntityResponse"
+      },
+      "TorrentBlockerUserResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "title": "Uuid"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "uuid",
+          "username"
+        ],
+        "title": "TorrentBlockerUserResponse"
+      },
+      "TorrentBlockerXrayReportResponse": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "protocol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol"
+          },
+          "network": {
+            "type": "string",
+            "title": "Network"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination"
+          },
+          "routeTarget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routetarget"
+          },
+          "originalTarget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Originaltarget"
+          },
+          "inboundTag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inboundtag"
+          },
+          "inboundName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inboundname"
+          },
+          "inboundLocal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inboundlocal"
+          },
+          "outboundTag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outboundtag"
+          },
+          "ts": {
+            "type": "integer",
+            "title": "Ts"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "network",
+          "destination",
+          "ts"
+        ],
+        "title": "TorrentBlockerXrayReportResponse"
       },
       "TrialActivateResponse": {
         "properties": {
@@ -12973,6 +18773,50 @@
           "markup_pct"
         ],
         "title": "UpdateMarkupRequest"
+      },
+      "UpdateNodePluginRequest": {
+        "properties": {
+          "uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uuid"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "pluginConfig": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NodePluginConfigResponse-Input"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pluginconfig"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "UpdateNodePluginRequest"
       },
       "UpdatePlanRequest": {
         "properties": {
@@ -13802,6 +19646,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -14145,75 +19996,24 @@
         "type": "object",
         "title": "LogoutRequest"
       },
-      "src__presentation__api__v1__auth__schemas__RegisterRequest": {
+      "src__presentation__api__v1__auth__schemas__RefreshTokenRequest": {
         "properties": {
-          "login": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_]+$",
-            "title": "Login"
-          },
-          "email": {
+          "refresh_token": {
             "anyOf": [
               {
                 "type": "string",
-                "format": "email"
+                "maxLength": 1000,
+                "minLength": 1
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 12,
-            "title": "Password"
-          },
-          "locale": {
-            "type": "string",
-            "maxLength": 10,
-            "title": "Locale",
-            "default": "en-EN"
-          }
-        },
-        "type": "object",
-        "required": [
-          "login",
-          "password"
-        ],
-        "title": "RegisterRequest",
-        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
-      },
-      "src__presentation__api__v1__auth__schemas__TokenResponse": {
-        "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token"
-          },
-          "refresh_token": {
-            "type": "string",
             "title": "Refresh Token"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "default": "bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "default": 0
           }
         },
         "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token"
-        ],
-        "title": "TokenResponse"
+        "title": "RefreshTokenRequest"
       },
       "src__presentation__api__v1__mobile_auth__schemas__LoginRequest": {
         "properties": {
@@ -14250,29 +20050,68 @@
         "title": "LoginRequest",
         "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
       },
-      "src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest": {
+      "src__presentation__api__v1__mobile_auth__schemas__RegisterRequest": {
         "properties": {
-          "refresh_token": {
+          "email": {
             "type": "string",
-            "minLength": 1,
-            "title": "Refresh Token",
-            "description": "Current refresh token to exchange for new tokens"
+            "format": "email",
+            "title": "Email",
+            "description": "User email address (must be valid and unique)"
           },
-          "device_id": {
+          "password": {
             "type": "string",
-            "maxLength": 36,
-            "minLength": 36,
-            "title": "Device Id",
-            "description": "Device ID for session validation"
+            "maxLength": 128,
+            "minLength": 12,
+            "title": "Password",
+            "description": "User password (minimum 12 characters, requires complexity)"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for registration"
           }
         },
         "type": "object",
         "required": [
-          "refresh_token",
-          "device_id"
+          "email",
+          "password",
+          "device"
         ],
-        "title": "RefreshTokenRequest",
-        "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
+        "title": "RegisterRequest",
+        "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token (TTL: 15 minutes)"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type for Authorization header",
+            "default": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expires In",
+            "description": "Access token expiration in seconds (default: 15 minutes)",
+            "default": 900
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenResponse",
+        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "src__presentation__api__v1__mobile_auth__schemas__UserResponse": {
         "properties": {
@@ -14450,6 +20289,10 @@
     {
       "name": "settings",
       "description": "System settings (Remnawave proxy)"
+    },
+    {
+      "name": "helix",
+      "description": "Helix desktop and rollout APIs"
     },
     {
       "name": "admin",

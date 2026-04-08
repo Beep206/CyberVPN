@@ -834,6 +834,9 @@ class TestRemnawaveSubscriptionConfigResponse:
         resp = RemnawaveSubscriptionConfigResponse(config="vless://uuid@host:443?security=tls")
 
         assert resp.config.startswith("vless://")
+        assert resp.is_found is True
+        assert resp.links == []
+        assert resp.ss_conf_links == {}
         assert resp.subscription_url is None
 
     @pytest.mark.unit
@@ -864,6 +867,8 @@ class TestRemnawaveSubscriptionConfigResponse:
         dumped = resp.model_dump(by_alias=True)
 
         assert "subscriptionUrl" in dumped
+        assert "isFound" in dumped
+        assert "ssConfLinks" in dumped
 
 
 # ---------------------------------------------------------------------------

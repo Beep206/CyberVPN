@@ -280,13 +280,20 @@ async def _async_main() -> None:
     bot = create_bot(settings)
     dp = create_dispatcher(settings, bot)
 
-    dp.startup.register(lambda bot: on_startup(bot, settings))
+    async def _on_startup(bot: Bot, **_: object) -> None:
+        await on_startup(bot, settings)
+
     dp.shutdown.register(on_shutdown)
+    dp.startup.register(_on_startup)
 
     metrics_runner = None
     if settings.prometheus.enabled:
         metrics_runner = await _start_metrics_server(settings)
-        dp.shutdown.register(lambda _: _stop_metrics_server(metrics_runner))
+
+        async def _on_shutdown_metrics(*_: object, **__: object) -> None:
+            await _stop_metrics_server(metrics_runner)
+
+        dp.shutdown.register(_on_shutdown_metrics)
 
     await run_polling(bot, dp)
 
@@ -317,8 +324,12 @@ def main() -> None:
     if settings.bot_mode == "webhook":
         bot = create_bot(settings)
         dp = create_dispatcher(settings, bot)
-        dp.startup.register(lambda bot: on_startup(bot, settings))
+
+        async def _on_startup(bot: Bot, **_: object) -> None:
+            await on_startup(bot, settings)
+
         dp.shutdown.register(on_shutdown)
+        dp.startup.register(_on_startup)
         run_webhook(bot, dp, settings)
     else:
         asyncio.run(_async_main())

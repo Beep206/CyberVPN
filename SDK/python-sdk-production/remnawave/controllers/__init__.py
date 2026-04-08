@@ -10,7 +10,9 @@ from .inbounds_bulk_actions import InboundsBulkActionsController
 from .infra_billing import InfraBillingController
 from .internal_squads import InternalSquadsController
 from .keygen import KeygenController
+from .metadata import MetadataController
 from .nodes import NodesController
+from .node_plugins import NodePluginsController
 from .subscription import SubscriptionController
 from .subscriptions_controller import SubscriptionsController
 from .subscriptions_settings import SubscriptionsSettingsController
@@ -40,7 +42,9 @@ __all__ = [
     "InfraBillingController",
     "InternalSquadsController",
     "KeygenController",
+    "MetadataController",
     "NodesController",
+    "NodePluginsController",
     "SubscriptionController",
     "SubscriptionsController",
     "SubscriptionsSettingsController",

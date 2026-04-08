@@ -46,9 +46,9 @@ async def test_remnawave_client_disable_user():
 
             assert result["status"] == "disabled"
             mock_client.request.assert_called_with(
-                "PATCH",
-                "/api/users/user-123",
-                json={"status": "disabled"}
+                "POST",
+                "/api/users/user-123/actions/disable",
+                json=None,
             )
 
 
@@ -93,6 +93,21 @@ async def test_remnawave_client_health_check():
             result = await client.health_check()
 
             assert result is True
+
+
+def test_remnawave_client_normalize_base_url_strips_api_suffix():
+    from src.services.remnawave_client import RemnawaveClient
+
+    assert RemnawaveClient._normalize_base_url("http://localhost:3005/api") == "http://localhost:3005"
+    assert RemnawaveClient._normalize_base_url("http://localhost:3005") == "http://localhost:3005"
+
+
+def test_remnawave_client_normalize_path_prefixes_api_once():
+    from src.services.remnawave_client import RemnawaveClient
+
+    assert RemnawaveClient._normalize_path("/system/health") == "/api/system/health"
+    assert RemnawaveClient._normalize_path("/api/system/health") == "/api/system/health"
+    assert RemnawaveClient._normalize_path("node-plugins") == "/api/node-plugins"
 
 
 @pytest.mark.asyncio

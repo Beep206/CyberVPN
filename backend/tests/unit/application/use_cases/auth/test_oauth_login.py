@@ -869,6 +869,27 @@ class TestTelegramOAuthLogin:
 
         assert result.is_new_user is False
 
+    @pytest.mark.unit
+    async def test_telegram_existing_bot_user_by_telegram_id_auto_links_without_creating_new_user(
+        self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session, make_user, telegram_user_info
+    ):
+        """Telegram OAuth reuses an existing bot user matched by telegram_id."""
+        user = make_user(login="existing_bot_user", email=None)
+
+        mock_oauth_repo.get_by_provider_and_user_id.return_value = None
+        mock_user_repo.get_by_email.return_value = None
+        mock_user_repo.get_by_telegram_id.return_value = user
+
+        use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
+
+        result = await use_case.execute(provider="telegram", user_info=telegram_user_info)
+
+        assert result.is_new_user is False
+        assert result.user is user
+        mock_user_repo.get_by_telegram_id.assert_awaited_once_with(123456789)
+        mock_user_repo.create.assert_not_called()
+        mock_oauth_repo.create.assert_called_once()
+
     # ------------------------------------------------------------------
     # kpn9.7.5: Non-Telegram providers still follow standard flow (regression)
     # ------------------------------------------------------------------

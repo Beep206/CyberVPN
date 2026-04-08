@@ -85,3 +85,79 @@ class NotifyRequest(BaseModel):
         max_length=50,
         description="Type of notification (info, warning, error)",
     )
+
+
+class TelegramBotUserCreateRequest(BaseModel):
+    """Internal bot request to create or bootstrap a Telegram user."""
+
+    telegram_id: int = Field(..., gt=0)
+    username: str | None = Field(default=None, max_length=255)
+    first_name: str | None = Field(default=None, max_length=255)
+    language_code: str = Field(default="en", max_length=16)
+    referrer_id: int | None = Field(default=None, gt=0)
+
+
+class TelegramBotUserUpdateRequest(BaseModel):
+    """Internal bot request to update Telegram-side profile details."""
+
+    username: str | None = Field(default=None, max_length=255)
+    first_name: str | None = Field(default=None, max_length=255)
+    language_code: str | None = Field(default=None, max_length=16)
+
+
+class TelegramBotUserResponse(BaseModel):
+    """Telegram bot-facing user payload compatible with the bot service DTO."""
+
+    uuid: str
+    telegram_id: int
+    username: str | None = None
+    first_name: str | None = None
+    language_code: str = "en"
+    status: str = "none"
+    is_admin: bool = False
+    personal_discount: float = 0.0
+    next_purchase_discount: float = 0.0
+    referrer_id: int | None = None
+    points: int = 0
+    subscription: dict | None = None
+    subscriptions: list[dict] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+
+class TelegramBotAccessSettingsResponse(BaseModel):
+    """Bot access settings returned to the Telegram bot service."""
+
+    access_mode: str = "open"
+    rules_url: str | None = None
+    channel_id: str | None = None
+
+
+class TelegramBotSubscriptionResponse(BaseModel):
+    """Bot-facing subscription summary."""
+
+    status: str
+    plan_name: str | None = None
+    expires_at: datetime | None = None
+    traffic_limit_bytes: int | None = None
+    used_traffic_bytes: int | None = None
+    auto_renew: bool = False
+
+
+class TelegramBotTrialStatusResponse(BaseModel):
+    """Bot-facing trial status and eligibility."""
+
+    eligible: bool
+    reason: str | None = None
+    is_trial_active: bool = False
+    trial_start: datetime | None = None
+    trial_end: datetime | None = None
+    days_remaining: int = 0
+
+
+class TelegramBotReferralStatsResponse(BaseModel):
+    """Bot-facing referral summary."""
+
+    total_referrals: int = 0
+    bonus_days: int = 0
+    referral_link: str | None = None

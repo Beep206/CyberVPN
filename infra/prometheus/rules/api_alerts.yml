@@ -1,132 +1,83 @@
 groups:
-  - name: cybervpn_api_alerts
+  - name: cybervpn_remnawave_alerts
     interval: 30s
     rules:
-      # Service availability
-      - alert: APIServiceDown
+      - alert: RemnawaveDown
         expr: up{job="remnawave"} == 0
         for: 3m
         labels:
           severity: critical
-          service: cybervpn-api
+          service: remnawave
         annotations:
-          summary: "CyberVPN API service is down"
-          description: "API service {{ $labels.instance }} has been down for more than 3 minutes."
+          summary: "Remnawave metrics target is down"
+          description: "Prometheus cannot scrape Remnawave metrics for more than 3 minutes."
 
-      - alert: APIHighLatency
-        expr: |
-          histogram_quantile(0.95,
-            rate(http_request_duration_seconds_bucket{job="remnawave"}[5m])
-          ) > 1.0
-        for: 10m
-        labels:
-          severity: warning
-          service: cybervpn-api
-        annotations:
-          summary: "High API latency detected"
-          description: "API endpoint {{ $labels.handler }} P95 latency is {{ $value }}s (threshold: 1.0s) for {{ $labels.method }} requests."
-
-      - alert: APICriticalLatency
-        expr: |
-          histogram_quantile(0.95,
-            rate(http_request_duration_seconds_bucket{job="remnawave"}[5m])
-          ) > 3.0
+      - alert: RemnawaveApiHeapCritical
+        expr: max(100 * remnawave_process_heap_used_bytes{job="remnawave",instance_name="api"} / clamp_min(remnawave_process_heap_total_bytes{job="remnawave",instance_name="api"}, 1)) > 95
         for: 5m
         labels:
           severity: critical
-          service: cybervpn-api
+          service: remnawave
         annotations:
-          summary: "Critical API latency detected"
-          description: "API endpoint {{ $labels.handler }} P95 latency is {{ $value }}s (threshold: 3.0s) for {{ $labels.method }} requests. Service degradation likely."
+          summary: "Remnawave API heap usage is critical"
+          description: "Heap usage on Remnawave API is {{ $value }}% for more than 5 minutes."
 
-      # Error rates
-      - alert: APIHighErrorRate
-        expr: |
-          (
-            rate(http_requests_total{job="remnawave", status=~"5.."}[5m])
-            /
-            rate(http_requests_total{job="remnawave"}[5m])
-          ) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-          service: cybervpn-api
-        annotations:
-          summary: "High API error rate detected"
-          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 5xx error rate (threshold: 5%) for the last 5 minutes."
-
-      - alert: APICriticalErrorRate
-        expr: |
-          (
-            rate(http_requests_total{job="remnawave", status=~"5.."}[5m])
-            /
-            rate(http_requests_total{job="remnawave"}[5m])
-          ) > 0.15
-        for: 3m
-        labels:
-          severity: critical
-          service: cybervpn-api
-        annotations:
-          summary: "Critical API error rate detected"
-          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 5xx error rate (threshold: 15%). Immediate action required."
-
-      - alert: APIHighClientErrorRate
-        expr: |
-          (
-            rate(http_requests_total{job="remnawave", status=~"4.."}[10m])
-            /
-            rate(http_requests_total{job="remnawave"}[10m])
-          ) > 0.25
-        for: 10m
-        labels:
-          severity: info
-          service: cybervpn-api
-        annotations:
-          summary: "High 4xx client error rate"
-          description: "API endpoint {{ $labels.handler }} has {{ $value | humanizePercentage }} 4xx error rate. Check client integrations."
-
-      # Request volume anomalies
-      - alert: APILowRequestRate
-        expr: |
-          rate(http_requests_total{job="remnawave"}[5m]) < 0.1
+      - alert: RemnawaveApiHeapHigh
+        expr: max(100 * remnawave_process_heap_used_bytes{job="remnawave",instance_name="api"} / clamp_min(remnawave_process_heap_total_bytes{job="remnawave",instance_name="api"}, 1)) > 90
         for: 15m
         labels:
           severity: warning
-          service: cybervpn-api
+          service: remnawave
         annotations:
-          summary: "Unusually low API request rate"
-          description: "API request rate is {{ $value | humanize }} req/s. Expected higher traffic. Possible upstream issue."
+          summary: "Remnawave API heap usage is high"
+          description: "Heap usage on Remnawave API is {{ $value }}% for more than 15 minutes."
 
-      - alert: APIHighRequestRate
-        expr: |
-          rate(http_requests_total{job="remnawave"}[5m]) > 100
+      - alert: RemnawaveApiEventLoopHigh
+        expr: max(remnawave_process_event_loop_p99_ms{job="remnawave",instance_name="api"}) > 100
         for: 10m
         labels:
           severity: warning
-          service: cybervpn-api
+          service: remnawave
         annotations:
-          summary: "Unusually high API request rate"
-          description: "API request rate is {{ $value | humanize }} req/s. Possible traffic spike or DDoS."
+          summary: "Remnawave API event loop delay is elevated"
+          description: "P99 event loop delay on the Remnawave API process is {{ $value }} ms for more than 10 minutes."
 
-      # In-flight request saturation
-      - alert: APIHighInFlightRequests
-        expr: http_requests_in_progress{job="remnawave"} > 50
+      - alert: RemnawaveApiEventLoopCritical
+        expr: max(remnawave_process_event_loop_p99_ms{job="remnawave",instance_name="api"}) > 250
+        for: 5m
+        labels:
+          severity: critical
+          service: remnawave
+        annotations:
+          summary: "Remnawave API event loop delay is critical"
+          description: "P99 event loop delay on the Remnawave API process is {{ $value }} ms for more than 5 minutes."
+
+      - alert: RemnawaveEventLoopLagHigh
+        expr: max(remnawave_process_event_loop_delay_ms{job="remnawave"}) > 75
+        for: 10m
+        labels:
+          severity: warning
+          service: remnawave
+        annotations:
+          summary: "Remnawave event loop lag is high"
+          description: "Mean event loop delay is {{ $value }} ms on {{ $labels.instance_name }}."
+
+      - alert: RemnawaveNodeDisconnected
+        expr: remnawave_node_status{job="remnawave"} == 0
         for: 5m
         labels:
           severity: warning
-          service: cybervpn-api
+          service: remnawave
         annotations:
-          summary: "High number of in-flight requests"
-          description: "API has {{ $value }} in-flight requests for more than 5 minutes. Service may be saturated."
+          summary: "A Remnawave node is disconnected"
+          description: "Node {{ $labels.node_name }} has been disconnected for more than 5 minutes."
 
-      # Specific endpoint issues
-      - alert: APIEndpointConsistentErrors
-        expr: |
-          rate(http_requests_total{job="remnawave", status=~"5.."}[15m]) > 0.5
-        for: 10m
+      - alert: RemnawaveNoHealthyNodes
+        expr: sum(remnawave_node_status{job="remnawave"}) == 0
+        for: 2m
         labels:
-          severity: warning
-          service: cybervpn-api
+          severity: critical
+          service: remnawave
         annotations:
-          summary: "Endpoint experiencing consistent errors"
-          description: "Endpoint {{ $labels.handler }} ({{ $labels.method }}) is consistently failing with {{ $value }} errors/sec."
+          summary: "No healthy Remnawave nodes"
+          description: "All Remnawave nodes are reported offline."

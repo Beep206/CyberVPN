@@ -60,6 +60,9 @@ class SubscriptionConfigResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     config: str = Field(..., description="Generated VPN configuration string")
+    is_found: bool = Field(True, alias="isFound", description="Whether the upstream subscription exists")
+    links: list[str] = Field(default_factory=list, description="All generated connection links")
+    ss_conf_links: dict[str, str] = Field(default_factory=dict, alias="ssConfLinks", description="SS config links")
     subscription_url: str | None = Field(None, max_length=5000, description="Subscription URL")
 
 

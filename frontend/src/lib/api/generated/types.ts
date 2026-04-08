@@ -766,6 +766,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oauth/facebook/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Facebook Authorize
+         * @description Get Facebook OAuth authorization URL with CSRF state token.
+         *
+         *     The state token must be included in the callback request.
+         */
+        get: operations["facebook_authorize_api_v1_oauth_facebook_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/oauth/telegram/callback": {
         parameters: {
             query?: never;
@@ -890,6 +912,33 @@ export interface paths {
          *     3. Fetches user info from GitHub API
          */
         post: operations["github_callback_api_v1_oauth_github_callback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/oauth/facebook/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Facebook Callback Get Alias
+         * @deprecated
+         * @description Facebook OAuth callback (GET alias for mobile compatibility).
+         *
+         *     **DEPRECATED**: Use POST /oauth/facebook/callback instead.
+         */
+        get: operations["facebook_callback_get_alias_api_v1_oauth_facebook_callback_get"];
+        put?: never;
+        /**
+         * Facebook Callback
+         * @description Process Facebook OAuth callback and link account.
+         */
+        post: operations["facebook_callback_api_v1_oauth_facebook_callback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1051,6 +1100,26 @@ export interface paths {
          *     Rate limited to prevent brute force attacks.
          */
         post: operations["validate_2fa_api_v1_2fa_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/2fa/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete 2Fa Login
+         * @description Finish a login that is paused behind a pending 2FA token.
+         */
+        post: operations["complete_2fa_login_api_v1_2fa_complete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1468,6 +1537,193 @@ export interface paths {
          * @description Delete subscription plan (admin only)
          */
         delete: operations["delete_plan_api_v1_plans__uuid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Capability Defaults */
+        get: operations["get_capability_defaults_api_v1_helix_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Manifest */
+        post: operations["resolve_manifest_api_v1_helix_manifest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/events/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Runtime Event */
+        post: operations["report_runtime_event_api_v1_helix_events_runtime_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Nodes */
+        get: operations["list_nodes_api_v1_helix_admin_nodes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/rollouts/{rollout_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rollout Status */
+        get: operations["get_rollout_status_api_v1_helix_admin_rollouts__rollout_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/rollouts/{rollout_id}/canary-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rollout Canary Evidence */
+        get: operations["get_rollout_canary_evidence_api_v1_helix_admin_rollouts__rollout_id__canary_evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/transport-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transport Profiles */
+        get: operations["list_transport_profiles_api_v1_helix_admin_transport_profiles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/nodes/{node_id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Node Assignment */
+        get: operations["preview_node_assignment_api_v1_helix_admin_nodes__node_id__assignment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/rollouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Rollout */
+        post: operations["publish_rollout_api_v1_helix_admin_rollouts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/rollouts/{rollout_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Rollout */
+        post: operations["pause_rollout_api_v1_helix_admin_rollouts__rollout_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/helix/admin/manifests/{manifest_version_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Manifest */
+        post: operations["revoke_manifest_api_v1_helix_admin_manifests__manifest_version_id__revoke_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2505,6 +2761,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/telegram/bot/settings/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot Access Settings
+         * @description Return bot access settings for the Telegram bot service.
+         */
+        get: operations["get_bot_access_settings_api_v1_telegram_bot_settings_access_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot Plans
+         * @description Return bot-facing plan catalog.
+         *
+         *     The FastAPI auth backend is the integration boundary for the Telegram bot.
+         *     Until plan catalog data is migrated into this backend, return an empty list
+         *     instead of forcing the bot to call legacy upstreams directly.
+         */
+        get: operations["get_bot_plans_api_v1_telegram_bot_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot User
+         * @description Return Telegram bot-facing user payload for bot menus/profile screens.
+         */
+        get: operations["get_bot_user_api_v1_telegram_bot_user__telegram_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Bot User
+         * @description Update Telegram-facing profile details for a bot user.
+         */
+        patch: operations["update_bot_user_api_v1_telegram_bot_user__telegram_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Or Bootstrap Bot User
+         * @description Create or refresh a Telegram bot user in the FastAPI auth backend.
+         */
+        post: operations["create_or_bootstrap_bot_user_api_v1_telegram_bot_user_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot User Subscriptions
+         * @description Return Telegram bot-facing subscriptions list.
+         */
+        get: operations["get_bot_user_subscriptions_api_v1_telegram_bot_user__telegram_id__subscriptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/trial-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot User Trial Status
+         * @description Return Telegram bot-facing trial eligibility/status.
+         */
+        get: operations["get_bot_user_trial_status_api_v1_telegram_bot_user__telegram_id__trial_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/trial/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate Bot User Trial
+         * @description Activate trial for a Telegram bot user.
+         */
+        post: operations["activate_bot_user_trial_api_v1_telegram_bot_user__telegram_id__trial_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/referral-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot User Referral Stats
+         * @description Return Telegram bot-facing referral stats.
+         */
+        get: operations["get_bot_user_referral_stats_api_v1_telegram_bot_user__telegram_id__referral_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Bot User Config
+         * @description Return Telegram bot-facing VPN config using the FastAPI backend as gateway.
+         */
+        get: operations["get_bot_user_config_api_v1_telegram_bot_user__telegram_id__config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/fcm-token": {
         parameters: {
             query?: never;
@@ -2640,6 +3084,129 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/torrent-blocker/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Torrent Blocker Reports */
+        get: operations["get_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_get"];
+        put?: never;
+        post?: never;
+        /** Truncate Torrent Blocker Reports */
+        delete: operations["truncate_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/torrent-blocker/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Torrent Blocker Stats */
+        get: operations["get_torrent_blocker_stats_api_v1_node_plugins_torrent_blocker_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Node Plugins */
+        get: operations["list_node_plugins_api_v1_node_plugins__get"];
+        put?: never;
+        /** Create Node Plugin */
+        post: operations["create_node_plugin_api_v1_node_plugins__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reorder Node Plugins */
+        post: operations["reorder_node_plugins_api_v1_node_plugins_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clone Node Plugin */
+        post: operations["clone_node_plugin_api_v1_node_plugins_clone_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute Node Plugin */
+        post: operations["execute_node_plugin_api_v1_node_plugins_execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/node-plugins/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Node Plugin */
+        get: operations["get_node_plugin_api_v1_node_plugins__uuid__get"];
+        /** Update Node Plugin */
+        put: operations["update_node_plugin_api_v1_node_plugins__uuid__put"];
+        post?: never;
+        /** Delete Node Plugin */
+        delete: operations["delete_node_plugin_api_v1_node_plugins__uuid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3018,6 +3585,825 @@ export interface components {
              */
             auto_renew: boolean;
         };
+        /** AdapterClientCapabilityDefaults */
+        AdapterClientCapabilityDefaults: {
+            /** Schema Version */
+            schema_version: string;
+            /** Client Family */
+            client_family: string;
+            /** Default Channel */
+            default_channel: string;
+            /** Supported Protocol Versions */
+            supported_protocol_versions: number[];
+            /** Supported Transport Profiles */
+            supported_transport_profiles: components["schemas"]["AdapterSupportedTransportProfile"][];
+            /** Required Capabilities */
+            required_capabilities: string[];
+            /** Fallback Cores */
+            fallback_cores: string[];
+            /** Rollout Channels */
+            rollout_channels: string[];
+        };
+        /** AdapterDesktopRuntimeEventAck */
+        AdapterDesktopRuntimeEventAck: {
+            /** Status */
+            status: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Event Kind */
+            event_kind: string;
+        };
+        /** AdapterDesktopRuntimeEventBenchmarkEvidence */
+        AdapterDesktopRuntimeEventBenchmarkEvidence: {
+            /** Benchmark Kind */
+            benchmark_kind?: string | null;
+            /** Baseline Core */
+            baseline_core?: string | null;
+            /** Target Count */
+            target_count?: number | null;
+            /** Successful Targets */
+            successful_targets?: number | null;
+            /** Attempts */
+            attempts?: number | null;
+            /** Successes */
+            successes?: number | null;
+            /** Failures */
+            failures?: number | null;
+            /** Throughput Kbps */
+            throughput_kbps?: number | null;
+            /** Relative Throughput Ratio Vs Baseline */
+            relative_throughput_ratio_vs_baseline?: number | null;
+            /** Median Connect Latency Ms */
+            median_connect_latency_ms?: number | null;
+            /** Median First Byte Latency Ms */
+            median_first_byte_latency_ms?: number | null;
+            /** Median Open To First Byte Gap Ms */
+            median_open_to_first_byte_gap_ms?: number | null;
+            /** P95 Open To First Byte Gap Ms */
+            p95_open_to_first_byte_gap_ms?: number | null;
+            /** Relative Open To First Byte Gap Ratio Vs Baseline */
+            relative_open_to_first_byte_gap_ratio_vs_baseline?: number | null;
+            /** Frame Queue Peak */
+            frame_queue_peak?: number | null;
+            /** Recent Rtt P95 Ms */
+            recent_rtt_p95_ms?: number | null;
+            /** Active Streams */
+            active_streams?: number | null;
+            /** Pending Open Streams */
+            pending_open_streams?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** AdapterDesktopRuntimeEventContinuityEvidence */
+        AdapterDesktopRuntimeEventContinuityEvidence: {
+            /** Active Streams */
+            active_streams?: number | null;
+            /** Pending Open Streams */
+            pending_open_streams?: number | null;
+            /** Continuity Grace Active */
+            continuity_grace_active?: boolean | null;
+            /** Continuity Grace Route Endpoint Ref */
+            continuity_grace_route_endpoint_ref?: string | null;
+            /** Continuity Grace Remaining Ms */
+            continuity_grace_remaining_ms?: number | null;
+            /** Continuity Grace Entries */
+            continuity_grace_entries?: number | null;
+            /** Successful Continuity Recovers */
+            successful_continuity_recovers?: number | null;
+            /** Failed Continuity Recovers */
+            failed_continuity_recovers?: number | null;
+            /** Last Continuity Recovery Ms */
+            last_continuity_recovery_ms?: number | null;
+            /** Successful Cross Route Recovers */
+            successful_cross_route_recovers?: number | null;
+            /** Last Cross Route Recovery Ms */
+            last_cross_route_recovery_ms?: number | null;
+            /** Active Route Quarantined */
+            active_route_quarantined?: boolean | null;
+            /** Active Route Quarantine Remaining Ms */
+            active_route_quarantine_remaining_ms?: number | null;
+            /** Active Route Endpoint Ref */
+            active_route_endpoint_ref?: string | null;
+            /** Active Route Score */
+            active_route_score?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** AdapterDesktopRuntimeEventPayload */
+        AdapterDesktopRuntimeEventPayload: {
+            /** Stage */
+            stage?: string | null;
+            /** Runtime */
+            runtime?: string | null;
+            /** Requested Core */
+            requested_core?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Proxy Url */
+            proxy_url?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+            recovery?: components["schemas"]["AdapterDesktopRuntimeEventRecoveryEvidence"] | null;
+            continuity?: components["schemas"]["AdapterDesktopRuntimeEventContinuityEvidence"] | null;
+            benchmark?: components["schemas"]["AdapterDesktopRuntimeEventBenchmarkEvidence"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** AdapterDesktopRuntimeEventRecoveryEvidence */
+        AdapterDesktopRuntimeEventRecoveryEvidence: {
+            /** Same Route Recovered */
+            same_route_recovered?: boolean | null;
+            /** Ready Recovery Latency Ms */
+            ready_recovery_latency_ms?: number | null;
+            /** Proxy Ready Latency Ms */
+            proxy_ready_latency_ms?: number | null;
+            /** Proxy Ready Open To First Byte Gap Ms */
+            proxy_ready_open_to_first_byte_gap_ms?: number | null;
+            /** Successful Cross Route Recovers */
+            successful_cross_route_recovers?: number | null;
+            /** Last Cross Route Recovery Ms */
+            last_cross_route_recovery_ms?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** AdapterManifestCapabilityProfile */
+        AdapterManifestCapabilityProfile: {
+            /** Required Capabilities */
+            required_capabilities: string[];
+            /** Fallback Core */
+            fallback_core: string;
+            health_policy: components["schemas"]["AdapterManifestHealthPolicy"];
+        };
+        /** AdapterManifestCompatibilityWindow */
+        AdapterManifestCompatibilityWindow: {
+            /** Profile Family */
+            profile_family: string;
+            /** Min Transport Profile Version */
+            min_transport_profile_version: number;
+            /** Max Transport Profile Version */
+            max_transport_profile_version: number;
+        };
+        /** AdapterManifestCredentials */
+        AdapterManifestCredentials: {
+            /** Key Id */
+            key_id: string;
+            /** Token */
+            token: string;
+        };
+        /** AdapterManifestDocument */
+        AdapterManifestDocument: {
+            /** Schema Version */
+            schema_version: string;
+            /** Manifest Id */
+            manifest_id: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            subject: components["schemas"]["AdapterManifestSubject"];
+            transport: components["schemas"]["AdapterManifestTransport"];
+            transport_profile: components["schemas"]["AdapterManifestTransportProfile"];
+            compatibility_window: components["schemas"]["AdapterManifestCompatibilityWindow"];
+            capability_profile: components["schemas"]["AdapterManifestCapabilityProfile"];
+            /** Routes */
+            routes: components["schemas"]["AdapterManifestRoute"][];
+            credentials: components["schemas"]["AdapterManifestCredentials"];
+            integrity: components["schemas"]["AdapterManifestIntegrity"];
+            observability: components["schemas"]["AdapterManifestObservability"];
+        };
+        /** AdapterManifestHealthPolicy */
+        AdapterManifestHealthPolicy: {
+            /** Startup Timeout Seconds */
+            startup_timeout_seconds: number;
+            /** Runtime Unhealthy Threshold */
+            runtime_unhealthy_threshold: number;
+        };
+        /** AdapterManifestIntegrity */
+        AdapterManifestIntegrity: {
+            /** Manifest Hash */
+            manifest_hash: string;
+            signature: components["schemas"]["AdapterSignature"];
+        };
+        /** AdapterManifestObservability */
+        AdapterManifestObservability: {
+            /** Trace Id */
+            trace_id: string;
+            /** Metrics Namespace */
+            metrics_namespace: string;
+        };
+        /** AdapterManifestRoute */
+        AdapterManifestRoute: {
+            /** Endpoint Ref */
+            endpoint_ref: string;
+            /** Preference */
+            preference: number;
+            /** Policy Tag */
+            policy_tag: string;
+        };
+        /** AdapterManifestSubject */
+        AdapterManifestSubject: {
+            /** User Id */
+            user_id: string;
+            /** Desktop Client Id */
+            desktop_client_id: string;
+            /** Entitlement Id */
+            entitlement_id: string;
+            /** Channel */
+            channel: string;
+        };
+        /** AdapterManifestTransport */
+        AdapterManifestTransport: {
+            /** Transport Family */
+            transport_family: string;
+            /** Protocol Version */
+            protocol_version: number;
+            /** Session Mode */
+            session_mode: string;
+        };
+        /** AdapterManifestTransportProfile */
+        AdapterManifestTransportProfile: {
+            /** Transport Profile Id */
+            transport_profile_id: string;
+            /** Profile Family */
+            profile_family: string;
+            /** Profile Version */
+            profile_version: number;
+            /** Policy Version */
+            policy_version: number;
+            /** Deprecation State */
+            deprecation_state: string;
+        };
+        /** AdapterManifestVersionRecord */
+        AdapterManifestVersionRecord: {
+            /** Manifest Version Id */
+            manifest_version_id: string;
+            /** Manifest Id */
+            manifest_id: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Manifest Template Version */
+            manifest_template_version: string;
+            /** Transport Profile Id */
+            transport_profile_id?: string | null;
+            /** Profile Family */
+            profile_family?: string | null;
+            /** Profile Version */
+            profile_version?: number | null;
+            /** Policy Version */
+            policy_version?: number | null;
+            /** Subject User Id */
+            subject_user_id: string;
+            /** Desktop Client Id */
+            desktop_client_id: string;
+            /** Entitlement Id */
+            entitlement_id: string;
+            /** Channel */
+            channel: string;
+            /** Protocol Version */
+            protocol_version: number;
+            /** Manifest Hash */
+            manifest_hash: string;
+            /** Signature Alg */
+            signature_alg: string;
+            /** Signature Key Id */
+            signature_key_id: string;
+            /** Signature */
+            signature: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdapterNodeAssignmentCompatibilityWindow */
+        AdapterNodeAssignmentCompatibilityWindow: {
+            /** Min Transport Profile Version */
+            min_transport_profile_version: number;
+            /** Max Transport Profile Version */
+            max_transport_profile_version: number;
+        };
+        /** AdapterNodeAssignmentIntegrity */
+        AdapterNodeAssignmentIntegrity: {
+            /** Assignment Hash */
+            assignment_hash: string;
+            signature: components["schemas"]["AdapterSignature"];
+        };
+        /** AdapterNodeAssignmentResponse */
+        AdapterNodeAssignmentResponse: {
+            /** Schema Version */
+            schema_version: string;
+            /** Assignment Id */
+            assignment_id: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Node Id */
+            node_id: string;
+            /** Channel */
+            channel: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Desired State */
+            desired_state: string;
+            transport_profile: components["schemas"]["AdapterNodeAssignmentTransportProfile"];
+            runtime_profile: components["schemas"]["AdapterNodeRuntimeProfile"];
+            recovery: components["schemas"]["AdapterNodeRecovery"];
+            integrity: components["schemas"]["AdapterNodeAssignmentIntegrity"];
+        };
+        /** AdapterNodeAssignmentTransportProfile */
+        AdapterNodeAssignmentTransportProfile: {
+            /** Transport Profile Id */
+            transport_profile_id: string;
+            /** Profile Family */
+            profile_family: string;
+            /** Profile Version */
+            profile_version: number;
+            /** Policy Version */
+            policy_version: number;
+            compatibility_window: components["schemas"]["AdapterNodeAssignmentCompatibilityWindow"];
+        };
+        /** AdapterNodeRecovery */
+        AdapterNodeRecovery: {
+            /** Last Known Good Bundle */
+            last_known_good_bundle: string;
+            /** Rollback Timeout Seconds */
+            rollback_timeout_seconds: number;
+        };
+        /** AdapterNodeRegistryRecord */
+        AdapterNodeRegistryRecord: {
+            /** Service Node Id */
+            service_node_id: string;
+            /** Remnawave Node Id */
+            remnawave_node_id: string;
+            /** Node Name */
+            node_name: string;
+            /** Hostname */
+            hostname?: string | null;
+            /** Transport Enabled */
+            transport_enabled: boolean;
+            /** Rollout Channel */
+            rollout_channel: string;
+            /** Node Group */
+            node_group: string;
+            /** Adapter Node Label */
+            adapter_node_label: string;
+            /** Last Heartbeat At */
+            last_heartbeat_at?: string | null;
+            /** Daemon Version */
+            daemon_version?: string | null;
+            /** Active Rollout Id */
+            active_rollout_id?: string | null;
+            /**
+             * Last Synced At
+             * Format: date-time
+             */
+            last_synced_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdapterNodeRuntimeProfile */
+        AdapterNodeRuntimeProfile: {
+            /** Bundle Version */
+            bundle_version: string;
+            /** Min Daemon Version */
+            min_daemon_version: string;
+            /** Ports */
+            ports: number[];
+            /** Health Check Interval Seconds */
+            health_check_interval_seconds: number;
+        };
+        /** AdapterResolveManifestResponse */
+        AdapterResolveManifestResponse: {
+            /** Manifest Version Id */
+            manifest_version_id: string;
+            manifest: components["schemas"]["AdapterManifestDocument"];
+            selected_profile_policy?: components["schemas"]["AdapterTransportProfilePolicySummary"] | null;
+        };
+        /** AdapterRolloutBatchRecord */
+        AdapterRolloutBatchRecord: {
+            /** Rollout Id */
+            rollout_id: string;
+            /** Channel */
+            channel: string;
+            /** Desired State */
+            desired_state: string;
+            /** Batch Id */
+            batch_id: string;
+            /** Manifest Version */
+            manifest_version: string;
+            /** Target Nodes */
+            target_nodes: number;
+            /** Completed Nodes */
+            completed_nodes: number;
+            /** Failed Nodes */
+            failed_nodes: number;
+            /** Desktop Connect Success Rate */
+            desktop_connect_success_rate: number;
+            /** Desktop Fallback Rate */
+            desktop_fallback_rate: number;
+            /** Pause On Rollback Spike */
+            pause_on_rollback_spike: boolean;
+            /** Revoke On Manifest Error */
+            revoke_on_manifest_error: boolean;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdapterRolloutBatchSummary */
+        AdapterRolloutBatchSummary: {
+            /** Batch Id */
+            batch_id: string;
+            /** Manifest Version */
+            manifest_version: string;
+            /** Target Nodes */
+            target_nodes: number;
+            /** Completed Nodes */
+            completed_nodes: number;
+            /** Failed Nodes */
+            failed_nodes: number;
+        };
+        /** AdapterRolloutCanaryEvidenceResponse */
+        AdapterRolloutCanaryEvidenceResponse: {
+            /** Schema Version */
+            schema_version: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Channel */
+            channel: string;
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Decision */
+            decision: string;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /**
+             * Evidence Gaps
+             * @default []
+             */
+            evidence_gaps: string[];
+            /** Recommended Follow Up Action */
+            recommended_follow_up_action?: string | null;
+            /** Recommended Follow Up Severity */
+            recommended_follow_up_severity?: string | null;
+            /**
+             * Recommended Follow Up Tasks
+             * @default []
+             */
+            recommended_follow_up_tasks: string[];
+            thresholds: components["schemas"]["AdapterRolloutCanaryThresholdSummary"];
+            snapshot: components["schemas"]["AdapterRolloutCanarySnapshotSummary"];
+        };
+        /** AdapterRolloutCanarySnapshotSummary */
+        AdapterRolloutCanarySnapshotSummary: {
+            /** Desired State */
+            desired_state: string;
+            /** Failed Nodes */
+            failed_nodes: number;
+            /** Rolled Back Nodes */
+            rolled_back_nodes: number;
+            /** Connect Success Rate */
+            connect_success_rate: number;
+            /** Fallback Rate */
+            fallback_rate: number;
+            /** Continuity Observed Events */
+            continuity_observed_events: number;
+            /** Continuity Success Rate */
+            continuity_success_rate: number;
+            /** Cross Route Recovery Rate */
+            cross_route_recovery_rate: number;
+            /**
+             * Benchmark Observed Events
+             * @default 0
+             */
+            benchmark_observed_events: number;
+            /**
+             * Throughput Evidence Observed Events
+             * @default 0
+             */
+            throughput_evidence_observed_events: number;
+            /** Average Benchmark Throughput Kbps */
+            average_benchmark_throughput_kbps?: number | null;
+            /** Average Relative Throughput Ratio */
+            average_relative_throughput_ratio?: number | null;
+            /** Average Relative Open To First Byte Gap Ratio */
+            average_relative_open_to_first_byte_gap_ratio?: number | null;
+            /** Channel Posture */
+            channel_posture: string;
+            /** Active Profile Advisory State */
+            active_profile_advisory_state?: string | null;
+            /** Active Profile New Session Posture */
+            active_profile_new_session_posture?: string | null;
+            /** Applied Automatic Reaction */
+            applied_automatic_reaction?: string | null;
+            /** Applied Transport Profile Id */
+            applied_transport_profile_id?: string | null;
+        };
+        /** AdapterRolloutCanaryThresholdSummary */
+        AdapterRolloutCanaryThresholdSummary: {
+            /** Min Connect Success Rate */
+            min_connect_success_rate: number;
+            /** Max Fallback Rate */
+            max_fallback_rate: number;
+            /** Min Continuity Observations */
+            min_continuity_observations: number;
+            /** Require Throughput Evidence */
+            require_throughput_evidence: boolean;
+            /** Min Relative Throughput Ratio */
+            min_relative_throughput_ratio: number;
+            /** Max Relative Open To First Byte Gap Ratio */
+            max_relative_open_to_first_byte_gap_ratio: number;
+            /** Min Continuity Success Rate */
+            min_continuity_success_rate: number;
+            /** Min Cross Route Recovery Rate */
+            min_cross_route_recovery_rate: number;
+        };
+        /** AdapterRolloutDesktopSummary */
+        AdapterRolloutDesktopSummary: {
+            /** Connect Success Rate */
+            connect_success_rate: number;
+            /** Fallback Rate */
+            fallback_rate: number;
+            /**
+             * Continuity Observed Events
+             * @default 0
+             */
+            continuity_observed_events: number;
+            /**
+             * Continuity Success Rate
+             * @default 0
+             */
+            continuity_success_rate: number;
+            /**
+             * Cross Route Recovery Rate
+             * @default 0
+             */
+            cross_route_recovery_rate: number;
+            /**
+             * Benchmark Observed Events
+             * @default 0
+             */
+            benchmark_observed_events: number;
+            /**
+             * Throughput Evidence Observed Events
+             * @default 0
+             */
+            throughput_evidence_observed_events: number;
+            /** Average Benchmark Throughput Kbps */
+            average_benchmark_throughput_kbps?: number | null;
+            /** Average Relative Throughput Ratio */
+            average_relative_throughput_ratio?: number | null;
+            /** Average Relative Open To First Byte Gap Ratio */
+            average_relative_open_to_first_byte_gap_ratio?: number | null;
+        };
+        /** AdapterRolloutNodeSummary */
+        AdapterRolloutNodeSummary: {
+            /** Healthy */
+            healthy: number;
+            /** Stale */
+            stale: number;
+            /** Rolled Back */
+            rolled_back: number;
+        };
+        /** AdapterRolloutPolicySummary */
+        AdapterRolloutPolicySummary: {
+            /** Pause On Rollback Spike */
+            pause_on_rollback_spike: boolean;
+            /** Revoke On Manifest Error */
+            revoke_on_manifest_error: boolean;
+            /** Active Transport Profile Id */
+            active_transport_profile_id?: string | null;
+            active_profile_policy?: components["schemas"]["AdapterTransportProfilePolicySummary"] | null;
+            /** Recommended Transport Profile Id */
+            recommended_transport_profile_id?: string | null;
+            /**
+             * Healthy Candidate Count
+             * @default 0
+             */
+            healthy_candidate_count: number;
+            /**
+             * Eligible Candidate Count
+             * @default 0
+             */
+            eligible_candidate_count: number;
+            /**
+             * Suppressed Candidate Count
+             * @default 0
+             */
+            suppressed_candidate_count: number;
+            /**
+             * Active Profile Suppressed
+             * @default false
+             */
+            active_profile_suppressed: boolean;
+            /**
+             * Channel Posture
+             * @default healthy
+             */
+            channel_posture: string;
+            /**
+             * Automatic Reaction
+             * @default none
+             */
+            automatic_reaction: string;
+            /** Applied Automatic Reaction */
+            applied_automatic_reaction?: string | null;
+            /** Applied Transport Profile Id */
+            applied_transport_profile_id?: string | null;
+            /** Automatic Reaction Trigger Reason */
+            automatic_reaction_trigger_reason?: string | null;
+            /** Automatic Reaction Updated At */
+            automatic_reaction_updated_at?: string | null;
+            /**
+             * Pause Recommended
+             * @default false
+             */
+            pause_recommended: boolean;
+            /**
+             * Profile Rotation Recommended
+             * @default false
+             */
+            profile_rotation_recommended: boolean;
+            /** Recommended Action */
+            recommended_action?: string | null;
+        };
+        /** AdapterRolloutStateResponse */
+        AdapterRolloutStateResponse: {
+            /** Schema Version */
+            schema_version: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Channel */
+            channel: string;
+            /** Desired State */
+            desired_state: string;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+            current_batch: components["schemas"]["AdapterRolloutBatchSummary"];
+            nodes: components["schemas"]["AdapterRolloutNodeSummary"];
+            desktop: components["schemas"]["AdapterRolloutDesktopSummary"];
+            policy: components["schemas"]["AdapterRolloutPolicySummary"];
+        };
+        /** AdapterSignature */
+        AdapterSignature: {
+            /** Alg */
+            alg: string;
+            /** Key Id */
+            key_id: string;
+            /** Sig */
+            sig: string;
+        };
+        /** AdapterSupportedTransportProfile */
+        AdapterSupportedTransportProfile: {
+            /** Profile Family */
+            profile_family: string;
+            /** Min Transport Profile Version */
+            min_transport_profile_version: number;
+            /** Max Transport Profile Version */
+            max_transport_profile_version: number;
+            /** Supported Policy Versions */
+            supported_policy_versions: number[];
+        };
+        /** AdapterTransportProfilePolicySummary */
+        AdapterTransportProfilePolicySummary: {
+            /** Observed Events */
+            observed_events: number;
+            /** Connect Success Rate */
+            connect_success_rate: number;
+            /** Fallback Rate */
+            fallback_rate: number;
+            /** Continuity Success Rate */
+            continuity_success_rate: number;
+            /** Cross Route Recovery Rate */
+            cross_route_recovery_rate: number;
+            /** Policy Score */
+            policy_score: number;
+            /** Degraded */
+            degraded: boolean;
+            /**
+             * Advisory State
+             * @default healthy
+             */
+            advisory_state: string;
+            /** Recommended Action */
+            recommended_action?: string | null;
+            /**
+             * Selection Eligible
+             * @default true
+             */
+            selection_eligible: boolean;
+            /**
+             * New Session Issuable
+             * @default true
+             */
+            new_session_issuable: boolean;
+            /**
+             * New Session Posture
+             * @default preferred
+             */
+            new_session_posture: string;
+            /**
+             * Suppression Window Active
+             * @default false
+             */
+            suppression_window_active: boolean;
+            /** Suppression Reason */
+            suppression_reason?: string | null;
+            /**
+             * Suppression Observation Count
+             * @default 0
+             */
+            suppression_observation_count: number;
+            /** Suppressed Until */
+            suppressed_until?: string | null;
+        };
+        /** AdapterTransportProfileRecord */
+        AdapterTransportProfileRecord: {
+            /** Transport Profile Id */
+            transport_profile_id: string;
+            /** Channel */
+            channel: string;
+            /** Profile Family */
+            profile_family: string;
+            /** Profile Version */
+            profile_version: number;
+            /** Policy Version */
+            policy_version: number;
+            /** Protocol Version */
+            protocol_version: number;
+            /** Session Mode */
+            session_mode: string;
+            /** Status */
+            status: string;
+            /** Fallback Core */
+            fallback_core: string;
+            /** Required Capabilities */
+            required_capabilities: string[];
+            /** Compatibility Min Profile Version */
+            compatibility_min_profile_version: number;
+            /** Compatibility Max Profile Version */
+            compatibility_max_profile_version: number;
+            /** Startup Timeout Seconds */
+            startup_timeout_seconds: number;
+            /** Runtime Unhealthy Threshold */
+            runtime_unhealthy_threshold: number;
+            policy?: components["schemas"]["AdapterTransportProfilePolicySummary"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * AdminCreateInviteRequest
          * @description Request body for admin-created invite codes.
@@ -3089,6 +4475,15 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Sign In Count
+             * @default 0
+             */
+            sign_in_count: number;
+            /** Current Sign In Ip */
+            current_sign_in_ip?: string | null;
+            /** Last Login At */
+            last_login_at?: string | null;
         };
         /**
          * AntiPhishingCodeResponse
@@ -3145,9 +4540,9 @@ export interface components {
          */
         AuthResponse: {
             /** @description Authentication tokens */
-            tokens: components["schemas"]["TokenResponse"];
+            tokens: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"];
             /** @description User profile data */
-            user: components["schemas"]["UserResponse"];
+            user: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__UserResponse"];
             /**
              * Is New User
              * @description True if this is a new registration
@@ -3286,6 +4681,13 @@ export interface components {
              */
             status: string;
         };
+        /** CloneNodePluginRequest */
+        CloneNodePluginRequest: {
+            /** Clonefromuuid */
+            cloneFromUuid: string;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * ComponentStatus
          * @description Status information for a single system component.
@@ -3327,6 +4729,15 @@ export interface components {
              * @description VPN client type (vless, vmess, etc.)
              */
             client_type: string;
+        };
+        /** ConnectionDropPluginConfigResponse */
+        ConnectionDropPluginConfigResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Whitelistips */
+            whitelistIps: string[];
+        } & {
+            [key: string]: unknown;
         };
         /**
          * CreateConfigProfileRequest
@@ -3488,6 +4899,13 @@ export interface components {
              * @description Currency code (ISO 4217)
              */
             currency: string;
+        };
+        /** CreateNodePluginRequest */
+        CreateNodePluginRequest: {
+            /** Name */
+            name: string;
+        } & {
+            [key: string]: unknown;
         };
         /** CreatePartnerCodeRequest */
         CreatePartnerCodeRequest: {
@@ -3876,6 +5294,13 @@ export interface components {
              */
             message: string;
         };
+        /** DeleteNodePluginResponse */
+        DeleteNodePluginResponse: {
+            /** Isdeleted */
+            isDeleted: boolean;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * DeviceInfo
          * @description Device information for mobile authentication.
@@ -4005,6 +5430,17 @@ export interface components {
              */
             is_current: boolean;
         };
+        /** EgressFilterPluginConfigResponse */
+        EgressFilterPluginConfigResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Blockedips */
+            blockedIps?: string[] | null;
+            /** Blockedports */
+            blockedPorts?: number[] | null;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * FCMTokenDeleteRequest
          * @description Request body for unregistering an FCM push-notification token.
@@ -4072,6 +5508,27 @@ export interface components {
             created_at?: string;
         };
         /**
+         * FacebookCallbackRequest
+         * @description Facebook OAuth callback request.
+         */
+        FacebookCallbackRequest: {
+            /**
+             * Code
+             * @description Authorization code from Facebook
+             */
+            code: string;
+            /**
+             * State
+             * @description OAuth state token for CSRF protection
+             */
+            state: string;
+            /**
+             * Redirect Uri
+             * @description Redirect URI used in authorization
+             */
+            redirect_uri: string;
+        };
+        /**
          * ForgotPasswordRequest
          * @description Request for password reset OTP.
          */
@@ -4081,6 +5538,11 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
         };
         /**
          * ForgotPasswordResponse
@@ -4167,6 +5629,126 @@ export interface components {
              */
             timestamp?: string;
         };
+        /** HelixPublishRolloutRequest */
+        HelixPublishRolloutRequest: {
+            /** Rollout Id */
+            rollout_id: string;
+            /** Batch Id */
+            batch_id: string;
+            /** Channel */
+            channel: string;
+            /** Manifest Version */
+            manifest_version: string;
+            /** Target Node Ids */
+            target_node_ids: string[];
+            /**
+             * Pause On Rollback Spike
+             * @default true
+             */
+            pause_on_rollback_spike: boolean;
+            /**
+             * Revoke On Manifest Error
+             * @default true
+             */
+            revoke_on_manifest_error: boolean;
+        };
+        /**
+         * HelixResolveManifestRequest
+         * @example {
+         *       "channel": "lab",
+         *       "desktop_client_id": "desktop-win11-primary",
+         *       "preferred_fallback_core": "sing-box",
+         *       "supported_protocol_versions": [
+         *         1
+         *       ],
+         *       "supported_transport_profiles": [
+         *         {
+         *           "max_transport_profile_version": 4,
+         *           "min_transport_profile_version": 1,
+         *           "profile_family": "edge-hybrid",
+         *           "supported_policy_versions": [
+         *             4,
+         *             5,
+         *             6,
+         *             7
+         *           ]
+         *         }
+         *       ]
+         *     }
+         */
+        HelixResolveManifestRequest: {
+            /** Desktop Client Id */
+            desktop_client_id?: string | null;
+            /** Trace Id */
+            trace_id?: string | null;
+            /** Channel */
+            channel?: string | null;
+            /** Supported Protocol Versions */
+            supported_protocol_versions?: number[] | null;
+            /** Supported Transport Profiles */
+            supported_transport_profiles?: components["schemas"]["AdapterSupportedTransportProfile"][] | null;
+            /** Preferred Fallback Core */
+            preferred_fallback_core?: string | null;
+        };
+        /**
+         * HelixRuntimeEventRequest
+         * @example {
+         *       "active_core": "helix",
+         *       "desktop_client_id": "desktop-win11-primary",
+         *       "event_kind": "ready",
+         *       "latency_ms": 142,
+         *       "manifest_version_id": "de33fcba-b71d-4f5f-82d2-34ae78977e31",
+         *       "payload": {
+         *         "benchmark": {
+         *           "baseline_core": "sing-box",
+         *           "benchmark_kind": "comparison",
+         *           "median_open_to_first_byte_gap_ms": 24,
+         *           "relative_open_to_first_byte_gap_ratio_vs_baseline": 1.04,
+         *           "relative_throughput_ratio_vs_baseline": 0.97,
+         *           "throughput_kbps": 68400
+         *         },
+         *         "continuity": {
+         *           "active_streams": 3,
+         *           "continuity_grace_active": false,
+         *           "pending_open_streams": 0,
+         *           "successful_continuity_recovers": 2
+         *         },
+         *         "recovery": {
+         *           "proxy_ready_latency_ms": 56,
+         *           "ready_recovery_latency_ms": 41,
+         *           "same_route_recovered": true
+         *         },
+         *         "runtime": "embedded-sidecar",
+         *         "status": "ready"
+         *       },
+         *       "rollout_id": "rollout-lab-1",
+         *       "route_count": 2,
+         *       "transport_profile_id": "ptp-lab-edge-v2"
+         *     }
+         */
+        HelixRuntimeEventRequest: {
+            /** Desktop Client Id */
+            desktop_client_id: string;
+            /** Manifest Version Id */
+            manifest_version_id: string;
+            /** Rollout Id */
+            rollout_id: string;
+            /** Transport Profile Id */
+            transport_profile_id: string;
+            /** Event Kind */
+            event_kind: string;
+            /** Active Core */
+            active_core: string;
+            /** Fallback Core */
+            fallback_core?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+            /** Route Count */
+            route_count?: number | null;
+            /** Reason */
+            reason?: string | null;
+            payload?: components["schemas"]["AdapterDesktopRuntimeEventPayload"];
+        };
         /**
          * HostResponse
          * @description Expected response from Remnawave hosts API.
@@ -4217,6 +5799,15 @@ export interface components {
              * @description ALPN protocols
              */
             alpn?: string[] | null;
+        };
+        /** IngressFilterPluginConfigResponse */
+        IngressFilterPluginConfigResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Blockedips */
+            blockedIps: string[];
+        } & {
+            [key: string]: unknown;
         };
         /**
          * InviteCodeResponse
@@ -4338,10 +5929,23 @@ export interface components {
              */
             sessions_revoked: number;
         };
-        /** LogoutRequest */
+        /**
+         * LogoutRequest
+         * @description Request schema for logout.
+         *
+         *     Used by POST /api/v1/mobile/auth/logout endpoint.
+         */
         LogoutRequest: {
-            /** Refresh Token */
-            refresh_token?: string | null;
+            /**
+             * Refresh Token
+             * @description Refresh token to revoke
+             */
+            refresh_token: string;
+            /**
+             * Device Id
+             * @description Device ID for session revocation
+             */
+            device_id: string;
         };
         /**
          * MagicLinkRequest
@@ -4353,6 +5957,11 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
         };
         /**
          * MagicLinkResponse
@@ -4431,6 +6040,52 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** NodePluginCollectionResponse */
+        NodePluginCollectionResponse: {
+            /** Total */
+            total: number;
+            /** Nodeplugins */
+            nodePlugins: components["schemas"]["NodePluginResponse"][];
+        } & {
+            [key: string]: unknown;
+        };
+        /** NodePluginConfigResponse */
+        "NodePluginConfigResponse-Input": {
+            /** Sharedlists */
+            sharedLists?: components["schemas"]["SharedListResponse"][];
+            torrentBlocker?: components["schemas"]["TorrentBlockerPluginConfigResponse"] | null;
+            ingressFilter?: components["schemas"]["IngressFilterPluginConfigResponse"] | null;
+            egressFilter?: components["schemas"]["EgressFilterPluginConfigResponse"] | null;
+            connectionDrop?: components["schemas"]["ConnectionDropPluginConfigResponse"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** NodePluginConfigResponse */
+        "NodePluginConfigResponse-Output": {
+            /** Sharedlists */
+            sharedLists?: components["schemas"]["SharedListResponse"][];
+            torrentBlocker?: components["schemas"]["TorrentBlockerPluginConfigResponse"] | null;
+            ingressFilter?: components["schemas"]["IngressFilterPluginConfigResponse"] | null;
+            egressFilter?: components["schemas"]["EgressFilterPluginConfigResponse"] | null;
+            connectionDrop?: components["schemas"]["ConnectionDropPluginConfigResponse"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** NodePluginResponse */
+        NodePluginResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Viewposition */
+            viewPosition: number;
+            /** Name */
+            name: string;
+            /** Pluginconfig */
+            pluginConfig?: components["schemas"]["NodePluginConfigResponse-Output"] | {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * NotificationPreferencesResponse
@@ -4556,9 +6211,9 @@ export interface components {
             state: string;
             /**
              * Redirect Uri
-             * @description Redirect URI used in authorization
+             * @description Redirect URI used in authorization for native/universal-link flows
              */
-            redirect_uri: string;
+            redirect_uri?: string | null;
         };
         /**
          * OAuthLoginResponse
@@ -4765,6 +6420,26 @@ export interface components {
          * @enum {string}
          */
         Platform: "ios" | "android";
+        /** PluginExecutorRequest */
+        PluginExecutorRequest: {
+            /** Command */
+            command: {
+                [key: string]: unknown;
+            };
+            /** Targetnodes */
+            targetNodes: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /** PluginExecutorResponse */
+        PluginExecutorResponse: {
+            /** Eventsent */
+            eventSent: boolean;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * ProfileResponse
          * @description Response schema for the authenticated user profile.
@@ -4986,25 +6661,33 @@ export interface components {
         };
         /**
          * RegisterRequest
-         * @description Request schema for mobile user registration.
+         * @description Registration request with strong password policy (MED-001).
          *
-         *     Used by POST /api/v1/mobile/auth/register endpoint.
-         *     MED-001: Password requirements aligned with admin auth.
+         *     Uses shared password validator for consistency with mobile auth.
+         *     Supports email+password or login+password (username-only) registration.
          */
         RegisterRequest: {
-            /**
-             * Email
-             * Format: email
-             * @description User email address (must be valid and unique)
-             */
-            email: string;
-            /**
-             * Password
-             * @description User password (minimum 12 characters, requires complexity)
-             */
+            /** Login */
+            login: string;
+            /** Email */
+            email?: string | null;
+            /** Password */
             password: string;
-            /** @description Device information for registration */
-            device: components["schemas"]["DeviceInfo"];
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
+            /**
+             * Tos Accepted
+             * @description Must accept Terms of Service
+             */
+            tos_accepted: boolean;
+            /**
+             * Marketing Consent
+             * @default false
+             */
+            marketing_consent: boolean;
         };
         /**
          * RegisterResponse
@@ -5389,6 +7072,24 @@ export interface components {
              */
             config: string;
             /**
+             * Isfound
+             * @description Whether the upstream subscription record exists
+             * @default true
+             */
+            isFound: boolean;
+            /**
+             * Links
+             * @description All generated connection links
+             */
+            links?: string[];
+            /**
+             * Ssconflinks
+             * @description Shadowsocks config links keyed by remark
+             */
+            ssConfLinks?: {
+                [key: string]: string;
+            };
+            /**
              * Subscriptionurl
              * @description Subscription URL for VPN clients
              */
@@ -5485,6 +7186,22 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** ReorderNodePluginItem */
+        ReorderNodePluginItem: {
+            /** Uuid */
+            uuid: string;
+            /** Viewposition */
+            viewPosition: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ReorderNodePluginsRequest */
+        ReorderNodePluginsRequest: {
+            /** Items */
+            items: components["schemas"]["ReorderNodePluginItem"][];
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * ResendOtpRequest
          * @description Request to resend OTP code.
@@ -5495,6 +7212,11 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
         };
         /**
          * ResendOtpResponse
@@ -5581,12 +7303,18 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Country Code */
+            country_code?: string | null;
             /** Traffic Used Bytes */
             traffic_used_bytes: number;
             /** Inbound Count */
             inbound_count: number;
             /** Users Online */
             users_online: number;
+            /** Xray Version */
+            xray_version?: string | null;
+            /** Vpn Protocol */
+            vpn_protocol?: string | null;
         };
         /**
          * ServerStatsResponse
@@ -5637,6 +7365,20 @@ export interface components {
              * @description User's anti-phishing code
              */
             code: string;
+        };
+        /** SharedListResponse */
+        SharedListResponse: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @constant
+             */
+            type: "ipList";
+            /** Items */
+            items: string[];
+        } & {
+            [key: string]: unknown;
         };
         /**
          * SignPayloadRequest
@@ -5793,6 +7535,21 @@ export interface components {
             device: components["schemas"]["DeviceInfo"];
         };
         /**
+         * TelegramBotAccessSettingsResponse
+         * @description Bot access settings returned to the Telegram bot service.
+         */
+        TelegramBotAccessSettingsResponse: {
+            /**
+             * Access Mode
+             * @default open
+             */
+            access_mode: string;
+            /** Rules Url */
+            rules_url?: string | null;
+            /** Channel Id */
+            channel_id?: string | null;
+        };
+        /**
          * TelegramBotLinkRequest
          * @description Request for Telegram bot deep-link authentication.
          */
@@ -5820,6 +7577,171 @@ export interface components {
              */
             expires_in: number;
             user: components["schemas"]["AdminUserResponse"];
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
+        };
+        /**
+         * TelegramBotReferralStatsResponse
+         * @description Bot-facing referral summary.
+         */
+        TelegramBotReferralStatsResponse: {
+            /**
+             * Total Referrals
+             * @default 0
+             */
+            total_referrals: number;
+            /**
+             * Bonus Days
+             * @default 0
+             */
+            bonus_days: number;
+            /** Referral Link */
+            referral_link?: string | null;
+        };
+        /**
+         * TelegramBotSubscriptionResponse
+         * @description Bot-facing subscription summary.
+         */
+        TelegramBotSubscriptionResponse: {
+            /** Status */
+            status: string;
+            /** Plan Name */
+            plan_name?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Used Traffic Bytes */
+            used_traffic_bytes?: number | null;
+            /**
+             * Auto Renew
+             * @default false
+             */
+            auto_renew: boolean;
+        };
+        /**
+         * TelegramBotTrialStatusResponse
+         * @description Bot-facing trial status and eligibility.
+         */
+        TelegramBotTrialStatusResponse: {
+            /** Eligible */
+            eligible: boolean;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Is Trial Active
+             * @default false
+             */
+            is_trial_active: boolean;
+            /** Trial Start */
+            trial_start?: string | null;
+            /** Trial End */
+            trial_end?: string | null;
+            /**
+             * Days Remaining
+             * @default 0
+             */
+            days_remaining: number;
+        };
+        /**
+         * TelegramBotUserCreateRequest
+         * @description Internal bot request to create or bootstrap a Telegram user.
+         */
+        TelegramBotUserCreateRequest: {
+            /** Telegram Id */
+            telegram_id: number;
+            /** Username */
+            username?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /**
+             * Language Code
+             * @default en
+             */
+            language_code: string;
+            /** Referrer Id */
+            referrer_id?: number | null;
+        };
+        /**
+         * TelegramBotUserResponse
+         * @description Telegram bot-facing user payload compatible with the bot service DTO.
+         */
+        TelegramBotUserResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Telegram Id */
+            telegram_id: number;
+            /** Username */
+            username?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /**
+             * Language Code
+             * @default en
+             */
+            language_code: string;
+            /**
+             * Status
+             * @default none
+             */
+            status: string;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
+            /**
+             * Personal Discount
+             * @default 0
+             */
+            personal_discount: number;
+            /**
+             * Next Purchase Discount
+             * @default 0
+             */
+            next_purchase_discount: number;
+            /** Referrer Id */
+            referrer_id?: number | null;
+            /**
+             * Points
+             * @default 0
+             */
+            points: number;
+            /** Subscription */
+            subscription?: {
+                [key: string]: unknown;
+            } | null;
+            /** Subscriptions */
+            subscriptions?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * TelegramBotUserUpdateRequest
+         * @description Internal bot request to update Telegram-side profile details.
+         */
+        TelegramBotUserUpdateRequest: {
+            /** Username */
+            username?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /** Language Code */
+            language_code?: string | null;
         };
         /**
          * TelegramCallbackRequest
@@ -5986,6 +7908,13 @@ export interface components {
              * @default false
              */
             is_new_user: boolean;
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
         };
         /**
          * TelegramUserResponse
@@ -6092,36 +8021,200 @@ export interface components {
              * @default false
              */
             is_new_user: boolean;
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
         };
-        /**
-         * TokenResponse
-         * @description Response schema for authentication tokens.
-         *
-         *     Returned by login, register, and refresh endpoints.
-         */
+        /** TokenResponse */
         TokenResponse: {
-            /**
-             * Access Token
-             * @description JWT access token (TTL: 15 minutes)
-             */
+            /** Access Token */
             access_token: string;
-            /**
-             * Refresh Token
-             * @description JWT refresh token (TTL: 7 days or 30 days with remember_me)
-             */
+            /** Refresh Token */
             refresh_token: string;
             /**
              * Token Type
-             * @description Token type for Authorization header
-             * @default Bearer
+             * @default bearer
              */
             token_type: string;
             /**
              * Expires In
-             * @description Access token expiration in seconds (default: 15 minutes)
-             * @default 900
+             * @default 0
              */
             expires_in: number;
+        };
+        /** TorrentBlockerActionReportResponse */
+        TorrentBlockerActionReportResponse: {
+            /** Blocked */
+            blocked: boolean;
+            /** Ip */
+            ip: string;
+            /** Blockduration */
+            blockDuration: number;
+            /**
+             * Willunblockat
+             * Format: date-time
+             */
+            willUnblockAt: string;
+            /** Userid */
+            userId: string;
+            /**
+             * Processedat
+             * Format: date-time
+             */
+            processedAt: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerIgnoreListsResponse */
+        TorrentBlockerIgnoreListsResponse: {
+            /** Ip */
+            ip?: string[] | null;
+            /** Userid */
+            userId?: number[] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerNodeResponse */
+        TorrentBlockerNodeResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Name */
+            name: string;
+            /** Countrycode */
+            countryCode: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerPluginConfigResponse */
+        TorrentBlockerPluginConfigResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Blockduration */
+            blockDuration: number;
+            ignoreLists: components["schemas"]["TorrentBlockerIgnoreListsResponse"];
+            /** Includeruletags */
+            includeRuleTags?: string[] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerReportPayloadResponse */
+        TorrentBlockerReportPayloadResponse: {
+            actionReport: components["schemas"]["TorrentBlockerActionReportResponse"];
+            xrayReport: components["schemas"]["TorrentBlockerXrayReportResponse"];
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerReportResponse */
+        TorrentBlockerReportResponse: {
+            /** Id */
+            id: number;
+            /** Userid */
+            userId: number;
+            /** Nodeid */
+            nodeId: number;
+            user: components["schemas"]["TorrentBlockerUserResponse"];
+            node: components["schemas"]["TorrentBlockerNodeResponse"];
+            report: components["schemas"]["TorrentBlockerReportPayloadResponse"];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerReportsResponse */
+        TorrentBlockerReportsResponse: {
+            /** Records */
+            records: components["schemas"]["TorrentBlockerReportResponse"][];
+            /** Total */
+            total: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerReportsStatsResponse */
+        TorrentBlockerReportsStatsResponse: {
+            stats: components["schemas"]["TorrentBlockerStatsResponse"];
+            /** Topusers */
+            topUsers: components["schemas"]["TorrentBlockerTopEntityResponse"][];
+            /** Topnodes */
+            topNodes: components["schemas"]["TorrentBlockerTopEntityResponse"][];
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerStatsResponse */
+        TorrentBlockerStatsResponse: {
+            /** Distinctnodes */
+            distinctNodes: number;
+            /** Distinctusers */
+            distinctUsers: number;
+            /** Totalreports */
+            totalReports: number;
+            /** Reportslast24Hours */
+            reportsLast24Hours: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerTopEntityResponse */
+        TorrentBlockerTopEntityResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Color */
+            color: string;
+            /** Total */
+            total: number;
+            /** Username */
+            username?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Countrycode */
+            countryCode?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerUserResponse */
+        TorrentBlockerUserResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Username */
+            username: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerXrayReportResponse */
+        TorrentBlockerXrayReportResponse: {
+            /** Email */
+            email?: string | null;
+            /** Level */
+            level?: number | null;
+            /** Protocol */
+            protocol?: string | null;
+            /** Network */
+            network: string;
+            /** Source */
+            source?: string | null;
+            /** Destination */
+            destination: string;
+            /** Routetarget */
+            routeTarget?: string | null;
+            /** Originaltarget */
+            originalTarget?: string | null;
+            /** Inboundtag */
+            inboundTag?: string | null;
+            /** Inboundname */
+            inboundName?: string | null;
+            /** Inboundlocal */
+            inboundLocal?: string | null;
+            /** Outboundtag */
+            outboundTag?: string | null;
+            /** Ts */
+            ts: number;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * TrialActivateResponse
@@ -6281,6 +8374,19 @@ export interface components {
         UpdateMarkupRequest: {
             /** Markup Pct */
             markup_pct: number;
+        };
+        /** UpdateNodePluginRequest */
+        UpdateNodePluginRequest: {
+            /** Uuid */
+            uuid?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Pluginconfig */
+            pluginConfig?: components["schemas"]["NodePluginConfigResponse-Input"] | {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * UpdatePlanRequest
@@ -6505,7 +8611,7 @@ export interface components {
          */
         UserListResponse: {
             /** Users */
-            users: components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"][];
+            users: components["schemas"]["UserResponse"][];
             /** Total */
             total: number;
             /** Page */
@@ -6515,50 +8621,41 @@ export interface components {
         };
         /**
          * UserResponse
-         * @description Response schema for authenticated user profile.
-         *
-         *     Used by GET /api/v1/mobile/auth/me and included in login/register responses.
+         * @description Response schema for a single VPN user.
          */
         UserResponse: {
             /**
-             * Id
+             * Uuid
              * Format: uuid
-             * @description User UUID
              */
-            id: string;
-            /**
-             * Email
-             * @description User email address
-             */
-            email: string;
-            /**
-             * Username
-             * @description Optional username
-             */
-            username?: string | null;
-            /**
-             * Status
-             * @description User account status
-             * @default active
-             */
-            status: string;
-            /**
-             * Telegram Id
-             * @description Linked Telegram user ID (if connected)
-             */
-            telegram_id?: number | null;
-            /**
-             * Telegram Username
-             * @description Linked Telegram username (if connected)
-             */
-            telegram_username?: string | null;
+            uuid: string;
+            /** Username */
+            username: string;
+            status: components["schemas"]["UserStatus"];
+            /** Short Uuid */
+            short_uuid: string;
             /**
              * Created At
-             * @description Account creation timestamp
+             * Format: date-time
              */
-            created_at?: string | null;
-            /** @description Subscription information (included in mobile responses) */
-            subscription?: components["schemas"]["SubscriptionInfo"] | null;
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Subscription Uuid */
+            subscription_uuid?: string | null;
+            /** Expire At */
+            expire_at?: string | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Used Traffic Bytes */
+            used_traffic_bytes?: number | null;
+            /** Email */
+            email?: string | null;
+            /** Telegram Id */
+            telegram_id?: number | null;
         };
         /**
          * UserStatus
@@ -6613,6 +8710,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
          * VerifyCodeRequest
@@ -6777,47 +8878,15 @@ export interface components {
              */
             created_at: string;
         };
+        /** LogoutRequest */
+        src__presentation__api__v1__auth__schemas__LogoutRequest: {
+            /** Refresh Token */
+            refresh_token?: string | null;
+        };
         /** RefreshTokenRequest */
         src__presentation__api__v1__auth__schemas__RefreshTokenRequest: {
             /** Refresh Token */
             refresh_token?: string | null;
-        };
-        /**
-         * RegisterRequest
-         * @description Registration request with strong password policy (MED-001).
-         *
-         *     Uses shared password validator for consistency with mobile auth.
-         *     Supports email+password or login+password (username-only) registration.
-         */
-        src__presentation__api__v1__auth__schemas__RegisterRequest: {
-            /** Login */
-            login: string;
-            /** Email */
-            email?: string | null;
-            /** Password */
-            password: string;
-            /**
-             * Locale
-             * @default en-EN
-             */
-            locale: string;
-        };
-        /** TokenResponse */
-        src__presentation__api__v1__auth__schemas__TokenResponse: {
-            /** Access Token */
-            access_token: string;
-            /** Refresh Token */
-            refresh_token: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type: string;
-            /**
-             * Expires In
-             * @default 0
-             */
-            expires_in: number;
         };
         /**
          * LoginRequest
@@ -6847,60 +8916,103 @@ export interface components {
             remember_me: boolean;
         };
         /**
-         * LogoutRequest
-         * @description Request schema for logout.
+         * RegisterRequest
+         * @description Request schema for mobile user registration.
          *
-         *     Used by POST /api/v1/mobile/auth/logout endpoint.
+         *     Used by POST /api/v1/mobile/auth/register endpoint.
+         *     MED-001: Password requirements aligned with admin auth.
          */
-        src__presentation__api__v1__mobile_auth__schemas__LogoutRequest: {
+        src__presentation__api__v1__mobile_auth__schemas__RegisterRequest: {
+            /**
+             * Email
+             * Format: email
+             * @description User email address (must be valid and unique)
+             */
+            email: string;
+            /**
+             * Password
+             * @description User password (minimum 12 characters, requires complexity)
+             */
+            password: string;
+            /** @description Device information for registration */
+            device: components["schemas"]["DeviceInfo"];
+        };
+        /**
+         * TokenResponse
+         * @description Response schema for authentication tokens.
+         *
+         *     Returned by login, register, and refresh endpoints.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__TokenResponse: {
+            /**
+             * Access Token
+             * @description JWT access token (TTL: 15 minutes)
+             */
+            access_token: string;
             /**
              * Refresh Token
-             * @description Refresh token to revoke
+             * @description JWT refresh token (TTL: 7 days or 30 days with remember_me)
              */
             refresh_token: string;
             /**
-             * Device Id
-             * @description Device ID for session revocation
+             * Token Type
+             * @description Token type for Authorization header
+             * @default Bearer
              */
-            device_id: string;
+            token_type: string;
+            /**
+             * Expires In
+             * @description Access token expiration in seconds (default: 15 minutes)
+             * @default 900
+             */
+            expires_in: number;
         };
         /**
          * UserResponse
-         * @description Response schema for a single VPN user.
+         * @description Response schema for authenticated user profile.
+         *
+         *     Used by GET /api/v1/mobile/auth/me and included in login/register responses.
          */
-        src__presentation__api__v1__users__schemas__UserResponse: {
+        src__presentation__api__v1__mobile_auth__schemas__UserResponse: {
             /**
-             * Uuid
+             * Id
              * Format: uuid
+             * @description User UUID
              */
-            uuid: string;
-            /** Username */
-            username: string;
-            status: components["schemas"]["UserStatus"];
-            /** Short Uuid */
-            short_uuid: string;
+            id: string;
+            /**
+             * Email
+             * @description User email address
+             */
+            email: string;
+            /**
+             * Username
+             * @description Optional username
+             */
+            username?: string | null;
+            /**
+             * Status
+             * @description User account status
+             * @default active
+             */
+            status: string;
+            /**
+             * Telegram Id
+             * @description Linked Telegram user ID (if connected)
+             */
+            telegram_id?: number | null;
+            /**
+             * Telegram Username
+             * @description Linked Telegram username (if connected)
+             */
+            telegram_username?: string | null;
             /**
              * Created At
-             * Format: date-time
+             * @description Account creation timestamp
              */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Subscription Uuid */
-            subscription_uuid?: string | null;
-            /** Expire At */
-            expire_at?: string | null;
-            /** Traffic Limit Bytes */
-            traffic_limit_bytes?: number | null;
-            /** Used Traffic Bytes */
-            used_traffic_bytes?: number | null;
-            /** Email */
-            email?: string | null;
-            /** Telegram Id */
-            telegram_id?: number | null;
+            created_at?: string | null;
+            /** @description Subscription information (included in mobile responses) */
+            subscription?: components["schemas"]["SubscriptionInfo"] | null;
         };
     };
     responses: never;
@@ -6930,7 +9042,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
+                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
             /** @description Invalid credentials */
@@ -6975,7 +9087,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
+                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -7005,7 +9117,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LogoutRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LogoutRequest"];
             };
         };
         responses: {
@@ -7787,7 +9899,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__RegisterRequest"];
+                "application/json": components["schemas"]["RegisterRequest"];
             };
         };
         responses: {
@@ -7820,7 +9932,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__RegisterRequest"];
             };
         };
         responses: {
@@ -7932,7 +10044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -7964,7 +10076,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"];
+                "application/json": components["schemas"]["LogoutRequest"];
             };
         };
         responses: {
@@ -8010,7 +10122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__UserResponse"];
                 };
             };
             /** @description Not authenticated */
@@ -8199,6 +10311,38 @@ export interface operations {
             };
         };
     };
+    facebook_authorize_api_v1_oauth_facebook_authorize_get: {
+        parameters: {
+            query: {
+                /** @description Redirect URI after authentication */
+                redirect_uri: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     telegram_callback_get_alias_api_v1_oauth_telegram_callback_get: {
         parameters: {
             query: {
@@ -8293,7 +10437,9 @@ export interface operations {
     complete_telegram_magic_link_api_v1_oauth_telegram_magic_link_complete_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8420,6 +10566,72 @@ export interface operations {
             };
         };
     };
+    facebook_callback_get_alias_api_v1_oauth_facebook_callback_get: {
+        parameters: {
+            query: {
+                code: string;
+                state: string;
+                redirect_uri: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    facebook_callback_api_v1_oauth_facebook_callback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacebookCallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     unlink_provider_api_v1_oauth__provider__delete: {
         parameters: {
             query?: never;
@@ -8453,9 +10665,9 @@ export interface operations {
     };
     oauth_login_authorize_api_v1_oauth__provider__login_get: {
         parameters: {
-            query: {
-                /** @description Redirect URI after authentication */
-                redirect_uri: string;
+            query?: {
+                /** @description Exact native/universal callback URI. Omit for canonical web flow. */
+                redirect_uri?: string | null;
             };
             header?: never;
             path: {
@@ -8665,6 +10877,60 @@ export interface operations {
             };
             /** @description 2FA not enabled */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too many verification attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    complete_2fa_login_api_v1_2fa_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Invalid 2FA code */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid or expired pending 2FA session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8970,7 +11236,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description User already exists */
@@ -9006,7 +11272,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description User not found */
@@ -9048,7 +11314,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description User not found */
@@ -9732,6 +11998,320 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_capability_defaults_api_v1_helix_capabilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterClientCapabilityDefaults"];
+                };
+            };
+        };
+    };
+    resolve_manifest_api_v1_helix_manifest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelixResolveManifestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterResolveManifestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_runtime_event_api_v1_helix_events_runtime_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelixRuntimeEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterDesktopRuntimeEventAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_nodes_api_v1_helix_admin_nodes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterNodeRegistryRecord"][];
+                };
+            };
+        };
+    };
+    get_rollout_status_api_v1_helix_admin_rollouts__rollout_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rollout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRolloutStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rollout_canary_evidence_api_v1_helix_admin_rollouts__rollout_id__canary_evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rollout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRolloutCanaryEvidenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transport_profiles_api_v1_helix_admin_transport_profiles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterTransportProfileRecord"][];
+                };
+            };
+        };
+    };
+    preview_node_assignment_api_v1_helix_admin_nodes__node_id__assignment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterNodeAssignmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_rollout_api_v1_helix_admin_rollouts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HelixPublishRolloutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRolloutBatchRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_rollout_api_v1_helix_admin_rollouts__rollout_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rollout_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterRolloutBatchRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_manifest_api_v1_helix_admin_manifests__manifest_version_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                manifest_version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdapterManifestVersionRecord"];
                 };
             };
             /** @description Validation Error */
@@ -11404,6 +13984,340 @@ export interface operations {
             };
         };
     };
+    get_bot_access_settings_api_v1_telegram_bot_settings_access_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotAccessSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_plans_api_v1_telegram_bot_plans_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_user_api_v1_telegram_bot_user__telegram_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_bot_user_api_v1_telegram_bot_user__telegram_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramBotUserUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_or_bootstrap_bot_user_api_v1_telegram_bot_user_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramBotUserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_user_subscriptions_api_v1_telegram_bot_user__telegram_id__subscriptions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotSubscriptionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_user_trial_status_api_v1_telegram_bot_user__telegram_id__trial_status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotTrialStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_bot_user_trial_api_v1_telegram_bot_user__telegram_id__trial_activate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotTrialStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_user_referral_stats_api_v1_telegram_bot_user__telegram_id__referral_stats_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotReferralStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bot_user_config_api_v1_telegram_bot_user__telegram_id__config_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     register_fcm_token_api_v1_users_me_fcm_token_post: {
         parameters: {
             query?: never;
@@ -11733,6 +14647,332 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RemnawaveInboundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_get: {
+        parameters: {
+            query: {
+                start?: number | null;
+                size?: number | null;
+                filters?: string | null;
+                filterModes?: string | null;
+                globalFilterMode?: string | null;
+                sorting?: string | null;
+                extra_data: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TorrentBlockerReportsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    truncate_torrent_blocker_reports_api_v1_node_plugins_torrent_blocker_reports_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TorrentBlockerReportsResponse"];
+                };
+            };
+        };
+    };
+    get_torrent_blocker_stats_api_v1_node_plugins_torrent_blocker_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TorrentBlockerReportsStatsResponse"];
+                };
+            };
+        };
+    };
+    list_node_plugins_api_v1_node_plugins__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginCollectionResponse"];
+                };
+            };
+        };
+    };
+    create_node_plugin_api_v1_node_plugins__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateNodePluginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_node_plugins_api_v1_node_plugins_reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderNodePluginsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginCollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clone_node_plugin_api_v1_node_plugins_clone_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloneNodePluginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_node_plugin_api_v1_node_plugins_execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginExecutorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginExecutorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_node_plugin_api_v1_node_plugins__uuid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_node_plugin_api_v1_node_plugins__uuid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNodePluginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodePluginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_node_plugin_api_v1_node_plugins__uuid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteNodePluginResponse"];
                 };
             };
             /** @description Validation Error */

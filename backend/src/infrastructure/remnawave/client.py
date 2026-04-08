@@ -25,15 +25,34 @@ class RemnawaveClient:
     """HTTP client for Remnawave API with response validation."""
 
     def __init__(self) -> None:
-        self._base_url = settings.remnawave_url.rstrip("/")
+        self._base_url = self._normalize_base_url(settings.remnawave_url)
         self._token = settings.remnawave_token.get_secret_value()
         self._client: AsyncClient | None = None
+
+    @staticmethod
+    def _normalize_base_url(base_url: str) -> str:
+        normalized = base_url.rstrip("/")
+        return normalized.removesuffix("/api")
+
+    @staticmethod
+    def _normalize_path(path: str) -> str:
+        normalized = path if path.startswith("/") else f"/{path}"
+        if normalized == "/api":
+            return normalized
+        if normalized.startswith("/api/"):
+            return normalized
+        return f"/api{normalized}"
 
     async def _get_client(self) -> AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = AsyncClient(
                 base_url=self._base_url,
-                headers={"Authorization": f"Bearer {self._token}"},
+                headers={
+                    "Authorization": f"Bearer {self._token}",
+                    # Remnawave may reject internal service traffic without proxy headers.
+                    "X-Forwarded-Proto": "https",
+                    "X-Forwarded-For": "127.0.0.1",
+                },
                 timeout=30.0,
             )
         return self._client
@@ -41,30 +60,44 @@ class RemnawaveClient:
     async def get(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """GET request without validation (legacy - use get_validated instead)."""
         client = await self._get_client()
-        response = await client.get(path, **kwargs)
+        response = await client.get(self._normalize_path(path), **kwargs)
         response.raise_for_status()
-        return response.json()
+        return self._normalize_response(response.json())
 
     async def post(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """POST request without validation (legacy - use post_validated instead)."""
         client = await self._get_client()
-        response = await client.post(path, **kwargs)
+        response = await client.post(self._normalize_path(path), **kwargs)
         response.raise_for_status()
-        return response.json()
+        return self._normalize_response(response.json())
 
     async def put(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """PUT request without validation (legacy - use put_validated instead)."""
         client = await self._get_client()
-        response = await client.put(path, **kwargs)
+        response = await client.put(self._normalize_path(path), **kwargs)
         response.raise_for_status()
-        return response.json()
+        return self._normalize_response(response.json())
 
     async def delete(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """DELETE request without validation (legacy - use delete_validated instead)."""
         client = await self._get_client()
-        response = await client.delete(path, **kwargs)
+        response = await client.delete(self._normalize_path(path), **kwargs)
         response.raise_for_status()
-        return response.json()
+        return self._normalize_response(response.json())
+
+    async def patch(self, path: str, **kwargs: Any) -> dict[str, Any]:
+        """PATCH request without validation (legacy - use patch_validated instead)."""
+        client = await self._get_client()
+        response = await client.patch(self._normalize_path(path), **kwargs)
+        response.raise_for_status()
+        return self._normalize_response(response.json())
+
+    @staticmethod
+    def _normalize_response(data: Any) -> Any:
+        """Unwrap the common Remnawave ``response`` envelope."""
+        if isinstance(data, dict) and "response" in data and len(data) == 1:
+            return data["response"]
+        return data
 
     # Validated methods - use these for security
 
@@ -168,14 +201,30 @@ class RemnawaveClient:
             return None
         return response_validator.validate_single(data, schema, f"DELETE {path}")
 
+    async def patch_validated(
+        self,
+        path: str,
+        schema: type[T],
+        **kwargs: Any,
+    ) -> T:
+        """PATCH request with response validation."""
+        data = await self.patch(path, **kwargs)
+        return response_validator.validate_single(data, schema, f"PATCH {path}")
+
     async def close(self) -> None:
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
     async def health_check(self) -> bool:
         try:
-            await self.get("/api/health")
-            return True
+            for path in ("/system/health", "/health"):
+                try:
+                    await self.get(path)
+                    return True
+                except Exception as path_error:
+                    logger.debug("Remnawave health probe failed for %s: %s", path, path_error)
+                    continue
+            return False
         except Exception as e:
             _ = e  # Expected when Remnawave is unreachable
             return False

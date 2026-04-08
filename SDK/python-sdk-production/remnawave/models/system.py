@@ -33,27 +33,21 @@ class BandwidthStatisticResponseDto(BaseModel):
 
 class CPUStatistic(BaseModel):
     cores: int
-    physical_cores: int = Field(alias="physicalCores")
 
 
 class MemoryStatistic(BaseModel):
     total: int
     free: int
     used: int
-    active: int
-    available: int
 
 
 class StatusCounts(BaseModel):
-    """Dynamic status counts - использует additionalProperties"""
     model_config = {"extra": "allow"}
-    
+
     def __getitem__(self, key: str) -> int:
-        """Allow dict-like access"""
         return getattr(self, key, 0)
-    
+
     def get(self, key: str, default: int = 0) -> int:
-        """Dict-like get method"""
         return getattr(self, key, default)
 
 
@@ -75,7 +69,6 @@ class NodesStatistic(BaseModel):
 
 
 class StatisticResponseDto(BaseModel):
-    """System statistics data"""
     cpu: CPUStatistic
     memory: MemoryStatistic
     uptime: float
@@ -85,56 +78,108 @@ class StatisticResponseDto(BaseModel):
     nodes: NodesStatistic
 
 
-class PM2Stat(BaseModel):
-    name: str
-    memory: str
-    cpu: str
+class RuntimeMetric(BaseModel):
+    rss: int
+    heap_used: int = Field(alias="heapUsed")
+    heap_total: int = Field(alias="heapTotal")
+    external: int
+    array_buffers: int = Field(alias="arrayBuffers")
+    event_loop_delay_ms: float = Field(alias="eventLoopDelayMs")
+    event_loop_p99_ms: float = Field(alias="eventLoopP99Ms")
+    active_handles: int = Field(alias="activeHandles")
+    uptime: float
+    pid: int
+    timestamp: int
+    instance_id: str = Field(alias="instanceId")
+    instance_type: str = Field(alias="instanceType")
 
 
-class RemnawaveHealthData(BaseModel):
-    pm2_stats: List[PM2Stat] = Field(alias="pm2Stats")
+class PM2Stat(RuntimeMetric):
+    """Backward-compatible alias for the old health payload."""
 
 
 class GetStatsResponseDto(StatisticResponseDto):
-    """Get system statistics response"""
     pass
 
 
-class GetBandwidthStatsResponseDto(BaseModel):
-    last_two_days: BandwidthStatistic = Field(alias="bandwidthLastTwoDays")
-    last_seven_days: BandwidthStatistic = Field(alias="bandwidthLastSevenDays")
-    last_30_days: BandwidthStatistic = Field(alias="bandwidthLast30Days")
-    calendar_month: BandwidthStatistic = Field(alias="bandwidthCalendarMonth")
-    current_year: BandwidthStatistic = Field(alias="bandwidthCurrentYear")
+class GetBandwidthStatsResponseDto(BandwidthStatisticResponseDto):
+    pass
 
 
-class GetNodesStatisticsResponseDto(BaseModel):
-    last_seven_days: List[NodeStatistic] = Field(alias="lastSevenDays")
+class GetNodesStatisticsResponseDto(NodesStatisticResponseDto):
+    pass
 
 
 class GetRemnawaveHealthResponseDto(BaseModel):
-    pm2_stats: List[PM2Stat] = Field(alias="pm2Stats")
+    runtime_metrics: List[RuntimeMetric] = Field(alias="runtimeMetrics")
+
+
+class NodeTrafficStat(BaseModel):
+    tag: str
+    upload: str
+    download: str
 
 
 class NodeMetric(BaseModel):
-    """Node metric data"""
-    uuid: str = Field(alias="nodeUuid")
-    name: Optional[str] = None
-    address: Optional[str] = None
-    is_online: Optional[bool] = Field(None, alias="isOnline")
-    cpu_usage: Optional[float] = Field(None, alias="cpuUsage")
-    memory_usage: Optional[float] = Field(None, alias="memoryUsage")
-    network_upload: Optional[int] = Field(None, alias="networkUpload")
-    network_download: Optional[int] = Field(None, alias="networkDownload")
-    uptime: Optional[int] = None
-    last_seen: Optional[datetime.datetime] = Field(None, alias="lastSeen")
-    connected_users: Optional[int] = Field(None, alias="connectedUsers")
-    upload: Optional[str] = None
-    download: Optional[str] = None
+    node_uuid: str = Field(alias="nodeUuid")
+    node_name: str = Field(alias="nodeName")
+    country_emoji: str = Field(alias="countryEmoji")
+    provider_name: str = Field(alias="providerName")
+    users_online: int = Field(alias="usersOnline")
+    inbounds_stats: List[NodeTrafficStat] = Field(alias="inboundsStats")
+    outbounds_stats: List[NodeTrafficStat] = Field(alias="outboundsStats")
 
 
 class GetNodesMetricsResponseDto(BaseModel):
     nodes: List[NodeMetric]
+
+
+class MetadataBuildInfo(BaseModel):
+    time: str
+    number: str
+
+
+class MetadataGitBackendInfo(BaseModel):
+    commit_sha: str = Field(alias="commitSha")
+    branch: str
+    commit_url: str = Field(alias="commitUrl")
+
+
+class MetadataGitFrontendInfo(BaseModel):
+    commit_sha: str = Field(alias="commitSha")
+    commit_url: str = Field(alias="commitUrl")
+
+
+class MetadataGitInfo(BaseModel):
+    backend: MetadataGitBackendInfo
+    frontend: MetadataGitFrontendInfo
+
+
+class GetMetadataResponseDto(BaseModel):
+    version: str
+    build: MetadataBuildInfo
+    git: MetadataGitInfo
+
+
+class RecapPeriodDto(BaseModel):
+    users: int
+    traffic: str
+
+
+class RecapTotalDto(BaseModel):
+    users: int
+    nodes: int
+    traffic: str
+    nodes_ram: str = Field(alias="nodesRam")
+    nodes_cpu_cores: int = Field(alias="nodesCpuCores")
+    distinct_countries: int = Field(alias="distinctCountries")
+
+
+class GetRecapResponseDto(BaseModel):
+    this_month: RecapPeriodDto = Field(alias="thisMonth")
+    total: RecapTotalDto
+    version: str
+    init_date: datetime.datetime = Field(alias="initDate")
 
 
 class X25519KeyPair(BaseModel):

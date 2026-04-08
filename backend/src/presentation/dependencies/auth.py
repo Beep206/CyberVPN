@@ -183,7 +183,7 @@ async def get_current_active_user(
 
 
 async def optional_user(
-    request: Request | None = None,
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
@@ -209,7 +209,7 @@ async def optional_user(
     token: str | None = None
     if credentials:
         token = credentials.credentials
-    elif request is not None:
+    else:
         token = request.cookies.get("access_token")
 
     if not token:

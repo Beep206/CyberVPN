@@ -227,10 +227,47 @@ class RemnawaveSubscriptionResponse(RemnawaveBaseResponse):
     config_data: dict[str, Any] | None = Field(None, alias="configData", description="Additional config blob")
 
 
+class RemnawaveSubscriptionUserSummary(RemnawaveBaseResponse):
+    """Minimal user summary embedded in subscription lookup responses."""
+
+    short_uuid: str = Field(..., alias="shortUuid", description="User short UUID")
+    username: str = Field(..., description="Username")
+    days_left: int | None = Field(None, alias="daysLeft", description="Days left until expiration")
+    expires_at: datetime | None = Field(None, alias="expiresAt", description="Expiration timestamp")
+    is_active: bool | None = Field(None, alias="isActive", description="Whether subscription is active")
+    user_status: str | None = Field(None, alias="userStatus", description="Remnawave user status")
+
+
+class RemnawaveSubscriptionDetailsResponse(RemnawaveBaseResponse):
+    """Validated response for ``GET /api/subscriptions/by-uuid/{uuid}``."""
+
+    is_found: bool = Field(..., alias="isFound", description="Whether the subscription record exists")
+    user: RemnawaveSubscriptionUserSummary | None = Field(None, description="Embedded user summary")
+    links: list[str] = Field(default_factory=list, description="Generated connection links")
+    ss_conf_links: dict[str, str] = Field(
+        default_factory=dict,
+        alias="ssConfLinks",
+        description="Shadowsocks config links keyed by remark",
+    )
+    subscription_url: str | None = Field(
+        None,
+        alias="subscriptionUrl",
+        max_length=5000,
+        description="Subscription URL for VPN clients",
+    )
+
+
 class RemnawaveSubscriptionConfigResponse(RemnawaveBaseResponse):
     """Generated subscription config for a specific user."""
 
     config: str = Field(..., description="Generated VPN configuration string")
+    is_found: bool = Field(True, alias="isFound", description="Whether the upstream subscription record exists")
+    links: list[str] = Field(default_factory=list, description="All generated connection links")
+    ss_conf_links: dict[str, str] = Field(
+        default_factory=dict,
+        alias="ssConfLinks",
+        description="Shadowsocks config links keyed by remark",
+    )
     subscription_url: str | None = Field(
         None,
         alias="subscriptionUrl",

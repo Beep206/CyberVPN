@@ -32,6 +32,7 @@ _MUTED = "#888888"
 _DIM = "#666666"
 _FOOTER = "#555555"
 _BORDER = "#333333"
+_TABLE_RESET = "mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse;"
 
 
 def render_otp_template(
@@ -56,54 +57,54 @@ def render_otp_template(
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{html_title}</title>
 </head>
-<body bgcolor="{_BG_BODY}" style="margin: 0; padding: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<body bgcolor="{_BG_BODY}" style="margin: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     <!--
         Outer wrapper table duplicates ALL body styles because many clients
         (Gmail, Yahoo, AOL, Orange, Outlook.com, HEY, GMX, WEB.DE, 1&1,
         SFR, ProtonMail, LaPoste, Outlook Windows) replace or strip <body>,
         losing its CSS. This table is the true layout root.
     -->
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{_BG_BODY}" style="background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{_BG_BODY}" style="{_TABLE_RESET} background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
         <tr>
-            <td align="center" style="padding: 40px 20px;">
+            <td align="center" style="padding-top: 40px; padding-right: 20px; padding-bottom: 40px; padding-left: 20px;">
 {banner}\
                 <!--[if mso]>
                 <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td>
                 <![endif]-->
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; background-color: {_BG_CARD}; border: 1px solid {_GREEN};" bgcolor="{_BG_CARD}">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET} width: 100%; max-width: 600px; background-color: {_BG_CARD}; border: 1px solid {_GREEN};" bgcolor="{_BG_CARD}">
 
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="padding: 30px 40px; border-bottom: 1px solid {_GREEN}; font-family: {_FONT}; font-size: 28px; font-weight: bold; color: {_CYAN};">
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; border-bottom: 1px solid {_GREEN}; font-family: {_FONT}; font-size: 28px; font-weight: bold; mso-line-height-rule: exactly; line-height: 34px; color: {_CYAN};">
                             CYBERVPN
                         </td>
                     </tr>
                     <tr>
-                        <td align="center" style="padding: 8px 40px 0 40px; font-family: {_FONT}; font-size: 14px; color: {_MUTED};">
+                        <td align="center" style="padding-top: 8px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_MUTED};">
                             SECURE // PRIVATE // UNTRACEABLE
                         </td>
                     </tr>
 
                     <!-- Title -->
                     <tr>
-                        <td align="center" style="padding: 30px 40px 0 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; color: {_WHITE};">
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; mso-line-height-rule: exactly; line-height: 28px; color: {_WHITE};">
                             {title}
                         </td>
                     </tr>
 
                     <!-- Subtitle -->
                     <tr>
-                        <td align="center" style="padding: 12px 40px 30px 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
                             {subtitle}
                         </td>
                     </tr>
 
                     <!-- OTP Code Box -->
                     <tr>
-                        <td align="center" style="padding: 0 40px;">
-                            <table role="presentation" width="300" align="center" cellspacing="0" cellpadding="0" border="0">
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 0; padding-left: 40px;">
+                            <table role="presentation" width="300" align="center" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
                                 <tr>
-                                    <td align="center" bgcolor="{_BG_CODE}" style="background-color: {_BG_CODE}; border: 2px solid {_GREEN}; padding: 25px; font-family: {_MONO}; font-size: 36px; font-weight: bold; color: {_CYAN};">
+                                    <td align="center" bgcolor="{_BG_CODE}" style="background-color: {_BG_CODE}; border: 2px solid {_GREEN}; padding-top: 25px; padding-right: 25px; padding-bottom: 25px; padding-left: 25px; font-family: {_MONO}; font-size: 36px; font-weight: bold; mso-line-height-rule: exactly; line-height: 40px; color: {_CYAN};">
                                         {code}
                                     </td>
                                 </tr>
@@ -113,21 +114,21 @@ def render_otp_template(
 
                     <!-- Expiry -->
                     <tr>
-                        <td align="center" style="padding: 20px 40px 0 40px; font-family: {_FONT}; font-size: 14px; color: {_MUTED};">
+                        <td align="center" style="padding-top: 20px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_MUTED};">
                             This code expires in <span style="color: {_RED};">{expires_in}</span>
                         </td>
                     </tr>
 
                     <!-- Disclaimer -->
                     <tr>
-                        <td align="center" style="padding: 12px 40px 40px 40px; font-family: {_FONT}; font-size: 13px; color: {_DIM};">
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 40px; padding-left: 40px; font-family: {_FONT}; font-size: 13px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
                             {disclaimer}
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td align="center" style="padding: 20px 40px; border-top: 1px solid {_BORDER}; font-family: {_FONT}; font-size: 12px; color: {_FOOTER};">
+                        <td align="center" style="padding-top: 20px; padding-right: 40px; padding-bottom: 20px; padding-left: 40px; border-top: 1px solid {_BORDER}; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_FOOTER};">
                             &copy; 2026 CyberVPN. All rights reserved.
                         </td>
                     </tr>
@@ -163,59 +164,59 @@ def render_magic_link_template(
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Sign in to CyberVPN</title>
 </head>
-<body bgcolor="{_BG_BODY}" style="margin: 0; padding: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<body bgcolor="{_BG_BODY}" style="margin: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     <!-- Outer wrapper duplicates body styles (body may be replaced/stripped) -->
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{_BG_BODY}" style="background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{_BG_BODY}" style="{_TABLE_RESET} background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
         <tr>
-            <td align="center" style="padding: 40px 20px;">
+            <td align="center" style="padding-top: 40px; padding-right: 20px; padding-bottom: 40px; padding-left: 20px;">
 {banner}\
                 <!--[if mso]>
                 <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td>
                 <![endif]-->
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; background-color: {_BG_CARD}; border: 1px solid {_GREEN};" bgcolor="{_BG_CARD}">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET} width: 100%; max-width: 600px; background-color: {_BG_CARD}; border: 1px solid {_GREEN};" bgcolor="{_BG_CARD}">
 
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="padding: 30px 40px; border-bottom: 1px solid {_GREEN}; font-family: {_FONT}; font-size: 28px; font-weight: bold; color: {_CYAN};">
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; border-bottom: 1px solid {_GREEN}; font-family: {_FONT}; font-size: 28px; font-weight: bold; mso-line-height-rule: exactly; line-height: 34px; color: {_CYAN};">
                             CYBERVPN
                         </td>
                     </tr>
                     <tr>
-                        <td align="center" style="padding: 8px 40px 0 40px; font-family: {_FONT}; font-size: 14px; color: {_MUTED};">
+                        <td align="center" style="padding-top: 8px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_MUTED};">
                             SECURE // PRIVATE // UNTRACEABLE
                         </td>
                     </tr>
 
                     <!-- Title -->
                     <tr>
-                        <td align="center" style="padding: 30px 40px 0 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; color: {_WHITE};">
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; mso-line-height-rule: exactly; line-height: 28px; color: {_WHITE};">
                             Sign In to Your Account
                         </td>
                     </tr>
 
                     <!-- Subtitle -->
                     <tr>
-                        <td align="center" style="padding: 12px 40px 30px 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
                             Click the button below to securely sign in:
                         </td>
                     </tr>
 
                     <!-- Bulletproof Button -->
                     <tr>
-                        <td align="center" style="padding: 0 40px;">
-                            <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0">
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 0; padding-left: 40px;">
+                            <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
                                 <tr>
                                     <!--[if mso]>
-                                    <td align="center" bgcolor="{_GREEN}" style="padding: 0;">
+                                    <td align="center" bgcolor="{_GREEN}" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;">
                                         <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{magic_link_url}" style="height:52px;v-text-anchor:middle;width:240px;" fillcolor="{_GREEN}" stroke="f">
                                         <w:anchorlock/>
-                                        <center style="color:{_BG_BODY};font-family:{_FONT};font-size:18px;font-weight:bold;">SIGN IN</center>
+                                        <center style="color:{_BG_BODY};font-family:{_FONT};font-size:18px;font-weight:bold;line-height:18px;">SIGN IN</center>
                                         </v:roundrect>
                                     </td>
                                     <![endif]-->
                                     <!--[if !mso]><!-->
-                                    <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding: 16px 48px;">
-                                        <a href="{magic_link_url}" style="color: {_BG_BODY}; font-size: 18px; font-weight: bold; text-decoration: none; font-family: {_FONT};">
+                                    <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding-top: 16px; padding-right: 48px; padding-bottom: 16px; padding-left: 48px;">
+                                        <a href="{magic_link_url}" style="color: {_BG_BODY}; font-size: 18px; font-weight: bold; mso-line-height-rule: exactly; line-height: 18px; text-decoration: none; font-family: {_FONT};">
                                             SIGN IN
                                         </a>
                                     </td>
@@ -227,46 +228,46 @@ def render_magic_link_template(
 
                     <!-- Spacer after button -->
                     <tr>
-                        <td style="padding: 15px 0 0 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
+                        <td style="padding-top: 15px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
                     </tr>
 {otp_section}\
 
                     <!-- Expiry -->
                     <tr>
-                        <td align="center" style="padding: 8px 40px 0 40px; font-family: {_FONT}; font-size: 14px; color: {_MUTED};">
+                        <td align="center" style="padding-top: 8px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_MUTED};">
                             This link expires in <span style="color: {_RED};">{expires_in}</span>
                         </td>
                     </tr>
 
                     <!-- Fallback URL hint -->
                     <tr>
-                        <td align="center" style="padding: 12px 40px 0 40px; font-family: {_FONT}; font-size: 13px; color: {_DIM};">
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 13px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
                             If the button doesn't work, copy and paste this URL:
                         </td>
                     </tr>
 
                     <!-- Fallback URL -->
                     <tr>
-                        <td align="center" style="padding: 6px 40px 0 40px; font-family: {_FONT}; font-size: 12px; color: {_GREEN}; word-wrap: break-word;">
+                        <td align="center" style="padding-top: 6px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_GREEN}; word-wrap: break-word;">
                             {magic_link_url}
                         </td>
                     </tr>
 
                     <!-- Footer spacer -->
                     <tr>
-                        <td style="padding: 20px 0 0 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
+                        <td style="padding-top: 20px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
                     </tr>
 
                     <!-- Disclaimer -->
                     <tr>
-                        <td align="center" style="padding: 20px 40px 8px 40px; border-top: 1px solid {_BORDER}; font-family: {_FONT}; font-size: 12px; color: {_DIM};">
+                        <td align="center" style="padding-top: 20px; padding-right: 40px; padding-bottom: 8px; padding-left: 40px; border-top: 1px solid {_BORDER}; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
                             If you didn't request this link, you can safely ignore this email.
                         </td>
                     </tr>
 
                     <!-- Copyright -->
                     <tr>
-                        <td align="center" style="padding: 0 40px 20px 40px; font-family: {_FONT}; font-size: 12px; color: {_FOOTER};">
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 20px; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_FOOTER};">
                             &copy; 2026 CyberVPN. All rights reserved.
                         </td>
                     </tr>
@@ -287,17 +288,17 @@ def _otp_section_html(otp_code: str) -> str:
     return f"""
                     <!-- OTP divider text -->
                     <tr>
-                        <td align="center" style="padding: 8px 40px; font-family: {_FONT}; font-size: 15px; mso-line-height-rule: exactly; line-height: 22px; color: {_TEXT};">
+                        <td align="center" style="padding-top: 8px; padding-right: 40px; padding-bottom: 8px; padding-left: 40px; font-family: {_FONT}; font-size: 15px; mso-line-height-rule: exactly; line-height: 22px; color: {_TEXT};">
                             Or enter this code:
                         </td>
                     </tr>
 
                     <!-- OTP Code Box -->
                     <tr>
-                        <td align="center" style="padding: 0 40px;">
-                            <table role="presentation" width="300" align="center" cellspacing="0" cellpadding="0" border="0">
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 0; padding-left: 40px;">
+                            <table role="presentation" width="300" align="center" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
                                 <tr>
-                                    <td align="center" bgcolor="{_BG_CODE}" style="background-color: {_BG_CODE}; border: 2px solid {_GREEN}; padding: 25px; font-family: {_MONO}; font-size: 36px; font-weight: bold; color: {_CYAN};">
+                                    <td align="center" bgcolor="{_BG_CODE}" style="background-color: {_BG_CODE}; border: 2px solid {_GREEN}; padding-top: 25px; padding-right: 25px; padding-bottom: 25px; padding-left: 25px; font-family: {_MONO}; font-size: 36px; font-weight: bold; mso-line-height-rule: exactly; line-height: 40px; color: {_CYAN};">
                                         {otp_code}
                                     </td>
                                 </tr>
@@ -307,7 +308,7 @@ def _otp_section_html(otp_code: str) -> str:
 
                     <!-- Spacer after OTP -->
                     <tr>
-                        <td style="padding: 15px 0 0 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
+                        <td style="padding-top: 15px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
                     </tr>
 """
 
@@ -317,9 +318,9 @@ def _dev_banner_html() -> str:
     return f"""                <!--[if mso]>
                 <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td>
                 <![endif]-->
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET} width: 100%; max-width: 600px;">
                     <tr>
-                        <td align="center" bgcolor="{_RED}" style="background-color: {_RED}; color: #000000; padding: 10px 20px; font-weight: bold; font-family: {_FONT}; font-size: 14px;">
+                        <td align="center" bgcolor="{_RED}" style="background-color: {_RED}; color: #000000; padding-top: 10px; padding-right: 20px; padding-bottom: 10px; padding-left: 20px; font-weight: bold; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px;">
                             DEV MODE - Sent via Mailpit
                         </td>
                     </tr>
@@ -328,7 +329,7 @@ def _dev_banner_html() -> str:
                 </td></tr></table>
                 <![endif]-->
                 <!-- Banner spacer -->
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                    <tr><td style="padding: 10px 0 0 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td></tr>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
+                    <tr><td style="padding-top: 10px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td></tr>
                 </table>
 """
