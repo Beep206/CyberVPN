@@ -1,0 +1,24 @@
+[package]
+name = "beep-cover-h2"
+description = "HTTP/2 Extended CONNECT cover transport for Beep"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-core-types = { path = "../beep-core-types" }
+beep-transport = { path = "../beep-transport" }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+h2 = { workspace = true }
+http = "1"
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+beep-core = { path = "../beep-core" }
+rcgen = { workspace = true }
+rustls-pemfile = { workspace = true }

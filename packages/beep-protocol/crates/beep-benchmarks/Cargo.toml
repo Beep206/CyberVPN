@@ -1,0 +1,21 @@
+[package]
+name = "beep-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+criterion = { version = "0.5", features = ["async_tokio"] }
+beep-core = { path = "../beep-core" }
+beep-transport = { path = "../beep-transport" }
+beep-session = { path = "../beep-session" }
+beep-cover-h2 = { path = "../beep-cover-h2" }
+beep-cover-h3 = { path = "../beep-cover-h3" }
+bytes = "1.0"
+rustls = "0.23"
+tokio-rustls = "0.26"
+rcgen = "0.13"
+
+[[bench]]
+name = "transport_bench"
+harness = false

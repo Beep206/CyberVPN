@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/beep-core-types",
+    "crates/beep-core",
+    "crates/beep-transport",
+    "crates/beep-cover-h2",
+    "crates/beep-cover-h3",
+    "crates/beep-session",
+    "crates/beep-cover-wss",
+    "crates/beep-cover-native",
+    "crates/beep-runtime",
+    "crates/beep-client",
+    "crates/beep-node",
+    "crates/beep-benchmarks",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+bytes = "1"
+tracing = "0.1"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+h2 = "0.4"
+rustls = { version = "0.23", features = ["ring"] }
+tokio-rustls = "0.26"
+tokio-tungstenite = { version = "0.26", features = ["rustls"] }
+rustls-pemfile = "2"
+rcgen = "0.13"
+quinn = "0.11"
+zeroize = "1"

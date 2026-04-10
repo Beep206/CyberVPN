@@ -1,0 +1,24 @@
+[package]
+name = "beep-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-core = { path = "../beep-core" }
+beep-core-types = { path = "../beep-core-types" }
+beep-transport = { path = "../beep-transport" }
+beep-cover-wss = { path = "../beep-cover-wss" }
+beep-session = { path = "../beep-session" }
+beep-runtime = { path = "../beep-runtime" }
+
+tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
+bytes = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4.5", features = ["derive"] }
+async-trait = "0.1"
+thiserror = { workspace = true }
+tokio-tun = "0.11"
+rustls = { workspace = true }
+rcgen = { workspace = true } # For test verification bypassing

@@ -1,0 +1,20 @@
+[package]
+name = "beep-cover-h3"
+description = "QUIC/HTTP/3 cover transport for Beep"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-transport = { path = "../beep-transport" }
+bytes = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+quinn = { workspace = true }
+rustls = { workspace = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+beep-core = { path = "../beep-core" }
+beep-core-types = { path = "../beep-core-types" }
+rcgen = { workspace = true }

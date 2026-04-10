@@ -1,0 +1,23 @@
+[package]
+name = "beep-cover-wss"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-transport = { path = "../beep-transport" }
+tokio = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+tokio-tungstenite = { workspace = true }
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
+tracing = { workspace = true }
+futures-util = "0.3"
+sha2 = "0.10"
+
+[dev-dependencies]
+beep-core = { path = "../beep-core" }
+beep-core-types = { path = "../beep-core-types" }
+rcgen = { workspace = true }
+rustls-pemfile = { workspace = true }

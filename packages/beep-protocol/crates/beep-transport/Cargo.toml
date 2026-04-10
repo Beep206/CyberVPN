@@ -1,0 +1,12 @@
+[package]
+name = "beep-transport"
+description = "Transport abstraction for Beep: CoverConn trait and transport types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-core-types = { path = "../beep-core-types" }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+tokio = { workspace = true }
