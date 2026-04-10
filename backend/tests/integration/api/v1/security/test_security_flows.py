@@ -369,7 +369,7 @@ class TestAntiPhishingRateLimiting:
         access_token = login_response.json()["access_token"]
 
         # Make 5 delete requests (should succeed)
-        for i in range(5):
+        for _ in range(5):
             response = await async_client.delete(
                 "/api/v1/security/antiphishing",
                 headers={"Authorization": f"Bearer {access_token}"},

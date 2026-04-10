@@ -1,0 +1,17 @@
+---
+- name: Remnawave | Read current release symlink
+  ansible.builtin.stat:
+    path: "{{ remnawave_edge_current_link }}"
+    follow: false
+  register: remnawave_edge_current_link_stat
+
+- name: Remnawave | Read previous release symlink
+  ansible.builtin.stat:
+    path: "{{ remnawave_edge_previous_link }}"
+    follow: false
+  register: remnawave_edge_previous_link_stat
+
+- name: Remnawave | Cache release pointers
+  ansible.builtin.set_fact:
+    remnawave_edge_current_target: "{{ remnawave_edge_current_link_stat.stat.lnk_target | default('') }}"
+    remnawave_edge_previous_target: "{{ remnawave_edge_previous_link_stat.stat.lnk_target | default('') }}"

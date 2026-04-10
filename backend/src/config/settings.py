@@ -126,6 +126,18 @@ class Settings(BaseSettings):
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
     json_logs: bool = True  # Enable JSON structured logging (False = human-readable console)
 
+    # API server runtime
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    uvicorn_access_log: bool = False
+    uvicorn_server_header: bool = False
+    uvicorn_date_header: bool = True
+    uvicorn_backlog: int = 2048
+    uvicorn_timeout_keep_alive: int = 5
+    uvicorn_timeout_graceful_shutdown: int = 30
+    uvicorn_limit_concurrency: int | None = None
+    uvicorn_limit_max_requests: int | None = None
+
     # Rate limiting
     rate_limit_enabled: bool = True
     rate_limit_requests: int = 100
@@ -169,6 +181,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = True  # Set to False for local HTTP development
 
     # Metrics (SEC-02)
+    enable_metrics: bool = True  # Enable HTTP Prometheus middleware metrics
+    metrics_host: str = "0.0.0.0"
     metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
 
     # Sentry (Observability)

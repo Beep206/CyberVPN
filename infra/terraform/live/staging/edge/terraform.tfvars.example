@@ -1,0 +1,21 @@
+project_name = "cybervpn"
+environment  = "staging"
+
+foundation_state = {
+  bucket = "cybervpn-terraform-state"
+  key    = "staging/foundation/terraform.tfstate"
+  region = "eu-central-1"
+}
+
+edge_nodes = {
+  fi-01 = {
+    role        = "remnawave"
+    location    = "hel1"
+    server_type = "cx22"
+  }
+  de-01 = {
+    role        = "helix"
+    location    = "fsn1"
+    server_type = "cx22"
+  }
+}

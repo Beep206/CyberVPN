@@ -1,0 +1,10 @@
+---
+- name: Verify Alloy edge agent
+  hosts: "{{ edge_target_group | default('edge_staging') }}"
+  become: true
+  gather_facts: false
+
+  roles:
+    - role: alloy_agent
+      vars:
+        alloy_agent_action: verify

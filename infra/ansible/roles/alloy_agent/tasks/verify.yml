@@ -1,0 +1,33 @@
+---
+- name: Alloy | Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Alloy | Cache service facts entry
+  ansible.builtin.set_fact:
+    alloy_agent_service_facts: >-
+      {{ ansible_facts.services.get(alloy_agent_service_name + '.service', {}) }}
+
+- name: Alloy | Assert service is running
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_service_facts | length > 0
+      - alloy_agent_service_facts.state | default('') == 'running'
+      - alloy_agent_service_facts.status | default('') == 'enabled'
+    fail_msg: "{{ alloy_agent_service_name }}.service is not running and enabled."
+
+- name: Alloy | Wait for metrics endpoint
+  ansible.builtin.uri:
+    url: "http://{{ alloy_agent_verify_host }}:{{ alloy_agent_http_port }}/metrics"
+    status_code: 200
+    return_content: true
+    timeout: "{{ alloy_agent_verify_timeout }}"
+  register: alloy_agent_metrics
+  retries: 10
+  delay: 3
+  until: alloy_agent_metrics.status == 200
+
+- name: Alloy | Assert metrics endpoint exposes Alloy telemetry
+  ansible.builtin.assert:
+    that:
+      - "'alloy_build_info' in alloy_agent_metrics.content"
+    fail_msg: "The Alloy metrics endpoint did not expose alloy_build_info."

@@ -1,0 +1,10 @@
+---
+control_plane_release_name: ""
+control_plane_release_source_commit: ""
+control_plane_release_source_run_url: ""
+control_plane_release_created_at: ""
+
+control_plane_release_images:
+  backend: ""
+  worker: ""
+  helix_adapter: ""

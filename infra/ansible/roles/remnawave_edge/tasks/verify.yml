@@ -1,0 +1,65 @@
+---
+- import_tasks: state.yml
+
+- name: Remnawave | Assert current release exists
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_current_target | length > 0
+    fail_msg: "No current Remnawave release is linked on {{ inventory_hostname }}."
+
+- name: Remnawave | Wait for node API port to listen
+  ansible.builtin.wait_for:
+    host: "{{ remnawave_edge_verify_host }}"
+    port: "{{ remnawave_edge_node_port }}"
+    timeout: "{{ remnawave_edge_verify_timeout }}"
+
+- name: Remnawave | Inspect running container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ remnawave_edge_container_name }}"
+  register: remnawave_edge_container_inspect
+  changed_when: false
+
+- name: Remnawave | Parse container inspection
+  ansible.builtin.set_fact:
+    remnawave_edge_container: "{{ (remnawave_edge_container_inspect.stdout | from_json | first) }}"
+
+- name: Remnawave | Assert container is running
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_container.State.Running | bool
+      - remnawave_edge_container.Config.Image == remnawave_edge_image
+    fail_msg: "Remnawave container is not running with the expected image."
+
+- name: Remnawave | Check node port listener
+  ansible.builtin.command:
+    argv:
+      - ss
+      - -ltn
+  register: remnawave_edge_ss
+  changed_when: false
+
+- name: Remnawave | Assert node port is listening
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_ss.stdout is search(':' ~ (remnawave_edge_node_port | string) ~ '\\s')
+    fail_msg: "Node port {{ remnawave_edge_node_port }} is not listening after rollout."
+
+- name: Remnawave | Check logrotate policy
+  ansible.builtin.stat:
+    path: "{{ remnawave_edge_logrotate_path }}"
+  register: remnawave_edge_logrotate_stat
+  when:
+    - remnawave_edge_mount_logs
+    - remnawave_edge_manage_logrotate
+
+- name: Remnawave | Assert logrotate policy exists
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_logrotate_stat.stat.exists
+    fail_msg: "Remnawave logrotate policy is missing."
+  when:
+    - remnawave_edge_mount_logs
+    - remnawave_edge_manage_logrotate

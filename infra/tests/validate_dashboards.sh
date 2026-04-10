@@ -3,10 +3,11 @@
 # Dashboard Validation Script
 #
 # Validates Grafana dashboard configuration:
-# - Counts dashboard JSON files (must be 11+)
+# - Counts dashboard JSON files (must be 14+)
 # - Validates JSON syntax for each file
 # - Verifies at least one dashboard uses Loki datasource
 # - Verifies at least one dashboard uses Tempo datasource
+# - Verifies the Edge Observability dashboard exists
 #
 # Exit codes:
 #   0 - All validations passed
@@ -30,8 +31,8 @@ echo ""
 echo "📊 Checking dashboard count..."
 DASHBOARD_COUNT=$(find "${DASHBOARD_DIR}" -name "*.json" -type f | wc -l)
 
-if [ "${DASHBOARD_COUNT}" -lt 11 ]; then
-    echo -e "${RED}✗ FAIL: Expected 11+ dashboards, found ${DASHBOARD_COUNT}${NC}"
+if [ "${DASHBOARD_COUNT}" -lt 14 ]; then
+    echo -e "${RED}✗ FAIL: Expected 14+ dashboards, found ${DASHBOARD_COUNT}${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}✓ PASS: Found ${DASHBOARD_COUNT} dashboard files${NC}"
@@ -84,6 +85,21 @@ else
     grep -l '"type": "tempo"' "${DASHBOARD_DIR}"/*.json 2>/dev/null | while read -r f; do
         echo "  - $(basename "${f}")"
     done
+fi
+echo ""
+
+# Check 5: Edge observability dashboard
+echo "🔍 Checking Edge Observability dashboard..."
+EDGE_DASHBOARD="${DASHBOARD_DIR}/edge-observability-dashboard.json"
+
+if [ ! -f "${EDGE_DASHBOARD}" ]; then
+    echo -e "${RED}✗ FAIL: edge-observability-dashboard.json not found${NC}"
+    ERRORS=$((ERRORS + 1))
+elif ! grep -q 'alloy-edge' "${EDGE_DASHBOARD}"; then
+    echo -e "${RED}✗ FAIL: edge-observability-dashboard.json does not reference alloy-edge telemetry${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}✓ PASS: Edge Observability dashboard is present and references alloy-edge telemetry${NC}"
 fi
 echo ""
 

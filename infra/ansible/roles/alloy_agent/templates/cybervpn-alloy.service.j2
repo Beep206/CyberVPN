@@ -1,0 +1,20 @@
+[Unit]
+Description=CyberVPN Grafana Alloy Agent
+Documentation=https://grafana.com/docs/alloy/latest/
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart={{ alloy_agent_binary_path }} run {% if alloy_agent_disable_reporting %}--disable-reporting {% endif %}--storage.path={{ alloy_agent_storage_path }} --server.http.listen-addr={{ alloy_agent_http_listen_addr }} {{ alloy_agent_config_path }}
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ReadWritePaths={{ alloy_agent_data_dir }}
+
+[Install]
+WantedBy=multi-user.target

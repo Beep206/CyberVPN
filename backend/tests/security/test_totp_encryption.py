@@ -12,6 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+VALID_SECRET = "xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8"
+
 
 class TestTOTPKeyEnforcement:
     """Test TOTP encryption key enforcement in lifespan."""
@@ -24,6 +26,10 @@ class TestTOTPKeyEnforcement:
         mock_settings = MagicMock()
         mock_settings.environment = "production"
         mock_settings.totp_encryption_key = SecretStr("")
+        mock_settings.json_logs = False
+        mock_settings.log_level = "INFO"
+        mock_settings.sentry_dsn = ""
+        mock_settings.otel_enabled = False
 
         with patch("src.main.settings", mock_settings):
             from fastapi import FastAPI
@@ -46,6 +52,10 @@ class TestTOTPKeyEnforcement:
         mock_settings = MagicMock()
         mock_settings.environment = "production"
         mock_settings.totp_encryption_key = SecretStr("valid-key-here-32-chars-minimum!")
+        mock_settings.json_logs = False
+        mock_settings.log_level = "INFO"
+        mock_settings.sentry_dsn = ""
+        mock_settings.otel_enabled = False
 
         with patch("src.main.settings", mock_settings):
             with patch("src.main.check_db_connection", return_value=True):
@@ -86,7 +96,7 @@ class TestTOTPKeySettingsValidator:
                 "os.environ",
                 {
                     "REMNAWAVE_TOKEN": "test",
-                    "JWT_SECRET": "test-secret",
+                    "JWT_SECRET": VALID_SECRET,
                     "CRYPTOBOT_TOKEN": "test",
                     "TOTP_ENCRYPTION_KEY": "",
                 },
@@ -95,14 +105,10 @@ class TestTOTPKeySettingsValidator:
                 from src.config.settings import Settings
 
                 # Instantiate settings with empty TOTP key
-                try:
-                    settings = Settings()
-                    # Check if TOTP key is empty
-                    totp_key = settings.totp_encryption_key.get_secret_value()
-                    assert totp_key == "" or not totp_key
-                except Exception:
-                    # Settings may fail to instantiate due to missing required fields
-                    pass
+                settings = Settings()
+                # Check if TOTP key is empty
+                totp_key = settings.totp_encryption_key.get_secret_value()
+                assert totp_key == "" or not totp_key
 
                 # Verify that a warning was logged (or would be in production)
                 # In test environment, the warning mechanism should exist
@@ -115,7 +121,7 @@ class TestTOTPKeySettingsValidator:
                 "os.environ",
                 {
                     "REMNAWAVE_TOKEN": "test",
-                    "JWT_SECRET": "test-secret",
+                    "JWT_SECRET": VALID_SECRET,
                     "CRYPTOBOT_TOKEN": "test",
                     "TOTP_ENCRYPTION_KEY": "valid-32-char-key-for-testing!",
                 },
@@ -124,15 +130,11 @@ class TestTOTPKeySettingsValidator:
                 from src.config.settings import Settings
 
                 # Instantiate settings with valid TOTP key
-                try:
-                    settings = Settings()
-                    # Check if TOTP key is valid
-                    totp_key = settings.totp_encryption_key.get_secret_value()
-                    assert len(totp_key) > 0
-                    assert totp_key == "valid-32-char-key-for-testing!"
-                except Exception:
-                    # Settings may fail due to missing required fields
-                    pass
+                settings = Settings()
+                # Check if TOTP key is valid
+                totp_key = settings.totp_encryption_key.get_secret_value()
+                assert len(totp_key) > 0
+                assert totp_key == "valid-32-char-key-for-testing!"
 
                 # No TOTP-related warning should be logged
                 totp_warnings = [
@@ -148,39 +150,36 @@ class TestTOTPEncryptionDecryption:
 
     def test_totp_encryption_roundtrip(self):
         """TOTP secret can be encrypted and decrypted."""
+        from src.infrastructure.totp.totp_encryption import TOTPEncryptionService
 
-        with patch.dict(
-            "os.environ",
-            {
-                "TOTP_ENCRYPTION_KEY": "test-key-for-encryption-32chars!",
-            },
-        ):
-            from src.infrastructure.totp.totp_encryption import TOTPEncryptionService
+        with patch("src.infrastructure.totp.totp_encryption.settings") as mock_settings:
+            mock_settings.totp_encryption_key.get_secret_value.return_value = "test-key-for-encryption-32chars!"
+            service = TOTPEncryptionService()
 
-            service = TOTPEncryptionService(master_key="test-key-for-encryption-32chars!")
+        original_secret = "JBSWY3DPEHPK3PXP"
 
-            original_secret = "JBSWY3DPEHPK3PXP"
+        # Encrypt
+        encrypted = service.encrypt(original_secret)
+        assert encrypted != original_secret
 
-            # Encrypt
-            encrypted = service.encrypt_secret(original_secret)
-            assert encrypted != original_secret
-
-            # Decrypt
-            decrypted = service.decrypt_secret(encrypted)
-            assert decrypted == original_secret
+        # Decrypt
+        decrypted = service.decrypt(encrypted)
+        assert decrypted == original_secret
 
     def test_totp_without_key_stores_plaintext(self):
         """Without encryption key, TOTP stores in plaintext (dev only)."""
         from src.infrastructure.totp.totp_encryption import TOTPEncryptionService
 
-        service = TOTPEncryptionService(master_key=None)
+        with patch("src.infrastructure.totp.totp_encryption.settings") as mock_settings:
+            mock_settings.totp_encryption_key.get_secret_value.return_value = ""
+            service = TOTPEncryptionService()
 
         original_secret = "JBSWY3DPEHPK3PXP"
 
         # Without key, encrypt returns original
-        result = service.encrypt_secret(original_secret)
+        result = service.encrypt(original_secret)
         assert result == original_secret
 
         # Decrypt also returns original
-        decrypted = service.decrypt_secret(result)
+        decrypted = service.decrypt(result)
         assert decrypted == original_secret

@@ -1,0 +1,24 @@
+---
+- name: Roll out Alloy edge agent
+  hosts: "{{ edge_target_group | default('edge_staging') }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  max_fail_percentage: 0
+
+  roles:
+    - role: alloy_agent
+      vars:
+        alloy_agent_action: deploy
+
+  post_tasks:
+    - name: Alloy | Pause after canary host
+      ansible.builtin.pause:
+        seconds: "{{ alloy_agent_canary_pause_seconds }}"
+        prompt: >-
+          Canary host {{ inventory_hostname }} is healthy. Waiting before widening
+          the Alloy rollout to the next node.
+      when:
+        - play_hosts | length > 1
+        - inventory_hostname == (play_hosts | first)
+        - alloy_agent_canary_pause_seconds | int > 0

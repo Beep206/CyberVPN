@@ -1,0 +1,19 @@
+zone_id = "replace-with-cloudflare-zone-id"
+
+edge_state = {
+  bucket = "cybervpn-terraform-state"
+  key    = "staging/edge/terraform.tfstate"
+  region = "eu-central-1"
+}
+
+records = {
+  fi-01 = {
+    name    = "fi-01.staging.example.com"
+    node    = "fi-01"
+    type    = "A"
+    ttl     = 300
+    proxied = false
+    comment = "CyberVPN staging edge fi-01"
+    tags    = ["environment:staging", "component:edge"]
+  }
+}

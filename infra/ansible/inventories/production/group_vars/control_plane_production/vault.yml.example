@@ -1,0 +1,30 @@
+---
+vault_control_plane_postgres_password: "replace-with-postgres-password"
+vault_control_plane_registry_username: ""
+vault_control_plane_registry_password: ""
+
+vault_control_plane_remnawave_jwt_auth_secret: "replace-with-remnawave-jwt-auth-secret"
+vault_control_plane_remnawave_jwt_api_tokens_secret: "replace-with-remnawave-jwt-api-tokens-secret"
+vault_control_plane_remnawave_metrics_user: "metrics"
+vault_control_plane_remnawave_metrics_pass: "replace-with-remnawave-metrics-password"
+vault_control_plane_helix_internal_auth_token: "replace-with-shared-helix-internal-token"
+vault_control_plane_helix_remnawave_token: "replace-with-remnawave-token-for-helix"
+
+vault_control_plane_backend_remnawave_token: "replace-with-backend-remnawave-token"
+vault_control_plane_backend_jwt_secret: "replace-with-backend-jwt-secret"
+vault_control_plane_backend_cryptobot_token: ""
+vault_control_plane_backend_totp_encryption_key: "replace-with-backend-totp-encryption-key"
+vault_control_plane_backend_oauth_token_encryption_key: "replace-with-backend-oauth-token-encryption-key"
+
+vault_control_plane_worker_remnawave_api_token: "replace-with-worker-remnawave-api-token"
+vault_control_plane_worker_telegram_bot_token: ""
+vault_control_plane_worker_cryptobot_token: ""
+vault_control_plane_worker_admin_telegram_ids: ""
+
+vault_control_plane_helix_adapter_remnawave_token: "replace-with-helix-adapter-remnawave-token"
+vault_control_plane_manifest_signing_key: "replace-with-helix-manifest-signing-key"
+
+vault_control_plane_remnawave_env_extra: {}
+vault_control_plane_backend_env_extra: {}
+vault_control_plane_worker_env_extra: {}
+vault_control_plane_helix_adapter_env_extra: {}

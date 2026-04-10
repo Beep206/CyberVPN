@@ -2,6 +2,20 @@
 
 Local Docker Compose stack that mirrors the launch plan in `docs/plans/legacy/vpn-business-deployment-guide.md`.
 
+The directory now also contains the first staging-first IaC scaffold:
+
+- `infra/terraform/` for cloud resources;
+- `infra/ansible/` for host bootstrap and later workload deployment.
+
+The Docker Compose files remain the reference for local development and service topology. The new IaC layout is intentionally separate so we can automate staging edge infrastructure without forcing an immediate control-plane migration.
+
+Current Ansible rollout phases in this repo:
+
+- Phase 2: base host bootstrap (`infra/ansible/playbooks/edge-bootstrap.yml`)
+- Phase 3: Remnawave edge rollout (`infra/ansible/playbooks/remnawave-rollout.yml`)
+- Phase 4: Helix edge rollout (`infra/ansible/playbooks/helix-rollout.yml`)
+- Phase 5: Alloy telemetry rollout and IaC verification gates (`infra/ansible/playbooks/alloy-rollout.yml`)
+
 ## Quick start
 1. Review and edit `infra/.env` (generated for local use) or copy `infra/.env.example`.
 2. Start the core services:
@@ -217,5 +231,22 @@ If you need durable queues in the future, enable AOF: `--appendonly yes --append
 - If you change `METRICS_PASS` in `infra/.env`, update `infra/prometheus/prometheus.yml`.
 - Subscription Page requires a Remnawave API token from the panel.
 - Helix alerts live in `infra/prometheus/rules/helix_alerts.yml`.
+- Staging Remnawave edge rollout uses `make ansible-phase3-staging` after Terraform inventory generation and vault bootstrap.
+- Staging Helix edge rollout uses `make ansible-phase4-staging` once a published `helix-node` image, adapter URL, token, node id, and transport ports are set in Ansible vars.
+- Staging Alloy rollout uses `make ansible-phase5-staging` once the Loki push URL and any required auth are set in `infra/ansible/inventories/staging/group_vars/edge_staging/alloy.yml`.
+- `make inventory-staging` emits a Prometheus target artifact under `infra/artifacts/prometheus/staging/alloy-edge.json`.
+- `make inventory-production` emits the production equivalents without touching the local dev Prometheus target directory.
+- `make inventory-production` requires a real initialized `infra/terraform/live/production/edge` backend and state.
+- `terraform/live/staging/control-plane` and `terraform/live/production/control-plane` provision Phase 7 host scaffolding for backend, worker, Helix adapter, and backup flows.
+- Control-plane rollout is handled by `make ansible-control-plane-rollout-staging` / `make ansible-control-plane-rollout-production` once the corresponding inventory and vault files exist.
+- Control-plane backup evidence is handled by `make ansible-control-plane-backup-staging` and documented in `docs/runbooks/CONTROL_PLANE_BACKUP_RESTORE_RUNBOOK.md`.
+- Phase 8 promotes control-plane images through `infra/ansible/inventories/*/group_vars/control_plane_*/release.yml` with digest-pinned refs, not mutable tags.
+- Use `.github/workflows/control-plane-images.yml` to publish digests and `.github/workflows/control-plane-promote.yml` to prepare a reviewable promotion branch.
+- Use `docs/runbooks/CONTROL_PLANE_RELEASE_PROMOTION_RUNBOOK.md` for the release and vault bootstrap procedure.
+- Use `docs/runbooks/CONTROL_PLANE_DR_DRILL.md` before running a destructive restore drill.
+- Run `make monitoring-validate` from `infra/` to verify the dashboard set expected by Phase 5.
+- Keep IaC rollout manual; `terraform apply` and Ansible rollout remain operator-approved steps, not auto-apply CI hooks.
+- Use `docs/runbooks/EDGE_POST_DEPLOY_VERIFICATION_CHECKLIST.md` as the post-deploy evidence checklist.
+- Use `docs/runbooks/PRODUCTION_EDGE_CANARY_RUNBOOK.md` for the Phase 6 production canary procedure.
 - Run `bash infra/tests/test_helix_stack.sh` after profile changes to verify the lab wiring.
 - Run `bash infra/tests/verify_helix_rollback.sh` to verify rollback-drill prerequisites and, optionally, execute a destructive rollback rehearsal with `HELIX_RUN_DESTRUCTIVE_DRILL=true`.

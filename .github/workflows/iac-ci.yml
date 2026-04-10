@@ -1,0 +1,116 @@
+name: IaC CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'docs/plans/IaC_TERRAFORM_ANSIBLE_PLAN.md'
+      - '.github/workflows/control-plane-images.yml'
+      - '.github/workflows/control-plane-promote.yml'
+      - '.github/workflows/iac-ci.yml'
+  pull_request:
+    paths:
+      - 'infra/**'
+      - 'docs/plans/IaC_TERRAFORM_ANSIBLE_PLAN.md'
+      - '.github/workflows/control-plane-images.yml'
+      - '.github/workflows/control-plane-promote.yml'
+      - '.github/workflows/iac-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate IaC
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.0
+
+      - name: Install Ansible and test helpers
+        run: pip install "ansible>=13.0.0,<14.0.0" pyyaml
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Check Terraform formatting
+        run: |
+          terraform -chdir=terraform/live/staging/foundation fmt -check -recursive
+          terraform -chdir=terraform/live/staging/edge fmt -check -recursive
+          terraform -chdir=terraform/live/staging/dns fmt -check -recursive
+          terraform -chdir=terraform/live/staging/control-plane fmt -check -recursive
+          terraform -chdir=terraform/live/production/foundation fmt -check -recursive
+          terraform -chdir=terraform/live/production/edge fmt -check -recursive
+          terraform -chdir=terraform/live/production/dns fmt -check -recursive
+          terraform -chdir=terraform/live/production/control-plane fmt -check -recursive
+
+      - name: Validate Terraform staging and production stacks
+        run: |
+          terraform -chdir=terraform/live/staging/foundation init -backend=false
+          terraform -chdir=terraform/live/staging/foundation validate
+          terraform -chdir=terraform/live/staging/edge init -backend=false
+          terraform -chdir=terraform/live/staging/edge validate
+          terraform -chdir=terraform/live/staging/dns init -backend=false
+          terraform -chdir=terraform/live/staging/dns validate
+          terraform -chdir=terraform/live/staging/control-plane init -backend=false
+          terraform -chdir=terraform/live/staging/control-plane validate
+          terraform -chdir=terraform/live/production/foundation init -backend=false
+          terraform -chdir=terraform/live/production/foundation validate
+          terraform -chdir=terraform/live/production/edge init -backend=false
+          terraform -chdir=terraform/live/production/edge validate
+          terraform -chdir=terraform/live/production/dns init -backend=false
+          terraform -chdir=terraform/live/production/dns validate
+          terraform -chdir=terraform/live/production/control-plane init -backend=false
+          terraform -chdir=terraform/live/production/control-plane validate
+
+      - name: Run inventory generator tests
+        run: make inventory-test
+
+      - name: Generate fixture-backed staging inventory snapshot
+        run: make inventory-fixture-staging
+
+      - name: Run Ansible syntax checks
+        run: make ansible-syntax
+
+      - name: Validate monitoring dashboards
+        run: make monitoring-validate
+
+      - name: Upload rollout artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iac-staging-rollout-artifacts
+          path: |
+            infra/artifacts/iac-ci/generated.hosts.json
+            infra/artifacts/iac-ci/alloy-edge.json
+          retention-days: 14
+
+      - name: Write summary
+        env:
+          CHECKLIST_PATH: docs/runbooks/EDGE_POST_DEPLOY_VERIFICATION_CHECKLIST.md
+        run: |
+          echo "## IaC validation summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Terraform fmt/validate completed for staging and production foundation, edge, dns, and control-plane stacks." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ansible syntax checks completed through Phase 8 control-plane promotion tooling and playbooks." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Fixture-backed inventory and Prometheus target snapshots uploaded for review." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Manual approval policy remains in force for real apply/rollout steps." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Post-deploy checklist: \`${CHECKLIST_PATH}\`" >> "$GITHUB_STEP_SUMMARY"

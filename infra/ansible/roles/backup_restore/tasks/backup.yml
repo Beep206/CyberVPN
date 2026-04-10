@@ -1,0 +1,114 @@
+---
+- name: Backup | Read current control-plane release symlink
+  ansible.builtin.stat:
+    path: "{{ backup_restore_control_plane_current_link }}"
+    follow: false
+  register: backup_restore_current_link_stat
+
+- name: Backup | Cache current control-plane target
+  ansible.builtin.set_fact:
+    backup_restore_current_target: "{{ backup_restore_current_link_stat.stat.lnk_target | default('') }}"
+
+- name: Backup | Assert current control-plane release exists
+  ansible.builtin.assert:
+    that:
+      - backup_restore_current_target | length > 0
+    fail_msg: "No current control-plane release is linked on {{ inventory_hostname }}."
+
+- name: Backup | Define snapshot id
+  ansible.builtin.set_fact:
+    backup_restore_snapshot_id: "{{ ansible_date_time.iso8601_basic_short }}"
+    backup_restore_snapshot_dir: "{{ backup_restore_config_root_dir }}/{{ ansible_date_time.iso8601_basic_short }}"
+
+- name: Backup | Ensure snapshot directory exists
+  ansible.builtin.file:
+    path: "{{ backup_restore_snapshot_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Backup | Stat control-plane config files
+  ansible.builtin.stat:
+    path: "{{ backup_restore_current_target }}/{{ item }}"
+  loop: "{{ backup_restore_control_plane_config_filenames }}"
+  register: backup_restore_config_stats
+
+- name: Backup | Copy control-plane config snapshot
+  ansible.builtin.copy:
+    src: "{{ item.stat.path }}"
+    dest: "{{ backup_restore_snapshot_dir }}/{{ item.item }}"
+    owner: root
+    group: root
+    mode: "0600"
+    remote_src: true
+  loop: "{{ backup_restore_config_stats.results }}"
+  when: item.stat.exists
+  no_log: true
+
+- name: Backup | Write snapshot metadata
+  ansible.builtin.copy:
+    dest: "{{ backup_restore_snapshot_dir }}/{{ backup_restore_metadata_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {
+        "inventory_hostname": {{ inventory_hostname | to_json }},
+        "snapshot_id": {{ backup_restore_snapshot_id | to_json }},
+        "release_path": {{ backup_restore_current_target | to_json }},
+        "created_at": {{ ansible_date_time.iso8601 | to_json }}
+      }
+
+- name: Backup | Trigger on-demand PostgreSQL backup
+  community.docker.docker_container_exec:
+    container: "{{ backup_restore_db_backup_container_name }}"
+    argv:
+      - /backup.sh
+  register: backup_restore_run
+  changed_when: true
+
+- name: Backup | Find latest PostgreSQL dumps
+  ansible.builtin.find:
+    paths: "{{ backup_restore_postgres_root_dir }}"
+    patterns:
+      - "*.dump"
+    recurse: true
+    file_type: file
+  register: backup_restore_dumps
+
+- name: Backup | Assert at least one PostgreSQL dump exists
+  ansible.builtin.assert:
+    that:
+      - backup_restore_dumps.files | length > 0
+    fail_msg: "No PostgreSQL dumps were found after the backup run."
+
+- name: Backup | Select most recent PostgreSQL dump
+  ansible.builtin.set_fact:
+    backup_restore_latest_dump_host_path: >-
+      {{
+        (
+          backup_restore_dumps.files
+          | sort(attribute='mtime', reverse=true)
+          | map(attribute='path')
+          | first
+        )
+      }}
+
+- name: Backup | Derive container path for latest dump
+  ansible.builtin.set_fact:
+    backup_restore_latest_dump_container_path: >-
+      {{
+        backup_restore_latest_dump_host_path
+        | regex_replace('^' ~ (backup_restore_postgres_root_dir | regex_escape), '/backups')
+      }}
+
+- name: Backup | Verify PostgreSQL dump integrity
+  community.docker.docker_container_exec:
+    container: "{{ backup_restore_db_backup_container_name }}"
+    argv:
+      - pg_restore
+      - --list
+      - "{{ backup_restore_latest_dump_container_path }}"
+  register: backup_restore_dump_verify
+  changed_when: false

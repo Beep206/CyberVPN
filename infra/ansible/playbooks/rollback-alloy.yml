@@ -1,0 +1,12 @@
+---
+- name: Roll back Alloy edge agent config
+  hosts: "{{ edge_target_group | default('edge_staging') }}"
+  become: true
+  gather_facts: false
+  serial: 1
+  max_fail_percentage: 0
+
+  roles:
+    - role: alloy_agent
+      vars:
+        alloy_agent_action: rollback

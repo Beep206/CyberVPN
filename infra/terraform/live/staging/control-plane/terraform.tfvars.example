@@ -1,0 +1,22 @@
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+foundation_state = {
+  bucket       = "replace-with-staging-tfstate-bucket"
+  key          = "staging/foundation/terraform.tfstate"
+  region       = "eu-central-1"
+  use_lockfile = true
+}
+
+control_plane_nodes = {
+  cp-staging-01 = {
+    location    = "fsn1"
+    server_type = "cpx21"
+    service_roles = [
+      "backend",
+      "worker",
+      "helix-adapter",
+    ]
+  }
+}

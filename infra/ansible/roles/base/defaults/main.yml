@@ -1,0 +1,20 @@
+---
+base_timezone: UTC
+base_admin_user: cyberops
+base_admin_groups:
+  - sudo
+base_authorized_keys: []
+base_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - python3
+  - python3-apt
+  - python3-requests
+  - sudo
+base_manage_ssh_hardening: true
+base_manage_sysctl: false
+base_ssh_port: 22
+base_ssh_service_name: ssh
+base_sysctl: []

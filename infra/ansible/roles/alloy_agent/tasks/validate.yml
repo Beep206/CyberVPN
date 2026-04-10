@@ -1,0 +1,49 @@
+---
+- name: Alloy | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_action in ['deploy', 'verify', 'rollback']
+    fail_msg: "Unsupported alloy_agent_action={{ alloy_agent_action }}."
+
+- name: Alloy | Assert required deploy configuration is present
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_loki_url | length > 0
+      - alloy_agent_http_port | int >= 1
+      - alloy_agent_http_port | int <= 65535
+      - not (alloy_agent_loki_basic_auth_username | length > 0 and alloy_agent_loki_bearer_token | length > 0)
+    fail_msg: >-
+      Set alloy_agent_loki_url and a valid metrics port before Alloy deploy. Use either
+      basic auth or bearer token, but not both.
+  when: alloy_agent_action == 'deploy'
+
+- name: Alloy | Assert at least one log source is enabled
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_collect_docker_logs or alloy_agent_collect_system_logs
+    fail_msg: "Enable at least one of alloy_agent_collect_docker_logs or alloy_agent_collect_system_logs."
+  when: alloy_agent_action == 'deploy'
+
+- name: Alloy | Assert basic auth password is present when username is set
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_loki_basic_auth_password | length > 0
+    fail_msg: "alloy_agent_loki_basic_auth_password must be set when basic auth username is used."
+  when:
+    - alloy_agent_action == 'deploy'
+    - alloy_agent_loki_basic_auth_username | length > 0
+
+- name: Alloy | Assert previous config exists for rollback
+  ansible.builtin.stat:
+    path: "{{ alloy_agent_previous_config_path }}"
+  register: alloy_agent_previous_config_stat
+  when: alloy_agent_action == 'rollback'
+
+- name: Alloy | Fail when previous config is missing
+  ansible.builtin.assert:
+    that:
+      - alloy_agent_previous_config_stat.stat.exists
+    fail_msg: >-
+      No previous Alloy config was found at {{ alloy_agent_previous_config_path }}.
+      Roll back only after at least one successful deploy.
+  when: alloy_agent_action == 'rollback'

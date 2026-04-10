@@ -1,0 +1,20 @@
+---
+- name: Remnawave | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_action in ['deploy', 'verify', 'rollback']
+    fail_msg: "Unsupported remnawave_edge_action={{ remnawave_edge_action }}."
+
+- name: Remnawave | Assert Node port is valid
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_node_port | int >= 1
+      - remnawave_edge_node_port | int <= 65535
+    fail_msg: "remnawave_edge_node_port must be in the TCP port range."
+
+- name: Remnawave | Assert secret key is present for deploy
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_secret_key | length >= 16
+    fail_msg: "Set vault_remnawave_edge_secret_key before running Remnawave deploy."
+  when: remnawave_edge_action == 'deploy'

@@ -1,0 +1,17 @@
+---
+- name: Helix | Read current release symlink
+  ansible.builtin.stat:
+    path: "{{ helix_edge_current_link }}"
+    follow: false
+  register: helix_edge_current_link_stat
+
+- name: Helix | Read previous release symlink
+  ansible.builtin.stat:
+    path: "{{ helix_edge_previous_link }}"
+    follow: false
+  register: helix_edge_previous_link_stat
+
+- name: Helix | Cache release pointers
+  ansible.builtin.set_fact:
+    helix_edge_current_target: "{{ helix_edge_current_link_stat.stat.lnk_target | default('') }}"
+    helix_edge_previous_target: "{{ helix_edge_previous_link_stat.stat.lnk_target | default('') }}"

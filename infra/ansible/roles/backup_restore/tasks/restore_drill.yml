@@ -1,0 +1,111 @@
+---
+- name: Restore drill | Find PostgreSQL dumps
+  ansible.builtin.find:
+    paths: "{{ backup_restore_postgres_root_dir }}"
+    patterns:
+      - "*.dump"
+    recurse: true
+    file_type: file
+  register: backup_restore_restore_dumps
+  when: backup_restore_restore_dump_path | length == 0
+
+- name: Restore drill | Select most recent dump
+  ansible.builtin.set_fact:
+    backup_restore_restore_dump_host_path: >-
+      {{
+        (
+          backup_restore_restore_dumps.files
+          | sort(attribute='mtime', reverse=true)
+          | map(attribute='path')
+          | first
+        )
+      }}
+  when: backup_restore_restore_dump_path | length == 0
+
+- name: Restore drill | Use explicit dump path
+  ansible.builtin.set_fact:
+    backup_restore_restore_dump_host_path: "{{ backup_restore_restore_dump_path }}"
+  when: backup_restore_restore_dump_path | length > 0
+
+- name: Restore drill | Assert restore dump path exists
+  ansible.builtin.assert:
+    that:
+      - backup_restore_restore_dump_host_path | length > 0
+    fail_msg: "No PostgreSQL dump is available for the restore drill."
+
+- name: Restore drill | Derive container path for restore dump
+  ansible.builtin.set_fact:
+    backup_restore_restore_dump_container_path: >-
+      {{
+        backup_restore_restore_dump_host_path
+        | regex_replace('^' ~ (backup_restore_postgres_root_dir | regex_escape), '/backups')
+      }}
+
+- name: Restore drill | Verify dump integrity
+  community.docker.docker_container_exec:
+    container: "{{ backup_restore_db_backup_container_name }}"
+    argv:
+      - pg_restore
+      - --list
+      - "{{ backup_restore_restore_dump_container_path }}"
+  register: backup_restore_restore_list
+  changed_when: false
+
+- block:
+    - name: Restore drill | Drop restore database if it exists
+      community.docker.docker_container_exec:
+        container: "{{ backup_restore_postgres_container_name }}"
+        argv:
+          - psql
+          - -U
+          - "{{ backup_restore_postgres_user }}"
+          - -d
+          - postgres
+          - -c
+          - "DROP DATABASE IF EXISTS {{ backup_restore_restore_db_name }};"
+      changed_when: true
+
+    - name: Restore drill | Create restore database
+      community.docker.docker_container_exec:
+        container: "{{ backup_restore_postgres_container_name }}"
+        argv:
+          - psql
+          - -U
+          - "{{ backup_restore_postgres_user }}"
+          - -d
+          - postgres
+          - -c
+          - "CREATE DATABASE {{ backup_restore_restore_db_name }};"
+      changed_when: true
+
+    - name: Restore drill | Restore dump into drill database
+      community.docker.docker_container_exec:
+        container: "{{ backup_restore_db_backup_container_name }}"
+        command: >-
+          /bin/sh -c
+          "PGPASSWORD=\"$POSTGRES_PASSWORD\" pg_restore -h remnawave-db -U {{ backup_restore_postgres_user }}
+          -d {{ backup_restore_restore_db_name }} {{ backup_restore_restore_dump_container_path }}"
+      changed_when: true
+
+    - name: Restore drill | Verify restored database is reachable
+      community.docker.docker_container_exec:
+        container: "{{ backup_restore_db_backup_container_name }}"
+        command: >-
+          /bin/sh -c
+          "PGPASSWORD=\"$POSTGRES_PASSWORD\" psql -h remnawave-db -U {{ backup_restore_postgres_user }}
+          -d {{ backup_restore_restore_db_name }} -c 'SELECT 1;'"
+      changed_when: false
+
+    - name: Restore drill | Drop restore database after verification
+      community.docker.docker_container_exec:
+        container: "{{ backup_restore_postgres_container_name }}"
+        argv:
+          - psql
+          - -U
+          - "{{ backup_restore_postgres_user }}"
+          - -d
+          - postgres
+          - -c
+          - "DROP DATABASE IF EXISTS {{ backup_restore_restore_db_name }};"
+      changed_when: true
+  when: backup_restore_run_destructive_restore_drill | bool

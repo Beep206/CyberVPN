@@ -1,0 +1,7 @@
+---
+- import_tasks: packages.yml
+- import_tasks: users.yml
+- import_tasks: ssh.yml
+  when: base_manage_ssh_hardening
+- import_tasks: sysctl.yml
+  when: base_manage_sysctl

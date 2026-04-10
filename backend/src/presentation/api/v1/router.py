@@ -7,6 +7,7 @@ from src.presentation.api.v1.auth.routes import router as auth_router
 from src.presentation.api.v1.billing.routes import router as billing_router
 from src.presentation.api.v1.config_profiles.routes import router as config_profiles_router
 from src.presentation.api.v1.fcm.routes import router as fcm_router
+from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.hosts.routes import router as hosts_router
 from src.presentation.api.v1.inbounds.routes import router as inbounds_router
 from src.presentation.api.v1.invites.routes import admin_router as invite_admin_router
@@ -20,7 +21,6 @@ from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.partners.routes import router as partners_router
 from src.presentation.api.v1.payments.routes import router as payments_router
 from src.presentation.api.v1.plans.routes import router as plans_router
-from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.profile.routes import router as profile_router
 from src.presentation.api.v1.promo_codes.routes import router as promo_codes_router
 from src.presentation.api.v1.referral.routes import router as referral_router

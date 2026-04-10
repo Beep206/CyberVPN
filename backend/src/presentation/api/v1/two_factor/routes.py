@@ -23,8 +23,8 @@ from src.application.use_cases.auth.two_factor import TwoFactorUseCase
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
-from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.totp.totp_service import TOTPService
 from src.presentation.api.v1.auth.cookies import set_auth_cookies
 from src.presentation.api.v1.auth.schemas import TokenResponse
@@ -45,6 +45,7 @@ from .schemas import (
 )
 
 logger = logging.getLogger(__name__)
+BEARER_SCHEME = "bearer"
 router = APIRouter(prefix="/2fa", tags=["two-factor"])
 
 
@@ -311,7 +312,7 @@ async def complete_2fa_login(
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        token_type="bearer",
+        token_type=BEARER_SCHEME,
         expires_in=int((access_exp - datetime.now(UTC)).total_seconds()),
     )
 

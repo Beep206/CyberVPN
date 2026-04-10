@@ -80,13 +80,13 @@ async def validate_promo(
     except PromoCodeInvalidError as exc:
         track_promo_operation(operation="validate", success=False)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from None
     except PromoCodeExhaustedError:
         track_promo_operation(operation="validate", success=False)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Promo code usage limit reached",
         ) from None
 
@@ -193,7 +193,7 @@ async def admin_update_promo(
     update_data = body.model_dump(exclude_unset=True)
     if not update_data:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="No fields to update",
         )
 

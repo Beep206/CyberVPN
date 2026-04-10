@@ -1,0 +1,42 @@
+---
+- name: Helix | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - helix_edge_action in ['deploy', 'verify', 'rollback']
+    fail_msg: "Unsupported helix_edge_action={{ helix_edge_action }}."
+
+- name: Helix | Assert required deploy configuration is present
+  ansible.builtin.assert:
+    that:
+      - helix_edge_image | length > 0
+      - helix_edge_adapter_url | length > 0
+      - helix_edge_adapter_token | length >= 12
+      - helix_edge_node_id | length > 0
+      - helix_edge_transport_ports | length > 0
+    fail_msg: >-
+      Set helix_edge_image, helix_edge_adapter_url, helix_edge_adapter_token,
+      helix_edge_node_id, and helix_edge_transport_ports before Helix deploy.
+  when: helix_edge_action == 'deploy'
+
+- name: Helix | Assert control port is valid
+  ansible.builtin.assert:
+    that:
+      - helix_edge_control_port | int >= 1
+      - helix_edge_control_port | int <= 65535
+    fail_msg: "helix_edge_control_port must be in the TCP port range."
+
+- name: Helix | Assert transport ports are valid
+  ansible.builtin.assert:
+    that:
+      - item | int >= 1
+      - item | int <= 65535
+      - item | int != (helix_edge_control_port | int)
+    fail_msg: "Invalid Helix transport port {{ item }}."
+  loop: "{{ helix_edge_transport_ports }}"
+
+- name: Helix | Assert transport ports are unique
+  ansible.builtin.assert:
+    that:
+      - helix_edge_transport_ports | map('int') | list | unique | length == helix_edge_transport_ports | length
+    fail_msg: "helix_edge_transport_ports must not contain duplicates."
+  when: helix_edge_transport_ports | length > 0

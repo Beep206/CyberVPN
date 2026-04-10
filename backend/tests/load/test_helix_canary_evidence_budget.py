@@ -33,6 +33,7 @@ from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.helix import get_helix_service
 
+
 class DummySubscriptionClient:
     """Placeholder dependency for admin-only Helix service paths."""
 

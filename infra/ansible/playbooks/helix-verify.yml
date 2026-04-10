@@ -1,0 +1,10 @@
+---
+- name: Verify Helix edge workload
+  hosts: "{{ helix_edge_target_group | default('helix_edge_staging') }}"
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: helix_edge
+      vars:
+        helix_edge_action: verify

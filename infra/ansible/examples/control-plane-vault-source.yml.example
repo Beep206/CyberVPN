@@ -1,0 +1,38 @@
+postgres_password: replace-with-postgres-password
+
+registry:
+  username: ""
+  password: ""
+
+remnawave:
+  jwt_auth_secret: replace-with-remnawave-jwt-auth-secret
+  jwt_api_tokens_secret: replace-with-remnawave-jwt-api-tokens-secret
+  metrics_user: metrics
+  metrics_pass: replace-with-remnawave-metrics-password
+
+shared:
+  helix_internal_auth_token: replace-with-shared-helix-internal-token
+  helix_remnawave_token: replace-with-remnawave-token-for-helix
+
+backend:
+  remnawave_token: replace-with-backend-remnawave-token
+  jwt_secret: replace-with-backend-jwt-secret
+  cryptobot_token: ""
+  totp_encryption_key: replace-with-backend-totp-encryption-key
+  oauth_token_encryption_key: replace-with-backend-oauth-token-encryption-key
+
+worker:
+  remnawave_api_token: replace-with-worker-remnawave-api-token
+  telegram_bot_token: ""
+  cryptobot_token: ""
+  admin_telegram_ids: ""
+
+helix_adapter:
+  remnawave_token: replace-with-helix-adapter-remnawave-token
+  manifest_signing_key: replace-with-helix-manifest-signing-key
+
+extras:
+  remnawave: {}
+  backend: {}
+  worker: {}
+  helix_adapter: {}

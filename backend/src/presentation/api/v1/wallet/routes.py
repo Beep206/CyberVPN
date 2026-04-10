@@ -104,10 +104,10 @@ async def request_withdrawal(
         track_wallet_operation(operation="debit", success=True)
     except WithdrawalBelowMinimumError as exc:
         track_wallet_operation(operation="debit", success=False)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.message) from exc
     except InsufficientWalletBalanceError as exc:
         track_wallet_operation(operation="debit", success=False)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.message) from exc
     except ValueError as exc:
         track_wallet_operation(operation="debit", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

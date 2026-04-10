@@ -1,0 +1,23 @@
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+foundation_state = {
+  bucket       = "replace-with-production-tfstate-bucket"
+  key          = "production/foundation/terraform.tfstate"
+  region       = "eu-central-1"
+  use_lockfile = true
+}
+
+control_plane_nodes = {
+  cp-prod-01 = {
+    location    = "nbg1"
+    server_type = "cpx31"
+    service_roles = [
+      "backend",
+      "worker",
+      "helix-adapter",
+    ]
+    enable_backups = true
+  }
+}

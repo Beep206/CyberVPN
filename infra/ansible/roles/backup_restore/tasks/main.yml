@@ -1,0 +1,8 @@
+---
+- import_tasks: validate.yml
+
+- import_tasks: backup.yml
+  when: backup_restore_action == 'backup'
+
+- import_tasks: restore_drill.yml
+  when: backup_restore_action == 'restore_drill'

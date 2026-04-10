@@ -1,0 +1,20 @@
+project_name = "cybervpn"
+environment  = "staging"
+ssh_port     = 22
+
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+edge_metrics_ipv4_cidrs = [
+  "198.51.100.20/32",
+]
+
+ssh_keys = {
+  laptop = {
+    public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIREPLACE_THIS_WITH_REAL_PUBLIC_KEY admin@laptop"
+    labels = {
+      owner = "platform"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+---
+remnawave_edge_image: remnawave/node:2.6.1
+remnawave_edge_node_port: 2222
+remnawave_edge_secret_key: "{{ vault_remnawave_edge_secret_key }}"
+remnawave_edge_log_dir: /var/log/remnanode
+remnawave_edge_mount_logs: true
+remnawave_edge_manage_logrotate: true
+remnawave_edge_mount_certificates: false
+remnawave_edge_cap_add:
+  - NET_ADMIN
+remnawave_edge_extra_env: {}
+remnawave_edge_extra_volumes: []

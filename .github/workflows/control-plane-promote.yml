@@ -1,0 +1,142 @@
+name: Control Plane Promote Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Inventory environment to update'
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+      base_ref:
+        description: 'Branch or tag to update'
+        required: true
+        default: main
+        type: string
+      backend_image:
+        description: 'Digest-pinned backend image ref'
+        required: true
+        type: string
+      worker_image:
+        description: 'Digest-pinned worker image ref'
+        required: true
+        type: string
+      helix_adapter_image:
+        description: 'Digest-pinned Helix adapter image ref'
+        required: true
+        type: string
+      source_commit:
+        description: 'Commit SHA that produced the images'
+        required: false
+        default: ''
+        type: string
+      source_run_url:
+        description: 'Build evidence URL'
+        required: false
+        default: ''
+        type: string
+      release_name:
+        description: 'Optional explicit release name'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: control-plane-promote-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Promote control-plane release
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install script dependency
+        run: pip install pyyaml
+
+      - name: Update release manifest
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          BACKEND_IMAGE: ${{ inputs.backend_image }}
+          WORKER_IMAGE: ${{ inputs.worker_image }}
+          HELIX_ADAPTER_IMAGE: ${{ inputs.helix_adapter_image }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          SOURCE_RUN_URL: ${{ inputs.source_run_url }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+          DEFAULT_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          SOURCE_URL="${SOURCE_RUN_URL:-$DEFAULT_RUN_URL}"
+          CMD=(
+            python infra/ansible/scripts/promote_control_plane_release.py
+            --environment "$TARGET_ENVIRONMENT"
+            --backend-image "$BACKEND_IMAGE"
+            --worker-image "$WORKER_IMAGE"
+            --helix-adapter-image "$HELIX_ADAPTER_IMAGE"
+            --source-commit "$SOURCE_COMMIT"
+            --source-run-url "$SOURCE_URL"
+          )
+          if [ -n "$RELEASE_NAME" ]; then
+            CMD+=(--release-name "$RELEASE_NAME")
+          fi
+          "${CMD[@]}"
+
+      - name: Upload updated release manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-plane-release-${{ inputs.target_environment }}
+          path: infra/ansible/inventories/${{ inputs.target_environment }}/group_vars/control_plane_${{ inputs.target_environment }}/release.yml
+          retention-days: 14
+
+      - name: Commit release manifest on a promotion branch
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          BASE_REF: ${{ inputs.base_ref }}
+          COMMIT_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "infra/ansible/inventories/${TARGET_ENVIRONMENT}/group_vars/control_plane_${TARGET_ENVIRONMENT}/release.yml"
+
+          if git diff --cached --quiet; then
+            echo "PROMOTION_HAS_CHANGES=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          BRANCH_NAME="automation/control-plane-${TARGET_ENVIRONMENT}-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCH_NAME"
+          git commit -m "chore(infra): promote control-plane release to ${TARGET_ENVIRONMENT}"
+          git push origin "$BRANCH_NAME"
+          echo "PROMOTION_HAS_CHANGES=true" >> "$GITHUB_ENV"
+          echo "PROMOTION_BRANCH=$BRANCH_NAME" >> "$GITHUB_ENV"
+
+      - name: Write summary
+        run: |
+          echo "## Control-plane promotion" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Target environment: ${{ inputs.target_environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Base ref: ${{ inputs.base_ref }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${PROMOTION_HAS_CHANGES}" = "true" ]; then
+            echo "- Promotion branch: ${PROMOTION_BRANCH}" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Compare URL: https://github.com/${{ github.repository }}/compare/${{ inputs.base_ref }}...${PROMOTION_BRANCH}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Release manifest already matched the requested digest refs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- Updated manifest artifact uploaded for review." >> "$GITHUB_STEP_SUMMARY"

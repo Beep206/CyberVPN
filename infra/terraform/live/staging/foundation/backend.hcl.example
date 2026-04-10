@@ -1,0 +1,9 @@
+bucket       = "cybervpn-terraform-state"
+key          = "staging/foundation/terraform.tfstate"
+region       = "eu-central-1"
+encrypt      = true
+use_lockfile = true
+
+# If you use S3-compatible storage instead of AWS S3, consult the official
+# Terraform S3 backend documentation and add the provider-specific endpoint
+# settings here before running `terraform init`.

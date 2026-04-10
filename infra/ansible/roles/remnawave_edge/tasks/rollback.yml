@@ -1,0 +1,37 @@
+---
+- name: Remnawave | Select rollback target
+  ansible.builtin.set_fact:
+    remnawave_edge_rollback_target: >-
+      {{
+        remnawave_edge_releases_dir ~ '/' ~ remnawave_edge_rollback_release_name
+        if remnawave_edge_rollback_release_name | length > 0
+        else remnawave_edge_previous_target
+      }}
+
+- name: Remnawave | Assert rollback target exists
+  ansible.builtin.stat:
+    path: "{{ remnawave_edge_rollback_target }}"
+  register: remnawave_edge_rollback_target_stat
+
+- name: Remnawave | Validate rollback target
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_rollback_target | length > 0
+      - remnawave_edge_rollback_target_stat.stat.exists
+    fail_msg: >-
+      No rollback target is available. Set remnawave_edge_rollback_release_name
+      or deploy at least one previous successful release first.
+
+- name: Remnawave | Point current symlink to rollback target
+  ansible.builtin.file:
+    state: link
+    src: "{{ remnawave_edge_rollback_target }}"
+    path: "{{ remnawave_edge_current_link }}"
+    force: true
+  when: remnawave_edge_current_target != remnawave_edge_rollback_target
+
+- import_tasks: state.yml
+
+- import_tasks: _compose_apply.yml
+
+- import_tasks: verify.yml

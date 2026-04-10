@@ -1,0 +1,28 @@
+zone_id = "replace-with-cloudflare-zone-id"
+
+edge_state = {
+  bucket = "cybervpn-terraform-state"
+  key    = "production/edge/terraform.tfstate"
+  region = "eu-central-1"
+}
+
+records = {
+  fi-prod-01 = {
+    name    = "fi-01.example.com"
+    node    = "fi-prod-01"
+    type    = "A"
+    ttl     = 300
+    proxied = false
+    comment = "CyberVPN production edge fi-prod-01"
+    tags    = ["environment:production", "component:edge"]
+  }
+  de-prod-01 = {
+    name    = "de-01.example.com"
+    node    = "de-prod-01"
+    type    = "A"
+    ttl     = 300
+    proxied = false
+    comment = "CyberVPN production edge de-prod-01"
+    tags    = ["environment:production", "component:edge"]
+  }
+}

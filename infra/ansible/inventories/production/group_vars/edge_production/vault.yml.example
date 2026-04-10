@@ -1,0 +1,11 @@
+---
+# Copy to vault.yml and encrypt with ansible-vault before production runs.
+vault_base_authorized_keys:
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIREPLACE_THIS_WITH_REAL_PUBLIC_KEY cyberops@production-admin"
+
+# Reserved for later phases:
+# vault_remnawave_panel_token: "replace-me"
+# vault_helix_bootstrap_token: "replace-me"
+# vault_alloy_agent_loki_basic_auth_username: "replace-me"
+# vault_alloy_agent_loki_basic_auth_password: "replace-me"
+# vault_alloy_agent_loki_bearer_token: "replace-me"

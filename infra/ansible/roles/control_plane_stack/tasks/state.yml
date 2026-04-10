@@ -1,0 +1,17 @@
+---
+- name: Control plane | Read current release symlink
+  ansible.builtin.stat:
+    path: "{{ control_plane_stack_current_link }}"
+    follow: false
+  register: control_plane_stack_current_link_stat
+
+- name: Control plane | Read previous release symlink
+  ansible.builtin.stat:
+    path: "{{ control_plane_stack_previous_link }}"
+    follow: false
+  register: control_plane_stack_previous_link_stat
+
+- name: Control plane | Cache release pointers
+  ansible.builtin.set_fact:
+    control_plane_stack_current_target: "{{ control_plane_stack_current_link_stat.stat.lnk_target | default('') }}"
+    control_plane_stack_previous_target: "{{ control_plane_stack_previous_link_stat.stat.lnk_target | default('') }}"

@@ -1,0 +1,247 @@
+name: {{ control_plane_stack_project_name }}
+
+services:
+{% if control_plane_stack_enable_remnawave %}
+  remnawave:
+    image: {{ control_plane_stack_remnawave_image | to_json }}
+    container_name: {{ control_plane_stack_remnawave_container_name }}
+    hostname: {{ control_plane_stack_remnawave_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_remnawave_env_filename }}
+    ports:
+      - "{{ control_plane_stack_remnawave_bind_host }}:{{ control_plane_stack_remnawave_port }}:3000"
+      - "{{ control_plane_stack_remnawave_bind_host }}:{{ control_plane_stack_remnawave_metrics_port }}:3001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+{% if control_plane_stack_enable_postgres %}
+      remnawave-db:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_valkey %}
+      remnawave-redis:
+        condition: service_healthy
+{% endif %}
+    networks:
+      - control-backend
+      - control-data
+{% if control_plane_stack_manage_notifications_config %}
+    volumes:
+      - {{ control_plane_stack_notifications_config_path }}:/var/lib/remnawave/configs/notifications/notifications-config.yml:ro
+{% endif %}
+{% endif %}
+{% if control_plane_stack_enable_postgres %}
+  remnawave-db:
+    image: {{ control_plane_stack_postgres_image | to_json }}
+    container_name: {{ control_plane_stack_postgres_container_name }}
+    hostname: {{ control_plane_stack_postgres_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    environment:
+      POSTGRES_USER: "{{ control_plane_stack_remnawave_env.POSTGRES_USER }}"
+      POSTGRES_PASSWORD: "{{ control_plane_stack_remnawave_env.POSTGRES_PASSWORD }}"
+      POSTGRES_DB: "{{ control_plane_stack_remnawave_env.POSTGRES_DB }}"
+      TZ: "UTC"
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+    volumes:
+      - {{ control_plane_stack_postgres_data_dir }}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 10s
+      retries: 3
+    networks:
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_valkey %}
+  remnawave-redis:
+    image: {{ control_plane_stack_valkey_image | to_json }}
+    container_name: {{ control_plane_stack_valkey_container_name }}
+    hostname: {{ control_plane_stack_valkey_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory 128mb
+      --maxmemory-policy noeviction
+      --loglevel warning
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+    networks:
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_db_backup %}
+  db-backup:
+    image: {{ control_plane_stack_db_backup_image | to_json }}
+    container_name: {{ control_plane_stack_db_backup_container_name }}
+    hostname: {{ control_plane_stack_db_backup_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_db_backup_env_filename }}
+    volumes:
+      - {{ control_plane_stack_db_backup_dir }}:/backups
+    depends_on:
+{% if control_plane_stack_enable_postgres %}
+      remnawave-db:
+        condition: service_healthy
+{% endif %}
+    networks:
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_backend %}
+  cybervpn-backend:
+    image: {{ control_plane_stack_backend_image | to_json }}
+    container_name: {{ control_plane_stack_backend_container_name }}
+    hostname: {{ control_plane_stack_backend_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_backend_env_filename }}
+    ports:
+      - "{{ control_plane_stack_backend_bind_host }}:{{ control_plane_stack_backend_port }}:8000"
+      - "{{ control_plane_stack_backend_bind_host }}:{{ control_plane_stack_backend_metrics_port }}:9091"
+    depends_on:
+{% if control_plane_stack_enable_postgres %}
+      remnawave-db:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_valkey %}
+      remnawave-redis:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_remnawave %}
+      remnawave:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - control-backend
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_worker %}
+  cybervpn-worker:
+    image: {{ control_plane_stack_worker_image | to_json }}
+    container_name: {{ control_plane_stack_worker_container_name }}
+    hostname: {{ control_plane_stack_worker_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_worker_env_filename }}
+    command:
+      [
+        "sh",
+        "-c",
+        "mkdir -p \"$$PROMETHEUS_MULTIPROC_DIR\" && rm -f \"$$PROMETHEUS_MULTIPROC_DIR\"/* && exec taskiq worker src.broker:broker --workers $${WORKER_CONCURRENCY:-2} --fs-discover"
+      ]
+    ports:
+      - "{{ control_plane_stack_worker_metrics_bind_host }}:{{ control_plane_stack_worker_metrics_port }}:{{ control_plane_stack_worker_metrics_port }}"
+    depends_on:
+{% if control_plane_stack_enable_postgres %}
+      remnawave-db:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_valkey %}
+      remnawave-redis:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_remnawave %}
+      remnawave:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - control-backend
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_scheduler %}
+  cybervpn-scheduler:
+    image: {{ control_plane_stack_worker_image | to_json }}
+    container_name: {{ control_plane_stack_scheduler_container_name }}
+    hostname: {{ control_plane_stack_scheduler_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_scheduler_env_filename }}
+    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    depends_on:
+{% if control_plane_stack_enable_worker %}
+      cybervpn-worker:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_valkey %}
+      remnawave-redis:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - control-backend
+      - control-data
+{% endif %}
+{% if control_plane_stack_enable_helix_adapter %}
+  helix-adapter:
+    image: {{ control_plane_stack_helix_adapter_image | to_json }}
+    container_name: {{ control_plane_stack_helix_adapter_container_name }}
+    hostname: {{ control_plane_stack_helix_adapter_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    env_file:
+      - {{ control_plane_stack_helix_adapter_env_filename }}
+    ports:
+      - "{{ control_plane_stack_helix_adapter_bind_host }}:{{ control_plane_stack_helix_adapter_port }}:8088"
+    depends_on:
+{% if control_plane_stack_enable_postgres %}
+      remnawave-db:
+        condition: service_healthy
+{% endif %}
+{% if control_plane_stack_enable_remnawave %}
+      remnawave:
+        condition: service_healthy
+{% endif %}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8088/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - control-backend
+      - control-data
+{% endif %}
+
+networks:
+  control-backend:
+  control-data:

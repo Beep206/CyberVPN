@@ -1,0 +1,39 @@
+---
+alloy_agent_action: deploy
+
+alloy_agent_root_dir: /etc/alloy
+alloy_agent_config_path: "{{ alloy_agent_root_dir }}/config.alloy"
+alloy_agent_previous_config_path: "{{ alloy_agent_root_dir }}/config.alloy.previous"
+alloy_agent_data_dir: /var/lib/alloy
+alloy_agent_storage_path: "{{ alloy_agent_data_dir }}/data"
+
+alloy_agent_binary_path: /usr/bin/alloy
+alloy_agent_service_name: cybervpn-alloy
+alloy_agent_service_unit_path: /etc/systemd/system/{{ alloy_agent_service_name }}.service
+alloy_agent_http_listen_host: 0.0.0.0
+alloy_agent_http_port: 9100
+alloy_agent_http_listen_addr: "{{ alloy_agent_http_listen_host }}:{{ alloy_agent_http_port }}"
+alloy_agent_verify_host: 127.0.0.1
+alloy_agent_verify_timeout: 30
+
+alloy_agent_project: cybervpn
+alloy_agent_environment: "{{ node_environment | default('staging') }}"
+alloy_agent_node_role: "{{ node_role | default('edge') }}"
+alloy_agent_node_location: "{{ node_location | default('unknown') }}"
+alloy_agent_log_level: info
+alloy_agent_disable_reporting: true
+alloy_agent_canary_pause_seconds: 15
+
+alloy_agent_collect_docker_logs: true
+alloy_agent_collect_system_logs: true
+alloy_agent_docker_logs_glob: /var/lib/docker/containers/*/*-json.log
+alloy_agent_system_logs_glob: /var/log/*.log
+
+alloy_agent_loki_url: ""
+alloy_agent_loki_basic_auth_username: ""
+alloy_agent_loki_basic_auth_password: ""
+alloy_agent_loki_bearer_token: ""
+
+alloy_agent_apt_repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+alloy_agent_apt_repo_filename: grafana
+

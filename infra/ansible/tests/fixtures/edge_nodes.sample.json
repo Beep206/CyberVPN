@@ -1,0 +1,26 @@
+{
+  "helix-fi-01": {
+    "id": "3001",
+    "ip": "198.51.100.31",
+    "labels": {
+      "environment": "staging",
+      "role": "helix"
+    },
+    "location": "hel1",
+    "role": "helix",
+    "server_type": "cx22",
+    "ssh_port": 22
+  },
+  "remnawave-de-01": {
+    "id": "3002",
+    "ip": "198.51.100.41",
+    "labels": {
+      "environment": "staging",
+      "role": "remnawave"
+    },
+    "location": "fsn1",
+    "role": "remnawave",
+    "server_type": "cx32",
+    "ssh_port": 22022
+  }
+}

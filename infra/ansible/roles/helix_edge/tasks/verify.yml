@@ -1,0 +1,95 @@
+---
+- import_tasks: state.yml
+
+- name: Helix | Assert current release exists
+  ansible.builtin.assert:
+    that:
+      - helix_edge_current_target | length > 0
+    fail_msg: "No current Helix release is linked on {{ inventory_hostname }}."
+
+- name: Helix | Check state directory exists
+  ansible.builtin.stat:
+    path: "{{ helix_edge_state_dir }}"
+  register: helix_edge_state_dir_stat
+
+- name: Helix | Assert state directory exists
+  ansible.builtin.assert:
+    that:
+      - helix_edge_state_dir_stat.stat.exists
+      - helix_edge_state_dir_stat.stat.isdir
+    fail_msg: "Helix state directory is missing."
+
+- name: Helix | Wait for control port to listen
+  ansible.builtin.wait_for:
+    host: "{{ helix_edge_verify_host }}"
+    port: "{{ helix_edge_control_port }}"
+    timeout: "{{ helix_edge_verify_timeout }}"
+
+- name: Helix | Inspect running container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ helix_edge_container_name }}"
+  register: helix_edge_container_inspect
+  changed_when: false
+
+- name: Helix | Parse container inspection
+  ansible.builtin.set_fact:
+    helix_edge_container: "{{ (helix_edge_container_inspect.stdout | from_json | first) }}"
+
+- name: Helix | Assert container is running
+  ansible.builtin.assert:
+    that:
+      - helix_edge_container.State.Running | bool
+      - helix_edge_container.Config.Image == helix_edge_image
+      - helix_edge_container.Mounts | selectattr('Destination', 'equalto', '/var/lib/helix-node') | list | length == 1
+    fail_msg: "Helix container is not running with the expected image or state mount."
+
+- name: Helix | Read healthz
+  ansible.builtin.uri:
+    url: "http://{{ helix_edge_verify_host }}:{{ helix_edge_control_port }}/healthz"
+    method: GET
+    return_content: true
+    status_code: 200
+  register: helix_edge_healthz
+  retries: 10
+  delay: 2
+  until: helix_edge_healthz.status == 200
+
+- name: Helix | Assert healthz payload is healthy
+  ansible.builtin.assert:
+    that:
+      - helix_edge_healthz.json.status == 'ok'
+      - helix_edge_healthz.json.ready | bool
+      - helix_edge_healthz.json.runtime_healthy | bool
+      - helix_edge_healthz.json.apply_state in ['idle', 'rolled-back']
+    fail_msg: "Helix healthz payload is not healthy after rollout."
+
+- name: Helix | Read readyz
+  ansible.builtin.uri:
+    url: "http://{{ helix_edge_verify_host }}:{{ helix_edge_control_port }}/readyz"
+    method: GET
+    status_code: 200
+  register: helix_edge_readyz
+  retries: 10
+  delay: 2
+  until: helix_edge_readyz.status == 200
+
+- name: Helix | Read metrics
+  ansible.builtin.uri:
+    url: "http://{{ helix_edge_verify_host }}:{{ helix_edge_control_port }}/metrics"
+    method: GET
+    return_content: true
+    status_code: 200
+  register: helix_edge_metrics
+  retries: 10
+  delay: 2
+  until: helix_edge_metrics.status == 200
+
+- name: Helix | Assert metrics expose rollout health counters
+  ansible.builtin.assert:
+    that:
+      - helix_edge_metrics.content is search(helix_edge_metrics_prefix ~ '_runtime_healthy')
+      - helix_edge_metrics.content is search(helix_edge_metrics_prefix ~ '_rollback_total')
+    fail_msg: "Helix metrics endpoint is missing rollout health counters."

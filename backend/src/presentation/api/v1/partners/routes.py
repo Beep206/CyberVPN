@@ -62,7 +62,7 @@ async def create_partner_code(
         code_model = await use_case.execute(user_id, body.code, body.markup_pct)
     except MarkupExceedsLimitError as exc:
         track_partner_operation(operation="create_code")
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.message) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.message) from exc
     except DomainError as exc:
         track_partner_operation(operation="create_code")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.message) from exc
@@ -102,7 +102,7 @@ async def update_partner_code_markup(
     max_markup = await config_service.get_partner_max_markup_pct()
     if body.markup_pct > max_markup:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Markup {body.markup_pct}% exceeds maximum {max_markup}%",
         )
 

@@ -1,0 +1,12 @@
+---
+- import_tasks: validate.yml
+- import_tasks: state.yml
+
+- import_tasks: deploy.yml
+  when: control_plane_stack_action == 'deploy'
+
+- import_tasks: verify.yml
+  when: control_plane_stack_action == 'verify'
+
+- import_tasks: rollback.yml
+  when: control_plane_stack_action == 'rollback'

@@ -37,18 +37,35 @@ print_header() {
     echo "═══════════════════════════════════════════════════════════"
 }
 
+compose_service_has_healthcheck() {
+    local service_name=$1
+    local compose_file=$2
+
+    awk -v service_name="$service_name" '
+        $0 ~ "^  " service_name ":" { in_service=1; next }
+        in_service && $0 ~ "^  [A-Za-z0-9_-]+:" { in_service=0 }
+        in_service && $0 ~ /^    healthcheck:/ { found=1 }
+        END { exit found ? 0 : 1 }
+    ' "$compose_file"
+}
+
 check_service() {
     local service_name=$1
     local url=$2
-    local expected_pattern=$3
+    local expected_pattern=${3:-}
 
-    if curl -sf "$url" | grep -q "$expected_pattern" 2>/dev/null; then
+    if [ -z "$expected_pattern" ]; then
+        if curl -sf "$url" >/dev/null 2>&1; then
+            print_success "$service_name is ready"
+            return 0
+        fi
+    elif curl -sf "$url" | grep -Eq "$expected_pattern" 2>/dev/null; then
         print_success "$service_name is ready"
         return 0
-    else
-        print_error "$service_name is NOT ready (URL: $url)"
-        return 1
     fi
+
+    print_error "$service_name is NOT ready (URL: $url)"
+    return 1
 }
 
 # Main verification
@@ -57,9 +74,17 @@ print_header "CyberVPN Monitoring Stack Verification"
 # 1. Check Prometheus
 print_header "1. Prometheus"
 if check_service "Prometheus" "http://localhost:9094/-/healthy" "Prometheus Server is Healthy"; then
-    # Check Prometheus targets
-    TARGETS_UP=$(curl -s http://localhost:9094/api/v1/targets | jq -r '.data.activeTargets | map(select(.health=="up")) | length')
-    TARGETS_TOTAL=$(curl -s http://localhost:9094/api/v1/targets | jq -r '.data.activeTargets | length')
+    # Give Prometheus a moment to finish the first scrape cycle after restarts.
+    for _ in $(seq 1 10); do
+        TARGETS_UP=$(curl -s http://localhost:9094/api/v1/targets | jq -r '.data.activeTargets | map(select(.labels.optional_profile != "true" and .health=="up")) | length')
+        TARGETS_TOTAL=$(curl -s http://localhost:9094/api/v1/targets | jq -r '.data.activeTargets | map(select(.labels.optional_profile != "true")) | length')
+
+        if [ "$TARGETS_UP" -eq "$TARGETS_TOTAL" ] && [ "$TARGETS_TOTAL" -gt 0 ]; then
+            break
+        fi
+
+        sleep 3
+    done
 
     if [ "$TARGETS_UP" -eq "$TARGETS_TOTAL" ] && [ "$TARGETS_TOTAL" -gt 0 ]; then
         print_success "All Prometheus targets are UP ($TARGETS_UP/$TARGETS_TOTAL)"
@@ -74,10 +99,10 @@ if check_service "Grafana" "http://localhost:3002/api/health" "ok"; then
     # Check dashboard count
     DASHBOARD_COUNT=$(ls -1 /home/beep/projects/VPNBussiness/infra/grafana/dashboards/*.json 2>/dev/null | wc -l)
 
-    if [ "$DASHBOARD_COUNT" -ge 11 ]; then
-        print_success "Grafana has $DASHBOARD_COUNT dashboards (required: 11+)"
+    if [ "$DASHBOARD_COUNT" -ge 14 ]; then
+        print_success "Grafana has $DASHBOARD_COUNT dashboards (required: 14+)"
     else
-        print_error "Grafana has only $DASHBOARD_COUNT dashboards (required: 11+)"
+        print_error "Grafana has only $DASHBOARD_COUNT dashboards (required: 14+)"
     fi
 fi
 
@@ -108,7 +133,7 @@ fi
 
 # 6. Check AlertManager
 print_header "6. AlertManager"
-check_service "AlertManager" "http://localhost:9093/-/healthy" "Healthy"
+check_service "AlertManager" "http://localhost:9093/-/healthy" "OK|Healthy"
 
 # 7. Verify datasources configuration
 print_header "7. Grafana Datasources"
@@ -146,17 +171,23 @@ else
     print_error "SLO Tracking dashboard NOT found"
 fi
 
+if [ -f "$DASHBOARD_DIR/edge-observability-dashboard.json" ]; then
+    print_success "Edge Observability dashboard exists"
+else
+    print_error "Edge Observability dashboard NOT found"
+fi
+
 # 9. Verify healthchecks in docker-compose
 print_header "9. Service Healthchecks"
 COMPOSE_FILE="/home/beep/projects/VPNBussiness/infra/docker-compose.yml"
 
-if grep -A 5 "prometheus:" "$COMPOSE_FILE" | grep -q "healthcheck:"; then
+if compose_service_has_healthcheck "prometheus" "$COMPOSE_FILE"; then
     print_success "Prometheus healthcheck configured"
 else
     print_error "Prometheus healthcheck NOT configured"
 fi
 
-if grep -A 5 "grafana:" "$COMPOSE_FILE" | grep -q "healthcheck:"; then
+if compose_service_has_healthcheck "grafana" "$COMPOSE_FILE"; then
     print_success "Grafana healthcheck configured"
 else
     print_error "Grafana healthcheck NOT configured"

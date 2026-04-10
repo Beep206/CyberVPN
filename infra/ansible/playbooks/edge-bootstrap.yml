@@ -1,0 +1,8 @@
+---
+- name: Bootstrap CyberVPN edge hosts
+  hosts: "{{ edge_target_group | default('edge_staging') }}"
+  become: true
+
+  roles:
+    - role: base
+    - role: docker

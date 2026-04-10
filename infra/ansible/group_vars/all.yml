@@ -1,0 +1,26 @@
+---
+project_name: cybervpn
+
+base_timezone: UTC
+base_admin_user: cyberops
+base_admin_groups:
+  - sudo
+base_authorized_keys: []
+base_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - python3
+  - python3-apt
+  - sudo
+base_manage_ssh_hardening: true
+base_manage_sysctl: false
+base_ssh_port: 22
+base_ssh_service_name: ssh
+base_sysctl: []
+
+docker_manage_user_group: true
+docker_daemon_log_driver: json-file
+docker_daemon_log_max_size: 100m
+docker_daemon_log_max_file: "5"

@@ -1,0 +1,69 @@
+---
+- name: Alloy | Ensure config directory exists
+  ansible.builtin.file:
+    path: "{{ alloy_agent_root_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Alloy | Ensure data directory exists
+  ansible.builtin.file:
+    path: "{{ alloy_agent_storage_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Alloy | Check for existing config
+  ansible.builtin.stat:
+    path: "{{ alloy_agent_config_path }}"
+  register: alloy_agent_config_stat
+
+- name: Alloy | Preserve previous config
+  ansible.builtin.copy:
+    src: "{{ alloy_agent_config_path }}"
+    dest: "{{ alloy_agent_previous_config_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: alloy_agent_config_stat.stat.exists
+
+- name: Alloy | Render config
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: "{{ alloy_agent_config_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "{{ alloy_agent_binary_path }} validate %s"
+  no_log: true
+
+- name: Alloy | Render systemd unit
+  ansible.builtin.template:
+    src: cybervpn-alloy.service.j2
+    dest: "{{ alloy_agent_service_unit_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Alloy | Reload systemd
+
+- name: Alloy | Disable package-provided service to avoid split ownership
+  ansible.builtin.systemd_service:
+    name: alloy
+    enabled: false
+    state: stopped
+  failed_when: false
+
+- name: Alloy | Flush systemd handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Alloy | Enable and restart service
+  ansible.builtin.systemd_service:
+    name: "{{ alloy_agent_service_name }}"
+    enabled: true
+    state: restarted
+
+- import_tasks: verify.yml

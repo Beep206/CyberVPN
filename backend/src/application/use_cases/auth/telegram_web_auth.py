@@ -4,19 +4,19 @@ Validates Telegram OAuth payload (hash and auth_date), auto-registers
 or auto-logs-in the user, and issues JWT tokens.
 """
 
+import base64
+import json
 import logging
 import secrets
-import json
-import base64
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.telegram_auth import (
-    TelegramAuthService,
     InvalidTelegramAuthError,
     TelegramAuthExpiredError,
+    TelegramAuthService,
 )
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
@@ -24,6 +24,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 
 logger = logging.getLogger(__name__)
+BEARER_SCHEME = "bearer"
 
 
 class TelegramWebLoginResult:
@@ -154,7 +155,7 @@ class TelegramWebAuthUseCase:
         return TelegramWebLoginResult(
             access_token=access_token,
             refresh_token=refresh_token,
-            token_type="bearer",
+            token_type=BEARER_SCHEME,
             expires_in=expires_in,
             user=user,
             is_new_user=is_new_user,

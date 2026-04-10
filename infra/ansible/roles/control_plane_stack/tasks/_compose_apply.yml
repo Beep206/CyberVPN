@@ -1,0 +1,27 @@
+---
+- name: Control plane | Log into container registries
+  community.docker.docker_login:
+    registry_url: "{{ item.registry_url }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    reauthorize: "{{ item.reauthorize | default(false) }}"
+  loop: "{{ control_plane_stack_registry_logins }}"
+  when:
+    - item.registry_url | default('') | length > 0
+    - item.username | default('') | length > 0
+    - item.password | default('') | length > 0
+  no_log: true
+
+- name: Control plane | Apply compose project
+  community.docker.docker_compose_v2:
+    project_name: "{{ control_plane_stack_project_name }}"
+    project_src: "{{ control_plane_stack_current_link }}"
+    files:
+      - "{{ control_plane_stack_compose_filename }}"
+    state: present
+    pull: "{{ control_plane_stack_pull_policy }}"
+    recreate: "{{ control_plane_stack_recreate_policy }}"
+    remove_orphans: false
+    wait: true
+    wait_timeout: "{{ control_plane_stack_wait_timeout }}"
+  register: control_plane_stack_compose_result

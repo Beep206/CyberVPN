@@ -1,0 +1,16 @@
+---
+- name: Base | Ensure admin user exists
+  ansible.builtin.user:
+    name: "{{ base_admin_user }}"
+    shell: /bin/bash
+    groups: "{{ base_admin_groups | join(',') }}"
+    append: true
+    create_home: true
+
+- name: Base | Authorize admin SSH keys
+  ansible.posix.authorized_key:
+    user: "{{ base_admin_user }}"
+    state: present
+    key: "{{ item }}"
+  loop: "{{ base_authorized_keys }}"
+  when: base_authorized_keys | length > 0

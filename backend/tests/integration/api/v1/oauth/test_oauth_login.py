@@ -326,7 +326,11 @@ class TestOAuthLoginRoutes:
             ),
             patch(
                 "src.infrastructure.oauth.google.GoogleOAuthProvider.exchange_code",
-                new=AsyncMock(side_effect=OAuthProviderUnavailableError("Google OAuth provider is temporarily unavailable")),
+                new=AsyncMock(
+                    side_effect=OAuthProviderUnavailableError(
+                        "Google OAuth provider is temporarily unavailable"
+                    )
+                ),
             ),
         ):
             response = await async_client.post(

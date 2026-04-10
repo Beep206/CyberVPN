@@ -1,0 +1,12 @@
+---
+- name: Roll out control-plane stack
+  hosts: "{{ control_plane_target_group | default('control_plane_staging') }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  max_fail_percentage: 0
+
+  roles:
+    - role: control_plane_stack
+      vars:
+        control_plane_stack_action: deploy

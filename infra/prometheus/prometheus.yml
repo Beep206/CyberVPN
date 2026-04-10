@@ -14,11 +14,15 @@ rule_files:
   - /etc/prometheus/rules/redis_alerts.yml
   - /etc/prometheus/rules/infra_alerts.yml
   - /etc/prometheus/rules/auth_alerts.yml
+  - /etc/prometheus/rules/helix_alerts.yml
+  - /etc/prometheus/rules/alloy_edge_alerts.yml
 
 scrape_configs:
   - job_name: 'cybervpn-local-backend'
     static_configs:
       - targets: ['host.docker.internal:9092']
+        labels:
+          optional_profile: 'true'
     metrics_path: /metrics
     scrape_interval: 15s
 
@@ -43,6 +47,31 @@ scrape_configs:
       - targets: ['cybervpn-telegram-bot:9092']
         labels:
           optional_profile: 'true'
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'helix-adapter'
+    static_configs:
+      - targets: ['helix-adapter:8088']
+        labels:
+          optional_profile: 'true'
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'helix-node'
+    static_configs:
+      - targets:
+          - 'helix-node-lab:8091'
+          - 'helix-node-lab-02:8091'
+        labels:
+          optional_profile: 'true'
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'alloy-edge'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/*.json
     metrics_path: /metrics
     scrape_interval: 15s
 

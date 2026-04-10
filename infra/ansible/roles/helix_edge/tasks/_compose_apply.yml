@@ -1,0 +1,14 @@
+---
+- name: Helix | Apply compose project
+  community.docker.docker_compose_v2:
+    project_name: "{{ helix_edge_project_name }}"
+    project_src: "{{ helix_edge_current_link }}"
+    files:
+      - "{{ helix_edge_compose_filename }}"
+    state: present
+    pull: "{{ helix_edge_pull_policy }}"
+    recreate: "{{ helix_edge_recreate_policy }}"
+    remove_orphans: false
+    wait: true
+    wait_timeout: "{{ helix_edge_wait_timeout }}"
+  register: helix_edge_compose_result
