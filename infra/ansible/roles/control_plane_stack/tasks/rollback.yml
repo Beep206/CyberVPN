@@ -1,0 +1,28 @@
+---
+- name: Control plane | Resolve rollback target
+  ansible.builtin.set_fact:
+    control_plane_stack_rollback_target: >-
+      {{
+        (
+          control_plane_stack_releases_dir ~ '/' ~ control_plane_stack_rollback_release_name
+        )
+        if control_plane_stack_rollback_release_name | length > 0
+        else control_plane_stack_previous_target
+      }}
+
+- name: Control plane | Assert rollback target exists
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_rollback_target | length > 0
+    fail_msg: "No control-plane rollback target is available."
+
+- name: Control plane | Point current symlink to rollback target
+  ansible.builtin.file:
+    state: link
+    src: "{{ control_plane_stack_rollback_target }}"
+    path: "{{ control_plane_stack_current_link }}"
+    force: true
+
+- import_tasks: state.yml
+- import_tasks: _compose_apply.yml
+- import_tasks: verify.yml

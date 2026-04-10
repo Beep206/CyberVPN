@@ -1,0 +1,3 @@
+---
+- import_playbook: edge-bootstrap.yml
+- import_playbook: edge-verify.yml

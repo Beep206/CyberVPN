@@ -5,12 +5,10 @@ from types import SimpleNamespace
 import pytest
 from httpx import AsyncClient
 
-from src.main import app
 from src.application.services.helix_service import HelixManifestUnavailableError
+from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.helix import (
-    get_helix_service,
-)
+from src.presentation.dependencies.helix import get_helix_service
 
 
 @dataclass

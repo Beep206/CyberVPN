@@ -1,0 +1,12 @@
+---
+- name: Roll out Remnawave edge workload
+  hosts: "{{ remnawave_edge_target_group | default('remnawave_edge_staging') }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  max_fail_percentage: 0
+
+  roles:
+    - role: remnawave_edge
+      vars:
+        remnawave_edge_action: deploy

@@ -1,1125 +1,718 @@
-# CyberVPN — План внедрения Terraform + Ansible (IaC)
+# CyberVPN — План внедрения IaC на Terraform + Ansible
 
-> **Версия:** 1.0 · **Дата:** 8 апреля 2026  
-> **Статус:** Проектирование  
-> **Целевые best practices:** Terraform 1.15+, Ansible 11+, Hetzner provider 1.60+, 2026
-
----
-
-## Содержание
-
-1. [Цели и обоснование](#1-цели-и-обоснование)
-2. [Обзор выбранного стека](#2-обзор-выбранного-стека)
-3. [Архитектура IaC](#3-архитектура-iac)
-4. [Terraform — подробный план](#4-terraform--подробный-план)
-5. [Ansible — подробный план](#5-ansible--подробный-план)
-6. [Связка Terraform → Ansible](#6-связка-terraform--ansible)
-7. [Secrets Management](#7-secrets-management)
-8. [CI/CD интеграция](#8-cicd-интеграция)
-9. [Тестирование IaC](#9-тестирование-iac)
-10. [Day-2 Operations (эксплуатация)](#10-day-2-operations)
-11. [Сценарии использования](#11-сценарии-использования)
-12. [Безопасность](#12-безопасность)
-13. [Структура файлов](#13-структура-файлов)
-14. [Фазы реализации](#14-фазы-реализации)
-15. [Риски и митигации](#15-риски-и-митигации)
+> **Версия:** 2.0  
+> **Дата аудита:** 8 апреля 2026  
+> **Статус:** Рекомендовано к поэтапной реализации  
+> **Основание:** документ обновлён после сверки с текущим состоянием монорепозитория и официальной документацией Terraform, Ansible, Hetzner, Cloudflare, Docker и Grafana.
 
 ---
 
-## 1. Цели и обоснование
+## 1. Краткий вывод по аудиту
 
-### 1.1 Текущие проблемы
+Исходный документ был полезен как стартовая концепция, но в нём было несколько проблем, которые для production-внедрения уже нельзя оставлять без правок:
 
-| Проблема | Последствие |
-|---|---|
-| VPN-ноды создаются вручную через web-панели Hetzner/DO | 30+ минут на каждую новую ноду |
-| Настройка ОС вручную (SSH, firewall, Docker) | Несогласованность конфигов между нодами |
-| Обновление Remnawave Node — SSH на каждый сервер | При 10+ нодах — 1-2 часа рутины |
-| DNS-записи добавляются вручную в Cloudflare | Риск человеческой ошибки |
-| Нет воспроизводимости инфраструктуры | Невозможно восстановить всё с нуля |
-| Секреты (Reality keys, UUID) в головах/чатах | Критический security risk |
+- часть версионных рекомендаций устарела;
+- несколько утверждений не подтверждаются официальной документацией;
+- порядок внедрения слишком оптимистичен для текущего состояния репозитория;
+- план недостаточно учитывал реальную структуру проекта: локальный `infra/docker-compose.yml`, Helix lab, monitoring stack, rollback scripts и backend tests.
 
-### 1.2 Целевое состояние
+### Что изменено принципиально
 
-```
-git push → CI/CD → terraform plan → approve → terraform apply → ansible-playbook
-                                                    ↓
-                                        Новая VPN-нода готова за 5 минут
-                                        с Docker, Remnawave, firewall, monitoring
-```
-
-### 1.3 Конкретные задачи под наш проект
-
-- **Provisioning VPN-нод** — Hetzner VPS в разных локациях
-- **Provisioning Helix Node** — edge-серверы для нашего собственного протокола
-- **DNS Management** — A/AAAA записи в Cloudflare для каждой ноды
-- **Массовое обновление** — `remnawave/node:2.7.4` → `2.8.x` на всех нодах одной командой
-- **Helix rollout** — деплой helix-node daemon на edge-серверы
-- **Security hardening** — унификация настроек SSH, UFW, Fail2ban
-- **Monitoring agent** — установка node-exporter + promtail на каждую ноду
-- **Backup** — автоматический бэкап конфигов нод
+- **Не используем Terraform 1.15 как базу**. На дату аудита стабильный официальный релиз Terraform: `1.14.8`; ветка `1.15` ещё не является безопасной точкой опоры для внедрения.
+- **Поднимаем рекомендованные версии Ansible и коллекций** до актуального 2026 уровня.
+- **Убираем неподтверждённый тезис** о deprecation `datacenter` в Hetzner provider. На дату аудита я не нашёл официального подтверждения именно этой deprecation-линии.
+- **Отказываемся от рекомендации `\"iptables\": false` для Docker**. Это не best practice. Для Docker-hosted сервисов используем Cloud Firewall + публикацию только нужных портов + правила в `DOCKER-USER`, а не отключение Docker iptables.
+- **Меняем rollout-стратегию**: сначала edge-ноды и observability, потом workload deployment, и только после этого codify control-plane.
+- **Не делаем `terraform apply -target` штатным сценарием**. Это допустимо только как break-glass операция.
+- **Для новых лог-агентов не планируем Promtail**. На дату аудита Promtail уже EOL; для новых нод целевым агентом должен быть **Grafana Alloy**.
 
 ---
 
-## 2. Обзор выбранного стека
+## 2. Что уже есть в репозитории и что нельзя игнорировать
 
-### 2.1 Почему Terraform + Ansible (а не Pulumi / только Ansible)
+Этот план должен опираться на уже существующий проект, а не на абстрактный IaC-шаблон.
 
-| Критерий | Terraform + Ansible | Pulumi | Только Ansible |
-|---|---|---|---|
-| Разделение ответственности | ✅ Чёткое: create vs configure | ❌ Смешивает | ❌ Плохо создаёт ресурсы |
-| State management | ✅ Terraform state с drift detection | ✅ Pulumi state | ❌ Нет state |
-| Экосистема | ✅ Огромная, зрелая | ⚠️ Растущая | ✅ Ansible Galaxy |
-| Найм DevOps | ✅ 90% знают | ⚠️ Нишевый | ✅ Знают |
-| Наша команда (Python/Rust) | ✅ HCL прост + YAML привычен | ⚠️ Ещё один TS runtime | ✅ Python-friendly |
-| Docker Compose деплой | ✅ Ansible `docker_compose_v2` | ⚠️ Нужен свой подход | ✅ Идеально |
-| Hetzner provider | ✅ Зрелый (1.60+) | ⚠️ Менее зрелый | ⚠️ Через hcloud module |
+### 2.1 Уже существующие артефакты
 
-### 2.2 Версии инструментов (2026 best practices)
+- `infra/docker-compose.yml` — локальный эталон текущей сервисной топологии;
+- `infra/docker-compose.dev.yml` — dev-оверлей;
+- `infra/README.md` — рабочие сценарии локального и lab-запуска;
+- `infra/tests/test_helix_stack.sh` — верификация Helix stack;
+- `infra/tests/verify_helix_rollback.sh` — rollback drill для Helix;
+- `backend/tests/load/test_helix_load.py` — нагрузочные сценарии;
+- `infra/prometheus/`, `infra/grafana/`, `infra/loki/`, `infra/otel/` — действующая observability-обвязка;
+- `services/helix-adapter`, `services/helix-node`, `services/task-worker` — production-значимые сервисы, уже имеющие Dockerfile и свои runtime-контракты.
 
-| Инструмент | Минимальная версия | Почему |
+### 2.2 Практический вывод
+
+IaC не должен “перепридумывать” этот стек. Правильный путь:
+
+1. Использовать текущий `infra/docker-compose.yml` как **референс по сервисам, env-переменным, health endpoints и volumes**.
+2. Не переносить giant compose-файл на edge-хосты как есть.
+3. Разбить деплой на **малые Compose-проекты по роли хоста**:
+   - `remnawave-node`
+   - `helix-node`
+   - `monitoring-agent`
+   - позже `control-plane`
+4. Внедрять IaC **сначала на edge-нодах**, не смешивая это с немедленной полной миграцией control-plane.
+
+---
+
+## 3. Целевое состояние
+
+### 3.1 Что автоматизируем в первой очереди
+
+- provisioning edge-ноды в Hetzner;
+- выдачу и привязку primary IP;
+- назначение firewall;
+- публикацию DNS в Cloudflare;
+- bootstrap ОС;
+- hardening SSH;
+- установку Docker Engine + Compose plugin;
+- деплой `remnawave-node` и `helix-node`;
+- установку node-level observability;
+- rolling update и rollback-процедуры;
+- инвентарь и связку Terraform → Ansible;
+- PR/plan/apply pipeline для IaC.
+
+### 3.2 Что сознательно выносим во вторую очередь
+
+- полную автоматизацию control-plane;
+- перенос PostgreSQL/Valkey/worker/backend/helix-adapter в отдельные IaC stacks;
+- secret management уровня Vault/1Password Connect/Infisical как обязательную зависимость первого этапа;
+- multi-region failover control-plane;
+- self-service создание нод через UI.
+
+Это не отказ от этих задач. Это декомпозиция риска.
+
+---
+
+## 4. Актуальный стек и версии на 2026-04-08
+
+Ниже не “минимумы лишь бы завелось”, а рекомендуемые точки старта для нового внедрения.
+
+| Компонент | Рекомендация для проекта | Комментарий |
 |---|---|---|
-| Terraform | ≥1.15 | Ephemeral values, variables в module sources |
-| hetznercloud/hcloud provider | ≥1.60.0 | IP lifecycle changes (май 2026), `location` вместо `datacenter` |
-| cloudflare/cloudflare provider | ≥5.x | Scoped API tokens, modern resource naming |
-| Ansible | ≥11.0 (ansible-core ≥2.18) | Python 3.12+, performance improvements |
-| community.docker collection | ≥4.0 | `docker_compose_v2` module, assume_yes support |
-| community.hetzner collection | ≥3.0 | Полная поддержка Hetzner API v1 |
-| Molecule | ≥25.x | molecule-plugins[docker], modern testing |
+| Terraform CLI | `1.14.x` | Официально стабильная ветка на дату аудита. 1.15 не брать как базу. |
+| `hetznercloud/hcloud` provider | `>= 1.60.1, < 2.0` | Актуально после Hetzner IP lifecycle changes 2026. |
+| `cloudflare/cloudflare` provider | `5.x` | Идти сразу на актуальную major-ветку, без новых внедрений на legacy patterns. |
+| Ansible package | `13.x` | Текущая актуальная community-ветка. |
+| `ansible-core` | `2.20.x` | Актуальная стабильная ветка на дату аудита. |
+| `community.docker` | `5.x` | Использовать текущую ветку для `docker_compose_v2` и связанных модулей. |
+| `hetzner.hcloud` collection | `>= 6.7.0, < 7.0` | Актуальная ветка под API-изменения Hetzner 2026. |
+| Molecule | `26.x` | Для актуального тестового контура ролей. |
+| Grafana Alloy | последняя стабильная `1.x` ветка | Для новых node log/metrics pipelines вместо Promtail. |
+
+### Правило pinning
+
+- pin по major/minor там, где высокая вероятность breaking changes;
+- не писать `>= 0` и не оставлять широкие диапазоны “на авось”;
+- обновлять версии сознательно отдельными PR;
+- добавлять changelog-review в PR с обновлением провайдеров и коллекций.
 
 ---
 
-## 3. Архитектура IaC
+## 5. Архитектурные решения, которые принимаем
 
-### 3.1 Общая схема
+### 5.1 Terraform отвечает только за infrastructure lifecycle
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     GitHub Repository                        │
-│  infra/                                                      │
-│  ├── terraform/          ← Создание облачных ресурсов        │
-│  └── ansible/            ← Настройка серверов                │
-└──────────┬──────────────────────────────┬────────────────────┘
-           │                              │
-           ▼                              ▼
-┌──────────────────┐          ┌──────────────────────┐
-│  Terraform       │          │  Ansible             │
-│                  │          │                      │
-│  • Hetzner VPS   │  output  │  • Docker install    │
-│  • Cloudflare DNS│───IP────▶│  • Remnawave Node    │
-│  • Firewall rules│          │  • Helix Node        │
-│  • SSH keys      │          │  • SSH hardening     │
-│  • Volumes       │          │  • UFW + Fail2ban    │
-│                  │          │  • Monitoring agents  │
-└──────────────────┘          └──────────────────────┘
-           │                              │
-           ▼                              ▼
-┌──────────────────────────────────────────────────────┐
-│              VPN Infrastructure                       │
-│                                                       │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │ Node 1  │  │ Node 2  │  │ Node 3  │  │ Node N  │ │
-│  │ Helsinki │  │ Frankfurt│  │ Amsterdam│  │ Tokyo   │ │
-│  │ xray     │  │ xray     │  │ helix   │  │ xray    │ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘ │
-└──────────────────────────────────────────────────────┘
-```
+Terraform управляет:
 
-### 3.2 Принцип разделения (Separation of Concerns)
+- серверами;
+- primary IP;
+- firewall;
+- placement groups;
+- DNS;
+- SSH key registration;
+- outputs для дальнейшей конфигурации.
 
-| Слой | Инструмент | Что делает | State |
-|---|---|---|---|
-| **Infrastructure** | Terraform | Создаёт VPS, DNS, firewall, SSH keys, volumes | Remote S3 (versioned, encrypted) |
-| **Configuration** | Ansible | Настраивает ОС, ставит софт, деплоит Docker stacks | Stateless (idempotent) |
-| **Application** | Docker Compose | Запускает контейнеры (Remnawave, Helix, monitoring) | Managed by Ansible |
+Terraform **не** должен:
 
----
+- деплоить весь application runtime через provisioners;
+- запускать shell-скрипты вместо Ansible;
+- выполнять post-deploy логику, которую можно сделать playbook'ом.
 
-## 4. Terraform — подробный план
+### 5.2 Ansible отвечает за host configuration и workload deployment
 
-### 4.1 Структура проекта
+Ansible управляет:
 
-```
-infra/terraform/
-├── environments/
-│   ├── production/
-│   │   ├── main.tf              # Вызов модулей
-│   │   ├── variables.tf         # Входные переменные
-│   │   ├── outputs.tf           # Выходные значения (IP → Ansible)
-│   │   ├── terraform.tfvars     # Значения переменных (НЕ в git)
-│   │   ├── backend.tf           # Remote state config
-│   │   └── versions.tf          # Provider version locks
-│   └── staging/
-│       ├── main.tf
-│       └── ...
-├── modules/
-│   ├── vpn-node/                # Модуль: VPN-нода
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── README.md
-│   ├── helix-edge/              # Модуль: Helix edge node
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── dns-record/              # Модуль: Cloudflare DNS запись
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── firewall/                # Модуль: Hetzner Firewall
-│   │   ├── main.tf
-│   │   └── variables.tf
-│   └── control-plane/           # Модуль: Основной сервер (Panel + DB)
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
-├── tests/                       # Native Terraform tests
-│   ├── vpn_node_test.tftest.hcl
-│   └── dns_test.tftest.hcl
-└── .terraform.lock.hcl          # Provider lock file (в git)
-```
+- пакетами ОС;
+- Docker;
+- users/SSH/sysctl;
+- compose-файлами по ролям;
+- env-файлами;
+- rolling update;
+- health checks;
+- rollback.
 
-### 4.2 Модуль `vpn-node` — ключевой модуль
+### 5.3 Local compose остаётся эталоном, но не становится production deploy unit
 
-```hcl
-# modules/vpn-node/main.tf
+`infra/docker-compose.yml` нужен как:
 
-resource "hcloud_server" "vpn_node" {
-  name        = var.node_name
-  server_type = var.server_type  # cx22, cx32, cx42
-  image       = "ubuntu-24.04"
-  location    = var.location      # ⚠️ НЕ datacenter (deprecated July 2026)
+- источник реальных сервисных зависимостей;
+- источник health endpoints;
+- источник env naming;
+- локальный/Helix lab контур.
 
-  ssh_keys = var.ssh_key_ids
+Но production IaC должен раскладывать этот стек на role-specific units, иначе получится слишком большая blast radius на каждом хосте.
 
-  labels = {
-    project     = "cybervpn"
-    role        = var.node_role    # "remnawave" | "helix"
-    environment = var.environment
-    managed_by  = "terraform"
-  }
+### 5.4 Внедрение идёт по модели edge-first
 
-  # cloud-init: минимальная начальная настройка
-  user_data = templatefile("${path.module}/cloud-init.yml.tpl", {
-    ssh_port       = var.ssh_port
-    admin_username = var.admin_username
-  })
+Для текущего репозитория это наименее рискованный порядок:
 
-  lifecycle {
-    # Не пересоздавать сервер при изменении cloud-init
-    ignore_changes = [user_data]
-  }
-}
-
-# Выделенный IPv4 (не теряется при пересоздании сервера)
-resource "hcloud_primary_ip" "vpn_ip" {
-  name          = "${var.node_name}-ipv4"
-  type          = "ipv4"
-  location      = var.location
-  assignee_type = "server"
-  assignee_id   = hcloud_server.vpn_node.id
-  auto_delete   = false  # ⚠️ С мая 2026: unassign перед delete
-
-  labels = {
-    project    = "cybervpn"
-    managed_by = "terraform"
-  }
-}
-
-# Привязка firewall
-resource "hcloud_firewall_attachment" "vpn_fw" {
-  firewall_id = var.firewall_id
-  server_ids  = [hcloud_server.vpn_node.id]
-}
-```
-
-### 4.3 Модуль `dns-record`
-
-```hcl
-# modules/dns-record/main.tf
-
-data "cloudflare_zone" "main" {
-  name = var.domain  # "ozoxy.ru"
-}
-
-resource "cloudflare_record" "vpn_node" {
-  zone_id = data.cloudflare_zone.main.id
-  name    = var.subdomain         # "fi-01.vpn"
-  content = var.ipv4_address
-  type    = "A"
-  ttl     = 300
-  proxied = false  # ⚠️ DNS-only для VPN (не через Cloudflare proxy)
-
-  comment = "Managed by Terraform — CyberVPN ${var.node_role} node"
-}
-```
-
-### 4.4 Модуль `firewall`
-
-```hcl
-# modules/firewall/main.tf
-
-resource "hcloud_firewall" "vpn_node" {
-  name = "cybervpn-vpn-node"
-
-  # SSH (кастомный порт)
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = var.ssh_port
-    source_ips = var.admin_ips  # Только наши IP
-  }
-
-  # HTTPS (VPN трафик: VLESS-Reality, XHTTP, Trojan)
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "443"
-    source_ips = ["0.0.0.0/0", "::/0"]
-  }
-
-  # Hysteria2 (UDP)
-  rule {
-    direction  = "in"
-    protocol   = "udp"
-    port       = "443"
-    source_ips = ["0.0.0.0/0", "::/0"]
-  }
-
-  # Node Exporter (только monitoring сервер)
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "9100"
-    source_ips = [var.monitoring_server_ip]
-  }
-
-  # Remnawave gRPC (Panel ↔ Node, только panel IP)
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = var.remnawave_grpc_port
-    source_ips = [var.panel_server_ip]
-  }
-
-  labels = {
-    project    = "cybervpn"
-    managed_by = "terraform"
-  }
-}
-```
-
-### 4.5 Remote State (S3-совместимый backend)
-
-```hcl
-# environments/production/backend.tf
-
-terraform {
-  backend "s3" {
-    bucket   = "cybervpn-terraform-state"
-    key      = "production/terraform.tfstate"
-    region   = "eu-central-1"       # Hetzner Object Storage или AWS S3
-    encrypt  = true
-
-    # State locking (DynamoDB для AWS, или use_lockfile для S3-compatible)
-    use_lockfile = true
-  }
-}
-```
-
-### 4.6 Outputs для Ansible
-
-```hcl
-# environments/production/outputs.tf
-
-output "vpn_nodes" {
-  description = "Map of VPN nodes for Ansible inventory"
-  value = {
-    for name, node in module.vpn_nodes : name => {
-      ip          = node.ipv4_address
-      location    = node.location
-      role        = node.role
-      server_type = node.server_type
-    }
-  }
-}
-
-output "ansible_inventory" {
-  description = "Dynamic Ansible inventory in INI format"
-  value = templatefile("${path.module}/inventory.tpl", {
-    nodes       = module.vpn_nodes
-    ssh_port    = var.ssh_port
-    admin_user  = var.admin_username
-  })
-}
-```
-
-### 4.7 Ephemeral Values (Terraform 1.10+ best practice)
-
-```hcl
-# Секреты не сохраняются в state file
-variable "hcloud_token" {
-  type      = string
-  sensitive = true
-  ephemeral = true  # ⚠️ 2026 best practice: не попадает в state
-}
-
-variable "cloudflare_api_token" {
-  type      = string
-  sensitive = true
-  ephemeral = true
-}
-```
+1. staging edge;
+2. prod canary edge;
+3. full edge rollout;
+4. только потом control-plane codification.
 
 ---
 
-## 5. Ansible — подробный план
+## 6. Целевая структура IaC
 
-### 5.1 Структура проекта
+Рекомендую следующую структуру.
 
-```
-infra/ansible/
-├── ansible.cfg                    # Глобальная конфигурация
-├── requirements.yml               # Collections (community.docker, community.hetzner)
-├── inventory/
-│   ├── production/
-│   │   ├── hosts.yml              # Статический инвентарь
-│   │   ├── group_vars/
-│   │   │   ├── all.yml            # Общие переменные
-│   │   │   ├── vpn_nodes.yml      # Переменные для VPN-нод
-│   │   │   ├── helix_nodes.yml    # Переменные для Helix-нод
-│   │   │   └── vault.yml          # 🔐 Зашифрованные секреты (ansible-vault)
-│   │   └── host_vars/
-│   │       ├── fi-01.yml          # Per-node: UUID, Reality keys
-│   │       └── de-01.yml
-│   └── staging/
-│       └── hosts.yml
-├── roles/
-│   ├── common/                    # Базовая настройка ОС
-│   │   ├── tasks/
-│   │   │   ├── main.yml
-│   │   │   ├── ssh.yml            # SSH hardening
-│   │   │   ├── firewall.yml       # UFW config
-│   │   │   ├── packages.yml       # Обновления, основные пакеты
-│   │   │   ├── fail2ban.yml       # Anti-bruteforce
-│   │   │   ├── users.yml          # Системные пользователи
-│   │   │   └── sysctl.yml         # Kernel tuning (net.core, tcp)
-│   │   ├── handlers/main.yml
-│   │   ├── templates/
-│   │   │   ├── sshd_config.j2
-│   │   │   ├── fail2ban.local.j2
-│   │   │   └── sysctl.conf.j2
-│   │   └── defaults/main.yml
-│   ├── docker/                    # Установка Docker + Compose
-│   │   ├── tasks/main.yml
-│   │   └── handlers/main.yml
-│   ├── remnawave-node/            # Деплой Remnawave Node
-│   │   ├── tasks/
-│   │   │   ├── main.yml
-│   │   │   ├── deploy.yml
-│   │   │   └── update.yml
-│   │   ├── templates/
-│   │   │   ├── docker-compose.yml.j2
-│   │   │   └── .env.j2
-│   │   └── defaults/main.yml
-│   ├── helix-node/                # Деплой Helix Node daemon
-│   │   ├── tasks/main.yml
-│   │   ├── templates/
-│   │   │   └── docker-compose.yml.j2
-│   │   └── defaults/main.yml
-│   ├── monitoring-agent/          # node-exporter + promtail
-│   │   ├── tasks/main.yml
-│   │   └── templates/
-│   │       ├── docker-compose.monitoring.yml.j2
-│   │       └── promtail-config.yml.j2
-│   └── backup/                    # Автобэкап конфигов
-│       ├── tasks/main.yml
-│       └── templates/
-│           └── backup-cron.j2
-├── playbooks/
-│   ├── site.yml                   # Полный деплой с нуля
-│   ├── update-remnawave.yml       # Обновить Remnawave на всех нодах
-│   ├── update-helix.yml           # Обновить Helix на всех нодах
-│   ├── rollback-remnawave.yml     # Откат Remnawave
-│   ├── add-node.yml               # Добавить одну ноду
-│   ├── remove-node.yml            # Вывести ноду из эксплуатации
-│   ├── rotate-keys.yml            # Ротация Reality/TLS ключей
-│   ├── security-audit.yml         # Проверка безопасности всех нод
-│   └── helix-canary-deploy.yml    # Канареечный деплой Helix
-└── molecule/                      # Тестирование ролей
-    ├── common/
-    │   ├── molecule.yml
-    │   ├── converge.yml
-    │   └── verify.yml
-    └── remnawave-node/
-        ├── molecule.yml
-        ├── converge.yml
-        └── verify.yml
-```
-
-### 5.2 Роль `common` — SSH hardening + Firewall
-
-```yaml
-# roles/common/tasks/ssh.yml
-- name: SSH | Deploy hardened sshd_config
-  ansible.builtin.template:
-    src: sshd_config.j2
-    dest: /etc/ssh/sshd_config
-    owner: root
-    group: root
-    mode: "0600"
-    validate: "sshd -t -f %s"
-  notify: restart sshd
-  no_log: false
-
-- name: SSH | Ensure password auth is disabled
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^#?PasswordAuthentication"
-    line: "PasswordAuthentication no"
-  notify: restart sshd
-
-- name: SSH | Ensure root login is disabled
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^#?PermitRootLogin"
-    line: "PermitRootLogin no"
-  notify: restart sshd
-```
-
-```yaml
-# roles/common/tasks/firewall.yml
-# ⚠️ Порядок критичен: сначала SSH, потом enable
-- name: UFW | Allow SSH
-  community.general.ufw:
-    rule: allow
-    port: "{{ ssh_port }}"
-    proto: tcp
-
-- name: UFW | Allow HTTPS (VPN traffic)
-  community.general.ufw:
-    rule: allow
-    port: "443"
-    proto: tcp
-
-- name: UFW | Allow Hysteria2 UDP
-  community.general.ufw:
-    rule: allow
-    port: "443"
-    proto: udp
-
-- name: UFW | Allow node-exporter from monitoring
-  community.general.ufw:
-    rule: allow
-    from_ip: "{{ monitoring_server_ip }}"
-    port: "9100"
-    proto: tcp
-
-- name: UFW | Default deny incoming
-  community.general.ufw:
-    state: enabled
-    default: deny
-    direction: incoming
-```
-
-### 5.3 Роль `remnawave-node` — деплой VPN-ноды
-
-```yaml
-# roles/remnawave-node/tasks/deploy.yml
-- name: Create node directory
-  ansible.builtin.file:
-    path: /opt/remnanode
-    state: directory
-    owner: root
-    mode: "0750"
-
-- name: Template docker-compose.yml
-  ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: /opt/remnanode/docker-compose.yml
-    owner: root
-    mode: "0640"
-  no_log: true  # ⚠️ Содержит секреты
-
-- name: Template .env
-  ansible.builtin.template:
-    src: .env.j2
-    dest: /opt/remnanode/.env
-    owner: root
-    mode: "0600"
-  no_log: true
-
-- name: Deploy Remnawave Node via Docker Compose
-  community.docker.docker_compose_v2:
-    project_src: /opt/remnanode
-    state: present
-    pull: always
-  register: compose_result
-
-- name: Verify node is healthy
-  ansible.builtin.uri:
-    url: "http://localhost:{{ remnawave_metrics_port }}/health"
-    return_content: true
-  register: health_check
-  retries: 10
-  delay: 5
-  until: health_check.status == 200
-```
-
-### 5.4 Playbook `update-remnawave.yml`
-
-```yaml
-# playbooks/update-remnawave.yml
----
-- name: Update Remnawave Node on all VPN nodes
-  hosts: vpn_nodes
-  become: true
-  serial: 1       # ⚠️ Rolling update: по одной ноде за раз
-  max_fail_percentage: 0
-
-  vars:
-    remnawave_version: "{{ target_version | default('2.7.4') }}"
-
-  pre_tasks:
-    - name: Record pre-update image version
-      community.docker.docker_image_info:
-        name: "remnawave/node"
-      register: pre_update_image
-
-  tasks:
-    - name: Pull new Remnawave Node image
-      community.docker.docker_image_pull:
-        name: "remnawave/node:{{ remnawave_version }}"
-
-    - name: Update Docker Compose stack
-      community.docker.docker_compose_v2:
-        project_src: /opt/remnanode
-        state: present
-        pull: always
-
-    - name: Wait for node to become healthy
-      ansible.builtin.uri:
-        url: "http://localhost:{{ remnawave_metrics_port }}/health"
-      register: health
-      retries: 15
-      delay: 5
-      until: health.status == 200
-
-    - name: Verify node is connected to Panel
-      ansible.builtin.uri:
-        url: "http://localhost:{{ remnawave_metrics_port }}/health"
-        return_content: true
-      register: panel_check
-      failed_when: "'connected' not in panel_check.content"
-
-  post_tasks:
-    - name: Log successful update
-      ansible.builtin.debug:
-        msg: "✅ {{ inventory_hostname }} updated to remnawave/node:{{ remnawave_version }}"
-```
-
-### 5.5 Kernel tuning для VPN-нод
-
-```yaml
-# roles/common/templates/sysctl.conf.j2
-# CyberVPN — Optimized for high-throughput VPN proxy
-# Managed by Ansible — do not edit manually
-
-# TCP optimization
-net.core.somaxconn = 65535
-net.core.netdev_max_backlog = 65535
-net.ipv4.tcp_max_syn_backlog = 65535
-net.ipv4.tcp_fastopen = 3
-net.ipv4.tcp_slow_start_after_idle = 0
-
-# Connection tracking
-net.netfilter.nf_conntrack_max = 1048576
-net.nf_conntrack_max = 1048576
-
-# Buffer sizes
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 87380 16777216
-
-# BBR congestion control
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-
-# Keep-alive
-net.ipv4.tcp_keepalive_time = 600
-net.ipv4.tcp_keepalive_intvl = 30
-net.ipv4.tcp_keepalive_probes = 10
-
-# TUN/TAP for Helix (если node_role == 'helix')
-{% if node_role == 'helix' %}
-net.ipv4.ip_forward = 1
-net.ipv6.conf.all.forwarding = 1
-{% endif %}
-```
-
----
-
-## 6. Связка Terraform → Ansible
-
-### 6.1 Dynamic Inventory из Terraform Output
-
-```python
-#!/usr/bin/env python3
-# infra/ansible/inventory/terraform_inventory.py
-"""
-Dynamic Ansible inventory from Terraform state.
-Usage: ansible-playbook -i inventory/terraform_inventory.py site.yml
-"""
-import json
-import subprocess
-import sys
-
-def get_terraform_output():
-    result = subprocess.run(
-        ["terraform", "output", "-json"],
-        capture_output=True, text=True,
-        cwd="../terraform/environments/production"
-    )
-    return json.loads(result.stdout)
-
-def build_inventory(tf_output):
-    nodes = tf_output.get("vpn_nodes", {}).get("value", {})
-
-    inventory = {
-        "_meta": {"hostvars": {}},
-        "vpn_nodes": {"hosts": []},
-        "helix_nodes": {"hosts": []},
-        "all": {"children": ["vpn_nodes", "helix_nodes"]}
-    }
-
-    for name, info in nodes.items():
-        inventory["_meta"]["hostvars"][name] = {
-            "ansible_host": info["ip"],
-            "ansible_port": 22022,
-            "node_location": info["location"],
-            "node_role": info["role"],
-        }
-
-        group = "helix_nodes" if info["role"] == "helix" else "vpn_nodes"
-        inventory[group]["hosts"].append(name)
-
-    return inventory
-
-if __name__ == "__main__":
-    tf = get_terraform_output()
-    print(json.dumps(build_inventory(tf), indent=2))
-```
-
-### 6.2 Makefile для удобства
-
-```makefile
-# infra/Makefile
-
-.PHONY: plan apply provision update-nodes
-
-# Terraform
-plan:
-	cd terraform/environments/production && terraform plan
-
-apply:
-	cd terraform/environments/production && terraform apply
-
-# Ansible
-provision:
-	cd ansible && ansible-playbook -i inventory/terraform_inventory.py playbooks/site.yml
-
-update-nodes:
-	cd ansible && ansible-playbook -i inventory/terraform_inventory.py playbooks/update-remnawave.yml
-
-# Full deploy: create + configure
-deploy: apply provision
-
-# Специфичные операции
-add-node:
-	cd terraform/environments/production && terraform apply -target=module.vpn_nodes["$(NODE)"]
-	cd ansible && ansible-playbook -i inventory/terraform_inventory.py playbooks/add-node.yml --limit $(NODE)
-
-helix-canary:
-	cd ansible && ansible-playbook -i inventory/terraform_inventory.py playbooks/helix-canary-deploy.yml
-```
-
----
-
-## 7. Secrets Management
-
-### 7.1 Ansible Vault
-
-```bash
-# Создание зашифрованного файла
-ansible-vault create inventory/production/group_vars/vault.yml
-
-# Содержимое vault.yml:
-# vault_remnawave_panel_token: "eyJhbGciOiJIUzI1..."
-# vault_reality_private_keys:
-#   fi-01: "abc123..."
-#   de-01: "def456..."
-# vault_cloudflare_api_token: "cf-xxxx"
-# vault_hcloud_token: "hc-xxxx"
-```
-
-### 7.2 Правила именования секретов
-
-| Конвенция | Пример | Почему |
-|---|---|---|
-| Префикс `vault_` | `vault_reality_key` | Отличает от plain-text переменных |
-| `no_log: true` | В каждой задаче с секретами | Не попадает в stdout CI/CD |
-| Раздельные vault-файлы | `prod_vault.yml`, `staging_vault.yml` | Изоляция окружений |
-| Password file | `--vault-password-file .vault_pass` | Не вводить руками |
-
-### 7.3 Terraform Sensitive + Ephemeral
-
-```hcl
-# Ephemeral: не сохраняется в state (Terraform 1.10+)
-variable "hcloud_token" {
-  type      = string
-  sensitive = true
-  ephemeral = true
-}
-
-# Для CI/CD: передаётся через environment
-# export TF_VAR_hcloud_token=$HCLOUD_TOKEN
-```
-
----
-
-## 8. CI/CD интеграция
-
-### 8.1 GitHub Actions Workflow
-
-```yaml
-# .github/workflows/infrastructure.yml
-name: Infrastructure (IaC)
-
-on:
-  push:
-    branches: [main]
-    paths: ['infra/terraform/**', 'infra/ansible/**']
-  pull_request:
-    paths: ['infra/terraform/**', 'infra/ansible/**']
-
-env:
-  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-  TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-jobs:
-  terraform-plan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - name: Terraform Init
-        working-directory: infra/terraform/environments/production
-        run: terraform init
-      - name: Terraform Plan
-        working-directory: infra/terraform/environments/production
-        run: terraform plan -out=tfplan
-      - name: Upload Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: infra/terraform/environments/production/tfplan
-
-  terraform-apply:
-    needs: terraform-plan
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production  # Requires manual approval
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with: { name: tfplan }
-      - name: Terraform Apply
-        working-directory: infra/terraform/environments/production
-        run: terraform apply -auto-approve tfplan
-
-  ansible-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ansible/ansible-lint-action@v6
-        with:
-          path: infra/ansible/
-```
-
----
-
-## 9. Тестирование IaC
-
-### 9.1 Terraform Native Tests
-
-```hcl
-# infra/terraform/tests/vpn_node_test.tftest.hcl
-
-variables {
-  node_name   = "test-node-01"
-  location    = "hel1"
-  server_type = "cx22"
-  ssh_key_ids = []
-  node_role   = "remnawave"
-  environment = "test"
-}
-
-run "vpn_node_creates_successfully" {
-  command = plan
-
-  assert {
-    condition     = hcloud_server.vpn_node.location == "hel1"
-    error_message = "Node must be created in Helsinki"
-  }
-
-  assert {
-    condition     = hcloud_server.vpn_node.labels["managed_by"] == "terraform"
-    error_message = "Node must have managed_by label"
-  }
-}
-```
-
-### 9.2 Molecule для Ansible ролей
-
-```yaml
-# infra/ansible/molecule/common/molecule.yml
-driver:
-  name: docker
-platforms:
-  - name: test-ubuntu
-    image: geerlingguy/docker-ubuntu2404-ansible:latest
-    privileged: true
-    pre_build_image: true
-provisioner:
-  name: ansible
-verifier:
-  name: ansible
-```
-
----
-
-## 10. Day-2 Operations
-
-### 10.1 Операционные сценарии
-
-| Сценарий | Команда |
-|---|---|
-| Новая нода в Финляндии | `make add-node NODE=fi-02` |
-| Обновить все ноды | `make update-nodes` |
-| Откат Remnawave | `ansible-playbook rollback-remnawave.yml` |
-| Канареечный деплой Helix | `make helix-canary` |
-| Ротация Reality-ключей | `ansible-playbook rotate-keys.yml` |
-| Аудит безопасности | `ansible-playbook security-audit.yml` |
-| Удалить ноду | `terraform destroy -target=module.vpn_nodes["de-02"]` |
-
----
-
-## 11. Сценарии использования
-
-### 11.1 Сценарий: Добавить VPN-ноду в Токио
-
-```bash
-# 1. Добавить в Terraform variables
-# infra/terraform/environments/production/terraform.tfvars
-vpn_nodes = {
-  # ... существующие
-  "jp-01" = {
-    location    = "tok1"
-    server_type = "cx22"
-    role        = "remnawave"
-  }
-}
-
-# 2. Добавить host_vars для Ansible
-# infra/ansible/inventory/production/host_vars/jp-01.yml
-vault_node_uuid: "xxxxx"
-vault_reality_private_key: "yyyyyy"
-
-# 3. Запустить
-make deploy
-# → Terraform: создаст VPS + DNS
-# → Ansible: настроит ОС + Docker + Remnawave Node
-```
-
-### 11.2 Сценарий: Обновить Remnawave 2.7.4 → 2.8.0
-
-```bash
-# Rolling update: по одной ноде, с health check после каждой
-ansible-playbook update-remnawave.yml -e target_version=2.8.0
-
-# Что происходит на каждой ноде:
-# 1. docker pull remnawave/node:2.8.0
-# 2. docker compose down && up
-# 3. Health check (15 попыток × 5 сек)
-# 4. Проверка подключения к Panel
-# 5. Переход к следующей ноде
-```
-
-### 11.3 Сценарий: Канареечный деплой Helix
-
-```bash
-# 1. Деплой на 1 ноду (canary)
-ansible-playbook helix-canary-deploy.yml --limit helix-canary-01
-
-# 2. Мониторинг 24 часа (Grafana dashboard)
-
-# 3. Раскатка на все Helix-ноды
-ansible-playbook update-helix.yml
-```
-
----
-
-## 12. Безопасность
-
-### 12.1 Чеклист безопасности IaC
-
-| # | Правило | Инструмент |
-|---|---|---|
-| 1 | Секреты НЕ в git (plain-text) | ansible-vault, ephemeral vars |
-| 2 | State зашифрован и версионирован | S3 backend + encrypt |
-| 3 | API-токены с минимальными правами | Scoped Cloudflare tokens, Hetzner project tokens |
-| 4 | SSH: только ключи, без паролей | Ansible role `common` |
-| 5 | Firewall: deny по умолчанию | UFW + Hetzner Firewall (двойная защита) |
-| 6 | Docker: не от root | USER directive в Dockerfiles |
-| 7 | Образы: pin по digest | `image: remnawave/node:2.7.4@sha256:...` |
-| 8 | `no_log: true` на секретных задачах | Ansible tasks |
-| 9 | PR review обязателен для IaC изменений | GitHub branch protection |
-| 10 | `terraform plan` в CI перед apply | GitHub Actions |
-
-### 12.2 Docker и UFW — критический нюанс
-
-> ⚠️ **Docker обходит UFW**, напрямую манипулируя iptables. Решение:
-
-```json
-// /etc/docker/daemon.json (деплоится через Ansible)
-{
-  "iptables": false,
-  "default-address-pools": [
-    {"base": "172.17.0.0/16", "size": 24}
-  ]
-}
-```
-
-Плюс Hetzner Firewall как **внешний** (облачный) firewall — он работает на уровне гипервизора и не обходится Docker.
-
----
-
-## 13. Полная структура файлов
-
-```
+```text
 infra/
 ├── terraform/
-│   ├── environments/
-│   │   ├── production/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
-│   │   │   ├── backend.tf
-│   │   │   ├── versions.tf
-│   │   │   └── terraform.tfvars      # 🔐 НЕ в git
-│   │   └── staging/
-│   │       └── ...
 │   ├── modules/
-│   │   ├── vpn-node/
-│   │   ├── helix-edge/
-│   │   ├── dns-record/
-│   │   ├── firewall/
-│   │   └── control-plane/
-│   └── tests/
-│       └── *.tftest.hcl
+│   │   ├── edge_node/
+│   │   ├── control_plane/
+│   │   ├── firewall_policy/
+│   │   └── common_labels/
+│   └── live/
+│       ├── staging/
+│       │   ├── foundation/
+│       │   ├── edge/
+│       │   └── dns/
+│       └── production/
+│           ├── foundation/
+│           ├── edge/
+│           ├── dns/
+│           └── control-plane/
 ├── ansible/
 │   ├── ansible.cfg
 │   ├── requirements.yml
-│   ├── inventory/
-│   │   ├── production/
-│   │   │   ├── hosts.yml
-│   │   │   ├── group_vars/
-│   │   │   │   ├── all.yml
-│   │   │   │   ├── vpn_nodes.yml
-│   │   │   │   ├── helix_nodes.yml
-│   │   │   │   └── vault.yml          # 🔐 ansible-vault encrypted
-│   │   │   └── host_vars/
-│   │   │       ├── fi-01.yml          # 🔐 Per-node secrets
-│   │   │       └── de-01.yml
-│   │   └── staging/
+│   ├── inventories/
+│   │   ├── staging/
+│   │   └── production/
+│   ├── group_vars/
+│   ├── host_vars/
 │   ├── roles/
-│   │   ├── common/                    # SSH, UFW, Fail2ban, sysctl
-│   │   ├── docker/                    # Docker CE + Compose plugin
-│   │   ├── remnawave-node/            # Remnawave Node deploy
-│   │   ├── helix-node/                # Helix Node deploy
-│   │   ├── monitoring-agent/          # node-exporter + promtail
-│   │   └── backup/                    # Config backup cron
+│   │   ├── base/
+│   │   ├── docker/
+│   │   ├── remnawave_edge/
+│   │   ├── helix_edge/
+│   │   ├── alloy_agent/
+│   │   └── backup_restore/
 │   ├── playbooks/
 │   │   ├── site.yml
-│   │   ├── update-remnawave.yml
-│   │   ├── update-helix.yml
+│   │   ├── edge-bootstrap.yml
+│   │   ├── remnawave-rollout.yml
+│   │   ├── helix-rollout.yml
 │   │   ├── rollback-remnawave.yml
-│   │   ├── add-node.yml
-│   │   ├── rotate-keys.yml
-│   │   ├── security-audit.yml
-│   │   └── helix-canary-deploy.yml
-│   └── molecule/
-│       ├── common/
-│       └── remnawave-node/
-├── Makefile                           # Shortcuts
-└── docker-compose.yml                 # Существующий локальный стек
+│   │   ├── rollback-helix.yml
+│   │   └── security-audit.yml
+│   └── templates/
+└── docs/
 ```
 
----
+### Почему именно так
 
-## 14. Фазы реализации
+- **`live/<env>/<stack>`** уменьшает blast radius и размер state;
+- foundation, edge, dns и control-plane можно применять независимо;
+- модули остаются только там, где реально есть повторяемая логика;
+- Cloudflare-ресурсы не надо переусложнять абстракциями без необходимости.
 
-### Фаза 1 — Фундамент (3-4 дня)
+### Важное ограничение по Cloudflare
 
-- [ ] Terraform: модули `vpn-node`, `firewall`, `dns-record`
-- [ ] Terraform: remote state (S3 backend)
-- [ ] Terraform: environments (production + staging)
-- [ ] Ansible: роли `common`, `docker`
-- [ ] Ansible: vault для секретов
-- [ ] Makefile
+Cloudflare сама рекомендует не злоупотреблять Terraform modules для своих ресурсов. Поэтому:
 
-### Фаза 2 — VPN Provisioning (3-4 дня)
-
-- [ ] Ansible: роль `remnawave-node` (deploy + update)
-- [ ] Ansible: роль `monitoring-agent`
-- [ ] Playbooks: `site.yml`, `update-remnawave.yml`, `rollback-remnawave.yml`
-- [ ] Dynamic inventory (Terraform → Ansible)
-- [ ] Тест: привизионить staging-ноду
-
-### Фаза 3 — Helix + Operations (2-3 дня)
-
-- [ ] Terraform: модуль `helix-edge`
-- [ ] Ansible: роль `helix-node`
-- [ ] Playbooks: `helix-canary-deploy.yml`, `update-helix.yml`
-- [ ] Playbook: `rotate-keys.yml`, `security-audit.yml`
-
-### Фаза 4 — CI/CD + Testing (2-3 дня)
-
-- [ ] GitHub Actions: terraform plan/apply
-- [ ] GitHub Actions: ansible-lint
-- [ ] Terraform native tests (`.tftest.hcl`)
-- [ ] Molecule tests для ролей `common`, `remnawave-node`
-- [ ] Документация в `docs/plans/`
-
-### Итого: ~10-14 дней
+- модуль для **edge node** оправдан;
+- модуль для **control-plane** оправдан;
+- отдельный модуль для каждого маленького DNS record use case чаще всего не нужен;
+- DNS stack лучше держать тонким и максимально читаемым.
 
 ---
 
-## 15. Риски и митигации
+## 7. Terraform: обновлённый подход
 
-| Риск | Вероятность | Митигация |
-|---|---|---|
-| Terraform state corruption | Низкая | S3 versioning + backup перед каждым apply |
-| Lockout при SSH hardening | Средняя | Тестировать на staging, Hetzner Console rescue |
-| Docker обходит UFW | Высокая | `"iptables": false` + Hetzner Cloud Firewall |
-| Hetzner `datacenter` deprecation (июль 2026) | Определённая | Используем `location` с первого дня |
-| Hetzner IP lifecycle changes (май 2026) | Определённая | Provider ≥1.60.0, `auto_delete = false` |
-| Утечка секретов в CI/CD логах | Средняя | `no_log: true`, ephemeral vars, masked secrets |
-| Rolling update ломает сервис | Средняя | `serial: 1`, health checks, auto-rollback |
+### 7.1 State layout
+
+Разделяем state-файлы минимум на:
+
+- `foundation`
+- `edge`
+- `dns`
+- позже `control-plane`
+
+Это сильно лучше одного огромного state, потому что:
+
+- проще review;
+- меньше вероятность болезненного drift/conflict;
+- безопаснее apply;
+- проще ограничивать blast radius в CI/CD.
+
+### 7.2 Backend
+
+Используем S3-compatible backend с:
+
+- versioning;
+- server-side encryption;
+- отдельным bucket/path на stack;
+- `use_lockfile = true`;
+- backend credentials вне git.
+
+### 7.3 Что храним в Terraform
+
+Храним:
+
+- имена нод;
+- роли нод;
+- locations;
+- server types;
+- firewall attachments;
+- primary IP;
+- DNS mapping;
+- теги/labels;
+- outputs для inventory.
+
+Не храним:
+
+- application secrets;
+- panel tokens;
+- runtime-generated keys;
+- hand-written SSH passwords;
+- произвольные shell bootstrap secrets.
+
+### 7.4 Cloud-init
+
+Cloud-init должен быть **минимальным**:
+
+- создать admin user;
+- положить authorized keys;
+- настроить базовый SSH порт при необходимости;
+- не деплоить бизнес-логику.
+
+Не надо использовать cloud-init как второй Ansible.
+
+### 7.5 `location` vs `datacenter`
+
+Для этого проекта я рекомендую:
+
+- по умолчанию использовать `location`;
+- использовать `datacenter` только если реально нужна жёсткая привязка;
+- не опираться на неподтверждённый тезис о deprecation `datacenter`.
+
+### 7.6 Primary IP
+
+Для новых нод используем выделенные Primary IP с версией провайдера `1.60.1+`, чтобы не попасть на изменения lifecycle после мая 2026.
+
+### 7.7 Outputs contract для Ansible
+
+Terraform должен отдавать **структурированный JSON-friendly output**, а не человекочитаемый текст.
+
+Минимальный контракт:
+
+- hostname;
+- role;
+- public IPv4;
+- private IPv4, если появится;
+- location;
+- ssh port;
+- labels.
 
 ---
 
-*Документ подготовлен с учётом best practices Terraform 1.15+, Ansible 11+, Hetzner Cloud API 2026 и текущей архитектуры CyberVPN.*
+## 8. Ansible: обновлённый подход
+
+### 8.1 Роли
+
+Минимальный набор ролей на первую очередь:
+
+- `base`
+  - apt packages
+  - timezone
+  - users
+  - SSH hardening
+  - sysctl
+  - fail2ban
+- `docker`
+  - Docker Engine
+  - Compose plugin
+  - daemon config
+  - log rotation
+- `remnawave_edge`
+  - compose template
+  - env template
+  - health checks
+  - update/rollback hooks
+- `helix_edge`
+  - compose template
+  - env template
+  - readiness and rollback hooks
+- `alloy_agent`
+  - logs + metrics shipping
+- `backup_restore`
+  - config backup
+  - restore drill helpers
+
+### 8.2 Inventory
+
+Штатный путь:
+
+- Terraform даёт JSON outputs;
+- CI или локальный helper генерирует YAML inventory snapshot;
+- Ansible работает по этому snapshot.
+
+Я **не рекомендую делать кастомный Python inventory script ядром системы**, потому что:
+
+- он хрупкий;
+- его надо сопровождать отдельно;
+- он плохо масштабируется по окружениям и pipeline-контекстам;
+- YAML snapshot проще ревьюить и воспроизводить.
+
+Dynamic inventory plugin можно добавить позже, но стартовать проще и надёжнее с генерируемым inventory-файлом.
+
+### 8.3 Секреты
+
+Для первого этапа:
+
+- inventory secrets: `ansible-vault`;
+- CI secrets: GitHub Environments / secret store;
+- provider tokens: только через environment variables или secret manager;
+- per-node runtime secrets: vaulted vars или отдельный секретный source.
+
+Для зрелой production-стадии:
+
+- перейти на внешний secret manager;
+- оставить `ansible-vault` только как fallback/bootstrap.
+
+### 8.4 Rolling update
+
+Все edge workload updates:
+
+- `serial: 1`;
+- health gate после каждой ноды;
+- abort on first failure;
+- отдельный rollback playbook;
+- обязательный change window для production.
+
+---
+
+## 9. Security и network policy
+
+### 9.1 Что оставляем обязательным
+
+- SSH только по ключам;
+- отключение password auth;
+- ограничение admin access по source IP;
+- Hetzner Cloud Firewall как внешний perimeter;
+- image pinning по digest;
+- secrets вне git;
+- `no_log: true` для секретных задач;
+- раздельные staging/prod secrets;
+- ручное approval перед production apply.
+
+### 9.2 Что меняем относительно старой версии документа
+
+Старая рекомендация:
+
+- отключить Docker iptables через `\"iptables\": false`.
+
+Для этого проекта это **не рекомендую**.
+
+Целевая практика:
+
+- публикуем наружу только реально нужные порты;
+- admin/metrics endpoints по возможности bind на loopback или private interface;
+- ingress фильтруем на уровне Hetzner Cloud Firewall;
+- если нужен host-level контроль для Docker traffic, используем правила в `DOCKER-USER`;
+- UFW оставляем только как дополнительный слой, но не считаем его достаточной защитой для Docker-published портов.
+
+### 9.3 Observability agent
+
+Для новых нод:
+
+- **не использовать Promtail** как новый стандарт;
+- использовать **Grafana Alloy**;
+- при необходимости временно поддерживать совместимость с существующим Loki pipeline.
+
+Причина: Promtail уже вышел из жизненного цикла; строить на нём новый node rollout в 2026 бессмысленно.
+
+---
+
+## 10. CI/CD модель
+
+### 10.1 Что должно происходить на PR
+
+- `terraform fmt -check`
+- `terraform validate`
+- `terraform test`
+- `tflint`
+- `trivy config` или эквивалентный IaC scanner
+- `ansible-lint`
+- `molecule test` для изменённых ролей
+- generation и публикация `terraform plan`
+- summary-комментарий в PR
+
+### 10.2 Что должно происходить после merge
+
+После merge **не должно быть слепого auto-apply в production**.
+
+Правильный процесс:
+
+1. merge в `main`;
+2. отдельный `workflow_dispatch` или release-driven запуск;
+3. ручное approval через GitHub Environment;
+4. `terraform apply` для конкретного stack;
+5. отдельный запуск Ansible rollout;
+6. post-deploy verification.
+
+### 10.3 Почему так
+
+Для этого репозитория `terraform apply -> ansible-playbook` в одной автоматической цепочке после каждого `git push` слишком рискован:
+
+- меняются cloud-ресурсы и runtime одновременно;
+- сложнее локализовать проблему;
+- rollback становится менее предсказуемым;
+- растёт шанс недоapply или partially configured host.
+
+---
+
+## 11. Repo-specific implementation roadmap
+
+Ниже не “идеальная теория”, а маршрут, по которому реально можно идти в этом проекте.
+
+### Фаза 0. Design freeze и scaffold
+
+**Цель:** подготовить репозиторий и зафиксировать правила.
+
+**Делаем:**
+
+- создаём `infra/terraform/` и `infra/ansible/` структуру;
+- фиксируем версии CLI/providers/collections;
+- добавляем `.gitignore` для IaC артефактов;
+- добавляем `README` для новых директорий;
+- описываем naming convention для нод и DNS.
+
+**Результат фазы:**
+
+- репозиторий готов к первому `terraform init` и `ansible-galaxy install`.
+
+### Фаза 1. Terraform foundation
+
+**Цель:** codify foundation stacks для staging.
+
+**Делаем:**
+
+- S3-compatible backend;
+- foundation stack;
+- firewall policy;
+- SSH key registration;
+- labels/tags policy;
+- edge stack на staging;
+- dns stack на staging.
+
+**Результат фазы:**
+
+- staging edge-нода создаётся полностью через Terraform без ручных действий в панели провайдера.
+
+### Фаза 2. Host bootstrap через Ansible
+
+**Цель:** из “голого Ubuntu-хоста” делать стандартизированную edge-ноду.
+
+**Делаем:**
+
+- `base` role;
+- `docker` role;
+- inventory generation;
+- secrets bootstrap;
+- smoke playbook `edge-bootstrap.yml`.
+
+**Результат фазы:**
+
+- свежесозданная staging-нода автоматически получает hardening, Docker и базовую observability-обвязку.
+
+### Фаза 3. Remnawave edge rollout
+
+**Цель:** production-grade деплой VPN edge workload.
+
+**Делаем:**
+
+- compose/env templates для `remnawave-node`;
+- health checks;
+- rolling update playbook;
+- rollback playbook;
+- smoke verification после деплоя.
+
+**Результат фазы:**
+
+- staging Remnawave edge присоединяется к panel и переживает повторный idempotent rollout.
+
+### Фаза 4. Helix edge rollout
+
+**Цель:** безопасный rollout собственного transport stack.
+
+**Делаем:**
+
+- `helix_edge` role;
+- per-node state dir policy;
+- canary strategy;
+- rollback hooks;
+- проверка совместимости с существующими `infra/tests/test_helix_stack.sh` и `infra/tests/verify_helix_rollback.sh`.
+
+**Результат фазы:**
+
+- staging/lab Helix-нода деплоится через Ansible и проходит readiness/rollback проверки.
+
+### Фаза 5. Observability и security gates
+
+**Цель:** сделать rollout наблюдаемым и проверяемым.
+
+**Делаем:**
+
+- роль `alloy_agent`;
+- dashboards/alerts alignment;
+- CI checks для IaC;
+- policy на ручной approval;
+- inventory snapshot artifact;
+- post-deploy verification checklist.
+
+**Результат фазы:**
+
+- на каждый rollout есть telemetry, health evidence и понятная точка отката.
+
+### Фаза 6. Prod canary
+
+**Цель:** выйти в production без big-bang миграции.
+
+**Делаем:**
+
+- одна prod VPN edge-нода как canary;
+- одна prod Helix edge-нода как canary;
+- 24h наблюдение;
+- rollback drill;
+- только затем расширение на остальные ноды.
+
+**Результат фазы:**
+
+- production rollout подтверждён на минимальной blast radius.
+
+### Фаза 7. Control-plane codification
+
+**Цель:** автоматизировать core stack только после стабилизации edge automation.
+
+**Делаем:**
+
+- отдельный `control-plane` stack;
+- backup/restore runbooks;
+- worker/backend/helix-adapter deployment;
+- DR drills.
+
+**Результат фазы:**
+
+- control-plane codified без слома edge rollout-процесса.
+
+### Фаза 8. Release promotion и secrets hardening
+
+**Цель:** сделать control-plane rollout воспроизводимым и reviewable, без ручного
+редактирования image refs и vault-файлов перед каждым релизом.
+
+**Делаем:**
+
+- отдельный build/publish pipeline для `backend`, `task-worker`, `helix-adapter`;
+- promotion через environment-scoped `release.yml`, где внутренние сервисы идут
+  только по digest-pinned `@sha256` refs;
+- manual promotion workflow, который оставляет reviewable git change, а не
+  “тихий” deploy вне репозитория;
+- registry auth на хосте для private pulls;
+- bootstrap `vault.yml` из структурированного source файла вместо ad-hoc copy/paste.
+
+**Результат фазы:**
+
+- staging и production control-plane деплоятся из явного release manifest;
+- promotion path сохраняет commit, digests и build evidence;
+- секреты готовятся из повторяемого source-of-truth, а не из ручной правки
+  множества inventory-файлов.
+
+---
+
+## 12. Реалистичная оценка сроков
+
+Старая оценка `10-14 дней` для этого проекта слишком оптимистична.
+
+### Реалистично
+
+- **1 инженер full-time:** `4-6 недель`
+- **2 инженера с разделением Terraform/Ansible + review:** `2.5-4 недели`
+
+### Почему дольше
+
+- нужно не только написать HCL/YAML, но и пройти реальный rollout;
+- есть Helix-specific rollback requirements;
+- observability и security здесь не “опциональны”;
+- контроль качества должен включать staging, canary и операционные проверки.
+
+---
+
+## 13. Правила, которые будут обязательными в реализации
+
+- не хранить реальные токены в git;
+- не использовать `terraform -target` как штатный процесс;
+- не объединять production Terraform apply и Ansible rollout в непрозрачную “магическую” команду;
+- не строить новые log pipelines на Promtail;
+- не делать giant-модуль для каждого DNS record;
+- не прятать инфраструктурный риск за `ignore_changes`, если это ломает предсказуемость;
+- не изменять infra вручную в панелях после постановки ресурса под Terraform.
+
+---
+
+## 14. Критерии готовности
+
+План считается реализованным корректно, когда:
+
+- staging edge создаётся и конфигурируется без ручных шагов;
+- inventory собирается из Terraform outputs воспроизводимо;
+- Remnawave edge проходит idempotent redeploy;
+- Helix edge проходит canary и rollback checks;
+- CI показывает plan, lint и tests до apply;
+- production rollout требует manual approval;
+- control-plane internal images промотируются только через digest-pinned release manifests;
+- есть документированный rollback path для Terraform и Ansible;
+- все новые node logging/metrics агенты идут через Alloy, а не через Promtail.
+
+---
+
+## 15. Источники, использованные при аудите
+
+- Terraform install page и release info: https://developer.hashicorp.com/terraform/install
+- Terraform variable `ephemeral`: https://developer.hashicorp.com/terraform/language/block/variable
+- Terraform ephemeral blocks: https://developer.hashicorp.com/terraform/language/block/ephemeral
+- Terraform test framework: https://developer.hashicorp.com/terraform/language/tests
+- Terraform S3 backend / lockfile: https://developer.hashicorp.com/terraform/language/backend/s3
+- Ansible core release and maintenance: https://docs.ansible.com/projects/ansible-core/devel/reference_appendices/release_and_maintenance.html
+- Ansible package releases on PyPI: https://pypi.org/project/ansible/
+- `community.docker` collection docs: https://docs.ansible.com/ansible/latest/collections/community/docker/
+- Hetzner Cloud changelog по API/IP lifecycle: https://docs.hetzner.cloud/changelog/
+- `terraform-provider-hcloud` releases: https://github.com/hetznercloud/terraform-provider-hcloud/releases
+- Cloudflare Terraform tutorials: https://developers.cloudflare.com/terraform/tutorial/
+- Cloudflare Terraform best practices: https://developers.cloudflare.com/terraform/advanced-topics/best-practices/
+- Docker packet filtering and firewalls: https://docs.docker.com/engine/network/packet-filtering-firewalls/
+- Grafana Loki / Promtail deprecation notice: https://grafana.com/docs/loki/latest/send-data/promtail/
+- Grafana Alloy migration from Promtail: https://grafana.com/docs/alloy/latest/tasks/migrate/from-promtail/
+- Docker login action README: https://github.com/docker/login-action
+- Docker build-push action README: https://github.com/docker/build-push-action
+- GitHub Actions environments: https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments
+
+---
+
+## 16. Рекомендуемое следующее действие
+
+Следующий практический шаг для проекта:
+
+1. создать каркас `infra/terraform/live/staging/{foundation,edge,dns}` и `infra/ansible/roles/{base,docker}`;
+2. описать первую staging edge-ноду;
+3. прогнать полный цикл `terraform apply -> ansible bootstrap -> workload smoke check`;
+4. только после этого переносить в план production rollout.
+
+Именно этот путь даёт лучший баланс между скоростью и контролем риска для текущего состояния CyberVPN.

@@ -1,0 +1,87 @@
+---
+control_plane_stack_action: deploy
+
+control_plane_stack_root: /opt/cybervpn/control-plane
+control_plane_stack_releases_dir: "{{ control_plane_stack_root }}/releases"
+control_plane_stack_current_link: "{{ control_plane_stack_root }}/current"
+control_plane_stack_previous_link: "{{ control_plane_stack_root }}/previous"
+
+control_plane_stack_release_name: ""
+control_plane_stack_rollback_release_name: ""
+control_plane_stack_enforce_immutable_images: false
+
+control_plane_stack_project_name: control-plane
+control_plane_stack_compose_filename: docker-compose.yml
+control_plane_stack_remnawave_env_filename: remnawave.env
+control_plane_stack_backend_env_filename: backend.env
+control_plane_stack_worker_env_filename: worker.env
+control_plane_stack_scheduler_env_filename: scheduler.env
+control_plane_stack_helix_adapter_env_filename: helix-adapter.env
+control_plane_stack_db_backup_env_filename: db-backup.env
+
+control_plane_stack_remnawave_container_name: remnawave
+control_plane_stack_postgres_container_name: remnawave-db
+control_plane_stack_valkey_container_name: remnawave-redis
+control_plane_stack_db_backup_container_name: db-backup
+control_plane_stack_backend_container_name: cybervpn-backend
+control_plane_stack_worker_container_name: cybervpn-worker
+control_plane_stack_scheduler_container_name: cybervpn-scheduler
+control_plane_stack_helix_adapter_container_name: helix-adapter
+
+control_plane_stack_enable_remnawave: true
+control_plane_stack_enable_postgres: true
+control_plane_stack_enable_valkey: true
+control_plane_stack_enable_db_backup: true
+control_plane_stack_enable_backend: true
+control_plane_stack_enable_worker: true
+control_plane_stack_enable_scheduler: true
+control_plane_stack_enable_helix_adapter: true
+
+control_plane_stack_remnawave_image: remnawave/backend:2.7.4
+control_plane_stack_postgres_image: postgres:17.7
+control_plane_stack_valkey_image: valkey/valkey:8.1-alpine
+control_plane_stack_db_backup_image: prodrigestivill/postgres-backup-local:17
+control_plane_stack_backend_image: ""
+control_plane_stack_worker_image: ""
+control_plane_stack_helix_adapter_image: ""
+
+control_plane_stack_restart_policy: unless-stopped
+control_plane_stack_pull_policy: missing
+control_plane_stack_recreate_policy: auto
+control_plane_stack_wait_timeout: 180
+
+control_plane_stack_remnawave_bind_host: 127.0.0.1
+control_plane_stack_remnawave_port: 3005
+control_plane_stack_remnawave_metrics_port: 3001
+
+control_plane_stack_backend_bind_host: 127.0.0.1
+control_plane_stack_backend_port: 8000
+control_plane_stack_backend_metrics_port: 9091
+
+control_plane_stack_worker_metrics_bind_host: 127.0.0.1
+control_plane_stack_worker_metrics_port: 9092
+
+control_plane_stack_helix_adapter_bind_host: 127.0.0.1
+control_plane_stack_helix_adapter_port: 8088
+control_plane_stack_helix_adapter_metrics_prefix: helix
+
+control_plane_stack_postgres_data_dir: /var/lib/cybervpn/control-plane/postgres
+control_plane_stack_db_backup_dir: /var/backups/cybervpn/postgres
+control_plane_stack_db_backup_schedule: "@daily"
+control_plane_stack_db_backup_keep_days: 7
+
+control_plane_stack_manage_notifications_config: false
+control_plane_stack_notifications_dir: "{{ control_plane_stack_root }}/notifications"
+control_plane_stack_notifications_config_path: "{{ control_plane_stack_notifications_dir }}/notifications-config.yml"
+control_plane_stack_notifications_config_content: ""
+
+control_plane_stack_remnawave_env: {}
+control_plane_stack_backend_env: {}
+control_plane_stack_worker_env: {}
+control_plane_stack_scheduler_env: {}
+control_plane_stack_helix_adapter_env: {}
+control_plane_stack_db_backup_env: {}
+control_plane_stack_registry_logins: []
+
+control_plane_stack_verify_timeout: 60
+control_plane_stack_verify_host: 127.0.0.1

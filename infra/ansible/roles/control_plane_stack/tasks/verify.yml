@@ -1,0 +1,318 @@
+---
+- import_tasks: state.yml
+
+- name: Control plane | Assert current release exists
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_current_target | length > 0
+    fail_msg: "No current control-plane release is linked on {{ inventory_hostname }}."
+
+- name: Control plane | Check Postgres data directory
+  ansible.builtin.stat:
+    path: "{{ control_plane_stack_postgres_data_dir }}"
+  register: control_plane_stack_postgres_data_dir_stat
+  when: control_plane_stack_enable_postgres
+
+- name: Control plane | Assert Postgres data directory exists
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_postgres_data_dir_stat.stat.exists
+      - control_plane_stack_postgres_data_dir_stat.stat.isdir
+    fail_msg: "Control-plane Postgres data directory is missing."
+  when: control_plane_stack_enable_postgres
+
+- name: Control plane | Wait for Remnawave metrics endpoint
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_remnawave_metrics_port }}/health"
+    method: GET
+    status_code: 200
+  register: control_plane_stack_remnawave_health
+  retries: 15
+  delay: 2
+  until: control_plane_stack_remnawave_health.status == 200
+  when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Inspect Remnawave container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_remnawave_container_name }}"
+  register: control_plane_stack_remnawave_inspect
+  changed_when: false
+  when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Parse Remnawave inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_remnawave_container: "{{ (control_plane_stack_remnawave_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Assert Remnawave container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_remnawave_container.State.Running | bool
+      - control_plane_stack_remnawave_container.Config.Image == control_plane_stack_remnawave_image
+    fail_msg: "Remnawave container is not running with the expected image."
+  when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Wait for backend health
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_backend_port }}/health"
+    method: GET
+    status_code: 200
+  register: control_plane_stack_backend_health
+  retries: 15
+  delay: 2
+  until: control_plane_stack_backend_health.status == 200
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Read backend readiness
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_backend_port }}/readiness"
+    method: GET
+    status_code: 200
+  register: control_plane_stack_backend_readiness
+  retries: 15
+  delay: 2
+  until: control_plane_stack_backend_readiness.status == 200
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Read backend metrics health
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_backend_metrics_port }}/health"
+    method: GET
+    status_code: 200
+  register: control_plane_stack_backend_metrics_health
+  retries: 15
+  delay: 2
+  until: control_plane_stack_backend_metrics_health.status == 200
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Read backend metrics
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_backend_metrics_port }}/metrics"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: control_plane_stack_backend_metrics
+  retries: 15
+  delay: 2
+  until: control_plane_stack_backend_metrics.status == 200
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Assert backend metrics are exposed
+  ansible.builtin.assert:
+    that:
+      - "'process_' in control_plane_stack_backend_metrics.content or 'python_' in control_plane_stack_backend_metrics.content"
+    fail_msg: "Backend metrics endpoint did not expose expected Prometheus metrics."
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Inspect backend container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_backend_container_name }}"
+  register: control_plane_stack_backend_inspect
+  changed_when: false
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Parse backend inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_backend_container: "{{ (control_plane_stack_backend_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Assert backend container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_container.State.Running | bool
+      - control_plane_stack_backend_container.Config.Image == control_plane_stack_backend_image
+    fail_msg: "Backend container is not running with the expected image."
+  when: control_plane_stack_enable_backend
+
+- name: Control plane | Read worker metrics
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_worker_metrics_port }}/metrics"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: control_plane_stack_worker_metrics
+  retries: 15
+  delay: 2
+  until: control_plane_stack_worker_metrics.status == 200
+  when: control_plane_stack_enable_worker
+
+- name: Control plane | Assert worker metrics are exposed
+  ansible.builtin.assert:
+    that:
+      - "'python_' in control_plane_stack_worker_metrics.content or 'taskiq_' in control_plane_stack_worker_metrics.content"
+    fail_msg: "Worker metrics endpoint did not expose expected Prometheus metrics."
+  when: control_plane_stack_enable_worker
+
+- name: Control plane | Inspect worker container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_worker_container_name }}"
+  register: control_plane_stack_worker_inspect
+  changed_when: false
+  when: control_plane_stack_enable_worker
+
+- name: Control plane | Parse worker inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_worker_container: "{{ (control_plane_stack_worker_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_worker
+
+- name: Control plane | Assert worker container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_worker_container.State.Running | bool
+      - control_plane_stack_worker_container.Config.Image == control_plane_stack_worker_image
+    fail_msg: "Worker container is not running with the expected image."
+  when: control_plane_stack_enable_worker
+
+- name: Control plane | Inspect scheduler container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_scheduler_container_name }}"
+  register: control_plane_stack_scheduler_inspect
+  changed_when: false
+  when: control_plane_stack_enable_scheduler
+
+- name: Control plane | Parse scheduler inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_scheduler_container: "{{ (control_plane_stack_scheduler_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_scheduler
+
+- name: Control plane | Assert scheduler container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_scheduler_container.State.Running | bool
+      - control_plane_stack_scheduler_container.Config.Image == control_plane_stack_worker_image
+    fail_msg: "Scheduler container is not running with the expected image."
+  when: control_plane_stack_enable_scheduler
+
+- name: Control plane | Read Helix adapter readyz
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_helix_adapter_port }}/readyz"
+    method: GET
+    status_code: 200
+  register: control_plane_stack_helix_adapter_ready
+  retries: 15
+  delay: 2
+  until: control_plane_stack_helix_adapter_ready.status == 200
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Read Helix adapter metrics
+  ansible.builtin.uri:
+    url: "http://{{ control_plane_stack_verify_host }}:{{ control_plane_stack_helix_adapter_port }}/metrics"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: control_plane_stack_helix_adapter_metrics
+  retries: 15
+  delay: 2
+  until: control_plane_stack_helix_adapter_metrics.status == 200
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Assert Helix adapter metrics are exposed
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_helix_adapter_metrics.content is search(control_plane_stack_helix_adapter_metrics_prefix ~ '_')
+    fail_msg: "Helix adapter metrics endpoint did not expose the expected prefix."
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Inspect Helix adapter container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_helix_adapter_container_name }}"
+  register: control_plane_stack_helix_adapter_inspect
+  changed_when: false
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Parse Helix adapter inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_helix_adapter_container: "{{ (control_plane_stack_helix_adapter_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Assert Helix adapter container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_helix_adapter_container.State.Running | bool
+      - control_plane_stack_helix_adapter_container.Config.Image == control_plane_stack_helix_adapter_image
+    fail_msg: "Helix adapter container is not running with the expected image."
+  when: control_plane_stack_enable_helix_adapter
+
+- name: Control plane | Inspect Postgres container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_postgres_container_name }}"
+  register: control_plane_stack_postgres_inspect
+  changed_when: false
+  when: control_plane_stack_enable_postgres
+
+- name: Control plane | Parse Postgres inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_postgres_container: "{{ (control_plane_stack_postgres_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_postgres
+
+- name: Control plane | Assert Postgres container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_postgres_container.State.Running | bool
+      - control_plane_stack_postgres_container.State.Health.Status == 'healthy'
+    fail_msg: "Postgres container is not healthy."
+  when: control_plane_stack_enable_postgres
+
+- name: Control plane | Inspect Valkey container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_valkey_container_name }}"
+  register: control_plane_stack_valkey_inspect
+  changed_when: false
+  when: control_plane_stack_enable_valkey
+
+- name: Control plane | Parse Valkey inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_valkey_container: "{{ (control_plane_stack_valkey_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_valkey
+
+- name: Control plane | Assert Valkey container is healthy
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_valkey_container.State.Running | bool
+      - control_plane_stack_valkey_container.State.Health.Status == 'healthy'
+    fail_msg: "Valkey container is not healthy."
+  when: control_plane_stack_enable_valkey
+
+- name: Control plane | Inspect db-backup container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_db_backup_container_name }}"
+  register: control_plane_stack_db_backup_inspect
+  changed_when: false
+  when: control_plane_stack_enable_db_backup
+
+- name: Control plane | Parse db-backup inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_db_backup_container: "{{ (control_plane_stack_db_backup_inspect.stdout | from_json | first) }}"
+  when: control_plane_stack_enable_db_backup
+
+- name: Control plane | Assert db-backup container is running
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_db_backup_container.State.Running | bool
+      - control_plane_stack_db_backup_container.Config.Image == control_plane_stack_db_backup_image
+    fail_msg: "db-backup container is not running with the expected image."
+  when: control_plane_stack_enable_db_backup

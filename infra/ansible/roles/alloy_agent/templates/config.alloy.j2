@@ -1,0 +1,71 @@
+logging {
+  level  = "{{ alloy_agent_log_level }}"
+  format = "logfmt"
+}
+
+local.file_match "docker_logs" {
+  path_targets = [
+    {
+      __address__   = "localhost",
+      __path__      = "{{ alloy_agent_docker_logs_glob }}",
+      job           = "alloy-edge",
+      environment   = "{{ alloy_agent_environment }}",
+      project       = "{{ alloy_agent_project }}",
+      instance      = "{{ inventory_hostname }}",
+      node_role     = "{{ alloy_agent_node_role }}",
+      node_location = "{{ alloy_agent_node_location }}",
+      log_source    = "docker",
+    },
+  ]
+}
+
+local.file_match "system_logs" {
+  path_targets = [
+    {
+      __address__   = "localhost",
+      __path__      = "{{ alloy_agent_system_logs_glob }}",
+      job           = "alloy-edge",
+      environment   = "{{ alloy_agent_environment }}",
+      project       = "{{ alloy_agent_project }}",
+      instance      = "{{ inventory_hostname }}",
+      node_role     = "{{ alloy_agent_node_role }}",
+      node_location = "{{ alloy_agent_node_location }}",
+      log_source    = "system",
+    },
+  ]
+}
+
+loki.write "edge" {
+  endpoint {
+    url = "{{ alloy_agent_loki_url }}"
+{% if alloy_agent_loki_basic_auth_username | length > 0 %}
+    basic_auth {
+      username = "{{ alloy_agent_loki_basic_auth_username }}"
+      password = "{{ alloy_agent_loki_basic_auth_password }}"
+    }
+{% elif alloy_agent_loki_bearer_token | length > 0 %}
+    bearer_token = "{{ alloy_agent_loki_bearer_token }}"
+{% endif %}
+  }
+
+  external_labels = {
+    project     = "{{ alloy_agent_project }}"
+    environment = "{{ alloy_agent_environment }}"
+    instance    = "{{ inventory_hostname }}"
+  }
+}
+
+{% if alloy_agent_collect_docker_logs %}
+loki.source.file "docker_logs" {
+  targets    = local.file_match.docker_logs.targets
+  forward_to = [loki.write.edge.receiver]
+}
+{% endif %}
+
+{% if alloy_agent_collect_system_logs %}
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.write.edge.receiver]
+}
+{% endif %}
+

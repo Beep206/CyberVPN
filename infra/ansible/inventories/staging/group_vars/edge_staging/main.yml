@@ -1,0 +1,6 @@
+---
+base_admin_user: cyberops
+base_ssh_port: 22
+base_manage_ssh_hardening: true
+base_manage_sysctl: false
+base_authorized_keys: "{{ vault_base_authorized_keys | default([]) }}"

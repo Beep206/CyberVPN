@@ -1,0 +1,12 @@
+---
+alloy_agent_project: cybervpn
+alloy_agent_environment: production
+alloy_agent_http_listen_host: 0.0.0.0
+alloy_agent_http_port: 9100
+alloy_agent_loki_url: ""
+alloy_agent_loki_basic_auth_username: "{{ vault_alloy_agent_loki_basic_auth_username | default('') }}"
+alloy_agent_loki_basic_auth_password: "{{ vault_alloy_agent_loki_basic_auth_password | default('') }}"
+alloy_agent_loki_bearer_token: "{{ vault_alloy_agent_loki_bearer_token | default('') }}"
+alloy_agent_collect_docker_logs: true
+alloy_agent_collect_system_logs: true
+alloy_agent_canary_pause_seconds: 30

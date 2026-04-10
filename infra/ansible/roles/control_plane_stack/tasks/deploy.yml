@@ -1,0 +1,236 @@
+---
+- name: Control plane | Define effective scheduler env
+  ansible.builtin.set_fact:
+    control_plane_stack_effective_scheduler_env: >-
+      {{
+        control_plane_stack_scheduler_env
+        if control_plane_stack_scheduler_env | length > 0
+        else control_plane_stack_worker_env
+      }}
+  no_log: true
+
+- name: Control plane | Build desired release fingerprint
+  ansible.builtin.set_fact:
+    control_plane_stack_release_fingerprint: >-
+      {{
+        {
+          'services': {
+            'remnawave': control_plane_stack_enable_remnawave,
+            'postgres': control_plane_stack_enable_postgres,
+            'valkey': control_plane_stack_enable_valkey,
+            'db_backup': control_plane_stack_enable_db_backup,
+            'backend': control_plane_stack_enable_backend,
+            'worker': control_plane_stack_enable_worker,
+            'scheduler': control_plane_stack_enable_scheduler,
+            'helix_adapter': control_plane_stack_enable_helix_adapter
+          },
+          'images': {
+            'remnawave': control_plane_stack_remnawave_image,
+            'postgres': control_plane_stack_postgres_image,
+            'valkey': control_plane_stack_valkey_image,
+            'db_backup': control_plane_stack_db_backup_image,
+            'backend': control_plane_stack_backend_image,
+            'worker': control_plane_stack_worker_image,
+            'helix_adapter': control_plane_stack_helix_adapter_image
+          },
+          'ports': {
+            'remnawave': control_plane_stack_remnawave_port,
+            'remnawave_metrics': control_plane_stack_remnawave_metrics_port,
+            'backend': control_plane_stack_backend_port,
+            'backend_metrics': control_plane_stack_backend_metrics_port,
+            'worker_metrics': control_plane_stack_worker_metrics_port,
+            'helix_adapter': control_plane_stack_helix_adapter_port
+          },
+          'db_backup': {
+            'schedule': control_plane_stack_db_backup_schedule,
+            'keep_days': control_plane_stack_db_backup_keep_days
+          },
+          'hashes': {
+            'remnawave_env': control_plane_stack_remnawave_env | to_nice_json | hash('sha1'),
+            'backend_env': control_plane_stack_backend_env | to_nice_json | hash('sha1'),
+            'worker_env': control_plane_stack_worker_env | to_nice_json | hash('sha1'),
+            'scheduler_env': control_plane_stack_effective_scheduler_env | to_nice_json | hash('sha1'),
+            'helix_adapter_env': control_plane_stack_helix_adapter_env | to_nice_json | hash('sha1'),
+            'db_backup_env': control_plane_stack_db_backup_env | to_nice_json | hash('sha1'),
+            'notifications': control_plane_stack_notifications_config_content | hash('sha1')
+          }
+        } | to_nice_json | hash('sha1')
+      }}
+  no_log: true
+
+- name: Control plane | Define target release path
+  ansible.builtin.set_fact:
+    control_plane_stack_target_release_name: >-
+      {{
+        control_plane_stack_release_name
+        | default('control-plane-' ~ control_plane_stack_release_fingerprint[:12], true)
+      }}
+    control_plane_stack_target_release_path: >-
+      {{
+        control_plane_stack_releases_dir ~ '/' ~
+        (
+          control_plane_stack_release_name
+          | default('control-plane-' ~ control_plane_stack_release_fingerprint[:12], true)
+        )
+      }}
+    control_plane_stack_last_good_target: "{{ control_plane_stack_current_target }}"
+
+- name: Control plane | Build directory list
+  ansible.builtin.set_fact:
+    control_plane_stack_directories: >-
+      {{
+        [control_plane_stack_root, control_plane_stack_releases_dir, control_plane_stack_target_release_path]
+        + ([control_plane_stack_postgres_data_dir] if control_plane_stack_enable_postgres else [])
+        + ([control_plane_stack_db_backup_dir] if control_plane_stack_enable_db_backup else [])
+        + ([control_plane_stack_notifications_dir] if control_plane_stack_manage_notifications_config else [])
+      }}
+
+- name: Control plane | Ensure directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ control_plane_stack_directories }}"
+
+- name: Control plane | Render compose template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_compose_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Control plane | Render Remnawave env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_remnawave_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_remnawave_env }}"
+  when: control_plane_stack_enable_remnawave
+  no_log: true
+
+- name: Control plane | Render backend env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_backend_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_backend_env }}"
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Render worker env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_worker_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_worker_env }}"
+  when: control_plane_stack_enable_worker
+  no_log: true
+
+- name: Control plane | Render scheduler env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_scheduler_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_effective_scheduler_env }}"
+  when: control_plane_stack_enable_scheduler
+  no_log: true
+
+- name: Control plane | Render Helix adapter env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_helix_adapter_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_helix_adapter_env }}"
+  when: control_plane_stack_enable_helix_adapter
+  no_log: true
+
+- name: Control plane | Render db-backup env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_db_backup_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_db_backup_env }}"
+  when: control_plane_stack_enable_db_backup
+  no_log: true
+
+- name: Control plane | Render notifications config
+  ansible.builtin.copy:
+    content: "{{ control_plane_stack_notifications_config_content }}"
+    dest: "{{ control_plane_stack_notifications_config_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: control_plane_stack_manage_notifications_config
+  no_log: true
+
+- name: Control plane | Track last good release
+  ansible.builtin.file:
+    state: link
+    src: "{{ control_plane_stack_last_good_target }}"
+    path: "{{ control_plane_stack_previous_link }}"
+    force: true
+  when:
+    - control_plane_stack_last_good_target | length > 0
+    - control_plane_stack_last_good_target != control_plane_stack_target_release_path
+
+- name: Control plane | Point current symlink to target release
+  ansible.builtin.file:
+    state: link
+    src: "{{ control_plane_stack_target_release_path }}"
+    path: "{{ control_plane_stack_current_link }}"
+    force: true
+
+- block:
+    - import_tasks: state.yml
+
+    - import_tasks: _compose_apply.yml
+
+    - import_tasks: verify.yml
+  rescue:
+    - name: Control plane | Restore last good release after failed rollout
+      ansible.builtin.file:
+        state: link
+        src: "{{ control_plane_stack_last_good_target }}"
+        path: "{{ control_plane_stack_current_link }}"
+        force: true
+      when: control_plane_stack_last_good_target | length > 0
+
+    - import_tasks: state.yml
+      when: control_plane_stack_last_good_target | length > 0
+
+    - import_tasks: _compose_apply.yml
+      when: control_plane_stack_last_good_target | length > 0
+
+    - import_tasks: verify.yml
+      when: control_plane_stack_last_good_target | length > 0
+
+    - name: Control plane | Fail rollout after automatic rollback handling
+      ansible.builtin.fail:
+        msg: >-
+          Control-plane rollout failed on {{ inventory_hostname }}.
+          {{
+            'The previous release was restored automatically.'
+            if control_plane_stack_last_good_target | length > 0
+            else 'No previous release was available for automatic rollback.'
+          }}

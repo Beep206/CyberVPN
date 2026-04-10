@@ -1,0 +1,39 @@
+services:
+  {{ remnawave_edge_service_name }}:
+    image: {{ remnawave_edge_image }}
+    container_name: {{ remnawave_edge_container_name }}
+    hostname: {{ remnawave_edge_container_name }}
+    restart: {{ remnawave_edge_restart_policy }}
+    network_mode: {{ remnawave_edge_network_mode }}
+    pull_policy: {{ remnawave_edge_compose_service_pull_policy }}
+    env_file:
+      - ./{{ remnawave_edge_env_filename }}
+    cap_add:
+{% for cap in remnawave_edge_cap_add %}
+      - {{ cap }}
+{% endfor %}
+    ulimits:
+      nofile:
+        soft: {{ remnawave_edge_ulimits_nofile_soft }}
+        hard: {{ remnawave_edge_ulimits_nofile_hard }}
+    logging:
+      driver: json-file
+      options:
+        max-size: "{{ docker_daemon_log_max_size }}"
+        max-file: "{{ docker_daemon_log_max_file }}"
+{% set remnawave_edge_volumes = [] %}
+{% if remnawave_edge_mount_logs %}
+{% set _ = remnawave_edge_volumes.append(remnawave_edge_log_dir ~ ':/var/log/remnanode') %}
+{% endif %}
+{% if remnawave_edge_mount_certificates %}
+{% set _ = remnawave_edge_volumes.append(remnawave_edge_certificates_dir ~ ':/var/lib/remnawave/configs/xray/ssl:ro') %}
+{% endif %}
+{% for volume in remnawave_edge_extra_volumes %}
+{% set _ = remnawave_edge_volumes.append(volume) %}
+{% endfor %}
+{% if remnawave_edge_volumes %}
+    volumes:
+{% for volume in remnawave_edge_volumes %}
+      - "{{ volume }}"
+{% endfor %}
+{% endif %}

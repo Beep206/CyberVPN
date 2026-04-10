@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from src.domain.enums import AdminRole
+from src.infrastructure.monitoring.instrumentation.routes import track_plan_query
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
 from src.presentation.schemas.remnawave_responses import (
@@ -16,10 +17,8 @@ router = APIRouter(prefix="/plans", tags=["plans"])
 @router.get("/", response_model=list[RemnavwavePlanResponse])
 async def list_plans(client: RemnawaveClient = Depends(get_remnawave_client)):
     """List all available subscription plans (public)"""
-    return await client.get("/plans")
     track_plan_query(operation="list")
-
-
+    return await client.get("/plans")
 
 @router.post("/", response_model=RemnavwavePlanResponse)
 async def create_plan(

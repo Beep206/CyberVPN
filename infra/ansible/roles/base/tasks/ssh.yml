@@ -1,0 +1,17 @@
+---
+- name: Base | Ensure sshd drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Base | Deploy hardened sshd config fragment
+  ansible.builtin.template:
+    src: sshd_config_fragment.j2
+    dest: /etc/ssh/sshd_config.d/99-cybervpn.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart ssh

@@ -1,0 +1,123 @@
+---
+- name: Helix | Build desired release fingerprint
+  ansible.builtin.set_fact:
+    helix_edge_release_fingerprint: >-
+      {{
+        {
+          'image': helix_edge_image,
+          'control_port': helix_edge_control_port,
+          'control_publish_host': helix_edge_control_publish_host,
+          'transport_publish_host': helix_edge_transport_publish_host,
+          'transport_ports': helix_edge_transport_ports | map('int') | list,
+          'adapter_url': helix_edge_adapter_url,
+          'adapter_token_sha1': helix_edge_adapter_token | hash('sha1'),
+          'node_id': helix_edge_node_id,
+          'state_dir': helix_edge_state_dir,
+          'instance_id': helix_edge_instance_id,
+          'daemon_version': helix_edge_daemon_version,
+          'assignment_poll_interval_seconds': helix_edge_assignment_poll_interval_seconds,
+          'health_gate_timeout_seconds': helix_edge_health_gate_timeout_seconds,
+          'metrics_prefix': helix_edge_metrics_prefix,
+          'log_level': helix_edge_log_level,
+          'allow_private_targets': helix_edge_allow_private_targets,
+          'extra_env': helix_edge_extra_env
+        } | to_nice_json | hash('sha1')
+      }}
+
+- name: Helix | Define target release path
+  ansible.builtin.set_fact:
+    helix_edge_target_release_name: >-
+      {{
+        helix_edge_release_name
+        | default('helix-node-' ~ helix_edge_release_fingerprint[:12], true)
+      }}
+    helix_edge_target_release_path: >-
+      {{
+        helix_edge_releases_dir ~ '/' ~
+        (
+          helix_edge_release_name
+          | default('helix-node-' ~ helix_edge_release_fingerprint[:12], true)
+        )
+      }}
+    helix_edge_last_good_target: "{{ helix_edge_current_target }}"
+
+- name: Helix | Ensure directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ helix_edge_root }}"
+    - "{{ helix_edge_releases_dir }}"
+    - "{{ helix_edge_target_release_path }}"
+    - "{{ helix_edge_state_dir }}"
+
+- name: Helix | Render compose template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ helix_edge_target_release_path }}/{{ helix_edge_compose_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Helix | Render environment template
+  ansible.builtin.template:
+    src: helix-node.env.j2
+    dest: "{{ helix_edge_target_release_path }}/{{ helix_edge_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Helix | Track last good release
+  ansible.builtin.file:
+    state: link
+    src: "{{ helix_edge_last_good_target }}"
+    path: "{{ helix_edge_previous_link }}"
+    force: true
+  when:
+    - helix_edge_last_good_target | length > 0
+    - helix_edge_last_good_target != helix_edge_target_release_path
+
+- name: Helix | Point current symlink to target release
+  ansible.builtin.file:
+    state: link
+    src: "{{ helix_edge_target_release_path }}"
+    path: "{{ helix_edge_current_link }}"
+    force: true
+
+- block:
+    - import_tasks: state.yml
+
+    - import_tasks: _compose_apply.yml
+
+    - import_tasks: verify.yml
+  rescue:
+    - name: Helix | Restore last good release after failed rollout
+      ansible.builtin.file:
+        state: link
+        src: "{{ helix_edge_last_good_target }}"
+        path: "{{ helix_edge_current_link }}"
+        force: true
+      when: helix_edge_last_good_target | length > 0
+
+    - import_tasks: state.yml
+      when: helix_edge_last_good_target | length > 0
+
+    - import_tasks: _compose_apply.yml
+      when: helix_edge_last_good_target | length > 0
+
+    - import_tasks: verify.yml
+      when: helix_edge_last_good_target | length > 0
+
+    - name: Helix | Fail rollout after automatic rollback handling
+      ansible.builtin.fail:
+        msg: >-
+          Helix rollout failed on {{ inventory_hostname }}.
+          {{
+            'The previous release was restored automatically.'
+            if helix_edge_last_good_target | length > 0
+            else 'No previous release was available for automatic rollback.'
+          }}

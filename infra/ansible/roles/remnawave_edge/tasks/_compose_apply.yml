@@ -1,0 +1,14 @@
+---
+- name: Remnawave | Apply compose project
+  community.docker.docker_compose_v2:
+    project_name: "{{ remnawave_edge_project_name }}"
+    project_src: "{{ remnawave_edge_current_link }}"
+    files:
+      - "{{ remnawave_edge_compose_filename }}"
+    state: present
+    pull: "{{ remnawave_edge_pull_policy }}"
+    recreate: "{{ remnawave_edge_recreate_policy }}"
+    remove_orphans: false
+    wait: true
+    wait_timeout: "{{ remnawave_edge_wait_timeout }}"
+  register: remnawave_edge_compose_result

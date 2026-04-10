@@ -1,0 +1,46 @@
+---
+helix_edge_action: deploy
+
+helix_edge_root: /opt/cybervpn/helix-node
+helix_edge_releases_dir: "{{ helix_edge_root }}/releases"
+helix_edge_current_link: "{{ helix_edge_root }}/current"
+helix_edge_previous_link: "{{ helix_edge_root }}/previous"
+
+helix_edge_release_name: ""
+helix_edge_rollback_release_name: ""
+
+helix_edge_project_name: helix-node
+helix_edge_service_name: helix-node
+helix_edge_container_name: helix-node
+helix_edge_compose_filename: docker-compose.yml
+helix_edge_env_filename: helix-node.env
+
+helix_edge_image: ""
+helix_edge_restart_policy: unless-stopped
+helix_edge_compose_service_pull_policy: missing
+helix_edge_pull_policy: missing
+helix_edge_recreate_policy: auto
+helix_edge_wait_timeout: 120
+
+helix_edge_control_port: 8091
+helix_edge_control_publish_host: 127.0.0.1
+helix_edge_transport_publish_host: 0.0.0.0
+helix_edge_transport_ports: []
+
+helix_edge_adapter_url: ""
+helix_edge_adapter_token: ""
+helix_edge_node_id: "{{ inventory_hostname }}"
+helix_edge_state_dir: /var/lib/helix-node
+helix_edge_instance_id: "{{ inventory_hostname }}"
+helix_edge_daemon_version: v0.1.0
+helix_edge_assignment_poll_interval_seconds: 15
+helix_edge_health_gate_timeout_seconds: 15
+helix_edge_metrics_prefix: helix_node
+helix_edge_log_level: info
+helix_edge_allow_private_targets: false
+
+helix_edge_extra_env: {}
+
+helix_edge_verify_host: 127.0.0.1
+helix_edge_verify_timeout: 30
+helix_edge_canary_pause_seconds: 30

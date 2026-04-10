@@ -1,0 +1,10 @@
+---
+- name: Verify Remnawave edge workload
+  hosts: "{{ remnawave_edge_target_group | default('remnawave_edge_staging') }}"
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: remnawave_edge
+      vars:
+        remnawave_edge_action: verify

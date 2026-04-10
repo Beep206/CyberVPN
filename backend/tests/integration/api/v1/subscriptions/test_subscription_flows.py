@@ -267,7 +267,7 @@ class TestCancelSubscriptionRateLimiting:
                 mock_post.return_value = {"message": "Subscription revoked"}
 
                 # Make 3 cancel requests (should succeed)
-                for i in range(3):
+                for _ in range(3):
                     response = await async_client.post(
                         "/api/v1/subscriptions/cancel",
                         headers={"Authorization": f"Bearer {access_token}"},

@@ -45,6 +45,7 @@ yarn-error.log*
 *.pem
 *.tsbuildinfo
 .artifacts/
+infra/artifacts/
 .tmp/
 .codex-targets/
 apps/desktop-client/.artifacts/
@@ -145,3 +146,25 @@ APIToken.txt
 *.credentials
 *.key
 !*.key.example
+
+# Terraform / Ansible IaC
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+*.auto.tfvars
+!*.auto.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+*.retry
+infra/terraform/**/backend.hcl
+infra/ansible/.vault_pass
+infra/ansible/inventories/*/generated.hosts.json
+infra/prometheus/targets/*.json

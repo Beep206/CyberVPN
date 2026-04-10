@@ -101,6 +101,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     _circuit_breaker: CircuitBreaker | None = None
     _circuit_lock = Lock()
     _EXEMPT_PATHS = {
+        "/health",
+        "/health/",
+        "/readiness",
+        "/readiness/",
         "/api/v1/auth/me",
         "/api/v1/auth/me/",
         "/api/v1/auth/session",

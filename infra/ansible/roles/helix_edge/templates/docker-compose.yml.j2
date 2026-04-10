@@ -1,0 +1,27 @@
+services:
+  {{ helix_edge_service_name }}:
+    image: {{ helix_edge_image }}
+    container_name: {{ helix_edge_container_name }}
+    hostname: {{ helix_edge_container_name }}
+    restart: {{ helix_edge_restart_policy }}
+    pull_policy: {{ helix_edge_compose_service_pull_policy }}
+    env_file:
+      - ./{{ helix_edge_env_filename }}
+    ports:
+      - "{{ helix_edge_control_publish_host }}:{{ helix_edge_control_port }}:{{ helix_edge_control_port }}"
+{% for port in helix_edge_transport_ports | map('int') | list %}
+      - "{{ helix_edge_transport_publish_host }}:{{ port }}:{{ port }}"
+{% endfor %}
+    volumes:
+      - "{{ helix_edge_state_dir }}:/var/lib/helix-node"
+    logging:
+      driver: json-file
+      options:
+        max-size: "{{ docker_daemon_log_max_size }}"
+        max-file: "{{ docker_daemon_log_max_file }}"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:{{ helix_edge_control_port }}/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

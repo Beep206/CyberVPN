@@ -2,13 +2,13 @@ import httpx
 import pytest
 
 from src.infrastructure.helix.client import (
-    AdapterDesktopRuntimeEventPayload,
-    AdapterDesktopRuntimeEventRequest,
-    AdapterDesktopRuntimeEventRecoveryEvidence,
     AdapterDesktopRuntimeEventContinuityEvidence,
+    AdapterDesktopRuntimeEventPayload,
+    AdapterDesktopRuntimeEventRecoveryEvidence,
+    AdapterDesktopRuntimeEventRequest,
     AdapterResolveManifestRequest,
-    HelixAdapterManifestUnavailableError,
     HelixAdapterClient,
+    HelixAdapterManifestUnavailableError,
 )
 
 

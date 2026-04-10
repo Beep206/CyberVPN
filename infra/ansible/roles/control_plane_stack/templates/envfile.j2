@@ -1,0 +1,3 @@
+{% for item in control_plane_stack_env_map | dict2items | sort(attribute='key') -%}
+{{ item.key }}={{ item.value }}
+{% endfor -%}

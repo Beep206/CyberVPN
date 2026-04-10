@@ -1,0 +1,49 @@
+---
+- name: Alloy | Install APT prerequisites
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Alloy | Ensure keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Alloy | Fetch Grafana APT key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /tmp/grafana-alloy.gpg.key
+    mode: "0644"
+
+- name: Alloy | Dearmor Grafana APT key
+  ansible.builtin.command:
+    argv:
+      - gpg
+      - --dearmor
+      - --yes
+      - --output
+      - /etc/apt/keyrings/grafana.gpg
+      - /tmp/grafana-alloy.gpg.key
+    creates: /etc/apt/keyrings/grafana.gpg
+  register: alloy_agent_gpg_key
+  changed_when: alloy_agent_gpg_key.rc == 0
+
+- name: Alloy | Configure Grafana APT repository
+  ansible.builtin.apt_repository:
+    repo: "{{ alloy_agent_apt_repo }}"
+    filename: "{{ alloy_agent_apt_repo_filename }}"
+    state: present
+    update_cache: true
+
+- name: Alloy | Install Grafana Alloy package
+  ansible.builtin.apt:
+    name: alloy
+    state: present

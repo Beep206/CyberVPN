@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -8,6 +9,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("cybervpn")
+
+
+def _utc_timestamp() -> str:
+    """Return an ISO-8601 UTC timestamp for health payloads."""
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 async def check_database(db_session: AsyncSession) -> dict[str, Any]:
@@ -129,7 +135,7 @@ async def perform_all_checks(db_session: AsyncSession, redis_client: Redis, remn
 
     return {
         "status": overall_status,
-        "timestamp": asyncio.get_event_loop().time(),
+        "timestamp": _utc_timestamp(),
         "checks": {
             "database": (
                 db_check if not isinstance(db_check, Exception) else {"status": "error", "error": str(db_check)}

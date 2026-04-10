@@ -1,0 +1,25 @@
+---
+backup_restore_action: backup
+
+backup_restore_control_plane_current_link: /opt/cybervpn/control-plane/current
+backup_restore_control_plane_releases_dir: /opt/cybervpn/control-plane/releases
+backup_restore_control_plane_compose_filename: docker-compose.yml
+backup_restore_control_plane_config_filenames:
+  - docker-compose.yml
+  - remnawave.env
+  - backend.env
+  - worker.env
+  - scheduler.env
+  - helix-adapter.env
+  - db-backup.env
+
+backup_restore_config_root_dir: /var/backups/cybervpn/control-plane/config
+backup_restore_postgres_root_dir: /var/backups/cybervpn/postgres
+backup_restore_metadata_filename: metadata.json
+
+backup_restore_db_backup_container_name: db-backup
+backup_restore_postgres_container_name: remnawave-db
+backup_restore_postgres_user: postgres
+backup_restore_restore_db_name: restore_drill
+backup_restore_restore_dump_path: ""
+backup_restore_run_destructive_restore_drill: false

@@ -1,0 +1,6 @@
+---
+- name: Backup | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - backup_restore_action in ['backup', 'restore_drill']
+    fail_msg: "backup_restore_action must be backup or restore_drill."

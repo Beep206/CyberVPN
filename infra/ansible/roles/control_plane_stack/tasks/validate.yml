@@ -1,0 +1,178 @@
+---
+- name: Control plane | Assert supported action
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_action in ['deploy', 'verify', 'rollback']
+    fail_msg: "control_plane_stack_action must be deploy, verify, or rollback."
+
+- name: Control plane | Assert at least one service is enabled
+  ansible.builtin.assert:
+    that:
+      - >
+        control_plane_stack_enable_remnawave
+        or control_plane_stack_enable_postgres
+        or control_plane_stack_enable_valkey
+        or control_plane_stack_enable_db_backup
+        or control_plane_stack_enable_backend
+        or control_plane_stack_enable_worker
+        or control_plane_stack_enable_scheduler
+        or control_plane_stack_enable_helix_adapter
+    fail_msg: "Enable at least one control-plane service before running the role."
+
+- name: Control plane | Assert service dependency graph is coherent
+  ansible.builtin.assert:
+    that:
+      - not control_plane_stack_enable_db_backup or control_plane_stack_enable_postgres
+      - not control_plane_stack_enable_backend or (control_plane_stack_enable_remnawave and control_plane_stack_enable_postgres and control_plane_stack_enable_valkey)
+      - not control_plane_stack_enable_worker or (control_plane_stack_enable_remnawave and control_plane_stack_enable_postgres and control_plane_stack_enable_valkey)
+      - not control_plane_stack_enable_scheduler or (control_plane_stack_enable_worker and control_plane_stack_enable_valkey)
+      - not control_plane_stack_enable_helix_adapter or (control_plane_stack_enable_remnawave and control_plane_stack_enable_postgres)
+    fail_msg: >-
+      The requested control-plane service combination is inconsistent. Keep
+      dependent services enabled together.
+
+- name: Control plane | Define effective scheduler env
+  ansible.builtin.set_fact:
+    control_plane_stack_effective_scheduler_env: >-
+      {{
+        control_plane_stack_scheduler_env
+        if control_plane_stack_scheduler_env | length > 0
+        else control_plane_stack_worker_env
+      }}
+  no_log: true
+
+- name: Control plane | Assert Remnawave config is complete
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_remnawave_image | length > 0
+      - >
+        (
+          [
+            'POSTGRES_USER',
+            'POSTGRES_PASSWORD',
+            'POSTGRES_DB',
+            'JWT_AUTH_SECRET',
+            'JWT_API_TOKENS_SECRET',
+            'FRONT_END_DOMAIN',
+            'PANEL_DOMAIN'
+          ] | difference(control_plane_stack_remnawave_env.keys() | list)
+        ) | length == 0
+    fail_msg: >-
+      Set control_plane_stack_remnawave_image and the required Remnawave env keys
+      before deploying the control plane.
+  when: control_plane_stack_enable_remnawave
+  no_log: true
+
+- name: Control plane | Assert backend config is complete
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_image | length > 0
+      - >
+        (
+          [
+            'DATABASE_URL',
+            'REDIS_URL',
+            'REMNAWAVE_URL',
+            'REMNAWAVE_TOKEN',
+            'JWT_SECRET',
+            'CRYPTOBOT_TOKEN',
+            'ENVIRONMENT',
+            'CORS_ORIGINS'
+          ] | difference(control_plane_stack_backend_env.keys() | list)
+        ) | length == 0
+    fail_msg: >-
+      Set control_plane_stack_backend_image and the required backend env keys
+      before deploying the control plane backend.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert worker config is complete
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_worker_image | length > 0
+      - >
+        (
+          [
+            'DATABASE_URL',
+            'REDIS_URL',
+            'REMNAWAVE_URL',
+            'REMNAWAVE_API_TOKEN',
+            'TELEGRAM_BOT_TOKEN',
+            'CRYPTOBOT_TOKEN',
+            'ADMIN_TELEGRAM_IDS',
+            'METRICS_PORT'
+          ] | difference(control_plane_stack_worker_env.keys() | list)
+        ) | length == 0
+    fail_msg: >-
+      Set control_plane_stack_worker_image and the required worker env keys
+      before deploying worker or scheduler services.
+  when: control_plane_stack_enable_worker or control_plane_stack_enable_scheduler
+  no_log: true
+
+- name: Control plane | Assert Helix adapter config is complete
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_helix_adapter_image | length > 0
+      - >
+        (
+          [
+            'ADAPTER_BIND_ADDR',
+            'REMNAWAVE_URL',
+            'REMNAWAVE_TOKEN',
+            'DATABASE_URL',
+            'INTERNAL_AUTH_TOKEN',
+            'MANIFEST_SIGNING_KEY',
+            'MANIFEST_SIGNING_KEY_ID'
+          ] | difference(control_plane_stack_helix_adapter_env.keys() | list)
+        ) | length == 0
+    fail_msg: >-
+      Set control_plane_stack_helix_adapter_image and the required Helix adapter
+      env keys before deploying the control plane.
+  when: control_plane_stack_enable_helix_adapter
+  no_log: true
+
+- name: Control plane | Assert DB backup config is complete
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_db_backup_image | length > 0
+      - >
+        (
+          [
+            'POSTGRES_HOST',
+            'POSTGRES_DB',
+            'POSTGRES_USER',
+            'POSTGRES_PASSWORD'
+          ] | difference(control_plane_stack_db_backup_env.keys() | list)
+        ) | length == 0
+    fail_msg: >-
+      Set the required db-backup env keys before enabling automated backups.
+  when: control_plane_stack_enable_db_backup
+  no_log: true
+
+- name: Control plane | Assert internal images are digest pinned
+  ansible.builtin.assert:
+    that:
+      - item.value is match("^.+@sha256:[a-f0-9]{64}$")
+    fail_msg: >-
+      Use immutable digest-pinned image refs for {{ item.key }} in the
+      environment release manifest.
+  loop: >-
+    {{
+      {
+        'backend': control_plane_stack_backend_image,
+        'worker': control_plane_stack_worker_image,
+        'helix_adapter': control_plane_stack_helix_adapter_image
+      } | dict2items
+    }}
+  when:
+    - control_plane_stack_enforce_immutable_images
+    - >-
+      (
+        item.key == 'backend' and control_plane_stack_enable_backend
+      ) or (
+        item.key == 'worker' and
+        (control_plane_stack_enable_worker or control_plane_stack_enable_scheduler)
+      ) or (
+        item.key == 'helix_adapter' and control_plane_stack_enable_helix_adapter
+      )
+  no_log: true

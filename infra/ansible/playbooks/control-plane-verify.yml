@@ -1,0 +1,10 @@
+---
+- name: Verify control-plane stack
+  hosts: "{{ control_plane_target_group | default('control_plane_staging') }}"
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: control_plane_stack
+      vars:
+        control_plane_stack_action: verify

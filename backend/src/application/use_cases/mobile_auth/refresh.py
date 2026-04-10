@@ -4,7 +4,6 @@ Handles JWT token refresh for mobile app users.
 """
 
 import logging
-from dataclasses import dataclass
 
 from src.application.dto.mobile_auth import (
     RefreshTokenRequestDTO,
@@ -17,7 +16,6 @@ from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
 )
-
 
 logger = logging.getLogger(__name__)
 

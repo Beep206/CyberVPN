@@ -1,0 +1,121 @@
+name: Control Plane Images
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/**'
+      - 'services/task-worker/**'
+      - 'services/helix-adapter/**'
+      - '.github/workflows/control-plane-images.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: control-plane-images-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish ${{ matrix.component.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - name: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+            image_name: backend
+          - name: task-worker
+            context: services/task-worker
+            dockerfile: services/task-worker/Dockerfile
+            image_name: task-worker
+          - name: helix-adapter
+            context: services/helix-adapter
+            dockerfile: services/helix-adapter/Dockerfile
+            image_name: helix-adapter
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize image repository path
+        run: |
+          echo "IMAGE_REPOSITORY=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component.context }}
+          file: ${{ matrix.component.dockerfile }}
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component.image_name }}
+
+      - name: Write image manifest
+        env:
+          COMPONENT_NAME: ${{ matrix.component.name }}
+          IMAGE_NAME: ${{ matrix.component.image_name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p out
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "component": os.environ["COMPONENT_NAME"],
+              "image_name": os.environ["IMAGE_NAME"],
+              "digest": os.environ["DIGEST"],
+              "digest_ref": (
+                  f"ghcr.io/{os.environ['GITHUB_REPOSITORY'].lower()}/"
+                  f"{os.environ['IMAGE_NAME']}@{os.environ['DIGEST']}"
+              ),
+              "source_commit": os.environ["SOURCE_COMMIT"],
+              "source_run_url": os.environ["SOURCE_RUN_URL"],
+          }
+          Path("out").mkdir(parents=True, exist_ok=True)
+          Path(f"out/{payload['image_name']}.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True),
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload image manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-plane-image-${{ matrix.component.image_name }}
+          path: out/${{ matrix.component.image_name }}.json
+          retention-days: 14
+
+      - name: Write summary
+        env:
+          DIGEST_REF: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}@${{ steps.build.outputs.digest }}
+        run: |
+          echo "## ${DIGEST_REF}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Use this digest ref in the promotion workflow or in \`infra/ansible/inventories/*/group_vars/control_plane_*/release.yml\`." >> "$GITHUB_STEP_SUMMARY"

@@ -6,16 +6,17 @@ Handles logout and token revocation for mobile app users.
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from uuid import UUID
 
 from src.application.dto.mobile_auth import LogoutRequestDTO
 from src.application.services.auth_service import AuthService
 from src.domain.exceptions import InvalidTokenError
-
-logger = logging.getLogger(__name__)
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
     MobileUserRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -56,8 +57,6 @@ class MobileLogoutUseCase:
             raise InvalidTokenError()
 
         # Verify user exists
-        from uuid import UUID
-
         user = await self.user_repo.get_by_id(UUID(user_id))
         if not user:
             raise InvalidTokenError()

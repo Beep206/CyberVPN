@@ -1,0 +1,49 @@
+---
+remnawave_edge_action: deploy
+
+remnawave_edge_root: /opt/cybervpn/remnanode
+remnawave_edge_releases_dir: "{{ remnawave_edge_root }}/releases"
+remnawave_edge_current_link: "{{ remnawave_edge_root }}/current"
+remnawave_edge_previous_link: "{{ remnawave_edge_root }}/previous"
+
+remnawave_edge_release_name: ""
+remnawave_edge_rollback_release_name: ""
+
+remnawave_edge_project_name: remnanode
+remnawave_edge_service_name: remnanode
+remnawave_edge_container_name: remnanode
+remnawave_edge_compose_filename: docker-compose.yml
+remnawave_edge_env_filename: remnanode.env
+
+remnawave_edge_image: remnawave/node:2.6.1
+remnawave_edge_restart_policy: unless-stopped
+remnawave_edge_network_mode: host
+remnawave_edge_compose_service_pull_policy: missing
+remnawave_edge_pull_policy: missing
+remnawave_edge_recreate_policy: auto
+remnawave_edge_wait_timeout: 120
+
+remnawave_edge_node_port: 2222
+remnawave_edge_secret_key: ""
+
+remnawave_edge_cap_add:
+  - NET_ADMIN
+
+remnawave_edge_ulimits_nofile_soft: 1048576
+remnawave_edge_ulimits_nofile_hard: 1048576
+
+remnawave_edge_mount_logs: true
+remnawave_edge_log_dir: /var/log/remnanode
+remnawave_edge_manage_logrotate: true
+remnawave_edge_logrotate_path: /etc/logrotate.d/remnanode
+remnawave_edge_logrotate_size: 50M
+remnawave_edge_logrotate_rotate: 5
+
+remnawave_edge_mount_certificates: false
+remnawave_edge_certificates_dir: /opt/cybervpn/remnanode/certs
+
+remnawave_edge_extra_env: {}
+remnawave_edge_extra_volumes: []
+
+remnawave_edge_verify_host: 127.0.0.1
+remnawave_edge_verify_timeout: 30

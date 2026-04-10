@@ -27,7 +27,7 @@ class TestMagicLinkRoutes:
         """Magic link request stores token in Redis with 15min TTL."""
         from unittest.mock import patch
 
-        with patch("src.infrastructure.cache.redis_client.RedisClient.set") as mock_redis:
+        with patch("src.infrastructure.cache.redis_client.RedisClient.set"):
             response = await async_client.post(
                 "/api/v1/auth/magic-link/request",
                 json={"email": "test@example.com"}
@@ -78,7 +78,7 @@ class TestMagicLinkRoutes:
         from unittest.mock import patch
 
         with patch("src.infrastructure.cache.redis_client.RedisClient.get") as mock_get:
-            with patch("src.infrastructure.cache.redis_client.RedisClient.delete") as mock_delete:
+            with patch("src.infrastructure.cache.redis_client.RedisClient.delete"):
                 mock_get.return_value = "user-id-123"
 
                 # First verification

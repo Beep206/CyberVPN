@@ -1,0 +1,13 @@
+groups:
+  - name: cybervpn_alloy_edge_alerts
+    interval: 30s
+    rules:
+      - alert: AlloyEdgeDown
+        expr: up{job="alloy-edge"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: alloy-edge
+        annotations:
+          summary: "Alloy edge target is down"
+          description: "Prometheus cannot scrape the Alloy edge target {{ $labels.instance }} for more than 5 minutes."

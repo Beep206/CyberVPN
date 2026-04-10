@@ -32,10 +32,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration (can be overridden via environment variables)
-PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9090}"
+PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9094}"
 GRAFANA_URL="${GRAFANA_URL:-http://localhost:3002}"
 GRAFANA_USER="${GRAFANA_USER:-admin}"
-GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-admin}"
+GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-grafana_local_password}"
 ALERTMANAGER_URL="${ALERTMANAGER_URL:-http://localhost:9093}"
 LOKI_URL="${LOKI_URL:-http://localhost:3100}"
 OTEL_COLLECTOR_URL="${OTEL_COLLECTOR_URL:-http://localhost:4318}"
@@ -95,20 +95,37 @@ function test_prometheus_targets() {
         return 1
     fi
 
-    # Check that all targets are UP
-    down_targets=$(echo "$response" | jq -r '.data.activeTargets[] | select(.health != "up") | .labels.job')
+    # Check that all required targets are UP. Prometheus may need one scrape interval
+    # after container restarts before exporters move from "unknown" to "up".
+    down_targets=""
+    for _ in $(seq 1 10); do
+        response=$(curl -s "${PROMETHEUS_URL}/api/v1/targets" || echo "FAILED")
+
+        if [[ "$response" == "FAILED" ]]; then
+            print_failure "Prometheus became unreachable while waiting for target health"
+            return 1
+        fi
+
+        down_targets=$(echo "$response" | jq -r '.data.activeTargets[] | select(.labels.optional_profile != "true" and .health != "up") | .labels.job')
+
+        if [[ -z "$down_targets" ]]; then
+            break
+        fi
+
+        sleep 3
+    done
 
     if [[ -z "$down_targets" ]]; then
-        print_success "All Prometheus targets are UP"
+        print_success "All required Prometheus targets are UP"
     else
-        print_failure "Some targets are DOWN: $down_targets"
+        print_failure "Some required targets are DOWN: $down_targets"
         return 1
     fi
 
     # Verify expected targets exist
     echo ""
     echo "Checking for expected Prometheus targets..."
-    expected_targets=("prometheus" "node-exporter" "postgres-exporter" "redis-exporter" "cadvisor")
+    expected_targets=("prometheus" "node" "postgres" "redis" "cadvisor" "remnawave")
 
     for target in "${expected_targets[@]}"; do
         if echo "$response" | jq -r '.data.activeTargets[].labels.job' | grep -q "$target"; then
@@ -152,10 +169,10 @@ function test_grafana_dashboards() {
     echo ""
     echo "Found $dashboard_count dashboards in Grafana"
 
-    if [[ "$dashboard_count" -ge 8 ]]; then
-        print_success "Grafana has 8+ dashboards configured (found $dashboard_count)"
+    if [[ "$dashboard_count" -ge 14 ]]; then
+        print_success "Grafana has 14+ dashboards configured (found $dashboard_count)"
     else
-        print_failure "Expected 8+ dashboards, found only $dashboard_count"
+        print_failure "Expected 14+ dashboards, found only $dashboard_count"
         return 1
     fi
 
@@ -301,8 +318,8 @@ function test_prometheus_metrics_collection() {
 
     echo "Querying Prometheus for backend metrics..."
 
-    # Query for http_requests_total metric from FastAPI backend
-    query="http_requests_total"
+    # Query for a stable Remnawave runtime metric
+    query="remnawave_process_rss_bytes"
     response=$(curl -s "${PROMETHEUS_URL}/api/v1/query?query=${query}" || echo "FAILED")
 
     if [[ "$response" == "FAILED" ]]; then
@@ -312,9 +329,9 @@ function test_prometheus_metrics_collection() {
 
     # Check if metric exists
     if echo "$response" | jq -e '.data.result | length > 0' > /dev/null 2>&1; then
-        print_success "Prometheus is collecting backend metrics (http_requests_total found)"
+        print_success "Prometheus is collecting backend metrics (${query} found)"
     else
-        print_warning "Backend metrics not yet collected (may need time or backend restart)"
+        print_warning "Backend metrics not yet collected for ${query} (may need time or backend restart)"
     fi
 
     return 0

@@ -1,0 +1,16 @@
+---
+helix_edge_image: ""
+helix_edge_adapter_url: ""
+helix_edge_adapter_token: "{{ vault_helix_edge_adapter_token }}"
+helix_edge_node_id: "{{ inventory_hostname }}"
+helix_edge_state_dir: /var/lib/helix-node
+helix_edge_instance_id: "{{ inventory_hostname }}"
+helix_edge_daemon_version: v0.1.0
+helix_edge_control_port: 8091
+helix_edge_transport_ports: []
+helix_edge_assignment_poll_interval_seconds: 15
+helix_edge_health_gate_timeout_seconds: 15
+helix_edge_metrics_prefix: helix_node
+helix_edge_log_level: info
+helix_edge_allow_private_targets: false
+helix_edge_canary_pause_seconds: 30

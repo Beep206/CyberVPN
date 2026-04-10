@@ -1,0 +1,133 @@
+---
+- name: Remnawave | Build desired release fingerprint
+  ansible.builtin.set_fact:
+    remnawave_edge_release_fingerprint: >-
+      {{
+        {
+          'image': remnawave_edge_image,
+          'node_port': remnawave_edge_node_port,
+          'secret_key_sha1': remnawave_edge_secret_key | hash('sha1'),
+          'cap_add': remnawave_edge_cap_add,
+          'restart_policy': remnawave_edge_restart_policy,
+          'network_mode': remnawave_edge_network_mode,
+          'log_dir': remnawave_edge_log_dir if remnawave_edge_mount_logs else '',
+          'certificates_dir': remnawave_edge_certificates_dir if remnawave_edge_mount_certificates else '',
+          'extra_env': remnawave_edge_extra_env,
+          'extra_volumes': remnawave_edge_extra_volumes,
+          'compose_service_pull_policy': remnawave_edge_compose_service_pull_policy
+        } | to_nice_json | hash('sha1')
+      }}
+
+- name: Remnawave | Define target release path
+  ansible.builtin.set_fact:
+    remnawave_edge_target_release_name: >-
+      {{
+        remnawave_edge_release_name
+        | default('remnanode-' ~ remnawave_edge_release_fingerprint[:12], true)
+      }}
+    remnawave_edge_target_release_path: >-
+      {{
+        remnawave_edge_releases_dir ~ '/' ~
+        (
+          remnawave_edge_release_name
+          | default('remnanode-' ~ remnawave_edge_release_fingerprint[:12], true)
+        )
+      }}
+    remnawave_edge_last_good_target: "{{ remnawave_edge_current_target }}"
+
+- name: Remnawave | Build directory list
+  ansible.builtin.set_fact:
+    remnawave_edge_directories: >-
+      {{
+        [remnawave_edge_root, remnawave_edge_releases_dir, remnawave_edge_target_release_path]
+        + ([remnawave_edge_log_dir] if remnawave_edge_mount_logs else [])
+        + ([remnawave_edge_certificates_dir] if remnawave_edge_mount_certificates else [])
+      }}
+
+- name: Remnawave | Ensure directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ remnawave_edge_directories }}"
+
+- name: Remnawave | Render compose template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ remnawave_edge_target_release_path }}/{{ remnawave_edge_compose_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Remnawave | Render environment template
+  ansible.builtin.template:
+    src: remnanode.env.j2
+    dest: "{{ remnawave_edge_target_release_path }}/{{ remnawave_edge_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Remnawave | Install logrotate policy
+  ansible.builtin.template:
+    src: remnanode.logrotate.j2
+    dest: "{{ remnawave_edge_logrotate_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - remnawave_edge_mount_logs
+    - remnawave_edge_manage_logrotate
+
+- name: Remnawave | Track last good release
+  ansible.builtin.file:
+    state: link
+    src: "{{ remnawave_edge_last_good_target }}"
+    path: "{{ remnawave_edge_previous_link }}"
+    force: true
+  when:
+    - remnawave_edge_last_good_target | length > 0
+    - remnawave_edge_last_good_target != remnawave_edge_target_release_path
+
+- name: Remnawave | Point current symlink to target release
+  ansible.builtin.file:
+    state: link
+    src: "{{ remnawave_edge_target_release_path }}"
+    path: "{{ remnawave_edge_current_link }}"
+    force: true
+
+- block:
+    - import_tasks: state.yml
+
+    - import_tasks: _compose_apply.yml
+
+    - import_tasks: verify.yml
+  rescue:
+    - name: Remnawave | Restore last good release after failed rollout
+      ansible.builtin.file:
+        state: link
+        src: "{{ remnawave_edge_last_good_target }}"
+        path: "{{ remnawave_edge_current_link }}"
+        force: true
+      when: remnawave_edge_last_good_target | length > 0
+
+    - import_tasks: state.yml
+      when: remnawave_edge_last_good_target | length > 0
+
+    - import_tasks: _compose_apply.yml
+      when: remnawave_edge_last_good_target | length > 0
+
+    - import_tasks: verify.yml
+      when: remnawave_edge_last_good_target | length > 0
+
+    - name: Remnawave | Fail rollout after automatic rollback handling
+      ansible.builtin.fail:
+        msg: >-
+          Remnawave rollout failed on {{ inventory_hostname }}.
+          {{
+            'The previous release was restored automatically.'
+            if remnawave_edge_last_good_target | length > 0
+            else 'No previous release was available for automatic rollback.'
+          }}

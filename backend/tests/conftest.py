@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures for testing."""
 
+import importlib.util
 import os
 from collections.abc import AsyncGenerator
 
@@ -11,6 +12,14 @@ from httpx import ASGITransport, AsyncClient
 os.environ["ENABLE_METRICS"] = "true"
 
 from src.main import app
+
+
+def pytest_ignore_collect(collection_path, path=None, config=None) -> bool:  # noqa: ARG001
+    """Skip Locust scenarios from normal pytest collection when Locust is absent."""
+    if collection_path.name not in {"test_auth_load.py", "test_helix_load.py"}:
+        return False
+
+    return collection_path.parent.name == "load" and importlib.util.find_spec("locust") is None
 
 
 @pytest.fixture(scope="session")
@@ -58,6 +67,18 @@ async def async_client(test_settings) -> AsyncGenerator[AsyncClient]:
         base_url="http://test",
     ) as client:
         yield client
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_global_async_pools() -> AsyncGenerator[None]:
+    """Dispose shared pools between tests to avoid cross-loop leftovers."""
+    yield
+
+    from src.infrastructure.cache.redis_client import close_redis_pool
+    from src.infrastructure.database.session import engine
+
+    await close_redis_pool()
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture

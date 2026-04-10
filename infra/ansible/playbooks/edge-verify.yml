@@ -1,0 +1,62 @@
+---
+- name: Verify CyberVPN edge bootstrap
+  hosts: "{{ edge_target_group | default('edge_staging') }}"
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Verify | Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify | Assert docker service is present
+      ansible.builtin.assert:
+        that:
+          - "'docker.service' in ansible_facts.services"
+        fail_msg: "docker.service is missing after bootstrap."
+
+    - name: Verify | Assert docker service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['docker.service'].state == 'running'
+        fail_msg: "docker.service is not running after bootstrap."
+
+    - name: Verify | Check docker CLI
+      ansible.builtin.command: docker --version
+      changed_when: false
+
+    - name: Verify | Check docker compose CLI
+      ansible.builtin.command: docker compose version
+      changed_when: false
+
+    - name: Verify | Check admin user group membership
+      ansible.builtin.command: id -nG {{ base_admin_user }}
+      register: verify_admin_groups
+      changed_when: false
+
+    - name: Verify | Assert admin user is in docker group
+      ansible.builtin.assert:
+        that:
+          - "'docker' in verify_admin_groups.stdout.split()"
+        fail_msg: "Bootstrap admin user is not a member of the docker group."
+
+    - name: Verify | Check Docker daemon config exists
+      ansible.builtin.stat:
+        path: /etc/docker/daemon.json
+      register: verify_docker_daemon
+
+    - name: Verify | Assert Docker daemon config exists
+      ansible.builtin.assert:
+        that:
+          - verify_docker_daemon.stat.exists
+        fail_msg: "/etc/docker/daemon.json is missing."
+
+    - name: Verify | Check SSH hardening fragment exists
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config.d/99-cybervpn.conf
+      register: verify_sshd_fragment
+
+    - name: Verify | Assert SSH hardening fragment exists
+      ansible.builtin.assert:
+        that:
+          - verify_sshd_fragment.stat.exists
+        fail_msg: "SSH hardening fragment is missing."

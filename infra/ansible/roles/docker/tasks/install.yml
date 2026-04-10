@@ -1,0 +1,19 @@
+---
+- name: Docker | Install Docker packages
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: true
+
+- name: Docker | Ensure service is enabled and started
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Docker | Add admin user to docker group
+  ansible.builtin.user:
+    name: "{{ base_admin_user }}"
+    groups: docker
+    append: true
+  when: docker_manage_user_group

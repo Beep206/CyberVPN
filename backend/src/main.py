@@ -1,13 +1,11 @@
+import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any, cast
-
-import logging
 
 import structlog
 from fastapi import Depends, FastAPI
-
-logger = logging.getLogger(__name__)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
@@ -31,6 +29,7 @@ from src.domain.exceptions.domain_errors import (
 from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
+from src.infrastructure.monitoring.http_metrics import add_http_metrics_middleware, build_metrics_response
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
 from src.presentation.api.v1.router import api_router
 from src.presentation.api.well_known.security_txt import router as security_txt_router
@@ -58,7 +57,10 @@ from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
 from src.version import __version__
 
+logger = logging.getLogger(__name__)
 logger = structlog.get_logger("cybervpn")
+READINESS_QUEUE_STREAM = "taskiq:stream"
+READINESS_QUEUE_MAX_DEPTH = 1000
 
 
 @asynccontextmanager
@@ -278,23 +280,14 @@ if settings.otel_enabled:
     RedisInstrumentor().instrument()
     logger.info("OpenTelemetry Redis instrumentation applied")
 
-# Initialize Prometheus FastAPI instrumentator
-# Expose metrics on separate metrics_app (port 9091), not main app
-from prometheus_fastapi_instrumentator import Instrumentator
-
-instrumentator = Instrumentator(
-    should_group_status_codes=True,
-    should_ignore_untemplated=False,
-    should_respect_env_var=True,
-    should_instrument_requests_inprogress=True,
+# Starlette 1.0 removed compatibility with our old instrumentator dependency.
+# Keep the existing metric names with a small in-repo ASGI middleware instead.
+add_http_metrics_middleware(
+    app,
     excluded_handlers=["/health", "/metrics", "/docs", "/openapi.json", "/redoc"],
+    enabled=settings.enable_metrics,
     env_var_name="ENABLE_METRICS",
-    inprogress_name="http_requests_in_progress",
-    inprogress_labels=True,
 )
-
-# Instrument the main app but expose metrics on metrics_app
-instrumentator.instrument(app)
 
 # Middleware (order matters - last added = first executed)
 # Order: Logging (runs last) → RequestID → SecurityHeaders → Rate Limit → CORS (runs first)
@@ -328,6 +321,7 @@ app.add_middleware(
     allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+    allow_private_network=True,
 )
 
 
@@ -363,6 +357,41 @@ app.include_router(api_router)
 app.include_router(security_txt_router)  # SEC-017: /.well-known/security.txt
 
 
+async def check_db_connection() -> bool:
+    """Readiness wrapper kept at module scope for testability."""
+    from src.infrastructure.database.session import check_db_connection as _check_db_connection
+
+    return await _check_db_connection()
+
+
+async def check_redis_connection() -> tuple[bool, float | None]:
+    """Readiness wrapper kept at module scope for testability."""
+    from src.infrastructure.cache.redis_client import check_redis_connection as _check_redis_connection
+
+    return await _check_redis_connection()
+
+
+async def get_redis_client():
+    """Readiness wrapper kept at module scope for testability."""
+    from src.infrastructure.cache.redis_client import get_redis_client as _get_redis_client
+
+    return await _get_redis_client()
+
+
+def _readiness_timestamp() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+async def _check_task_queue_depth() -> tuple[bool, int]:
+    redis_client = await get_redis_client()
+    try:
+        queue_depth = await redis_client.xlen(READINESS_QUEUE_STREAM)
+    finally:
+        await redis_client.aclose()
+
+    return queue_depth < READINESS_QUEUE_MAX_DEPTH, queue_depth
+
+
 @app.get("/health")
 async def health_check() -> dict:
     """Minimal health check for load balancers and orchestrators.
@@ -388,9 +417,6 @@ async def readiness_check() -> dict:
     """
     from fastapi import status as http_status
     from fastapi.responses import JSONResponse
-
-    from src.infrastructure.cache.redis_client import check_redis_connection
-    from src.infrastructure.database.session import check_db_connection
 
     checks = {
         "database": False,
@@ -423,12 +449,7 @@ async def readiness_check() -> dict:
     # Check task queue depth (optional - requires Redis)
     try:
         if checks["redis"]:
-            from src.infrastructure.cache.redis_client import get_redis_client
-
-            redis = await get_redis_client()
-            # Check pending tasks in TaskIQ queue (stream length)
-            queue_depth = await redis.xlen("taskiq:stream")
-            checks["queue"] = queue_depth < 1000
+            checks["queue"], queue_depth = await _check_task_queue_depth()
             checks["queue_depth"] = queue_depth
             if not checks["queue"]:
                 all_healthy = False
@@ -441,15 +462,27 @@ async def readiness_check() -> dict:
         all_healthy = False
 
     # Return appropriate status code
+    services = {
+        "database": "ok" if checks["database"] else "error",
+        "redis": "ok" if checks["redis"] else "error",
+        "queue": "ok" if checks["queue"] else "error",
+    }
+    payload = {
+        "status": "ready" if all_healthy else "not_ready",
+        "timestamp": _readiness_timestamp(),
+        "services": services,
+        "checks": checks,
+    }
+
     if all_healthy:
         return JSONResponse(
             status_code=http_status.HTTP_200_OK,
-            content={"status": "ready", "checks": checks},
+            content=payload,
         )
     else:
         return JSONResponse(
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={"status": "not_ready", "checks": checks},
+            content=payload,
         )
 
 
@@ -495,8 +528,9 @@ def create_metrics_app() -> FastAPI:
     """SEC-02: Separate ASGI app for /metrics on internal-only port."""
     metrics_app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    # Expose Prometheus metrics from instrumentator on metrics_app
-    instrumentator.expose(metrics_app, endpoint="/metrics", include_in_schema=False)
+    @metrics_app.get("/metrics", include_in_schema=False)
+    async def metrics():
+        return build_metrics_response()
 
     @metrics_app.get("/health")
     async def metrics_health():

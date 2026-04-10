@@ -575,7 +575,7 @@ class TestBruteForceProtection:
         await db.commit()
 
         # Make 3 failed login attempts
-        for i in range(3):
+        for _ in range(3):
             response = await async_client.post(
                 "/api/v1/auth/login",
                 json={
@@ -625,7 +625,7 @@ class TestBruteForceProtection:
         await db.commit()
 
         # Make 2 failed attempts
-        for i in range(2):
+        for _ in range(2):
             await async_client.post(
                 "/api/v1/auth/login",
                 json={
@@ -645,7 +645,7 @@ class TestBruteForceProtection:
         assert success_response.status_code == 200
 
         # Now we should be able to make 3 more failed attempts before lockout
-        for i in range(2):
+        for _ in range(2):
             await async_client.post(
                 "/api/v1/auth/login",
                 json={
@@ -864,7 +864,7 @@ class TestLogoutAllDevices:
 
         # Access tokens should also be revoked (if JWT revocation is enabled)
         # Note: This depends on whether JWT revocation service is checking Redis
-        me1_after_response = await async_client.get(
+        await async_client.get(
             "/api/v1/auth/me",
             headers={"Authorization": f"Bearer {device1_access}"},
         )
