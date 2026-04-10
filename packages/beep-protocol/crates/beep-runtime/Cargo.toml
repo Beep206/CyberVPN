@@ -1,0 +1,25 @@
+[package]
+name = "beep-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+beep-core = { path = "../beep-core" }
+beep-core-types = { path = "../beep-core-types" }
+beep-transport = { path = "../beep-transport" }
+beep-session = { path = "../beep-session" }
+tokio = { workspace = true, features = ["sync", "macros", "time"] }
+bytes = { workspace = true }
+tracing = { workspace = true }
+futures-util = "0.3"
+async-trait = "0.1"
+thiserror = { workspace = true }
+
+[dev-dependencies]
+beep-cover-wss = { path = "../beep-cover-wss" }
+beep-cover-h2 = { path = "../beep-cover-h2" }
+rcgen = { workspace = true }
+rustls-pemfile = { workspace = true }
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
