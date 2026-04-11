@@ -27,6 +27,7 @@ os.environ.setdefault("JWT_SECRET", "0123456789abcdef0123456789abcdefLONG")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
 from src.application.services.helix_service import HelixService
+from src.config.settings import settings
 from src.domain.enums.enums import AdminRole
 from src.infrastructure.helix.client import HelixAdapterClient
 from src.presentation.api.v1.helix.routes import router as helix_router
@@ -94,7 +95,8 @@ def _p95(samples: list[float]) -> float:
 
 
 @pytest.mark.asyncio
-async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_budget():
+async def test_helix_canary_evidence_route_under_concurrent_load_meets_internal_budget(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(settings, "helix_admin_enabled", True)
     test_app = FastAPI()
     test_app.include_router(helix_router, prefix="/api/v1")
 

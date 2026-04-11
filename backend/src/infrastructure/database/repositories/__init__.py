@@ -1,5 +1,6 @@
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
+from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
@@ -15,6 +16,7 @@ from src.infrastructure.database.repositories.withdrawal_repo import WithdrawalR
 __all__ = [
     "AdminUserRepository",
     "AuditLogRepository",
+    "CustomerStaffNoteRepository",
     "InviteCodeRepository",
     "OtpCodeRepository",
     "PartnerRepository",

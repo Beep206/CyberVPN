@@ -426,13 +426,12 @@ class TestSentryInitialization:
         """Test that Sentry SDK is initialized during app lifespan."""
         import sentry_sdk
 
-        # Check that Sentry SDK Hub exists
-        hub = sentry_sdk.Hub.current
-        assert hub is not None
+        client = sentry_sdk.get_client()
+        assert client is not None
 
-        # Check that client exists (indicates SDK is initialized)
-        # In test environment, client may be None if DSN is not set, which is OK
-        assert hasattr(hub, "client")
+        # In test environment the SDK may be in non-recording mode, but the
+        # client object should still be available through the non-deprecated API.
+        assert hasattr(client, "options")
 
     @pytest.mark.integration
     async def test_sentry_captures_unhandled_exceptions(self, async_client: AsyncClient):
@@ -454,15 +453,15 @@ class TestSentryInitialization:
         import sentry_sdk
         from sentry_sdk.integrations.fastapi import FastApiIntegration
 
-        hub = sentry_sdk.Hub.current
-        assert hub is not None
+        client = sentry_sdk.get_client()
+        assert client is not None
 
         # Check that FastAPI integration class exists
         assert FastApiIntegration is not None
 
-        # In test environment, we just verify the integration is available
-        # In production with DSN, integrations would be in hub.client.integrations
-        assert hasattr(hub, "client")
+        # In test environment we only assert that the client exposes integration
+        # storage through the modern SDK surface.
+        assert hasattr(client, "integrations")
 
     @pytest.mark.integration
     async def test_sentry_includes_request_context(self, async_client: AsyncClient):

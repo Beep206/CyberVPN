@@ -1,9 +1,10 @@
+import json
 import logging
-from typing import ClassVar
+from typing import Annotated, ClassVar
 from urllib.parse import urlparse
 
 from pydantic import SecretStr, field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, NoDecode
 
 _logger = logging.getLogger(__name__)
 
@@ -45,16 +46,16 @@ class Settings(BaseSettings):
     jwt_audience: str | None = None
 
     # CORS (SEC-013: Default to empty list, require explicit config)
-    cors_origins: list[str] = []
+    cors_origins: Annotated[list[str], NoDecode] = []
 
     # Canonical frontend origin for server-owned web OAuth callbacks
     oauth_web_base_url: str = ""
 
     # OAuth redirect allowlist for explicit native/universal callbacks (exact URI match)
-    oauth_allowed_redirect_uris: list[str] = ["cybervpn://oauth/callback"]
+    oauth_allowed_redirect_uris: Annotated[list[str], NoDecode] = ["cybervpn://oauth/callback"]
 
     # Active OAuth login providers (rollout gate)
-    oauth_enabled_login_providers: list[str] = [
+    oauth_enabled_login_providers: Annotated[list[str], NoDecode] = [
         "google",
         "discord",
         "facebook",
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
     ]
 
     # Only these providers may auto-link to an existing account by email
-    oauth_trusted_email_link_providers: list[str] = [
+    oauth_trusted_email_link_providers: Annotated[list[str], NoDecode] = [
         "google",
         "discord",
         "microsoft",
@@ -74,8 +75,8 @@ class Settings(BaseSettings):
     # OAuth provider token encryption (prefer dedicated key, fallback to TOTP key)
     oauth_token_encryption_key: SecretStr = SecretStr("")
     oauth_token_plaintext_fallback_enabled: bool = True
-    oauth_retained_access_token_providers: list[str] = []
-    oauth_retained_refresh_token_providers: list[str] = []
+    oauth_retained_access_token_providers: Annotated[list[str], NoDecode] = []
+    oauth_retained_refresh_token_providers: Annotated[list[str], NoDecode] = []
 
     # GitHub OAuth (optional)
     github_client_id: str = ""
@@ -161,7 +162,7 @@ class Settings(BaseSettings):
     debug: bool = False  # Debug mode - should be False in production
     rate_limit_fail_open: bool = False  # MED-1: Fail-closed in production
     mobile_rate_limit_fail_open: bool = False  # MED-4: Mobile rate limit fail-closed
-    jwt_allowed_algorithms: list[str] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
+    jwt_allowed_algorithms: Annotated[list[str], NoDecode] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
     swagger_enabled: bool = False  # SEC-008: Disabled by default, enable via env for dev
 
     # TOTP Encryption (MED-6)
@@ -171,7 +172,7 @@ class Settings(BaseSettings):
     log_sanitization_enabled: bool = True  # Sanitize sensitive data in logs
 
     # Trusted Proxy (MED-8)
-    trusted_proxy_ips: list[str] = []  # List of trusted proxy IPs for X-Forwarded-For
+    trusted_proxy_ips: Annotated[list[str], NoDecode] = []  # List of trusted proxy IPs for X-Forwarded-For
 
     # Token Device Binding (MED-2)
     enforce_token_binding: bool = False  # Strict fingerprint validation on token refresh
@@ -200,12 +201,23 @@ class Settings(BaseSettings):
         "oauth_trusted_email_link_providers",
         "oauth_retained_access_token_providers",
         "oauth_retained_refresh_token_providers",
+        "jwt_allowed_algorithms",
+        "trusted_proxy_ips",
         mode="before",
     )
     @classmethod
     def parse_str_list(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            normalized = v.strip()
+            if not normalized:
+                return []
+
+            if normalized.startswith("["):
+                parsed = json.loads(normalized)
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed if str(item).strip()]
+
+            return [origin.strip() for origin in normalized.split(",") if origin.strip()]
         return v
 
     @field_validator("jwt_issuer", "jwt_audience", mode="before")

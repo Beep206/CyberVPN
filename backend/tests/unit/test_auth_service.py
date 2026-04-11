@@ -29,7 +29,7 @@ class TestAuthService:
         password = "correct_password"
         password_hash = await self.auth_service.hash_password(password)
 
-        result = await self.auth_service.verify_password(password, password_hash)
+        result = self.auth_service.verify_password(password, password_hash)
 
         assert result is True
 
@@ -40,7 +40,7 @@ class TestAuthService:
         wrong_password = "wrong_password"
         password_hash = await self.auth_service.hash_password(password)
 
-        result = await self.auth_service.verify_password(wrong_password, password_hash)
+        result = self.auth_service.verify_password(wrong_password, password_hash)
 
         assert result is False
 
@@ -50,10 +50,12 @@ class TestAuthService:
         subject = "user-uuid-123"
         role = "admin"
 
-        token = self.auth_service.create_access_token(subject, role)
+        token, jti, expires_at = self.auth_service.create_access_token(subject, role)
 
         assert isinstance(token, str)
         assert len(token) > 0
+        assert isinstance(jti, str)
+        assert expires_at is not None
 
         # Decode and verify payload
         payload = self.auth_service.decode_token(token)
@@ -67,9 +69,11 @@ class TestAuthService:
         """Test refresh token creation."""
         subject = "user-uuid-456"
 
-        token = self.auth_service.create_refresh_token(subject)
+        token, jti, expires_at = self.auth_service.create_refresh_token(subject)
 
         assert isinstance(token, str)
+        assert isinstance(jti, str)
+        assert expires_at is not None
 
         payload = self.auth_service.decode_token(token)
         assert payload["sub"] == subject
@@ -80,7 +84,7 @@ class TestAuthService:
         """Test decoding a valid token."""
         subject = "user-123"
         role = "user"
-        token = self.auth_service.create_access_token(subject, role)
+        token, _jti, _expires_at = self.auth_service.create_access_token(subject, role)
 
         payload = self.auth_service.decode_token(token)
 

@@ -18,6 +18,8 @@ from prometheus_client import REGISTRY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
+from src.main import app
 
 
 class TestMetricsWired:
@@ -81,12 +83,14 @@ class TestMetricsWired:
         async_client: AsyncClient,
     ):
         """Test that user registration increments registrations_total counter."""
-        # Mock email dispatcher to prevent actual email sends
-        with patch("src.presentation.api.v1.auth.registration.get_email_dispatcher") as mock_email_dep:
-            mock_dispatcher = AsyncMock()
-            mock_email_dep.return_value = mock_dispatcher
+        mock_dispatcher = AsyncMock()
 
-            # Get metric value before registration
+        async def override_email_dispatcher():
+            return mock_dispatcher
+
+        app.dependency_overrides[get_email_dispatcher] = override_email_dispatcher
+
+        try:
             before = REGISTRY.get_sample_value(
                 'registrations_total',
                 {'method': 'email'}
@@ -97,23 +101,23 @@ class TestMetricsWired:
                 "email": f"test{secrets.token_hex(4)}@example.com",
                 "password": "SecureP@ssw0rd123!",
                 "locale": "en-EN",
+                "tos_accepted": True,
             }
 
-            # Enable registration for test
             with patch("src.config.settings.settings.registration_enabled", True):
                 with patch("src.config.settings.settings.registration_invite_required", False):
                     response = await async_client.post("/api/v1/auth/register", json=register_data)
 
             assert response.status_code == 201
 
-            # Get metric value after registration
             after = REGISTRY.get_sample_value(
                 'registrations_total',
                 {'method': 'email'}
             ) or 0
 
-            # Verify metric incremented
             assert after > before, f"registrations_total should increase from {before} to {after}"
+        finally:
+            app.dependency_overrides.pop(get_email_dispatcher, None)
 
     @pytest.mark.integration
     async def test_trial_activate_increments_trial_metric(

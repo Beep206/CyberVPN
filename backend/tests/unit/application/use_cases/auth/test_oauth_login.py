@@ -19,12 +19,19 @@ class TestOAuthLoginUseCase:
     @pytest.fixture
     def mock_user_repo(self):
         """Mock AdminUserRepository."""
-        return AsyncMock()
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        repo.get_by_login.return_value = None
+        repo.get_by_id.return_value = None
+        repo.get_by_telegram_id.return_value = None
+        return repo
 
     @pytest.fixture
     def mock_oauth_repo(self):
         """Mock OAuthAccountRepository."""
-        return AsyncMock()
+        repo = AsyncMock()
+        repo.get_by_provider_and_user_id.return_value = None
+        return repo
 
     @pytest.fixture
     def mock_auth_service(self):
@@ -593,11 +600,18 @@ class TestTelegramOAuthLogin:
 
     @pytest.fixture
     def mock_user_repo(self):
-        return AsyncMock()
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        repo.get_by_login.return_value = None
+        repo.get_by_id.return_value = None
+        repo.get_by_telegram_id.return_value = None
+        return repo
 
     @pytest.fixture
     def mock_oauth_repo(self):
-        return AsyncMock()
+        repo = AsyncMock()
+        repo.get_by_provider_and_user_id.return_value = None
+        return repo
 
     @pytest.fixture
     def mock_auth_service(self):

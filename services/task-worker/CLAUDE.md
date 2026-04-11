@@ -6,7 +6,7 @@ Background job worker service for CyberVPN. Processes email delivery, scheduled 
 
 | Library | Purpose |
 |---------|---------|
-| Python 3.13 | Runtime |
+| Python 3.13.13 | Runtime baseline |
 | TaskIQ | Job broker (Redis Streams) |
 | httpx | Async HTTP (Resend, Brevo APIs) |
 | smtplib | SMTP (Mailpit dev mode) |

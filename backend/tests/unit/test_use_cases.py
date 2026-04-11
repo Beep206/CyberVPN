@@ -1,12 +1,14 @@
+import pytest
+
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.permissions import Permission, check_minimum_role, has_permission
 from src.domain.enums import AdminRole
 
 
 class TestAuthService:
-    def test_hash_and_verify_password(self):
-        _service = AuthService.__new__(AuthService)
-        hashed = AuthService.hash_password("testpassword123")
+    @pytest.mark.asyncio
+    async def test_hash_and_verify_password(self):
+        hashed = await AuthService.hash_password("testpassword123")
         assert AuthService.verify_password("testpassword123", hashed)
         assert not AuthService.verify_password("wrong", hashed)
 

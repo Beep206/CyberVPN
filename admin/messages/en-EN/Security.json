@@ -1,0 +1,48 @@
+{
+    "title": "ENCRYPTION CORE",
+    "description": "ABSOLUTE PROTECTION. INITIALIZING PROTOCOLS OF BLISSFUL IGNORANCE...",
+    "radar": {
+        "title": "THREAT RADAR",
+        "status": "LIVE INTRUSION BROADCAST",
+        "blocked": "BLOCKED",
+        "deflected": "DEFLECTED",
+        "events": {
+            "dpi": "Deep Packet Inspection (DPI) Attempt",
+            "syn": "TCP SYN Flood Attack",
+            "brute": "SSH Brute-force",
+            "malware": "Known Parser Signature",
+            "tracker": "Ad Tracker Injection"
+        }
+    },
+    "stack": {
+        "title": "ARCHITECTURE STACK",
+        "bareMetal": {
+            "title": "01. BARE METAL TIER",
+            "description": "We utilize exclusively leased bare-metal servers. No VPS neighbors. Memory operates in RAM-only mode (Tails-like architecture), completely annihilating all data upon power cycle."
+        },
+        "network": {
+            "title": "02. NETWORK TIER",
+            "description": "Complex Anycast DNS and traffic obfuscation engine. Your packets are masked as standard HTTPS traffic (TLS 1.3), rendering the VPN connection invisible to state firewalls (DPI)."
+        },
+        "crypto": {
+            "title": "03. CRYPTOGRAPHY",
+            "description": "AES-256-GCM cipher with Perfect Forward Secrecy (PFS) via ECDHE (Curve25519) key exchange. Even if math breaks tomorrow, yesterday's traffic remains illegible."
+        },
+        "client": {
+            "title": "04. CLIENT TIER",
+            "description": "Open-source applications subjected to rigorous independent audits. Embedded Network Lock (Kill Switch) instantly severs traffic upon the slightest loss of core connection."
+        }
+    },
+    "protocols": {
+        "title": "PROTOCOL BENCHMARKS",
+        "headers": ["PROTOCOL", "ENCRYPTION", "SPEED", "DPI BYPASS"],
+        "wireguard": ["WireGuard", "ChaCha20", "Maximum", "Low"],
+        "openvpn": ["OpenVPN", "AES-256", "Medium", "Medium"],
+        "stealth": ["Cyber-Stealth", "AES-256 + Obf", "High", "Absolute"]
+    },
+    "classified": {
+        "title": "TOP SECRET",
+        "text1": "Our [OBFUSCATION] algorithms were engineered by former [REDACTED] architects, allowing our traffic to blend seamlessly with the background noise of the internet.",
+        "text2": "In the event of a physical server seizure, the [CONTAGION PROTOCOL] automatically zero-fills all disk arrays [REDACTED]."
+    }
+}

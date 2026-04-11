@@ -1,0 +1,219 @@
+{
+  "layout": {
+    "subnavLabel": "Навигация интеграций"
+  },
+  "nav": {
+    "overview": "Обзор",
+    "telegram": "Telegram",
+    "push": "Push",
+    "realtime": "Realtime"
+  },
+  "common": {
+    "active": "Активно",
+    "allowed": "Разрешено",
+    "eligible": "Доступно",
+    "empty": "Для текущего состояния данные не найдены.",
+    "inactive": "Неактивно",
+    "invalid": "Невалидно",
+    "linked": "Привязан",
+    "noIncidents": "В текущем срезе нет инцидентов по интеграциям.",
+    "none": "Нет",
+    "unavailable": "Недоступно",
+    "unknown": "Неизвестно",
+    "unlinked": "Не привязан"
+  },
+  "overview": {
+    "eyebrow": "Фаза 6",
+    "metaTitle": "Интеграции - Ozoxy Admin",
+    "title": "Операции Интеграций",
+    "description": "Операционная поверхность для Telegram, push-диагностики, websocket-ticket flow и callback-aware состояния интеграций.",
+    "metrics": {
+      "health": "Здоровье",
+      "healthHint": "Текущее состояние backend-интеграций.",
+      "webhooks": "Невалидные Вебхуки",
+      "webhooksHint": "Callbacks, которым нужно внимание оператора.",
+      "channels": "Активные Каналы",
+      "channelsHint": "Маршруты уведомлений текущего оператора.",
+      "telegram": "Telegram Оператора",
+      "telegramHint": "Текущее состояние Telegram linkage."
+    },
+    "routesTitle": "Маршруты",
+    "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и realtime topic tooling из одного operator shell.",
+    "routes": {
+      "telegram": "Разбор Telegram-linked пользователей, bootstrap bot-facing identity, просмотр config и генерация login link.",
+      "push": "Просмотр текущих notification preferences оператора и проверка FCM registration flow.",
+      "realtime": "Выпуск websocket ticket и подписка на monitoring topics для живой видимости инцидентов."
+    },
+    "healthTitle": "Здоровье Интеграций",
+    "healthDescription": "Общие health-сигналы, собранные из monitoring и callback-поверхностей.",
+    "channelsTitle": "Каналы Оператора",
+    "channelsDescription": "Текущее linkage-состояние оператора и bot-access posture без выхода из админки.",
+    "channelCards": {
+      "telegram": "Telegram Привязка",
+      "telegramLinked": "Текущий оператор привязан к Telegram ID {telegramId}.",
+      "telegramUnlinked": "В payload текущей сессии у оператора нет Telegram linkage.",
+      "push": "Настройки Уведомлений",
+      "pushSummary": "У оператора сейчас включено {enabled} из 5 notification channels.",
+      "botAccess": "Bot Access",
+      "botRulesUrl": "Текущий URL правил бота: {url}.",
+      "botSecretNote": "Bot-secret proxy не настроен или upstream bot settings сейчас недоступны."
+    },
+    "incidentsTitle": "Webhook Инциденты",
+    "incidentsDescription": "Последние невалидные callback-записи из governance webhook log."
+  },
+  "telegram": {
+    "eyebrow": "Telegram Ops",
+    "metaTitle": "Telegram Ops - Ozoxy Admin",
+    "title": "Контроль Telegram",
+    "description": "Разбор Telegram-linked VPN users, выполнение bot-facing flow, bootstrap identities и выпуск операторских login links.",
+    "metrics": {
+      "accessMode": "Режим Доступа",
+      "accessModeHint": "Bot-side access settings через admin proxy.",
+      "catalog": "Активные Тарифы",
+      "catalogHint": "Активные тарифы для ручного создания подписки.",
+      "operatorTelegram": "Telegram Оператора",
+      "operatorTelegramHint": "Telegram ID текущей сессии.",
+      "botPlans": "Bot Plans",
+      "botPlansHint": "Количество bot-facing plan entries из backend."
+    },
+    "accessTitle": "Bot Access",
+    "accessDescription": "Чтение bot-facing access settings и catalog coverage без раскрытия bot secret в браузер.",
+    "accessCards": {
+      "botSettings": "Bot Settings",
+      "botSettingsSummary": "Bot access настроен. Текущий channel ID: {channelId}.",
+      "botCatalog": "Bot Catalog",
+      "botCatalogSummary": "Bot-facing plans доступны через admin-side proxy."
+    },
+    "lookupTitle": "Lookup И Действия",
+    "lookupDescription": "Разбор Telegram ID, генерация одноразовых bot login links, refresh bot-facing user и активация trial flow при необходимости.",
+    "subscriptionTitle": "Ручная Подписка",
+    "subscriptionDescription": "Используйте текущий каталог тарифов, чтобы создать подписку выбранному Telegram-linked пользователю.",
+    "bootstrapTitle": "Bootstrap Payload",
+    "bootstrapDescription": "Необязательные поля для refresh bot-facing user payload прямо из админки.",
+    "userTitle": "Telegram User",
+    "botUserTitle": "Bot-Facing User",
+    "referralTitle": "Referral Signals",
+    "subscriptionsTitle": "Bot Subscriptions",
+    "configTitle": "VPN Config",
+    "fields": {
+      "telegramId": "Telegram ID",
+      "plan": "Тариф",
+      "durationDays": "Дней",
+      "username": "Username",
+      "firstName": "Имя",
+      "language": "Код Языка",
+      "referrerId": "Referrer Telegram ID"
+    },
+    "placeholders": {
+      "telegramId": "Введите числовой Telegram ID"
+    },
+    "actions": {
+      "inspect": "Проверить",
+      "generateLink": "Сгенерировать Login Link",
+      "generatingLink": "Генерируем...",
+      "bootstrap": "Bootstrap User",
+      "bootstrapping": "Обновляем...",
+      "activateTrial": "Активировать Trial",
+      "activatingTrial": "Активируем...",
+      "createSubscription": "Создать Подписку",
+      "creatingSubscription": "Создаём..."
+    },
+    "loginLinkLabel": "Сгенерированный Bot Login Link",
+    "expiresAtLabel": "Истекает",
+    "labels": {
+      "dataUsage": "Использованный Трафик",
+      "dataLimit": "Лимит Трафика",
+      "languageCode": "Язык",
+      "trialStatus": "Статус Trial",
+      "totalReferrals": "Всего Рефералов",
+      "referralLink": "Referral Link",
+      "adminConfig": "Config Через Admin Route",
+      "botConfig": "Config Через Bot Route"
+    },
+    "emptyLookup": "Введите Telegram ID и выполните lookup, чтобы загрузить Telegram surfaces.",
+    "trialSummary": "Текущее trial-окно показывает ещё {days} дней.",
+    "subscriptionSummary": "Bot-facing expiry: {expiresAt}."
+  },
+  "push": {
+    "eyebrow": "Push Ops",
+    "metaTitle": "Push Ops - Ozoxy Admin",
+    "title": "Push И Диагностика Настроек",
+    "description": "Видимость notification preferences текущего оператора и self-service FCM-диагностика.",
+    "metrics": {
+      "channels": "Активные Каналы",
+      "channelsHint": "Текущее состояние notification routes оператора.",
+      "device": "Устройство",
+      "deviceHint": "Текущий device ID для FCM-диагностики.",
+      "platform": "Платформа",
+      "platformHint": "Выбранная FCM-платформа.",
+      "scope": "Покрытие",
+      "scopeValue": "Self-Service",
+      "scopeHint": "У backend пока нет глобального admin inventory по FCM."
+    },
+    "preferencesTitle": "Настройки Уведомлений",
+    "preferencesDescription": "Изменяйте notification routes текущего оператора и сохраняйте состояние через backend.",
+    "toggles": {
+      "emailSecurity": "Email security alerts",
+      "emailMarketing": "Email marketing campaigns",
+      "pushConnection": "Push connection events",
+      "pushPayment": "Push payment updates",
+      "pushSubscription": "Push subscription lifecycle"
+    },
+    "actions": {
+      "savePreferences": "Сохранить Настройки",
+      "saving": "Сохраняем...",
+      "registerToken": "Зарегистрировать Token",
+      "registering": "Регистрируем...",
+      "unregisterToken": "Удалить Token",
+      "unregistering": "Удаляем..."
+    },
+    "savedLabel": "Сохранено",
+    "fcmTitle": "FCM Диагностика",
+    "fcmDescription": "Проверка текущих self-service FCM endpoints для token registration и unregister flow.",
+    "fields": {
+      "deviceId": "Device ID",
+      "platform": "Платформа",
+      "token": "FCM Token"
+    },
+    "registeredTitle": "Зарегистрированный Token",
+    "registeredSummary": "Последняя регистрация выполнена в {createdAt}."
+  },
+  "realtime": {
+    "eyebrow": "Realtime",
+    "metaTitle": "Realtime Ops - Ozoxy Admin",
+    "title": "Realtime Topic Console",
+    "description": "Выпуск websocket tickets, проверка доступа к monitoring topics и просмотр live-сообщений из админки.",
+    "metrics": {
+      "socket": "Сокет",
+      "socketHint": "Текущее состояние monitoring websocket.",
+      "ticket": "TTL Тикета",
+      "ticketHint": "Время жизни single-use ticket из backend.",
+      "availableTopics": "Доступные Topics",
+      "availableTopicsHint": "Topics, разрешённые backend после connect.",
+      "traffic": "Трафик",
+      "trafficHint": "Текущий total traffic из monitoring stats."
+    },
+    "ticketTitle": "Ticket Flow",
+    "ticketDescription": "Создайте короткоживущий websocket ticket, откройте monitoring socket и завершите сессию после диагностики.",
+    "topicTitle": "Monitoring Topics",
+    "topicDescription": "Выберите topics и подпишитесь после открытия websocket. Backend сам сообщит, какие topics разрешены текущей роли.",
+    "healthTitle": "Health Snapshot",
+    "logTitle": "Live Event Log",
+    "emptyLog": "События websocket пока не получены.",
+    "actions": {
+      "requestTicket": "Запросить Ticket",
+      "requestingTicket": "Запрашиваем...",
+      "disconnect": "Отключиться",
+      "subscribe": "Подписаться"
+    },
+    "connectionStatus": "Состояние Соединения",
+    "connectionSummary": "Количество topics в текущем batch-запросе: {topics}.",
+    "topics": {
+      "servers": "Серверы",
+      "payments": "Платежи",
+      "general": "Общее",
+      "users": "Пользователи",
+      "system": "Система"
+    }
+  }
+}

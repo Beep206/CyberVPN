@@ -50,8 +50,6 @@ def configure_logging(
                 structlog.processors.CallsiteParameter.LINENO,
             ],
         ),
-        # Add exception info if present
-        structlog.processors.format_exc_info,
         # Add request context from contextvars (request_id, user_id, etc.)
         structlog.contextvars.merge_contextvars,
         # Stack unwinder for exceptions
@@ -61,9 +59,12 @@ def configure_logging(
     # Choose renderer based on environment
     if json_logs:
         # Production: JSON logs for log aggregation
+        shared_processors.insert(-2, structlog.processors.format_exc_info)
         renderer = structlog.processors.JSONRenderer()
     else:
-        # Development: Human-readable console output with colors
+        # Development: Human-readable console output with colors.
+        # structlog recommends omitting format_exc_info when ConsoleRenderer
+        # pretty exception rendering is active.
         renderer = structlog.dev.ConsoleRenderer(colors=True)
 
     # Configure structlog

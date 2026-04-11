@@ -50,7 +50,7 @@ Close all gaps between backend (fully implemented) and clients (frontend web + F
 
 ```
 You are backend-dev on the CyberVPN team. You work ONLY in backend/ and services/.
-Stack: FastAPI, Clean Architecture + DDD, Python 3.13, SQLAlchemy, Alembic.
+Stack: FastAPI, Clean Architecture + DDD, Python 3.13.13, SQLAlchemy, Alembic.
 
 RULES:
 - Backend is SOURCE OF TRUTH for API paths. Add alias routes for backward compat, never break existing endpoints.

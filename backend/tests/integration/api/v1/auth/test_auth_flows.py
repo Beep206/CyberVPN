@@ -19,8 +19,10 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
+from src.main import app
 
 
 class TestCompleteAuthFlow:
@@ -53,6 +55,7 @@ class TestCompleteAuthFlow:
                 "email": f"test{secrets.token_hex(4)}@example.com",
                 "password": "SecureP@ssw0rd123!",
                 "locale": "en-EN",
+                "tos_accepted": True,
             }
 
             # Enable registration for test
@@ -88,15 +91,16 @@ class TestCompleteAuthFlow:
             otp_code = otp_record.code
 
             # Step 2: Verify OTP (auto-login)
-            with patch("src.application.use_cases.auth.verify_otp.RemnawaveUserAdapter") as mock_remnawave:
-                mock_adapter = AsyncMock()
-                mock_adapter.create_user_if_not_exists = AsyncMock(return_value={"id": "remna123"})
-                mock_remnawave.return_value = mock_adapter
-
+            mock_adapter = AsyncMock()
+            mock_adapter.create_user = AsyncMock(return_value={"uuid": "remna123"})
+            app.dependency_overrides[get_remnawave_adapter] = lambda: mock_adapter
+            try:
                 verify_response = await async_client.post(
                     "/api/v1/auth/verify-otp",
                     json={"email": register_data["email"], "code": otp_code},
                 )
+            finally:
+                app.dependency_overrides.pop(get_remnawave_adapter, None)
 
             assert verify_response.status_code == 200
             verify_data = verify_response.json()
@@ -170,6 +174,7 @@ class TestCompleteAuthFlow:
                 "login": f"logintest{secrets.token_hex(4)}",
                 "email": f"logintest{secrets.token_hex(4)}@example.com",
                 "password": "SecureP@ssw0rd123!",
+                "tos_accepted": True,
             }
 
             with patch("src.config.settings.settings.registration_enabled", True):
@@ -191,14 +196,16 @@ class TestCompleteAuthFlow:
             )
             otp_code = otp_result.scalar_one().code
 
-            with patch("src.application.use_cases.auth.verify_otp.RemnawaveUserAdapter") as mock_remnawave:
-                mock_adapter = AsyncMock()
-                mock_adapter.create_user_if_not_exists = AsyncMock(return_value={"id": "remna123"})
-                mock_remnawave.return_value = mock_adapter
+            mock_adapter = AsyncMock()
+            mock_adapter.create_user = AsyncMock(return_value={"uuid": "remna123"})
+            app.dependency_overrides[get_remnawave_adapter] = lambda: mock_adapter
+            try:
                 await async_client.post(
                     "/api/v1/auth/verify-otp",
                     json={"email": register_data["email"], "code": otp_code},
                 )
+            finally:
+                app.dependency_overrides.pop(get_remnawave_adapter, None)
 
         # Now test login with password
         login_response = await async_client.post(
@@ -278,7 +285,7 @@ class TestMagicLinkFlow:
                 900,  # 15 minutes
                 user_email,
             )
-            await redis_client.close()
+            await redis_client.aclose()
 
             # Verify magic link token
             verify_response = await async_client.post(
@@ -321,7 +328,7 @@ class TestMagicLinkFlow:
             900,
             new_email,
         )
-        await redis_client.close()
+        await redis_client.aclose()
 
         # Verify magic link (should auto-register)
         verify_response = await async_client.post(
@@ -379,7 +386,7 @@ class TestMagicLinkFlow:
             900,
             user_email,
         )
-        await redis_client.close()
+        await redis_client.aclose()
 
         # First verification succeeds
         first_response = await async_client.post(
@@ -388,13 +395,21 @@ class TestMagicLinkFlow:
         )
         assert first_response.status_code == 200
 
-        # Second verification fails (token consumed)
+        # Second verification is accepted once more during the short replay
+        # window to tolerate duplicate browser requests.
         second_response = await async_client.post(
             "/api/v1/auth/magic-link/verify",
             json={"token": token},
         )
-        assert second_response.status_code == 400
-        assert "Invalid or expired" in second_response.json()["detail"]
+        assert second_response.status_code == 200
+
+        # Third verification fails after the replay allowance is consumed.
+        third_response = await async_client.post(
+            "/api/v1/auth/magic-link/verify",
+            json={"token": token},
+        )
+        assert third_response.status_code == 400
+        assert "Invalid or expired" in third_response.json()["detail"]
 
 
 class TestPasswordResetFlow:
@@ -551,9 +566,10 @@ class TestBruteForceProtection:
         Test that account gets locked after multiple failed login attempts.
 
         Protection levels:
-        - 3 attempts: 5 min lockout
-        - 6 attempts: 30 min lockout
-        - 10+ attempts: permanent lockout (requires admin unlock)
+        - 5 attempts: 30 second lockout
+        - 10 attempts: 5 minute lockout
+        - 15 attempts: 30 minute lockout
+        - 20+ attempts: permanent lockout (requires admin unlock)
         """
         # Create verified user
         user_email = f"bruteforce{secrets.token_hex(4)}@example.com"
@@ -574,8 +590,8 @@ class TestBruteForceProtection:
         db.add(user)
         await db.commit()
 
-        # Make 3 failed login attempts
-        for _ in range(3):
+        # Make 5 failed login attempts
+        for _ in range(5):
             response = await async_client.post(
                 "/api/v1/auth/login",
                 json={
@@ -585,7 +601,7 @@ class TestBruteForceProtection:
             )
             assert response.status_code == 401
 
-        # 4th attempt should be locked
+        # 6th attempt should be locked
         locked_response = await async_client.post(
             "/api/v1/auth/login",
             json={
@@ -595,7 +611,7 @@ class TestBruteForceProtection:
         )
 
         assert locked_response.status_code == 423  # HTTP 423 Locked
-        assert "locked" in locked_response.json()["detail"].lower()
+        assert "too many failed login attempts" in locked_response.json()["detail"].lower()
 
     @pytest.mark.integration
     async def test_successful_login_resets_failed_attempts(
@@ -711,8 +727,8 @@ class TestBruteForceProtection:
         invalid_time = (datetime.now(UTC) - start_invalid).total_seconds()
         assert invalid_response.status_code == 401
 
-        # Both should take at least 100ms (minimum response time)
-        assert valid_time >= 0.1
+        # Failed responses are padded to at least 100ms. Successful logins are
+        # not intentionally slowed down.
         assert invalid_time >= 0.1
 
         # Response times should be similar (within 200ms difference)
@@ -744,6 +760,7 @@ class TestOTPResendFlow:
                 "login": f"resenduser{secrets.token_hex(4)}",
                 "email": user_email,
                 "password": "SecureP@ssw0rd123!",
+                "tos_accepted": True,
             }
 
             with patch("src.config.settings.settings.registration_enabled", True):
@@ -751,7 +768,10 @@ class TestOTPResendFlow:
                     await async_client.post("/api/v1/auth/register", json=register_data)
 
         # Resend OTP 3 times (should succeed)
-        with patch("src.presentation.api.v1.auth.routes.get_email_dispatcher") as mock_email_dep:
+        with (
+            patch("src.presentation.api.v1.auth.routes.get_email_dispatcher") as mock_email_dep,
+            patch("src.config.settings.settings.otp_resend_cooldown_seconds", 0),
+        ):
             mock_dispatcher = AsyncMock()
             mock_email_dep.return_value = mock_dispatcher
 

@@ -24,7 +24,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LoginRequest"
               }
             }
           },
@@ -36,7 +36,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/LoginResponse"
                 }
               }
             }
@@ -77,7 +77,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
                 }
               }
             }
@@ -1096,7 +1096,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LoginRequest"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
           },
@@ -1170,7 +1170,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             }
@@ -2473,7 +2473,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__TokenResponse"
                 }
               }
             }
@@ -6600,6 +6600,1097 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/referrals/overview": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth"
+        ],
+        "summary": "Get Referral Overview",
+        "operationId": "get_referral_overview_api_v1_admin_referrals_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReferralOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/referrals/users/{user_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth"
+        ],
+        "summary": "Get Referral User Detail",
+        "operationId": "get_referral_user_detail_api_v1_admin_referrals_users__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReferralUserDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partners": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth"
+        ],
+        "summary": "List Partners",
+        "operationId": "list_partners_api_v1_admin_partners_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search by email, username, telegram, UUID, referral code",
+              "title": "Search"
+            },
+            "description": "Search by email, username, telegram, UUID, referral code"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPartnersListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partners/{user_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "growth"
+        ],
+        "summary": "Get Partner Detail",
+        "operationId": "get_partner_detail_api_v1_admin_partners__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPartnerDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users": {
+      "get": {
+        "tags": [
+          "admin",
+          "mobile-users"
+        ],
+        "summary": "List Mobile Users",
+        "operationId": "list_mobile_users_api_v1_admin_mobile_users_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search by email, username, telegram, UUID, referral code",
+              "title": "Search"
+            },
+            "description": "Search by email, username, telegram, UUID, referral code"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by current status",
+              "title": "Status"
+            },
+            "description": "Filter by current status"
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by activation state",
+              "title": "Is Active"
+            },
+            "description": "Filter by activation state"
+          },
+          {
+            "name": "is_partner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by partner state",
+              "title": "Is Partner"
+            },
+            "description": "Filter by partner state"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMobileUsersListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "mobile-users"
+        ],
+        "summary": "Get Mobile User",
+        "operationId": "get_mobile_user_api_v1_admin_mobile_users__user_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMobileUserDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin",
+          "mobile-users"
+        ],
+        "summary": "Update Mobile User",
+        "operationId": "update_mobile_user_api_v1_admin_mobile_users__user_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdateMobileUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMobileUserDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/subscription": {
+      "get": {
+        "tags": [
+          "admin",
+          "mobile-users"
+        ],
+        "summary": "Get Mobile User Subscription Snapshot",
+        "operationId": "get_mobile_user_subscription_snapshot_api_v1_admin_mobile_users__user_id__subscription_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMobileUserSubscriptionSnapshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/notes": {
+      "get": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "List Customer Staff Notes",
+        "operationId": "list_customer_staff_notes_api_v1_admin_mobile_users__user_id__notes_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminCustomerStaffNoteResponse"
+                  },
+                  "title": "Response List Customer Staff Notes Api V1 Admin Mobile Users  User Id  Notes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Create Customer Staff Note",
+        "operationId": "create_customer_staff_note_api_v1_admin_mobile_users__user_id__notes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateCustomerStaffNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerStaffNoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user": {
+      "get": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Get Customer Vpn User",
+        "operationId": "get_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerVpnUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/enable": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Enable Customer Vpn User",
+        "operationId": "enable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_enable_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerSupportActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerVpnUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/disable": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Disable Customer Vpn User",
+        "operationId": "disable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_disable_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerSupportActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerVpnUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/devices/{device_id}": {
+      "delete": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Revoke Customer Device",
+        "operationId": "revoke_customer_device_api_v1_admin_mobile_users__user_id__devices__device_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMobileDeviceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/devices/revoke-all": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Revoke All Customer Devices",
+        "operationId": "revoke_all_customer_devices_api_v1_admin_mobile_users__user_id__devices_revoke_all_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerSupportActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBulkDeviceRevokeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/credentials/reset-password": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Reset Customer Password",
+        "operationId": "reset_customer_password_api_v1_admin_mobile_users__user_id__credentials_reset_password_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerPasswordResetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerPasswordResetResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/subscription/resync": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Resync Customer Subscription",
+        "operationId": "resync_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_resync_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerSupportActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerSubscriptionResyncResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/timeline": {
+      "get": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Get Customer Timeline",
+        "operationId": "get_customer_timeline_api_v1_admin_mobile_users__user_id__timeline_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerTimelineResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -11458,6 +12549,58 @@
         ],
         "title": "AdapterTransportProfileRecord"
       },
+      "AdminBulkDeviceRevokeResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "revoked_count": {
+            "type": "integer",
+            "title": "Revoked Count",
+            "default": 0
+          },
+          "revoked_devices": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMobileDeviceResponse"
+            },
+            "type": "array",
+            "title": "Revoked Devices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "AdminBulkDeviceRevokeResponse"
+      },
+      "AdminCreateCustomerStaffNoteRequest": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "general",
+              "billing",
+              "security",
+              "support"
+            ],
+            "title": "Category",
+            "default": "general"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "AdminCreateCustomerStaffNoteRequest"
+      },
       "AdminCreateInviteRequest": {
         "properties": {
           "user_id": {
@@ -11502,6 +12645,1539 @@
         "title": "AdminCreateInviteRequest",
         "description": "Request body for admin-created invite codes."
       },
+      "AdminCustomerPasswordResetRequest": {
+        "properties": {
+          "new_password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 12
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Password"
+          },
+          "generate_temporary_password": {
+            "type": "boolean",
+            "title": "Generate Temporary Password",
+            "default": false
+          },
+          "revoke_all_devices": {
+            "type": "boolean",
+            "title": "Revoke All Devices",
+            "default": true
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "AdminCustomerPasswordResetRequest"
+      },
+      "AdminCustomerPasswordResetResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "password_mode": {
+            "type": "string",
+            "enum": [
+              "provided",
+              "generated"
+            ],
+            "title": "Password Mode"
+          },
+          "device_sessions_cleared": {
+            "type": "boolean",
+            "title": "Device Sessions Cleared",
+            "default": false
+          },
+          "devices_revoked": {
+            "type": "integer",
+            "title": "Devices Revoked",
+            "default": 0
+          },
+          "generated_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "password_mode"
+        ],
+        "title": "AdminCustomerPasswordResetResponse"
+      },
+      "AdminCustomerStaffNoteResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Id"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminSupportActorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "admin_id",
+          "category",
+          "note",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminCustomerStaffNoteResponse"
+      },
+      "AdminCustomerSubscriptionResyncResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "previous_subscription_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Subscription Url"
+          },
+          "stored_subscription_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored Subscription Url"
+          },
+          "upstream_subscription_url": {
+            "type": "string",
+            "title": "Upstream Subscription Url"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed",
+            "default": false
+          },
+          "config_available": {
+            "type": "boolean",
+            "title": "Config Available",
+            "default": false
+          },
+          "config_client_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Client Type"
+          },
+          "links_count": {
+            "type": "integer",
+            "title": "Links Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "upstream_subscription_url"
+        ],
+        "title": "AdminCustomerSubscriptionResyncResponse"
+      },
+      "AdminCustomerSupportActionRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "AdminCustomerSupportActionRequest"
+      },
+      "AdminCustomerTimelineItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "payment",
+              "wallet_transaction",
+              "withdrawal",
+              "device",
+              "note",
+              "audit"
+            ],
+            "title": "Kind"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "actor_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Label"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "occurred_at",
+          "title"
+        ],
+        "title": "AdminCustomerTimelineItemResponse"
+      },
+      "AdminCustomerTimelineResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminCustomerTimelineItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdminCustomerTimelineResponse"
+      },
+      "AdminCustomerVpnUserResponse": {
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "title": "Exists"
+          },
+          "remnawave_uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remnawave Uuid"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "short_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Uuid"
+          },
+          "subscription_uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Uuid"
+          },
+          "expire_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expire At"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exists"
+        ],
+        "title": "AdminCustomerVpnUserResponse"
+      },
+      "AdminGrowthUserSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
+          },
+          "is_partner": {
+            "type": "boolean",
+            "title": "Is Partner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "username",
+          "telegram_username",
+          "referral_code",
+          "is_partner"
+        ],
+        "title": "AdminGrowthUserSummary"
+      },
+      "AdminMobileDeviceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "platform_id": {
+            "type": "string",
+            "title": "Platform Id"
+          },
+          "os_version": {
+            "type": "string",
+            "title": "Os Version"
+          },
+          "app_version": {
+            "type": "string",
+            "title": "App Version"
+          },
+          "device_model": {
+            "type": "string",
+            "title": "Device Model"
+          },
+          "push_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Token"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Registered At"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "device_id",
+          "platform",
+          "platform_id",
+          "os_version",
+          "app_version",
+          "device_model",
+          "push_token",
+          "registered_at",
+          "last_active_at"
+        ],
+        "title": "AdminMobileDeviceResponse"
+      },
+      "AdminMobileUserDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "is_partner": {
+            "type": "boolean",
+            "title": "Is Partner"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          },
+          "remnawave_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remnawave Uuid"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
+          },
+          "referred_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referred By User Id"
+          },
+          "partner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner User Id"
+          },
+          "partner_promoted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Promoted At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "device_count": {
+            "type": "integer",
+            "title": "Device Count"
+          },
+          "subscription_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Url"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMobileDeviceResponse"
+            },
+            "type": "array",
+            "title": "Devices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "username",
+          "status",
+          "is_active",
+          "is_partner",
+          "telegram_id",
+          "telegram_username",
+          "remnawave_uuid",
+          "referral_code",
+          "referred_by_user_id",
+          "partner_user_id",
+          "partner_promoted_at",
+          "created_at",
+          "last_login_at",
+          "device_count",
+          "subscription_url",
+          "updated_at",
+          "devices"
+        ],
+        "title": "AdminMobileUserDetailResponse"
+      },
+      "AdminMobileUserListItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "is_partner": {
+            "type": "boolean",
+            "title": "Is Partner"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          },
+          "remnawave_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remnawave Uuid"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
+          },
+          "referred_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referred By User Id"
+          },
+          "partner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner User Id"
+          },
+          "partner_promoted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Promoted At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_login_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Login At"
+          },
+          "device_count": {
+            "type": "integer",
+            "title": "Device Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "username",
+          "status",
+          "is_active",
+          "is_partner",
+          "telegram_id",
+          "telegram_username",
+          "remnawave_uuid",
+          "referral_code",
+          "referred_by_user_id",
+          "partner_user_id",
+          "partner_promoted_at",
+          "created_at",
+          "last_login_at",
+          "device_count"
+        ],
+        "title": "AdminMobileUserListItemResponse"
+      },
+      "AdminMobileUserSubscriptionSnapshotResponse": {
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "title": "Exists"
+          },
+          "remnawave_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remnawave Uuid"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "short_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Uuid"
+          },
+          "subscription_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Uuid"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "days_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Left"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes"
+          },
+          "download_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Bytes"
+          },
+          "upload_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Bytes"
+          },
+          "lifetime_used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifetime Used Traffic Bytes"
+          },
+          "online_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Online At"
+          },
+          "sub_last_user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Last User Agent"
+          },
+          "sub_revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Revoked At"
+          },
+          "last_traffic_reset_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Traffic Reset At"
+          },
+          "hwid_device_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hwid Device Limit"
+          },
+          "subscription_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Url"
+          },
+          "config_available": {
+            "type": "boolean",
+            "title": "Config Available",
+            "default": false
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "config_client_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Client Type"
+          },
+          "config_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Error"
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Links"
+          },
+          "ss_conf_links": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Ss Conf Links"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exists"
+        ],
+        "title": "AdminMobileUserSubscriptionSnapshotResponse"
+      },
+      "AdminMobileUsersListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMobileUserListItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminMobileUsersListResponse"
+      },
+      "AdminPartnerCodeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "markup_pct": {
+            "type": "number",
+            "title": "Markup Pct"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "markup_pct",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminPartnerCodeResponse"
+      },
+      "AdminPartnerDetailResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminGrowthUserSummary"
+          },
+          "promoted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promoted At"
+          },
+          "code_count": {
+            "type": "integer",
+            "title": "Code Count"
+          },
+          "active_code_count": {
+            "type": "integer",
+            "title": "Active Code Count"
+          },
+          "total_clients": {
+            "type": "integer",
+            "title": "Total Clients"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "codes": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPartnerCodeResponse"
+            },
+            "type": "array",
+            "title": "Codes"
+          },
+          "recent_earnings": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPartnerEarningResponse"
+            },
+            "type": "array",
+            "title": "Recent Earnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "promoted_at",
+          "code_count",
+          "active_code_count",
+          "total_clients",
+          "total_earned",
+          "last_activity_at",
+          "codes",
+          "recent_earnings"
+        ],
+        "title": "AdminPartnerDetailResponse"
+      },
+      "AdminPartnerEarningResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "client_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client User Id"
+          },
+          "payment_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Payment Id"
+          },
+          "base_price": {
+            "type": "number",
+            "title": "Base Price"
+          },
+          "markup_amount": {
+            "type": "number",
+            "title": "Markup Amount"
+          },
+          "commission_pct": {
+            "type": "number",
+            "title": "Commission Pct"
+          },
+          "commission_amount": {
+            "type": "number",
+            "title": "Commission Amount"
+          },
+          "total_earning": {
+            "type": "number",
+            "title": "Total Earning"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_user_id",
+          "payment_id",
+          "base_price",
+          "markup_amount",
+          "commission_pct",
+          "commission_amount",
+          "total_earning",
+          "currency",
+          "created_at"
+        ],
+        "title": "AdminPartnerEarningResponse"
+      },
+      "AdminPartnerListItemResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminGrowthUserSummary"
+          },
+          "promoted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promoted At"
+          },
+          "code_count": {
+            "type": "integer",
+            "title": "Code Count"
+          },
+          "active_code_count": {
+            "type": "integer",
+            "title": "Active Code Count"
+          },
+          "total_clients": {
+            "type": "integer",
+            "title": "Total Clients"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "promoted_at",
+          "code_count",
+          "active_code_count",
+          "total_clients",
+          "total_earned",
+          "last_activity_at"
+        ],
+        "title": "AdminPartnerListItemResponse"
+      },
+      "AdminPartnersListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPartnerListItemResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "AdminPartnersListResponse"
+      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -11519,6 +14195,216 @@
         "type": "object",
         "title": "AdminProcessWithdrawalRequest"
       },
+      "AdminReferralCommissionRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "referrer_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Referrer User Id"
+          },
+          "referred_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Referred User Id"
+          },
+          "payment_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Payment Id"
+          },
+          "commission_rate": {
+            "type": "number",
+            "title": "Commission Rate"
+          },
+          "base_amount": {
+            "type": "number",
+            "title": "Base Amount"
+          },
+          "commission_amount": {
+            "type": "number",
+            "title": "Commission Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "referrer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminGrowthUserSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "referred_user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminGrowthUserSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "referrer_user_id",
+          "referred_user_id",
+          "payment_id",
+          "commission_rate",
+          "base_amount",
+          "commission_amount",
+          "currency",
+          "created_at"
+        ],
+        "title": "AdminReferralCommissionRecord"
+      },
+      "AdminReferralOverviewResponse": {
+        "properties": {
+          "total_commissions": {
+            "type": "integer",
+            "title": "Total Commissions"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "unique_referrers": {
+            "type": "integer",
+            "title": "Unique Referrers"
+          },
+          "unique_referred_users": {
+            "type": "integer",
+            "title": "Unique Referred Users"
+          },
+          "recent_commissions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReferralCommissionRecord"
+            },
+            "type": "array",
+            "title": "Recent Commissions"
+          },
+          "top_referrers": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReferralReferrerRow"
+            },
+            "type": "array",
+            "title": "Top Referrers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_commissions",
+          "total_earned",
+          "unique_referrers",
+          "unique_referred_users",
+          "recent_commissions",
+          "top_referrers"
+        ],
+        "title": "AdminReferralOverviewResponse"
+      },
+      "AdminReferralReferrerRow": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminGrowthUserSummary"
+          },
+          "commission_count": {
+            "type": "integer",
+            "title": "Commission Count"
+          },
+          "referred_users": {
+            "type": "integer",
+            "title": "Referred Users"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "last_commission_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Commission At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "commission_count",
+          "referred_users",
+          "total_earned",
+          "last_commission_at"
+        ],
+        "title": "AdminReferralReferrerRow"
+      },
+      "AdminReferralUserDetailResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminGrowthUserSummary"
+          },
+          "referred_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referred By User Id"
+          },
+          "commission_count": {
+            "type": "integer",
+            "title": "Commission Count"
+          },
+          "referred_users": {
+            "type": "integer",
+            "title": "Referred Users"
+          },
+          "total_earned": {
+            "type": "number",
+            "title": "Total Earned"
+          },
+          "recent_commissions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReferralCommissionRecord"
+            },
+            "type": "array",
+            "title": "Recent Commissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "referred_by_user_id",
+          "commission_count",
+          "referred_users",
+          "total_earned",
+          "recent_commissions"
+        ],
+        "title": "AdminReferralUserDetailResponse"
+      },
       "AdminRole": {
         "type": "string",
         "enum": [
@@ -11529,6 +14415,57 @@
           "viewer"
         ],
         "title": "AdminRole"
+      },
+      "AdminSupportActorSummary": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "type": "object",
+        "title": "AdminSupportActorSummary"
       },
       "AdminTopupRequest": {
         "properties": {
@@ -11553,6 +14490,93 @@
           "amount"
         ],
         "title": "AdminTopupRequest"
+      },
+      "AdminUpdateMobileUserRequest": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          },
+          "referral_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 12
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referral Code"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "AdminUpdateMobileUserRequest"
       },
       "AdminUserResponse": {
         "properties": {
@@ -11771,7 +14795,7 @@
       "AuthResponse": {
         "properties": {
           "tokens": {
-            "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse",
+            "$ref": "#/components/schemas/TokenResponse",
             "description": "Authentication tokens"
           },
           "user": {
@@ -12841,10 +15865,20 @@
           },
           "squad_type": {
             "type": "string",
-            "maxLength": 50,
-            "minLength": 1,
+            "enum": [
+              "internal",
+              "external"
+            ],
             "title": "Squad Type",
-            "description": "Squad type (internal/external)"
+            "description": "Squad type"
+          },
+          "inbounds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inbounds",
+            "description": "Internal squad inbound UUIDs"
           },
           "max_members": {
             "anyOf": [
@@ -12888,8 +15922,9 @@
         "title": "CreateSquadRequest",
         "description": "Request schema for creating a squad.",
         "example": {
-          "is_active": true,
-          "max_members": 100,
+          "inbounds": [
+            "985d2bf6-b0c5-4299-8c75-bd78422bb47d"
+          ],
           "name": "Premium Users",
           "squad_type": "internal"
         }
@@ -14196,25 +17231,82 @@
       },
       "LoginRequest": {
         "properties": {
-          "login_or_email": {
+          "email": {
             "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Login Or Email"
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
           },
           "password": {
             "type": "string",
-            "maxLength": 255,
+            "maxLength": 128,
             "minLength": 1,
-            "title": "Password"
+            "title": "Password",
+            "description": "User password"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for login"
+          },
+          "remember_me": {
+            "type": "boolean",
+            "title": "Remember Me",
+            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "login_or_email",
-          "password"
+          "email",
+          "password",
+          "device"
         ],
-        "title": "LoginRequest"
+        "title": "LoginRequest",
+        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
+      },
+      "LoginResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 0
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "LoginResponse"
       },
       "LogoutAllResponse": {
         "properties": {
@@ -17941,21 +21033,26 @@
         "properties": {
           "access_token": {
             "type": "string",
-            "title": "Access Token"
+            "title": "Access Token",
+            "description": "JWT access token (TTL: 15 minutes)"
           },
           "refresh_token": {
             "type": "string",
-            "title": "Refresh Token"
+            "title": "Refresh Token",
+            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
           },
           "token_type": {
             "type": "string",
             "title": "Token Type",
-            "default": "bearer"
+            "description": "Token type for Authorization header",
+            "default": "Bearer"
           },
           "expires_in": {
             "type": "integer",
+            "minimum": 0.0,
             "title": "Expires In",
-            "default": 0
+            "description": "Access token expiration in seconds (default: 15 minutes)",
+            "default": 900
           }
         },
         "type": "object",
@@ -17963,7 +21060,8 @@
           "access_token",
           "refresh_token"
         ],
-        "title": "TokenResponse"
+        "title": "TokenResponse",
+        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "TorrentBlockerActionReportResponse": {
         "properties": {
@@ -19646,13 +22744,6 @@
           "type": {
             "type": "string",
             "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
           }
         },
         "type": "object",
@@ -19977,6 +23068,28 @@
         ],
         "title": "WithdrawalResponse"
       },
+      "src__presentation__api__v1__auth__schemas__LoginRequest": {
+        "properties": {
+          "login_or_email": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Login Or Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login_or_email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
       "src__presentation__api__v1__auth__schemas__LogoutRequest": {
         "properties": {
           "refresh_token": {
@@ -20015,40 +23128,33 @@
         "type": "object",
         "title": "RefreshTokenRequest"
       },
-      "src__presentation__api__v1__mobile_auth__schemas__LoginRequest": {
+      "src__presentation__api__v1__auth__schemas__TokenResponse": {
         "properties": {
-          "email": {
+          "access_token": {
             "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address"
+            "title": "Access Token"
           },
-          "password": {
+          "refresh_token": {
             "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "title": "Password",
-            "description": "User password"
+            "title": "Refresh Token"
           },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for login"
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
           },
-          "remember_me": {
-            "type": "boolean",
-            "title": "Remember Me",
-            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
-            "default": false
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In",
+            "default": 0
           }
         },
         "type": "object",
         "required": [
-          "email",
-          "password",
-          "device"
+          "access_token",
+          "refresh_token"
         ],
-        "title": "LoginRequest",
-        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
+        "title": "TokenResponse"
       },
       "src__presentation__api__v1__mobile_auth__schemas__RegisterRequest": {
         "properties": {
@@ -20078,40 +23184,6 @@
         ],
         "title": "RegisterRequest",
         "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
-      },
-      "src__presentation__api__v1__mobile_auth__schemas__TokenResponse": {
-        "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token",
-            "description": "JWT access token (TTL: 15 minutes)"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token",
-            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "description": "Token type for Authorization header",
-            "default": "Bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expires In",
-            "description": "Access token expiration in seconds (default: 15 minutes)",
-            "default": 900
-          }
-        },
-        "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token"
-        ],
-        "title": "TokenResponse",
-        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "src__presentation__api__v1__mobile_auth__schemas__UserResponse": {
         "properties": {

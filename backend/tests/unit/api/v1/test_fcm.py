@@ -6,6 +6,8 @@ Tests cover:
 """
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -13,6 +15,7 @@ from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.database import get_db
 
 BASE_URL = "/api/v1/users/me/fcm-token"
 
@@ -38,6 +41,36 @@ def _mock_current_active_user() -> _MockUser:
     return _MockUser()
 
 
+async def _mock_db():
+    yield object()
+
+
+class _MockFCMTokenRepository:
+    _tokens: dict[tuple[str, str], SimpleNamespace] = {}
+
+    def __init__(self, _session: object) -> None:
+        pass
+
+    async def upsert(
+        self,
+        user_id,
+        token: str,
+        device_id: str,
+        platform: str,
+    ) -> SimpleNamespace:
+        record = SimpleNamespace(
+            token=token,
+            device_id=device_id,
+            platform=platform,
+            created_at=datetime.now(UTC),
+        )
+        self._tokens[(str(user_id), device_id)] = record
+        return record
+
+    async def delete(self, user_id, device_id: str) -> None:
+        self._tokens.pop((str(user_id), device_id), None)
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -46,7 +79,10 @@ def _mock_current_active_user() -> _MockUser:
 @pytest.fixture(autouse=True)
 def _clean_overrides():
     """Ensure dependency overrides are removed after every test."""
-    yield
+    _MockFCMTokenRepository._tokens.clear()
+    app.dependency_overrides[get_db] = _mock_db
+    with patch("src.presentation.api.v1.fcm.routes.FCMTokenRepositoryImpl", _MockFCMTokenRepository):
+        yield
     app.dependency_overrides.clear()
 
 

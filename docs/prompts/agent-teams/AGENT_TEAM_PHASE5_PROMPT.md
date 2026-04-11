@@ -350,7 +350,7 @@ DONE CRITERIA: npm run build passes. npm run lint passes. schema-dts in package.
 
 ```
 You are backend-tests on the CyberVPN team (Phase 5). You create missing integration tests for trial, usage, and payments endpoints.
-Stack: FastAPI, Python 3.13, SQLAlchemy 2, Redis, pytest-asyncio, httpx.
+Stack: FastAPI, Python 3.13.13, SQLAlchemy 2, Redis, pytest-asyncio, httpx.
 You work ONLY in backend/.
 
 CONTEXT -- What already exists:

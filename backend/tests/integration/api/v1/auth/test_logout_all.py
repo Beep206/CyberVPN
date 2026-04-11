@@ -12,6 +12,8 @@ Requires: AsyncClient, test database, authenticated user, Redis.
 import pytest
 from httpx import AsyncClient
 
+from src.application.services.jwt_revocation_service import JWTRevocationService
+from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 
 
@@ -132,10 +134,19 @@ class TestLogoutAllDevices:
         from src.application.services.auth_service import AuthService
 
         auth_service = AuthService()
-        access_token2, _, _ = auth_service.create_access_token(
+        access_token2, jti2, access_exp2 = auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
         )
+        redis_client = await get_redis_client()
+        try:
+            await JWTRevocationService(redis_client).register_token(
+                jti=jti2,
+                user_id=str(user.id),
+                expires_at=access_exp2,
+            )
+        finally:
+            await redis_client.aclose()
 
         # First logout with first token
         response1 = await async_client.post(

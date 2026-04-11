@@ -6,6 +6,7 @@ LOW-007: Test revocation check in optional_user.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials
 
 from src.presentation.dependencies.auth import _validate_token, optional_user
@@ -108,6 +109,8 @@ class TestOptionalUserRevocation:
         mock_db = AsyncMock()
         mock_auth_service = MagicMock()
         mock_redis = AsyncMock()
+        mock_request = MagicMock(spec=Request)
+        mock_request.cookies = {}
 
         mock_auth_service.decode_token.return_value = {
             "type": "access",
@@ -121,6 +124,7 @@ class TestOptionalUserRevocation:
             mock_revocation_cls.return_value = mock_revocation
 
             result = await optional_user(
+                request=mock_request,
                 credentials=mock_credentials,
                 db=mock_db,
                 auth_service=mock_auth_service,
@@ -134,8 +138,11 @@ class TestOptionalUserRevocation:
         mock_db = AsyncMock()
         mock_auth_service = MagicMock()
         mock_redis = AsyncMock()
+        mock_request = MagicMock(spec=Request)
+        mock_request.cookies = {}
 
         result = await optional_user(
+            request=mock_request,
             credentials=None,
             db=mock_db,
             auth_service=mock_auth_service,

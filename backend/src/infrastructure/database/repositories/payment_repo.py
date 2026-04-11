@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.payment_model import PaymentModel
@@ -32,6 +32,18 @@ class PaymentRepository:
             select(PaymentModel).order_by(PaymentModel.created_at.desc()).offset(offset).limit(limit)
         )
         return list(result.scalars().all())
+
+    async def count_by_user_uuid(self, user_uuid: UUID) -> int:
+        result = await self._session.execute(
+            select(func.count()).select_from(PaymentModel).where(PaymentModel.user_uuid == user_uuid)
+        )
+        return int(result.scalar_one() or 0)
+
+    async def get_total_amount_by_user_uuid(self, user_uuid: UUID) -> float:
+        result = await self._session.execute(
+            select(func.coalesce(func.sum(PaymentModel.amount), 0)).where(PaymentModel.user_uuid == user_uuid)
+        )
+        return float(result.scalar_one() or 0)
 
     async def create(self, model: PaymentModel) -> PaymentModel:
         self._session.add(model)

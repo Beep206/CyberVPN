@@ -105,8 +105,10 @@ def _get_client_ip(request: Request) -> str:
 def _resolve_locale(user: AdminUserModel | None = None, fallback: str | None = None) -> str:
     if fallback:
         return fallback
-    if user and user.language:
-        return user.language
+    if user:
+        language = getattr(user, "language", None)
+        if language:
+            return language
     return "unknown"
 
 

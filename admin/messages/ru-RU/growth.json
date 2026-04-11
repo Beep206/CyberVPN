@@ -1,0 +1,241 @@
+{
+  "layout": {
+    "subnavLabel": "Навигация роста"
+  },
+  "nav": {
+    "overview": "Обзор",
+    "promoCodes": "Промокоды",
+    "inviteCodes": "Invite-коды",
+    "partners": "Партнёры",
+    "referrals": "Рефералы"
+  },
+  "common": {
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "empty": "Данных по росту пока нет",
+    "actionFailed": "Операция роста завершилась ошибкой",
+    "close": "Закрыть",
+    "cancel": "Отмена",
+    "edit": "Изменить",
+    "save": "Сохранить",
+    "actions": "Действия",
+    "clear": "Очистить",
+    "reset": "Сбросить",
+    "used": "Использован",
+    "unused": "Не использован",
+    "blocked": "Заблокировано",
+    "missing": "Отсутствует",
+    "backendLimited": "Ограничено backend",
+    "noExpiry": "Без срока"
+  },
+  "overview": {
+    "metaTitle": "Рост - Ozoxy Admin",
+    "eyebrow": "Привлечение / Удержание",
+    "title": "Контроль Роста",
+    "description": "Операторская поверхность для промо-инвентаря, генерации invite-кодов, партнёрских операций и живой referral-аналитики.",
+    "metrics": {
+      "promos": "Промо-инвентарь",
+      "promosHint": "Уже есть admin-read список промокодов.",
+      "activePromos": "Активные Кампании",
+      "activePromosHint": "Коды, которые сейчас можно погасить.",
+      "expiring": "Скоро Истекут",
+      "expiringHint": "Промокоды, истекающие в ближайшие 7 дней.",
+      "plans": "Каталог Планов",
+      "plansHint": "Планы, которые можно таргетировать через invite или promo."
+    },
+    "routesTitle": "Инвентарь Маршрутов",
+    "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
+    "routes": {
+      "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
+      "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
+      "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
+      "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям."
+    },
+    "liveInventoryTitle": "Живой Промо-Инвентарь",
+    "liveInventoryDescription": "Текущее состояние промо, полученное из admin promo endpoint.",
+    "partialCoverage": "Операционное покрытие",
+    "usesLabel": "{current} / {max} использований",
+    "operatorNotesTitle": "Операторские Замечания",
+    "operatorNotes": {
+      "invitesTitle": "Invite-коды пока только на создание",
+      "invitesDescription": "Backend уже умеет admin invite generation, но пока не даёт admin list/detail inventory. Поэтому модуль делает упор на детерминированную генерацию batch и локальный readback результата.",
+      "partnersTitle": "Партнёрский inventory уже живой",
+      "partnersDescription": "Админка уже умеет повышать, искать и смотреть partner-level performance, а payout-модерация остаётся следующим слоем.",
+      "referralsTitle": "Referral-аналитика уже operator-safe",
+      "referralsDescription": "Admin-safe overview и per-user drill-down уже работают. Дальше нужны abuse-review и более глубокая attribution-аналитика."
+    },
+    "planTargetingTitle": "Контекст Таргетинга По Планам",
+    "planTargetingDescription": "Growth-операции уже выигрывают от plan-awareness, особенно в invite-batch и таргетированной настройке promo.",
+    "noPlans": "Для таргетинга нет доступных планов.",
+    "quickSignals": {
+      "exhausted": "Исчерпанные Промо",
+      "coverage": "Покрытие",
+      "coverageValue": "5 live-surface"
+    }
+  },
+  "promoCodes": {
+    "metaTitle": "Промокоды - Ozoxy Admin",
+    "eyebrow": "Рост / Промокоды",
+    "title": "Промо-Инвентарь",
+    "description": "Админ-консоль для кампаний, usage-ceiling, expiry-window и безопасной деактивации.",
+    "createAction": "Создать промо",
+    "createPanelTitle": "Создание Промокода",
+    "createPanelDescription": "Здесь раскрыт весь admin create-surface, включая advanced targeting fields, которые пока остаются write-only в API-контракте.",
+    "editPanelTitle": "Обновление Промо",
+    "inspectPanelTitle": "Деталь Промо",
+    "inspectPanelDescription": "Detail-маршрут привязан к отдельному promo endpoint, а не только к данным списка.",
+    "inspectEmpty": "Выберите промо в таблице, чтобы посмотреть детали.",
+    "inspectUnavailable": "Деталь промо недоступна.",
+    "inspectAction": "Просмотр",
+    "deactivateAction": "Деактивировать",
+    "deactivateTitle": "Деактивировать промокод",
+    "deactivateConfirm": "Деактивировать этот промокод?",
+    "singleUseHint": "Подходит для one-off redemption и жёстко контролируемых кампаний.",
+    "writeOnlyHint": "Write-only поля",
+    "noPlans": "Для scope нет доступных планов.",
+    "empty": "Промокоды не найдены.",
+    "metrics": {
+      "total": "Всего Промо",
+      "totalHint": "Все промо-записи из admin list.",
+      "active": "Активные Промо",
+      "activeHint": "Ещё можно погасить и они не отключены вручную.",
+      "exhausted": "Исчерпаны",
+      "exhaustedHint": "Достигли max uses и уже просятся в cleanup.",
+      "expiring": "Скоро Истекут",
+      "expiringHint": "Истекают в ближайшие 7 дней."
+    },
+    "fields": {
+      "code": "Код",
+      "discountType": "Тип Скидки",
+      "discountValue": "Размер Скидки",
+      "currency": "Валюта",
+      "maxUses": "Макс. Использований",
+      "minAmount": "Мин. Сумма",
+      "expiresAt": "Истекает",
+      "description": "Описание",
+      "planScope": "Scope По Планам",
+      "isSingleUse": "Одноразовый промокод",
+      "isActive": "Промокод активен"
+    },
+    "table": {
+      "code": "Код",
+      "discount": "Скидка",
+      "usage": "Использование",
+      "expires": "Истекает",
+      "status": "Статус"
+    },
+    "inspect": {
+      "code": "Код",
+      "discountType": "Тип скидки",
+      "discountValue": "Размер скидки",
+      "currency": "Валюта",
+      "usage": "Использование",
+      "createdAt": "Создан",
+      "expiresAt": "Истекает"
+    }
+  },
+  "inviteCodes": {
+    "metaTitle": "Invite-коды - Ozoxy Admin",
+    "eyebrow": "Рост / Invite-коды",
+    "title": "Генератор Invite Batch",
+    "description": "Создание invite-кодов для конкретного пользователя с free-day grant и optional plan binding.",
+    "formTitle": "Сгенерировать Invite Batch",
+    "formDescription": "Маршрут специально сфокусирован на детерминированном создании, потому что backend пока не даёт admin list endpoint для invite inventory.",
+    "generatedTitle": "Последние Сгенерированные Коды",
+    "generatedDescription": "Readback результата из последней успешной admin batch-операции.",
+    "generatedEmpty": "В этой сессии invite-коды ещё не создавались.",
+    "generatedCount": "{count} кодов",
+    "createAction": "Сгенерировать batch",
+    "createOnly": "Только создание",
+    "backendNote": "Admin-покрытие здесь реальное, но узкое: сейчас можно создавать batch, а inventory и redemption-аналитику добавим, когда появятся backend routes.",
+    "metrics": {
+      "lastBatch": "Последний Batch",
+      "lastBatchHint": "Коды, возвращённые последним create-запросом.",
+      "planCatalog": "Каталог Планов",
+      "planCatalogHint": "Планы для optional invite-targeting.",
+      "mode": "Режим Поверхности",
+      "modeValue": "Только POST",
+      "modeHint": "Admin list endpoint пока отсутствует.",
+      "lastCode": "Последний Код",
+      "lastCodeHint": "Первый код из последнего сгенерированного batch."
+    },
+    "fields": {
+      "userId": "User ID",
+      "freeDays": "Бесплатных Дней",
+      "count": "Количество",
+      "planId": "План",
+      "planPlaceholder": "Без привязки к плану"
+    },
+    "table": {
+      "code": "Код",
+      "freeDays": "Бесплатные Дни",
+      "used": "Использован",
+      "expires": "Истекает",
+      "created": "Создан"
+    }
+  },
+  "partners": {
+    "metaTitle": "Партнёры - Ozoxy Admin",
+    "eyebrow": "Рост / Партнёры",
+    "title": "Партнёрские Операции",
+    "description": "Повышайте пользователей до партнёров, ищите их в live-directory и переходите в customer card для дальнейших действий.",
+    "formTitle": "Сделать Пользователя Партнёром",
+    "formDescription": "Укажите UUID mobile user и вызовите реальный admin promotion endpoint. Данные каталога обновляются из живого backend.",
+    "directoryTitle": "Каталог Партнёров",
+    "directoryDescription": "Live admin-инвентарь партнёрских пользователей с earnings, количеством кодов и последней активностью.",
+    "directoryEmpty": "По текущему поиску партнёры не найдены.",
+    "directoryCount": "{count} партнёров",
+    "promoteAction": "Повысить до партнёра",
+    "liveDirectory": "Живой каталог",
+    "backendNote": "Growth-backend уже даёт admin-safe partner list/detail. Следующий операционный слой здесь — payout-tooling.",
+    "openCustomer": "Открыть карточку клиента",
+    "metrics": {
+      "directory": "Каталог",
+      "directoryHint": "партнёров вернул admin inventory",
+      "activeCodes": "Активные Коды",
+      "activeCodesHint": "сейчас живые partner-коды",
+      "totalEarned": "Всего Заработано",
+      "totalEarnedHint": "агрегированный earnings в текущей выборке",
+      "lastUser": "Последний User",
+      "lastUserHint": "Самый свежий повышенный пользователь в текущей сессии."
+    },
+    "fields": {
+      "userId": "User ID",
+      "search": "Поиск партнёра"
+    },
+    "badges": {
+      "codes": "{count} кодов",
+      "activeCodes": "{count} активных",
+      "clients": "{count} клиентов"
+    }
+  },
+  "referrals": {
+    "metaTitle": "Рефералы - Ozoxy Admin",
+    "eyebrow": "Рост / Рефералы",
+    "title": "Referral-Аналитика",
+    "description": "Admin-safe обзор referral earnings, топ-referrer'ов и недавней commission-активности.",
+    "currentStateTitle": "Топ Referrer'ы",
+    "currentStateDescription": "Живой leaderboard, построенный на admin-safe referral analytics endpoints.",
+    "recentTitle": "Последние Комиссии",
+    "liveOverview": "Живой обзор",
+    "topReferrersEmpty": "Referral-активность пока отсутствует.",
+    "recentEmpty": "Недавние referral-комиссии не найдены.",
+    "nextFocusTitle": "Следующий Фокус",
+    "nextFocusDescription": "Основной gap здесь уже не в базовой видимости. Следующий слой — abuse-review, payout-операции и более глубокая attribution-диагностика.",
+    "openCustomer": "Открыть карточку клиента",
+    "metrics": {
+      "adminSurface": "Комиссии",
+      "adminSurfaceHint": "общее число commission-record, видимых админу",
+      "uniqueReferrers": "Referrer'ы",
+      "uniqueReferrersHint": "пользователи, заработавшие хотя бы одну referral-комиссию",
+      "uniqueReferred": "Приведённые Пользователи",
+      "uniqueReferredHint": "уникальные пользователи, привлечённые через referral-механику",
+      "totalEarned": "Всего Заработано",
+      "totalEarnedHint": "совокупный payout-объём по referral"
+    },
+    "badges": {
+      "commissions": "{count} комиссий",
+      "referredUsers": "{count} приведено"
+    }
+  }
+}

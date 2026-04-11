@@ -27,13 +27,14 @@ from .schemas import (
     ActiveSubscriptionResponse,
     CancelSubscriptionResponse,
     CreateSubscriptionTemplateRequest,
+    SubscriptionTemplateListResponse,
     UpdateSubscriptionTemplateRequest,
 )
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 
-@router.get("/", response_model=list[RemnawaveSubscriptionResponse])
+@router.get("/", response_model=SubscriptionTemplateListResponse)
 async def list_subscription_templates(
     current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
@@ -50,37 +51,6 @@ async def create_subscription_template(
 ):
     """Create a new subscription template (admin only)"""
     return await client.post("/subscription-templates", json=template_data.model_dump())
-
-
-@router.get("/{uuid}", response_model=RemnawaveSubscriptionResponse)
-async def get_subscription_template(
-    uuid: str,
-    current_user=Depends(get_current_active_user),
-    client: RemnawaveClient = Depends(get_remnawave_client),
-):
-    """Get subscription template details"""
-    return await client.get(f"/subscription-templates/{uuid}")
-
-
-@router.put("/{uuid}", response_model=RemnawaveSubscriptionResponse)
-async def update_subscription_template(
-    uuid: str,
-    template_data: UpdateSubscriptionTemplateRequest,
-    current_user=Depends(require_role(AdminRole.ADMIN)),
-    client: RemnawaveClient = Depends(get_remnawave_client),
-):
-    """Update subscription template (admin only)"""
-    return await client.put(f"/subscription-templates/{uuid}", json=template_data.model_dump(exclude_none=True))
-
-
-@router.delete("/{uuid}", response_model=StatusMessageResponse)
-async def delete_subscription_template(
-    uuid: str,
-    current_user=Depends(require_role(AdminRole.ADMIN)),
-    client: RemnawaveClient = Depends(get_remnawave_client),
-):
-    """Delete subscription template (admin only)"""
-    return await client.delete(f"/subscription-templates/{uuid}")
 
 
 @router.get("/config/{user_uuid}", response_model=RemnawaveSubscriptionConfigResponse)
@@ -197,3 +167,34 @@ async def cancel_subscription(
     await pipe.execute()
 
     return CancelSubscriptionResponse(canceled_at=datetime.now(UTC))
+
+
+@router.get("/{uuid}", response_model=RemnawaveSubscriptionResponse)
+async def get_subscription_template(
+    uuid: str,
+    current_user=Depends(get_current_active_user),
+    client: RemnawaveClient = Depends(get_remnawave_client),
+):
+    """Get subscription template details"""
+    return await client.get(f"/subscription-templates/{uuid}")
+
+
+@router.put("/{uuid}", response_model=RemnawaveSubscriptionResponse)
+async def update_subscription_template(
+    uuid: str,
+    template_data: UpdateSubscriptionTemplateRequest,
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
+):
+    """Update subscription template (admin only)"""
+    return await client.put(f"/subscription-templates/{uuid}", json=template_data.model_dump(exclude_none=True))
+
+
+@router.delete("/{uuid}", response_model=StatusMessageResponse)
+async def delete_subscription_template(
+    uuid: str,
+    current_user=Depends(require_role(AdminRole.ADMIN)),
+    client: RemnawaveClient = Depends(get_remnawave_client),
+):
+    """Delete subscription template (admin only)"""
+    return await client.delete(f"/subscription-templates/{uuid}")

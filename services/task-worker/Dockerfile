@@ -1,5 +1,5 @@
 # Stage 1: Builder — install dependencies
-FROM python:3.13-slim AS builder
+FROM python:3.13.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY pyproject.toml ./
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Stage 2: Runtime — minimal image
-FROM python:3.13-slim AS runtime
+FROM python:3.13.13-slim-bookworm AS runtime
 
 WORKDIR /app
 

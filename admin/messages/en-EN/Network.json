@@ -1,0 +1,32 @@
+{
+  "title": "Global Infrastructure",
+  "description": "5000+ RAM-only nodes deployed across structurally secure jurisdictions. Real-time telemetry routing for zero latency.",
+  "regions": {
+    "namerica": "North America",
+    "europe": "Europe",
+    "asia": "Asia Pacific",
+    "latam": "Latin America"
+  },
+  "metrics": {
+    "bandwidth": "100+ Gbps",
+    "nodes": "5,204",
+    "threats": "14.2M/s"
+  },
+  "labels": {
+    "totalBandwidth": "Core Bandwidth",
+    "activeNodes": "Active Nodes",
+    "threatsIntercepted": "Threats Blocked",
+    "status": "STATUS: ONLINE",
+    "latency": "AVG PING: 12ms",
+    "encryption": "AES-256-GCM"
+  },
+  "servers": {
+    "1": "New York, USA",
+    "2": "London, UK",
+    "3": "Tokyo, Japan",
+    "4": "Singapore",
+    "5": "Frankfurt, EU",
+    "6": "São Paulo, BR",
+    "7": "Sydney, AU"
+  }
+}

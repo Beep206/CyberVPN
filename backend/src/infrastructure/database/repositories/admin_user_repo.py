@@ -49,3 +49,10 @@ class AdminUserRepository:
     async def get_all(self, offset: int = 0, limit: int = 100) -> list[AdminUserModel]:
         result = await self._session.execute(select(AdminUserModel).offset(offset).limit(limit))
         return list(result.scalars().all())
+
+    async def list_by_ids(self, ids: list[UUID]) -> list[AdminUserModel]:
+        if not ids:
+            return []
+
+        result = await self._session.execute(select(AdminUserModel).where(AdminUserModel.id.in_(ids)))
+        return list(result.scalars().all())

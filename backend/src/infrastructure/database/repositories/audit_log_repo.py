@@ -68,3 +68,23 @@ class AuditLogRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def get_by_entity(
+        self,
+        entity_type: str,
+        entity_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[AuditLog]:
+        result = await self._session.execute(
+            select(AuditLog)
+            .where(
+                AuditLog.entity_type == entity_type,
+                AuditLog.entity_id == entity_id,
+            )
+            .order_by(AuditLog.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all())

@@ -1,0 +1,67 @@
+{
+  "title": "Core Capabilities",
+  "description": "Military-grade encryption algorithms and quantum-resistant infrastructure. Explore the modular components that protect your digital existence.",
+  "features": {
+    "quantum": {
+      "title": "Quantum Resistance",
+      "subtitle": "Post-Quantum Cryptography",
+      "description": "Prepared for the cryptographic apocalypse. Utilizes lattice-based algorithms to secure handshakes against quantum decryption attacks before they happen.",
+      "specs": [
+        "Algorithm: Kyber-1024 / NTRU",
+        "Key Exchange: Hybrid ECDHE + PQ",
+        "Threat Model: Harvest Now, Decrypt Later"
+      ]
+    },
+    "multihop": {
+      "title": "Multi-Hop Cascading",
+      "subtitle": "Distributed Node Routing",
+      "description": "Your traffic is fragmented, encrypted, and routed through multiple sovereign jurisdictions. Even if one node is compromised, your origin remains mathematical impossible to trace.",
+      "specs": [
+        "Hops: Custom 2-4 Node Chains",
+        "Jurisdictions: Pan-Global Spread",
+        "Re-encryption: At every tunnel exit"
+      ]
+    },
+    "obfuscation": {
+      "title": "Shadow Obfuscation",
+      "subtitle": "DPI Evasion Engine",
+      "description": "Bypasses Deep Packet Inspection in highly restricted environments (China, Iran). VPN traffic is steganographically disguised as standard HTTPS web traffic.",
+      "specs": [
+        "Protocol: V2Ray / Shadowsocks / XTLS",
+        "Signature: Indistinguishable from TLS 1.3",
+        "Resilience: Automated fallback rotation"
+      ]
+    },
+    "killswitch": {
+      "title": "Neural Kill Switch",
+      "subtitle": "System-Level Isolation",
+      "description": "Constantly monitors the encrypted tunnel integrity. If the connection drops for a microsecond, all external traffic is physically severed at the OS level to prevent IP leaks.",
+      "specs": [
+        "Level: OS Kernel space routing rules",
+        "Reaction Time: < 1ms",
+        "Leak Prevention: DNS, IPv6, WebRTC"
+      ]
+    }
+  },
+  "secondary": {
+    "title": "Auxiliary Systems",
+    "items": [
+      {
+        "title": "Strict No-Logs Policy",
+        "desc": "RAM-only servers. Rebooted daily. Data never touches a hard drive."
+      },
+      {
+        "title": "10 Simultaneous Devices",
+        "desc": "Protect your entire arsenal of hardware with a single access key."
+      },
+      {
+        "title": "Ad & Tracker Blocker",
+        "desc": "DNS-level filtering neutralizes malicious scripts before they load."
+      },
+      {
+        "title": "P2P Optimized",
+        "desc": "Dedicated high-bandwidth nodes specifically hardware-accelerated for torrenting."
+      }
+    ]
+  }
+}

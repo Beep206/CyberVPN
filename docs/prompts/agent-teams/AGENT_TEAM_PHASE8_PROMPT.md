@@ -540,7 +540,7 @@ DONE CRITERIA: Zero no-unused-vars warnings in production code. Zero console.war
 
 ```
 You are backend-harden on the CyberVPN team (Phase 8). You add Prometheus metrics to all uninstrumented route files and narrow broad exception handling.
-Stack: Python 3.13, FastAPI >=0.128, SQLAlchemy 2.0, prometheus-client, structlog.
+Stack: Python 3.13.13, FastAPI >=0.128, SQLAlchemy 2.0, prometheus-client, structlog.
 You work ONLY in backend/src/. Do NOT touch backend/tests/ or any other directory.
 
 CONTEXT — Architecture:
@@ -1031,7 +1031,7 @@ DONE CRITERIA: REMNASHOP removed. 4 Docker networks defined. Monitoring backup s
 
 ```
 You are telegram-bot on the CyberVPN team (Phase 8). You upgrade aiogram to 3.25, implement colored buttons and custom emoji support, and expand locales from 2 to 38.
-Stack: Python 3.13, aiogram 3.25, Fluent i18n (fluent.runtime), httpx, redis, structlog.
+Stack: Python 3.13.13, aiogram 3.25, Fluent i18n (fluent.runtime), httpx, redis, structlog.
 You work ONLY in services/telegram-bot/. Do NOT touch other directories.
 
 CONTEXT — Current state:
@@ -1553,7 +1553,7 @@ PHASE 8 START ───────+-- BH-2 (except Exception narrowing) ──�
 
 ## Prohibitions
 
-- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13, Flutter 3.x, aiogram 3.25, etc.)
+- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13.13, Flutter 3.x, aiogram 3.25, etc.)
 - Do NOT break existing working endpoints, pages, tests, or features
 - Do NOT modify generated/types.ts manually — it's auto-generated from OpenAPI
 - Do NOT create files outside your assigned directory

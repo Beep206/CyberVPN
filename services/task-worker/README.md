@@ -25,7 +25,7 @@ The Task Worker is a microservice responsible for executing background tasks acr
 - **SQLAlchemy 2.0** - Async ORM for PostgreSQL
 - **Structlog** - Structured JSON logging
 - **Prometheus** - Metrics and monitoring
-- **Python 3.13** - Modern async/await patterns
+- **Python 3.13.13** - Runtime baseline for Docker, CI, and local WSL
 
 ### Key Components
 
@@ -104,7 +104,7 @@ services/task-worker/
 
 ### Prerequisites
 
-- Python 3.13+
+- Python 3.13.13 (repo baseline; see `.python-version`)
 - Docker and Docker Compose (for infrastructure)
 - Redis 5.2+ or Valkey
 - PostgreSQL 17+

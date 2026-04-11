@@ -105,9 +105,10 @@ class TestUsageEndpoint:
         db: AsyncSession,
     ):
         """
-        Test GET /api/v1/users/me/usage when user has no subscription -> 404.
+        Test GET /api/v1/users/me/usage falls back to empty usage when upstream has no record.
 
-        Mocks Remnawave to raise ValueError (user not found in VPN backend).
+        The current route contract keeps the dashboard alive by returning an empty
+        snapshot instead of surfacing upstream lookup failures to the client.
         """
         password, email = await _create_verified_user(db)
         access_token = await _login(async_client, email, password)
@@ -124,8 +125,13 @@ class TestUsageEndpoint:
                 headers={"Authorization": f"Bearer {access_token}"},
             )
 
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        assert response.status_code == 200
+        data = response.json()
+        assert data["bandwidth_used_bytes"] == 0
+        assert data["bandwidth_limit_bytes"] == 0
+        assert data["connections_active"] == 0
+        assert data["connections_limit"] == 0
+        assert data["last_connection_at"] is None
 
     @pytest.mark.integration
     async def test_usage_requires_auth(

@@ -13,7 +13,6 @@ import secrets
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -84,11 +83,8 @@ class TestProfileEndpoints:
         assert data["display_name"] == new_display_name
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.display_name == new_display_name
+        await db.refresh(user)
+        assert user.display_name == new_display_name
 
     @pytest.mark.integration
     async def test_update_profile_language(
@@ -113,11 +109,8 @@ class TestProfileEndpoints:
         assert data["language"] == "fr-FR"
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.language == "fr-FR"
+        await db.refresh(user)
+        assert user.language == "fr-FR"
 
     @pytest.mark.integration
     async def test_update_profile_timezone(
@@ -142,11 +135,8 @@ class TestProfileEndpoints:
         assert data["timezone"] == "America/New_York"
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.timezone == "America/New_York"
+        await db.refresh(user)
+        assert user.timezone == "America/New_York"
 
     @pytest.mark.integration
     async def test_update_profile_multiple_fields(
@@ -178,13 +168,10 @@ class TestProfileEndpoints:
         assert data["timezone"] == "Europe/Berlin"
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.display_name == new_display_name
-        assert updated_user.language == "de-DE"
-        assert updated_user.timezone == "Europe/Berlin"
+        await db.refresh(user)
+        assert user.display_name == new_display_name
+        assert user.language == "de-DE"
+        assert user.timezone == "Europe/Berlin"
 
     @pytest.mark.integration
     async def test_update_profile_partial_update_only_changes_provided_fields(

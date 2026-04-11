@@ -1,12 +1,18 @@
 """Pytest configuration and fixtures for testing."""
 
+import asyncio
 import importlib.util
 import os
+import secrets
+import uuid
 from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, text
+
+from src.config.settings import settings
 
 # Set ENABLE_METRICS before importing main.py to ensure metrics endpoint is registered
 os.environ["ENABLE_METRICS"] = "true"
@@ -31,8 +37,10 @@ def test_settings():
     # Test environment variables
     test_env = {
         "ENVIRONMENT": "test",
-        "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/cybervpn_test",
-        "REDIS_URL": "redis://localhost:6379/1",
+        # Reuse the local Docker stack so integration tests hit the same
+        # services as the application instead of an absent ad-hoc test DB.
+        "DATABASE_URL": settings.database_url,
+        "REDIS_URL": settings.redis_url,
         "SECRET_KEY": "test-secret-key-for-testing-only",
         "CORS_ORIGINS": "http://localhost:3000",
         "DEBUG": "true",
@@ -69,14 +77,86 @@ async def async_client(test_settings) -> AsyncGenerator[AsyncClient]:
         yield client
 
 
+@pytest.fixture(scope="session", autouse=True)
+def ensure_repo_schema(test_settings) -> None:
+    """Create repo-managed tables missing from the legacy Docker database.
+
+    The local Docker stack ships an older Remnawave schema. Our backend adds
+    extra auth/admin tables on top, so integration tests need a one-time
+    metadata sync to make sure those tables exist before the suite runs.
+    """
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from src.infrastructure.database.session import Base
+    import src.infrastructure.database.models  # noqa: F401
+
+    schema_engine = create_async_engine(
+        os.environ.get("DATABASE_URL", settings.database_url),
+        echo=False,
+        pool_pre_ping=True,
+    )
+
+    async def _sync_schema() -> None:
+        try:
+            async with schema_engine.begin() as conn:
+                existing_tables = set(
+                    (
+                        await conn.execute(
+                            text(
+                                "select tablename from pg_tables where schemaname = 'public'"
+                            )
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+
+                missing_tables = [
+                    Base.metadata.tables[name]
+                    for name in sorted(Base.metadata.tables)
+                    if name not in existing_tables
+                ]
+
+                for table in missing_tables:
+                    await conn.run_sync(lambda sync_conn, table=table: table.create(sync_conn, checkfirst=True))
+
+                admin_users_exists = "admin_users" in existing_tables
+                if admin_users_exists:
+                    totp_secret_length = await conn.scalar(
+                        text(
+                            """
+                            select character_maximum_length
+                            from information_schema.columns
+                            where table_schema = 'public'
+                              and table_name = 'admin_users'
+                              and column_name = 'totp_secret'
+                            """
+                        )
+                    )
+                    if totp_secret_length is not None and int(totp_secret_length) < 255:
+                        await conn.execute(
+                            text("alter table admin_users alter column totp_secret type varchar(255)")
+                        )
+        finally:
+            await schema_engine.dispose()
+
+    asyncio.run(_sync_schema())
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def cleanup_global_async_pools() -> AsyncGenerator[None]:
     """Dispose shared pools between tests to avoid cross-loop leftovers."""
     yield
 
     from src.infrastructure.cache.redis_client import close_redis_pool
+    from src.infrastructure.helix.client import helix_adapter_client
+    from src.infrastructure.payments.cryptobot.client import cryptobot_client
+    from src.infrastructure.remnawave.client import remnawave_client
     from src.infrastructure.database.session import engine
 
+    await remnawave_client.close()
+    await helix_adapter_client.close()
+    await cryptobot_client.close()
     await close_redis_pool()
     await engine.dispose()
 
@@ -90,10 +170,8 @@ async def db() -> AsyncGenerator:
     """
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-    from src.infrastructure.database.session import Base
-
-    # Use test database from environment (set by test_settings fixture)
-    test_db_url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://test:test@localhost:5432/cybervpn_test")
+    # Use the Docker-backed database configured for the local stack.
+    test_db_url = os.environ.get("DATABASE_URL", settings.database_url)
 
     # Create test engine
     engine = create_async_engine(
@@ -101,10 +179,6 @@ async def db() -> AsyncGenerator:
         echo=False,
         pool_pre_ping=True,
     )
-
-    # Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
     # Create session
     async_session = async_sessionmaker(
@@ -117,8 +191,52 @@ async def db() -> AsyncGenerator:
         yield session
         await session.rollback()
 
-    # Drop tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def auth_tokens() -> AsyncGenerator[dict[str, str]]:
+    """Create a live super-admin token for integration/e2e tests that need auth."""
+
+    from src.application.services.auth_service import AuthService
+    from src.infrastructure.database.models import AdminUserModel
+    from src.infrastructure.database.session import AsyncSessionLocal
+
+    auth_service = AuthService()
+    user_id = uuid.uuid4()
+    login_suffix = secrets.token_hex(4)
+    password_hash = await auth_service.hash_password("FixtureAdminPassword123!")
+
+    async with AsyncSessionLocal() as session:
+        user = AdminUserModel(
+            id=user_id,
+            login=f"pytest-admin-{login_suffix}",
+            email=f"pytest-admin-{login_suffix}@example.com",
+            password_hash=password_hash,
+            role="super_admin",
+            is_active=True,
+            is_email_verified=True,
+            language="en-EN",
+            timezone="UTC",
+        )
+        session.add(user)
+        await session.commit()
+
+    access_token = auth_service.create_access_token_simple(
+        subject=str(user_id),
+        role="super_admin",
+    )
+
+    try:
+        yield {"access_token": access_token}
+    finally:
+        async with AsyncSessionLocal() as session:
+            await session.execute(delete(AdminUserModel).where(AdminUserModel.id == user_id))
+            await session.commit()
+
+
+@pytest.fixture
+def auth_headers(auth_tokens: dict[str, str]) -> dict[str, str]:
+    """Authorization headers for tests that need an authenticated admin request."""
+
+    return {"Authorization": f"Bearer {auth_tokens['access_token']}"}

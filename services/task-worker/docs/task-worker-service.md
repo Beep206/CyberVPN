@@ -6,7 +6,7 @@
 - **Автор**: Claude Code
 - **Статус**: Ready for Review
 - **Метод**: RPG (Repository Planning Graph)
-- **Язык реализации**: Python 3.13+
+- **Язык реализации**: Python 3.13.13
 - **Фреймворк**: TaskIQ + RedisStreamBroker
 
 ---
@@ -1070,7 +1070,7 @@ FastAPI Backend                Task Worker                   External Services
 | **Broker** | taskiq-redis (RedisStreamBroker) | >=1.0 | Durable (ACK), consumer groups, горизонтальное масштабирование |
 | **Result Backend** | taskiq-redis (RedisAsyncResultBackend) | >=1.0 | Async, TTL для результатов, тот же Redis instance |
 | **Scheduler** | taskiq + RedisScheduleSource | >=1.0 | Cron expressions, Redis-backed, persistent |
-| **Runtime** | Python | >=3.13 | Совпадает с backend, latest stable |
+| **Runtime** | Python | 3.13.13 | Зафиксированный baseline для backend, CI и локальной разработки |
 | **Framework** | FastAPI (taskiq-fastapi) | >=0.3 | Dependency sharing с backend |
 | **ORM** | SQLAlchemy | >=2.0 | Async, совпадает с backend |
 | **DB Driver** | asyncpg | latest | Fastest async PostgreSQL driver |
@@ -1086,7 +1086,7 @@ FastAPI Backend                Task Worker                   External Services
 ### Decision: TaskIQ over Celery/ARQ
 
 - **Rationale**: TaskIQ — единственный async-first task queue для Python. Celery не поддерживает async задачи нативно. ARQ — минимальный, без middleware, без dependency injection, без scheduling. TaskIQ предоставляет: модульную архитектуру (brokers, backends, middleware), интеграцию с FastAPI, типизированные задачи (PEP-612), RedisStreamBroker с ACK.
-- **Trade-offs**: Меньше community/ecosystem чем Celery. Менее зрелый. Но для async-only проекта (Python 3.13 + FastAPI) — идеальный выбор.
+- **Trade-offs**: Меньше community/ecosystem чем Celery. Менее зрелый. Но для async-only проекта (Python 3.13.13 + FastAPI) — идеальный выбор.
 - **Alternatives considered**: Celery (нет async), ARQ (нет middleware/scheduler), Dramatiq (нет async), Huey (sync-only).
 
 ### Decision: RedisStreamBroker over PubSub/ListQueue
@@ -1182,13 +1182,13 @@ FastAPI Backend                Task Worker                   External Services
 
 ```dockerfile
 # Stage 1: Builder
-FROM python:3.13-slim AS builder
+FROM python:3.13.13-slim-bookworm AS builder
 WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Stage 2: Runtime
-FROM python:3.13-slim AS runtime
+FROM python:3.13.13-slim-bookworm AS runtime
 WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY src/ ./src/
@@ -1325,7 +1325,7 @@ CMD ["taskiq", "worker", "src.worker:broker", "--workers", "2", "--fs-discover"]
 ## 12. Constraints & Assumptions
 
 ### Constraints
-1. **Python 3.13+** — совпадает с backend, не downgrade
+1. **Python 3.13.13** — совпадает с backend baseline, CI и локальной WSL-разработкой
 2. **TaskIQ** — не Celery, не ARQ, не Dramatiq (требование пользователя)
 3. **RedisStreamBroker** — не PubSub/ListQueue (требование пользователя)
 4. **Собственные ORM-модели** — не shared package, не import из backend (требование пользователя)

@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────────────────────────────────
-FROM python:3.13-slim AS builder
+FROM python:3.13.13-slim-bookworm AS builder
 
 WORKDIR /build
 
@@ -17,7 +17,7 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir .
 
 # ── Runtime stage ────────────────────────────────────────────────────────
-FROM python:3.13-slim AS runtime
+FROM python:3.13.13-slim-bookworm AS runtime
 
 # Security: create non-root user
 RUN groupadd -r botuser && \

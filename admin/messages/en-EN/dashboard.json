@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "title": "Dashboard - Ozoxy Admin Command Center",
+    "description": "Operational cockpit for Ozoxy staff covering infrastructure, commerce, governance, and real-time incident visibility."
+  },
+  "eyebrow": "ADMIN CONTROL SURFACE",
+  "title": "OZOXY COMMAND CENTER",
+  "subtitle": "Operational cockpit for infrastructure, commerce, governance, and incident response.",
+  "statusLabel": "OPS MODE:",
+  "statusValue": "LIVE",
+  "connectionStatus": "ADMIN ORIGIN VERIFIED",
+  "encryptionStatus": "ACCESS HARDENED WITH 2FA",
+  "serverMatrix": "INFRASTRUCTURE PULSE",
+  "serverMatrixDescription": "Live topology snapshot of the current VPN fleet and node pressure.",
+  "errorLoadingServers": "Error loading servers",
+  "noServers": "No servers available",
+  "opsGridLabel": "Command center operations",
+  "sectionMapTitle": "CONTROL DOMAINS",
+  "sectionMapDescription": "Top-level staff surfaces for customers, money, infrastructure, security, and governance.",
+  "sectionReadiness": {
+    "strong": "ready",
+    "partial": "partial",
+    "blocked": "blocked"
+  },
+  "sectionSignalsReady": "signals ready",
+  "sectionModulesNext": "next modules",
+  "withdrawalsTitle": "WITHDRAWAL QUEUE",
+  "withdrawalsDescription": "Pending wallet withdrawals that require admin approval.",
+  "paymentsTitle": "RECENT PAYMENTS",
+  "paymentsDescription": "Newest payment records across the platform.",
+  "auditTitle": "AUDIT STREAM",
+  "auditDescription": "Recent privileged actions captured by the backend audit log.",
+  "webhooksTitle": "WEBHOOK STREAM",
+  "webhooksDescription": "Last processed integration callbacks and failures.",
+  "cards": {
+    "health": {
+      "title": "PLATFORM HEALTH",
+      "description": "Database, cache, and Remnawave dependency state.",
+      "healthy": "HEALTHY",
+      "degraded": "DEGRADED",
+      "unhealthy": "UNHEALTHY",
+      "unknown": "UNKNOWN",
+      "componentsHealthy": "healthy components",
+      "componentsFailing": "failing components"
+    },
+    "servers": {
+      "title": "SERVERS ONLINE",
+      "description": "Nodes currently accepting traffic."
+    },
+    "users": {
+      "title": "ACTIVE USERS",
+      "description": "Live customer footprint on the platform."
+    },
+    "bandwidth": {
+      "title": "OUTBOUND BANDWIDTH",
+      "description": "Current egress for the selected monitoring period."
+    },
+    "withdrawals": {
+      "title": "PENDING WITHDRAWALS",
+      "description": "Manual approval queue requiring operator action."
+    }
+  },
+  "empty": {
+    "withdrawals": "No pending withdrawals in the queue.",
+    "payments": "No recent payments found.",
+    "audit": "No recent audit events found.",
+    "webhooks": "No webhook events found."
+  },
+  "errors": {
+    "load": "Unable to load this panel right now."
+  },
+  "labels": {
+    "items": "items",
+    "method": "Method",
+    "provider": "Provider",
+    "processedAt": "Processed",
+    "unknown": "Unknown",
+    "unassigned": "Unassigned",
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "noError": "No errors",
+    "inbound": "inbound",
+    "totalUsers": "total users"
+  }
+}

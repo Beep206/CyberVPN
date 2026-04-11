@@ -66,7 +66,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.13.13'
 
       - name: Install script dependency
         run: pip install pyyaml
@@ -129,14 +129,16 @@ jobs:
 
       - name: Write summary
         run: |
-          echo "## Control-plane promotion" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Target environment: ${{ inputs.target_environment }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Base ref: ${{ inputs.base_ref }}" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${PROMOTION_HAS_CHANGES}" = "true" ]; then
-            echo "- Promotion branch: ${PROMOTION_BRANCH}" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Compare URL: https://github.com/${{ github.repository }}/compare/${{ inputs.base_ref }}...${PROMOTION_BRANCH}" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "- Release manifest already matched the requested digest refs." >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "- Updated manifest artifact uploaded for review." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Control-plane promotion"
+            echo ""
+            echo "- Target environment: ${{ inputs.target_environment }}"
+            echo "- Base ref: ${{ inputs.base_ref }}"
+            if [ "${PROMOTION_HAS_CHANGES}" = "true" ]; then
+              echo "- Promotion branch: ${PROMOTION_BRANCH}"
+              echo "- Compare URL: https://github.com/${{ github.repository }}/compare/${{ inputs.base_ref }}...${PROMOTION_BRANCH}"
+            else
+              echo "- Release manifest already matched the requested digest refs."
+            fi
+            echo "- Updated manifest artifact uploaded for review."
+          } >> "$GITHUB_STEP_SUMMARY"

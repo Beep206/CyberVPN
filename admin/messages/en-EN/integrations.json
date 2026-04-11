@@ -1,0 +1,219 @@
+{
+  "layout": {
+    "subnavLabel": "Integrations navigation"
+  },
+  "nav": {
+    "overview": "Overview",
+    "telegram": "Telegram",
+    "push": "Push",
+    "realtime": "Realtime"
+  },
+  "common": {
+    "active": "Active",
+    "allowed": "Allowed",
+    "eligible": "Eligible",
+    "empty": "No data available for the current view.",
+    "inactive": "Inactive",
+    "invalid": "Invalid",
+    "linked": "Linked",
+    "noIncidents": "No integration incidents in the current slice.",
+    "none": "None",
+    "unavailable": "Unavailable",
+    "unknown": "Unknown",
+    "unlinked": "Unlinked"
+  },
+  "overview": {
+    "eyebrow": "Phase 6",
+    "metaTitle": "Integrations - Ozoxy Admin",
+    "title": "Integration Operations",
+    "description": "Operational surface for Telegram, push diagnostics, websocket tickets, and callback-aware integration posture.",
+    "metrics": {
+      "health": "Health",
+      "healthHint": "Current backend integration posture.",
+      "webhooks": "Invalid Webhooks",
+      "webhooksHint": "Callbacks needing operator attention.",
+      "channels": "Enabled Channels",
+      "channelsHint": "Current operator notification routes.",
+      "telegram": "Operator Telegram",
+      "telegramHint": "Current admin Telegram linkage state."
+    },
+    "routesTitle": "Routes",
+    "routesDescription": "Move directly into Telegram operations, push diagnostics, and realtime topic tooling from one operator shell.",
+    "routes": {
+      "telegram": "Lookup Telegram-linked users, bootstrap bot-facing identities, inspect config, and generate login links.",
+      "push": "Inspect current operator notification preferences and test FCM registration flows.",
+      "realtime": "Mint websocket tickets and subscribe to monitoring topics for live incident visibility."
+    },
+    "healthTitle": "Integration Health",
+    "healthDescription": "Shared health signals pulled from monitoring and callback surfaces.",
+    "channelsTitle": "Operator Channels",
+    "channelsDescription": "Current operator linkage and bot-access posture without leaving the admin shell.",
+    "channelCards": {
+      "telegram": "Telegram Link",
+      "telegramLinked": "Current operator is linked to Telegram ID {telegramId}.",
+      "telegramUnlinked": "Current operator does not have Telegram linkage in the current session payload.",
+      "push": "Notification Preferences",
+      "pushSummary": "{enabled} of 5 notification channels are currently enabled for this operator.",
+      "botAccess": "Bot Access",
+      "botRulesUrl": "Bot rules URL is currently exposed at {url}.",
+      "botSecretNote": "Bot-secret proxy is not configured or upstream bot settings are unavailable."
+    },
+    "incidentsTitle": "Webhook Incidents",
+    "incidentsDescription": "Recent invalid callback records coming from the governance webhook log."
+  },
+  "telegram": {
+    "eyebrow": "Telegram Ops",
+    "metaTitle": "Telegram Ops - Ozoxy Admin",
+    "title": "Telegram Control Surface",
+    "description": "Lookup Telegram-linked VPN users, exercise bot-facing flows, bootstrap identities, and mint operator login links.",
+    "metrics": {
+      "accessMode": "Access Mode",
+      "accessModeHint": "Bot-side access settings returned via admin proxy.",
+      "catalog": "Active Plans",
+      "catalogHint": "Active plans available for manual subscription creation.",
+      "operatorTelegram": "Operator Telegram",
+      "operatorTelegramHint": "Current session Telegram ID.",
+      "botPlans": "Bot Plans",
+      "botPlansHint": "Bot-facing plan entries exposed by backend."
+    },
+    "accessTitle": "Bot Access",
+    "accessDescription": "Read the bot-facing access settings and catalog coverage without exposing the bot secret to the browser.",
+    "accessCards": {
+      "botSettings": "Bot Settings",
+      "botSettingsSummary": "Bot access is configured. Current channel ID: {channelId}.",
+      "botCatalog": "Bot Catalog",
+      "botCatalogSummary": "Bot-facing plans are reachable through the admin-side proxy."
+    },
+    "lookupTitle": "Lookup & Actions",
+    "lookupDescription": "Inspect a Telegram ID, generate one-time bot login links, refresh the bot-facing user, and activate trial flow when needed.",
+    "subscriptionTitle": "Manual Subscription",
+    "subscriptionDescription": "Use the current plan catalog to create a subscription for the selected Telegram-linked user.",
+    "bootstrapTitle": "Bootstrap Payload",
+    "bootstrapDescription": "Optional fields used when refreshing a bot-facing user payload from the admin shell.",
+    "userTitle": "Telegram User",
+    "botUserTitle": "Bot-Facing User",
+    "referralTitle": "Referral Signals",
+    "subscriptionsTitle": "Bot Subscriptions",
+    "configTitle": "VPN Config",
+    "fields": {
+      "telegramId": "Telegram ID",
+      "plan": "Plan",
+      "durationDays": "Duration Days",
+      "username": "Username",
+      "firstName": "First Name",
+      "language": "Language Code",
+      "referrerId": "Referrer Telegram ID"
+    },
+    "placeholders": {
+      "telegramId": "Enter Telegram numeric ID"
+    },
+    "actions": {
+      "inspect": "Inspect",
+      "generateLink": "Generate Login Link",
+      "generatingLink": "Generating...",
+      "bootstrap": "Bootstrap User",
+      "bootstrapping": "Bootstrapping...",
+      "activateTrial": "Activate Trial",
+      "activatingTrial": "Activating...",
+      "createSubscription": "Create Subscription",
+      "creatingSubscription": "Creating..."
+    },
+    "loginLinkLabel": "Generated Bot Login Link",
+    "expiresAtLabel": "Expires At",
+    "labels": {
+      "dataUsage": "Data Usage",
+      "dataLimit": "Data Limit",
+      "languageCode": "Language",
+      "trialStatus": "Trial Status",
+      "totalReferrals": "Total Referrals",
+      "referralLink": "Referral Link",
+      "adminConfig": "Admin Route Config",
+      "botConfig": "Bot Route Config"
+    },
+    "emptyLookup": "Enter a Telegram ID and inspect it to load Telegram surfaces.",
+    "trialSummary": "Current trial window reports {days} days remaining.",
+    "subscriptionSummary": "Bot-facing expiry: {expiresAt}."
+  },
+  "push": {
+    "eyebrow": "Push Ops",
+    "metaTitle": "Push Ops - Ozoxy Admin",
+    "title": "Push & Preference Diagnostics",
+    "description": "Visibility into the current operator notification preferences plus self-service FCM token registration diagnostics.",
+    "metrics": {
+      "channels": "Enabled Channels",
+      "channelsHint": "Current notification posture for this operator.",
+      "device": "Device",
+      "deviceHint": "Current device ID used for FCM diagnostics.",
+      "platform": "Platform",
+      "platformHint": "Current FCM platform selection.",
+      "scope": "Coverage",
+      "scopeValue": "Self-Service",
+      "scopeHint": "Backend lacks a global FCM admin inventory today."
+    },
+    "preferencesTitle": "Notification Preferences",
+    "preferencesDescription": "Adjust the current operator notification routes and persist the preference state through the backend.",
+    "toggles": {
+      "emailSecurity": "Email security alerts",
+      "emailMarketing": "Email marketing campaigns",
+      "pushConnection": "Push connection events",
+      "pushPayment": "Push payment updates",
+      "pushSubscription": "Push subscription lifecycle"
+    },
+    "actions": {
+      "savePreferences": "Save Preferences",
+      "saving": "Saving...",
+      "registerToken": "Register Token",
+      "registering": "Registering...",
+      "unregisterToken": "Unregister Token",
+      "unregistering": "Unregistering..."
+    },
+    "savedLabel": "Saved",
+    "fcmTitle": "FCM Diagnostics",
+    "fcmDescription": "Exercise the current self-service FCM endpoints to validate token registration and unregister flows.",
+    "fields": {
+      "deviceId": "Device ID",
+      "platform": "Platform",
+      "token": "FCM Token"
+    },
+    "registeredTitle": "Registered Token",
+    "registeredSummary": "Latest registration completed at {createdAt}."
+  },
+  "realtime": {
+    "eyebrow": "Realtime",
+    "metaTitle": "Realtime Ops - Ozoxy Admin",
+    "title": "Realtime Topic Console",
+    "description": "Mint websocket tickets, validate monitoring topic access, and inspect live monitoring messages from the admin shell.",
+    "metrics": {
+      "socket": "Socket",
+      "socketHint": "Current monitoring websocket state.",
+      "ticket": "Ticket TTL",
+      "ticketHint": "Single-use ticket lifetime returned by backend.",
+      "availableTopics": "Available Topics",
+      "availableTopicsHint": "Allowed topics reported after websocket connect.",
+      "traffic": "Traffic",
+      "trafficHint": "Current total traffic from monitoring stats."
+    },
+    "ticketTitle": "Ticket Flow",
+    "ticketDescription": "Issue a short-lived websocket ticket, open a monitoring socket, and disconnect cleanly when diagnostics are done.",
+    "topicTitle": "Monitoring Topics",
+    "topicDescription": "Select topics to subscribe once the websocket is open. The backend will report which topics are allowed for the current role.",
+    "healthTitle": "Health Snapshot",
+    "logTitle": "Live Event Log",
+    "emptyLog": "No websocket events captured yet.",
+    "actions": {
+      "requestTicket": "Request Ticket",
+      "requestingTicket": "Requesting...",
+      "disconnect": "Disconnect",
+      "subscribe": "Subscribe"
+    },
+    "connectionStatus": "Connection Status",
+    "connectionSummary": "Selected topics in the current request batch: {topics}.",
+    "topics": {
+      "servers": "Servers",
+      "payments": "Payments",
+      "general": "General",
+      "users": "Users",
+      "system": "System"
+    }
+  }
+}

@@ -27,6 +27,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.dto.payment_dto import InvoiceResponseDTO
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.main import app
+from src.presentation.dependencies.services import get_crypto_client
 
 
 async def _create_admin_user(db: AsyncSession) -> tuple[str, str, str]:
@@ -86,35 +88,28 @@ class TestCreateCryptoInvoice:
             expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
-        with (
-            patch(
-                "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
-            ) as mock_uc_class,
-            patch(
-                "src.presentation.api.v1.payments.routes.SubscriptionPlanRepository"
-            ),
-            patch(
-                "src.presentation.dependencies.services.container"
-            ) as mock_container,
-        ):
+        with patch(
+            "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
+        ) as mock_uc_class:
             # Mock the use case
             mock_uc = AsyncMock()
             mock_uc.execute.return_value = mock_invoice
             mock_uc_class.return_value = mock_uc
 
-            # Mock the crypto client dependency
             mock_crypto = MagicMock()
-            mock_container.get.return_value = lambda: mock_crypto
-
-            response = await async_client.post(
-                "/api/v1/payments/crypto/invoice",
-                json={
-                    "user_uuid": user_id,
-                    "plan_id": "premium_monthly",
-                    "currency": "USD",
-                },
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
+            app.dependency_overrides[get_crypto_client] = lambda: mock_crypto
+            try:
+                response = await async_client.post(
+                    "/api/v1/payments/crypto/invoice",
+                    json={
+                        "user_uuid": user_id,
+                        "plan_id": "premium_monthly",
+                        "currency": "USD",
+                    },
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            finally:
+                app.dependency_overrides.pop(get_crypto_client, None)
 
         assert response.status_code == 201
         data = response.json()
@@ -136,33 +131,27 @@ class TestCreateCryptoInvoice:
         user_id, password, email = await _create_admin_user(db)
         access_token = await _login(async_client, email, password)
 
-        with (
-            patch(
-                "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
-            ) as mock_uc_class,
-            patch(
-                "src.presentation.api.v1.payments.routes.SubscriptionPlanRepository"
-            ),
-            patch(
-                "src.presentation.dependencies.services.container"
-            ) as mock_container,
-        ):
+        with patch(
+            "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
+        ) as mock_uc_class:
             mock_uc = AsyncMock()
             mock_uc.execute.side_effect = ValueError("Plan not found: nonexistent_plan")
             mock_uc_class.return_value = mock_uc
 
             mock_crypto = MagicMock()
-            mock_container.get.return_value = lambda: mock_crypto
-
-            response = await async_client.post(
-                "/api/v1/payments/crypto/invoice",
-                json={
-                    "user_uuid": user_id,
-                    "plan_id": "nonexistent_plan",
-                    "currency": "USD",
-                },
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
+            app.dependency_overrides[get_crypto_client] = lambda: mock_crypto
+            try:
+                response = await async_client.post(
+                    "/api/v1/payments/crypto/invoice",
+                    json={
+                        "user_uuid": user_id,
+                        "plan_id": "nonexistent_plan",
+                        "currency": "USD",
+                    },
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            finally:
+                app.dependency_overrides.pop(get_crypto_client, None)
 
         assert response.status_code == 404
         assert "Plan not found" in response.json()["detail"]

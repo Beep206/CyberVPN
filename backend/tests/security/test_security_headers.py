@@ -124,9 +124,9 @@ class TestSecurityHeadersMiddleware:
 
     @pytest.mark.asyncio
     async def test_hsts_in_production(self, middleware, mock_request, mock_response):
-        """HSTS header is added when debug is False."""
+        """HSTS header is added in production environment."""
         with patch("src.presentation.middleware.security_headers.settings") as mock_settings:
-            mock_settings.debug = False
+            mock_settings.environment = "production"
 
             async def call_next(_):
                 return mock_response
@@ -137,9 +137,9 @@ class TestSecurityHeadersMiddleware:
 
     @pytest.mark.asyncio
     async def test_no_hsts_in_debug(self, middleware, mock_request, mock_response):
-        """HSTS header is NOT added when debug is True."""
+        """HSTS header is NOT added outside production."""
         with patch("src.presentation.middleware.security_headers.settings") as mock_settings:
-            mock_settings.debug = True
+            mock_settings.environment = "development"
 
             async def call_next(_):
                 return mock_response

@@ -123,7 +123,7 @@
 
 ```
 You are backend-obs on the CyberVPN team (Phase 3). You add full observability to the backend.
-Stack: FastAPI, Python 3.13, SQLAlchemy 2, Redis, prometheus-client, structlog.
+Stack: FastAPI, Python 3.13.13, SQLAlchemy 2, Redis, prometheus-client, structlog.
 You work ONLY in backend/ and services/.
 
 CONTEXT — What already exists:
