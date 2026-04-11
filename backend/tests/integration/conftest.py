@@ -7,6 +7,8 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.jwt_revocation_service import JWTRevocationService
+from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 
 
@@ -26,7 +28,7 @@ async def test_user_with_token(
         id=uuid.uuid4(),
         login=f"testuser_{secrets.token_hex(4)}",
         email=f"test_{secrets.token_hex(4)}@example.com",
-        password_hash=auth_service.hash_password("TestPassword123!"),
+        password_hash=await auth_service.hash_password("TestPassword123!"),
         role="user",
         is_active=True,
         language="en-EN",
@@ -38,9 +40,18 @@ async def test_user_with_token(
     await db.refresh(user)
 
     # Generate access token
-    access_token, _, _ = auth_service.create_access_token(
+    access_token, jti, access_exp = auth_service.create_access_token(
         subject=str(user.id),
         role=user.role,
     )
+    redis_client = await get_redis_client()
+    try:
+        await JWTRevocationService(redis_client).register_token(
+            jti=jti,
+            user_id=str(user.id),
+            expires_at=access_exp,
+        )
+    finally:
+        await redis_client.aclose()
 
     return user, access_token

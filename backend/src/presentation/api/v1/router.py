@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
 from src.presentation.api.v1.admin.invites import router as invites_router
+from src.presentation.api.v1.admin.growth import router as admin_growth_router
+from src.presentation.api.v1.admin.customer_support import router as admin_customer_support_router
+from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
 from src.presentation.api.v1.admin.routes import router as admin_router
 from src.presentation.api.v1.auth.registration import router as registration_router
 from src.presentation.api.v1.auth.routes import router as auth_router
@@ -81,6 +84,9 @@ api_router.include_router(status_router)
 api_router.include_router(monitoring_router)
 api_router.include_router(admin_router)
 api_router.include_router(invites_router)
+api_router.include_router(admin_growth_router)
+api_router.include_router(admin_mobile_users_router)
+api_router.include_router(admin_customer_support_router)
 
 # Webhooks & integrations
 api_router.include_router(webhooks_router)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -14,7 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
 from src.main import app
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_user, optional_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
@@ -73,8 +73,14 @@ def _override_dependencies(fake_redis: _FakeRedis) -> None:
     def _auth_override() -> _MockAuthUser:
         return _MockAuthUser()
 
+    auth_service = SimpleNamespace(
+        decode_token=lambda _token: {
+            "exp": int((datetime.now(UTC) + timedelta(days=7)).timestamp()),
+        }
+    )
+
     def _auth_service_override() -> object:
-        return object()
+        return auth_service
 
     def _remnawave_override() -> object:
         return object()
@@ -82,6 +88,7 @@ def _override_dependencies(fake_redis: _FakeRedis) -> None:
     app.dependency_overrides[get_redis] = _redis_override
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[optional_user] = _auth_override
     app.dependency_overrides[get_auth_service] = _auth_service_override
     app.dependency_overrides[get_remnawave_adapter] = _remnawave_override
 
@@ -162,9 +169,14 @@ async def test_check_telegram_magic_link_status_sets_auth_cookies_and_consumes_t
         tfa_token=None,
     )
 
-    with patch(
-        "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
-        new=AsyncMock(return_value=result),
+    with (
+        patch(
+            "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
+            new=AsyncMock(return_value=result),
+        ),
+        patch("src.presentation.api.v1.oauth.routes.store_refresh_token", new=AsyncMock()),
+        patch("src.presentation.api.v1.oauth.routes.sync_active_sessions", new=AsyncMock()),
+        patch("src.presentation.api.v1.oauth.routes.sync_auth_security_posture", new=AsyncMock()),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(f"/api/v1/oauth/telegram/magic-link/{token}/status")

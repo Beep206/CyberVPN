@@ -369,7 +369,7 @@ DONE CRITERIA: All 33 per-route files exist. CodesSection.tsx has zero `any` typ
 
 ```
 You are backend-fcm on the CyberVPN team (Phase 7). You implement real FCM token persistence and broaden Prometheus metrics coverage.
-Stack: Python 3.13, FastAPI >=0.128, SQLAlchemy 2.0 (async), Alembic, asyncpg, Pydantic v2.
+Stack: Python 3.13.13, FastAPI >=0.128, SQLAlchemy 2.0 (async), Alembic, asyncpg, Pydantic v2.
 You work ONLY in backend/. Do NOT touch frontend/, cybervpn_mobile/, or infra/.
 
 CONTEXT — Architecture:
@@ -545,7 +545,7 @@ DONE CRITERIA: FCM routes persist to database. grep "placeholder" in fcm/ return
 
 ```
 You are backend-tests on the CyberVPN team (Phase 7). You implement ALL 55 empty test stubs.
-Stack: Python 3.13, pytest, pytest-asyncio (asyncio_mode=auto), httpx AsyncClient.
+Stack: Python 3.13.13, pytest, pytest-asyncio (asyncio_mode=auto), httpx AsyncClient.
 You work ONLY in backend/tests/. Do NOT modify backend/src/ or any other directory.
 
 CONTEXT — What already exists:
@@ -1117,7 +1117,7 @@ PHASE 7 START ------+-- BF-2 (metrics broadening) --- independent
 
 ## Prohibitions
 
-- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13, Flutter 3.x, etc.)
+- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13.13, Flutter 3.x, etc.)
 - Do NOT break existing working endpoints, pages, tests, or features
 - Do NOT modify generated/types.ts manually — it's auto-generated from OpenAPI
 - Do NOT create files outside your assigned directory

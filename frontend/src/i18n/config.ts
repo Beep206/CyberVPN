@@ -37,6 +37,7 @@ export const requiredFallbackLocales = [
 ] as const;
 
 export const additionalLocales = [
+  'zh-Hant',
   'he-IL',
   'de-DE',
   'pt-PT',

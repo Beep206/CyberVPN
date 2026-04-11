@@ -1,0 +1,3550 @@
+{
+  "A11y": {
+    "closeModal": "Закрыть модальное окно",
+    "mainContent": "Основное содержимое",
+    "skipToMainContent": "Перейти к основному содержимому"
+  },
+  "AdminSecurity": {
+    "antiPhishing": {
+      "currentCode": "Настроенный код",
+      "currentDescription": "Этот код отображается в письмах платформы и помогает распознавать подлинные сообщения.",
+      "currentTitle": "Текущий код",
+      "deleteConfirm": "Удалить текущий антифишинговый код?",
+      "deleteDescription": "Удалите текущую антифишинговую фразу, если нужен полный сброс.",
+      "deleteSuccess": "Антифишинговый код удалён.",
+      "deleteTitle": "Удалить код",
+      "description": "Управление пользовательским кодом, который показывается в исходящих письмах и помогает отличить легитимную почту платформы.",
+      "editorDescription": "Задайте или ротируйте код, используемый в исходящих почтовых шаблонах.",
+      "editorTitle": "Обновить код",
+      "empty": "Антифишинговый код ещё не настроен.",
+      "explainer": "Используйте короткую внутреннюю фразу, которую команда узнает мгновенно, а злоумышленник не сможет угадать.",
+      "eyebrow": "ПОЧТОВЫЙ КОД ДОВЕРИЯ",
+      "fieldLabel": "Антифишинговый код",
+      "metaTitle": "Антифишинг - Ozoxy Admin",
+      "metrics": {
+        "delivery": "Доставка",
+        "deliveryHint": "покрытие доверия в письмах",
+        "length": "Длина",
+        "lengthHint": "длина настроенного кода",
+        "preview": "Превью",
+        "previewHint": "замаскированный вид кода",
+        "status": "Статус",
+        "statusHint": "состояние проверки почты"
+      },
+      "placeholder": "OZOXY-OPS",
+      "saveSuccess": "Антифишинговый код сохранён.",
+      "title": "Контроль антифишинга"
+    },
+    "common": {
+      "actionFailed": "Действие не выполнено. Повторите попытку.",
+      "actions": "Действия",
+      "active": "Активен",
+      "cancel": "Отмена",
+      "createdAt": "Создан",
+      "current": "Текущая",
+      "currentIp": "Текущий IP",
+      "currentPassword": "Текущий пароль",
+      "delete": "Удалить",
+      "disabled": "Отключено",
+      "email": "Email",
+      "enabled": "Включено",
+      "idle": "Ожидание",
+      "invalid": "Неверно",
+      "ipAddress": "IP-адрес",
+      "lastUsed": "Последняя активность",
+      "loading": "Загрузка",
+      "logoutAll": "Завершить все",
+      "logoutDevice": "Завершить сессию",
+      "newPassword": "Новый пароль",
+      "newPasswordConfirm": "Подтверждение пароля",
+      "password": "Пароль",
+      "pending": "Ожидает",
+      "protected": "Защищено",
+      "ready": "Готово",
+      "reauthPassword": "Пароль для повторной проверки",
+      "refresh": "Обновить",
+      "role": "Роль",
+      "save": "Сохранить",
+      "sessions": "Сессии",
+      "totpCode": "TOTP-код",
+      "unverified": "Не подтверждено",
+      "valid": "Валидно",
+      "validation": {
+        "antiPhishingRequired": "Введите антифишинговый код перед сохранением.",
+        "antiPhishingTooLong": "Антифишинговый код должен быть не длиннее 50 символов.",
+        "codeInvalid": "Введите корректный 6-значный код.",
+        "newPasswordRequired": "Введите новый пароль.",
+        "passwordMismatch": "Подтверждение пароля не совпадает.",
+        "passwordRequired": "Введите пароль для продолжения."
+      },
+      "verified": "Подтверждено",
+      "verify": "Проверить"
+    },
+    "layout": {
+      "subnavLabel": "Навигация безопасности"
+    },
+    "nav": {
+      "antiPhishing": "Антифишинг",
+      "overview": "Обзор",
+      "posture": "Профиль защиты",
+      "sessions": "Сессии",
+      "twoFactor": "2FA"
+    },
+    "overview": {
+      "description": "Управление активными сессиями, 2FA, антифишинговым кодом и базовым хардненингом аккаунта из одной операторской консоли.",
+      "eyebrow": "КОНТУР ДОВЕРИЯ",
+      "guidance": {
+        "moderate": "Профиль доверия приемлемый, но хотя бы один слой защиты ещё отсутствует или контур слишком широкий.",
+        "strong": "Профиль доверия сильный. Держите минимальное число сессий и ротируйте секреты только по плану или по инциденту.",
+        "weak": "Профиль доверия слабый. Сначала включите 2FA, настройте антифишинг и сократите лишние сессии."
+      },
+      "guidanceTitle": "Рекомендация оператору",
+      "identity": {
+        "accountState": "Состояние аккаунта",
+        "createdAt": "Аккаунт создан"
+      },
+      "identityDescription": "Базовые сведения о текущем администраторе.",
+      "identityTitle": "Снимок учётной записи",
+      "metaTitle": "Безопасность - Ozoxy Admin",
+      "metrics": {
+        "antiPhishing": "Антифишинг",
+        "antiPhishingHint": "маркер доверия для исходящих писем",
+        "moderateHint": "средний профиль доверия",
+        "score": "Оценка",
+        "sessions": "Сессии",
+        "sessionsHint": "активный набор устройств",
+        "strongHint": "сильный профиль доверия",
+        "twoFactor": "2FA",
+        "twoFactorHint": "усиление аутентификации",
+        "weakHint": "слабый профиль доверия"
+      },
+      "routes": {
+        "antiPhishing": "Управление кодом, который показывается в исходящих письмах.",
+        "posture": "Оценка сигналов доверия и смена пароля аккаунта.",
+        "sessions": "Просмотр всех активных сессий и отзыв устаревших или подозрительных устройств.",
+        "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией."
+      },
+      "routesDescription": "Переходите сразу в нужный контур защиты, не покидая admin shell.",
+      "routesTitle": "Маршруты безопасности",
+      "sessionsDescription": "Быстрый обзор текущего device footprint перед переходом в консоль сессий.",
+      "sessionStats": {
+        "currentIp": "Текущий IP",
+        "lastLogin": "Последний вход",
+        "signIns": "Входы",
+        "total": "Всего сессий"
+      },
+      "sessionsTitle": "Снимок сессий",
+      "signals": {
+        "account": "Состояние аккаунта",
+        "accountHint": "Активный аккаунт может авторизоваться и штатно работать.",
+        "antiPhishing": "Антифишинг",
+        "antiPhishingHint": "Проверочная фраза в операторских письмах.",
+        "email": "Подтверждение email",
+        "emailHint": "Подтверждённый email снижает риск захвата аккаунта.",
+        "twoFactor": "2FA",
+        "twoFactorHint": "Требование TOTP для привилегированного входа."
+      },
+      "signalsDescription": "Сигналы в реальном времени на основе состояния аккаунта и включённых security-примитивов.",
+      "signalsTitle": "Сигналы доверия",
+      "title": "Контроль безопасности"
+    },
+    "posture": {
+      "accountTitle": "Снимок аккаунта",
+      "confirmPasswordPlaceholder": "Подтвердите новый пароль",
+      "currentPasswordPlaceholder": "Введите текущий пароль",
+      "description": "Оценивайте сигналы доверия для текущего admin-аккаунта и меняйте пароль, когда профиль защиты требует усиления.",
+      "eyebrow": "ХАРДНЕНИНГ АККАУНТА",
+      "guidance": {
+        "moderate": "Аккаунт в рабочем состоянии, но ему всё ещё не хватает хотя бы одного слоя доверия или у него слишком много активных сессий.",
+        "moderateLabel": "Средний",
+        "primary": "Основная оценка",
+        "secondary": "Для привилегированных аккаунтов используйте уникальные пароли, активную 2FA и минимально необходимый набор сессий.",
+        "strong": "Аккаунт хорошо защищён. Поддерживайте низкое число сессий и ротируйте учётные данные по плану или после инцидента.",
+        "strongLabel": "Сильный",
+        "weak": "Аккаунт нужно срочно усилить. Включите 2FA, добавьте антифишинг и смените пароль после очистки сессий.",
+        "weakLabel": "Слабый"
+      },
+      "guidanceTitle": "Рекомендации",
+      "metaTitle": "Профиль защиты - Ozoxy Admin",
+      "metrics": {
+        "lastLogin": "Последний вход",
+        "lastLoginHint": "последняя аутентификация",
+        "moderateHint": "средний профиль защиты",
+        "score": "Оценка",
+        "sessions": "Сессии",
+        "sessionsHint": "текущий набор устройств",
+        "signIns": "Входы",
+        "signInsHint": "успешные входы за всё время",
+        "strongHint": "сильный профиль защиты",
+        "weakHint": "слабый профиль защиты"
+      },
+      "newPasswordPlaceholder": "Введите новый пароль",
+      "passwordAction": "Сменить пароль",
+      "passwordChangeSuccess": "Пароль успешно изменён.",
+      "passwordDescription": "Используйте эту форму, чтобы сменить текущий admin-пароль после проверки.",
+      "passwordTitle": "Ротация пароля",
+      "signals": {
+        "antiPhishing": "Антифишинг",
+        "antiPhishingHint": "Проверочная фраза для доверия к исходящим письмам.",
+        "email": "Подтверждение email",
+        "emailHint": "Подтверждённый email повышает надёжность recovery-процедур.",
+        "sessions": "Сессии",
+        "sessionsHint": "Чем меньше лишних устройств, тем ниже поверхность захвата.",
+        "twoFactor": "2FA",
+        "twoFactorHint": "Требование TOTP при привилегированном входе."
+      },
+      "signalsDescription": "Покрытие защиты, собранное по текущей авторизованной admin-сессии.",
+      "signalsTitle": "Сигналы доверия",
+      "title": "Профиль безопасности"
+    },
+    "sessions": {
+      "currentDescription": "Это устройство сейчас управляет админской консолью.",
+      "currentDevice": "Текущее устройство",
+      "currentTitle": "Текущая сессия",
+      "description": "Проверяйте каждую активную admin-сессию, отзывайте лишние устройства и выполняйте полный hard stop при необходимости.",
+      "empty": "Активные сессии не найдены.",
+      "eyebrow": "КОНТРОЛЬ СЕССИЙ",
+      "hardStopDescription": "Немедленно завершает все сессии, включая текущую с этой админской консоли.",
+      "hardStopTitle": "Жёсткая остановка",
+      "logoutAllConfirm": "Завершить все сессии и выйти из этой админской консоли?",
+      "logoutAllSuccess": "Завершено сессий: {count}. Выполняется редирект на вход.",
+      "logoutAllTitle": "Завершить все сессии",
+      "metaTitle": "Сессии - Ozoxy Admin",
+      "metrics": {
+        "current": "Текущий IP",
+        "currentHint": "активная точка входа оператора",
+        "lastSeen": "Последняя активность",
+        "lastSeenHint": "время последнего использования",
+        "remote": "Удалённые",
+        "remoteHint": "не это устройство",
+        "total": "Всего",
+        "totalHint": "учтённые сессии"
+      },
+      "revokeConfirm": "Завершить эту сессию устройства для admin-аккаунта?",
+      "revokeSuccess": "Сессия устройства завершена.",
+      "revokeTitle": "Завершить сессию устройства",
+      "title": "Консоль сессий"
+    },
+    "twoFactor": {
+      "beginSetupAction": "Сгенерировать секрет",
+      "copied": "Скопировано",
+      "copyFailure": "Не удалось скопировать секрет.",
+      "copySecret": "Копировать секрет",
+      "description": "Настройка, проверка и отключение TOTP-based 2FA для текущего admin-аккаунта.",
+      "disableAction": "Отключить 2FA",
+      "disableDescription": "Для отключения 2FA нужны и пароль аккаунта, и актуальный TOTP-код.",
+      "disablePasswordPlaceholder": "Введите пароль ещё раз",
+      "disableSuccess": "2FA отключена. Recovery codes были перевыпущены.",
+      "disableTitle": "Отключить 2FA",
+      "enableAction": "Включить 2FA",
+      "enableSuccess": "2FA включена для этого admin-аккаунта.",
+      "eyebrow": "TOTP-ХАРДНЕНИНГ",
+      "metaTitle": "2FA - Ozoxy Admin",
+      "metrics": {
+        "recoveryCodes": "Recovery codes",
+        "recoveryCodesHint": "коды, показанные в текущей сессии",
+        "setup": "Настройка",
+        "setupHint": "состояние ожидания провижининга",
+        "status": "Статус",
+        "statusHint": "текущее состояние 2FA",
+        "validation": "Проверка",
+        "validationHint": "результат последней проверки кода"
+      },
+      "notesDescription": "Для привилегированных аккаунтов 2FA должна быть включена всегда. Отключайте её только в контролируемом recovery-сценарии.",
+      "notesTitle": "Заметка оператору",
+      "provisioningDescription": "Отсканируйте QR-код в authenticator-приложении и подтвердите настройку актуальным TOTP-кодом.",
+      "provisioningTitle": "Провижининг",
+      "qrAlt": "QR-код двухфакторной защиты",
+      "qrUriLabel": "QR URI",
+      "reauthPlaceholder": "Введите текущий пароль",
+      "recoveryDescription": "Сохраните эти коды в безопасном месте. Они показываются здесь один раз после отключения.",
+      "recoveryTitle": "Recovery codes",
+      "secretLabel": "Общий секрет",
+      "setupDescription": "Сначала повторно подтвердите пароль, затем сгенерируйте новый TOTP-секрет.",
+      "setupReady": "Секрет для 2FA готов к настройке.",
+      "setupTitle": "Начать настройку",
+      "stateTitle": "Текущее состояние",
+      "title": "Контроль двухфакторной защиты",
+      "validateDescription": "Проверьте, что authenticator сейчас генерирует корректный код.",
+      "validateFailure": "TOTP-код некорректный.",
+      "validateSuccess": "TOTP-код корректный.",
+      "validateTitle": "Проверка текущего кода"
+    }
+  },
+  "Analytics": {},
+  "Api": {
+    "description": "Программный доступ к глобальной инфраструктуре CyberVPN. Автоматизируйте маршрутизацию серверов, управление пользователями и политики безопасности.",
+    "endpoints": {
+      "auth": {
+        "category": "Аутентификация",
+        "items": {
+          "generateToken": {
+            "description": "Обменивает client ID и secret на короткоживущий токен Bearer. Необходим для всех последующих вызовов API.",
+            "params": [
+              {
+                "desc": "Ваш API Client ID.",
+                "name": "client_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "Ваш API Client Secret.",
+                "name": "client_secret",
+                "req": true,
+                "type": "string"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/auth/token \\\n  -d \"client_id=your_id\" \\\n  -d \"client_secret=your_secret\"",
+            "response": "{\n  \"access_token\": \"eyJhbGci...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}",
+            "title": "Генерация API Токена"
+          }
+        }
+      },
+      "servers": {
+        "category": "Инфраструктура",
+        "items": {
+          "connect": {
+            "description": "Запрашивает оптимизированный маршрут и эфемерные ключи для конкретного целевого узла.",
+            "params": [
+              {
+                "desc": "ID целевого сервера.",
+                "name": "node_id",
+                "req": true,
+                "type": "string"
+              },
+              {
+                "desc": "WireGuard, OpenVPN, или Stealth.",
+                "name": "protocol",
+                "req": true,
+                "type": "enum"
+              }
+            ],
+            "request": "curl -X POST https://api.cybervpn.com/v1/servers/connect \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"node_id\": \"eu-frankfurt-01\", \"protocol\": \"WireGuard\"}'",
+            "response": "{\n  \"connection_ip\": \"198.51.100.14\",\n  \"port\": 51820,\n  \"public_key\": \"base64_pub_key...\"\n}",
+            "title": "Инициация Соединения"
+          },
+          "listServers": {
+            "description": "Возвращает статус в реальном времени, загрузку и геолокацию всех VPN инстансов онлайн.",
+            "params": [
+              {
+                "desc": "Фильтр по региону (например, 'europe').",
+                "name": "region",
+                "req": false,
+                "type": "string"
+              },
+              {
+                "desc": "Максимум результатов.",
+                "name": "limit",
+                "req": false,
+                "type": "int"
+              }
+            ],
+            "request": "curl -X GET https://api.cybervpn.com/v1/servers?region=europe \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"",
+            "response": "{\n  \"nodes\": [\n    {\n      \"id\": \"eu-frankfurt-01\",\n      \"load\": 42,\n      \"status\": \"online\"\n    }\n  ]\n}",
+            "title": "Список Активных Узлов"
+          }
+        }
+      }
+    },
+    "labels": {
+      "body": "ТЕЛО (BODY)",
+      "copied": "СКОПИРОВАНО",
+      "endpoint": "ЭНДПОИНТ",
+      "headers": "ЗАГОЛОВКИ",
+      "method": "МЕТОД",
+      "parameters": "ПАРАМЕТРЫ",
+      "request": "ЗАПРОС (cURL)",
+      "response": "ОТВЕТ (JSON)"
+    },
+    "title": "API Документация"
+  },
+  "Auth": {
+    "errors": {
+      "accountDisabled": "Ваш аккаунт отключён",
+      "accountExists": "Аккаунт с таким email уже существует",
+      "accountNotFound": "Аккаунт с таким email не найден",
+      "emailInvalid": "Введите корректный email адрес",
+      "emailRequired": "Email обязателен",
+      "invalidCredentials": "Неверный email или пароль",
+      "networkError": "Ошибка сети. Проверьте подключение",
+      "passwordMismatch": "Пароли не совпадают",
+      "passwordRequired": "Пароль обязателен",
+      "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+      "rateLimited": "Слишком много попыток. Повторите через {seconds} сек.",
+      "rateLimitedMinutes": "Слишком много попыток. Повторите через {minutes} мин.",
+      "serverError": "Ошибка сервера. Попробуйте позже",
+      "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова",
+      "unknownError": "Произошла неизвестная ошибка"
+    },
+    "forgotPassword": {
+      "backToLogin": "Назад ко входу",
+      "continueToReset": "Ввести код сброса",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "user@cybervpn.io",
+      "sendAgain": "Отправить повторно",
+      "submitButton": "Отправить код сброса",
+      "submitting": "Отправка...",
+      "subtitle": "Восстановите доступ к защищённой панели",
+      "successExpiry": "Код действует 15 минут",
+      "successMessage": "Если аккаунт с таким email существует, мы отправили код сброса на",
+      "successTitle": "Проверьте почту",
+      "title": "Забыли пароль"
+    },
+    "login": {
+      "divider": "ИЛИ",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "Введите email",
+      "forgotPassword": "Забыли пароль?",
+      "magicLinkAlt": "Войти по магической ссылке",
+      "noAccount": "Нет аккаунта?",
+      "oauthErrors": {
+        "authFailed": "Провайдер принял запрос, но проверка личности не прошла.",
+        "callbackFailed": "OAuth-вход завершился ошибкой. Попробуйте ещё раз.",
+        "collision": "Этот провайдер нельзя автоматически привязать к существующему аккаунту.",
+        "deprecatedCallback": "Этот callback URL устарел. Начните вход заново со страницы логина.",
+        "invalidProvider": "Этот провайдер входа сейчас недоступен.",
+        "invalidTransaction": "Сессия входа истекла или была открыта в другой вкладке. Начните заново.",
+        "linkingRequired": "Сначала войдите в существующий аккаунт, затем привяжите этого провайдера вручную.",
+        "missingParams": "Отсутствуют параметры OAuth callback. Запустите вход заново.",
+        "notConfigured": "OAuth для этого окружения ещё не настроен.",
+        "providerDenied": "Вход был отменён или отклонён на стороне провайдера.",
+        "startFailed": "Не удалось начать процесс входа. Попробуйте ещё раз.",
+        "stateInvalid": "Сессия входа недействительна или истекла. Начните заново.",
+        "upstreamUnavailable": "Провайдер входа временно недоступен. Попробуйте позже."
+      },
+      "passwordLabel": "Пароль",
+      "passwordPlaceholder": "Введите пароль",
+      "rememberMe": "Запомнить меня",
+      "signUpLink": "Зарегистрироваться",
+      "submitButton": "Войти",
+      "submitting": "Вход...",
+      "subtitle": "Доступ к защищённому соединению",
+      "title": "Вход",
+      "twoFactorCodeLabel": "Код аутентификатора",
+      "twoFactorCodePlaceholder": "000000",
+      "twoFactorInfo": "Введите 6-значный код из приложения-аутентификатора, чтобы завершить вход.",
+      "twoFactorSubmitButton": "Подтвердить код",
+      "twoFactorSubmitting": "Проверка кода..."
+    },
+    "logout": {
+      "button": "Выйти",
+      "cancelButton": "Отмена",
+      "confirmButton": "Выйти",
+      "confirmMessage": "Вы уверены, что хотите выйти?",
+      "confirmTitle": "Выход"
+    },
+    "magicLink": {
+      "backToLogin": "Назад к входу",
+      "checkInbox": "Проверьте почту",
+      "codeLabel": "6-значный код",
+      "codePlaceholder": "000000",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "user@cybervpn.io",
+      "expiresIn": "Ссылка или код действительны 1 час",
+      "orEnterCode": "Или введите код из письма",
+      "sendAgain": "Отправить повторно",
+      "sentTo": "Мы отправили магическую ссылку на",
+      "submitButton": "Отправить магическую ссылку",
+      "submitting": "Отправка...",
+      "subtitle": "Войти без пароля",
+      "title": "Магическая ссылка",
+      "verify": {
+        "errorIcon": "Иконка ошибки проверки",
+        "failed": "Ошибка проверки",
+        "invalidOrExpired": "Недействительная или просроченная магическая ссылка. Запросите новую.",
+        "missingToken": "Отсутствует токен магической ссылки. Запросите новую ссылку.",
+        "redirecting": "Перенаправление в панель управления...",
+        "requestNewLink": "Запросить новую ссылку",
+        "successIcon": "Иконка успешной проверки",
+        "validating": "Проверяем вашу магическую ссылку",
+        "verified": "Подтверждено!",
+        "verifyIcon": "Иконка проверки магической ссылки",
+        "verifying": "Проверка..."
+      },
+      "verifyCode": "Подтвердить код",
+      "verifyingCode": "Проверка..."
+    },
+    "meta": {
+      "description": "Защищённый портал администратора для управления сетью VPN и операционными процессами.",
+      "title": "Вход в админку - Ozoxy"
+    },
+    "oauth": {
+      "accountCreated": "Аккаунт создан через {provider}",
+      "alreadyLinked": "Этот аккаунт {provider} уже привязан к другому пользователю",
+      "continueWithApple": "Продолжить с Apple",
+      "continueWithDiscord": "Продолжить с Discord",
+      "continueWithGithub": "Продолжить с GitHub",
+      "continueWithGoogle": "Продолжить с Google",
+      "continueWithMicrosoft": "Продолжить с Microsoft",
+      "continueWithTelegram": "Продолжить с Telegram",
+      "continueWithX": "Продолжить с X",
+      "error": "Ошибка аутентификации OAuth",
+      "noEmail": "Email не предоставлен от {provider}",
+      "processing": "Обработка OAuth..."
+    },
+    "oauthCallback": {
+      "authenticating": "Аутентификация...",
+      "defaultError": "Ошибка аутентификации. Попробуйте снова.",
+      "errorIcon": "Иконка ошибки аутентификации",
+      "errorTitle": "Ошибка аутентификации",
+      "missingParams": "Отсутствуют параметры OAuth. Попробуйте войти снова.",
+      "securityIcon": "Иконка проверки безопасности",
+      "tryAgain": "Попробовать снова",
+      "verifyingIdentity": "Проверка вашей личности"
+    },
+    "passwordStrength": {
+      "fair": "Средний",
+      "good": "Хороший",
+      "requirements": {
+        "length": "Минимум 8 символов",
+        "lowercase": "Одна строчная буква",
+        "number": "Одна цифра",
+        "special": "Один спецсимвол",
+        "uppercase": "Одна заглавная буква"
+      },
+      "strong": "Сильный",
+      "weak": "Слабый"
+    },
+    "profile": {
+      "cantUnlinkOnly": "Невозможно отвязать — это ваш единственный способ входа",
+      "linkedAccounts": "Привязанные аккаунты",
+      "linkSuccess": "Telegram успешно привязан",
+      "linkTelegram": "Привязать Telegram",
+      "telegramLinked": "Telegram привязан: @{username}",
+      "unlinkConfirm": "Вы уверены, что хотите отвязать Telegram?",
+      "unlinkSuccess": "Telegram успешно отвязан",
+      "unlinkTelegram": "Отвязать Telegram"
+    },
+    "register": {
+      "acceptTerms": "Я принимаю",
+      "and": " и ",
+      "confirmPasswordLabel": "Подтвердите пароль",
+      "confirmPasswordPlaceholder": "Подтвердите пароль",
+      "continueWithTelegram": "Регистрация через Telegram",
+      "divider": "ИЛИ",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "Введите email",
+      "hasAccount": "Уже есть аккаунт?",
+      "passwordLabel": "Пароль",
+      "passwordMismatch": "Пароли не совпадают",
+      "passwordPlaceholder": "Создайте пароль",
+      "privacyLink": "Политику конфиденциальности",
+      "registerModeEmail": "Email",
+      "registerModeUsername": "Только имя пользователя",
+      "signInLink": "Войти",
+      "submitButton": "Создать аккаунт",
+      "submitting": "Создание аккаунта...",
+      "subtitle": "Присоединяйтесь к защищённой сети",
+      "telegramAutoRegister": "Ваш аккаунт Telegram будет использован для быстрой регистрации",
+      "termsAgreement": "Создавая аккаунт, вы соглашаетесь с Условиями использования и Политикой конфиденциальности",
+      "termsLink": "Условия",
+      "title": "Создать аккаунт",
+      "usernameLabel": "Имя пользователя",
+      "usernamePlaceholder": "cyberpunk_hacker"
+    },
+    "resetPassword": {
+      "backToForgot": "Запросить новый код",
+      "backToLogin": "Назад ко входу",
+      "codeExpired": "Срок действия кода истёк. Запросите новый.",
+      "codeLabel": "Код сброса",
+      "codePlaceholder": "Введите 6-значный код",
+      "confirmPasswordLabel": "Подтвердите пароль",
+      "confirmPasswordPlaceholder": "Подтвердите новый пароль",
+      "emailLabel": "Email адрес",
+      "emailPlaceholder": "user@cybervpn.io",
+      "goToLogin": "Войти",
+      "invalidCode": "Недействительный или просроченный код сброса",
+      "newPasswordLabel": "Новый пароль",
+      "newPasswordPlaceholder": "Введите новый пароль",
+      "passwordMismatch": "Пароли не совпадают",
+      "submitButton": "Сбросить пароль",
+      "submitting": "Сброс...",
+      "subtitle": "Введите код сброса и новый пароль",
+      "successMessage": "Ваш пароль был успешно обновлён",
+      "successTitle": "Пароль изменён",
+      "title": "Сброс пароля"
+    },
+    "telegram": {
+      "botLinkAuth": "Ожидаем подтверждение входа в Telegram...",
+      "botLinkExpired": "Запрос на вход через Telegram истек. Запустите вход заново на сайте.",
+      "botLinkInvalid": "Не удалось восстановить сессию входа через Telegram. Начните вход заново на сайте.",
+      "checkStatusButton": "Я подтвердил вход в Telegram",
+      "connecting": "Подтвердите вход в нашем боте и вернитесь сюда - мы завершим авторизацию автоматически.",
+      "copiedStartCommand": "Скопировано",
+      "copyStartCommand": "Копировать команду",
+      "errors": {
+        "alreadyLinked": "Этот Telegram аккаунт уже привязан к другому пользователю",
+        "authFailed": "Ошибка авторизации Telegram",
+        "dataInvalid": "Получены некорректные данные Telegram",
+        "expired": "Авторизация Telegram истекла. Попробуйте снова",
+        "hashMismatch": "Ошибка проверки данных Telegram",
+        "notLinked": "Этот Telegram аккаунт не привязан к пользователю",
+        "widgetFailed": "Не удалось загрузить виджет Telegram"
+      },
+      "loginButton": "Открыть Telegram",
+      "manualFallback": "Если Telegram открылся как обычный чат, отправьте эту команду вручную:",
+      "miniAppAutoAuth": "Вход через Telegram..."
+    }
+  },
+  "Commerce": {
+    "common": {
+      "actionFailed": "Операция не выполнена. Попробуйте ещё раз.",
+      "actions": "Действия",
+      "active": "Активен",
+      "adminNote": "Заметка администратора",
+      "amount": "Сумма",
+      "apply": "Применить",
+      "cancel": "Отмена",
+      "configData": "Config data",
+      "createdAt": "Создано",
+      "currency": "Валюта",
+      "dataLimitGb": "Лимит трафика, ГБ",
+      "delete": "Удалить",
+      "description": "Описание",
+      "durationDays": "Длительность, дней",
+      "edit": "Изменить",
+      "empty": "Для этого вида записи не найдены.",
+      "emptyShort": "Пусто",
+      "features": "Возможности",
+      "flow": "Flow",
+      "hostUuid": "Host UUID",
+      "id": "ID",
+      "inactive": "Неактивен",
+      "inboundTag": "Inbound tag",
+      "isActive": "Тариф активен",
+      "maxDevices": "Макс. устройств",
+      "method": "Метод",
+      "name": "Название",
+      "optional": "Необязательно",
+      "price": "Цена",
+      "provider": "Провайдер",
+      "reset": "Сбросить",
+      "save": "Сохранить",
+      "saving": "Сохранение...",
+      "status": "Статус",
+      "templateType": "Тип шаблона",
+      "userUuid": "UUID пользователя",
+      "validation": {
+        "amountInvalid": "Введите сумму больше нуля.",
+        "configJsonInvalid": "Config data должен быть валидным JSON.",
+        "currencyRequired": "Укажите валюту.",
+        "dataLimitInvalid": "Лимит трафика должен быть не меньше нуля.",
+        "durationInvalid": "Длительность должна быть больше нуля.",
+        "maxDevicesInvalid": "Количество устройств должно быть больше нуля.",
+        "nameRequired": "Укажите название.",
+        "priceInvalid": "Цена должна быть не меньше нуля.",
+        "templateTypeRequired": "Укажите тип шаблона."
+      }
+    },
+    "layout": {
+      "subnavLabel": "Навигация Commerce"
+    },
+    "nav": {
+      "overview": "Обзор",
+      "payments": "Платежи",
+      "plans": "Тарифы",
+      "subscriptionTemplates": "Шаблоны",
+      "wallets": "Кошельки",
+      "withdrawals": "Выводы"
+    },
+    "overview": {
+      "description": "Операционный контур для каталога тарифов, subscription templates, истории платежей, ручных операций по кошелькам и модерации выводов.",
+      "eyebrow": "ОПЕРАЦИИ С ДОХОДОМ",
+      "metaTitle": "Commerce - Ozoxy Admin",
+      "metrics": {
+        "activePlansHint": "активно сейчас",
+        "payments": "Платежи",
+        "paymentsHint": "записей в ленте",
+        "pendingItemsHint": "элементов в очереди",
+        "plans": "Тарифы",
+        "templates": "Шаблоны",
+        "templatesHint": "шаблонов загружено",
+        "withdrawals": "Выводы в ожидании"
+      },
+      "modulesDescription": "Ниже собраны основные маршруты Commerce, чтобы быстро перейти от обзора к нужной рабочей очереди.",
+      "modulesTitle": "Операционные маршруты",
+      "noFlow": "Без flow",
+      "paymentsDescription": "Свежие платежи по всем провайдерам с текущим состоянием расчётов.",
+      "paymentsTitle": "Последние платежи",
+      "routes": {
+        "payments": "Разбор платежей с фильтрами по провайдеру и статусу.",
+        "plans": "Создание, настройка и вывод из эксплуатации коммерческих тарифов без выхода из админки.",
+        "subscriptionTemplates": "Поддержка шаблонов Remnawave и их config payload.",
+        "wallets": "Поиск кошелька по UUID пользователя и ручные top-up операции при необходимости.",
+        "withdrawals": "Подтверждение или отклонение заявок на вывод с заметкой оператора."
+      },
+      "templatesDescription": "Последние subscription templates, доступные операторам.",
+      "templatesTitle": "Инвентарь шаблонов",
+      "title": "Управление Commerce",
+      "withdrawalsDescription": "Заявки на вывод, ожидающие решения сотрудника.",
+      "withdrawalsTitle": "Очередь выводов"
+    },
+    "payments": {
+      "allProviders": "Все провайдеры",
+      "allStatuses": "Все статусы",
+      "description": "Просмотр платежей, фильтрация по UUID пользователя и сегментация списка по провайдеру или статусу.",
+      "empty": "По текущим фильтрам платежи не найдены.",
+      "eyebrow": "ИСТОРИЯ ПЛАТЕЖЕЙ",
+      "filtersDescription": "Серверная фильтрация доступна по UUID пользователя. Провайдер, статус и поиск по ID применяются в клиентской консоли.",
+      "filtersTitle": "Стек фильтров",
+      "idSearchPlaceholder": "Поиск по ID платежа",
+      "metaTitle": "Платежи - Ozoxy Admin",
+      "metrics": {
+        "completed": "Завершены",
+        "completedHint": "успешно проведены",
+        "filtered": "После фильтров",
+        "filteredHint": "записей после локальных фильтров",
+        "records": "Получено записей",
+        "recordsHint": "размер ответа сервера",
+        "volume": "Объём",
+        "volumeHint": "сумма отфильтрованных платежей"
+      },
+      "serverFilterHint": "Используйте lookup по UUID, когда нужна выборка по конкретному клиенту. Остальные фильтры остаются на клиенте для быстрых переключений оператора.",
+      "title": "Консоль платежей",
+      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "plans": {
+      "createAction": "Создать тариф",
+      "createTitle": "Создать тариф",
+      "deleteConfirm": "Удалить этот тариф из каталога?",
+      "deleteTitle": "Удалить тариф",
+      "description": "Поддержка цен, длительности, лимитов и коммерческой упаковки каталога тарифов.",
+      "editTitle": "Изменить тариф",
+      "empty": "Тарифы ещё не настроены.",
+      "eyebrow": "КАТАЛОГ ТАРИФОВ",
+      "form": {
+        "featuresPlaceholder": "Приоритетная маршрутизация\nРегиональный failover\nПовышенный лимит устройств",
+        "namePlaceholder": "Premium Monthly"
+      },
+      "metaTitle": "Тарифы - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные тарифы",
+        "activeHint": "доступны для checkout",
+        "averagePrice": "Средняя цена",
+        "averagePriceHint": "среднее по каталогу",
+        "maxDuration": "Макс. длительность",
+        "maxDurationHint": "самое длинное окно биллинга",
+        "total": "Всего тарифов",
+        "totalHint": "записей в каталоге"
+      },
+      "title": "Управление тарифами"
+    },
+    "subscriptionTemplates": {
+      "createAction": "Создать шаблон",
+      "createTitle": "Создать шаблон",
+      "deleteConfirm": "Удалить этот subscription template?",
+      "deleteTitle": "Удалить шаблон",
+      "description": "Управление шаблонами Remnawave, привязкой к host, flow и config payload, используемыми для выдачи конфигураций.",
+      "editTitle": "Изменить шаблон",
+      "empty": "Шаблоны подписок не найдены.",
+      "eyebrow": "ШАБЛОНЫ ДОСТАВКИ",
+      "form": {
+        "configPlaceholder": "{\n  \"security\": \"reality\"\n}",
+        "namePlaceholder": "VLESS Vision Template"
+      },
+      "metaTitle": "Шаблоны подписок - Ozoxy Admin",
+      "metrics": {
+        "hostBound": "Привязаны к host",
+        "hostBoundHint": "шаблонов с host binding",
+        "jsonConfig": "JSON config",
+        "jsonConfigHint": "шаблонов с config payload",
+        "total": "Шаблоны",
+        "totalHint": "записей шаблонов",
+        "withFlow": "С flow",
+        "withFlowHint": "шаблонов с flow control"
+      },
+      "title": "Subscription Templates"
+    },
+    "wallets": {
+      "activeLookup": "Текущий lookup",
+      "description": "Поиск кошелька по UUID пользователя, просмотр текущего состояния и зачисление средств с заметкой оператора.",
+      "descriptionPlaceholder": "Причина ручного зачисления",
+      "eyebrow": "ОПЕРАЦИИ ПО КОШЕЛЬКАМ",
+      "lookupAction": "Загрузить кошелёк",
+      "lookupDescription": "Пока customer directory не собран, операции с кошельком начинаются с явного UUID пользователя.",
+      "lookupEmpty": "Кошелёк ещё не загружен. Введите UUID пользователя.",
+      "lookupError": "Не удалось загрузить кошелёк. Проверьте UUID и попробуйте ещё раз.",
+      "lookupPlaceholder": "550e8400-e29b-41d4-a716-446655440000",
+      "lookupRequired": "Сначала загрузите кошелёк, затем выполняйте top-up.",
+      "lookupTitle": "Поиск кошелька",
+      "metaTitle": "Операции с кошельками - Ozoxy Admin",
+      "metrics": {
+        "balance": "Баланс",
+        "balanceHint": "доступные средства",
+        "currency": "Валюта",
+        "currencyHint": "валюта кошелька",
+        "frozen": "Заморожено",
+        "frozenHint": "удержано pending-операциями",
+        "lookup": "Lookup пользователя",
+        "lookupHint": "текущий целевой UUID"
+      },
+      "title": "Wallet Operations",
+      "topupAction": "Применить top-up",
+      "topupDescription": "Зачисление средств в выбранный кошелёк, когда support или billing требуется ручная корректировка.",
+      "topupSuccess": "Top-up выполнен",
+      "topupTitle": "Ручной top-up"
+    },
+    "withdrawals": {
+      "approve": "Подтвердить",
+      "approveSuccess": "Вывод подтверждён.",
+      "approveTitle": "Подтвердить вывод",
+      "description": "Проверка pending-заявок на вывод, добавление заметок оператора и безопасное подтверждение или отклонение.",
+      "empty": "Нет pending-заявок на вывод.",
+      "eyebrow": "МОДЕРАЦИЯ ВЫВОДОВ",
+      "metaTitle": "Выводы - Ozoxy Admin",
+      "metrics": {
+        "count": "Размер очереди",
+        "countHint": "заявок в ожидании",
+        "methods": "Методы",
+        "methodsHint": "количество способов вывода в очереди",
+        "oldest": "Самая старая заявка",
+        "oldestHint": "дольше всех в ожидании",
+        "volume": "Объём очереди",
+        "volumeHint": "сумма ожидающих выплат"
+      },
+      "notePlaceholder": "Необязательная заметка оператора для аудита",
+      "reject": "Отклонить",
+      "rejectSuccess": "Вывод отклонён.",
+      "rejectTitle": "Отклонить вывод",
+      "title": "Очередь выводов"
+    }
+  },
+  "Contact": {
+    "form": {
+      "department": "Выберите подсеть",
+      "department_sales": "Корпоративный отдел",
+      "department_support": "Техническая поддержка",
+      "email": "Адрес для ответа",
+      "establishing": "УСТАНОВКА TLS ТУННЕЛЯ...",
+      "message": "Текст передачи",
+      "name": "Позывной / Имя",
+      "new_uplink": "[ ИНИЦИИРОВАТЬ НОВОЕ ПОДКЛЮЧЕНИЕ ]",
+      "placeholder_email": "secure@proton.me",
+      "placeholder_message": "< НАЧАЛО ПЕРЕДАЧИ >",
+      "placeholder_name": "гость_774",
+      "scanning": "СКАНИРОВАНИЕ ЗАЩИЩЕННЫХ ЧАСТОТ...",
+      "submit": "НАЧАТЬ ПЕРЕДАЧУ",
+      "success": "Пакет доставлен. Следы стерты.",
+      "verified": "СВЯЗЬ УСТАНОВЛЕНА"
+    },
+    "subtitle": "Глобальный зашифрованный ретранслятор",
+    "title": "ЗАЩИЩЕННАЯ СВЯЗЬ"
+  },
+  "Customers": {
+    "common": {
+      "actionFailed": "Действие не выполнено. Повторите попытку.",
+      "actions": "Действия",
+      "active": "Активен",
+      "balance": "Баланс",
+      "cancel": "Отмена",
+      "category": "Категория",
+      "createdAt": "Создан",
+      "createdBy": "Создал",
+      "current": "Текущее",
+      "customerId": "ID клиента",
+      "deactivate": "Деактивировать",
+      "description": "Описание",
+      "devices": "Устройства",
+      "email": "Email",
+      "expiresAt": "Истекает",
+      "frozen": "Заморожено",
+      "inactive": "Неактивен",
+      "lastLogin": "Последний вход",
+      "limit": "Лимит",
+      "none": "Нет",
+      "note": "Заметка",
+      "partner": "Партнёр",
+      "payments": "Платежи",
+      "reactivate": "Активировать снова",
+      "reason": "Причина",
+      "referralCode": "Реферальный код",
+      "refresh": "Обновить",
+      "remnawaveUuid": "UUID Remnawave",
+      "revoke": "Отозвать",
+      "save": "Сохранить",
+      "search": "Поиск",
+      "status": "Статус",
+      "subscriptionUrl": "Subscription URL",
+      "telegram": "Telegram",
+      "timeline": "Таймлайн",
+      "topup": "Пополнить",
+      "traffic": "Трафик",
+      "used": "Использовано",
+      "username": "Имя пользователя",
+      "wallet": "Кошелёк"
+    },
+    "detail": {
+      "activateDescription": "Снова разрешить этому клиенту авторизацию и нормальное использование продукта.",
+      "activateTitle": "Активировать клиента",
+      "backToDirectory": "Назад в каталог",
+      "categories": {
+        "billing": "Биллинг",
+        "general": "Общее",
+        "security": "Безопасность",
+        "support": "Поддержка"
+      },
+      "configDescription": "Основной конфиг доставки, разрешённый для связанной подписки.",
+      "configTitle": "Основной конфиг",
+      "deactivateDescription": "Запретить этому клиенту авторизацию до повторной активации сотрудником.",
+      "deactivateTitle": "Деактивировать клиента",
+      "description": "Управляйте идентичностью, жизненным циклом, кошельком, платежами, referral- и partner-контекстом из одной карточки клиента.",
+      "devicesDescription": "Мобильные устройства, зарегистрированные для этого клиентского аккаунта.",
+      "devicesEmpty": "Для этого клиента устройства не найдены.",
+      "deviceSessionsClearedNo": "Нет, текущая регистрация устройств была сохранена.",
+      "deviceSessionsClearedYes": "Да, регистрация устройств была очищена.",
+      "devicesTitle": "Устройства",
+      "dialogs": {
+        "reasonLabel": "Причина",
+        "reasonPlaceholder": "Необязательный контекст оператора для audit trail",
+        "reasonValidation": "Укажите причину перед продолжением."
+      },
+      "eyebrow": "КАРТОЧКА КЛИЕНТА",
+      "generatedPasswordHint": "Этот временный пароль показывается только один раз после успешного сброса. Передавайте его только через одобренный защищённый support-канал.",
+      "generateTemporaryPassword": "Выпустить временный пароль",
+      "identityDescription": "Основные поля идентичности, доставки и связок, сохранённые для этого mobile user.",
+      "identityTitle": "Идентичность",
+      "invalidEmail": "Укажите корректный email перед сохранением профиля.",
+      "invalidTelegramId": "Telegram ID должен быть числом.",
+      "labels": {
+        "activeCodes": "Активные коды",
+        "amount": "Сумма",
+        "appVersion": "Версия приложения",
+        "author": "Автор",
+        "commissionCount": "Количество комиссий",
+        "createdAt": "Создано",
+        "deviceLimit": "Лимит устройств",
+        "deviceModel": "Модель устройства",
+        "deviceSessionsCleared": "Сессии устройств очищены",
+        "devicesRevoked": "Отозвано устройств",
+        "download": "Скачано",
+        "generatedPassword": "Сгенерированный пароль",
+        "kind": "Тип",
+        "lastActive": "Последняя активность",
+        "lastActivity": "Последняя активность",
+        "lastTrafficReset": "Последний сброс трафика",
+        "lifetimeTraffic": "Трафик за всё время",
+        "occurredAt": "Произошло",
+        "onlineAt": "Онлайн",
+        "partnerClients": "Партнёрские клиенты",
+        "partnerCodes": "Партнёрские коды",
+        "passwordMode": "Режим пароля",
+        "paymentCount": "Количество платежей",
+        "paymentId": "ID платежа",
+        "platform": "Платформа",
+        "provider": "Провайдер",
+        "referredBy": "Кем приглашён",
+        "referredUsers": "Приглашённые пользователи",
+        "shortUuid": "Короткий UUID",
+        "ssConfigLinks": "SS config links",
+        "storedSubscriptionUrl": "Сохранённый subscription URL",
+        "subscriptionRevokedAt": "Подписка отозвана",
+        "telegramId": "Telegram ID",
+        "upload": "Загружено",
+        "upstreamSubscriptionUrl": "Апстримный subscription URL",
+        "userAgent": "User agent"
+      },
+      "linksEmpty": "Дополнительные клиентские ссылки не были возвращены.",
+      "linksTitle": "Клиентские ссылки",
+      "loadError": "Не удалось загрузить карточку клиента.",
+      "metaTitle": "Карточка клиента - Ozoxy Admin",
+      "metrics": {
+        "devices": "Устройства",
+        "devicesHint": "зарегистрированных mobile-устройств",
+        "partner": "Заработано как партнёр",
+        "partnerHint": "markup и commission как партнёра",
+        "payments": "Платежи",
+        "paymentsHint": "записи, загруженные для карточки",
+        "referral": "Заработано referral",
+        "referralHint": "комиссия как referrer",
+        "wallet": "Кошелёк",
+        "walletHint": "доступный баланс клиента"
+      },
+      "notePlaceholder": "Кратко опишите, что произошло, что изменили и что должен знать следующий оператор.",
+      "noteSaved": "Заметка сохранена.",
+      "notesDescription": "Фиксируйте операционный контекст, billing-комментарии и support-след прямо в карточке клиента.",
+      "notesEmpty": "Заметок команды пока нет.",
+      "notesLoadError": "Не удалось загрузить заметки команды.",
+      "notesTitle": "Заметки команды",
+      "notFound": "Клиент не найден.",
+      "openSubscriptionUrl": "Открыть subscription URL",
+      "partnerDescription": "Показатели партнёра, коды и последние earnings по этому клиенту.",
+      "partnerEmpty": "Этот клиент пока не находится в партнёрской программе.",
+      "partnerTitle": "Partner-снимок",
+      "passwordLabel": "Новый пароль",
+      "passwordPlaceholder": "Введите новый сильный пароль",
+      "passwordRequired": "Укажите пароль вручную или выпустите временный пароль перед продолжением.",
+      "passwordRequirements": "Пароль должен быть не короче 12 символов и содержать заглавные, строчные буквы, цифры и спецсимвол.",
+      "passwordResetGeneratedSuccess": "Временный пароль выпущен. Очищено устройств: {count}.",
+      "passwordResetSuccess": "Пароль клиента обновлён. Очищено устройств: {count}.",
+      "paymentsDescription": "Свежие записи платежей, привязанные к UUID этого клиента.",
+      "paymentsEmpty": "Для этого клиента платежи не найдены.",
+      "paymentsTitle": "Последние платежи",
+      "playbooks": {
+        "addFirstNoteAction": "Добавить заметку",
+        "addFirstNoteDescription": "Зафиксируйте текущий support-контекст, чтобы следующий оператор видел, что уже проверили, изменили или эскалировали.",
+        "addFirstNoteTitle": "Пока нет заметки команды",
+        "credentialRecoveryDescription": "Смените пароль клиента и при необходимости очистите все привязанные устройства, если доступ потерян или есть риск повторного использования credentials.",
+        "credentialRecoveryTitle": "Доступен recovery-bundle для credentials",
+        "deviceHygieneDescription": "К этому клиенту привязано {count} устройств. Проверьте устаревшие устройства перед разбором новых login- или config-проблем.",
+        "deviceHygieneTitle": "След устройств повышен",
+        "missingVpnLinkDescription": "У клиента нет связанного Remnawave UUID. Проверьте identity-поля и апстрим-провижининг перед восстановлением подписки.",
+        "missingVpnLinkTitle": "VPN-идентичность не связана",
+        "openRecovery": "Открыть recovery",
+        "openSubscription": "Открыть подписку",
+        "reactivateAppDescription": "Мобильный аккаунт неактивен. Сначала восстановите доступ к продукту, если support подтвердил, что аккаунт должен снова работать.",
+        "reactivateAppTitle": "Доступ в приложение отключён",
+        "restoreVpnAction": "Восстановить VPN",
+        "restoreVpnDescription": "Связанная VPN-идентичность существует, но не активна. Включите доступ снова после подтверждения от support или billing.",
+        "restoreVpnTitle": "VPN-доступ требует восстановления",
+        "resyncSubscriptionAction": "Синхронизировать ссылку",
+        "reviewDevices": "Проверить устройства",
+        "reviewProfile": "Проверить идентичность",
+        "revokeAllDevicesAction": "Отозвать все устройства",
+        "subscriptionLinkDriftDescription": "В карточке клиента сохранён subscription URL, который уже не совпадает с текущим значением в Remnawave.",
+        "subscriptionLinkDriftTitle": "Сохранённая ссылка доставки устарела",
+        "subscriptionReviewDescription": "Снимок подписки сообщает об истечении срока или проблеме с доставкой конфига. Проверьте блок конфига и исходные subscription links.",
+        "subscriptionReviewTitle": "Подписка требует проверки"
+      },
+      "playbooksDescription": "Подсказки по следующим действиям на основе lifecycle, VPN-состояния, заметок, устройств и здоровья подписки.",
+      "playbooksEmpty": "Для этого клиента сейчас нет рекомендованных playbook-сценариев.",
+      "playbooksTitle": "Support-playbooks",
+      "profileDescription": "Исправляйте поля доставки, Telegram-связку и реферальную идентичность прямо из карточки клиента.",
+      "profileSaved": "Профиль клиента обновлён.",
+      "profileTitle": "Редактор профиля",
+      "promotePartner": "Повысить до партнёра",
+      "promotePartnerSuccess": "Клиент переведён в партнёры.",
+      "recoveryDescription": "Меняйте клиентские credentials, выпускайте временный пароль и при необходимости сразу очищайте все зарегистрированные мобильные устройства в одном recovery-сценарии.",
+      "recoveryProtocolDescription": "Используйте ручную смену пароля, когда support уже согласовал следующий credential с клиентом. Временный пароль используйте для контролируемого восстановления доступа и передавайте его только через одобренный защищённый канал.",
+      "recoveryProtocolTitle": "Recovery-протокол",
+      "recoveryReasonLabel": "Причина восстановления",
+      "recoveryReasonPlaceholder": "Кратко опишите, зачем меняются credentials или почему нужно очистить сессии",
+      "recoveryResultEmpty": "В этой сессии recovery-действия ещё не выполнялись.",
+      "recoveryTitle": "Восстановление доступа",
+      "referralDescription": "Результаты комиссий для этого клиента как referrer.",
+      "referralEmpty": "Referral-активность пока не зафиксирована.",
+      "referralTitle": "Referral-снимок",
+      "resyncSubscription": "Синхронизировать подписку",
+      "resyncSubscriptionDescription": "Обновить карточку клиента по апстримному Remnawave subscription URL, чтобы support выдавал корректную ссылку доставки.",
+      "resyncSubscriptionTitle": "Синхронизировать сохранённый subscription URL",
+      "revokeAllDevices": "Отозвать все устройства",
+      "revokeAllDevicesDescription": "Удалить все зарегистрированные устройства из аккаунта клиента. Существующим мобильным сессиям придётся заново зарегистрироваться перед продолжением работы.",
+      "revokeAllDevicesSubject": "Из аккаунта клиента будут удалены все зарегистрированные устройства: {count}.",
+      "revokeAllDevicesSuccess": "Отозвано устройств: {count}.",
+      "revokeAllDevicesTitle": "Отозвать все устройства клиента",
+      "revokeDeviceDescription": "Удалить это устройство из аккаунта клиента. Чтобы продолжить пользоваться продуктом, устройству потребуется заново пройти авторизацию.",
+      "revokeDevicesAfterReset": "Очистить все зарегистрированные устройства после смены пароля",
+      "revokeDevicesAfterResetHint": "Сейчас это удалит {count} зарегистрированных устройств и заставит клиента заново зарегистрировать устройство при следующей сессии.",
+      "revokeDeviceSuccess": "Устройство отозвано.",
+      "revokeDeviceTitle": "Отозвать устройство",
+      "saveProfile": "Сохранить профиль",
+      "saveState": "Сохранить состояние",
+      "setPassword": "Задать пароль",
+      "stateDescription": "Изменяйте lifecycle-флаги клиента прямо из admin-карточки.",
+      "stateTitle": "Состояние доступа",
+      "statusSaved": "Lifecycle клиента обновлён.",
+      "subscriptionDaysLeft": "Осталось дней: {count}",
+      "subscriptionDescription": "Текущее состояние подписки, доставка конфига, трафик и клиентские ссылки, полученные из связанной VPN-идентичности.",
+      "subscriptionEmpty": "Для этого клиента снимок подписки недоступен.",
+      "subscriptionLinkDriftWarning": "Сохранённый delivery URL отличается от апстримного subscription URL. Перед отправкой recovery-инструкций синхронизируйте карточку клиента.",
+      "subscriptionLoadError": "Не удалось загрузить снимок подписки.",
+      "subscriptionResyncNoChange": "Сохранённый subscription URL уже синхронизирован.",
+      "subscriptionResyncSuccess": "Сохранённый subscription URL синхронизирован с апстримом.",
+      "subscriptionTitle": "Снимок подписки",
+      "timelineDescription": "Единый операционный след по платежам, движениям кошелька, устройствам, заметкам, выводам и действиям админов.",
+      "timelineEmpty": "События support-таймлайна пока не найдены.",
+      "timelineLoadError": "Не удалось загрузить support-таймлайн.",
+      "timelineTitle": "Support-таймлайн",
+      "title": "Карточка клиента",
+      "topupAmountPlaceholder": "25",
+      "topupDescriptionPlaceholder": "Причина ручного зачисления",
+      "topupSuccess": "Top-up по кошельку выполнен.",
+      "vpnDescription": "Проверяйте связанный Remnawave-аккаунт и быстро переключайте VPN-доступ для recovery-операций.",
+      "vpnDisableDescription": "Немедленно отключить VPN-доступ для связанного пользователя Remnawave.",
+      "vpnDisableSuccess": "VPN-доступ отключён.",
+      "vpnDisableTitle": "Отключить VPN-доступ",
+      "vpnEnableDescription": "Восстановить VPN-доступ для связанного пользователя Remnawave.",
+      "vpnEnableSuccess": "VPN-доступ включён.",
+      "vpnEnableTitle": "Включить VPN-доступ",
+      "vpnLoadError": "Не удалось загрузить данные VPN-доступа.",
+      "vpnTitle": "VPN-доступ",
+      "vpnUnavailable": "У этого клиента пока нет связанной VPN-идентичности.",
+      "walletDescription": "Проверяйте состояние баланса и зачисляйте средства прямо из карточки клиента.",
+      "walletTitle": "Операции по кошельку",
+      "walletUnavailable": "Кошелёк для этого клиента пока недоступен."
+    },
+    "directory": {
+      "activeOnly": "Только активные",
+      "activityPlaceholder": "Любая активность",
+      "description": "Ищите мобильных пользователей, сегментируйте базу по статусу и партнёрскому состоянию и переходите в полную карточку клиента.",
+      "empty": "По текущим фильтрам клиенты не найдены.",
+      "eyebrow": "ОПЕРАЦИИ С КЛИЕНТАМИ",
+      "inactiveOnly": "Только неактивные",
+      "metaTitle": "Клиенты - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные",
+        "activeHint": "клиенты, которым сейчас разрешён вход",
+        "partners": "Партнёры",
+        "partnersHint": "клиенты, переведённые в партнёрский режим",
+        "telegram": "Telegram подключён",
+        "telegramHint": "аккаунты с привязанной Telegram-идентичностью",
+        "total": "Видимо",
+        "totalHint": "записей вернул backend"
+      },
+      "nonPartnersOnly": "Не партнёры",
+      "openCard": "Открыть карточку",
+      "partnerOnly": "Только партнёры",
+      "partnerPlaceholder": "Все клиенты",
+      "previewDescription": "Выберите строку, чтобы быстро посмотреть ключевые данные клиента перед переходом в полную карточку.",
+      "previewTitle": "Быстрый просмотр",
+      "searchPlaceholder": "Поиск по email, username, telegram, UUID, referral...",
+      "statusPlaceholder": "Все статусы",
+      "table": {
+        "customer": "Клиент",
+        "lastLogin": "Последний вход",
+        "partner": "Партнёр",
+        "status": "Статус",
+        "telegram": "Telegram"
+      },
+      "title": "Каталог клиентов"
+    }
+  },
+  "Dashboard": {
+    "auditDescription": "Последние привилегированные действия, зафиксированные backend audit log.",
+    "auditTitle": "ПОТОК АУДИТА",
+    "cards": {
+      "bandwidth": {
+        "description": "Текущий egress за выбранный период мониторинга.",
+        "title": "ИСХОДЯЩИЙ ТРАФИК"
+      },
+      "health": {
+        "componentsFailing": "компонентов с ошибкой",
+        "componentsHealthy": "компонентов в норме",
+        "degraded": "ДЕГРАДАЦИЯ",
+        "description": "Состояние базы, кеша и зависимости Remnawave.",
+        "healthy": "НОРМА",
+        "title": "ЗДОРОВЬЕ ПЛАТФОРМЫ",
+        "unhealthy": "СБОЙ",
+        "unknown": "НЕТ ДАННЫХ"
+      },
+      "servers": {
+        "description": "Узлы, которые сейчас принимают трафик.",
+        "title": "СЕРВЕРЫ ONLINE"
+      },
+      "users": {
+        "description": "Текущий активный контур клиентов на платформе.",
+        "title": "АКТИВНЫЕ ПОЛЬЗОВАТЕЛИ"
+      },
+      "withdrawals": {
+        "description": "Ручная очередь согласования, требующая действий оператора.",
+        "title": "ОЖИДАЮЩИЕ ВЫВОДЫ"
+      }
+    },
+    "connectionStatus": "ADMIN ORIGIN ПРОВЕРЕН",
+    "empty": {
+      "audit": "Свежие события аудита не найдены.",
+      "payments": "Свежие платежи не найдены.",
+      "webhooks": "События вебхуков не найдены.",
+      "withdrawals": "В очереди нет ожидающих выводов."
+    },
+    "encryptionStatus": "ДОСТУП УСИЛЕН 2FA",
+    "errorLoadingServers": "Ошибка загрузки серверов",
+    "errors": {
+      "load": "Сейчас не удалось загрузить эту панель."
+    },
+    "eyebrow": "ОПЕРАЦИОННАЯ ПОВЕРХНОСТЬ АДМИНА",
+    "labels": {
+      "inbound": "входящий",
+      "invalid": "Ошибка",
+      "items": "элементов",
+      "method": "Метод",
+      "noError": "Без ошибок",
+      "processedAt": "Обработано",
+      "provider": "Провайдер",
+      "totalUsers": "всего пользователей",
+      "unassigned": "Без назначения",
+      "unknown": "Неизвестно",
+      "valid": "Валиден"
+    },
+    "meta": {
+      "description": "Операционный центр для сотрудников Ozoxy: инфраструктура, коммерция, контроль доступа и обзор инцидентов в реальном времени.",
+      "title": "Дашборд - командный центр Ozoxy Admin"
+    },
+    "noServers": "Нет доступных серверов",
+    "opsGridLabel": "Операционные панели командного центра",
+    "paymentsDescription": "Свежие платёжные события по всей платформе.",
+    "paymentsTitle": "ПОСЛЕДНИЕ ПЛАТЕЖИ",
+    "sectionMapDescription": "Верхнеуровневые поверхности для клиентов, денег, инфраструктуры, безопасности и контроля.",
+    "sectionMapTitle": "КОНТУРЫ УПРАВЛЕНИЯ",
+    "sectionModulesNext": "модулей далее",
+    "sectionReadiness": {
+      "blocked": "блокер",
+      "partial": "частично",
+      "strong": "готово"
+    },
+    "sectionSignalsReady": "сигналов готово",
+    "serverMatrix": "ПУЛЬС ИНФРАСТРУКТУРЫ",
+    "serverMatrixDescription": "Живой снимок VPN-флота, состояния узлов и текущего давления на сеть.",
+    "statusLabel": "РЕЖИМ:",
+    "statusValue": "LIVE",
+    "subtitle": "Операционный cockpit для инфраструктуры, коммерции, контроля и реакции на инциденты.",
+    "title": "КОМАНДНЫЙ ЦЕНТР OZOXY",
+    "webhooksDescription": "Последние callback-события интеграций и ошибки обработки.",
+    "webhooksTitle": "ПОТОК ВЕБХУКОВ",
+    "withdrawalsDescription": "Ожидающие согласования выводы из кошельков, требующие действий админа.",
+    "withdrawalsTitle": "ОЧЕРЕДЬ ВЫВОДОВ"
+  },
+  "DeleteAccount": {
+    "contact": {
+      "description": "If you have questions about account deletion or data privacy:",
+      "email": "Email",
+      "emailAddress": "privacy@cybervpn.app",
+      "title": "Need help?"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password",
+      "message": "We couldn't process your deletion request. Please try again or contact support.",
+      "networkError": "Network error. Please check your connection.",
+      "serverError": "Server error. Please try again later.",
+      "title": "Deletion failed"
+    },
+    "form": {
+      "cancel": "Cancel",
+      "description": "To proceed with account deletion, please confirm your identity and reason.",
+      "fields": {
+        "confirmation": {
+          "error": "You must confirm to proceed",
+          "label": "I understand this action is permanent and cannot be undone"
+        },
+        "email": {
+          "error": "Valid email is required",
+          "label": "Email address",
+          "placeholder": "Enter your account email"
+        },
+        "feedback": {
+          "label": "Additional feedback (optional)",
+          "placeholder": "Any additional comments..."
+        },
+        "password": {
+          "error": "Password is required",
+          "label": "Password",
+          "placeholder": "Enter your password"
+        },
+        "reason": {
+          "label": "Reason for deletion (optional)",
+          "options": {
+            "foundAlternative": "Found an alternative",
+            "notUsing": "Not using the service",
+            "other": "Other",
+            "privacyConcerns": "Privacy concerns",
+            "technicalIssues": "Technical issues",
+            "tooExpensive": "Too expensive"
+          },
+          "placeholder": "Help us improve by sharing why you're leaving"
+        }
+      },
+      "submit": "Delete My Account",
+      "submitting": "Processing...",
+      "title": "Delete account request"
+    },
+    "meta": {
+      "description": "Request permanent deletion of your CyberVPN account and all associated data.",
+      "title": "Delete Account - CyberVPN"
+    },
+    "sections": {
+      "alternativeOptions": {
+        "description": "If you're experiencing issues, consider these alternatives:",
+        "items": {
+          "changeSettings": "Adjust your account or privacy settings",
+          "contactSupport": "Contact support for assistance",
+          "pauseSubscription": "Pause your subscription temporarily"
+        },
+        "title": "Alternative options"
+      },
+      "beforeDelete": {
+        "items": {
+          "cancelSubscriptions": "Cancel any active subscriptions",
+          "exportData": "Export your data if needed (GDPR right to data portability)",
+          "saveConfigs": "Save any custom VPN configurations",
+          "useReferrals": "Use any pending referral rewards"
+        },
+        "title": "Before you delete"
+      },
+      "consequences": {
+        "items": {
+          "accountData": "Your account information and profile",
+          "configs": "VPN configurations and connection history",
+          "referrals": "Referral data and earned rewards",
+          "subscriptions": "All active subscriptions (no refunds)",
+          "support": "Support tickets and communication history"
+        },
+        "title": "What will be deleted"
+      }
+    },
+    "subtitle": "Permanently delete your CyberVPN account",
+    "success": {
+      "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized.",
+      "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
+      "title": "Account deletion requested"
+    },
+    "title": "Delete Account",
+    "warning": {
+      "message": "Deleting your account will permanently remove all your data and cannot be undone.",
+      "title": "Warning: This action is permanent"
+    }
+  },
+  "Devices": {},
+  "Docs": {
+    "doc_config_desc": "Создание защищенных путей через враждебные сети.",
+    "doc_config_title": "Настройка Туннелей",
+    "doc_install_desc": "Развертывание базового движка на поддерживаемых физических архитектурах.",
+    "doc_install_title": "Установка Ядра",
+    "doc_protocols_desc": "Спецификации для VLESS, VMess и Trojan Reality.",
+    "doc_protocols_title": "Поддерживаемые Протоколы",
+    "meta_description": "Комплексные схемы и руководства по интеграции и использованию сети CyberVPN.",
+    "meta_title": "Нейронная Документация | CyberVPN",
+    "search_placeholder": "Поиск по чертежам...",
+    "section_api": "НЕЙРОННЫЙ API",
+    "section_getting_started": "ИНИЦИАЛИЗАЦИЯ",
+    "section_routing": "МАРШРУТИЗАЦИЯ",
+    "section_security": "ПРОТОКОЛЫ ШИФРОВАНИЯ",
+    "sidebar_category_advanced": "Глубокая Интеграция",
+    "sidebar_category_basics": "Базовые Системы",
+    "subtitle": "СИСТЕМНАЯ ДОКУМЕНТАЦИЯ И СХЕМЫ",
+    "title": "НЕЙРОННЫЕ ЧЕРТЕЖИ"
+  },
+  "Download": {
+    "changelog": {
+      "empty": "Нет записей для выбранной архитектуры.",
+      "title": "ПОСЛЕДНИЕ ИЗМЕНЕНИЯ"
+    },
+    "platforms": {
+      "android": "Android (APK / Play Store)",
+      "ios": "iOS (App Store)",
+      "linux": "Linux (Debian / Ubuntu / RHEL)",
+      "macos": "macOS (Apple M-series / Intel)",
+      "windows": "Windows x64"
+    },
+    "subtitle": "Получить клиент",
+    "terminal": {
+      "button": "СКАЧАТЬ КЛИЕНТ",
+      "compiling": "КОМПИЛЯЦИЯ БИНАРНЫХ ФАЙЛОВ...",
+      "init": "[СИСТЕМА] ИНИЦИАЛИЗАЦИЯ ПРОТОКОЛА ЗАГРУЗКИ...",
+      "ready": "ПАКЕТ СФОРМИРОВАН. ГОТОВ К ИЗВЛЕЧЕНИЮ.",
+      "verify": "ПРОВЕРКА АРХИТЕКТУРЫ: ",
+      "version": "ВЕРСИЯ:"
+    },
+    "title": "ЗАЩИЩЕННЫЙ ПАКЕТ"
+  },
+  "Features": {
+    "description": "Шифрование военного уровня и квантово-устойчивая инфраструктура. Изучите модульные компоненты, защищающие ваше цифровое существование.",
+    "features": {
+      "killswitch": {
+        "description": "Постоянно отслеживает целостность туннеля. При разрыве соединения блокирует весь сетевой трафик устройства для предотвращения утечек IP-адреса.",
+        "specs": [
+          "Уровень: Правила маршрутизации ядра ОС",
+          "Время реакции: < 1мс",
+          "Предотвращение утечек: DNS, IPv6, WebRTC"
+        ],
+        "subtitle": "Изоляция на Системном Уровне",
+        "title": "Нейронный Kill Switch"
+      },
+      "multihop": {
+        "description": "Ваш трафик фрагментируется, шифруется и маршрутизируется через множество независимых юрисдикций. Если один узел скомпрометирован, происхождение остается невозможным для отслеживания.",
+        "specs": [
+          "Узлов: Настраиваемые цепи из 2-4",
+          "Юрисдикции: Глобальное распределение",
+          "Перешифрование: На каждом выходе из туннеля"
+        ],
+        "subtitle": "Распределенная Маршрутизация",
+        "title": "Multi-Hop Каскадирование"
+      },
+      "obfuscation": {
+        "description": "Обходит глубокий анализ пакетов в странах с жесткой цензурой. VPN-трафик стеганографически маскируется под стандартный веб-трафик HTTPS.",
+        "specs": [
+          "Протокол: V2Ray / Shadowsocks / XTLS",
+          "Сигнатура: Неотличима от TLS 1.3",
+          "Устойчивость: Автоматическая ротация при блокировке"
+        ],
+        "subtitle": "Обход DPI",
+        "title": "Теневая Обфускация"
+      },
+      "quantum": {
+        "description": "Готовность к криптографическому апокалипсису. Использование алгоритмов на решетках для защиты криптографических рукопожатий от атак с использованием квантовых компьютеров.",
+        "specs": [
+          "Алгоритм: Kyber-1024 / NTRU",
+          "Обмен ключами: Гибридный ECDHE + PQ",
+          "Модель угрозы: 'Собери сейчас, расшифруй потом'"
+        ],
+        "subtitle": "Постквантовая Криптография",
+        "title": "Квантовая Устойчивость"
+      }
+    },
+    "secondary": {
+      "items": [
+        {
+          "desc": "Только RAM-серверы. Ежедневная перезагрузка. Данные никогда не касаются HDD.",
+          "title": "Строгая Политика 'Без Логов'"
+        },
+        {
+          "desc": "Защитите весь свой арсенал оборудования с помощью одного ключа доступа.",
+          "title": "10 Устройств Одновременно"
+        },
+        {
+          "desc": "Фильтрация на уровне DNS нейтрализует вредоносные скрипты до их загрузки.",
+          "title": "Блокировка Рекламы и Трекеров"
+        },
+        {
+          "desc": "Выделенные узлы с высокой пропускной способностью, аппаратно ускоренные для торрентов.",
+          "title": "Оптимизация для P2P"
+        }
+      ],
+      "title": "Вспомогательные Системы"
+    },
+    "title": "Ключевые Возможности"
+  },
+  "Footer": {
+    "brandDescription": "Передовая инфраструктура защиты конфиденциальности для интернета следующего поколения. Навигация в цифровой пустоте с шифрованием военного уровня.",
+    "knowledgeLinks": {
+      "audits": "Аудиты",
+      "compare": "Сравнения",
+      "devices": "Устройства",
+      "guides": "Гайды",
+      "trust": "Центр доверия"
+    },
+    "links": {
+      "api": "API",
+      "contact": "Контакты",
+      "documentation": "Документация",
+      "download": "Скачать",
+      "features": "Возможности",
+      "helpCenter": "Центр помощи",
+      "pricing": "Цены",
+      "privacy": "Политика конфиденциальности",
+      "security": "Безопасность",
+      "servers": "Серверы",
+      "status": "Статус системы",
+      "terms": "Условия использования"
+    },
+    "newsletter": {
+      "cta": "СТАРТ",
+      "description": "Подключайтесь к нашему зашифрованному каналу. Получайте обновления по локациям, протоколам безопасности и критическим патчам.",
+      "placeholder": "введите_email.exe",
+      "prompt": "root@user:~$"
+    },
+    "operationalStatus": "Все системы работают штатно.",
+    "sections": {
+      "knowledge": "База знаний",
+      "paymentMethods": "Способы оплаты",
+      "product": "Продукт",
+      "stayConnected": "Оставайтесь на связи",
+      "support": "Поддержка"
+    }
+  },
+  "Governance": {
+    "adminInvites": {
+      "copyFailed": "Не удалось скопировать invite token.",
+      "createDescription": "Сгенерируйте новый invite token для сотрудника и при необходимости ограничьте его конкретным email.",
+      "createSuccess": "Admin invite token создан.",
+      "createTitle": "Создать invite",
+      "description": "Создание и управление invite tokens для онбординга новых сотрудников админки.",
+      "detailDescription": "Выбранный invite token с issuer и контекстом TTL.",
+      "detailTitle": "Детали токена",
+      "emailHintPlaceholder": "operator@ozoxy.ru",
+      "empty": "Активные admin invite tokens не найдены.",
+      "eyebrow": "ДОСТУП СОТРУДНИКОВ",
+      "inventoryDescription": "Single-use invite tokens для staff, которые сейчас живут в Redis-backed storage.",
+      "inventoryTitle": "Активные токены",
+      "metaTitle": "Admin Invites - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные",
+        "activeHint": "живые invite tokens",
+        "expiringSoon": "Скоро истекут",
+        "expiringSoonHint": "ttl меньше двух часов",
+        "privileged": "Привилегированные роли",
+        "privilegedHint": "токены для admin и выше",
+        "restricted": "Ограниченные",
+        "restrictedHint": "токены с email hint"
+      },
+      "revokeConfirm": "Немедленно отозвать этот invite token?",
+      "revokeSuccess": "Admin invite token отозван.",
+      "revokeTitle": "Отозвать invite token",
+      "searchPlaceholder": "Поиск по токену, роли, создателю, email...",
+      "title": "Admin invite tokens"
+    },
+    "auditLog": {
+      "description": "Читайте поток последних привилегированных действий и проверяйте before/after payloads для governance-review.",
+      "detailDescription": "Выбранная audit-запись с атрибуцией, request metadata и diff payload-ов.",
+      "detailTitle": "Детали события",
+      "empty": "Нет audit-записей для текущего представления.",
+      "eyebrow": "ЖУРНАЛ ПРИВИЛЕГИЙ",
+      "metaTitle": "Audit Log - Ozoxy Admin",
+      "metrics": {
+        "changed": "Изменённые payload-ы",
+        "changedHint": "записи со старым/новым значением",
+        "entities": "Сущности",
+        "entitiesHint": "типы сущностей в текущем срезе",
+        "unattributed": "Системные события",
+        "unattributedHint": "записи без admin-attribution",
+        "visible": "Видимо",
+        "visibleHint": "строки после локальной фильтрации"
+      },
+      "newValue": "Новое значение",
+      "oldValue": "Старое значение",
+      "searchPlaceholder": "Поиск по действию, сущности, id, ip...",
+      "streamDescription": "Текущая страница аудита {page}. Поиск применяется локально к загруженному срезу.",
+      "streamTitle": "Audit stream",
+      "title": "Audit explorer"
+    },
+    "common": {
+      "action": "Действие",
+      "actionFailed": "Действие не выполнено. Повторите попытку.",
+      "actions": "Действия",
+      "admin": "Администратор",
+      "attributed": "С атрибуцией",
+      "cancel": "Отмена",
+      "copied": "Скопировано",
+      "copy": "Копировать",
+      "create": "Создать",
+      "createdAt": "Создано",
+      "createdBy": "Кем создано",
+      "description": "Описание",
+      "edit": "Изменить",
+      "emailHint": "Email hint",
+      "empty": "Для текущего представления записей не найдено.",
+      "entity": "Сущность",
+      "error": "Ошибка",
+      "eventType": "Тип события",
+      "invalid": "Невалидно",
+      "ipAddress": "IP-адрес",
+      "key": "Ключ",
+      "next": "Далее",
+      "none": "Нет",
+      "payload": "Payload",
+      "pending": "Ожидает",
+      "previous": "Назад",
+      "private": "Приватно",
+      "processed": "Обработано",
+      "processedAt": "Обработано в",
+      "public": "Публично",
+      "refresh": "Обновить",
+      "revoke": "Отозвать",
+      "role": "Роль",
+      "source": "Источник",
+      "status": "Статус",
+      "system": "Система",
+      "token": "Токен",
+      "ttl": "TTL",
+      "update": "Обновить",
+      "userAgent": "User agent",
+      "validation": {
+        "jsonInvalid": "Значение должно быть валидным JSON.",
+        "keyRequired": "Ключ настройки обязателен.",
+        "valueRequired": "Значение настройки обязательно."
+      },
+      "value": "Значение"
+    },
+    "layout": {
+      "subnavLabel": "Навигация governance"
+    },
+    "nav": {
+      "adminInvites": "Admin invites",
+      "auditLog": "Audit log",
+      "overview": "Обзор",
+      "policy": "Политики",
+      "webhookLog": "Webhook log"
+    },
+    "overview": {
+      "auditDescription": "Последние привилегированные действия из backend audit stream.",
+      "auditTitle": "Последний аудит",
+      "description": "Операционный контур для привилегированных действий, webhook-forensics, онбординга staff и текущей видимой policy-surface.",
+      "eyebrow": "КОНТУР УПРАВЛЕНИЯ",
+      "invitesDescription": "Активные invite tokens, доступные сейчас для онбординга сотрудников.",
+      "invitesTitle": "Доступ staff",
+      "metaTitle": "Governance - Ozoxy Admin",
+      "metrics": {
+        "audit": "Аудит",
+        "auditHint": "последние привилегированные события",
+        "invites": "Активные invites",
+        "invitesHint": "токены онбординга staff",
+        "settings": "Настройки",
+        "settingsHint": "видимый реестр настроек",
+        "webhooks": "Невалидные webhook-и",
+        "webhooksHint": "callback-и, требующие внимания"
+      },
+      "policyDescription": "Текущая видимость по settings и покрытию governance.",
+      "policyStats": {
+        "publicSettings": "Публичные настройки",
+        "restrictedInvites": "Ограниченные invite tokens",
+        "settingFamilies": "Семейства настроек"
+      },
+      "policyTitle": "Снимок policy-surface",
+      "routes": {
+        "adminInvites": "Создание, просмотр, копирование и отзыв staff invite tokens.",
+        "auditLog": "Просмотр последних привилегированных действий и изменений сущностей.",
+        "policy": "Просмотр видимых настроек и текущей матрицы ролей и permissions.",
+        "webhookLog": "Проверка валидности callback-ов, статуса обработки и ошибок провайдеров."
+      },
+      "routesDescription": "Переходите напрямую в audit, webhook, staff-access и policy-разделы, не выходя из admin shell.",
+      "routesTitle": "Маршруты governance",
+      "title": "Governance workspace",
+      "webhookDescription": "Последнее состояние callback-ов по интеграционным провайдерам.",
+      "webhookTitle": "Пульс webhook-ов"
+    },
+    "policy": {
+      "createSuccess": "Настройка создана.",
+      "description": "Текущая governance-видимость по Remnawave settings и backend role-permission matrix.",
+      "descriptionPlaceholder": "Короткое операторское пояснение",
+      "detailDescription": "Текущий JSON payload для выбранной настройки.",
+      "detailTitle": "Выбранная настройка",
+      "editorDescription": {
+        "create": "Создайте новую видимую запись настройки через текущий settings API.",
+        "update": "Обновите выбранную настройку, сохранив её текущий ключ."
+      },
+      "editorTitle": "Редактор настройки",
+      "empty": "Нет настроек для текущего представления.",
+      "eyebrow": "ВИДИМОСТЬ ПОЛИТИК",
+      "gapDescription": "Сейчас этот workspace отражает только `/settings` и статическую policy permissions. Выделенных `system_config` governance API и настоящего admin directory на backend пока нет.",
+      "gapTitle": "Известный gap",
+      "keyPlaceholder": "registration_mode",
+      "metaTitle": "Policy Surface - Ozoxy Admin",
+      "metrics": {
+        "described": "С описанием",
+        "describedHint": "настройки с операторскими пояснениями",
+        "families": "Семейства",
+        "familiesHint": "верхнеуровневые группы настроек",
+        "public": "Публичные",
+        "publicHint": "видимы вне приватных поверхностей",
+        "total": "Всего настроек",
+        "totalHint": "настройки, возвращённые backend"
+      },
+      "publicToggle": "Показывать эту настройку как публичную",
+      "registryDescription": "Редактируемые настройки, доступные через текущий backend `/settings` layer.",
+      "registryTitle": "Реестр настроек",
+      "resetEditor": "Сбросить редактор",
+      "roleMatrixDescription": "Frontend mirror текущего backend mapping permissions по staff-ролям.",
+      "roleMatrixTitle": "Матрица ролей",
+      "searchPlaceholder": "Поиск по ключу настройки, описанию, значению...",
+      "selectionRequired": "Выберите настройку перед обновлением.",
+      "title": "Policy surface",
+      "updateSuccess": "Настройка обновлена.",
+      "valuePlaceholder": "{\"enabled\": true}"
+    },
+    "webhookLog": {
+      "description": "Проверяйте валидность callback-ов, статус обработки, payload-ы и ошибки провайдеров.",
+      "detailDescription": "Выбранный callback со статусом, metadata провайдера и raw payload preview.",
+      "detailTitle": "Детали callback-а",
+      "empty": "Нет webhook-записей для текущего представления.",
+      "eyebrow": "CALLBACK FORENSICS",
+      "filters": {
+        "allSources": "Все источники",
+        "allStatuses": "Все статусы",
+        "invalid": "Невалидные",
+        "pending": "Ожидают",
+        "processed": "Обработанные"
+      },
+      "metaTitle": "Webhook Log - Ozoxy Admin",
+      "metrics": {
+        "invalid": "Невалидные",
+        "invalidHint": "callback-и с проваленной валидацией",
+        "processed": "Обработанные",
+        "processedHint": "callback-и с timestamp обработки",
+        "sources": "Источники",
+        "sourcesHint": "провайдеры в текущем срезе",
+        "visible": "Видимо",
+        "visibleHint": "строки после локальной фильтрации"
+      },
+      "searchPlaceholder": "Поиск по источнику, событию, payload, ошибке...",
+      "streamDescription": "Текущая страница webhook-ов {page}. Фильтрация применяется локально к загруженному срезу.",
+      "streamTitle": "Webhook stream",
+      "title": "Webhook explorer"
+    }
+  },
+  "Growth": {
+    "common": {
+      "actionFailed": "Операция роста завершилась ошибкой",
+      "actions": "Действия",
+      "active": "Активен",
+      "backendLimited": "Ограничено backend",
+      "blocked": "Заблокировано",
+      "cancel": "Отмена",
+      "clear": "Очистить",
+      "close": "Закрыть",
+      "edit": "Изменить",
+      "empty": "Данных по росту пока нет",
+      "inactive": "Неактивен",
+      "missing": "Отсутствует",
+      "noExpiry": "Без срока",
+      "reset": "Сбросить",
+      "save": "Сохранить",
+      "unused": "Не использован",
+      "used": "Использован"
+    },
+    "inviteCodes": {
+      "backendNote": "Admin-покрытие здесь реальное, но узкое: сейчас можно создавать batch, а inventory и redemption-аналитику добавим, когда появятся backend routes.",
+      "createAction": "Сгенерировать batch",
+      "createOnly": "Только создание",
+      "description": "Создание invite-кодов для конкретного пользователя с free-day grant и optional plan binding.",
+      "eyebrow": "Рост / Invite-коды",
+      "fields": {
+        "count": "Количество",
+        "freeDays": "Бесплатных Дней",
+        "planId": "План",
+        "planPlaceholder": "Без привязки к плану",
+        "userId": "User ID"
+      },
+      "formDescription": "Маршрут специально сфокусирован на детерминированном создании, потому что backend пока не даёт admin list endpoint для invite inventory.",
+      "formTitle": "Сгенерировать Invite Batch",
+      "generatedCount": "{count} кодов",
+      "generatedDescription": "Readback результата из последней успешной admin batch-операции.",
+      "generatedEmpty": "В этой сессии invite-коды ещё не создавались.",
+      "generatedTitle": "Последние Сгенерированные Коды",
+      "metaTitle": "Invite-коды - Ozoxy Admin",
+      "metrics": {
+        "lastBatch": "Последний Batch",
+        "lastBatchHint": "Коды, возвращённые последним create-запросом.",
+        "lastCode": "Последний Код",
+        "lastCodeHint": "Первый код из последнего сгенерированного batch.",
+        "mode": "Режим Поверхности",
+        "modeHint": "Admin list endpoint пока отсутствует.",
+        "modeValue": "Только POST",
+        "planCatalog": "Каталог Планов",
+        "planCatalogHint": "Планы для optional invite-targeting."
+      },
+      "table": {
+        "code": "Код",
+        "created": "Создан",
+        "expires": "Истекает",
+        "freeDays": "Бесплатные Дни",
+        "used": "Использован"
+      },
+      "title": "Генератор Invite Batch"
+    },
+    "layout": {
+      "subnavLabel": "Навигация роста"
+    },
+    "nav": {
+      "inviteCodes": "Invite-коды",
+      "overview": "Обзор",
+      "partners": "Партнёры",
+      "promoCodes": "Промокоды",
+      "referrals": "Рефералы"
+    },
+    "overview": {
+      "description": "Операторская поверхность для промо-инвентаря, генерации invite-кодов, партнёрских операций и живой referral-аналитики.",
+      "eyebrow": "Привлечение / Удержание",
+      "liveInventoryDescription": "Текущее состояние промо, полученное из admin promo endpoint.",
+      "liveInventoryTitle": "Живой Промо-Инвентарь",
+      "metaTitle": "Рост - Ozoxy Admin",
+      "metrics": {
+        "activePromos": "Активные Кампании",
+        "activePromosHint": "Коды, которые сейчас можно погасить.",
+        "expiring": "Скоро Истекут",
+        "expiringHint": "Промокоды, истекающие в ближайшие 7 дней.",
+        "plans": "Каталог Планов",
+        "plansHint": "Планы, которые можно таргетировать через invite или promo.",
+        "promos": "Промо-инвентарь",
+        "promosHint": "Уже есть admin-read список промокодов."
+      },
+      "noPlans": "Для таргетинга нет доступных планов.",
+      "operatorNotes": {
+        "invitesDescription": "Backend уже умеет admin invite generation, но пока не даёт admin list/detail inventory. Поэтому модуль делает упор на детерминированную генерацию batch и локальный readback результата.",
+        "invitesTitle": "Invite-коды пока только на создание",
+        "partnersDescription": "Админка уже умеет повышать, искать и смотреть partner-level performance, а payout-модерация остаётся следующим слоем.",
+        "partnersTitle": "Партнёрский inventory уже живой",
+        "referralsDescription": "Admin-safe overview и per-user drill-down уже работают. Дальше нужны abuse-review и более глубокая attribution-аналитика.",
+        "referralsTitle": "Referral-аналитика уже operator-safe"
+      },
+      "operatorNotesTitle": "Операторские Замечания",
+      "partialCoverage": "Операционное покрытие",
+      "planTargetingDescription": "Growth-операции уже выигрывают от plan-awareness, особенно в invite-batch и таргетированной настройке promo.",
+      "planTargetingTitle": "Контекст Таргетинга По Планам",
+      "quickSignals": {
+        "coverage": "Покрытие",
+        "coverageValue": "5 live-surface",
+        "exhausted": "Исчерпанные Промо"
+      },
+      "routes": {
+        "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
+        "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
+        "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
+        "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям."
+      },
+      "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
+      "routesTitle": "Инвентарь Маршрутов",
+      "title": "Контроль Роста",
+      "usesLabel": "{current} / {max} использований"
+    },
+    "partners": {
+      "backendNote": "Growth-backend уже даёт admin-safe partner list/detail. Следующий операционный слой здесь — payout-tooling.",
+      "badges": {
+        "activeCodes": "{count} активных",
+        "clients": "{count} клиентов",
+        "codes": "{count} кодов"
+      },
+      "description": "Повышайте пользователей до партнёров, ищите их в live-directory и переходите в customer card для дальнейших действий.",
+      "directoryCount": "{count} партнёров",
+      "directoryDescription": "Live admin-инвентарь партнёрских пользователей с earnings, количеством кодов и последней активностью.",
+      "directoryEmpty": "По текущему поиску партнёры не найдены.",
+      "directoryTitle": "Каталог Партнёров",
+      "eyebrow": "Рост / Партнёры",
+      "fields": {
+        "search": "Поиск партнёра",
+        "userId": "User ID"
+      },
+      "formDescription": "Укажите UUID mobile user и вызовите реальный admin promotion endpoint. Данные каталога обновляются из живого backend.",
+      "formTitle": "Сделать Пользователя Партнёром",
+      "liveDirectory": "Живой каталог",
+      "metaTitle": "Партнёры - Ozoxy Admin",
+      "metrics": {
+        "activeCodes": "Активные Коды",
+        "activeCodesHint": "сейчас живые partner-коды",
+        "directory": "Каталог",
+        "directoryHint": "партнёров вернул admin inventory",
+        "lastUser": "Последний User",
+        "lastUserHint": "Самый свежий повышенный пользователь в текущей сессии.",
+        "totalEarned": "Всего Заработано",
+        "totalEarnedHint": "агрегированный earnings в текущей выборке"
+      },
+      "openCustomer": "Открыть карточку клиента",
+      "promoteAction": "Повысить до партнёра",
+      "title": "Партнёрские Операции"
+    },
+    "promoCodes": {
+      "createAction": "Создать промо",
+      "createPanelDescription": "Здесь раскрыт весь admin create-surface, включая advanced targeting fields, которые пока остаются write-only в API-контракте.",
+      "createPanelTitle": "Создание Промокода",
+      "deactivateAction": "Деактивировать",
+      "deactivateConfirm": "Деактивировать этот промокод?",
+      "deactivateTitle": "Деактивировать промокод",
+      "description": "Админ-консоль для кампаний, usage-ceiling, expiry-window и безопасной деактивации.",
+      "editPanelTitle": "Обновление Промо",
+      "empty": "Промокоды не найдены.",
+      "eyebrow": "Рост / Промокоды",
+      "fields": {
+        "code": "Код",
+        "currency": "Валюта",
+        "description": "Описание",
+        "discountType": "Тип Скидки",
+        "discountValue": "Размер Скидки",
+        "expiresAt": "Истекает",
+        "isActive": "Промокод активен",
+        "isSingleUse": "Одноразовый промокод",
+        "maxUses": "Макс. Использований",
+        "minAmount": "Мин. Сумма",
+        "planScope": "Scope По Планам"
+      },
+      "inspect": {
+        "code": "Код",
+        "createdAt": "Создан",
+        "currency": "Валюта",
+        "discountType": "Тип скидки",
+        "discountValue": "Размер скидки",
+        "expiresAt": "Истекает",
+        "usage": "Использование"
+      },
+      "inspectAction": "Просмотр",
+      "inspectEmpty": "Выберите промо в таблице, чтобы посмотреть детали.",
+      "inspectPanelDescription": "Detail-маршрут привязан к отдельному promo endpoint, а не только к данным списка.",
+      "inspectPanelTitle": "Деталь Промо",
+      "inspectUnavailable": "Деталь промо недоступна.",
+      "metaTitle": "Промокоды - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные Промо",
+        "activeHint": "Ещё можно погасить и они не отключены вручную.",
+        "exhausted": "Исчерпаны",
+        "exhaustedHint": "Достигли max uses и уже просятся в cleanup.",
+        "expiring": "Скоро Истекут",
+        "expiringHint": "Истекают в ближайшие 7 дней.",
+        "total": "Всего Промо",
+        "totalHint": "Все промо-записи из admin list."
+      },
+      "noPlans": "Для scope нет доступных планов.",
+      "singleUseHint": "Подходит для one-off redemption и жёстко контролируемых кампаний.",
+      "table": {
+        "code": "Код",
+        "discount": "Скидка",
+        "expires": "Истекает",
+        "status": "Статус",
+        "usage": "Использование"
+      },
+      "title": "Промо-Инвентарь",
+      "writeOnlyHint": "Write-only поля"
+    },
+    "referrals": {
+      "badges": {
+        "commissions": "{count} комиссий",
+        "referredUsers": "{count} приведено"
+      },
+      "currentStateDescription": "Живой leaderboard, построенный на admin-safe referral analytics endpoints.",
+      "currentStateTitle": "Топ Referrer'ы",
+      "description": "Admin-safe обзор referral earnings, топ-referrer'ов и недавней commission-активности.",
+      "eyebrow": "Рост / Рефералы",
+      "liveOverview": "Живой обзор",
+      "metaTitle": "Рефералы - Ozoxy Admin",
+      "metrics": {
+        "adminSurface": "Комиссии",
+        "adminSurfaceHint": "общее число commission-record, видимых админу",
+        "totalEarned": "Всего Заработано",
+        "totalEarnedHint": "совокупный payout-объём по referral",
+        "uniqueReferred": "Приведённые Пользователи",
+        "uniqueReferredHint": "уникальные пользователи, привлечённые через referral-механику",
+        "uniqueReferrers": "Referrer'ы",
+        "uniqueReferrersHint": "пользователи, заработавшие хотя бы одну referral-комиссию"
+      },
+      "nextFocusDescription": "Основной gap здесь уже не в базовой видимости. Следующий слой — abuse-review, payout-операции и более глубокая attribution-диагностика.",
+      "nextFocusTitle": "Следующий Фокус",
+      "openCustomer": "Открыть карточку клиента",
+      "recentEmpty": "Недавние referral-комиссии не найдены.",
+      "recentTitle": "Последние Комиссии",
+      "title": "Referral-Аналитика",
+      "topReferrersEmpty": "Referral-активность пока отсутствует."
+    }
+  },
+  "Header": {
+    "encryptionLabel": "ШИФРОВАНИЕ",
+    "encryptionValue": "АКТИВНО - AES-256",
+    "fps": "FPS",
+    "integrity": "ПРОВЕРКА ЦЕЛОСТНОСТИ ПРОЙДЕНА",
+    "language": "ЯЗЫК",
+    "netUplink": "СЕТЬ_АПЛИНК",
+    "ping": "PING",
+    "systemLabel": "СИСТЕМА"
+  },
+  "HelpCenter": {
+    "categories_title": "МОДУЛИ ЗНАНИЙ",
+    "category_billing": "Кредиты Доступа",
+    "category_billing_desc": "Подписки, платежи и распределение пропускной способности.",
+    "category_getting_started": "Инициализация",
+    "category_getting_started_desc": "Запуск системы и протоколы базовой конфигурации.",
+    "category_security": "Протоколы Шифрования",
+    "category_security_desc": "Детали о Anti-DPI, обфускации и политике отсутствия логов.",
+    "category_troubleshooting": "Маршрутизация",
+    "category_troubleshooting_desc": "Диагностика ошибок подключения и туннелирования.",
+    "contact_button_telegram": "ИНИЦИИРОВАТЬ СВЯЗЬ В TELEGRAM",
+    "contact_button_ticket": "ОТКРЫТЬ ЗАЩИЩЕННЫЙ ТИКЕТ",
+    "contact_desc": "Не удалось решить аномалию в архивах? Установите прямой защищенный канал связи с нашими операторами.",
+    "contact_title": "ЗАЩИЩЕННАЯ ПЕРЕДАЧА",
+    "faq_billing_1_a": "Вы можете приобрести дополнительные Кредиты Доступа через терминал биллинга, используя поддерживаемые крипто или фиатные шлюзы.",
+    "faq_billing_1_q": "Как увеличить квоту пропускной способности?",
+    "faq_billing_2_a": "Возвраты обрабатываются строго в течение первых 72 часов после установления нового цикла подключения.",
+    "faq_billing_2_q": "Возможен ли возврат средств?",
+    "faq_billing_3_a": "Утвердительно. Мы принимаем Monero (XMR), USDT и Bitcoin для полностью неотслеживаемых транзакций.",
+    "faq_billing_3_q": "Поддерживаете ли вы анонимные платежи?",
+    "faq_getting_started_1_a": "Загрузите модуль ядра CyberVPN для вашей ОС, авторизуйтесь с вашим Neural ID и нажмите 'Engage'.",
+    "faq_getting_started_1_q": "Как мне инициализировать первое подключение?",
+    "faq_getting_started_2_a": "Сеть принимает соединения от клиентов на Windows, macOS, Linux, iOS и Android по стандартным протоколам Xray/Sing-box.",
+    "faq_getting_started_2_q": "Какие устройства поддерживаются?",
+    "faq_getting_started_3_a": "Да, в зависимости от вашего уровня Кредитов Доступа, вы можете связать до 10 одновременных нейронных путей.",
+    "faq_getting_started_3_q": "Могу ли я подключить несколько устройств одновременно?",
+    "faq_security_1_a": "Отрицательно. Все базы данных волатильны. Мы работаем по строгой архитектуре нулевого знания.",
+    "faq_security_1_q": "Служба ведет логирование моих данных?",
+    "faq_security_2_a": "Мы используем шифры ChaCha20-Poly1305 и AES-256-GCM, обеспечивая криптографическую целостность военного уровня.",
+    "faq_security_2_q": "Какой стандарт шифрования используется?",
+    "faq_security_3_a": "Да. В случае обрыва защищенного туннеля клиент немедленно блокирует все внешние сетевые адаптеры для предотвращения утечки IP.",
+    "faq_security_3_q": "Есть ли у вас функция Kill Switch?",
+    "faq_title": "ЧАСТЫЕ ЗАПРОСЫ",
+    "faq_troubleshooting_1_a": "Проверьте пинг вашего узла. Если потеря пакетов превышает 5%, перенаправьтесь на альтернативный шард в Server Grid.",
+    "faq_troubleshooting_1_q": "Почему скорость моего соединения снижена?",
+    "faq_troubleshooting_2_a": "Система автоматически включает резервную маршрутизацию. Если нужно ручное вмешательство, сбросьте DNS-кэш и переподключитесь.",
+    "faq_troubleshooting_2_q": "Что делать, если основной прокси не отвечает?",
+    "faq_troubleshooting_3_a": "Наше ядро, использующее VLESS+Reality, автоматически маскирует ваш трафик под стандартный HTTPS. Убедитесь, что у вас установлено последнее обновление ядра.",
+    "faq_troubleshooting_3_q": "Как мне обойти ограничения DPI?",
+    "hero_subtitle": "ДОСТУП К ЦЕНТРАЛЬНЫМ БАЗАМ ДАННЫХ...",
+    "hero_title": "НЕЙРОННЫЕ АРХИВЫ",
+    "meta_description": "Доступ к базам данных для устранения неполадок, руководствам и защищенным каналам связи.",
+    "meta_title": "Нейронные Архивы | CyberVPN Help Center",
+    "search_button": "ДЕШИФРОВАТЬ",
+    "search_placeholder": "Введите нейро-запрос..."
+  },
+  "Infrastructure": {
+    "common": {
+      "actionFailed": "Операция не выполнена. Попробуйте ещё раз.",
+      "actions": "Действия",
+      "active": "Активен",
+      "address": "Адрес",
+      "alpn": "ALPN",
+      "batchId": "Batch ID",
+      "cancel": "Отмена",
+      "channel": "Канал",
+      "clone": "Клонировать",
+      "command": "Command JSON",
+      "content": "Содержимое",
+      "default": "По умолчанию",
+      "delete": "Удалить",
+      "description": "Описание",
+      "disabled": "Отключён",
+      "edit": "Изменить",
+      "empty": "Для этого вида записи не найдены.",
+      "emptyShort": "Пусто",
+      "enabled": "Включён",
+      "fallbackCore": "Fallback core",
+      "heartbeat": "Heartbeat",
+      "hostHeader": "Host header",
+      "inbounds": "Inbounds",
+      "manifestVersion": "Manifest version",
+      "maxMembers": "Макс. участников",
+      "members": "Участники",
+      "modules": "Модули",
+      "name": "Название",
+      "node": "Нода",
+      "none": "Нет",
+      "optional": "Необязательно",
+      "optionalShort": "Опц.",
+      "order": "Порядок",
+      "path": "Путь",
+      "pauseOnRollback": "Пауза при rollback spike",
+      "pluginConfig": "Конфиг плагина",
+      "port": "Порт",
+      "profile": "Профиль",
+      "protocol": "Протокол",
+      "reset": "Сбросить",
+      "revokeOnError": "Отозвать при ошибке манифеста",
+      "rolloutId": "Rollout ID",
+      "save": "Сохранить",
+      "saving": "Сохранение...",
+      "security": "Безопасность",
+      "sni": "SNI",
+      "status": "Статус",
+      "tag": "Тег",
+      "targetNodeIds": "Target node IDs",
+      "targetNodes": "Target nodes JSON",
+      "traffic": "Трафик",
+      "transport": "Транспорт",
+      "type": "Тип",
+      "updatedAt": "Обновлено",
+      "users": "Пользователи",
+      "validation": {
+        "helixPublishInvalid": "Укажите rollout ID, batch ID и manifest version.",
+        "helixTargetsRequired": "Добавьте хотя бы один target node ID.",
+        "hostFormInvalid": "Укажите название, адрес и корректный порт.",
+        "nameRequired": "Укажите название.",
+        "profileFormInvalid": "Укажите название, тип профиля и содержимое.",
+        "serverFormInvalid": "Укажите название, адрес и корректный порт.",
+        "snippetFormInvalid": "Укажите название, тип snippet и содержимое."
+      }
+    },
+    "configProfiles": {
+      "createAction": "Создать профиль",
+      "createDescription": "Определите тип профиля, его config payload и признак default.",
+      "createSuccess": "Профиль создан.",
+      "createTitle": "Создать профиль",
+      "description": "Управление шаблонами профилей, используемыми при выдаче клиентских VPN-конфигураций.",
+      "empty": "Профили конфигураций не найдены.",
+      "eyebrow": "ПРОФИЛИ ДОСТАВКИ",
+      "metaTitle": "Профили конфигураций - Ozoxy Admin",
+      "metrics": {
+        "defaults": "Default",
+        "defaultsHint": "отмечены как default",
+        "described": "С описанием",
+        "describedHint": "профили с заметками",
+        "total": "Профили",
+        "totalHint": "записей профилей",
+        "types": "Типы",
+        "typesHint": "уникальных видов профилей"
+      },
+      "title": "Config Profiles"
+    },
+    "helix": {
+      "assignmentAction": "Показать assignment",
+      "assignmentEmpty": "Выберите ноду, чтобы посмотреть её Helix-assignment.",
+      "assignmentTitle": "Preview node assignment",
+      "description": "Публикация rollout, инспекция их состояния, preview node assignment и мониторинг транспортных профилей.",
+      "empty": "Helix-ноды не найдены.",
+      "eyebrow": "ОРКЕСТРАЦИЯ ROLLOUT",
+      "lookupAction": "Загрузить rollout",
+      "lookupSummary": "Цель: {target}, завершено: {completed}, ошибок: {failed}.",
+      "lookupTitle": "Поиск rollout",
+      "metaTitle": "Helix - Ozoxy Admin",
+      "metrics": {
+        "activeRollouts": "Активные rollout",
+        "activeRolloutsHint": "нод привязано к rollout",
+        "channels": "Каналы",
+        "channelsHint": "уникальных rollout-каналов",
+        "nodes": "Ноды",
+        "nodesHint": "зарегистрированы в Helix",
+        "profiles": "Профили",
+        "profilesHint": "транспортных профилей"
+      },
+      "pauseAction": "Поставить на паузу",
+      "pauseSuccess": "Rollout поставлен на паузу.",
+      "publishAction": "Опубликовать rollout",
+      "publishSuccess": "Rollout опубликован.",
+      "publishTitle": "Публикация rollout",
+      "revokeAction": "Отозвать manifest",
+      "revokeSuccess": "Manifest отозван.",
+      "title": "Консоль Helix",
+      "transportProfilesEmpty": "Транспортные профили Helix не найдены.",
+      "transportProfilesTitle": "Транспортные профили"
+    },
+    "hosts": {
+      "createAction": "Создать host",
+      "createDescription": "Добавьте новую host-запись с TLS-метаданными и опциональными path/header override.",
+      "createSuccess": "Host создан.",
+      "createTitle": "Создать host",
+      "deleteSuccess": "Host удалён.",
+      "description": "Управление delivery-хостами, TLS-метаданными, path-routing и состоянием отключения.",
+      "editDescription": "Обновите выбранный host при изменениях SNI, header или path.",
+      "editTitle": "Изменить host",
+      "empty": "Хосты не найдены.",
+      "eyebrow": "КОНТУР HOSTS",
+      "metaTitle": "Хосты - Ozoxy Admin",
+      "metrics": {
+        "disabled": "Отключены",
+        "disabledHint": "сейчас выключены",
+        "total": "Hosts",
+        "totalHint": "настроенных записей",
+        "withPath": "С path",
+        "withPathHint": "настроен HTTP path",
+        "withSni": "С SNI",
+        "withSniHint": "указан TLS hostname"
+      },
+      "selectedHost": "Выбранный host",
+      "title": "Консоль хостов",
+      "updateSuccess": "Host обновлён."
+    },
+    "inbounds": {
+      "description": "Просмотр inbound-listener, привязанных нод, security-параметров и полного payload.",
+      "detailEmpty": "Выберите inbound, чтобы посмотреть полный payload.",
+      "detailTitle": "Детали inbound",
+      "empty": "Inbounds не найдены.",
+      "eyebrow": "ИНВЕНТАРЬ LISTENER",
+      "metaTitle": "Inbounds - Ozoxy Admin",
+      "metrics": {
+        "nodeBound": "Привязаны к ноде",
+        "nodeBoundHint": "имеют node binding",
+        "protocols": "Протоколы",
+        "protocolsHint": "уникальных inbound-протоколов",
+        "secured": "Защищены",
+        "securedHint": "есть security-конфиг",
+        "total": "Inbounds",
+        "totalHint": "listener records"
+      },
+      "title": "Консоль Inbounds"
+    },
+    "layout": {
+      "subnavLabel": "Навигация Infrastructure"
+    },
+    "nav": {
+      "configProfiles": "Профили",
+      "helix": "Helix",
+      "hosts": "Хосты",
+      "inbounds": "Inbounds",
+      "nodePlugins": "Плагины",
+      "overview": "Обзор",
+      "servers": "Серверы",
+      "snippets": "Snippets",
+      "squads": "Squads",
+      "xray": "Xray"
+    },
+    "nodePlugins": {
+      "cloneSuccess": "Плагин клонирован.",
+      "createAction": "Создать плагин",
+      "createSuccess": "Плагин создан.",
+      "createTitle": "Создать плагин",
+      "deleteSuccess": "Плагин удалён.",
+      "description": "Управление inventory плагинов, их конфигами, клонированием и прямыми командами по нодам.",
+      "editTitle": "Изменить плагин",
+      "empty": "Плагины не найдены.",
+      "executeAction": "Выполнить",
+      "executeSuccess": "Команда плагина отправлена.",
+      "executeTitle": "Исполнить команду",
+      "eyebrow": "ОПЕРАЦИИ С ПЛАГИНАМИ",
+      "metaTitle": "Плагины нод - Ozoxy Admin",
+      "metrics": {
+        "nodes": "Затронуто нод",
+        "nodesHint": "уникальных нод",
+        "reports": "Torrent reports",
+        "reportsHint": "собранных отчётов",
+        "total": "Плагины",
+        "totalHint": "записей плагинов",
+        "users": "Затронуто пользователей",
+        "usersHint": "уникальных пользователей"
+      },
+      "selectionEmpty": "Выберите плагин, чтобы редактировать его конфиг.",
+      "selectionRequired": "Выберите плагин перед сохранением изменений.",
+      "snapshotTitle": "Снимок выбранного плагина",
+      "title": "Node Plugins",
+      "updateSuccess": "Плагин обновлён."
+    },
+    "overview": {
+      "activeUsers": "Активные пользователи",
+      "bandwidth": "Трафик за сегодня",
+      "description": "Операционная поверхность для серверов, edge-hosts, rollout transport, конфигурационных профилей и низкоуровневого runtime-контроля.",
+      "eyebrow": "ОПЕРАЦИОННЫЙ КОНТУР",
+      "healthDescription": "Текущее состояние backend-компонентов и инфраструктурных зависимостей, важных для операторов.",
+      "healthTitle": "Здоровье платформы",
+      "helixDescription": "Сводка по rollout-ноду, inventory хостов и footprint транспортных профилей.",
+      "helixNodes": "Helix-ноды",
+      "helixTitle": "Состояние Helix",
+      "hosts": "Хосты",
+      "lastHealthCheck": "Последняя проверка",
+      "metaTitle": "Infrastructure - Ozoxy Admin",
+      "metrics": {
+        "health": "Здоровье",
+        "healthHint": "общее состояние backend",
+        "plugins": "Плагины",
+        "pluginsHint": "helix-нод отслеживается",
+        "servers": "Серверы",
+        "serversHint": "онлайн сейчас",
+        "traffic": "Трафик",
+        "trafficHint": "суммарный системный трафик"
+      },
+      "platformPulseDescription": "Верхнеуровневые системные счётчики из monitoring, чтобы оператор быстро понял текущую обстановку.",
+      "platformPulseTitle": "Пульс платформы",
+      "profiles": "Профили",
+      "routes": {
+        "configProfiles": "Контроль профилей, которые используются для экспорта клиентских конфигураций.",
+        "helix": "Публикация rollout, инспекция assignment и состояния транспортных профилей.",
+        "hosts": "Управление SNI, ALPN, headers и path-маршрутизацией для delivery hosts.",
+        "nodePlugins": "Управление inventory плагинов, их конфигами и командами исполнения по нодам.",
+        "servers": "Создание, изменение и вывод из эксплуатации серверных нод с контролем live-usage и трафика.",
+        "xray": "Просмотр и обновление raw-конфига Xray прямо из админки."
+      },
+      "routesDescription": "Быстрые переходы в нужный инфраструктурный контур без выхода из админки.",
+      "routesTitle": "Операционные маршруты",
+      "serversDescription": "Ключевые серверные записи с текущим статусом и количеством активных сессий.",
+      "serversTitle": "Пульс серверов",
+      "title": "Управление Infrastructure",
+      "totalServers": "Всего серверов",
+      "totalUsers": "Всего пользователей",
+      "usersOnline": "пользователей онлайн"
+    },
+    "servers": {
+      "createAction": "Создать сервер",
+      "createDescription": "Добавьте новую серверную ноду с публичным адресом и операторским именем.",
+      "createSuccess": "Сервер создан.",
+      "createTitle": "Создать сервер",
+      "deleteSuccess": "Сервер удалён.",
+      "description": "Создание, изменение и удаление серверных нод с контролем статуса, трафика и live-пользователей.",
+      "editDescription": "Обновите выбранную запись сервера при сетевых или naming-изменениях.",
+      "editTitle": "Изменить сервер",
+      "empty": "Серверы не найдены.",
+      "eyebrow": "КОНТУР СЕРВЕРОВ",
+      "metaTitle": "Серверы - Ozoxy Admin",
+      "metrics": {
+        "online": "Онлайн",
+        "onlineHint": "сейчас здоровы",
+        "total": "Всего серверов",
+        "totalHint": "серверных записей",
+        "traffic": "Трафик",
+        "trafficHint": "сумма отслеживаемого usage",
+        "warning": "Warning",
+        "warningHint": "требуют внимания"
+      },
+      "selectedServer": "Выбранный сервер",
+      "title": "Консоль серверов",
+      "updateSuccess": "Сервер обновлён."
+    },
+    "snippets": {
+      "createAction": "Создать snippet",
+      "createDescription": "Добавьте переиспользуемый config-snippet с типом, содержимым и опциональным order.",
+      "createSuccess": "Snippet создан.",
+      "createTitle": "Создать snippet",
+      "description": "Управление переиспользуемыми config snippets и порядком их применения в delivery pipelines.",
+      "empty": "Snippets не найдены.",
+      "eyebrow": "КОНФИГ-ФРАГМЕНТЫ",
+      "metaTitle": "Snippets - Ozoxy Admin",
+      "metrics": {
+        "active": "Активны",
+        "activeHint": "сейчас включены",
+        "ordered": "С порядком",
+        "orderedHint": "задан explicit order",
+        "total": "Snippets",
+        "totalHint": "записей snippets",
+        "types": "Типы",
+        "typesHint": "уникальных видов snippets"
+      },
+      "title": "Консоль Snippets"
+    },
+    "squads": {
+      "createAction": "Создать squad",
+      "createDescription": "Создайте новую группу для сегментации, rollout-scoping или операционных целей.",
+      "createSuccess": "Squad создан.",
+      "createTitle": "Создать squad",
+      "description": "Управление internal и external squads, используемыми для группировки и rollout-targeting.",
+      "empty": "Для этого вида squads не найдены.",
+      "externalTitle": "External squads",
+      "eyebrow": "ОРКЕСТРАЦИЯ ГРУПП",
+      "internalTitle": "Internal squads",
+      "metaTitle": "Squads - Ozoxy Admin",
+      "metrics": {
+        "active": "Активны",
+        "activeHint": "сейчас активных squads",
+        "external": "External",
+        "externalHint": "external squads",
+        "internal": "Internal",
+        "internalHint": "internal squads",
+        "members": "Участники",
+        "membersHint": "суммарное число участников"
+      },
+      "title": "Консоль Squads"
+    },
+    "xray": {
+      "description": "Просмотр и обновление raw-конфигурации Xray прямо из админ-панели.",
+      "editorTitle": "Редактор конфигурации",
+      "eyebrow": "RUNTIME CORE",
+      "metaTitle": "Xray - Ozoxy Admin",
+      "metrics": {
+        "inbounds": "Inbounds",
+        "inboundsHint": "listener definitions",
+        "logKeys": "Log keys",
+        "logKeysHint": "настроенных log sections",
+        "outbounds": "Outbounds",
+        "outboundsHint": "upstream definitions",
+        "routes": "Маршруты",
+        "routesHint": "routing rules"
+      },
+      "saveAction": "Сохранить конфиг",
+      "snapshotTitle": "Текущий snapshot",
+      "title": "Консоль Xray",
+      "updateSuccess": "Конфиг Xray обновлён."
+    }
+  },
+  "Integrations": {
+    "common": {
+      "active": "Активно",
+      "allowed": "Разрешено",
+      "eligible": "Доступно",
+      "empty": "Для текущего состояния данные не найдены.",
+      "inactive": "Неактивно",
+      "invalid": "Невалидно",
+      "linked": "Привязан",
+      "noIncidents": "В текущем срезе нет инцидентов по интеграциям.",
+      "none": "Нет",
+      "unavailable": "Недоступно",
+      "unknown": "Неизвестно",
+      "unlinked": "Не привязан"
+    },
+    "layout": {
+      "subnavLabel": "Навигация интеграций"
+    },
+    "nav": {
+      "overview": "Обзор",
+      "push": "Push",
+      "realtime": "Realtime",
+      "telegram": "Telegram"
+    },
+    "overview": {
+      "channelCards": {
+        "botAccess": "Bot Access",
+        "botRulesUrl": "Текущий URL правил бота: {url}.",
+        "botSecretNote": "Bot-secret proxy не настроен или upstream bot settings сейчас недоступны.",
+        "push": "Настройки Уведомлений",
+        "pushSummary": "У оператора сейчас включено {enabled} из 5 notification channels.",
+        "telegram": "Telegram Привязка",
+        "telegramLinked": "Текущий оператор привязан к Telegram ID {telegramId}.",
+        "telegramUnlinked": "В payload текущей сессии у оператора нет Telegram linkage."
+      },
+      "channelsDescription": "Текущее linkage-состояние оператора и bot-access posture без выхода из админки.",
+      "channelsTitle": "Каналы Оператора",
+      "description": "Операционная поверхность для Telegram, push-диагностики, websocket-ticket flow и callback-aware состояния интеграций.",
+      "eyebrow": "Фаза 6",
+      "healthDescription": "Общие health-сигналы, собранные из monitoring и callback-поверхностей.",
+      "healthTitle": "Здоровье Интеграций",
+      "incidentsDescription": "Последние невалидные callback-записи из governance webhook log.",
+      "incidentsTitle": "Webhook Инциденты",
+      "metaTitle": "Интеграции - Ozoxy Admin",
+      "metrics": {
+        "channels": "Активные Каналы",
+        "channelsHint": "Маршруты уведомлений текущего оператора.",
+        "health": "Здоровье",
+        "healthHint": "Текущее состояние backend-интеграций.",
+        "telegram": "Telegram Оператора",
+        "telegramHint": "Текущее состояние Telegram linkage.",
+        "webhooks": "Невалидные Вебхуки",
+        "webhooksHint": "Callbacks, которым нужно внимание оператора."
+      },
+      "routes": {
+        "push": "Просмотр текущих notification preferences оператора и проверка FCM registration flow.",
+        "realtime": "Выпуск websocket ticket и подписка на monitoring topics для живой видимости инцидентов.",
+        "telegram": "Разбор Telegram-linked пользователей, bootstrap bot-facing identity, просмотр config и генерация login link."
+      },
+      "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и realtime topic tooling из одного operator shell.",
+      "routesTitle": "Маршруты",
+      "title": "Операции Интеграций"
+    },
+    "push": {
+      "actions": {
+        "registering": "Регистрируем...",
+        "registerToken": "Зарегистрировать Token",
+        "savePreferences": "Сохранить Настройки",
+        "saving": "Сохраняем...",
+        "unregistering": "Удаляем...",
+        "unregisterToken": "Удалить Token"
+      },
+      "description": "Видимость notification preferences текущего оператора и self-service FCM-диагностика.",
+      "eyebrow": "Push Ops",
+      "fcmDescription": "Проверка текущих self-service FCM endpoints для token registration и unregister flow.",
+      "fcmTitle": "FCM Диагностика",
+      "fields": {
+        "deviceId": "Device ID",
+        "platform": "Платформа",
+        "token": "FCM Token"
+      },
+      "metaTitle": "Push Ops - Ozoxy Admin",
+      "metrics": {
+        "channels": "Активные Каналы",
+        "channelsHint": "Текущее состояние notification routes оператора.",
+        "device": "Устройство",
+        "deviceHint": "Текущий device ID для FCM-диагностики.",
+        "platform": "Платформа",
+        "platformHint": "Выбранная FCM-платформа.",
+        "scope": "Покрытие",
+        "scopeHint": "У backend пока нет глобального admin inventory по FCM.",
+        "scopeValue": "Self-Service"
+      },
+      "preferencesDescription": "Изменяйте notification routes текущего оператора и сохраняйте состояние через backend.",
+      "preferencesTitle": "Настройки Уведомлений",
+      "registeredSummary": "Последняя регистрация выполнена в {createdAt}.",
+      "registeredTitle": "Зарегистрированный Token",
+      "savedLabel": "Сохранено",
+      "title": "Push И Диагностика Настроек",
+      "toggles": {
+        "emailMarketing": "Email marketing campaigns",
+        "emailSecurity": "Email security alerts",
+        "pushConnection": "Push connection events",
+        "pushPayment": "Push payment updates",
+        "pushSubscription": "Push subscription lifecycle"
+      }
+    },
+    "realtime": {
+      "actions": {
+        "disconnect": "Отключиться",
+        "requestingTicket": "Запрашиваем...",
+        "requestTicket": "Запросить Ticket",
+        "subscribe": "Подписаться"
+      },
+      "connectionStatus": "Состояние Соединения",
+      "connectionSummary": "Количество topics в текущем batch-запросе: {topics}.",
+      "description": "Выпуск websocket tickets, проверка доступа к monitoring topics и просмотр live-сообщений из админки.",
+      "emptyLog": "События websocket пока не получены.",
+      "eyebrow": "Realtime",
+      "healthTitle": "Health Snapshot",
+      "logTitle": "Live Event Log",
+      "metaTitle": "Realtime Ops - Ozoxy Admin",
+      "metrics": {
+        "availableTopics": "Доступные Topics",
+        "availableTopicsHint": "Topics, разрешённые backend после connect.",
+        "socket": "Сокет",
+        "socketHint": "Текущее состояние monitoring websocket.",
+        "ticket": "TTL Тикета",
+        "ticketHint": "Время жизни single-use ticket из backend.",
+        "traffic": "Трафик",
+        "trafficHint": "Текущий total traffic из monitoring stats."
+      },
+      "ticketDescription": "Создайте короткоживущий websocket ticket, откройте monitoring socket и завершите сессию после диагностики.",
+      "ticketTitle": "Ticket Flow",
+      "title": "Realtime Topic Console",
+      "topicDescription": "Выберите topics и подпишитесь после открытия websocket. Backend сам сообщит, какие topics разрешены текущей роли.",
+      "topics": {
+        "general": "Общее",
+        "payments": "Платежи",
+        "servers": "Серверы",
+        "system": "Система",
+        "users": "Пользователи"
+      },
+      "topicTitle": "Monitoring Topics"
+    },
+    "telegram": {
+      "accessCards": {
+        "botCatalog": "Bot Catalog",
+        "botCatalogSummary": "Bot-facing plans доступны через admin-side proxy.",
+        "botSettings": "Bot Settings",
+        "botSettingsSummary": "Bot access настроен. Текущий channel ID: {channelId}."
+      },
+      "accessDescription": "Чтение bot-facing access settings и catalog coverage без раскрытия bot secret в браузер.",
+      "accessTitle": "Bot Access",
+      "actions": {
+        "activateTrial": "Активировать Trial",
+        "activatingTrial": "Активируем...",
+        "bootstrap": "Bootstrap User",
+        "bootstrapping": "Обновляем...",
+        "createSubscription": "Создать Подписку",
+        "creatingSubscription": "Создаём...",
+        "generateLink": "Сгенерировать Login Link",
+        "generatingLink": "Генерируем...",
+        "inspect": "Проверить"
+      },
+      "bootstrapDescription": "Необязательные поля для refresh bot-facing user payload прямо из админки.",
+      "bootstrapTitle": "Bootstrap Payload",
+      "botUserTitle": "Bot-Facing User",
+      "configTitle": "VPN Config",
+      "description": "Разбор Telegram-linked VPN users, выполнение bot-facing flow, bootstrap identities и выпуск операторских login links.",
+      "emptyLookup": "Введите Telegram ID и выполните lookup, чтобы загрузить Telegram surfaces.",
+      "expiresAtLabel": "Истекает",
+      "eyebrow": "Telegram Ops",
+      "fields": {
+        "durationDays": "Дней",
+        "firstName": "Имя",
+        "language": "Код Языка",
+        "plan": "Тариф",
+        "referrerId": "Referrer Telegram ID",
+        "telegramId": "Telegram ID",
+        "username": "Username"
+      },
+      "labels": {
+        "adminConfig": "Config Через Admin Route",
+        "botConfig": "Config Через Bot Route",
+        "dataLimit": "Лимит Трафика",
+        "dataUsage": "Использованный Трафик",
+        "languageCode": "Язык",
+        "referralLink": "Referral Link",
+        "totalReferrals": "Всего Рефералов",
+        "trialStatus": "Статус Trial"
+      },
+      "loginLinkLabel": "Сгенерированный Bot Login Link",
+      "lookupDescription": "Разбор Telegram ID, генерация одноразовых bot login links, refresh bot-facing user и активация trial flow при необходимости.",
+      "lookupTitle": "Lookup И Действия",
+      "metaTitle": "Telegram Ops - Ozoxy Admin",
+      "metrics": {
+        "accessMode": "Режим Доступа",
+        "accessModeHint": "Bot-side access settings через admin proxy.",
+        "botPlans": "Bot Plans",
+        "botPlansHint": "Количество bot-facing plan entries из backend.",
+        "catalog": "Активные Тарифы",
+        "catalogHint": "Активные тарифы для ручного создания подписки.",
+        "operatorTelegram": "Telegram Оператора",
+        "operatorTelegramHint": "Telegram ID текущей сессии."
+      },
+      "placeholders": {
+        "telegramId": "Введите числовой Telegram ID"
+      },
+      "referralTitle": "Referral Signals",
+      "subscriptionDescription": "Используйте текущий каталог тарифов, чтобы создать подписку выбранному Telegram-linked пользователю.",
+      "subscriptionsTitle": "Bot Subscriptions",
+      "subscriptionSummary": "Bot-facing expiry: {expiresAt}.",
+      "subscriptionTitle": "Ручная Подписка",
+      "title": "Контроль Telegram",
+      "trialSummary": "Текущее trial-окно показывает ещё {days} дней.",
+      "userTitle": "Telegram User"
+    }
+  },
+  "Landing": {
+    "comparison_table": {
+      "headers": {
+        "cybervpn": "CyberVPN (VLESS-Reality)",
+        "feature": "Функция",
+        "legacy": "Устаревший VPN (WireGuard/OpenVPN)"
+      },
+      "rows": {
+        "dpi": {
+          "cybervpn": "Неотличимо от HTTPS",
+          "feature": "Обнаружение DPI",
+          "legacy": "Легко определяется и блокируется"
+        },
+        "ip_blocking": {
+          "cybervpn": "Нулевой (динамическая маскировка Reality)",
+          "feature": "Риск блокировки IP",
+          "legacy": "Высокий (статичные паттерны)"
+        },
+        "privacy": {
+          "cybervpn": "Шифрование только в RAM (Без следов)",
+          "feature": "Уровень Приватности",
+          "legacy": "Стандартное шифрование"
+        },
+        "speed": {
+          "cybervpn": "Полная скорость магистрали (10 Гбит/с)",
+          "feature": "Скорость под нагрузкой",
+          "legacy": "Ограничивается провайдером"
+        }
+      },
+      "title": "Устаревшее против Нового поколения"
+    },
+    "features": {
+      "backbone": {
+        "desc": "Нативные аплинки 10 Гбит/с в дата-центрах Tier-3. Оптимизировано для 4K/8K стриминга и гейминга с низким пингом.",
+        "title": "Магистральная Производительность"
+      },
+      "badge": "МАТРИЦА ВОЗМОЖНОСТЕЙ",
+      "multiplatform": {
+        "desc": "Одна подписка для Telegram бота, iOS, Android, Windows, macOS и Linux.",
+        "title": "Нативная Кроссплатформенность"
+      },
+      "protocols": {
+        "desc": "Полная поддержка VLESS, Trojan. Поддержка XHTTP для обхода самых жестких корпоративных и государственных файрволов. Ваш трафик выглядит как стандартные HTTP-запросы к доверенным ресурсам.",
+        "title": "Продвинутые Протоколы"
+      },
+      "ram": {
+        "desc": "Никаких дисков, никаких логов, никакого сохранения данных. Инфраструктура стирается при каждом перезапуске.",
+        "title": "Инфраструктура только в RAM"
+      },
+      "routing": {
+        "desc": "Глобальная сеть из 100+ узлов с автоматическим выбором на основе задержки.",
+        "title": "Умная Маршрутизация"
+      },
+      "sectionSubtitle": "Шесть уровней защиты для современного кибер-гражданина",
+      "sectionTitle": "ТЕХНОЛОГИЧЕСКОЕ ПРЕВОСХОДСТВО",
+      "stats": {
+        "bandwidth": "Гбит/с",
+        "locations": "локации",
+        "logs": "логи",
+        "uptime": "аптайм"
+      },
+      "stealth": {
+        "desc": "Трафик неотличим от посещения Google/Microsoft/Apple. Никакого отпечатка VPN.",
+        "title": "Стелс Режим (Reality)"
+      }
+    },
+    "hero": {
+      "cta_app": "СКАЧАТЬ ПРИЛОЖЕНИЕ",
+      "cta_telegram": "ЗАПУСТИТЬ В TELEGRAM",
+      "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
+      "subtitle": "Обход DPI-блокировок любой сложности. Маскировка трафика под стандартный HTTPS. Скорость до 10 Гбит/с без потерь на инкапсуляцию.",
+      "title": "НЕВИДИМЫЙ VPN. РАБОТАЕТ НА VLESS-REALITY",
+      "titleHighlight": "НЕВИДИМЫЙ VPN."
+    },
+    "how_it_works": {
+      "badge": "ANTI-DPI ДВИЖОК",
+      "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт. Интеллектуальный выбор транспорта: автоматическое переключение на XHTTP, если сеть блокирует нестандартные протоколы.",
+      "title": "Как работает Reality"
+    },
+    "network_stats": {
+      "bandwidth": "Пропускная способность магистрали 1.2 Тбит/с",
+      "coverage": "50+ Стран, 100+ Городов",
+      "nodes": "100+ Активных высокопроизводительных узлов",
+      "title": "Сетевая Инфраструктура",
+      "uptime": "99.9% Доступность сети"
+    },
+    "pricing": {
+      "basic": "Basic: Пробный / Начальный уровень",
+      "cyber": "Cyber: Премиум / Полный доступ",
+      "pro": "Pro: Самый популярный",
+      "ultra": "Ultra: Высокая пропускная способность"
+    },
+    "quick_start": {
+      "badge": "Быстрый старт",
+      "step1": "Запустите бота (@CyberVPN_Bot)",
+      "step2": "Активация Trial в один клик (2 дня / 2 ГБ)",
+      "step3": "Импортируйте конфиг в любое приложение и оставайтесь свободными",
+      "terminalComment": "# Автоматическое развёртывание VPN-туннеля...",
+      "terminalStatus": "> Туннель установлен. DPI обойдён. Защищаем транспорт...",
+      "terminalTitle": "Развертывание подключения",
+      "title": "Путь в 30 Секунд"
+    },
+    "speed_tunnel": {
+      "featureNoAds": "YouTube без рекламы",
+      "featureTorrent": "Торренты",
+      "online": "ОНЛАЙН",
+      "servers": {
+        "amsterdam": {
+          "city": "Амстердам",
+          "country": "Нидерланды"
+        },
+        "frankfurt": {
+          "city": "Франкфурт",
+          "country": "Германия"
+        },
+        "london": {
+          "city": "Лондон",
+          "country": "Великобритания"
+        },
+        "newYork": {
+          "city": "Нью-Йорк",
+          "country": "США"
+        },
+        "paris": {
+          "city": "Париж",
+          "country": "Франция"
+        },
+        "seoul": {
+          "city": "Сеул",
+          "country": "Южная Корея"
+        },
+        "singapore": {
+          "city": "Сингапур",
+          "country": "Сингапур"
+        },
+        "sydney": {
+          "city": "Сидней",
+          "country": "Австралия"
+        },
+        "tokyo": {
+          "city": "Токио",
+          "country": "Япония"
+        },
+        "toronto": {
+          "city": "Торонто",
+          "country": "Канада"
+        }
+      },
+      "subtitle": "100+ локаций. Каналы 10 Гбит/с. Никаких ограничений.",
+      "titleEnd": "СЕТЬ",
+      "titleHighlight": "УЛЬТРАСКОРОСТНАЯ",
+      "titleStart": "ГЛОБАЛЬНАЯ"
+    },
+    "status_board": {
+      "item_online": "ОНЛАЙН",
+      "live": "В РЕАЛЬНОМ ВРЕМЕНИ",
+      "protocols": {
+        "reality": "Reality",
+        "vless_grpc": "VLESS-gRPC"
+      },
+      "title": "Статус Узлов"
+    },
+    "tech_specs": {
+      "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
+      "network": "Сеть: Аплинки 10 Гбит/с, глобальная поддержка IPv6",
+      "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP"
+    },
+    "technical": {
+      "labels": {
+        "encryption": "Шифрование",
+        "network": "Сеть",
+        "transport": "Транспорт"
+      },
+      "networkLabels": {
+        "bandwidth": "Пропускная способность",
+        "coverage": "Покрытие",
+        "nodes": "Активные узлы",
+        "uptime": "Доступность сети"
+      },
+      "specificationsTitle": "Технические характеристики"
+    }
+  },
+  "LanguageSelector": {
+    "noResults": "NO_MATCHES_FOUND",
+    "searchPlaceholder": "SEARCH_LANGUAGE...",
+    "title": "SELECT_LANGUAGE"
+  },
+  "MiniApp": {
+    "home": {
+      "activateTrial": "Activate Trial",
+      "configCopied": "VPN config copied to clipboard!",
+      "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
+      "configQRTitle": "VPN Config QR Code",
+      "connections": "Connections",
+      "copyConfig": "Copy Config",
+      "dataUsed": "Data Used",
+      "daysRemaining": "Days Remaining",
+      "expires": "Expires",
+      "lastConnected": "Last Connected",
+      "never": "Never",
+      "noConfigAvailable": "No VPN config available",
+      "noConfigDescription": "Activate a subscription to get your VPN configuration",
+      "noSubscription": "No Active Subscription",
+      "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
+      "openInApp": "Open in App",
+      "plan": "Plan",
+      "quickActions": "Quick Actions",
+      "settings": "Settings",
+      "subscriptionActive": "Subscription Active",
+      "trial": "TRIAL",
+      "trialAvailable": "Free Trial Available",
+      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+      "trialPlan": "7-Day Free Trial",
+      "unknown": "Unknown",
+      "usage": "Usage Statistics",
+      "viewPlans": "View Plans",
+      "viewQR": "View QR Code",
+      "vpnConfig": "VPN Config",
+      "vpnConfigDescription": "Get your VPN config to connect from any device",
+      "vpnConfigTitle": "VPN Configuration",
+      "wallet": "Wallet"
+    },
+    "meta": {
+      "description": "Manage your VPN subscription in Telegram",
+      "title": "CyberVPN Mini App"
+    },
+    "nav": {
+      "bottomNav": "Main navigation",
+      "home": "Home",
+      "plans": "Plans",
+      "profile": "Profile",
+      "wallet": "Wallet"
+    },
+    "payments": {
+      "noPayments": "No payment history yet",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "status_refunded": "Refunded",
+      "title": "Payment History",
+      "total": "total"
+    },
+    "plans": {
+      "activateTrial": "Activate 7-Day Trial",
+      "activating": "Activating...",
+      "apply": "Apply",
+      "availablePlans": "Subscription Plans",
+      "contactForPrice": "Contact",
+      "daysCount": "{count} days",
+      "discountApplied": "Discount applied: ${amount}",
+      "free": "Free",
+      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
+      "freeTrialTitle": "Try CyberVPN Free",
+      "haveInviteCode": "Have an Invite Code?",
+      "havePromoCode": "Have a Promo Code?",
+      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "inviteCodePlaceholder": "INVITE123",
+      "inviteInvalid": "Invalid or already used invite code",
+      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
+      "monthly": "per month",
+      "noPlans": "No plans available at the moment",
+      "paymentError": "Payment failed. Please try again.",
+      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+      "processing": "Processing...",
+      "promoCodePlaceholder": "PROMO2024",
+      "promoInvalid": "Invalid or expired promo code",
+      "promoValid": "Promo code applied! Discount: ${discount}",
+      "purchasePlan": "Purchase Plan",
+      "quarterly": "per quarter",
+      "redeem": "Redeem",
+      "selectPlanFirst": "Please select a plan first",
+      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "trialError": "Failed to activate trial. Please try again.",
+      "yearly": "per year"
+    },
+    "profile": {
+      "accountDeleted": "Account deleted successfully",
+      "antiphishing": {
+        "codePlaceholder": "Enter 4-32 characters",
+        "codeRequired": "Code is required",
+        "codeTooLong": "Code must be less than 32 characters",
+        "codeTooShort": "Code must be at least 4 characters",
+        "currentCode": "Current Code",
+        "deleteCode": "Delete Code",
+        "deleteConfirm": "Are you sure you want to delete your antiphishing code?",
+        "deleteError": "Failed to delete code",
+        "deleteSuccess": "Antiphishing code deleted",
+        "deleting": "Deleting...",
+        "description": "Set a unique code that will appear in all emails from us. This helps you verify that emails are genuine.",
+        "error": "Failed to update code",
+        "newCode": "New Code",
+        "noCode": "No code set",
+        "setCode": "Set Code",
+        "submitting": "Saving...",
+        "success": "Antiphishing code updated",
+        "title": "Antiphishing Code",
+        "updateCode": "Update Code"
+      },
+      "antiphishingCode": "Antiphishing Code",
+      "changePassword": "Change Password",
+      "codeCopied": "Referral code copied to clipboard",
+      "copy": "Copy",
+      "copyError": "Failed to copy to clipboard",
+      "deleteAccount": "Delete Account",
+      "deleteAccountConfirm": "Are you sure? This action cannot be undone.",
+      "deleteAccountError": "Failed to delete account. Please try again.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "guest": "Guest User",
+      "language": "Language",
+      "languageNote": "Language follows your Telegram settings",
+      "logout": "Logout",
+      "logoutConfirm": "Are you sure you want to logout?",
+      "noEmail": "No email set",
+      "noPayments": "No payment history yet",
+      "notifications": "Notifications",
+      "notificationsNote": "Configure notification preferences",
+      "partner": "Partner Dashboard",
+      "partnerDashboard": {
+        "bindCode": "Bind Partner Code",
+        "bindCodeDescription": "Enter a partner code to join the partner program and start earning commissions",
+        "bindError": "Failed to bind partner code",
+        "bindSuccess": "Partner code bound successfully!",
+        "codeLabel": "Code",
+        "codePlaceholder": "Enter partner code",
+        "codeRequired": "Partner code is required",
+        "createdAt": "Created",
+        "isPartner": "You are a Partner",
+        "markup": "Markup",
+        "noCodes": "No partner codes yet",
+        "notPartner": "Become a Partner",
+        "partnerCodes": "Your Partner Codes",
+        "submit": "Bind Code",
+        "submitting": "Binding...",
+        "tier": "Partner Tier",
+        "totalClients": "Total Clients",
+        "totalEarned": "Total Earned"
+      },
+      "partnerNote": "Contact support for partner program information",
+      "passwordChange": {
+        "confirmPassword": "Confirm New Password",
+        "confirmPasswordRequired": "Please confirm your new password",
+        "currentPassword": "Current Password",
+        "currentPasswordRequired": "Current password is required",
+        "error": "Failed to change password",
+        "newPassword": "New Password",
+        "newPasswordRequired": "New password is required",
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "submit": "Change Password",
+        "submitting": "Changing...",
+        "success": "Password changed successfully",
+        "title": "Change Password"
+      },
+      "paymentHistory": "Payment History",
+      "referral": "Referral Program",
+      "referralShareText": "Join CyberVPN with my code: {code}",
+      "security": "Security",
+      "securityNote": "Manage your password and 2FA settings in the full dashboard",
+      "settings": "Settings",
+      "share": "Share",
+      "totalEarnings": "Total Earnings",
+      "totalReferrals": "Total Referrals",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "viewAll": "View All",
+      "yourReferralCode": "Your Referral Code"
+    },
+    "referral": {
+      "commissionAmount": "Amount",
+      "commissionDate": "Date",
+      "commissionFrom": "From",
+      "copied": "Code copied to clipboard!",
+      "howItWorks": "How It Works",
+      "noCommissions": "No commissions yet",
+      "qrCodeTitle": "QR Code",
+      "recentCommissions": "Recent Commissions",
+      "referralRate": "Commission Rate",
+      "scanToJoin": "Scan to join with your code",
+      "shareCode": "Share Code",
+      "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
+      "shareTitle": "Share & Earn",
+      "stats": "Your Stats",
+      "step1": "Share your unique code",
+      "step2": "Friends sign up with your code",
+      "step3": "Earn commission on their purchases",
+      "title": "Referral Program",
+      "totalEarned": "Total Earned",
+      "totalReferrals": "Total Referrals",
+      "yourCode": "Your Referral Code"
+    },
+    "wallet": {
+      "amount": "Amount",
+      "available": "Available",
+      "balance": "Wallet Balance",
+      "close": "Close",
+      "frozen": "Frozen",
+      "insufficientBalance": "Insufficient balance",
+      "invalidAmount": "Please enter a valid amount",
+      "loading": "Loading...",
+      "loadMore": "Load More",
+      "noTransactions": "No transactions yet",
+      "paymentMethod": "Payment Method",
+      "paymentMethodPlaceholder": "e.g., Crypto wallet address, PayPal email",
+      "paymentMethodRequired": "Payment method is required",
+      "processing": "Processing...",
+      "status_cancelled": "Cancelled",
+      "status_completed": "Completed",
+      "status_failed": "Failed",
+      "status_pending": "Pending",
+      "submitWithdrawal": "Submit Withdrawal Request",
+      "total": "total",
+      "transactions": "Transaction History",
+      "type_deposit": "Deposit",
+      "type_purchase": "Purchase",
+      "type_referral_commission": "Referral Commission",
+      "type_refund": "Refund",
+      "type_withdrawal": "Withdrawal",
+      "withdraw": "Withdraw Funds",
+      "withdrawalNote": "Withdrawals require admin approval and may take 1-3 business days.",
+      "withdrawError": "Withdrawal request failed. Please try again.",
+      "withdrawFunds": "Withdraw Funds"
+    }
+  },
+  "Monitoring": {},
+  "Navigation": {
+    "adminConsole": "КОНСОЛЬ АДМИНА",
+    "closeMenu": "Закрыть меню админки",
+    "commerce": "КОММЕРЦИЯ",
+    "commerceHint": "Тарифы, платежи, кошельки",
+    "customers": "КЛИЕНТЫ",
+    "customersHint": "Жизненный цикл, поддержка, аккаунты",
+    "dashboard": "ДАШБОРД",
+    "dashboardHint": "Здоровье, очереди, инциденты",
+    "governance": "КОНТРОЛЬ",
+    "governanceHint": "Аудит, вебхуки, доступы",
+    "growth": "РОСТ",
+    "growthHint": "Промо, инвайты, рефералы",
+    "infrastructure": "ИНФРАСТРУКТУРА",
+    "infrastructureHint": "Серверы, ноды, rollout",
+    "integrations": "ИНТЕГРАЦИИ",
+    "integrationsHint": "Telegram, push, realtime",
+    "mainNavigation": "Навигация админки",
+    "openMenu": "Открыть меню админки",
+    "secureSession": "ЗАЩИЩЁННАЯ СЕССИЯ",
+    "security": "БЕЗОПАСНОСТЬ",
+    "securityHint": "Сессии, 2FA, доверие",
+    "sidebar": "Боковая панель админки"
+  },
+  "Network": {
+    "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",
+    "labels": {
+      "activeNodes": "Активные Узлы",
+      "encryption": "AES-256-GCM",
+      "latency": "СР. ПИНГ: 12мс",
+      "status": "СТАТУС: ОНЛАЙН",
+      "threatsIntercepted": "Заблокировано Угроз",
+      "totalBandwidth": "Пропускная Способность"
+    },
+    "metrics": {
+      "bandwidth": "100+ Гбит/с",
+      "nodes": "5,204",
+      "threats": "14.2М/с"
+    },
+    "regions": {
+      "asia": "Аз.-Тихоокеанский",
+      "europe": "Европа",
+      "latam": "Лат. Америка",
+      "namerica": "Сев. Америка"
+    },
+    "servers": {
+      "1": "Нью-Йорк, США",
+      "2": "Лондон, ВБ",
+      "3": "Токио, Япония",
+      "4": "Сингапур",
+      "5": "Франкфурт, ЕС",
+      "6": "Сан-Паулу, БР",
+      "7": "Сидней, АВСТР"
+    },
+    "title": "Глобальная Инфраструктура"
+  },
+  "Partner": {},
+  "PaymentHistory": {},
+  "Placeholder": {
+    "descriptionLine1": "Этот модуль кибер-дека сейчас в разработке.",
+    "descriptionLine2": "Проверьте позже для обновлений прошивки.",
+    "errorCode": "КОД_ОШИБКИ: ФУНКЦИЯ_НЕ_ГОТОВА",
+    "title": "МОДУЛЬ СИСТЕМЫ ОФЛАЙН"
+  },
+  "Pricing": {
+    "faq": {
+      "a1": "Никак нет. Мы работаем на строгой инфраструктуре Zero-Log. Ваш цифровой след стирается при отключении.",
+      "a2": "Ваше соединение перейдет на базовую сниженную скорость (128 kbps). Обновитесь до Pro для безлимитной передачи.",
+      "a3": "Подтверждаю. Мы принимаем Bitcoin, Monero и защищенные цифровые кредиты. Абсолютная анонимность — наша главная директива.",
+      "q1": "Ведутся ли логи моей активности?",
+      "q2": "Что будет, если я превышу лимит трафика на тарифе Stealth?",
+      "q3": "Принимаете ли вы крипту?",
+      "title": "РАСШИФРОВАННЫЕ АРХИВЫ"
+    },
+    "subtitle": "Распределение мощности сети",
+    "tiers": {
+      "basic": {
+        "button": "ИНИЦИАЛИЗАЦИЯ STEALTH",
+        "description": "Базовое шифрование для навигации по окраинам цифрового мира.",
+        "features": [
+          "Ядерное шифрование AES-256",
+          "5 Глобальных Ретрансляторов",
+          "Лимит 10 ГБ/мес",
+          "Стандартный Пинг Поддержки"
+        ],
+        "name": "STEALTH",
+        "period": "/навсегда",
+        "price": "Free"
+      },
+      "elite": {
+        "button": "ПОЛУЧИТЬ ELITE",
+        "description": "Полный перехват сети. Выделенные IP и тотальный контроль инфраструктуры.",
+        "features": [
+          "Выделенный Cyber-IP Адрес",
+          "Обфусцированные Стелс Протоколы",
+          "Приоритетный Выбор Узлов",
+          "Сетевые Каналы 10Гбит/с",
+          "Доступ к Бета Директивам"
+        ],
+        "name": "ELITE_SYNC",
+        "period": "/месяц",
+        "price": "$15.99"
+      },
+      "pro": {
+        "badge": "ПОПУЛЯРНЫЙ_ВЫБОР",
+        "button": "ОБНОВИТЬ ДО PRO",
+        "description": "Неограниченная скорость и анонимность матричного уровня для истинных раннеров.",
+        "features": [
+          "Квантово-Устойчивые Протоколы",
+          "8,000+ Узлов 1-го Уровня",
+          "Безлимитная Пропускная Способность",
+          "Усиленные Ядра без Логов",
+          "Двойная Маршрутизация (Double VPN)"
+        ],
+        "name": "CYBER_PRO",
+        "period": "/месяц",
+        "price": "$8.99"
+      }
+    },
+    "title": "УРОВНИ ДОСТУПА"
+  },
+  "Privacy": {
+    "description": "СОВЕРШЕННО СЕКРЕТНО. РАСШИФРОВКА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ...",
+    "sections": {
+      "dataCollection": {
+        "content": "Для поддержания работы протокола нам необходим абсолютный минимум информации. Мы собираем только: учетные данные для авторизации (хэш пароля) и метаданные подписки (срок действия токена).",
+        "radarLabels": {
+          "blocked": "TRAFFIC LOGS",
+          "collected": "АВТОРИЗАЦИЯ"
+        },
+        "title": "02. СБОР ДАННЫХ"
+      },
+      "encryption": {
+        "content": "Ваш трафик защищен по стандарту AES-256-GCM с использованием совершенной прямой секретности (PFS). Это означает, что даже если квантовый компьютер будущего взломает текущий ключ, ваши прошлые сессии останутся в безопасности.",
+        "title": "04. КРИПТОГРАФИЯ"
+      },
+      "introduction": {
+        "content": "Данный документ представляет собой официальную Политику Конфиденциальности сети CyberVPN. Наш главный принцип: мы не можем выдать то, чего у нас нет. Мы создали инфраструктуру, которая физически не способна хранить ваши личные данные, логи активности или историю посещений.",
+        "title": "01. ВВЕДЕНИЕ & ОБЗОР"
+      },
+      "noLogs": {
+        "content": "Вся наша сеть работает на базе RAM-дисков (оперативной памяти). Как только сервер перезагружается, любые следы вашего присутствия уничтожаются безвозвратно. Мы не ведем журналы DNS-запросов, IP-адресов или временных меток сессий.",
+        "title": "03. ПОЛИТИКА ZERO-LOGS"
+      },
+      "thirdParties": {
+        "content": "CyberVPN не передает, не продает и не обменивает ваши данные. Мы не сотрудничаем с рекламными сетями или дата-брокерами. Наш единственный источник дохода — оплата подписки пользователями.",
+        "title": "05. ТРЕТЬИ СТОРОНЫ"
+      }
+    },
+    "status": {
+      "decrypted": "РАСШИФРОВАНО",
+      "decrypting": "РАСШИФРОВКА...",
+      "encrypted": "ЗАШИФРОВАНО"
+    },
+    "title": "ПРОТОКОЛ ПРОЗРАЧНОСТИ"
+  },
+  "PrivacyPolicy": {
+    "lastUpdated": "Last Updated",
+    "meta": {
+      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "title": "Privacy Policy - CyberVPN"
+    },
+    "sections": {
+      "changes": {
+        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
+        "title": "Changes to This Policy"
+      },
+      "contact": {
+        "address": "Address",
+        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "email": "Email",
+        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+        "title": "Contact Information"
+      },
+      "dataCollection": {
+        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "items": {
+          "accountInfo": "Account information (email address, username)",
+          "deviceInfo": "Device and connection metadata (device type, operating system)",
+          "paymentInfo": "Payment information (processed securely by third-party providers)",
+          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+        },
+        "title": "Data Collection"
+      },
+      "dataRetention": {
+        "description": "We retain data only as long as necessary:",
+        "policies": {
+          "accountData": "Account data: retained while your account is active",
+          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
+          "paymentRecords": "Payment records: 7 years for legal compliance",
+          "supportLogs": "Support logs: 90 days after ticket closure"
+        },
+        "title": "Data Retention"
+      },
+      "dataSecurity": {
+        "description": "We implement industry-standard security measures:",
+        "measures": {
+          "accessControl": "Strict access controls and authentication",
+          "encryption": "End-to-end encryption for all VPN traffic",
+          "regularAudits": "Regular security audits and vulnerability assessments",
+          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+        },
+        "title": "Data Security"
+      },
+      "gdprRights": {
+        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "rights": {
+          "access": {
+            "description": "Request a copy of your personal data",
+            "title": "Right to Access"
+          },
+          "erasure": {
+            "description": "Request deletion of your personal data",
+            "title": "Right to Erasure"
+          },
+          "objection": {
+            "description": "Object to processing of your data",
+            "title": "Right to Object"
+          },
+          "portability": {
+            "description": "Receive your data in a machine-readable format",
+            "title": "Right to Data Portability"
+          },
+          "rectification": {
+            "description": "Correct inaccurate or incomplete data",
+            "title": "Right to Rectification"
+          }
+        },
+        "title": "Your GDPR Rights"
+      },
+      "noLogPolicy": {
+        "details": "This means:",
+        "notLogged": {
+          "browsing": "No browsing history or website visits",
+          "connections": "No connection timestamps or session duration",
+          "dns": "No DNS queries or IP addresses",
+          "traffic": "No traffic data or content inspection"
+        },
+        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
+        "title": "No-Log Policy"
+      },
+      "thirdParty": {
+        "description": "We work with trusted third-party providers:",
+        "services": {
+          "analytics": "Anonymous analytics (no personally identifiable information)",
+          "infrastructure": "Cloud infrastructure providers (servers and network)",
+          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+        },
+        "title": "Third-Party Services"
+      }
+    },
+    "title": "Privacy Policy"
+  },
+  "Referral": {},
+  "Sections": {
+    "commerce": {
+      "availableNow": {
+        "payments": "История платежей платформы с фильтрацией по пользователю.",
+        "plans": "Каталог тарифов и базовые примитивы управления ценами.",
+        "subscriptionTemplates": "Subscription templates и сигналы структуры биллинга.",
+        "walletOperations": "Кошельки, транзакции и состояние, связанное с выплатами.",
+        "withdrawalApprovals": "Подтверждение и отклонение ожидающих выводов."
+      },
+      "backendCoverage": "Сильное покрытие. Read и write API уже достаточно, чтобы быстро выпустить полезный revenue-operations модуль.",
+      "currentState": "Коммерция сейчас одна из самых сильных backend-зон: уже есть тарифы, история платежей, subscription templates, wallet flows и модерация выводов.",
+      "description": "Операции выручки для тарифов, платёжных рельс, движения кошельков и модерации выводов.",
+      "metaTitle": "Коммерция - Ozoxy Admin",
+      "nextFocus": "Следующий шаг: payment detail, ручные корректировки, refund resync и разборы биллинговых инцидентов.",
+      "nextModules": {
+        "billingOps": "Операционный биллинговый console для споров и эскалаций.",
+        "manualCorrections": "Ручные корректировки баланса и платежей.",
+        "paymentDetail": "Детальный разбор платежа с контекстом провайдера.",
+        "refundResyncFlows": "Инструменты возвратов и повторной синхронизации провайдеров."
+      },
+      "title": "Коммерческий Контур"
+    },
+    "common": {
+      "availableNow": "Доступно Сейчас",
+      "backendCoverage": "Покрытие Backend",
+      "currentState": "Текущее Состояние",
+      "nextFocus": "Следующий Фокус",
+      "nextModules": "Следующие Модули",
+      "returnToDashboard": "Вернуться на дашборд"
+    },
+    "customers": {
+      "availableNow": {
+        "customerDetail": "Операционная карточка клиента с identity, wallet, payments, referral и partner-контекстом.",
+        "customerDirectory": "Поисковый каталог mobile user с lifecycle- и partner-фильтрами.",
+        "partnerPromotions": "Прямое повышение до партнёра из customer card и growth-поверхностей.",
+        "walletTopups": "Пополнения кошелька и движения баланса, связанные с платежами."
+      },
+      "backendCoverage": "Частичное покрытие. Базовый read/update customer-surface уже работает, но subscription timeline, recovery-tooling и staff notes ещё требуют отдельных workflow.",
+      "currentState": "Каталог клиентов и customer card уже живут поверх выделенных mobile-user admin API, wallet-flow, payments, referral-данных и partner-контекста.",
+      "description": "Поверхность поддержки и жизненного цикла для конечных пользователей, кошельков, подписок и ручного вмешательства.",
+      "metaTitle": "Клиенты - Ozoxy Admin",
+      "nextFocus": "Углубить customer-operations через support-действия, recovery-инструменты, таймлайны и более богатую историю вмешательств.",
+      "nextModules": {
+        "manualRecovery": "Recovery-flow для доступа к аккаунту, device reset и incident response.",
+        "staffNotes": "Постоянные staff-notes и внутренний case-контекст для customer operations.",
+        "subscriptionTimeline": "Единый subscription/access timeline по каждому клиенту.",
+        "supportToolkit": "Ручные support-действия: причины блокировки, безопасные override и targeted intervention flow."
+      },
+      "title": "Клиентские Операции"
+    },
+    "governance": {
+      "availableNow": {
+        "adminInvites": "Жизненный цикл инвайтов для новых admin-сотрудников.",
+        "auditLog": "Трасса привилегированных действий из backend audit log.",
+        "policyVisibility": "Базовая видимость уже существующих governance-поверхностей.",
+        "webhookLog": "Видимость обработки вебхуков и контекста ошибок."
+      },
+      "backendCoverage": "Частичное покрытие. Видимость аудита сильная, но system configuration и богатые staff-management API пока отсутствуют.",
+      "currentState": "Audit logs, webhook logs и admin invites уже доступны. Не хватает staff directory management и system configuration governance.",
+      "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
+      "metaTitle": "Контроль - Ozoxy Admin",
+      "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",
+      "nextModules": {
+        "adminDirectory": "Каталог сотрудников с ролями, статусами и зонами ответственности.",
+        "forensicFilters": "Глубокие фильтры и forensic-инструменты расследования.",
+        "staffRoleChanges": "Workflow смены ролей и история согласований.",
+        "systemConfig": "Редактор системных настроек с safety-ограничениями."
+      },
+      "title": "Governance И Аудит"
+    },
+    "growth": {
+      "availableNow": {
+        "inviteCodes": "Генерация invite-кодов и видимость их погашения.",
+        "partnerPromotion": "Повышение до партнёра плюс live-directory и drill-down контекст.",
+        "promoCodes": "Инвентарь промокодов и примитивы их валидации.",
+        "referralSignals": "Referral overview, top referrer'ы и аналитика последних commission."
+      },
+      "backendCoverage": "Частичное покрытие. Базовые admin-safe growth-surface уже живые, но модерация, payout-tooling и invite inventory ещё нужно расширять.",
+      "currentState": "Growth уже даёт живой promo inventory, invite generation, partner directory и referral analytics, но abuse-handling и payout-операции пока остаются отдельным следующим слоем.",
+      "description": "Поверхность привлечения и удержания для промо-механик, партнёрских сигналов, invite-кодов и рефералов.",
+      "metaTitle": "Рост - Ozoxy Admin",
+      "nextFocus": "Добавить anti-abuse контроль, payout-операции и более глубокую attribution-диагностику поверх текущего live growth inventory.",
+      "nextModules": {
+        "abuseReview": "Разбор злоупотреблений invite-, promo- и referral-механиками.",
+        "fraudSignals": "Fraud- и anomaly-сигналы по acquisition-каналам.",
+        "growthSettings": "Единые настройки роста для промо- и referral-правил.",
+        "inviteInventory": "Inventory и lifecycle-tracking для invite-batch.",
+        "payoutOps": "Операции вокруг выплат партнёрам и referral-earning."
+      },
+      "title": "Контур Роста"
+    },
+    "infrastructure": {
+      "availableNow": {
+        "configProfiles": "Profiles и поверхности распределения конфигов.",
+        "helix": "Уже доступные control surfaces для Helix.",
+        "hosts": "Управление hosts и поверхности их связности.",
+        "nodePlugins": "Примитивы orchestration для node plugins.",
+        "servers": "Инвентарь серверов, статусы и агрегированные метрики.",
+        "xray": "Операционные endpoints и сигналы конфигурации XRay."
+      },
+      "backendCoverage": "Сильное покрытие. Этот домен уже тянет полноценный admin-модуль с мониторингом, rollout и node-операциями.",
+      "currentState": "Инфраструктура уже backend-ready и сейчас даёт самый широкий набор operational API во всей системе.",
+      "description": "Операции по флоту серверов, hosts, profiles, plugins, Helix и XRay-поверхностям.",
+      "metaTitle": "Инфраструктура - Ozoxy Admin",
+      "nextFocus": "Добавить rollout-tooling, drill-down по нодам и workflow сравнения конфигов.",
+      "nextModules": {
+        "inbounds": "Управление inbound-правилами и точками входа трафика.",
+        "rolloutConsole": "Rollout console со стадийным исполнением и контролем blast radius.",
+        "snippets": "Переиспользуемые конфиг-snippets и deployment presets.",
+        "squads": "Группировка серверов и rollout squads."
+      },
+      "title": "Контроль Инфраструктуры"
+    },
+    "integrations": {
+      "availableNow": {
+        "botConfigAccess": "Пути доступа к bot configuration и смежному backend coverage.",
+        "realtimeTopics": "Realtime- и websocket-driven event topics.",
+        "telegramOps": "Telegram-связанные operational и auth-примитивы.",
+        "websocketTickets": "Низкоуровневые websocket- и callback-сигналы, уже видимые в backend-доменах."
+      },
+      "backendCoverage": "Частичное покрытие. Значимые integration-примитивы уже есть, но admin UI ещё нужно собрать в единый diagnostic слой.",
+      "currentState": "Backend уже экспонирует Telegram, bot и webhook-возможности, но операторская видимость по ним пока раскидана по нескольким зонам.",
+      "description": "Поверхность для Telegram, realtime-доставки, bot-linked flows и видимости callback-событий.",
+      "metaTitle": "Интеграции - Ozoxy Admin",
+      "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и realtime diagnostics.",
+      "nextModules": {
+        "deliveryDiagnostics": "Диагностика интеграций и drill-down по ошибкам.",
+        "integrationHealth": "Сводное здоровье внешних интеграций и callback-потоков.",
+        "opsNotifications": "Маршрутизация операторских уведомлений и эскалаций.",
+        "pushVisibility": "Видимость push- и outbound-delivery."
+      },
+      "title": "Операции Интеграций"
+    },
+    "security": {
+      "availableNow": {
+        "adminSessions": "Session-aware модель доступа в админку с защищённым dashboard.",
+        "antiPhishing": "Примитивы anti-phishing code и profile security signals.",
+        "authHardening": "Role-based access checks и усиленный session flow.",
+        "twoFactor": "Вход email/password, жёстко завязанный на 2FA flow."
+      },
+      "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и governance привилегированного доступа.",
+      "currentState": "Базовые security-примитивы уже есть, а сама админка теперь работает с role-check и контуром входа только через 2FA.",
+      "description": "Поверхность доверия для админских сессий, 2FA, anti-phishing и усиления привилегированного доступа.",
+      "metaTitle": "Безопасность - Ozoxy Admin",
+      "nextFocus": "Дальше нужно наложить anomaly detection, reason capture и device trust поверх текущего auth-фундамента.",
+      "nextModules": {
+        "deviceTrust": "Device trust и контроль доверенных операторских рабочих мест.",
+        "privilegedReasons": "Фиксация причин для чувствительных admin-действий.",
+        "securityPosture": "Центральный posture dashboard для доверия и auth-health.",
+        "sessionAnomalies": "Детекция подозрительных сессий и очередь на review."
+      },
+      "title": "Контур Безопасности"
+    }
+  },
+  "Security": {
+    "classified": {
+      "text1": "Наши алгоритмы [ОБФУСКАЦИИ] разработаны бывшими инженерами [УДАЛЕНО], что позволяет нашему трафику сливаться с фоновым шумом интернета.",
+      "text2": "В случае физического захвата сервера [ПРОТОКОЛ ЗАРАЖЕНИЯ] автоматически форматирует все дисковые массивы [УДАЛЕНО].",
+      "title": "СОВЕРШЕННО СЕКРЕТНО"
+    },
+    "description": "АБСОЛЮТНАЯ ЗАЩИТА. ИНИЦИАЛИЗАЦИЯ ПРОТОКОЛОВ БЛАЖЕННОГО НЕВЕДЕНИЯ...",
+    "protocols": {
+      "headers": [
+        "ПРОТОКОЛ",
+        "ШИФРОВАНИЕ",
+        "СКОРОСТЬ",
+        "ОБХОД DPI"
+      ],
+      "openvpn": [
+        "OpenVPN",
+        "AES-256",
+        "Средняя",
+        "Средний"
+      ],
+      "stealth": [
+        "Cyber-Stealth",
+        "AES-256 + Obf",
+        "Высокая",
+        "Абсолютный"
+      ],
+      "title": "СРАВНЕНИЕ ПРОТОКОЛОВ",
+      "wireguard": [
+        "WireGuard",
+        "ChaCha20",
+        "Максимальная",
+        "Низкий"
+      ]
+    },
+    "radar": {
+      "blocked": "ЗАБЛОКИРОВАНО",
+      "deflected": "ОТРАЖЕНО",
+      "events": {
+        "brute": "Brute-force SSH",
+        "dpi": "Попытка глубокого анализа пакетов (DPI)",
+        "malware": "Сигнатура известного парсера",
+        "syn": "TCP SYN Flood атака",
+        "tracker": "Инъекция рекламного трекера"
+      },
+      "status": "ПРЯМАЯ ТРАНСЛЯЦИЯ ВТОРЖЕНИЙ",
+      "title": "РАДАР УГРОЗ"
+    },
+    "stack": {
+      "bareMetal": {
+        "description": "Мы используем исключительно арендованные bare-metal серверы. Никаких VPS соседей. Оперативная память работает в режиме RAM-only (Tails-подобная архитектура), уничтожая все данные при перезагрузке по питанию.",
+        "title": "01. АППАРАТНЫЙ УРОВЕНЬ"
+      },
+      "client": {
+        "description": "Приложения с открытым исходным кодом, проходящие строгий независимый аудит. Встроенный Network Lock (Kill Switch) моментально рубит трафик при малейшей потере связи с ядром.",
+        "title": "04. КЛИЕНТСКИЙ УРОВЕНЬ"
+      },
+      "crypto": {
+        "description": " AES-256-GCM шифрование с совершенной прямой секретностью (PFS) через обмен ключами ECDHE (Curve25519). Даже если математика будет взломана в будущем, прошлый трафик останется нечитаемым.",
+        "title": "03. КРИПТОГРАФИЯ"
+      },
+      "network": {
+        "description": "Сложная система Anycast DNS и обфускации трафика. Ваши пакеты маскируются под обычный HTTPS-трафик (TLS 1.3), делая VPN-соединение невидимым для систем государственного фаервола (DPI).",
+        "title": "02. СЕТЕВОЙ УРОВЕНЬ"
+      },
+      "title": "АРХИТЕКТУРНЫЙ СТЕК"
+    },
+    "title": "ЯДРО ШИФРОВАНИЯ"
+  },
+  "ServerCard": {
+    "ip": "IP",
+    "load": "НАГРУЗКА",
+    "protocol": "ПРОТОКОЛ"
+  },
+  "Servers": {
+    "globalStatus": "ОБЩИЙ СТАТУС: {status}",
+    "globalStatusValue": "РАЗВЕРНУТО",
+    "lastSync": "ПОСЛЕДНЯЯ СИНХРОНИЗАЦИЯ: {time} НАЗАД",
+    "subtitle": "Управление узлами VPN, протоколами и регионами размещения.",
+    "title": "УПРАВЛЕНИЕ СЕРВЕРАМИ"
+  },
+  "ServersTable": {
+    "actions": {
+      "config": "Конфиг",
+      "restart": "Перезапуск",
+      "stop": "Остановить"
+    },
+    "columns": {
+      "controls": "УПРАВЛЕНИЕ",
+      "ipAddress": "IP АДРЕС",
+      "load": "НАГРУЗКА",
+      "location": "ЛОКАЦИЯ",
+      "protocol": "ПРОТОКОЛ",
+      "serverName": "ИМЯ СЕРВЕРА",
+      "status": "СТАТУС"
+    },
+    "deployNode": "+ РАЗВЕРНУТЬ УЗЕЛ",
+    "status": {
+      "maintenance": "ОБСЛУЖИВАНИЕ",
+      "offline": "ОФФЛАЙН",
+      "online": "ОНЛАЙН",
+      "warning": "ВНИМАНИЕ"
+    },
+    "title": "АКТИВНАЯ ИНФРАСТРУКТУРА"
+  },
+  "Settings": {},
+  "Status": {
+    "history": {
+      "title": "История за 90 дней",
+      "tooltip_date": "Дата",
+      "tooltip_status": "Статус"
+    },
+    "incidents": {
+      "empty": "Инцидентов нет. Сеть защищена.",
+      "title": "ЛОГ ИНЦИДЕНТОВ",
+      "view_all": "СМОТРЕТЬ АРХИВ"
+    },
+    "metrics": {
+      "active_nodes": "АКТИВНЫЕ ЯДРА",
+      "bandwidth": "ПРОПУСКНАЯ СПОСОБНОСТЬ",
+      "latency": "СРЕДНИЙ ПИНГ",
+      "status_nominal": "СИСТЕМЫ В НОРМЕ",
+      "status_outage": "ЗАФИКСИРОВАН СБОЙ",
+      "status_warning": "СНИЖЕНИЕ ПРОИЗВОДИТЕЛЬНОСТИ",
+      "uptime": "99.99% АПТАЙМ"
+    },
+    "subtitle": "Глобальный центр управления сетью",
+    "title": "СИСТЕМНАЯ РАДАР"
+  },
+  "Subscriptions": {},
+  "Terms": {
+    "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
+    "sections": {
+      "acceptance": {
+        "content": "Используя инфраструктуру CyberVPN, вы инициируете обязательный кибернетический контракт. Доступ к нашим узлам связи (Серверам) предоставляется исключительно на условиях безоговорочного принятия данных Директив. Если ваши протоколы не согласны с условиями, немедленно разорвите соединение.",
+        "title": "01. ИНИЦИАЛИЗАЦИЯ СОГЛАШЕНИЯ"
+      },
+      "liability": {
+        "content": "Вы несете единоличную ответственность за пакеты данных, которые вы передаете через нашу сеть. В максимальной степени, разрешенной законом, CyberVPN не несет ответственности за любой прямой, косвенный или случайный ущерб, потерю прибыли или сбои в ваших системах.",
+        "title": "04. ОГРАНИЧЕНИЕ ОТВЕТСТВЕННОСТИ"
+      },
+      "prohibited": {
+        "content": "Сеть CyberVPN создана для обхода цензуры и защиты цифровой личности, а не для нанесения ущерба другим системам. Следующие паттерны трафика строго запрещены на аппаратном уровне:",
+        "rules": {
+          "botnets": "Управление ботнетами",
+          "csam": "Любой контент, эксплуатирующий несовершеннолетних",
+          "ddos": "DDoS-атаки и флуд сетей",
+          "malware": "Распространение вредоносного ПО",
+          "spam": "Массовая рассылка спама"
+        },
+        "title": "02. БЛОКИРОВКА ПАТТЕРНОВ"
+      },
+      "service": {
+        "content": "Хотя наша инфраструктура спроектирована с учетом максимальной отказоустойчивости (99.9% аптайм), мы предоставляем доступ «как есть» (as-is). Мы оставляем за собой право отключать, переносить или обновлять любые узлы связи (Ноды) без предварительного уведомления для обеспечения суммарной безопасности матрицы.",
+        "title": "03. ГАРАНТИИ И ДОСТУПНОСТЬ"
+      },
+      "termination": {
+        "content": "Мы оставляем за собой право мгновенно, без объяснения причин и предварительного уведомления терминировать ваш токен доступа, если наши нейросети или администраторы зафиксируют нарушение пункта 02 (Блокировка Паттернов). Деньги за оставшийся период подписки в таком случае не возвращаются.",
+        "title": "05. ПРОТОКОЛ УНИЧТОЖЕНИЯ"
+      }
+    },
+    "status": {
+      "acknowledged": "ОЗНАКОМЛЕН",
+      "unverified": "НЕ ПОДТВЕРЖДЕНО"
+    },
+    "terminal": {
+      "command": "ПРИНЯТЬ_ДИРЕКТИВЫ",
+      "prompt": "ОЖИДАНИЕ ВВОДА ПОЛЬЗОВАТЕЛЯ...",
+      "verified": "СИСТЕМА: ДОСТУП РАЗРЕШЕН. КОНТРАКТ ПОДПИСАН."
+    },
+    "title": "СИСТЕМНЫЕ ДИРЕКТИВЫ"
+  },
+  "Users": {
+    "newToday": "СЕГОДНЯ НОВЫХ: {count}",
+    "subtitle": "Контроль доступа и мониторинг подписок.",
+    "title": "УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ",
+    "totalUsers": "ПОЛЬЗОВАТЕЛЕЙ ВСЕГО: {count}"
+  },
+  "UsersTable": {
+    "columns": {
+      "actions": "ДЕЙСТВИЯ",
+      "dataUsage": "ТРАФИК",
+      "identity": "ИДЕНТИФИКАТОР",
+      "lastSeen": "ПОСЛЕДНИЙ ВИЗИТ",
+      "status": "СТАТУС",
+      "subscription": "ПОДПИСКА"
+    },
+    "searchPlaceholder": "ПОИСК_ПОЛЬЗОВАТЕЛЯ...",
+    "status": {
+      "active": "АКТИВЕН",
+      "banned": "ЗАБЛОКИРОВАН",
+      "expired": "ИСТЕК",
+      "trial": "ПРОБНЫЙ"
+    },
+    "title": "БАЗА КЛИЕНТОВ"
+  },
+  "Wallet": {}
+}

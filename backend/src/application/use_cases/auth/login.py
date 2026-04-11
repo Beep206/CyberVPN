@@ -16,7 +16,8 @@ class LoginUseCase:
     """
     Handles admin user login with username/email and password.
 
-    Returns access and refresh tokens upon successful authentication.
+    Returns access and refresh tokens upon successful authentication, or a
+    short-lived pending-2FA token when TOTP is enabled for the user.
     Stores refresh token hash in database for rotation and revocation.
     """
 
@@ -52,6 +53,8 @@ class LoginUseCase:
             - refresh_token: JWT refresh token
             - token_type: "bearer"
             - expires_in: Access token expiration in seconds
+            - requires_2fa: Whether the login is paused behind TOTP
+            - tfa_token: Short-lived pending-2FA token when required
 
         Raises:
             InvalidCredentialsError: If credentials are invalid or user not found
@@ -75,6 +78,32 @@ class LoginUseCase:
             raise InvalidCredentialsError()
 
         is_first_username_only_login = user.email is None and user.sign_in_count == 0
+
+        # Update last login information before issuing either the full session
+        # or a short-lived pending 2FA token.
+        user.last_login_at = user.current_sign_in_at
+        user.last_login_ip = user.current_sign_in_ip
+        user.current_sign_in_at = datetime.now(UTC)
+        user.current_sign_in_ip = client_ip
+        user.sign_in_count += 1
+        user.failed_login_attempts = 0
+        await self._session.flush()
+
+        if user.totp_enabled:
+            tfa_token, _, _ = self._auth_service.create_access_token(
+                subject=str(user.id),
+                role="2fa_pending",
+                extra={"type": "2fa_pending"},
+            )
+            return {
+                "access_token": "",
+                "refresh_token": "",
+                "token_type": "bearer",
+                "expires_in": 0,
+                "requires_2fa": True,
+                "tfa_token": tfa_token,
+                "is_first_username_only_login": is_first_username_only_login,
+            }
 
         # Create access and refresh tokens
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
@@ -103,19 +132,12 @@ class LoginUseCase:
         self._session.add(refresh_token_record)
         await self._session.flush()
 
-        # Update last login information
-        user.last_login_at = user.current_sign_in_at
-        user.last_login_ip = user.current_sign_in_ip
-        user.current_sign_in_at = datetime.now(UTC)
-        user.current_sign_in_ip = client_ip
-        user.sign_in_count += 1
-        user.failed_login_attempts = 0
-        await self._session.flush()
-
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
             "expires_in": settings.access_token_expire_minutes * 60,
+            "requires_2fa": False,
+            "tfa_token": None,
             "is_first_username_only_login": is_first_username_only_login,
         }

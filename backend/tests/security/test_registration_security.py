@@ -5,9 +5,10 @@ Tests that:
 2. Registration requires invite token when enabled with invite-only mode
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import Request
 
 
 class TestRegistrationDisabled:
@@ -31,15 +32,21 @@ class TestRegistrationDisabled:
                 email="test@example.com",
                 password="SecurePass123!",
                 locale="en-EN",
+                tos_accepted=True,
             )
 
-            mock_db = AsyncMock()
+            mock_db = MagicMock()
+            mock_db.add = MagicMock()
+            mock_db.flush = AsyncMock()
             mock_dispatcher = AsyncMock()
             mock_redis = AsyncMock()
+            mock_http_request = MagicMock(spec=Request)
+            mock_http_request.headers = {}
 
             with pytest.raises(HTTPException) as exc_info:
                 await register(
                     request=request,
+                    http_request=mock_http_request,
                     invite_token=None,
                     db=mock_db,
                     email_dispatcher=mock_dispatcher,
@@ -70,15 +77,21 @@ class TestInviteTokenValidation:
                 email="test@example.com",
                 password="SecurePass123!",
                 locale="en-EN",
+                tos_accepted=True,
             )
 
-            mock_db = AsyncMock()
+            mock_db = MagicMock()
+            mock_db.add = MagicMock()
+            mock_db.flush = AsyncMock()
             mock_dispatcher = AsyncMock()
             mock_redis = AsyncMock()
+            mock_http_request = MagicMock(spec=Request)
+            mock_http_request.headers = {}
 
             with pytest.raises(HTTPException) as exc_info:
                 await register(
                     request=request,
+                    http_request=mock_http_request,
                     invite_token=None,  # No invite token
                     db=mock_db,
                     email_dispatcher=mock_dispatcher,

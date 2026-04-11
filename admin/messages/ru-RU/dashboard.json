@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "title": "Дашборд - командный центр Ozoxy Admin",
+    "description": "Операционный центр для сотрудников Ozoxy: инфраструктура, коммерция, контроль доступа и обзор инцидентов в реальном времени."
+  },
+  "eyebrow": "ОПЕРАЦИОННАЯ ПОВЕРХНОСТЬ АДМИНА",
+  "title": "КОМАНДНЫЙ ЦЕНТР OZOXY",
+  "subtitle": "Операционный cockpit для инфраструктуры, коммерции, контроля и реакции на инциденты.",
+  "statusLabel": "РЕЖИМ:",
+  "statusValue": "LIVE",
+  "connectionStatus": "ADMIN ORIGIN ПРОВЕРЕН",
+  "encryptionStatus": "ДОСТУП УСИЛЕН 2FA",
+  "serverMatrix": "ПУЛЬС ИНФРАСТРУКТУРЫ",
+  "serverMatrixDescription": "Живой снимок VPN-флота, состояния узлов и текущего давления на сеть.",
+  "errorLoadingServers": "Ошибка загрузки серверов",
+  "noServers": "Нет доступных серверов",
+  "opsGridLabel": "Операционные панели командного центра",
+  "sectionMapTitle": "КОНТУРЫ УПРАВЛЕНИЯ",
+  "sectionMapDescription": "Верхнеуровневые поверхности для клиентов, денег, инфраструктуры, безопасности и контроля.",
+  "sectionReadiness": {
+    "strong": "готово",
+    "partial": "частично",
+    "blocked": "блокер"
+  },
+  "sectionSignalsReady": "сигналов готово",
+  "sectionModulesNext": "модулей далее",
+  "withdrawalsTitle": "ОЧЕРЕДЬ ВЫВОДОВ",
+  "withdrawalsDescription": "Ожидающие согласования выводы из кошельков, требующие действий админа.",
+  "paymentsTitle": "ПОСЛЕДНИЕ ПЛАТЕЖИ",
+  "paymentsDescription": "Свежие платёжные события по всей платформе.",
+  "auditTitle": "ПОТОК АУДИТА",
+  "auditDescription": "Последние привилегированные действия, зафиксированные backend audit log.",
+  "webhooksTitle": "ПОТОК ВЕБХУКОВ",
+  "webhooksDescription": "Последние callback-события интеграций и ошибки обработки.",
+  "cards": {
+    "health": {
+      "title": "ЗДОРОВЬЕ ПЛАТФОРМЫ",
+      "description": "Состояние базы, кеша и зависимости Remnawave.",
+      "healthy": "НОРМА",
+      "degraded": "ДЕГРАДАЦИЯ",
+      "unhealthy": "СБОЙ",
+      "unknown": "НЕТ ДАННЫХ",
+      "componentsHealthy": "компонентов в норме",
+      "componentsFailing": "компонентов с ошибкой"
+    },
+    "servers": {
+      "title": "СЕРВЕРЫ ONLINE",
+      "description": "Узлы, которые сейчас принимают трафик."
+    },
+    "users": {
+      "title": "АКТИВНЫЕ ПОЛЬЗОВАТЕЛИ",
+      "description": "Текущий активный контур клиентов на платформе."
+    },
+    "bandwidth": {
+      "title": "ИСХОДЯЩИЙ ТРАФИК",
+      "description": "Текущий egress за выбранный период мониторинга."
+    },
+    "withdrawals": {
+      "title": "ОЖИДАЮЩИЕ ВЫВОДЫ",
+      "description": "Ручная очередь согласования, требующая действий оператора."
+    }
+  },
+  "empty": {
+    "withdrawals": "В очереди нет ожидающих выводов.",
+    "payments": "Свежие платежи не найдены.",
+    "audit": "Свежие события аудита не найдены.",
+    "webhooks": "События вебхуков не найдены."
+  },
+  "errors": {
+    "load": "Сейчас не удалось загрузить эту панель."
+  },
+  "labels": {
+    "items": "элементов",
+    "method": "Метод",
+    "provider": "Провайдер",
+    "processedAt": "Обработано",
+    "unknown": "Неизвестно",
+    "unassigned": "Без назначения",
+    "valid": "Валиден",
+    "invalid": "Ошибка",
+    "noError": "Без ошибок",
+    "inbound": "входящий",
+    "totalUsers": "всего пользователей"
+  }
+}

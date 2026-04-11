@@ -4,6 +4,7 @@ SQLAlchemy ORM models for CyberVPN backend.
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.audit_log_model import AuditLog
+from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
 from src.infrastructure.database.models.fcm_token_model import FCMTokenModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
@@ -25,6 +26,7 @@ from src.infrastructure.database.models.withdrawal_request_model import Withdraw
 __all__ = [
     "AdminUserModel",
     "AuditLog",
+    "CustomerStaffNoteModel",
     "FCMTokenModel",
     "InviteCodeModel",
     "MobileDeviceModel",

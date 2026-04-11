@@ -1,5 +1,6 @@
 """Unit tests for VerifyOtpUseCase."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -19,8 +20,16 @@ def mock_user_repo():
 def mock_auth_service():
     """Create mock auth service."""
     service = MagicMock()
-    service.create_access_token.return_value = "access_token_123"
-    service.create_refresh_token.return_value = "refresh_token_456"
+    service.create_access_token.return_value = (
+        "access_token_123",
+        "access-jti-123",
+        datetime.now(UTC) + timedelta(minutes=15),
+    )
+    service.create_refresh_token.return_value = (
+        "refresh_token_456",
+        "refresh-jti-456",
+        datetime.now(UTC) + timedelta(days=7),
+    )
     return service
 
 

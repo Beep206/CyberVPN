@@ -1,10 +1,11 @@
 """Use case for validating and calculating promo code discounts."""
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from src.domain.enums import DiscountType
-from src.domain.exceptions import PromoCodeInvalidError, PromoCodeNotFoundError
+from src.domain.exceptions import PromoCodeExhaustedError, PromoCodeInvalidError, PromoCodeNotFoundError
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
 
 
@@ -19,9 +20,18 @@ class ValidatePromoUseCase:
         plan_id: UUID | None = None,
         amount: Decimal | None = None,
     ) -> dict:
-        promo = await self._repo.get_active_by_code(code)
+        promo = await self._repo.get_by_code(code)
         if promo is None:
             raise PromoCodeNotFoundError(code)
+
+        if not promo.is_active:
+            raise PromoCodeInvalidError("Inactive")
+
+        if promo.expires_at is not None and promo.expires_at <= datetime.now(UTC):
+            raise PromoCodeInvalidError("Expired")
+
+        if promo.max_uses is not None and promo.current_uses >= promo.max_uses:
+            raise PromoCodeExhaustedError(code)
 
         if promo.is_single_use and await self._repo.has_user_used(promo.id, user_id):
             raise PromoCodeInvalidError("Already used by this user")

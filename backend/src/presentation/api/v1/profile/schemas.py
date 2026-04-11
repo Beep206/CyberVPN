@@ -46,7 +46,19 @@ class ProfileUpdateRequest(BaseModel):
     @classmethod
     def normalize_language(cls, v: str | None) -> str | None:
         if v is not None:
-            return v.strip().lower()
+            parts = [part for part in v.strip().replace("_", "-").split("-") if part]
+            if not parts:
+                return None
+
+            normalized = [parts[0].lower()]
+            for part in parts[1:]:
+                if len(part) == 2 and part.isalpha():
+                    normalized.append(part.upper())
+                elif len(part) == 4 and part.isalpha():
+                    normalized.append(part.title())
+                else:
+                    normalized.append(part.lower())
+            return "-".join(normalized)
         return v
 
 

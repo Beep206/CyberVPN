@@ -27,6 +27,7 @@ def _make_pipeline(execute_return):
     pipe.ttl = MagicMock(return_value=pipe)
     pipe.get = MagicMock(return_value=pipe)
     pipe.delete = MagicMock(return_value=pipe)
+    pipe.setex = MagicMock(return_value=pipe)
     return pipe
 
 
@@ -34,6 +35,12 @@ def _make_redis(pipe):
     """Create a mock Redis client that returns the given pipeline."""
     redis = AsyncMock()
     redis.pipeline = MagicMock(return_value=pipe)
+    redis.get = AsyncMock(return_value=None)
+    redis.exists = AsyncMock(return_value=False)
+    redis.expire = AsyncMock()
+    redis.set = AsyncMock(return_value=False)
+    redis.setex = AsyncMock()
+    redis.delete = AsyncMock()
     return redis
 
 
@@ -53,30 +60,34 @@ class TestMagicLinkServiceGenerate:
         service = MagicLinkService(mock_redis)
 
         # Act
-        token = await service.generate(email="test@example.com")
+        token, otp_code = await service.generate(email="test@example.com")
 
         # Assert - secrets.token_urlsafe(48) produces 64 chars
         assert len(token) >= 64
+        assert len(otp_code) == 6
+        assert otp_code.isdigit()
 
     @pytest.mark.unit
     async def test_generate_stores_token_in_redis_with_ttl(self, mock_redis):
-        """Generated token is stored in Redis via setex with 15-min TTL."""
+        """Generated token, reverse lookup and OTP are stored in Redis with 1-hour TTL."""
         service = MagicLinkService(mock_redis)
 
-        token = await service.generate(email="test@example.com")
+        pipe = mock_redis.pipeline.return_value
+        token, otp_code = await service.generate(email="test@example.com")
 
-        # setex(key, ttl, data) should be called once
-        mock_redis.setex.assert_called_once()
-        call_args = mock_redis.setex.call_args
-        key = call_args.args[0] if call_args.args else call_args[0][0]
-        ttl = call_args.args[1] if call_args.args else call_args[0][1]
-        data_json = call_args.args[2] if call_args.args else call_args[0][2]
+        assert pipe.setex.call_count == 3
 
+        key, ttl, data_json = pipe.setex.call_args_list[0].args
         assert key == f"magic_link:{token}"
-        assert ttl == 900  # 15 minutes
+        assert ttl == 3600
         data = json.loads(data_json)
         assert data["email"] == "test@example.com"
         assert "created_at" in data
+
+        email_key, email_ttl, stored_token = pipe.setex.call_args_list[1].args
+        otp_key, otp_ttl, stored_otp = pipe.setex.call_args_list[2].args
+        assert (email_key, email_ttl, stored_token) == ("magic_link_email:test@example.com", 3600, token)
+        assert (otp_key, otp_ttl, stored_otp) == ("magic_link_otp:test@example.com", 3600, otp_code)
 
     @pytest.mark.unit
     async def test_generate_stores_ip_address_when_provided(self, mock_redis):
@@ -85,8 +96,8 @@ class TestMagicLinkServiceGenerate:
 
         await service.generate(email="test@example.com", ip_address="192.168.1.100")
 
-        call_args = mock_redis.setex.call_args
-        data_json = call_args.args[2] if call_args.args else call_args[0][2]
+        pipe = mock_redis.pipeline.return_value
+        data_json = pipe.setex.call_args_list[0].args[2]
         data = json.loads(data_json)
         assert data["ip_address"] == "192.168.1.100"
 
@@ -97,8 +108,8 @@ class TestMagicLinkServiceGenerate:
 
         await service.generate(email="test@example.com")
 
-        call_args = mock_redis.setex.call_args
-        data_json = call_args.args[2] if call_args.args else call_args[0][2]
+        pipe = mock_redis.pipeline.return_value
+        data_json = pipe.setex.call_args_list[0].args[2]
         data = json.loads(data_json)
         assert data["ip_address"] is None
 
@@ -135,10 +146,11 @@ class TestMagicLinkServiceGenerate:
         """Two consecutive generate calls produce different tokens."""
         service = MagicLinkService(mock_redis)
 
-        token1 = await service.generate(email="test@example.com")
-        token2 = await service.generate(email="test@example.com")
+        token1, otp1 = await service.generate(email="test@example.com")
+        token2, otp2 = await service.generate(email="test@example.com")
 
         assert token1 != token2
+        assert otp1 != otp2
 
 
 class TestMagicLinkServiceRateLimit:
@@ -169,8 +181,9 @@ class TestMagicLinkServiceRateLimit:
         service = MagicLinkService(mock_redis)
 
         # Should succeed without error
-        token = await service.generate(email="borderline@example.com")
+        token, otp_code = await service.generate(email="borderline@example.com")
         assert len(token) >= 64
+        assert len(otp_code) == 6
 
     @pytest.mark.unit
     async def test_rate_limit_retry_after_uses_window_when_ttl_negative(self):
@@ -241,7 +254,7 @@ class TestMagicLinkServiceValidateAndConsume:
 
         # Pipeline should have get + delete calls
         pipe.get.assert_called_once_with("magic_link:token_to_consume")
-        pipe.delete.assert_called_once_with("magic_link:token_to_consume")
+        assert pipe.delete.call_args_list[0].args == ("magic_link:token_to_consume",)
 
     @pytest.mark.unit
     async def test_validate_empty_token_string(self):
@@ -256,25 +269,31 @@ class TestMagicLinkServiceValidateAndConsume:
         assert result is None
 
     @pytest.mark.unit
-    async def test_validate_returns_none_for_reused_token(self):
-        """Second consumption of same token returns None (single-use enforcement)."""
+    async def test_validate_allows_single_replay_then_blocks_further_reuse(self):
+        """Second consumption may replay once; subsequent reuse is blocked."""
         payload = json.dumps(
             {"email": "test@example.com", "ip_address": None, "created_at": "2026-01-01T00:00:00+00:00"}
         )
 
-        pipe1 = _make_pipeline(execute_return=[payload.encode(), 1])
-        pipe2 = _make_pipeline(execute_return=[None, 0])
+        first_read = _make_pipeline(execute_return=[payload.encode(), 1])
+        first_cleanup = _make_pipeline(execute_return=[1, 1, True, 1])
+        second_read = _make_pipeline(execute_return=[None, 0])
+        third_read = _make_pipeline(execute_return=[None, 0])
 
         mock_redis = AsyncMock()
-        mock_redis.pipeline = MagicMock(side_effect=[pipe1, pipe2])
+        mock_redis.pipeline = MagicMock(side_effect=[first_read, first_cleanup, second_read, third_read])
+        mock_redis.get = AsyncMock(side_effect=[payload.encode(), payload.encode()])
+        mock_redis.set = AsyncMock(side_effect=[True, False])
 
         service = MagicLinkService(mock_redis)
 
         result1 = await service.validate_and_consume("one_time_token")
         result2 = await service.validate_and_consume("one_time_token")
+        result3 = await service.validate_and_consume("one_time_token")
 
         assert result1 is not None
-        assert result2 is None
+        assert result2 is not None
+        assert result3 is None
 
 
 class TestRateLimitExceededError:

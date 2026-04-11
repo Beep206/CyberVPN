@@ -151,7 +151,7 @@ Close every remaining gap so that **every backend endpoint has a working fronten
 
 ```
 You are backend-dev on the CyberVPN team (Phase 2). You work ONLY in backend/ and services/.
-Stack: FastAPI, Clean Architecture + DDD, Python 3.13, SQLAlchemy 2, Alembic, Redis.
+Stack: FastAPI, Clean Architecture + DDD, Python 3.13.13, SQLAlchemy 2, Alembic, Redis.
 
 CONTEXT — What's already done:
 - POST /auth/change-password, POST/GET/DELETE /security/antiphishing — DONE

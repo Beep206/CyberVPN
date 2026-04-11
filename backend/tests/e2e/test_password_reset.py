@@ -1,450 +1,341 @@
-"""
-End-to-end tests for the password reset flow.
+"""End-to-end tests for the password reset flow."""
 
-These tests cover the two-step password reset flow:
-1. POST /api/v1/auth/forgot-password  -- request a reset OTP
-2. POST /api/v1/auth/reset-password   -- consume the OTP and set a new password
+from __future__ import annotations
 
-The forgot-password endpoint always returns 200 with the same message to
-prevent email enumeration. The reset-password endpoint validates the OTP
-code, enforces password strength (min 12 chars, mixed case, digit, special),
-and returns appropriate error codes (400 for invalid/expired, 429 for
-exhausted attempts).
-
-Run with: pytest tests/e2e/test_password_reset.py -m e2e
-
-API routes under test:
-- POST /api/v1/auth/forgot-password  -> ForgotPasswordResponse
-- POST /api/v1/auth/reset-password   -> ResetPasswordResponse | 400 | 422 | 429
-"""
+import secrets
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.auth_service import AuthService
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.otp_code_model import OtpCodeModel
+from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
 
-pytestmark = [
-    pytest.mark.e2e,
-    pytest.mark.skip(reason="Requires running PostgreSQL, Redis, and email dispatcher"),
-]
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+pytestmark = [pytest.mark.e2e]
 
 FORGOT_PASSWORD_URL = "/api/v1/auth/forgot-password"
 RESET_PASSWORD_URL = "/api/v1/auth/reset-password"
+LOGIN_URL = "/api/v1/auth/login"
 
 ANTI_ENUMERATION_MESSAGE = "If this email is registered, a password reset code has been sent."
-
-# A strong password that satisfies all validation rules:
-# >= 12 chars, uppercase, lowercase, digit, special character
 STRONG_PASSWORD = "N3wSecure!Pass99"
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _override_email_dispatcher():
+    dispatcher = AsyncMock()
+
+    async def _override():
+        return dispatcher
+
+    app.dependency_overrides[get_email_dispatcher] = _override
+    yield dispatcher
+    app.dependency_overrides.pop(get_email_dispatcher, None)
 
 
-def _make_client() -> AsyncClient:
-    """Create an AsyncClient bound to the FastAPI ASGI app."""
-    return AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
+async def _create_user(
+    db: AsyncSession,
+    *,
+    email: str | None = None,
+    password: str = "OldP@ssw0rd123!",
+) -> tuple[AdminUserModel, str]:
+    auth_service = AuthService()
+    password_hash = await auth_service.hash_password(password)
+    suffix = secrets.token_hex(4)
+    user = AdminUserModel(
+        login=f"resetuser-{suffix}",
+        email=email or f"reset-{suffix}@example.com",
+        password_hash=password_hash,
+        role="viewer",
+        is_active=True,
+        is_email_verified=True,
     )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user, password
 
 
-# ---------------------------------------------------------------------------
-# Forgot Password (anti-enumeration)
-# ---------------------------------------------------------------------------
+async def _create_reset_otp(
+    db: AsyncSession,
+    *,
+    user: AdminUserModel,
+    code: str = "123456",
+    expires_at: datetime | None = None,
+    attempts_used: int = 0,
+    max_attempts: int = 5,
+    verified_at: datetime | None = None,
+) -> OtpCodeModel:
+    otp = OtpCodeModel(
+        user_id=user.id,
+        code=code,
+        purpose="password_reset",
+        attempts_used=attempts_used,
+        max_attempts=max_attempts,
+        expires_at=expires_at or (datetime.now(UTC) + timedelta(hours=1)),
+        verified_at=verified_at,
+    )
+    db.add(otp)
+    await db.commit()
+    await db.refresh(otp)
+    return otp
+
+
+async def _latest_reset_otp(db: AsyncSession, *, user_id) -> OtpCodeModel:
+    result = await db.execute(
+        select(OtpCodeModel)
+        .where(OtpCodeModel.user_id == user_id)
+        .where(OtpCodeModel.purpose == "password_reset")
+        .order_by(OtpCodeModel.created_at.desc())
+    )
+    otp = result.scalar_one()
+    return otp
 
 
 class TestForgotPassword:
-    """E2E tests for POST /api/v1/auth/forgot-password.
+    async def test_forgot_password_returns_success_for_unknown_email(
+        self,
+        async_client: AsyncClient,
+        _override_email_dispatcher,
+    ):
+        response = await async_client.post(
+            FORGOT_PASSWORD_URL,
+            json={"email": "nonexistent-user-abc@example.com"},
+        )
 
-    The endpoint always returns HTTP 200 with a fixed message regardless
-    of whether the email is registered, preventing user enumeration.
-    """
-
-    async def test_forgot_password_returns_success_for_unknown_email(self):
-        """POST /api/v1/auth/forgot-password with an unregistered email
-        returns 200 and the standard anti-enumeration message.
-
-        This ensures attackers cannot distinguish registered from
-        unregistered emails based on the response.
-        """
-        # Arrange
-        payload = {"email": "nonexistent-user-abc@example.com"}
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(FORGOT_PASSWORD_URL, json=payload)
-
-        # Assert
         assert response.status_code == 200
-        data = response.json()
-        assert data["message"] == ANTI_ENUMERATION_MESSAGE
+        assert response.json()["message"] == ANTI_ENUMERATION_MESSAGE
+        _override_email_dispatcher.send_password_reset_email.assert_not_called()
 
-    async def test_forgot_password_returns_success_for_known_email(self):
-        """POST /api/v1/auth/forgot-password with a registered and active
-        user's email returns 200 and the same anti-enumeration message.
+    async def test_forgot_password_returns_success_for_known_email(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+        _override_email_dispatcher,
+    ):
+        user, _ = await _create_user(db)
 
-        Behind the scenes, an OTP code is generated with purpose
-        'password_reset' and dispatched via the email task worker.
+        response = await async_client.post(
+            FORGOT_PASSWORD_URL,
+            json={"email": user.email},
+        )
 
-        Precondition: a verified, active user with this email exists in DB.
-        """
-        # Arrange
-        payload = {"email": "registered-user@example.com"}
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(FORGOT_PASSWORD_URL, json=payload)
-
-        # Assert
         assert response.status_code == 200
-        data = response.json()
-        assert data["message"] == ANTI_ENUMERATION_MESSAGE
+        assert response.json()["message"] == ANTI_ENUMERATION_MESSAGE
 
-    async def test_forgot_password_invalid_email_format_returns_422(self):
-        """POST /api/v1/auth/forgot-password with a malformed email
-        returns 422 Validation Error from Pydantic's EmailStr validator."""
-        # Arrange
-        payload = {"email": "not-an-email"}
+        otp = await _latest_reset_otp(db, user_id=user.id)
+        assert otp.code.isdigit()
+        assert otp.verified_at is None
+        _override_email_dispatcher.dispatch_password_reset_email.assert_called_once()
 
-        # Act
-        async with _make_client() as client:
-            response = await client.post(FORGOT_PASSWORD_URL, json=payload)
-
-        # Assert
+    async def test_forgot_password_invalid_email_format_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(FORGOT_PASSWORD_URL, json={"email": "not-an-email"})
         assert response.status_code == 422
 
-    async def test_forgot_password_empty_body_returns_422(self):
-        """POST /api/v1/auth/forgot-password with an empty JSON body
-        returns 422 because the 'email' field is required."""
-        # Act
-        async with _make_client() as client:
-            response = await client.post(FORGOT_PASSWORD_URL, json={})
-
-        # Assert
+    async def test_forgot_password_empty_body_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(FORGOT_PASSWORD_URL, json={})
         assert response.status_code == 422
-
-
-# ---------------------------------------------------------------------------
-# Reset Password -- error cases
-# ---------------------------------------------------------------------------
 
 
 class TestResetPasswordErrors:
-    """E2E tests for POST /api/v1/auth/reset-password error scenarios.
+    async def test_reset_password_invalid_code_returns_400(self, async_client: AsyncClient, db: AsyncSession):
+        user, _ = await _create_user(db)
+        await _create_reset_otp(db, user=user, code="123456")
 
-    The endpoint validates the OTP code against the database and enforces
-    password strength rules via the Pydantic schema. Error codes:
-    - OTP_INVALID  -> 400
-    - OTP_EXPIRED  -> 400
-    - OTP_EXHAUSTED -> 429
-    - OTP_NOT_FOUND -> 400
-    - Pydantic validation failure -> 422
-    """
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": user.email,
+                "code": "000000",
+                "new_password": STRONG_PASSWORD,
+            },
+        )
 
-    async def test_reset_password_invalid_code_returns_400(self):
-        """POST /api/v1/auth/reset-password with a wrong 6-digit OTP code
-        returns 400 with error_code 'OTP_INVALID' or 'OTP_NOT_FOUND'.
-
-        The response body includes the error detail and, when applicable,
-        the number of remaining verification attempts.
-
-        Precondition: a forgot-password OTP was generated for this email.
-        """
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "000000",
-            "new_password": STRONG_PASSWORD,
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
         assert response.status_code == 400
-        data = response.json()
-        assert "detail" in data
+        assert response.json()["detail"]["code"] == "OTP_INVALID"
 
-    async def test_reset_password_expired_code_returns_400(self):
-        """POST /api/v1/auth/reset-password with an expired OTP code
-        returns 400 with error_code 'OTP_EXPIRED'.
+    async def test_reset_password_expired_code_returns_400(self, async_client: AsyncClient, db: AsyncSession):
+        user, _ = await _create_user(db)
+        await _create_reset_otp(
+            db,
+            user=user,
+            code="123456",
+            expires_at=datetime.now(UTC) - timedelta(minutes=1),
+        )
 
-        The OTP expiration is controlled by otp_expiration_hours setting
-        (default: 3 hours). After expiry, the user must request a new code.
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": user.email,
+                "code": "123456",
+                "new_password": STRONG_PASSWORD,
+            },
+        )
 
-        Precondition: an OTP was generated and its expires_at is in the past.
-        """
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",
-            "new_password": STRONG_PASSWORD,
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
         assert response.status_code == 400
-        data = response.json()
-        assert "detail" in data
+        assert response.json()["detail"]["code"] == "OTP_EXPIRED"
 
-    async def test_reset_password_exhausted_attempts_returns_429(self):
-        """POST /api/v1/auth/reset-password after exceeding max_attempts
-        (default: 5) returns 429 with error_code 'OTP_EXHAUSTED'.
+    async def test_reset_password_exhausted_attempts_returns_429(self, async_client: AsyncClient, db: AsyncSession):
+        user, _ = await _create_user(db)
+        await _create_reset_otp(
+            db,
+            user=user,
+            code="123456",
+            attempts_used=5,
+            max_attempts=5,
+        )
 
-        Once exhausted, the user must request a new OTP via forgot-password.
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": user.email,
+                "code": "123456",
+                "new_password": STRONG_PASSWORD,
+            },
+        )
 
-        Precondition: an OTP exists with attempts_used >= max_attempts.
-        """
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "999999",
-            "new_password": STRONG_PASSWORD,
-        }
+        assert response.status_code == 429
+        assert response.json()["detail"]["code"] == "OTP_EXHAUSTED"
 
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert -- 429 when exhausted, 400 otherwise
-        assert response.status_code in (400, 429)
-
-    async def test_reset_password_weak_password_returns_422(self):
-        """POST /api/v1/auth/reset-password with a password shorter than
-        12 characters returns 422 Validation Error.
-
-        The ResetPasswordRequest schema enforces:
-        - min_length=12, max_length=128
-        - At least one uppercase, one lowercase, one digit, one special char
-        - Not in common password list
-
-        This validation happens at the Pydantic layer before any DB access.
-        """
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",
-            "new_password": "short",
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
+    async def test_reset_password_weak_password_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": "registered-user@example.com",
+                "code": "123456",
+                "new_password": "short",
+            },
+        )
         assert response.status_code == 422
-        data = response.json()
-        assert "detail" in data
 
-    async def test_reset_password_common_password_returns_422(self):
-        """POST /api/v1/auth/reset-password with a password from the
-        common-passwords list returns 422 even if length requirements are met.
-
-        Example: 'password123!' would fail the common password check.
-        """
-        # Arrange -- 'password' base is in COMMON_PASSWORDS
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",
-            "new_password": "Password123!x",
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert -- either 422 (pydantic) or 400 (if validation passes but OTP fails)
-        # The common-password check is case-insensitive, so 'Password123!x'
-        # is not literally in the list. We test with an exact common password below.
+    async def test_reset_password_common_password_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": "registered-user@example.com",
+                "code": "123456",
+                "new_password": "Password123!x",
+            },
+        )
         assert response.status_code in (400, 422)
 
-    async def test_reset_password_no_uppercase_returns_422(self):
-        """POST /api/v1/auth/reset-password with a password missing
-        uppercase letters returns 422."""
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",
-            "new_password": "n3wsecure!pass99",
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
+    async def test_reset_password_no_uppercase_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": "registered-user@example.com",
+                "code": "123456",
+                "new_password": "n3wsecure!pass99",
+            },
+        )
         assert response.status_code == 422
 
-    async def test_reset_password_no_special_char_returns_422(self):
-        """POST /api/v1/auth/reset-password with a password missing
-        special characters returns 422."""
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",
-            "new_password": "N3wSecurePass99",
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
+    async def test_reset_password_no_special_char_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": "registered-user@example.com",
+                "code": "123456",
+                "new_password": "N3wSecurePass99",
+            },
+        )
         assert response.status_code == 422
 
-    async def test_reset_password_invalid_code_format_returns_422(self):
-        """POST /api/v1/auth/reset-password with a non-6-digit code
-        returns 422. The schema enforces pattern=r'^\\d{6}$'."""
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "abc",
-            "new_password": STRONG_PASSWORD,
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
+    async def test_reset_password_invalid_code_format_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": "registered-user@example.com",
+                "code": "abc",
+                "new_password": STRONG_PASSWORD,
+            },
+        )
         assert response.status_code == 422
 
-    async def test_reset_password_missing_fields_returns_422(self):
-        """POST /api/v1/auth/reset-password with missing required fields
-        returns 422."""
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json={})
-
-        # Assert
+    async def test_reset_password_missing_fields_returns_422(self, async_client: AsyncClient):
+        response = await async_client.post(RESET_PASSWORD_URL, json={})
         assert response.status_code == 422
-
-
-# ---------------------------------------------------------------------------
-# Reset Password -- success
-# ---------------------------------------------------------------------------
 
 
 class TestResetPasswordSuccess:
-    """E2E tests for the successful password reset flow.
+    async def test_reset_password_success_returns_200(self, async_client: AsyncClient, db: AsyncSession):
+        user, _ = await _create_user(db)
+        await _create_reset_otp(db, user=user, code="123456")
 
-    The full happy path requires:
-    1. A registered, active user in the database
-    2. A valid, unexpired OTP with purpose='password_reset'
-    3. A strong new password passing all validation rules
+        response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": user.email,
+                "code": "123456",
+                "new_password": STRONG_PASSWORD,
+            },
+        )
 
-    After success, the user can login with the new password.
-    """
-
-    async def test_reset_password_success_returns_200(self):
-        """POST /api/v1/auth/reset-password with a valid OTP code and
-        a strong new password returns 200 with a success message.
-
-        Preconditions:
-        - User exists and is active
-        - OTP with purpose='password_reset' is active and not expired
-        - Code matches the generated OTP
-
-        Postconditions:
-        - User's password_hash is updated to the new password
-        - OTP is marked as verified (verified_at is set)
-        - User can login with the new password
-        """
-        # Arrange
-        payload = {
-            "email": "registered-user@example.com",
-            "code": "123456",  # Must match the OTP in the database
-            "new_password": STRONG_PASSWORD,
-        }
-
-        # Act
-        async with _make_client() as client:
-            response = await client.post(RESET_PASSWORD_URL, json=payload)
-
-        # Assert
         assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "successfully" in data["message"].lower() or "reset" in data["message"].lower()
+        assert "successfully" in response.json()["message"].lower()
 
-    async def test_reset_password_then_login_with_new_password(self):
-        """After a successful password reset, the user can authenticate
-        via POST /api/v1/auth/login with the new password.
+    async def test_reset_password_then_login_with_new_password(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        user, old_password = await _create_user(db)
 
-        This is the full end-to-end flow:
-        1. POST /forgot-password -> 200
-        2. POST /reset-password with OTP + new password -> 200
-        3. POST /login with email + new password -> 200 + tokens
+        forgot_response = await async_client.post(
+            FORGOT_PASSWORD_URL,
+            json={"email": user.email},
+        )
+        assert forgot_response.status_code == 200
 
-        Postcondition: old password no longer works for login.
-        """
-        # Arrange
-        email = "registered-user@example.com"
-        otp_code = "123456"
-        new_password = STRONG_PASSWORD
+        otp = await _latest_reset_otp(db, user_id=user.id)
 
-        async with _make_client() as client:
-            # Step 1: Request password reset
-            forgot_response = await client.post(
-                FORGOT_PASSWORD_URL,
-                json={"email": email},
-            )
-            assert forgot_response.status_code == 200
+        reset_response = await async_client.post(
+            RESET_PASSWORD_URL,
+            json={
+                "email": user.email,
+                "code": otp.code,
+                "new_password": STRONG_PASSWORD,
+            },
+        )
+        assert reset_response.status_code == 200
 
-            # Step 2: Reset password with OTP
-            reset_response = await client.post(
-                RESET_PASSWORD_URL,
-                json={
-                    "email": email,
-                    "code": otp_code,
-                    "new_password": new_password,
-                },
-            )
-            assert reset_response.status_code == 200
+        old_login_response = await async_client.post(
+            LOGIN_URL,
+            json={"login_or_email": user.email, "password": old_password},
+        )
+        assert old_login_response.status_code == 401
 
-            # Step 3: Login with new password
-            login_response = await client.post(
-                "/api/v1/auth/login",
-                json={
-                    "login_or_email": email,
-                    "password": new_password,
-                },
-            )
-            assert login_response.status_code == 200
-            tokens = login_response.json()
-            assert "access_token" in tokens
-            assert "refresh_token" in tokens
+        new_login_response = await async_client.post(
+            LOGIN_URL,
+            json={"login_or_email": user.email, "password": STRONG_PASSWORD},
+        )
+        assert new_login_response.status_code == 200
+        assert "access_token" in new_login_response.json()
+        assert "refresh_token" in new_login_response.json()
 
-    async def test_reset_password_invalidates_otp_after_use(self):
-        """After a successful password reset, the same OTP code cannot
-        be used again for another reset attempt.
+    async def test_reset_password_invalidates_otp_after_use(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        user, _ = await _create_user(db)
+        await _create_reset_otp(db, user=user, code="123456")
 
-        Resubmitting the same code returns 400 (OTP_NOT_FOUND or OTP_INVALID)
-        because the OTP has been consumed (verified_at is set).
-        """
-        # Arrange
         payload = {
-            "email": "registered-user@example.com",
+            "email": user.email,
             "code": "123456",
             "new_password": STRONG_PASSWORD,
         }
 
-        async with _make_client() as client:
-            # First reset succeeds
-            first_response = await client.post(RESET_PASSWORD_URL, json=payload)
-            assert first_response.status_code == 200
+        first_response = await async_client.post(RESET_PASSWORD_URL, json=payload)
+        assert first_response.status_code == 200
 
-            # Second reset with same code fails
-            second_response = await client.post(RESET_PASSWORD_URL, json=payload)
-            assert second_response.status_code == 400
+        second_response = await async_client.post(RESET_PASSWORD_URL, json=payload)
+        assert second_response.status_code == 400
+        assert second_response.json()["detail"]["code"] in {"OTP_INVALID", "OTP_NOT_FOUND"}

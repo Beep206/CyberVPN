@@ -380,7 +380,7 @@ services:
           cpus: "0.05"
 
   helix-stable-http-proxy:
-    image: python:3.12-slim
+    image: python:3.13.13-slim-bookworm
     container_name: helix-stable-http-proxy
     hostname: helix-stable-http-proxy
     profiles: ["helix-lab"]

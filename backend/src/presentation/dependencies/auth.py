@@ -19,6 +19,7 @@ from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
@@ -286,7 +287,7 @@ async def get_current_mobile_user_id(
                 )
 
         # SEC-006: Verify user is active
-        repo = AdminUserRepository(db)
+        repo = MobileUserRepository(db)
         user = await repo.get_by_id(UUID(user_id))
         if not user:
             raise HTTPException(

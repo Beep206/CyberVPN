@@ -38,7 +38,8 @@ class AdminUserModel(Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    totp_secret: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Encrypted TOTP secrets are longer than the legacy base32 secret length.
+    totp_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 

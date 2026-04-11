@@ -2,6 +2,7 @@
   "name": "vpn-business",
   "private": true,
   "workspaces": [
+    "admin",
     "frontend",
     "apps/*",
     "services/*",
@@ -9,8 +10,11 @@
   ],
   "scripts": {
     "dev": "npm run dev -w frontend",
+    "dev:admin": "npm run dev -w admin",
     "build": "npm run build -w frontend",
-    "lint": "npm run lint -w frontend"
+    "build:admin": "npm run build -w admin",
+    "lint": "npm run lint -w frontend",
+    "lint:admin": "npm run lint -w admin"
   },
   "engines": {
     "node": ">=20"

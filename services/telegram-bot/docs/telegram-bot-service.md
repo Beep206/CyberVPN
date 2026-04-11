@@ -22,7 +22,7 @@
 **Статус:** Draft
 **Автор:** Claude (AI-ассистент)
 **Микросервис:** `services/telegram-bot`
-**Технологии:** Python 3.13+, aiogram 3.x, Pydantic Settings, httpx, Redis (FSM), Fluent i18n
+**Технологии:** Python 3.13.13, aiogram 3.x, Pydantic Settings, httpx, Redis (FSM), Fluent i18n
 
 ---
 
@@ -1302,7 +1302,7 @@ services/telegram-bot/
 3. Реализация `bot.py` — создание Bot instance и Dispatcher
 4. Реализация `main.py` — точка входа (polling mode для разработки)
 5. Минимальный `handlers/start.py` — ответ «Hello» на /start
-6. `Dockerfile` — multi-stage build (python:3.13-slim)
+6. `Dockerfile` — multi-stage build (`python:3.13.13-slim-bookworm`)
 7. `.env.example` — все переменные окружения
 
 **Критерий выхода:** `python -m src.main` запускает бота, бот отвечает на /start.
@@ -1750,13 +1750,13 @@ cybervpn-bot:
 
 ```dockerfile
 # Multi-stage build
-FROM python:3.13-slim AS builder
+FROM python:3.13.13-slim-bookworm AS builder
 WORKDIR /app
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
 
-FROM python:3.13-slim
+FROM python:3.13.13-slim-bookworm
 WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin

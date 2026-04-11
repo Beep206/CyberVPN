@@ -195,7 +195,7 @@ Owns all 3D code: cyberpunk globe, particle effects, shaders. Three.js 0.174, R3
 | **Can Delegate** | Yes — to backend-dev |
 | **Scope** | `backend/` |
 
-Owns FastAPI backend. Clean Architecture + DDD. Python 3.13, SQLAlchemy 2.0 async, PostgreSQL 17, Redis, Pydantic 2, JWT + TOTP 2FA, Argon2id.
+Owns FastAPI backend. Clean Architecture + DDD. Python 3.13.13, SQLAlchemy 2.0 async, PostgreSQL 17, Redis, Pydantic 2, JWT + TOTP 2FA, Argon2id.
 
 #### 7. backend-dev
 | Field | Value |

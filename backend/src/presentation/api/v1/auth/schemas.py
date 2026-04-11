@@ -53,6 +53,11 @@ class TokenResponse(BaseModel):
     expires_in: int = 0
 
 
+class LoginResponse(TokenResponse):
+    requires_2fa: bool = False
+    tfa_token: str | None = None
+
+
 class AdminUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

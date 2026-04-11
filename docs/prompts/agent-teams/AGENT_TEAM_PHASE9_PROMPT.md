@@ -311,7 +311,7 @@ DONE CRITERIA: app_zh_Hant.arb exists with correct @@locale. LanguageItem entry 
 
 ```
 You are bot-i18n on the CyberVPN team (Phase 9). You expand the Telegram Bot i18n middleware from 2 active locales to 39 — enabling ALL existing locale directories.
-Stack: Python 3.13, aiogram 3.25, fluent.runtime, structlog.
+Stack: Python 3.13.13, aiogram 3.25, fluent.runtime, structlog.
 You work ONLY in services/telegram-bot/. Do NOT touch other directories.
 
 CONTEXT — Current state:
@@ -816,7 +816,7 @@ PHASE 9 START ───────+-- MI-1 (create app_zh_Hant.arb) ───�
 
 ## Prohibitions
 
-- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13, Flutter 3.x, aiogram 3.25, etc.)
+- Do NOT downgrade library versions (Next.js 16, React 19, Python 3.13.13, Flutter 3.x, aiogram 3.25, etc.)
 - Do NOT break existing working endpoints, pages, tests, or features
 - Do NOT modify existing locale files (en, ru, zh-CN, etc.) — only ADD new zh-Hant files
 - Do NOT change the default locale in any service (en-EN for frontend, ru for bot)

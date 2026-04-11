@@ -1,0 +1,241 @@
+{
+  "layout": {
+    "subnavLabel": "Growth navigation"
+  },
+  "nav": {
+    "overview": "Overview",
+    "promoCodes": "Promo Codes",
+    "inviteCodes": "Invite Codes",
+    "partners": "Partners",
+    "referrals": "Referrals"
+  },
+  "common": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "empty": "No growth data available",
+    "actionFailed": "Growth action failed",
+    "close": "Close",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "save": "Save",
+    "actions": "Actions",
+    "clear": "Clear",
+    "reset": "Reset",
+    "used": "Used",
+    "unused": "Unused",
+    "blocked": "Blocked",
+    "missing": "Missing",
+    "backendLimited": "Backend limited",
+    "noExpiry": "No expiry"
+  },
+  "overview": {
+    "metaTitle": "Growth - Ozoxy Admin",
+    "eyebrow": "Acquisition / Retention",
+    "title": "Growth Control",
+    "description": "Operator surface for promo inventory, invite generation, partner operations, and live referral analytics.",
+    "metrics": {
+      "promos": "Promo Inventory",
+      "promosHint": "Admin-readable promo list already exists.",
+      "activePromos": "Active Campaigns",
+      "activePromosHint": "Codes currently allowed to redeem.",
+      "expiring": "Expiring Soon",
+      "expiringHint": "Promo codes expiring in the next 7 days.",
+      "plans": "Plan Catalog",
+      "plansHint": "Plans that can be targeted by invite or promo setup."
+    },
+    "routesTitle": "Route Inventory",
+    "routesDescription": "Growth is implemented only where backend admin coverage is real. Each route below maps to an existing operator-safe surface.",
+    "routes": {
+      "promoCodes": "Create, inspect, update, and deactivate campaign promo codes.",
+      "inviteCodes": "Generate invite batches for a specific user with optional plan targeting.",
+      "partners": "Promote users, review the live partner directory, and jump into customer operations.",
+      "referrals": "Monitor referral commissions, top referrers, and recent conversion-linked earnings."
+    },
+    "liveInventoryTitle": "Live Promo Inventory",
+    "liveInventoryDescription": "Current promo state pulled from the admin promo endpoint.",
+    "partialCoverage": "Operational coverage",
+    "usesLabel": "{current} / {max} uses",
+    "operatorNotesTitle": "Operator Notes",
+    "operatorNotes": {
+      "invitesTitle": "Invite codes are create-only",
+      "invitesDescription": "Backend exposes admin invite generation but no admin list/detail inventory yet. This module keeps deterministic batch generation and local result readback.",
+      "partnersTitle": "Partner inventory is now live",
+      "partnersDescription": "Admin can promote, search, and inspect partner-level performance, but payout moderation is still the next workflow.",
+      "referralsTitle": "Referral analytics are now operator-safe",
+      "referralsDescription": "Admin-safe overview and per-user drill-down are live. The remaining work is abuse review and deeper attribution analytics."
+    },
+    "planTargetingTitle": "Plan Targeting Context",
+    "planTargetingDescription": "Growth operations already benefit from plan awareness, especially for invite batches and targeted promo setup.",
+    "noPlans": "No plans available for targeting.",
+    "quickSignals": {
+      "exhausted": "Exhausted Promos",
+      "coverage": "Coverage",
+      "coverageValue": "5 live surfaces"
+    }
+  },
+  "promoCodes": {
+    "metaTitle": "Promo Codes - Ozoxy Admin",
+    "eyebrow": "Growth / Promo Codes",
+    "title": "Promo Inventory",
+    "description": "Admin console for campaign codes, usage ceilings, expiry windows, and safe deactivation.",
+    "createAction": "Create promo",
+    "createPanelTitle": "Create Promo Code",
+    "createPanelDescription": "Expose the full admin create surface, including advanced targeting fields that are currently write-only in the API contract.",
+    "editPanelTitle": "Update Promo",
+    "inspectPanelTitle": "Promo Detail",
+    "inspectPanelDescription": "Detail route is wired to the dedicated promo endpoint, not only the list response.",
+    "inspectEmpty": "Select a promo row to inspect it.",
+    "inspectUnavailable": "Promo detail is unavailable.",
+    "inspectAction": "Inspect",
+    "deactivateAction": "Deactivate",
+    "deactivateTitle": "Deactivate promo",
+    "deactivateConfirm": "Deactivate this promo code?",
+    "singleUseHint": "Use this for one-off redemptions or tightly controlled campaigns.",
+    "writeOnlyHint": "Write-only fields",
+    "noPlans": "No plans available for scoping.",
+    "empty": "No promo codes found.",
+    "metrics": {
+      "total": "Total Promos",
+      "totalHint": "All promo records returned by admin list.",
+      "active": "Active Promos",
+      "activeHint": "Still redeemable and not manually disabled.",
+      "exhausted": "Exhausted",
+      "exhaustedHint": "Reached max uses and likely need cleanup.",
+      "expiring": "Expiring Soon",
+      "expiringHint": "Expires within 7 days."
+    },
+    "fields": {
+      "code": "Code",
+      "discountType": "Discount Type",
+      "discountValue": "Discount Value",
+      "currency": "Currency",
+      "maxUses": "Max Uses",
+      "minAmount": "Min Amount",
+      "expiresAt": "Expires At",
+      "description": "Description",
+      "planScope": "Plan Scope",
+      "isSingleUse": "Single-use promo",
+      "isActive": "Promo is active"
+    },
+    "table": {
+      "code": "Code",
+      "discount": "Discount",
+      "usage": "Usage",
+      "expires": "Expires",
+      "status": "Status"
+    },
+    "inspect": {
+      "code": "Code",
+      "discountType": "Discount type",
+      "discountValue": "Discount value",
+      "currency": "Currency",
+      "usage": "Usage",
+      "createdAt": "Created",
+      "expiresAt": "Expires"
+    }
+  },
+  "inviteCodes": {
+    "metaTitle": "Invite Codes - Ozoxy Admin",
+    "eyebrow": "Growth / Invite Codes",
+    "title": "Invite Batch Generator",
+    "description": "Create invite codes for a specific user with free-day grants and optional plan binding.",
+    "formTitle": "Generate Invite Batch",
+    "formDescription": "This route intentionally focuses on deterministic creation because the backend still lacks an admin list endpoint for invite inventory.",
+    "generatedTitle": "Latest Generated Codes",
+    "generatedDescription": "Result readback from the last successful admin batch operation.",
+    "generatedEmpty": "No invite codes generated in this session.",
+    "generatedCount": "{count} codes",
+    "createAction": "Generate batch",
+    "createOnly": "Create-only",
+    "backendNote": "Admin coverage here is real but narrow: create batches now, add inventory and redemption analytics later when backend routes exist.",
+    "metrics": {
+      "lastBatch": "Last Batch",
+      "lastBatchHint": "Codes returned by the latest create call.",
+      "planCatalog": "Plan Catalog",
+      "planCatalogHint": "Available plans for optional invite targeting.",
+      "mode": "Surface Mode",
+      "modeValue": "POST only",
+      "modeHint": "No admin list endpoint exists yet.",
+      "lastCode": "Last Code",
+      "lastCodeHint": "First code from the latest generated batch."
+    },
+    "fields": {
+      "userId": "User ID",
+      "freeDays": "Free Days",
+      "count": "Count",
+      "planId": "Plan",
+      "planPlaceholder": "No plan binding"
+    },
+    "table": {
+      "code": "Code",
+      "freeDays": "Free Days",
+      "used": "Used",
+      "expires": "Expires",
+      "created": "Created"
+    }
+  },
+  "partners": {
+    "metaTitle": "Partners - Ozoxy Admin",
+    "eyebrow": "Growth / Partners",
+    "title": "Partner Operations",
+    "description": "Promote users into the partner programme, search the live partner directory, and jump into the customer card for further action.",
+    "formTitle": "Promote User To Partner",
+    "formDescription": "Provide the mobile user UUID and trigger the real admin promotion endpoint. Directory results refresh from live backend data.",
+    "directoryTitle": "Partner Directory",
+    "directoryDescription": "Live admin inventory of partner users with earnings, code counts, and recent activity.",
+    "directoryEmpty": "No partners matched the current search.",
+    "directoryCount": "{count} partners",
+    "promoteAction": "Promote partner",
+    "liveDirectory": "Live directory",
+    "backendNote": "The growth backend now exposes admin-safe partner list/detail surfaces. Payout tooling is still the next operational layer.",
+    "openCustomer": "Open customer card",
+    "metrics": {
+      "directory": "Directory",
+      "directoryHint": "partner users returned by admin inventory",
+      "activeCodes": "Active Codes",
+      "activeCodesHint": "currently live partner codes",
+      "totalEarned": "Total Earned",
+      "totalEarnedHint": "aggregate partner earnings in current result set",
+      "lastUser": "Last User",
+      "lastUserHint": "Most recent promoted user in the current session."
+    },
+    "fields": {
+      "userId": "User ID",
+      "search": "Partner search"
+    },
+    "badges": {
+      "codes": "{count} codes",
+      "activeCodes": "{count} active",
+      "clients": "{count} clients"
+    }
+  },
+  "referrals": {
+    "metaTitle": "Referrals - Ozoxy Admin",
+    "eyebrow": "Growth / Referrals",
+    "title": "Referral Analytics",
+    "description": "Admin-safe overview of referral earnings, top referrers, and recent commission activity.",
+    "currentStateTitle": "Top Referrers",
+    "currentStateDescription": "Live leaderboard pulled from admin-safe referral analytics endpoints.",
+    "recentTitle": "Recent Commissions",
+    "liveOverview": "Live overview",
+    "topReferrersEmpty": "No referral activity is available yet.",
+    "recentEmpty": "No recent referral commissions were returned.",
+    "nextFocusTitle": "Next Focus",
+    "nextFocusDescription": "The remaining growth gap is not raw visibility anymore. The next layer is abuse review, payout operations, and deeper attribution diagnostics.",
+    "openCustomer": "Open customer card",
+    "metrics": {
+      "adminSurface": "Commissions",
+      "adminSurfaceHint": "total commission records visible to admin",
+      "uniqueReferrers": "Referrers",
+      "uniqueReferrersHint": "users who have earned at least one referral commission",
+      "uniqueReferred": "Referred Users",
+      "uniqueReferredHint": "unique users brought in through referral flows",
+      "totalEarned": "Total Earned",
+      "totalEarnedHint": "aggregate referral payout volume"
+    },
+    "badges": {
+      "commissions": "{count} commissions",
+      "referredUsers": "{count} referred"
+    }
+  }
+}

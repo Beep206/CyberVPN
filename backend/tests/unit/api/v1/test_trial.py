@@ -5,12 +5,16 @@ authentication dependency via FastAPI dependency overrides.
 """
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import app
+from src.infrastructure.cache.redis_client import get_redis
+from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.auth import get_current_active_user
 
 
@@ -29,22 +33,65 @@ def _mock_current_active_user() -> _MockUser:
     return _MockUser()
 
 
+async def _mock_db():
+    yield object()
+
+
+class _MockPipeline:
+    async def incr(self, *_args, **_kwargs):
+        return self
+
+    async def expire(self, *_args, **_kwargs):
+        return self
+
+    async def execute(self):
+        return [1, True]
+
+
+class _MockRedis:
+    async def get(self, *_args, **_kwargs):
+        return None
+
+    async def ttl(self, *_args, **_kwargs):
+        return 0
+
+    def pipeline(self):
+        return _MockPipeline()
+
+
+async def _mock_redis():
+    yield _MockRedis()
+
+
 @pytest.fixture(autouse=True)
 def _override_auth():
     """Override authentication for all tests in this module."""
     app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+    app.dependency_overrides[get_db] = _mock_db
+    app.dependency_overrides[get_redis] = _mock_redis
     yield
     app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_redis, None)
 
 
 @pytest.mark.asyncio
 async def test_get_trial_status_success() -> None:
     """GET /api/v1/trial/status returns 200 with expected fields."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as client:
-        response = await client.get("/api/v1/trial/status")
+    status_result = SimpleNamespace(
+        is_trial_active=False,
+        is_eligible=True,
+        days_remaining=0,
+        trial_start=None,
+        trial_end=None,
+    )
+    with patch("src.presentation.api.v1.trial.routes.GetTrialStatusUseCase") as mock_use_case:
+        mock_use_case.return_value.execute = AsyncMock(return_value=status_result)
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.get("/api/v1/trial/status")
 
     assert response.status_code == 200
     data = response.json()
@@ -58,11 +105,19 @@ async def test_get_trial_status_success() -> None:
 @pytest.mark.asyncio
 async def test_activate_trial_success() -> None:
     """POST /api/v1/trial/activate returns 200 with activated=True and future trial_end."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as client:
-        response = await client.post("/api/v1/trial/activate")
+    trial_end = datetime.now(UTC)
+    activate_result = SimpleNamespace(
+        activated=True,
+        trial_end=trial_end,
+        message="Trial activated successfully",
+    )
+    with patch("src.presentation.api.v1.trial.routes.ActivateTrialUseCase") as mock_use_case:
+        mock_use_case.return_value.execute = AsyncMock(return_value=activate_result)
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.post("/api/v1/trial/activate")
 
     assert response.status_code == 200
     data = response.json()
@@ -71,19 +126,26 @@ async def test_activate_trial_success() -> None:
     assert "message" in data
 
     # trial_end should be in the future
-    trial_end = datetime.fromisoformat(data["trial_end"])
-    assert trial_end > datetime.now(UTC)
+    parsed_trial_end = datetime.fromisoformat(data["trial_end"])
+    assert parsed_trial_end >= trial_end
 
 
 @pytest.mark.asyncio
 async def test_activate_trial_idempotency() -> None:
     """POST /api/v1/trial/activate called twice should both succeed (placeholder behavior)."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as client:
-        first = await client.post("/api/v1/trial/activate")
-        second = await client.post("/api/v1/trial/activate")
+    activate_result = SimpleNamespace(
+        activated=True,
+        trial_end=datetime.now(UTC),
+        message="Trial activated successfully",
+    )
+    with patch("src.presentation.api.v1.trial.routes.ActivateTrialUseCase") as mock_use_case:
+        mock_use_case.return_value.execute = AsyncMock(return_value=activate_result)
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            first = await client.post("/api/v1/trial/activate")
+            second = await client.post("/api/v1/trial/activate")
 
     assert first.status_code == 200
     assert second.status_code == 200

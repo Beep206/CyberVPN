@@ -137,7 +137,7 @@
 
 ```
 You are backend-metrics on the CyberVPN team (Phase 4). You wire defined-but-unused Prometheus metrics into actual route handlers.
-Stack: FastAPI, Python 3.13, SQLAlchemy 2, Redis, prometheus-client, structlog.
+Stack: FastAPI, Python 3.13.13, SQLAlchemy 2, Redis, prometheus-client, structlog.
 You work ONLY in backend/.
 
 CONTEXT — What exists but is NOT wired:

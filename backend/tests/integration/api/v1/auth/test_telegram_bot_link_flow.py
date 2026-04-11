@@ -31,6 +31,7 @@ def _make_user_model(
     model.email = None
     model.role = "viewer"
     model.is_active = is_active
+    model.totp_enabled = False
     model.is_email_verified = True
     model.created_at = datetime.now(UTC)
     return model

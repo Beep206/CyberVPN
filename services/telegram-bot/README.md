@@ -100,7 +100,7 @@ src/
 
 ## Prerequisites
 
-- **Python 3.13+**
+- **Python 3.13.13** (repo baseline; see `.python-version`)
 - **Redis 7.1+** (or Valkey)
 - **CyberVPN Backend API** (running and accessible)
 - **Telegram Bot Token** (from [@BotFather](https://t.me/BotFather))
@@ -492,4 +492,4 @@ MIT
 
 ---
 
-**CyberVPN Telegram Bot** — Built with aiogram 3.27.0, Python 3.13, and Clean Architecture principles.
+**CyberVPN Telegram Bot** — Built with aiogram 3.27.0, Python 3.13.13, and Clean Architecture principles.

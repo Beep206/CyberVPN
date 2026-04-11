@@ -80,6 +80,7 @@ from src.presentation.api.v1.auth.schemas import (
     GenerateLoginLinkRequest,
     GenerateLoginLinkResponse,
     LoginRequest,
+    LoginResponse,
     LogoutAllResponse,
     LogoutRequest,
     MagicLinkRequest,
@@ -155,7 +156,7 @@ def _lockout_tier_from_remaining(remaining_seconds: int | None, permanent: bool)
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=LoginResponse,
     responses={
         401: {"description": "Invalid credentials"},
         422: {"description": "Validation error"},
@@ -169,7 +170,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
-) -> TokenResponse:
+) -> LoginResponse:
     """Authenticate user and return access and refresh tokens.
 
     Security:
@@ -339,22 +340,6 @@ async def login(
         step="login",
         status="success",
     )
-    track_auth_flow_event(
-        channel="web",
-        method="password",
-        provider="native",
-        locale=locale,
-        client_context=client_context,
-        step="session_started",
-        status="success",
-    )
-    track_auth_password_identifier_event(
-        channel="web",
-        identifier_type=password_identifier_type,
-        step="session_started",
-        client_context=client_context,
-        status="success",
-    )
     if previous_attempts > 0:
         track_auth_bruteforce_event(
             channel="web",
@@ -381,16 +366,46 @@ async def login(
             status="success",
         )
 
-    set_auth_cookies(response, result["access_token"], result["refresh_token"])
-    await sync_active_sessions(db)
+    if result["requires_2fa"]:
+        track_auth_flow_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale=locale,
+            client_context=client_context,
+            step="2fa_required",
+            status="success",
+        )
+    else:
+        track_auth_flow_event(
+            channel="web",
+            method="password",
+            provider="native",
+            locale=locale,
+            client_context=client_context,
+            step="session_started",
+            status="success",
+        )
+        track_auth_password_identifier_event(
+            channel="web",
+            identifier_type=password_identifier_type,
+            step="session_started",
+            client_context=client_context,
+            status="success",
+        )
+        set_auth_cookies(response, result["access_token"], result["refresh_token"])
+        await sync_active_sessions(db)
+
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("password", started_at)
 
-    return TokenResponse(
+    return LoginResponse(
         access_token=result["access_token"],
         refresh_token=result["refresh_token"],
         token_type=result["token_type"],
         expires_in=result["expires_in"],
+        requires_2fa=result["requires_2fa"],
+        tfa_token=result["tfa_token"],
     )
 
 

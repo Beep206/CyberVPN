@@ -1,3 +1,4 @@
+import inspect
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
@@ -9,6 +10,7 @@ from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from starlette.datastructures import Headers
 from starlette.types import ExceptionHandler
 
 from src.config.settings import settings
@@ -63,6 +65,26 @@ READINESS_QUEUE_STREAM = "taskiq:stream"
 READINESS_QUEUE_MAX_DEPTH = 1000
 
 
+class PrivateNetworkCompatibleCORSMiddleware(CORSMiddleware):
+    """Backport PNA preflight support for runtimes without Starlette 0.51+."""
+
+    def __init__(self, *args: Any, allow_private_network: bool = False, **kwargs: Any) -> None:
+        self.allow_private_network = allow_private_network
+        super().__init__(*args, **kwargs)
+
+    def preflight_response(self, request_headers: Headers):
+        response = super().preflight_response(request_headers)
+
+        if (
+            self.allow_private_network
+            and response.status_code == 200
+            and request_headers.get("access-control-request-private-network", "").lower() == "true"
+        ):
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -77,13 +99,14 @@ async def lifespan(app: FastAPI):
     if settings.sentry_dsn:
         import sentry_sdk
         from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
 
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
             environment=settings.environment,
             traces_sample_rate=1.0 if settings.environment == "development" else 0.1,
             profiles_sample_rate=1.0 if settings.environment == "development" else 0.1,
-            integrations=[FastApiIntegration()],
+            integrations=[StarletteIntegration(), FastApiIntegration()],
         )
         logger.info("Sentry SDK initialized", environment=settings.environment)
 
@@ -315,13 +338,26 @@ if "*" in settings.cors_origins:
     logger.warning("CORS '*' origin with credentials is unsafe; disabling credentials.")
     allow_credentials = False
 
+cors_middleware_kwargs = {
+    "allow_origins": settings.cors_origins,
+    "allow_credentials": allow_credentials,
+    "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization", "X-Request-ID"],
+}
+cors_middleware_cls: type[CORSMiddleware] = CORSMiddleware
+
+# Starlette added `allow_private_network` in 0.51.0.
+# Keep PNA support when available without breaking older pinned runtimes.
+if "allow_private_network" in inspect.signature(CORSMiddleware.__init__).parameters:
+    cors_middleware_kwargs["allow_private_network"] = True
+else:
+    cors_middleware_cls = PrivateNetworkCompatibleCORSMiddleware
+    cors_middleware_kwargs["allow_private_network"] = True
+    logger.warning("Installed CORSMiddleware does not support allow_private_network; using compatibility middleware.")
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=allow_credentials,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
-    allow_private_network=True,
+    cors_middleware_cls,
+    **cors_middleware_kwargs,
 )
 
 

@@ -39,7 +39,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.13.13'
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -107,10 +107,12 @@ jobs:
         env:
           CHECKLIST_PATH: docs/runbooks/EDGE_POST_DEPLOY_VERIFICATION_CHECKLIST.md
         run: |
-          echo "## IaC validation summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Terraform fmt/validate completed for staging and production foundation, edge, dns, and control-plane stacks." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Ansible syntax checks completed through Phase 8 control-plane promotion tooling and playbooks." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Fixture-backed inventory and Prometheus target snapshots uploaded for review." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Manual approval policy remains in force for real apply/rollout steps." >> "$GITHUB_STEP_SUMMARY"
-          echo "- Post-deploy checklist: \`${CHECKLIST_PATH}\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## IaC validation summary"
+            echo ""
+            echo "- Terraform fmt/validate completed for staging and production foundation, edge, dns, and control-plane stacks."
+            echo "- Ansible syntax checks completed through Phase 8 control-plane promotion tooling and playbooks."
+            echo "- Fixture-backed inventory and Prometheus target snapshots uploaded for review."
+            echo "- Manual approval policy remains in force for real apply/rollout steps."
+            echo "- Post-deploy checklist: \`${CHECKLIST_PATH}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

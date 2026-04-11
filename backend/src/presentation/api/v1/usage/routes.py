@@ -30,11 +30,11 @@ router = APIRouter(prefix="/users/me", tags=["usage"])
     "/usage",
     response_model=UsageResponse,
     summary="Get current user usage statistics",
-    description="Returns VPN usage statistics for the currently authenticated user from Remnawave.",
-    responses={
-        404: {"description": "User not found in VPN backend"},
-        502: {"description": "VPN backend unavailable"},
-    },
+    description=(
+        "Returns VPN usage statistics for the currently authenticated user. "
+        "If the VPN backend is unavailable or the user has no upstream record yet, "
+        "the endpoint falls back to an empty usage snapshot."
+    ),
 )
 async def get_usage(
     current_user: AdminUserModel = Depends(get_current_active_user),
@@ -43,6 +43,8 @@ async def get_usage(
     """Return usage statistics for the authenticated user from Remnawave.
 
     Fetches real bandwidth, connection, and billing period data from the VPN backend.
+    When upstream data cannot be retrieved, returns an empty usage snapshot instead
+    of failing the dashboard.
     """
     logger.info(
         "Usage statistics requested",

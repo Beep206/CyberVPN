@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.presentation.schemas.remnawave_responses import RemnawaveSubscriptionResponse
+
 
 class CreateSubscriptionTemplateRequest(BaseModel):
     """Request schema for creating a subscription template."""
@@ -52,6 +54,16 @@ class SubscriptionResponse(BaseModel):
     inbound_tag: str | None = Field(None, max_length=100, description="Inbound tag")
     flow: str | None = Field(None, max_length=50, description="Flow control method")
     config_data: dict[str, Any] | None = Field(None, description="Config data")
+
+
+class SubscriptionTemplateListResponse(BaseModel):
+    """Current Remnawave template list envelope."""
+
+    total: int = Field(..., ge=0, description="Total number of templates")
+    templates: list[RemnawaveSubscriptionResponse] = Field(
+        default_factory=list,
+        description="Subscription templates returned by Remnawave",
+    )
 
 
 class SubscriptionConfigResponse(BaseModel):

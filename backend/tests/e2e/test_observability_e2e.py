@@ -180,11 +180,12 @@ class TestDetailedHealthEndpointE2E:
         assert response.status_code == 200
 
         data = response.json()
+        components = data.get("components", {})
 
         # Verify all expected services are listed
-        assert "database" in data or "db" in str(data).lower()
-        assert "redis" in str(data).lower()
-        assert "remnawave" in str(data).lower() or "api" in str(data).lower()
+        assert "database" in components
+        assert "redis" in components
+        assert "remnawave" in components
 
 
 # ===========================================================================
@@ -254,60 +255,48 @@ class TestStructuredLoggingE2E:
     @pytest.mark.e2e
     async def test_structured_log_output_format(self, async_client: AsyncClient):
         """Verify logs are output in structured JSON format."""
-        # Capture log output
-        log_stream = StringIO()
-        handler = logging.StreamHandler(log_stream)
-        handler.setLevel(logging.INFO)
+        from src.shared.logging.config import configure_logging
 
-        # Get the root logger and add our handler
+        configure_logging(json_logs=True, log_level="INFO")
+
         logger = logging.getLogger()
-        original_level = logger.level
-        logger.setLevel(logging.INFO)
-        logger.addHandler(handler)
+        structured_handler = next(
+            (handler for handler in logger.handlers if isinstance(handler, logging.StreamHandler)),
+            None,
+        )
+        assert structured_handler is not None
+
+        log_stream = StringIO()
+        original_stream = structured_handler.stream
+        structured_handler.setStream(log_stream)
 
         try:
             # Trigger some logging by making API requests
             await async_client.get("/readiness")
+            structured_handler.flush()
 
             # Get the log output
             log_output = log_stream.getvalue()
 
             # Verify JSON format (should contain valid JSON lines)
             log_lines = [line.strip() for line in log_output.split("\n") if line.strip()]
+            assert log_lines, "Expected at least one structured log line"
 
-            if log_lines:
-                # At least one log line should be valid JSON
-                found_json = False
-                for line in log_lines:
-                    try:
-                        log_data = json.loads(line)
-                        # Verify expected fields in structured log
-                        assert isinstance(log_data, dict)
+            found_json = False
+            for line in log_lines:
+                try:
+                    log_data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
 
-                        # Common structured log fields
-                        expected_fields = ["timestamp", "level"]
-                        for field in expected_fields:
-                            if field in log_data or field.lower() in str(log_data).lower():
-                                found_json = True
-                                break
+                if isinstance(log_data, dict) and {"event", "level", "timestamp"} <= set(log_data):
+                    found_json = True
+                    break
 
-                        if found_json:
-                            break
-                    except (json.JSONDecodeError, AssertionError):
-                        continue
-
-                # Note: If no JSON logs found, it might be that the logging
-                # configuration is different in the test environment.
-                # This is informational rather than strict.
-                if not found_json:
-                    pytest.skip(
-                        "Structured JSON logging may not be active in test environment"
-                    )
+            assert found_json, "Expected structured JSON logs with event/level/timestamp fields"
 
         finally:
-            # Clean up
-            logger.removeHandler(handler)
-            logger.setLevel(original_level)
+            structured_handler.setStream(original_stream)
 
 
 # ===========================================================================

@@ -26,6 +26,7 @@ class PaymentProvider(StrEnum):
     CRYPTOBOT = "cryptobot"
     YOOKASSA = "yookassa"
     STRIPE = "stripe"
+    WALLET = "wallet"
 
 
 class AdminRole(StrEnum):

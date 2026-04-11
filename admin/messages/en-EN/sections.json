@@ -1,0 +1,154 @@
+{
+  "common": {
+    "availableNow": "Available Now",
+    "nextModules": "Next Modules",
+    "currentState": "Current State",
+    "backendCoverage": "Backend Coverage",
+    "nextFocus": "Next Focus",
+    "returnToDashboard": "Return to dashboard"
+  },
+  "customers": {
+    "metaTitle": "Customers - Ozoxy Admin",
+    "title": "Customer Operations",
+    "description": "Support and lifecycle surface for end users, wallets, subscriptions, and operational intervention.",
+    "currentState": "Customer directory and card are now live on top of dedicated mobile-user admin APIs, wallet flows, payments, referral data, and partner context.",
+    "backendCoverage": "Partial coverage. The core read/update customer surface is live, but subscription timelines, recovery tooling, and staff notes still need dedicated workflows.",
+    "nextFocus": "Deepen customer operations with support actions, recovery tooling, timeline visibility, and richer intervention history.",
+    "availableNow": {
+      "customerDirectory": "Searchable mobile-user directory with lifecycle and partner filters.",
+      "customerDetail": "Operational customer card with identity, wallet, payments, referral, and partner context.",
+      "walletTopups": "Wallet deposits and payment-linked balance movements.",
+      "partnerPromotions": "Direct partner promotion from the customer card and growth surfaces."
+    },
+    "nextModules": {
+      "supportToolkit": "Manual support actions like lock reasons, targeted intervention flows, and safer overrides.",
+      "subscriptionTimeline": "Unified subscription and access timeline for each customer.",
+      "manualRecovery": "Recovery flows for account access, device resets, and incident response.",
+      "staffNotes": "Persistent staff notes and internal case context for customer operations."
+    }
+  },
+  "commerce": {
+    "metaTitle": "Commerce - Ozoxy Admin",
+    "title": "Commerce Control",
+    "description": "Revenue operations for plans, payment rails, wallet movement, and withdrawal moderation.",
+    "currentState": "Commerce is one of the strongest backend domains: plans, history, subscription templates, wallet flows, and withdrawal moderation endpoints are already present.",
+    "backendCoverage": "Strong coverage with enough read and write APIs to ship a useful revenue-operations module immediately.",
+    "nextFocus": "Move from overview into payment detail, manual corrections, refund resync, and billing investigation flows.",
+    "availableNow": {
+      "plans": "Plan catalog and pricing management primitives.",
+      "subscriptionTemplates": "Subscription templates and billing structure signals.",
+      "payments": "Platform payment history with filtering by user.",
+      "walletOperations": "Wallet balances, transactions, and payout-related state.",
+      "withdrawalApprovals": "Approve or reject pending withdrawal requests."
+    },
+    "nextModules": {
+      "paymentDetail": "Payment detail investigation with provider context.",
+      "manualCorrections": "Manual balance and payment correction workflows.",
+      "refundResyncFlows": "Refund and provider-resync tooling.",
+      "billingOps": "Operational billing console for disputes and escalation."
+    }
+  },
+  "growth": {
+    "metaTitle": "Growth - Ozoxy Admin",
+    "title": "Growth Console",
+    "description": "Acquisition and retention surface for promo mechanics, partner signals, invites, and referral programs.",
+    "currentState": "Growth now has live promo inventory, invite generation, partner directory, and referral analytics, but deeper abuse handling and payout operations are still separate concerns.",
+    "backendCoverage": "Partial coverage. Core admin-safe growth surfaces are live, but moderation, payout tooling, and invite inventory still need expansion.",
+    "nextFocus": "Add abuse controls, payout operations, and deeper attribution diagnostics on top of the current live growth inventory.",
+    "availableNow": {
+      "promoCodes": "Promo code inventory and validation primitives.",
+      "inviteCodes": "Invite code generation and redemption visibility.",
+      "partnerPromotion": "Partner promotion plus live partner directory and drill-down context.",
+      "referralSignals": "Referral overview, top referrers, and recent commission analytics."
+    },
+    "nextModules": {
+      "growthSettings": "Unified growth settings across promotions and referral rules.",
+      "abuseReview": "Abuse review for invite, promo, and referral misuse.",
+      "payoutOps": "Payout-oriented operations for partner and referral earnings.",
+      "inviteInventory": "Inventory and lifecycle tracking for invite-code batches.",
+      "fraudSignals": "Fraud and anomaly signals across acquisition channels."
+    }
+  },
+  "infrastructure": {
+    "metaTitle": "Infrastructure - Ozoxy Admin",
+    "title": "Infrastructure Control",
+    "description": "Fleet operations for servers, hosts, profiles, plugins, Helix, and XRay-related runtime surfaces.",
+    "currentState": "Infrastructure is backend-ready and already exposes the broadest set of operational APIs in the system.",
+    "backendCoverage": "Strong coverage. This domain can support a full admin module with monitoring, rollout, and node operations.",
+    "nextFocus": "Add dedicated rollout tooling, per-node drill-down, and configuration diff workflows.",
+    "availableNow": {
+      "servers": "Server inventory, status, and aggregate statistics.",
+      "hosts": "Host management and connectivity surfaces.",
+      "configProfiles": "Config profile and distribution surfaces.",
+      "nodePlugins": "Node plugin orchestration primitives.",
+      "helix": "Helix control surfaces already exposed by backend routes.",
+      "xray": "XRay-related operational endpoints and configuration signals."
+    },
+    "nextModules": {
+      "inbounds": "Inbound rule management and traffic entry points.",
+      "squads": "Server grouping and rollout squads.",
+      "snippets": "Reusable config snippets and deployment presets.",
+      "rolloutConsole": "Rollout console with staged execution and blast-radius controls."
+    }
+  },
+  "security": {
+    "metaTitle": "Security - Ozoxy Admin",
+    "title": "Security Posture",
+    "description": "Administrative trust surface for sessions, 2FA, anti-phishing, and privileged access hardening.",
+    "currentState": "Core security primitives already exist and the admin app itself now runs with role checks and a 2FA-only login contour.",
+    "backendCoverage": "Strong coverage for first release. The base is in place for session monitoring and privileged access governance.",
+    "nextFocus": "Layer anomaly detection, action reason capture, and device trust on top of the current auth foundation.",
+    "availableNow": {
+      "adminSessions": "Session-aware admin access model with protected dashboard access.",
+      "twoFactor": "Email/password login gated by mandatory 2FA flow.",
+      "antiPhishing": "Anti-phishing code primitives and profile security signals.",
+      "authHardening": "Role-based access checks and hardened session flow."
+    },
+    "nextModules": {
+      "sessionAnomalies": "Suspicious session detection and review queue.",
+      "securityPosture": "Central posture dashboard for trust and auth health.",
+      "privilegedReasons": "Reason capture for sensitive admin actions.",
+      "deviceTrust": "Device trust and verified operator workspace controls."
+    }
+  },
+  "governance": {
+    "metaTitle": "Governance - Ozoxy Admin",
+    "title": "Governance & Audit",
+    "description": "Operational governance surface for privileged actions, webhooks, staff onboarding, and future policy control.",
+    "currentState": "Audit logs, webhook logs, and admin invites are already exposed. The missing layer is staff directory management and system configuration governance.",
+    "backendCoverage": "Partial coverage. Strong audit visibility exists, but system configuration and richer staff-management APIs are still missing.",
+    "nextFocus": "Ship the first governance workspace around audit, invites, and webhook forensics, then add admin directory and policy controls.",
+    "availableNow": {
+      "auditLog": "Privileged action trail from backend audit log.",
+      "webhookLog": "Webhook processing visibility and failure context.",
+      "adminInvites": "Invite lifecycle for onboarding new admin staff.",
+      "policyVisibility": "Baseline visibility into current governance surfaces."
+    },
+    "nextModules": {
+      "adminDirectory": "Staff directory with role, status, and ownership visibility.",
+      "staffRoleChanges": "Role change workflows and approval history.",
+      "systemConfig": "System configuration editor with safety rails.",
+      "forensicFilters": "Deep filtering and forensic investigation tools."
+    }
+  },
+  "integrations": {
+    "metaTitle": "Integrations - Ozoxy Admin",
+    "title": "Integration Operations",
+    "description": "Operational surface for Telegram, realtime delivery, bot-linked flows, and callback visibility.",
+    "currentState": "The backend already exposes Telegram, bot, and webhook-related capabilities, but operator visibility is still spread across multiple areas.",
+    "backendCoverage": "Partial coverage. The platform has meaningful integration primitives, but the admin UI still needs consolidation and diagnostics.",
+    "nextFocus": "Create one integration health surface that combines delivery state, bot controls, and realtime diagnostics.",
+    "availableNow": {
+      "telegramOps": "Telegram-linked operational and auth primitives.",
+      "botConfigAccess": "Bot configuration access paths and related backend coverage.",
+      "realtimeTopics": "Realtime and websocket-driven event topics.",
+      "websocketTickets": "Low-level websocket and callback signals already visible in backend domains."
+    },
+    "nextModules": {
+      "pushVisibility": "Push and outbound delivery visibility.",
+      "deliveryDiagnostics": "Integration diagnostics and failure drill-down.",
+      "integrationHealth": "Health overview for external integrations and callbacks.",
+      "opsNotifications": "Operator-facing notification routing and escalation."
+    }
+  }
+}

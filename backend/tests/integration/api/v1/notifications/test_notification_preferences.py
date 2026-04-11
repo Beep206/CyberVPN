@@ -12,7 +12,6 @@ Requires: AsyncClient, test database, authenticated user.
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -81,12 +80,9 @@ class TestNotificationPreferences:
         assert data["email_security"] is False
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.notification_prefs is not None
-        assert updated_user.notification_prefs.get("email_security") is False
+        await db.refresh(user)
+        assert user.notification_prefs is not None
+        assert user.notification_prefs.get("email_security") is False
 
     @pytest.mark.integration
     async def test_update_notification_preferences_email_marketing(
@@ -111,11 +107,9 @@ class TestNotificationPreferences:
         assert data["email_marketing"] is True
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        assert updated_user.notification_prefs.get("email_marketing") is True
+        await db.refresh(user)
+        assert user.notification_prefs is not None
+        assert user.notification_prefs.get("email_marketing") is True
 
     @pytest.mark.integration
     async def test_update_notification_preferences_push_notifications(
@@ -146,11 +140,8 @@ class TestNotificationPreferences:
         assert data["push_subscription"] is False
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        prefs = updated_user.notification_prefs
+        await db.refresh(user)
+        prefs = user.notification_prefs
         assert prefs.get("push_connection") is False
         assert prefs.get("push_payment") is False
         assert prefs.get("push_subscription") is False
@@ -184,11 +175,8 @@ class TestNotificationPreferences:
         assert data["push_connection"] is False
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        prefs = updated_user.notification_prefs
+        await db.refresh(user)
+        prefs = user.notification_prefs
         assert prefs.get("email_security") is False
         assert prefs.get("email_marketing") is True
         assert prefs.get("push_connection") is False
@@ -229,11 +217,8 @@ class TestNotificationPreferences:
         assert data["push_connection"] is False  # Unchanged
 
         # Verify database persistence
-        result = await db.execute(
-            select(AdminUserModel).where(AdminUserModel.id == user.id)
-        )
-        updated_user = result.scalar_one()
-        prefs = updated_user.notification_prefs
+        await db.refresh(user)
+        prefs = user.notification_prefs
         assert prefs.get("email_security") is True
         assert prefs.get("email_marketing") is True
         assert prefs.get("push_connection") is False

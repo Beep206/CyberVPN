@@ -1,0 +1,6 @@
+{
+    "title": "USER MANAGEMENT",
+    "subtitle": "Access control and subscription monitoring.",
+    "totalUsers": "TOTAL USERS: {count}",
+    "newToday": "NEW TODAY: {count}"
+}

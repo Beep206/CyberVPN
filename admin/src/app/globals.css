@@ -1,0 +1,460 @@
+@import "tailwindcss" source("..");
+
+/* VPN Cyberpunk Color Palette & Theme Configuration */
+@theme {
+  /* VPN Cyberpunk Color Palette - AAA+ Upgrade */
+  /* These can remain static if they don't change by theme, or dynamic if they do */
+  --color-matrix-green: var(--color-matrix-green);
+  --color-neon-cyan: var(--color-neon-cyan);
+  --color-neon-pink: var(--color-neon-pink);
+  --color-neon-purple: var(--color-neon-purple);
+  --color-neon-red: var(--color-neon-red);
+
+  /* AAA+ Theme Bases (Dynamic) */
+  --color-terminal-bg: var(--color-terminal-bg);
+  --color-terminal-surface: var(--color-terminal-surface);
+  --color-grid-line: var(--color-grid-line);
+
+  /* VPN Status Colors - Vivid */
+  --color-server-online: #00ff00;
+  --color-server-offline: #ff0000;
+  --color-server-warning: #ffff00;
+  --color-server-maintenance: #bd00ff;
+
+  /* Fonts */
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-display: "Orbitron", "Audiowide", sans-serif;
+  --font-cyber: "Share Tech Mono", monospace;
+
+  /* Custom Breakpoints */
+  --breakpoint-3xl: 1920px;
+  --breakpoint-4k: 2560px;
+
+  /* Animation */
+  --ease-cyber: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-glow: 2s;
+
+  /* Shadows */
+  --shadow-neon-cyan: 0 0 10px var(--color-neon-cyan), 0 0 20px rgba(0, 255, 255, 0.5);
+  --shadow-neon-pink: 0 0 10px var(--color-neon-pink), 0 0 20px rgba(255, 0, 255, 0.5);
+  --shadow-server-online: 0 0 10px var(--color-server-online);
+
+  /* Accessible low-emphasis text (meets WCAG AA 4.5:1) */
+  --color-muted-foreground-low: var(--muted-foreground-low);
+
+  /* Shadcn Mappings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+}
+
+/* Custom Variant for Dark Mode (Class Strategy) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-terminal-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-cyan);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+  box-shadow: 0 0 10px var(--color-neon-cyan);
+}
+
+/* Selection Styling */
+::selection {
+  background: var(--color-neon-pink);
+  color: #000;
+  text-shadow: none;
+}
+
+/* Base Theme Variables */
+:root {
+  --radius: 0.5rem;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --keyboard-offset: env(keyboard-inset-height, 0px);
+  --mobile-page-gutter: clamp(1rem, 4vw, 1.5rem);
+  --mobile-page-gutter-compact: clamp(0.875rem, 3vw, 1rem);
+  --mobile-touch-target-min: 44px;
+  --mobile-touch-target-comfortable: 48px;
+  --mobile-sticky-offset: calc(var(--safe-area-top) + 0.75rem);
+  --mobile-content-gutter: clamp(1rem, 4vw, 1.5rem);
+  --mobile-density-scale: 0.9;
+  --mobile-hero-line-length: 18ch;
+
+  /* ===== DEPTH SYSTEM - Light Mode (Industrial) ===== */
+  --depth-0: oklch(0.65 0.015 250);
+  /* Background — основной */
+  --depth-1: oklch(0.68 0.012 250);
+  /* Surface */
+  --depth-2: oklch(0.70 0.010 250);
+  /* Card */
+  --depth-3: oklch(0.62 0.018 250);
+  /* Modal (темнее фона) */
+  --depth-4: oklch(0.58 0.020 250);
+  /* Sidebar (самый тёмный) */
+  --depth-5: oklch(0.55 0.025 250);
+  /* Hover state */
+
+  /* Theme color mappings from depth */
+  --color-terminal-bg: var(--depth-0);
+  --color-terminal-surface: var(--depth-1);
+  --color-grid-line: oklch(0.45 0.03 250);
+
+  /* ===== SHADOWS - Light Mode ===== */
+  --shadow-sm: 0 2px 8px oklch(0.30 0.02 250 / 0.15);
+  --shadow-md: 0 4px 16px oklch(0.25 0.02 250 / 0.20);
+  --shadow-lg: 0 8px 32px oklch(0.20 0.03 250 / 0.25);
+
+  /* Glow for TiltCard hover */
+  --glow-color: oklch(0.40 0.15 210 / 0.12);
+
+  /* Shadcn Light Mappings */
+  --background: var(--depth-0);
+  --foreground: oklch(0.10 0.05 260);
+
+  /* Cards */
+  --card: var(--depth-2);
+  --card-foreground: oklch(0.10 0.05 260);
+
+  --popover: var(--depth-3);
+  --popover-foreground: oklch(0.10 0.05 260);
+
+  /* ===== ACCENTS - Saturated for Contrast ===== */
+  --primary: oklch(0.40 0.15 210);
+  --primary-foreground: #ffffff;
+
+  --secondary: oklch(0.40 0.18 320);
+  --secondary-foreground: #ffffff;
+
+  --muted: var(--depth-1);
+  --muted-foreground: oklch(0.35 0.02 250);
+  /* Low-emphasis text token — meets 4.5:1 on depth-0 (oklch 0.65) */
+  --muted-foreground-low: oklch(0.40 0.02 250);
+
+  --accent: oklch(0.38 0.15 145);
+  --accent-foreground: #ffffff;
+
+  --destructive: oklch(0.45 0.18 25);
+  --destructive-foreground: #ffffff;
+
+  --border: var(--color-grid-line);
+  --input: var(--depth-1);
+  --ring: oklch(0.40 0.15 210);
+
+  /* Sidebar - Darkest anchor */
+  --sidebar: var(--depth-4);
+  --sidebar-foreground: oklch(0.10 0.05 260);
+  --sidebar-primary: oklch(0.40 0.15 210);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--depth-5);
+  --sidebar-accent-foreground: oklch(0.05 0.05 260);
+  --sidebar-border: oklch(0.50 0.02 250);
+  --sidebar-ring: oklch(0.40 0.15 210);
+
+  /* Light mode neon colors — desaturated for readability */
+  --color-matrix-green: oklch(0.38 0.15 145);
+  --color-neon-cyan: oklch(0.40 0.15 210);
+  --color-neon-pink: oklch(0.40 0.18 320);
+  --color-neon-purple: oklch(0.38 0.18 300);
+  --color-neon-red: #ff004c;
+}
+
+.dark {
+  /* ===== DEPTH SYSTEM - Dark Mode (Cyberpunk) ===== */
+  --depth-0: oklch(0.03 0.01 260);
+  /* Background — near black */
+  --depth-1: oklch(0.06 0.015 260);
+  /* Surface */
+  --depth-2: oklch(0.09 0.02 260);
+  /* Card */
+  --depth-3: oklch(0.12 0.02 260);
+  /* Modal */
+  --depth-4: oklch(0.05 0.015 260);
+  /* Sidebar */
+  --depth-5: oklch(0.15 0.025 260);
+  /* Hover state */
+
+  --color-terminal-bg: var(--depth-0);
+  --color-terminal-surface: var(--depth-1);
+  --color-grid-line: #00ffff;
+
+  /* ===== SHADOWS - Dark Mode (Neon-tinted) ===== */
+  --shadow-sm: 0 2px 8px oklch(0.50 0.20 195 / 0.15);
+  --shadow-md: 0 4px 16px oklch(0.55 0.25 195 / 0.20);
+  --shadow-lg: 0 0 32px oklch(0.60 0.30 195 / 0.30);
+
+  /* Glow for TiltCard hover — neon cyan */
+  --glow-color: rgba(0, 255, 255, 0.15);
+
+  /* Shadcn Dark Mappings */
+  --background: var(--depth-0);
+  --foreground: oklch(0.95 0.01 195);
+
+  --card: var(--depth-2);
+  --card-foreground: oklch(0.95 0.01 195);
+
+  --popover: var(--depth-3);
+  --popover-foreground: oklch(0.95 0.01 195);
+
+  /* ===== NEON ACCENTS ===== */
+  --primary: #00ffff;
+  --primary-foreground: oklch(0.12 0.03 260);
+
+  --secondary: #ff00ff;
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: var(--depth-1);
+  --muted-foreground: oklch(0.60 0.05 195);
+  /* Low-emphasis text token — meets 4.5:1 on depth-0 (oklch 0.03) */
+  --muted-foreground-low: oklch(0.50 0.04 195);
+
+  --accent: #00ff88;
+  --accent-foreground: oklch(0.12 0.03 260);
+
+  --destructive: #ff0000;
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.25 0.10 195);
+  --input: var(--depth-1);
+  --ring: #00ffff;
+
+  /* Sidebar */
+  --sidebar: var(--depth-4);
+  --sidebar-foreground: oklch(0.95 0.01 195);
+  --sidebar-primary: #00ffff;
+  --sidebar-primary-foreground: oklch(0.12 0.03 260);
+  --sidebar-accent: var(--depth-5);
+  --sidebar-accent-foreground: oklch(0.95 0.01 195);
+  --sidebar-border: oklch(0.25 0.10 195);
+  --sidebar-ring: #00ffff;
+
+  /* Neon colors — vivid */
+  --color-matrix-green: #00ff88;
+  --color-neon-cyan: #00ffff;
+  --color-neon-pink: #ff00ff;
+  --color-neon-purple: #9d00ff;
+  --color-neon-red: #ff004c;
+}
+
+html,
+body {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+html {
+  scroll-padding-top: calc(var(--safe-area-top) + 1rem);
+  scroll-padding-bottom: max(var(--safe-area-bottom), var(--keyboard-offset), 1rem);
+}
+
+body {
+  padding-bottom: max(var(--safe-area-bottom), 0px);
+}
+
+.touch-target {
+  min-width: var(--mobile-touch-target-min);
+  min-height: var(--mobile-touch-target-min);
+}
+
+.touch-target-comfortable {
+  min-width: var(--mobile-touch-target-comfortable);
+  min-height: var(--mobile-touch-target-comfortable);
+}
+
+.keyboard-safe-bottom {
+  padding-bottom: max(var(--safe-area-bottom), var(--keyboard-offset), 1rem);
+}
+
+.safe-area-dialog {
+  max-height: calc(100dvh - var(--safe-area-top) - max(var(--safe-area-bottom), 1rem) - 1rem);
+  margin-top: calc(var(--safe-area-top) + 0.5rem);
+  margin-bottom: max(var(--safe-area-bottom), 0.5rem);
+}
+
+.safe-area-scroll-panel {
+  padding-bottom: max(var(--safe-area-bottom), 1rem);
+}
+
+.mobile-form-input {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-form-input {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+
+/* Force dark mode code block removed, relying on class strategy */
+@layer base {
+
+  /* ===== Keyboard Focus Indicators (Cyberpunk) ===== */
+  /* Visible neon-cyan focus ring for keyboard navigation (focus-visible)
+     without affecting mouse/touch interactions. */
+  :focus-visible {
+    outline: 2px solid var(--color-neon-cyan);
+    outline-offset: 2px;
+    box-shadow:
+      0 0 8px var(--color-neon-cyan),
+      0 0 16px oklch(0.7 0.15 195 / 0.3);
+  }
+
+  /* Suppress the default focus ring for mouse interactions */
+  :focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* Color scheme for native elements */
+  html {
+    color-scheme: light dark;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground font-mono antialiased;
+    background-color: var(--background);
+    background-image: none;
+  }
+
+  /* Global cursor hiding is now handled in layout.tsx via scoped class */
+  /* html, body { cursor: none; } -- REMOVED */
+
+  /* 
+     Ensure standard interactive elements inherit 'none' unless overridden 
+     but allow external tools (like Next.js Error Overlay) to show cursor 
+  */
+  /* 
+     Standard interactive elements inside the .cursor-none container will inherit 'none'.
+     If they are outside (like Next.js overlays), they will default to auto/pointer.
+  */
+
+  /* EXCEPTION: Next.js Dev Tools & Error Overlay */
+  nextjs-portal,
+  [data-nextjs-dialog-overlay],
+  [data-nextjs-toast],
+  #nextjs-dev-tools-overlay {
+    cursor: auto !important;
+  }
+
+  /* Also match children of the overlay to ensure they get the pointer */
+  nextjs-portal *,
+  [data-nextjs-dialog-overlay] * {
+    cursor: auto !important;
+  }
+
+  .dark body {
+    /* Cyberpunk Grid/Scanline effect only for dark mode */
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+      repeating-linear-gradient(0deg,
+        transparent,
+        transparent 2px,
+        oklch(0 0 0 / 0.1) 2px,
+        oklch(0 0 0 / 0.1) 4px);
+    background-size: 100% 100%;
+  }
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-terminal-surface/80 backdrop-blur-xl;
+    @apply border border-grid-line/30;
+    @apply shadow-neon-cyan/20;
+    /* customized */
+  }
+
+  .server-status-online {
+    @apply text-server-online shadow-server-online;
+  }
+
+  /* Theme-aware neon text */
+  .neon-text {
+    /* Light mode: solid bold, no glow */
+    text-shadow: none;
+    font-weight: 700;
+  }
+
+  .dark .neon-text {
+    /* Dark mode: full neon glow */
+    text-shadow:
+      0 0 10px currentColor,
+      0 0 20px currentColor,
+      0 0 40px currentColor;
+    font-weight: 400;
+  }
+}
+
+@utility glow-* {
+  filter: drop-shadow(0 0 calc(--value * 1px) currentColor);
+}
+
+@utility scanline {
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      oklch(0 0 0 / 0.03) 2px,
+      oklch(0 0 0 / 0.03) 4px);
+}
+
+/* 3D Transforms */
+.transform-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-x-2 {
+  transform: rotateX(2deg);
+}
+
+.hover\:rotate-x-0:hover {
+  transform: rotateX(0deg);
+}
+
+.hover\:translate-z-10:hover {
+  transform: translateZ(10px);
+}
+
+/* View Transitions API - Disable default cross-fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+}

@@ -106,7 +106,7 @@ VPNBussiness/
 
 | Технология | Версия | Назначение |
 |---|---|---|
-| Python | ≥3.13 | Рантайм |
+| Python | 3.13.13 | Рантайм baseline (Docker/CI/WSL) |
 | FastAPI | ≥0.128.0 | Async Web Framework |
 | Pydantic | ≥2.6.0 | Валидация + сериализация |
 | SQLAlchemy | ≥2.0.23 | Async ORM |

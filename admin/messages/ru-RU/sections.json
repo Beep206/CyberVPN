@@ -1,0 +1,154 @@
+{
+  "common": {
+    "availableNow": "Доступно Сейчас",
+    "nextModules": "Следующие Модули",
+    "currentState": "Текущее Состояние",
+    "backendCoverage": "Покрытие Backend",
+    "nextFocus": "Следующий Фокус",
+    "returnToDashboard": "Вернуться на дашборд"
+  },
+  "customers": {
+    "metaTitle": "Клиенты - Ozoxy Admin",
+    "title": "Клиентские Операции",
+    "description": "Поверхность поддержки и жизненного цикла для конечных пользователей, кошельков, подписок и ручного вмешательства.",
+    "currentState": "Каталог клиентов и customer card уже живут поверх выделенных mobile-user admin API, wallet-flow, payments, referral-данных и partner-контекста.",
+    "backendCoverage": "Частичное покрытие. Базовый read/update customer-surface уже работает, но subscription timeline, recovery-tooling и staff notes ещё требуют отдельных workflow.",
+    "nextFocus": "Углубить customer-operations через support-действия, recovery-инструменты, таймлайны и более богатую историю вмешательств.",
+    "availableNow": {
+      "customerDirectory": "Поисковый каталог mobile user с lifecycle- и partner-фильтрами.",
+      "customerDetail": "Операционная карточка клиента с identity, wallet, payments, referral и partner-контекстом.",
+      "walletTopups": "Пополнения кошелька и движения баланса, связанные с платежами.",
+      "partnerPromotions": "Прямое повышение до партнёра из customer card и growth-поверхностей."
+    },
+    "nextModules": {
+      "supportToolkit": "Ручные support-действия: причины блокировки, безопасные override и targeted intervention flow.",
+      "subscriptionTimeline": "Единый subscription/access timeline по каждому клиенту.",
+      "manualRecovery": "Recovery-flow для доступа к аккаунту, device reset и incident response.",
+      "staffNotes": "Постоянные staff-notes и внутренний case-контекст для customer operations."
+    }
+  },
+  "commerce": {
+    "metaTitle": "Коммерция - Ozoxy Admin",
+    "title": "Коммерческий Контур",
+    "description": "Операции выручки для тарифов, платёжных рельс, движения кошельков и модерации выводов.",
+    "currentState": "Коммерция сейчас одна из самых сильных backend-зон: уже есть тарифы, история платежей, subscription templates, wallet flows и модерация выводов.",
+    "backendCoverage": "Сильное покрытие. Read и write API уже достаточно, чтобы быстро выпустить полезный revenue-operations модуль.",
+    "nextFocus": "Следующий шаг: payment detail, ручные корректировки, refund resync и разборы биллинговых инцидентов.",
+    "availableNow": {
+      "plans": "Каталог тарифов и базовые примитивы управления ценами.",
+      "subscriptionTemplates": "Subscription templates и сигналы структуры биллинга.",
+      "payments": "История платежей платформы с фильтрацией по пользователю.",
+      "walletOperations": "Кошельки, транзакции и состояние, связанное с выплатами.",
+      "withdrawalApprovals": "Подтверждение и отклонение ожидающих выводов."
+    },
+    "nextModules": {
+      "paymentDetail": "Детальный разбор платежа с контекстом провайдера.",
+      "manualCorrections": "Ручные корректировки баланса и платежей.",
+      "refundResyncFlows": "Инструменты возвратов и повторной синхронизации провайдеров.",
+      "billingOps": "Операционный биллинговый console для споров и эскалаций."
+    }
+  },
+  "growth": {
+    "metaTitle": "Рост - Ozoxy Admin",
+    "title": "Контур Роста",
+    "description": "Поверхность привлечения и удержания для промо-механик, партнёрских сигналов, invite-кодов и рефералов.",
+    "currentState": "Growth уже даёт живой promo inventory, invite generation, partner directory и referral analytics, но abuse-handling и payout-операции пока остаются отдельным следующим слоем.",
+    "backendCoverage": "Частичное покрытие. Базовые admin-safe growth-surface уже живые, но модерация, payout-tooling и invite inventory ещё нужно расширять.",
+    "nextFocus": "Добавить anti-abuse контроль, payout-операции и более глубокую attribution-диагностику поверх текущего live growth inventory.",
+    "availableNow": {
+      "promoCodes": "Инвентарь промокодов и примитивы их валидации.",
+      "inviteCodes": "Генерация invite-кодов и видимость их погашения.",
+      "partnerPromotion": "Повышение до партнёра плюс live-directory и drill-down контекст.",
+      "referralSignals": "Referral overview, top referrer'ы и аналитика последних commission."
+    },
+    "nextModules": {
+      "growthSettings": "Единые настройки роста для промо- и referral-правил.",
+      "abuseReview": "Разбор злоупотреблений invite-, promo- и referral-механиками.",
+      "payoutOps": "Операции вокруг выплат партнёрам и referral-earning.",
+      "inviteInventory": "Inventory и lifecycle-tracking для invite-batch.",
+      "fraudSignals": "Fraud- и anomaly-сигналы по acquisition-каналам."
+    }
+  },
+  "infrastructure": {
+    "metaTitle": "Инфраструктура - Ozoxy Admin",
+    "title": "Контроль Инфраструктуры",
+    "description": "Операции по флоту серверов, hosts, profiles, plugins, Helix и XRay-поверхностям.",
+    "currentState": "Инфраструктура уже backend-ready и сейчас даёт самый широкий набор operational API во всей системе.",
+    "backendCoverage": "Сильное покрытие. Этот домен уже тянет полноценный admin-модуль с мониторингом, rollout и node-операциями.",
+    "nextFocus": "Добавить rollout-tooling, drill-down по нодам и workflow сравнения конфигов.",
+    "availableNow": {
+      "servers": "Инвентарь серверов, статусы и агрегированные метрики.",
+      "hosts": "Управление hosts и поверхности их связности.",
+      "configProfiles": "Profiles и поверхности распределения конфигов.",
+      "nodePlugins": "Примитивы orchestration для node plugins.",
+      "helix": "Уже доступные control surfaces для Helix.",
+      "xray": "Операционные endpoints и сигналы конфигурации XRay."
+    },
+    "nextModules": {
+      "inbounds": "Управление inbound-правилами и точками входа трафика.",
+      "squads": "Группировка серверов и rollout squads.",
+      "snippets": "Переиспользуемые конфиг-snippets и deployment presets.",
+      "rolloutConsole": "Rollout console со стадийным исполнением и контролем blast radius."
+    }
+  },
+  "security": {
+    "metaTitle": "Безопасность - Ozoxy Admin",
+    "title": "Контур Безопасности",
+    "description": "Поверхность доверия для админских сессий, 2FA, anti-phishing и усиления привилегированного доступа.",
+    "currentState": "Базовые security-примитивы уже есть, а сама админка теперь работает с role-check и контуром входа только через 2FA.",
+    "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и governance привилегированного доступа.",
+    "nextFocus": "Дальше нужно наложить anomaly detection, reason capture и device trust поверх текущего auth-фундамента.",
+    "availableNow": {
+      "adminSessions": "Session-aware модель доступа в админку с защищённым dashboard.",
+      "twoFactor": "Вход email/password, жёстко завязанный на 2FA flow.",
+      "antiPhishing": "Примитивы anti-phishing code и profile security signals.",
+      "authHardening": "Role-based access checks и усиленный session flow."
+    },
+    "nextModules": {
+      "sessionAnomalies": "Детекция подозрительных сессий и очередь на review.",
+      "securityPosture": "Центральный posture dashboard для доверия и auth-health.",
+      "privilegedReasons": "Фиксация причин для чувствительных admin-действий.",
+      "deviceTrust": "Device trust и контроль доверенных операторских рабочих мест."
+    }
+  },
+  "governance": {
+    "metaTitle": "Контроль - Ozoxy Admin",
+    "title": "Governance И Аудит",
+    "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
+    "currentState": "Audit logs, webhook logs и admin invites уже доступны. Не хватает staff directory management и system configuration governance.",
+    "backendCoverage": "Частичное покрытие. Видимость аудита сильная, но system configuration и богатые staff-management API пока отсутствуют.",
+    "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",
+    "availableNow": {
+      "auditLog": "Трасса привилегированных действий из backend audit log.",
+      "webhookLog": "Видимость обработки вебхуков и контекста ошибок.",
+      "adminInvites": "Жизненный цикл инвайтов для новых admin-сотрудников.",
+      "policyVisibility": "Базовая видимость уже существующих governance-поверхностей."
+    },
+    "nextModules": {
+      "adminDirectory": "Каталог сотрудников с ролями, статусами и зонами ответственности.",
+      "staffRoleChanges": "Workflow смены ролей и история согласований.",
+      "systemConfig": "Редактор системных настроек с safety-ограничениями.",
+      "forensicFilters": "Глубокие фильтры и forensic-инструменты расследования."
+    }
+  },
+  "integrations": {
+    "metaTitle": "Интеграции - Ozoxy Admin",
+    "title": "Операции Интеграций",
+    "description": "Поверхность для Telegram, realtime-доставки, bot-linked flows и видимости callback-событий.",
+    "currentState": "Backend уже экспонирует Telegram, bot и webhook-возможности, но операторская видимость по ним пока раскидана по нескольким зонам.",
+    "backendCoverage": "Частичное покрытие. Значимые integration-примитивы уже есть, но admin UI ещё нужно собрать в единый diagnostic слой.",
+    "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и realtime diagnostics.",
+    "availableNow": {
+      "telegramOps": "Telegram-связанные operational и auth-примитивы.",
+      "botConfigAccess": "Пути доступа к bot configuration и смежному backend coverage.",
+      "realtimeTopics": "Realtime- и websocket-driven event topics.",
+      "websocketTickets": "Низкоуровневые websocket- и callback-сигналы, уже видимые в backend-доменах."
+    },
+    "nextModules": {
+      "pushVisibility": "Видимость push- и outbound-delivery.",
+      "deliveryDiagnostics": "Диагностика интеграций и drill-down по ошибкам.",
+      "integrationHealth": "Сводное здоровье внешних интеграций и callback-потоков.",
+      "opsNotifications": "Маршрутизация операторских уведомлений и эскалаций."
+    }
+  }
+}

@@ -1,9 +1,10 @@
 """Infrastructure repository for partner_codes and partner_earnings tables."""
 
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.partner_model import (
@@ -35,6 +36,15 @@ class PartnerRepository:
     async def get_codes_by_partner(self, partner_user_id: UUID) -> list[PartnerCodeModel]:
         result = await self._session.execute(
             select(PartnerCodeModel).where(PartnerCodeModel.partner_user_id == partner_user_id)
+        )
+        return list(result.scalars().all())
+
+    async def get_codes_by_partners(self, partner_user_ids: list[UUID]) -> list[PartnerCodeModel]:
+        if not partner_user_ids:
+            return []
+
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(PartnerCodeModel.partner_user_id.in_(partner_user_ids))
         )
         return list(result.scalars().all())
 
@@ -80,3 +90,75 @@ class PartnerRepository:
             )
         )
         return result.scalar_one() or Decimal(0)
+
+    async def get_partner_stats_map(self, partner_user_ids: list[UUID]) -> dict[UUID, dict[str, Any]]:
+        if not partner_user_ids:
+            return {}
+
+        code_stats_result = await self._session.execute(
+            select(
+                PartnerCodeModel.partner_user_id.label("partner_user_id"),
+                func.count(PartnerCodeModel.id).label("code_count"),
+                func.sum(case((PartnerCodeModel.is_active == True, 1), else_=0)).label("active_code_count"),  # noqa: E712
+                func.max(PartnerCodeModel.updated_at).label("last_code_at"),
+            )
+            .where(PartnerCodeModel.partner_user_id.in_(partner_user_ids))
+            .group_by(PartnerCodeModel.partner_user_id)
+        )
+
+        earning_stats_result = await self._session.execute(
+            select(
+                PartnerEarningModel.partner_user_id.label("partner_user_id"),
+                func.count(distinct(PartnerEarningModel.client_user_id)).label("total_clients"),
+                func.coalesce(func.sum(PartnerEarningModel.total_earning), 0).label("total_earned"),
+                func.max(PartnerEarningModel.created_at).label("last_earning_at"),
+            )
+            .where(PartnerEarningModel.partner_user_id.in_(partner_user_ids))
+            .group_by(PartnerEarningModel.partner_user_id)
+        )
+
+        stats: dict[UUID, dict[str, Any]] = {
+            user_id: {
+                "code_count": 0,
+                "active_code_count": 0,
+                "total_clients": 0,
+                "total_earned": Decimal(0),
+                "last_activity_at": None,
+            }
+            for user_id in partner_user_ids
+        }
+
+        for row in code_stats_result:
+            entry = stats.setdefault(
+                row.partner_user_id,
+                {
+                    "code_count": 0,
+                    "active_code_count": 0,
+                    "total_clients": 0,
+                    "total_earned": Decimal(0),
+                    "last_activity_at": None,
+                },
+            )
+            entry["code_count"] = int(row.code_count or 0)
+            entry["active_code_count"] = int(row.active_code_count or 0)
+            entry["last_activity_at"] = row.last_code_at
+
+        for row in earning_stats_result:
+            entry = stats.setdefault(
+                row.partner_user_id,
+                {
+                    "code_count": 0,
+                    "active_code_count": 0,
+                    "total_clients": 0,
+                    "total_earned": Decimal(0),
+                    "last_activity_at": None,
+                },
+            )
+            entry["total_clients"] = int(row.total_clients or 0)
+            entry["total_earned"] = Decimal(str(row.total_earned or 0))
+            if row.last_earning_at and (
+                entry["last_activity_at"] is None or row.last_earning_at > entry["last_activity_at"]
+            ):
+                entry["last_activity_at"] = row.last_earning_at
+
+        return stats

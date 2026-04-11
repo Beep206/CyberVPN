@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
+from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.oauth_login import OAuthLoginResult
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
@@ -23,8 +24,10 @@ from src.presentation.middleware.rate_limit import RateLimitMiddleware
 def oauth_route_dependencies():
     """Override OAuth route dependencies with in-memory doubles."""
     redis_client = AsyncMock()
-    db = AsyncMock()
-    auth_service = MagicMock()
+    db = MagicMock()
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+    auth_service = AuthService()
     remnawave_adapter = MagicMock()
 
     async def override_db():
@@ -99,6 +102,7 @@ def _make_oauth_user(**overrides):
         "is_email_verified": True,
         "created_at": datetime.now(UTC),
         "role": "viewer",
+        "language": "en-EN",
         "totp_enabled": False,
     }
     payload.update(overrides)
@@ -146,9 +150,12 @@ class TestOAuthLoginRoutes:
         oauth_route_dependencies,
     ):
         user = _make_oauth_user()
+        auth_service = AuthService()
+        access_token = auth_service.create_access_token_simple(subject=str(user.id), role=user.role)
+        refresh_token = auth_service.create_refresh_token_simple(subject=str(user.id))
         oauth_result = OAuthLoginResult(
-            access_token="access_token_value",
-            refresh_token="refresh_token_value",
+            access_token=access_token,
+            refresh_token=refresh_token,
             token_type="bearer",
             expires_in=3600,
             user=user,
@@ -176,6 +183,8 @@ class TestOAuthLoginRoutes:
                 "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
                 new=AsyncMock(return_value=oauth_result),
             ),
+            patch("src.presentation.api.v1.oauth.routes.sync_active_sessions", new=AsyncMock()),
+            patch("src.presentation.api.v1.oauth.routes.sync_auth_security_posture", new=AsyncMock()),
         ):
             response = await async_client.post(
                 "/api/v1/oauth/google/login/callback",
@@ -184,11 +193,11 @@ class TestOAuthLoginRoutes:
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["access_token"] == "access_token_value"
-        assert payload["refresh_token"] == "refresh_token_value"
+        assert payload["access_token"] == access_token
+        assert payload["refresh_token"] == refresh_token
         assert payload["requires_2fa"] is False
         assert payload["user"]["login"] == "neo"
-        assert "access_token=access_token_value" in "\n".join(response.headers.get_list("set-cookie"))
+        assert f"access_token={access_token}" in "\n".join(response.headers.get_list("set-cookie"))
         mock_exchange_code.assert_awaited_once_with(
             code="google_code_123",
             redirect_uri="https://vpn.ozoxy.ru/api/oauth/callback/google",
@@ -234,6 +243,7 @@ class TestOAuthLoginRoutes:
                 "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
                 new=AsyncMock(return_value=oauth_result),
             ),
+            patch("src.presentation.api.v1.oauth.routes.sync_auth_security_posture", new=AsyncMock()),
         ):
             response = await async_client.post(
                 "/api/v1/oauth/github/login/callback",

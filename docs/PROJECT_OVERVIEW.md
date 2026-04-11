@@ -680,9 +680,9 @@ docker compose --profile proxy up -d
 
 ### Dockerfiles
 
-- **Backend:** `python:3.13-slim`, single-stage, порт 8000
-- **Task Worker:** multi-stage (builder + runtime), `python:3.13-slim`, healthcheck, 2 воркера
-- **Telegram Bot:** multi-stage, non-root пользователь `botuser`, порт метрик 9092
+- **Backend:** `python:3.13.13-slim-bookworm`, multi-stage, порт 8000
+- **Task Worker:** multi-stage (builder + runtime), `python:3.13.13-slim-bookworm`, healthcheck, 2 воркера
+- **Telegram Bot:** multi-stage, `python:3.13.13-slim-bookworm`, non-root пользователь `botuser`, порт метрик 9092
 
 ---
 
@@ -805,7 +805,7 @@ docker compose --profile proxy up -d
 
 | Категория | Технологии |
 |-----------|------------|
-| Язык | Python 3.13+, async/await, type hints |
+| Язык | Python 3.13.13, async/await, type hints |
 | Фреймворк | FastAPI, Pydantic v2, Uvicorn |
 | Архитектура | Clean Architecture, DDD, SOLID, Repository Pattern |
 | ORM | SQLAlchemy 2.0 (async), Alembic |
@@ -935,7 +935,7 @@ docker compose --profile proxy up -d
 | Категория | Технологии |
 |-----------|------------|
 | Фреймворк | aiogram 3.x |
-| Язык | Python 3.13+, async/await |
+| Язык | Python 3.13.13, async/await |
 | FSM | Redis-backed Finite State Machine |
 | Платежи | Telegram Stars, CryptoBot API |
 | i18n | Fluent (fluent.runtime) |
@@ -1038,7 +1038,7 @@ docker compose --profile proxy up -d
 
 | Роль | Уровень | Приоритет | Ключевые технологии |
 |------|---------|-----------|---------------------|
-| Backend Python Developer | Senior | Критичный | Python 3.13, FastAPI, SQLAlchemy, DDD, PostgreSQL |
+| Backend Python Developer | Senior | Критичный | Python 3.13.13, FastAPI, SQLAlchemy, DDD, PostgreSQL |
 | Frontend Next.js Developer | Middle–Senior | Критичный | Next.js 16, React 19, Three.js, TypeScript, Tailwind |
 | Flutter Mobile Developer | Middle–Senior | Высокий | Flutter, Riverpod, V2Ray, RevenueCat |
 | DevOps Engineer | Middle–Senior | Высокий | Docker, Prometheus, Grafana, Linux, CI/CD |
