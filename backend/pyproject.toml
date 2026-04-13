@@ -27,7 +27,7 @@ dependencies = [
     # SEC: CVE-2026-0994 - protobuf vulnerability fix
     "protobuf>=6.33.5",
     # Metrics and monitoring
-    "prometheus-client>=0.20.0",
+    "prometheus-client>=0.25.0",
     "sentry-sdk[fastapi]>=2.0.0",
     # OpenTelemetry tracing
     "opentelemetry-api>=1.20.0",
