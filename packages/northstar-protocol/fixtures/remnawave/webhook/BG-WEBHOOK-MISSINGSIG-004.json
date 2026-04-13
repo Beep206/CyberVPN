@@ -1,0 +1,7 @@
+{
+  "body": "{\"event\":\"account.updated\"}",
+  "case_id": "BG-WEBHOOK-MISSINGSIG-004",
+  "expected_error": "MissingSignature",
+  "signature_header": "",
+  "timestamp_header": "1775002200"
+}

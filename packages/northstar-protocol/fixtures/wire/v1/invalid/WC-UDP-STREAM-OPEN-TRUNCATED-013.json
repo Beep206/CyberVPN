@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-OPEN-TRUNCATED-013",
+  "expected_error": "Truncated",
+  "hex": "4043020701",
+  "suite": "WC"
+}

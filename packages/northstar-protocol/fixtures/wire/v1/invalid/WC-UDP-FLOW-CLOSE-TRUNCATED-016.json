@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-FLOW-CLOSE-TRUNCATED-016",
+  "expected_error": "LengthMismatch",
+  "hex": "0a07070004646f6e",
+  "suite": "WC"
+}

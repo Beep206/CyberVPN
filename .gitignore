@@ -23,6 +23,8 @@ dist/
 build/
 **/target/
 **/target-*/
+**/.rustc_info.json
+**/.cargo-lock
 
 # logs
 npm-debug.log*

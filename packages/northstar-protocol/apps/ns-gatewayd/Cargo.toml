@@ -1,0 +1,22 @@
+[package]
+name = "ns-gatewayd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+jsonwebtoken.workspace = true
+ns-auth = { path = "../../crates/ns-auth" }
+ns-carrier-h3 = { path = "../../crates/ns-carrier-h3" }
+ns-core = { path = "../../crates/ns-core" }
+ns-gateway-runtime = { path = "../../crates/ns-gateway-runtime" }
+ns-observability = { path = "../../crates/ns-observability" }
+ns-wire = { path = "../../crates/ns-wire" }
+serde_json.workspace = true
+time.workspace = true
+tokio.workspace = true
+tracing.workspace = true

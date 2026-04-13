@@ -1,0 +1,11 @@
+{
+  "case_id": "NS-FX-UDP-FLOW-CLOSE-DGRAMUNAVAIL-002",
+  "expected": {
+    "code": "UdpDatagramUnavailable",
+    "flow_id": 7,
+    "message": "udp datagram mode was unavailable and stream fallback was not allowed"
+  },
+  "frame_type": "UdpFlowClose",
+  "hex": "0a40490714404575647020646174616772616d206d6f64652077617320756e617661696c61626c6520616e642073747265616d2066616c6c6261636b20776173206e6f7420616c6c6f776564",
+  "suite": "WC"
+}

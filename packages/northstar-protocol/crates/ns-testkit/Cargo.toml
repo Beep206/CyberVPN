@@ -1,0 +1,36 @@
+[package]
+name = "ns-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+base64.workspace = true
+bytes.workspace = true
+ed25519-dalek.workspace = true
+hex.workspace = true
+jsonwebtoken.workspace = true
+ns-auth = { path = "../ns-auth" }
+ns-bridge-api = { path = "../ns-bridge-api" }
+ns-bridge-domain = { path = "../ns-bridge-domain" }
+ns-carrier-h3 = { path = "../ns-carrier-h3" }
+ns-client-runtime = { path = "../ns-client-runtime" }
+ns-core = { path = "../ns-core" }
+ns-gateway-runtime = { path = "../ns-gateway-runtime" }
+ns-manifest = { path = "../ns-manifest" }
+ns-policy = { path = "../ns-policy" }
+ns-remnawave-adapter = { path = "../ns-remnawave-adapter" }
+ns-session = { path = "../ns-session" }
+ns-storage = { path = "../ns-storage" }
+ns-wire = { path = "../ns-wire" }
+rand.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+time.workspace = true
+tokio.workspace = true
+url.workspace = true

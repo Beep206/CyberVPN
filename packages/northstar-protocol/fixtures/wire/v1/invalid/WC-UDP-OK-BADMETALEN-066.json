@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-BADMETALEN-066",
+  "expected_error": "Truncated",
+  "hex": "090a07017a9844b001010478",
+  "suite": "WC"
+}

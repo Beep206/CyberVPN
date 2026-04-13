@@ -1,0 +1,11 @@
+{
+  "case_id": "NS-FX-UDP-STREAM-CLOSE-001",
+  "expected": {
+    "code": "NoError",
+    "flow_id": 7,
+    "message": "done"
+  },
+  "frame_type": "UdpStreamClose",
+  "hex": "404607070004646f6e65",
+  "suite": "WC"
+}

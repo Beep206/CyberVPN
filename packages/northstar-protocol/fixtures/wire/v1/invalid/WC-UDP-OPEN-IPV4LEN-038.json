@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OPEN-IPV4LEN-038",
+  "expected_error": "Validation",
+  "hex": "080b0702037f0000357a980300",
+  "suite": "WC"
+}

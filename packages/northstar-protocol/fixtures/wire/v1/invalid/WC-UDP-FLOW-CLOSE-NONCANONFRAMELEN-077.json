@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-FLOW-CLOSE-NONCANONFRAMELEN-077",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "0a4007070004646f6e65",
+  "suite": "WC"
+}

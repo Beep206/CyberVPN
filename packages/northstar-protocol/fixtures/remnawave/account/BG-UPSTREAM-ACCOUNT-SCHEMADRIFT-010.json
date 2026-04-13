@@ -1,0 +1,31 @@
+{
+  "account_id": "acct-1",
+  "bootstrap_subjects": [
+    {
+      "ShortUuid": "sub-1"
+    }
+  ],
+  "lifecycle": "Active",
+  "northstar_access": {
+    "northstar_enabled": true,
+    "policy_epoch": "7",
+    "device_limit": 2,
+    "allowed_core_versions": [
+      1
+    ],
+    "allowed_carrier_profiles": [
+      "carrier-primary"
+    ],
+    "allowed_capabilities": [
+      1,
+      2
+    ],
+    "rollout_cohort": "alpha",
+    "preferred_regions": [
+      "eu-central"
+    ]
+  },
+  "metadata": null,
+  "observed_at_unix": 1700000000,
+  "source_version": "2.7.4"
+}

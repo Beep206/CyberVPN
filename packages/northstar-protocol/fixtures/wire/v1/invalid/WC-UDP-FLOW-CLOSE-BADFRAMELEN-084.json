@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-FLOW-CLOSE-BADFRAMELEN-084",
+  "expected_error": "LengthMismatch",
+  "hex": "0a08070004646f6e65",
+  "suite": "WC"
+}

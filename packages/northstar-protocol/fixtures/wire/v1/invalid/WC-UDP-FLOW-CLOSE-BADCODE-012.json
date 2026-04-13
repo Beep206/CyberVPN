@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-FLOW-CLOSE-BADCODE-012",
+  "expected_error": "Validation",
+  "hex": "0a0d074063096261642d636c6f7365",
+  "suite": "WC"
+}

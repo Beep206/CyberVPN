@@ -1,0 +1,7 @@
+{
+  "body": "{\"event\":\"account.updated\"}",
+  "case_id": "BG-WEBHOOK-BADSIG-003",
+  "expected_error": "InvalidSignature",
+  "signature_header": "sig-bad",
+  "timestamp_header": "1775002200"
+}

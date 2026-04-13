@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-DGRAM-RESERVEDFLAGS-008",
+  "expected_error": "Validation",
+  "hex": "07016f76657273697a6564",
+  "suite": "WC"
+}

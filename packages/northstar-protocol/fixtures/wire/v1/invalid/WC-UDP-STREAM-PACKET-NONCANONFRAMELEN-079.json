@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-PACKET-NONCANONFRAMELEN-079",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "4045400d0c646e732d66616c6c6261636b",
+  "suite": "WC"
+}

@@ -1,0 +1,23 @@
+[package]
+name = "ns-gateway-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+ns-auth = { path = "../ns-auth" }
+ns-carrier-h3 = { path = "../ns-carrier-h3" }
+ns-core = { path = "../ns-core" }
+ns-observability = { path = "../ns-observability" }
+ns-policy = { path = "../ns-policy" }
+ns-session = { path = "../ns-session" }
+ns-wire = { path = "../ns-wire" }
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tracing-subscriber.workspace = true

@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-ZEROMAXPAYLOAD-049",
+  "expected_error": "Validation",
+  "hex": "090607017a980000",
+  "suite": "WC"
+}

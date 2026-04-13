@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-CLOSE-BADFRAMELEN-083",
+  "expected_error": "LengthMismatch",
+  "hex": "404608070004646f6e65",
+  "suite": "WC"
+}

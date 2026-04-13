@@ -1,0 +1,11 @@
+{
+  "case_id": "NS-FX-UDP-FLOW-CLOSE-PROTOVIOL-003",
+  "expected": {
+    "code": "ProtocolViolation",
+    "flow_id": 7,
+    "message": "udp flow id 7 is not active"
+  },
+  "frame_type": "UdpFlowClose",
+  "hex": "0a1e07011b75647020666c6f772069642037206973206e6f7420616374697665",
+  "suite": "WC"
+}

@@ -1,0 +1,4 @@
+artifacts/
+corpus/
+fuzz_regressions/
+target/

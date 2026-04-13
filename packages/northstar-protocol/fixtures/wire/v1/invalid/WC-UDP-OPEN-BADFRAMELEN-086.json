@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OPEN-BADFRAMELEN-086",
+  "expected_error": "LengthMismatch",
+  "hex": "081807010f646e732e6578616d706c652e6e6574357a980300",
+  "suite": "WC"
+}

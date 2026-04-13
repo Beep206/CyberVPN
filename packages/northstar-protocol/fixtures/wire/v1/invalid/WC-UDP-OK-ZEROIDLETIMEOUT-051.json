@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-ZEROIDLETIMEOUT-051",
+  "expected_error": "Validation",
+  "hex": "090607010044b000",
+  "suite": "WC"
+}

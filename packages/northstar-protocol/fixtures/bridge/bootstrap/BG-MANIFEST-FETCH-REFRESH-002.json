@@ -1,0 +1,6 @@
+{
+  "authorization_header": "Bearer rfr_fixture_123",
+  "case_id": "BG-MANIFEST-FETCH-REFRESH-002",
+  "expected_mode": "refresh",
+  "subscription_token": null
+}

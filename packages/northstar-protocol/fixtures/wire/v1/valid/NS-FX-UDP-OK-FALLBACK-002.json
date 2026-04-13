@@ -1,0 +1,12 @@
+{
+  "case_id": "NS-FX-UDP-OK-FALLBACK-002",
+  "expected": {
+    "effective_idle_timeout_ms": 15000,
+    "effective_max_payload": 1200,
+    "flow_id": 7,
+    "transport_mode": "stream_fallback"
+  },
+  "frame_type": "UdpFlowOk",
+  "hex": "090707027a9844b000",
+  "suite": "WC"
+}

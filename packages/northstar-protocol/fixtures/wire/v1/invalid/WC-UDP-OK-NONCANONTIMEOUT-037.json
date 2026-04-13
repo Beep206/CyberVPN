@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-NONCANONTIMEOUT-037",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "0909070180003a9844b000",
+  "suite": "WC"
+}

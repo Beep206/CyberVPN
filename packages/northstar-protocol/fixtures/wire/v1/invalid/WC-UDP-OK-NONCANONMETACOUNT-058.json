@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-NONCANONMETACOUNT-058",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "090807017a9844b04000",
+  "suite": "WC"
+}
